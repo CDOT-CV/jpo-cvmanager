@@ -4,11 +4,6 @@ services:
     build: ./api
     image: jpo_cvmanager_api:latest
     restart: always
-    networks:
-      internal:
-    extra_hosts:
-      cvmanager.local.com: ${WEBAPP_HOST_IP}
-      cvmanager.auth.com: ${KC_HOST_IP}
     ports:
       - '8081:8080'
     environment:
@@ -31,7 +26,7 @@ services:
       BSM_DB_NAME: ${BSM_DB_NAME}
       SSM_DB_NAME: ${SSM_DB_NAME}
       SRM_DB_NAME: ${SRM_DB_NAME}
-      KEYCLOAK_ENDPOINT: http://cvmanager.auth.com:8084/
+      KEYCLOAK_ENDPOINT: http://${KC_HOST_IP}:8084/
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_API_CLIENT_ID: ${KEYCLOAK_API_CLIENT_ID}
       KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
@@ -54,11 +49,6 @@ services:
     depends_on:
       cvmanager_keycloak:
         condition: service_healthy
-    networks:
-      internal:
-    extra_hosts:
-      cvmanager.local.com: ${WEBAPP_HOST_IP}
-      cvmanager.auth.com: ${KC_HOST_IP}
     ports:
       - '80:80'
     logging:
@@ -86,26 +76,19 @@ services:
     restart: always
     depends_on:
       - cvmanager_postgres
-    networks:
-      internal:
-    extra_hosts:
-      cvmanager.local.com: ${WEBAPP_HOST_IP}
-      cvmanager.auth.com: ${KC_HOST_IP}
     ports:
       - '8084:8080'
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      WEBAPP_ORIGIN: http://cvmanager.local.com
+      WEBAPP_ORIGIN: http://${PG_DB_IP}
       KC_HEALTH_ENABLED: true
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://${PG_D B_IP}:5432/postgres
-      KC_DB_USERNAME: ${PG_DB_USER}
-      KC_DB_PASSWORD: ${PG_DB_PASS}
-      KC_HOSTNAME: cvmanager.auth.com
+      KC_DB_URL: jdbc:postgresql://${PG_DB_IP}:5432/postgres
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASS}
+      KC_HOSTNAME: ${WEBAPP_HOST_IP}
       KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     command:
       - start-dev
       - --log-level=${KC_LOGGING_LEVEL}
@@ -119,6 +102,3 @@ services:
 volumes:
   pgdb:
     driver: local
-
-networks:
-  internal:
