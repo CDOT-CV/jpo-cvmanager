@@ -130,10 +130,10 @@ class RsuQueryCounts(Resource):
             "end", default=((datetime.now()).strftime("%Y-%m-%dT%H:%M:%S"))
         )
         # Validate request with supported message types
-        msgList = ["SSM", "BSM", "SPAT", "SRM", "MAP"]
+        msgList = ["TIM", "BSM", "SPAT", "PSM", "MAP"]
         if message.upper() not in msgList:
             return (
-                "Invalid Message Type.\nValid message types: SSM, BSM, SPAT, SRM, MAP",
+                "Invalid Message Type.\nValid message types: TIM, BSM, SPAT, PSM, MAP",
                 400,
                 self.headers,
             )

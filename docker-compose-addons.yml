@@ -1,0 +1,136 @@
+version: '3'
+services:
+  cvmanager_api:
+    build: ./api
+    image: jpo_cvmanager_api:latest
+    restart: always
+    ports:
+      - '8081:8080'
+    environment:
+      DB_HOST: ${HOST_IP}:5432
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      INSTANCE_CONNECTION_NAME: ${INSTANCE_CONNECTION_NAME}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
+      RSU_REST_ENDPOINT: ${RSU_REST_ENDPOINT}
+      MSG_COUNTS_DB: ${MSG_COUNTS_DB}
+      GEO_BSM_DB_TYPE: ${GEO_BSM_DB_TYPE}
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_COUNTS_COLLECTION: ${MONGO_COUNTS_COLLECTION}
+      TIMEZONE: ${TIMEZONE}
+      WZDX_API_KEY: ${WZDX_API_KEY}
+      WZDX_ENDPOINT: ${WZDX_ENDPOINT}
+      BSM_DB_NAME: ${BSM_DB_NAME}
+      SSM_DB_NAME: ${SSM_DB_NAME}
+      SRM_DB_NAME: ${SRM_DB_NAME}
+      KEYCLOAK_ENDPOINT: http://${HOST_IP}:8084/
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_API_CLIENT_ID: ${KEYCLOAK_API_CLIENT_ID}
+      KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  # Make sure to fill out the env file in the webapp directory
+  cvmanager_webapp:
+    build: ./webapp
+    image: jpo_cvmanager_webapp:latest
+    restart: always
+    ports:
+      - '80:80'
+    logging:
+      options:
+        max-size: '10m'
+
+  cvmanager_postgres:
+    image: postgis/postgis:15-master
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - pgdb:/var/lib/postgresql/data
+      - ./documents/sql_scripts:/docker-entrypoint-initdb.d
+    logging:
+      options:
+        max-size: '10m'
+
+  cvmanager_keycloak:
+    image: quay.io/keycloak/keycloak:21.1
+    restart: always
+    depends_on:
+      - cvmanager_postgres
+    ports:
+      - '8084:8080'
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      WEBAPP_ORIGIN: http://${HOST_IP}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${HOST_IP}:5432/postgres
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASS}
+      KC_HOSTNAME: ${HOST_IP}
+      KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
+    command:
+      - start-dev
+      - --log-level=${LOGGING_LEVEL}
+      - --import-realm
+    volumes:
+      - ./documents/keycloak/realm.json:/opt/keycloak/data/import/realm.json
+      - ./documents/keycloak/cv-manager-keycloak-theme.jar:/opt/keycloak/providers/cv-manager-keycloak-theme.jar
+    logging:
+      options:
+        max-size: '10m'
+
+  # ADDONS:
+  jpo_bsm_query:
+    build:
+      context: ./addons/images/bsm_query
+      dockerfile: Dockerfile
+    image: jpo_bsm_query:latest
+    restart: always
+    env_file:
+      - ./addons/images/bsm_query/.env
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  jpo_count_metric:
+    build:
+      context: ./addons/images/count_metric
+      dockerfile: Dockerfile
+    image: jpo_kafka_counter:latest
+    restart: always
+    env_file:
+      - ./addons/images/count_metric/.env
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  jpo_rsu_ping_fetch:
+    build:
+      context: ./addons/images/rsu_ping_fetch
+      dockerfile: Dockerfile
+    image: jpo_kafka_counter:latest
+    restart: always
+    depends_on:
+      - cvmanager_postgres
+    env_file:
+      - ./addons/images/rsu_ping_fetch/.env
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+volumes:
+  pgdb:
+    driver: local

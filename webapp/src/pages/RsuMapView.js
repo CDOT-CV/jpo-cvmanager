@@ -43,9 +43,9 @@ function RsuMapView(props) {
     features: [],
   })
 
-  useEffect(() => {
-    dispatch(getSsmSrmData())
-  }, [dispatch])
+  // useEffect(() => {
+  //   dispatch(getSsmSrmData())
+  // }, [dispatch])
 
   useEffect(() => {
     let localSrmCount = 0
