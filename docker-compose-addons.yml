@@ -8,8 +8,8 @@ services:
       - '8081:8080'
     environment:
       DB_HOST: ${PG_DB_IP}:5432
-      DB_USER: ${PG_PH_DB_USER}
-      DB_PASS: ${PG_PH_DB_PASS}
+      DB_USER: ${PG_DB_USER}
+      DB_PASS: ${PG_DB_PASS}
       DB_NAME: ${PG_DB_NAME}
       INSTANCE_CONNECTION_NAME: ${INSTANCE_CONNECTION_NAME}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
@@ -61,8 +61,8 @@ services:
     ports:
       - '5432:5432'
     environment:
-      POSTGRES_USER: ${PH_DB_USER}
-      POSTGRES_PASSWORD: ${PH_DB_PASS}
+      POSTGRES_USER: ${PG_DB_USER}
+      POSTGRES_PASSWORD: ${PG_DB_PASS}
     volumes:
       - pgdb:/var/lib/postgresql/data
       - ./documents/sql_scripts:/docker-entrypoint-initdb.d
@@ -71,7 +71,8 @@ services:
         max-size: '10m'
 
   cvmanager_keycloak:
-    image: quay.io/keycloak/keycloak:21.1
+    build: ./resources/keycloak
+    image: jpo_cvmanager_keycloak:21.1
     restart: always
     depends_on:
       - cvmanager_postgres
@@ -84,13 +85,13 @@ services:
       KC_HEALTH_ENABLED: true
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://${PG_DB_IP}:5432/postgres
-      KC_DB_USERNAME: ${PH_DB_USER}
-      KC_DB_PASSWORD: ${PH_DB_PASS}
+      KC_DB_USERNAME: ${PG_DB_USER}
+      KC_DB_PASSWORD: ${PG_DB_PASS}
       KC_HOSTNAME: ${WEBAPP_HOST_IP}
       KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
     command:
       - start-dev
-      - --log-level=${LOGGING_LEVEL}
+      - --log-level=${KC_LOGGING_LEVEL}
       - --import-realm
     volumes:
       - ./resources/keycloak/realm.json:/opt/keycloak/data/import/realm.json
