@@ -44,7 +44,7 @@ const App = () => {
   useEffect(() => {
     console.debug('useEffect')
     keycloak
-      .updateToken(5)
+      .updateToken(300)
       .then(function (refreshed) {
         if (refreshed) {
           console.debug('Token was successfully refreshed')
@@ -81,7 +81,7 @@ const App = () => {
         <Grid container id="content-grid" alignItems="center">
           <Header />
           {authLoginData && keycloak?.authenticated ? (
-            <Tabs isLoginActive={keycloak?.authenticated}>
+            <Tabs>
               <div label="RSU Map">
                 {displayMap ? null : <Menu />}
                 {displayMap ? <RsuMapView auth={true} /> : <Map auth={true} />}
