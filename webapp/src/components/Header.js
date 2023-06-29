@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Grid from '@material-ui/core/Grid'
 import { GoogleLogin } from '@react-oauth/google'
 // import './Menu.js'
-import logo from '../images/cdot_logo.png'
+import logo from '../images/njdot_logo.png'
 import EnvironmentVars from '../EnvironmentVars'
 import { useSelector, useDispatch } from 'react-redux'
 import {
@@ -57,7 +57,7 @@ const Header = () => {
         <header id="header">
           <Grid container alignItems="center">
             <img id="logo" src={logo} alt="Logo" />
-            <h1 id="header-text">CDOT CV Manager</h1>
+            <h1 id="header-text">NJDOT CV Manager</h1>
             <div id="login">
               <Grid container alignItems="center">
                 <Grid id="userInfoGrid">
@@ -87,7 +87,7 @@ const Header = () => {
           <Grid container id="frontgrid" alignItems="center" direction="column">
             <Grid container justifyContent="center" alignItems="center">
               <img id="frontpagelogo" src={logo} alt="Logo" />
-              <h1 id="header-text">CDOT CV Manager</h1>
+              <h1 id="header-text">NJDOT CV Manager</h1>
             </Grid>
 
             <div id="keycloakbtndiv">
