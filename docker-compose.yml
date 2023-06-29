@@ -65,7 +65,7 @@ services:
       POSTGRES_PASSWORD: ${PG_DB_PASS}
     volumes:
       - pgdb:/var/lib/postgresql/data
-      - ./documents/sql_scripts:/docker-entrypoint-initdb.d
+      - ./resources/sql_scripts:/docker-entrypoint-initdb.d
     logging:
       options:
         max-size: '10m'
