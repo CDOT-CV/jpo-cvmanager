@@ -187,6 +187,11 @@ function MapPage(props) {
     dispatch(selectRsu(null))
   }, [organization, dispatch])
 
+  // TODO: REMOVE THIS, DEBUGGING CODE
+  useEffect(() => {
+    console.debug(heatMapData)
+  }, [heatMapData])
+
   // useEffects for BSM layer
   useEffect(() => {
     const localBaseDate = new Date(startBsmDate)

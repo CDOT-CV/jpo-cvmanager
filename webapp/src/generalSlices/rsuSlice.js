@@ -124,6 +124,7 @@ export const _getRsuCounts = createAsyncThunk('rsu/_getRsuCounts', async (_, { g
     start: currentState.rsu.value.startDate,
     end: currentState.rsu.value.endDate,
   }
+  console.debug('getRsuCounts query params:', query_params)
   const rsuCounts =
     (await CdotApi.getRsuCounts(token, organization, '', query_params)) ?? currentState.rsu.value.rsuCounts
   const countList = Object.entries(rsuCounts).map(([key, value]) => {
@@ -341,6 +342,7 @@ export const rsuSlice = createSlice({
         }
       })
       .addCase(getRsuData.fulfilled, (state) => {
+        console.debug('getRsuData.fulfilled', state.value)
         const heatMapFeatures = []
         state.value.rsuData.forEach((rsu) => {
           heatMapFeatures.push({
@@ -359,6 +361,7 @@ export const rsuSlice = createSlice({
           })
         })
         state.value.heatMapData.features = heatMapFeatures
+        console.debug('heatMapData', heatMapFeatures)
         state.loading = false
       })
       .addCase(getRsuData.rejected, (state) => {
@@ -420,6 +423,7 @@ export const rsuSlice = createSlice({
         if (action.payload === null) return
         state.value.rsuCounts = action.payload.rsuCounts
         state.value.countList = action.payload.countList
+        console.debug('updateRowData.fulfilled', action.payload)
         state.value.heatMapData.features.forEach((feat, index) => {
           state.value.heatMapData.features[index].properties.count =
             feat.properties.ipv4_address in action.payload.rsuCounts
