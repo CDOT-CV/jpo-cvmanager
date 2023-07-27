@@ -20,6 +20,7 @@ services:
       COUNTS_DB_NAME: ${COUNTS_DB_NAME}
 
       BSM_DB_NAME: ${BSM_DB_NAME}
+      PSM_DB_NAME: ${PSM_DB_NAME}
       SSM_DB_NAME: ${SSM_DB_NAME}
       SRM_DB_NAME: ${SRM_DB_NAME}
 
