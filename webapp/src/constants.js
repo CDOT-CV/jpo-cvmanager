@@ -1,7 +1,7 @@
 export const MessageTypes = ['BSM', 'SSM', 'SPAT', 'SRM', 'MAP']
 export const DotName = 'CDOT'
 export const MapboxInitViewState = {
-  latitude: 39.7392,
-  longitude: -104.9903,
-  zoom: 10,
+  latitude: 40.2712,
+  longitude: -74.7809,
+  zoom: 15,
 }
