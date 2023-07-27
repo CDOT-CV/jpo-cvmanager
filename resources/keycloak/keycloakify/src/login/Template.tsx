@@ -1,13 +1,13 @@
 // Copy pasted from: https://github.com/InseeFrLab/keycloakify/blob/main/src/login/Template.tsx
 
-import { assert } from 'keycloakify/tools/assert'
-import { clsx } from 'keycloakify/tools/clsx'
-import { usePrepareTemplate } from 'keycloakify/lib/usePrepareTemplate'
-import { type TemplateProps } from 'keycloakify/login/TemplateProps'
-import { useGetClassName } from 'keycloakify/login/lib/useGetClassName'
-import type { KcContext } from './kcContext'
-import type { I18n } from './i18n'
-import logo from './assets/nj_logo.png'
+import { assert } from "keycloakify/tools/assert";
+import { clsx } from "keycloakify/tools/clsx";
+import { usePrepareTemplate } from "keycloakify/lib/usePrepareTemplate";
+import { type TemplateProps } from "keycloakify/login/TemplateProps";
+import { useGetClassName } from "keycloakify/login/lib/useGetClassName";
+import type { KcContext } from "./kcContext";
+import type { I18n } from "./i18n";
+import logo from "./assets/logo.png"
 
 export default function Template(props: TemplateProps<KcContext, I18n>) {
   const {

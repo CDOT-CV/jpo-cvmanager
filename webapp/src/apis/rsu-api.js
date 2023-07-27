@@ -1,8 +1,7 @@
 import EnvironmentVars from '../EnvironmentVars'
-import keycloak from '../keycloak-config'
 import apiHelper from './api-helper'
 
-class CdotApi {
+class RsuApi {
   // External Methods
   getRsuInfo = async (token, org, url_ext = '', query_params = {}) =>
     apiHelper._getData({
@@ -25,9 +24,9 @@ class CdotApi {
       query_params,
       additional_headers: { Organization: org },
     })
-  getRsuGoogleAuth = async (token, org, url_ext = '', query_params = {}) =>
+  getRsuAuth = async (token, org, url_ext = '', query_params = {}) =>
     apiHelper._getData({
-      url: EnvironmentVars.googleAuthEndpoint + url_ext,
+      url: EnvironmentVars.authEndpoint + url_ext,
       token,
       query_params,
       additional_headers: { Organization: org },
@@ -95,6 +94,6 @@ class CdotApi {
   }
 }
 
-const cdotApiObject = new CdotApi()
+const rsuApiObject = new RsuApi()
 
-export default cdotApiObject
+export default rsuApiObject

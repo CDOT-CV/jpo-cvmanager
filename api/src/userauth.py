@@ -5,7 +5,7 @@ from flask import request
 from flask_restful import Resource
 
 
-class userAuth(Resource):
+class UserAuth(Resource):
     options_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type,Authorization",

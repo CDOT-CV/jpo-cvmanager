@@ -19,9 +19,7 @@ def add_organization(org_spec):
         }, 500
 
     try:
-        org_insert_query = (
-            "INSERT INTO public.organizations(name) " f"VALUES ('{org_spec['name']}')"
-        )
+        org_insert_query = "INSERT INTO public.organizations(name) " f"VALUES ('{org_spec['name']}')"
         pgquery.insert_db(org_insert_query)
     except sqlalchemy.exc.IntegrityError as e:
         failed_value = e.orig.args[0]["D"]

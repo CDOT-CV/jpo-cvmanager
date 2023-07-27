@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock, patch, Mock
 from werkzeug.wrappers import Request, Response
-from src import middleware_keycloak
+from src import middleware
 import os
 
 
-@patch("src.middleware_keycloak.pgquery.query_db")
-@patch("src.middleware_keycloak.KeycloakOpenID")
+@patch("src.middleware.pgquery.query_db")
+@patch("src.middleware.KeycloakOpenID")
 def test_get_user_role_no_data(mock_keycloak, mock_query_db):
     mock_query_db.return_value = []
 
@@ -13,13 +13,13 @@ def test_get_user_role_no_data(mock_keycloak, mock_query_db):
     mock_instance.introspect.return_value = {"active": True}
     mock_instance.userinfo.return_value = {"email": "test@example.com"}
 
-    result = middleware_keycloak.get_user_role("dummy_token")
+    result = middleware.get_user_role("dummy_token")
 
     assert result == None
 
 
-@patch("src.middleware_keycloak.pgquery.query_db")
-@patch("src.middleware_keycloak.KeycloakOpenID")
+@patch("src.middleware.pgquery.query_db")
+@patch("src.middleware.KeycloakOpenID")
 def test_get_user_role_with_data(mock_keycloak, mock_query_db):
     # mock
     mock_query_db.return_value = ["test"]
@@ -27,18 +27,16 @@ def test_get_user_role_with_data(mock_keycloak, mock_query_db):
     mock_instance.introspect.return_value = {"active": True}
     mock_instance.userinfo.return_value = {"email": "test@example.com"}
 
-    result = middleware_keycloak.get_user_role("dummy_token")
+    result = middleware.get_user_role("dummy_token")
     # check
     expected_result = ["test"]
     assert result == expected_result
 
 
-@patch("src.middleware_keycloak.get_user_role")
-@patch("src.middleware_keycloak.Request")
-@patch("src.middleware_keycloak.KeycloakOpenID")
-def test_middleware_keycloak_class_call_options(
-    mock_kc, mock_request, mock_get_user_role
-):
+@patch("src.middleware.get_user_role")
+@patch("src.middleware.Request")
+@patch("src.middleware.KeycloakOpenID")
+def test_middleware_class_call_options(mock_kc, mock_request, mock_get_user_role):
     # mock
     mock_request.return_value.method = "OPTIONS"
     mock_request.return_value.path = "/user-auth"
@@ -59,36 +57,32 @@ def test_middleware_keycloak_class_call_options(
     app.assert_called_once_with(environ, start_response)
 
 
-@patch("src.middleware_keycloak.get_user_role")
-@patch("src.middleware_keycloak.Request")
-@patch("src.middleware_keycloak.Response")
-def test_middleware_keycloak_class_call_user_unauthorized(
-    mock_response, mock_request, mock_get_user_role
-):
+@patch("src.middleware.get_user_role")
+@patch("src.middleware.Request")
+@patch("src.middleware.Response")
+def test_middleware_class_call_user_unauthorized(mock_response, mock_request, mock_get_user_role):
     # create instance
     app = Mock()
-    middleware_keycloak_instance = middleware_keycloak.Middleware(app)
+    middleware_instance = middleware.Middleware(app)
     # call
     mock_get_user_role.return_value = None
     environ = {}
     start_response = Mock()
     # check
-    response = middleware_keycloak_instance(environ, start_response)
+    response = middleware_instance(environ, start_response)
     mock_response.assert_called_once_with("User unauthorized", status=401)
 
 
-@patch("src.middleware_keycloak.get_user_role")
-@patch("src.middleware_keycloak.Request")
-@patch("src.middleware_keycloak.Response")
-def test_middleware_keycloak_class_call_user_authorized(
-    mock_response, mock_request, mock_get_user_role
-):
+@patch("src.middleware.get_user_role")
+@patch("src.middleware.Request")
+@patch("src.middleware.Response")
+def test_middleware_class_call_user_authorized(mock_response, mock_request, mock_get_user_role):
     # create instance
     app = Mock()
     mock_request.return_value.method = "GET"
     mock_request.return_value.path = "/user-auth"
     mock_request.return_value.headers = {"Authorization": "test"}
-    middleware_keycloak_instance = middleware_keycloak.Middleware(app)
+    middleware_instance = middleware.Middleware(app)
     # call
     mock_get_user_role.return_value = [
         [
@@ -108,16 +102,14 @@ def test_middleware_keycloak_class_call_user_authorized(
     environ = {}
     start_response = Mock()
 
-    response = middleware_keycloak_instance(environ, start_response)
+    response = middleware_instance(environ, start_response)
     app.assert_called_once_with(environ, start_response)
 
 
-@patch("src.middleware_keycloak.Request")
-@patch("src.middleware_keycloak.Response")
-@patch("src.middleware_keycloak.KeycloakOpenID")
-def test_middleware_keycloak_class_call_exception(
-    mock_keycloak, mock_response, mock_request
-):
+@patch("src.middleware.Request")
+@patch("src.middleware.Response")
+@patch("src.middleware.KeycloakOpenID")
+def test_middleware_class_call_exception(mock_keycloak, mock_response, mock_request):
     # create instance
     app = Mock()
     mock_request.return_value.method = "GET"
@@ -134,8 +126,8 @@ def test_middleware_keycloak_class_call_exception(
 
     environ = {}
     start_response = Mock()
-    middleware_keycloak_instance = middleware_keycloak.Middleware(app)
-    result = middleware_keycloak_instance(environ, start_response)
+    middleware_instance = middleware.Middleware(app)
+    result = middleware_instance(environ, start_response)
 
     app.assert_not_called()
     mock_request.assert_called_once_with(environ)

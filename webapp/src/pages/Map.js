@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import mapboxgl from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
 import Map, { Marker, Popup, Source, Layer } from 'react-map-gl'
-import { Container, Col } from 'reactstrap'
+import { Container } from 'reactstrap'
 import RsuMarker from '../components/RsuMarker'
 import mbStyle from '../styles/mb_style.json'
 import EnvironmentVars from '../EnvironmentVars'
@@ -11,6 +11,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from 'rc-slider'
 import Select from 'react-select'
+import { MapboxInitViewState } from '../constants'
 import {
   selectRsuOnlineStatus,
   selectMapList,
@@ -113,11 +114,7 @@ function MapPage(props) {
   const wzdxData = useSelector(selectWzdxData)
 
   // Mapbox local state variables
-  const [viewState, setViewState] = useState({
-    latitude: 40.2712,
-    longitude: -74.7809,
-    zoom: 15,
-  })
+  const [viewState, setViewState] = useState(MapboxInitViewState)
 
   // RSU layer local state variables
   const [selectedRsuCount, setSelectedRsuCount] = useState(null)
@@ -399,25 +396,29 @@ function MapPage(props) {
     }
 
     const getAllMarkers = (wzdxData) => {
-      var i = -1
-      var markers = wzdxData.features.map((feature) => {
-        const localFeature = { ...feature }
-        var center_coords_index = Math.round(feature.geometry.coordinates.length / 2)
-        var lng = feature.geometry.coordinates[0][0]
-        var lat = feature.geometry.coordinates[0][1]
-        if (center_coords_index !== 1) {
-          lat = feature.geometry.coordinates[center_coords_index][1]
-          lng = feature.geometry.coordinates[center_coords_index][0]
-        } else {
-          lat = (feature.geometry.coordinates[0][1] + feature.geometry.coordinates[1][1]) / 2
-          lng = (feature.geometry.coordinates[0][0] + feature.geometry.coordinates[1][0]) / 2
-        }
-        i++
-        localFeature.properties = { ...feature.properties }
-        localFeature.properties.table = createPopupTable(getWzdxTable(feature))
-        return customMarker(localFeature, i, lat, lng)
-      })
-      return markers
+      if (wzdxData?.features?.length > 0) {
+        var i = -1
+        var markers = wzdxData.features.map((feature) => {
+          const localFeature = { ...feature }
+          var center_coords_index = Math.round(feature.geometry.coordinates.length / 2)
+          var lng = feature.geometry.coordinates[0][0]
+          var lat = feature.geometry.coordinates[0][1]
+          if (center_coords_index !== 1) {
+            lat = feature.geometry.coordinates[center_coords_index][1]
+            lng = feature.geometry.coordinates[center_coords_index][0]
+          } else {
+            lat = (feature.geometry.coordinates[0][1] + feature.geometry.coordinates[1][1]) / 2
+            lng = (feature.geometry.coordinates[0][0] + feature.geometry.coordinates[1][0]) / 2
+          }
+          i++
+          localFeature.properties = { ...feature.properties }
+          localFeature.properties.table = createPopupTable(getWzdxTable(feature))
+          return customMarker(localFeature, i, lat, lng)
+        })
+        return markers
+      } else {
+        return []
+      }
     }
 
     setWzdxMarkers(getAllMarkers(wzdxData))
@@ -519,7 +520,7 @@ function MapPage(props) {
         }
         setActiveLayers(activeLayers.filter((layerId) => layerId !== id))
       } else {
-        if (id === 'wzdx-layer' && wzdxData.features.length === 0) {
+        if (id === 'wzdx-layer' && wzdxData?.features?.length === 0) {
           dispatch(getWzdxData())
         }
         setActiveLayers([...activeLayers, id])

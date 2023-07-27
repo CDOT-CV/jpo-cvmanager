@@ -10,7 +10,6 @@ import Tabs from './components/Tabs'
 import Map from './pages/Map'
 import RsuMapView from './pages/RsuMapView'
 import './App.css'
-import { UserManager } from './managers'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   selectDisplayMap,
@@ -19,14 +18,7 @@ import {
   getRsuData,
   getRsuInfoOnly,
 } from './generalSlices/rsuSlice'
-import {
-  selectAuthLoginData,
-  selectRole,
-  selectLoadingGlobal,
-
-  // Actions
-  logout,
-} from './generalSlices/userSlice'
+import { selectAuthLoginData, selectRole, selectLoadingGlobal } from './generalSlices/userSlice'
 import { ReactKeycloakProvider } from '@react-keycloak/web'
 import keycloak from './keycloak-config'
 import { keycloakLogin } from './generalSlices/userSlice'
@@ -42,7 +34,6 @@ const App = () => {
   const loadingGlobal = useSelector(selectLoadingGlobal)
 
   useEffect(() => {
-    console.debug('useEffect')
     keycloak
       .updateToken(300)
       .then(function (refreshed) {
@@ -55,7 +46,7 @@ const App = () => {
       .catch(function () {
         console.debug('Failed to refresh the token, or the session has expired')
       })
-  }, [keycloak])
+  }, [])
 
   useEffect(() => {
     // Refresh Data
@@ -67,10 +58,9 @@ const App = () => {
       initOptions={{ onLoad: 'login-required' }}
       authClient={keycloak}
       onTokens={({ token }) => {
-        console.debug('onTokens loginDispatched:', loginDispatched, token)
         // Logic to prevent multiple login triggers
         if (!loginDispatched && token) {
-          console.debug('Keycloak token update')
+          console.debug('onTokens loginDispatched:')
           dispatch(keycloakLogin(token))
           loginDispatched = true
         }

@@ -18,10 +18,8 @@ def get_user_role(token):
 
     if introspect["active"]:
         userinfo = keycloak_openid.userinfo(token)
-        logging.info(userinfo)
 
         email = userinfo["email"]
-
         query = (
             "SELECT jsonb_build_object('email', u.email, 'first_name', u.first_name, 'last_name', u.last_name, 'organization', org.name, 'role', roles.name, 'super_user', u.super_user) "
             "FROM public.users u "
@@ -88,9 +86,7 @@ class Middleware:
 
                 # Parse the organization permissions
                 for org in data:
-                    user_info["organizations"].append(
-                        {"name": org[0]["organization"], "role": org[0]["role"]}
-                    )
+                    user_info["organizations"].append({"name": org[0]["organization"], "role": org[0]["role"]})
                 environ["user_info"] = user_info
 
                 # If endpoint requires, check if user is permitted for the specified organization
