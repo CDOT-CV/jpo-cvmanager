@@ -43,7 +43,7 @@ def query_bsm_data_mongo(pointList, start, end):
     total_count = 0
 
     try:
-        logging.debug(f"Running filter: {filter} on mongo collection {os.getenv('BSM_DB_NAME')}")
+        logging.info(f"Running filter: {filter} on mongo collection {os.getenv('BSM_DB_NAME')}")
         for doc in collection.find(filter=filter):
             message_hash = bsm_hash(
                 doc["properties"]["id"],
@@ -74,7 +74,6 @@ def query_bsm_data_bq(pointList, start, end):
     end_date = util.format_date_utc(end)
     client = bigquery.Client()
     tablename = os.environ["BSM_DB_NAME"]
-    print("client", client)
     geogString = "POLYGON(("
     for elem in pointList:
         long = str(elem.pop(0))

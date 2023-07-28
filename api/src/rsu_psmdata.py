@@ -74,7 +74,6 @@ def query_psm_data_bq(pointList, start, end):
     end_date = util.format_date_utc(end)
     client = bigquery.Client()
     tablename = os.environ["PSM_DB_NAME"]
-    print("client", client)
     geogString = "POLYGON(("
     for elem in pointList:
         long = str(elem.pop(0))
