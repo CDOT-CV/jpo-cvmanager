@@ -26,8 +26,12 @@ def query_bsm_data_mongo(pointList, start, end):
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
 
+    logging.debug(f"start_date: {start_date}, end_date: {end_date}")
 
     try:
+        logging.debug(f"MONGO_DB_URI: {os.getenv('MONGO_DB_URI')}")
+        logging.debug(f"MONGO_DB_NAME: {os.getenv('MONGO_DB_NAME')}")
+        logging.debug(f"BSM_DB_NAME: {os.getenv('BSM_DB_NAME')}")
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
         db.validate_collection(os.getenv("BSM_DB_NAME"))
