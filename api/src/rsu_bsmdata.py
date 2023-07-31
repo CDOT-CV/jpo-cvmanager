@@ -22,14 +22,17 @@ def bsm_hash(ip, timestamp, long, lat):
 
 
 def query_bsm_data_mongo(pointList, start, end):
+    logging.debug("query_bsm_data_mongo")
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
+
 
     try:
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
         db.validate_collection(os.getenv("BSM_DB_NAME"))
         collection = db[os.getenv("BSM_DB_NAME")]
+        logging.debug("connection to MongoDB successfully established")
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")
         return [], 503
@@ -176,6 +179,7 @@ class RsuBsmData(Resource):
         if db_type == "BIGQUERY":
             data, code = query_bsm_data_bq(pointList, start, end)
         elif db_type == "MONGODB":
+            logging.debug("RsuBsmData Mongodb query")
             data, code = query_bsm_data_mongo(pointList, start, end)
 
         return (data, code, self.headers)
