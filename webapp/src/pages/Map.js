@@ -856,15 +856,7 @@ function MapPage(props) {
           <div className="filterControl">
             <div id="timeContainer">
               <p id="timeHeader">
-                {startDate.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}{' '}
-                -{' '}
-                {endDate.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {startDate.toLocaleString([], dateTimeOptions)} - {endDate.toLocaleTimeString([], dateTimeOptions)}
               </p>
             </div>
             <div id="sliderContainer">
@@ -1069,5 +1061,12 @@ const theme = createTheme({
     },
   },
 })
+
+const dateTimeOptions = {
+  month: '2-digit', // Two-digit representation of the month (e.g., "01", "02", ..., "12")
+  day: '2-digit', // Two-digit representation of the day (e.g., "01", "02", ..., "31")
+  hour: '2-digit', // Two-digit representation of the hour (e.g., "00", "01", ..., "23")
+  minute: '2-digit', // Two-digit representation of the minute (e.g., "00", "01", ..., "59")
+}
 
 export default MapPage

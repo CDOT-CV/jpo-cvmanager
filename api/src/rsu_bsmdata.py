@@ -6,7 +6,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 coord_resolution = 0.0001  # lats more than this are considered different
-time_resolution = 1  # time deltas bigger than this are considered different
+time_resolution = 10  # time deltas bigger than this are considered different
 
 
 def bsm_hash(ip, timestamp, long, lat):
@@ -34,7 +34,6 @@ def query_bsm_data_mongo(pointList, start, end):
         logging.debug(f"BSM_DB_NAME: {os.getenv('BSM_DB_NAME')}")
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
-        db.validate_collection(os.getenv("BSM_DB_NAME"))
         collection = db[os.getenv("BSM_DB_NAME")]
         logging.debug("connection to MongoDB successfully established")
     except Exception as e:
@@ -181,6 +180,7 @@ class RsuBsmData(Resource):
         code = None
 
         if db_type == "BIGQUERY":
+            logging.debug("RsuBsmData BigQuery query")
             data, code = query_bsm_data_bq(pointList, start, end)
         elif db_type == "MONGODB":
             logging.debug("RsuBsmData Mongodb query")

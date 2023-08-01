@@ -4,6 +4,7 @@ import pgquery
 import util
 import os
 import logging
+import json
 from pymongo import MongoClient
 
 
@@ -134,10 +135,12 @@ class RsuQueryCounts(Resource):
         )
         end = request.args.get("end", default=((datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")))
         # Validate request with supported message types
-        msgList = ["TIM", "BSM", "SPAT", "PSM", "MAP"]
+        logging.debug(f"COUNTS_MSG_TYPES: {os.getenv('COUNTS_MSG_TYPES','NOT_SET')}")
+        msgList = json.loads(os.getenv('COUNTS_MSG_TYPES','["TIM","BSM","SPAT","PSM","MAP"]'))
+        msgList = [x.upper() for x in msgList]
         if message.upper() not in msgList:
             return (
-                "Invalid Message Type.\nValid message types: TIM, BSM, SPAT, PSM, MAP",
+                "Invalid Message Type.\nValid message types: " + ', '.join(msgList),
                 400,
                 self.headers,
             )
