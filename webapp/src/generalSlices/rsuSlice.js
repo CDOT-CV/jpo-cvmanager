@@ -333,7 +333,7 @@ export const rsuSlice = createSlice({
     toggleMapDisplay: (state) => {
       state.value.displayMap = !state.value.displayMap
     },
-    clearBsm: (state) => {
+    clearMsg: (state) => {
       state.value.msgCoordinates = []
       state.value.msgData = []
       state.value.msgStart = ''
@@ -346,13 +346,13 @@ export const rsuSlice = createSlice({
     setSelectedSrm: (state, action) => {
       state.value.selectedSrm = Object.keys(action.payload).length === 0 ? [] : [action.payload]
     },
-    toggleBsmPointSelect: (state) => {
+    toggleMsgPointSelect: (state) => {
       state.value.addMsgPoint = !state.value.addMsgPoint
     },
-    updateBsmPoints: (state, action) => {
-      state.value.msgCoordinates = action.payload
-    },
-    updateBsmDate: (state, action) => {
+    // updateBsmPoints: (state, action) => {
+    //   state.value.msgCoordinates = action.payload
+    // },
+    updateMsgDate: (state, action) => {
       if (action.payload.type === 'start') state.value.msgStart = action.payload.date
       else state.value.msgEnd = action.payload.date
     },
@@ -365,7 +365,7 @@ export const rsuSlice = createSlice({
     changeMessageViewerType: (state, action) => {
       state.value.msgViewerType = action.payload
     },
-    setBsmFilter: (state, action) => {
+    setMsgFilter: (state, action) => {
       state.value.msgFilter = action.payload
     },
     setMsgFilterStep: (state, action) => {
@@ -566,7 +566,6 @@ export const selectMsgEnd = (state) => state.rsu.value.msgEnd
 export const selectAddMsgPoint = (state) => state.rsu.value.addMsgPoint
 export const selectMsgCoordinates = (state) => state.rsu.value.msgCoordinates
 export const selectMsgData = (state) => state.rsu.value.msgData
-export const selectPsmData = (state) => state.rsu.value.psmData
 export const selectMsgDateError = (state) => state.rsu.value.msgDateError
 export const selectMsgFilter = (state) => state.rsu.value.msgFilter
 export const selectMsgFilterStep = (state) => state.rsu.value.msgFilterStep
@@ -580,16 +579,16 @@ export const selectHeatMapData = (state) => state.rsu.value.heatMapData
 export const {
   selectRsu,
   toggleMapDisplay,
-  clearBsm,
+  clearMsg,
   toggleSsmSrmDisplay,
   setSelectedSrm,
-  toggleBsmPointSelect,
-  updateBsmPoints,
-  updateBsmDate,
+  toggleMsgPointSelect,
+  updateMsgPoints,
+  updateMsgDate,
   triggerMsgDateError,
   changeMessageType,
   changeMessageViewerType,
-  setBsmFilter,
+  setMsgFilter,
   setMsgFilterStep,
   setMsgFilterOffset,
   setLoading,

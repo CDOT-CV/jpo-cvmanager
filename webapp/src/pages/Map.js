@@ -29,7 +29,6 @@ import {
   selectMsgEnd,
   selectMsgDateError,
   selectMsgData,
-  selectPsmData,
   selectMsgCoordinates,
   selectMsgFilter,
   selectMsgFilterStep,
@@ -41,13 +40,13 @@ import {
   getIssScmsStatus,
   getMapData,
   getRsuLastOnline,
-  toggleBsmPointSelect,
-  clearBsm,
-  updateBsmPoints,
+  toggleMsgPointSelect,
+  clearMsg,
+  updateMsgPoints,
   updateBsmData,
   updatePsmData,
-  updateBsmDate,
-  setBsmFilter,
+  updateMsgDate,
+  setMsgFilter,
   setMsgFilterStep,
   setMsgFilterOffset,
   updateMessageType,
@@ -106,9 +105,7 @@ function MapPage(props) {
   const configCoordinates = useSelector(selectConfigCoordinates)
 
   const heatMapData = useSelector(selectHeatMapData)
-
   const msgData = useSelector(selectMsgData)
-  // const psmData = useSelector(selectPsmData)
   const msgCoordinates = useSelector(selectMsgCoordinates)
   const addMsgPoint = useSelector(selectAddMsgPoint)
   const startMsgDate = useSelector(selectMsgStart)
@@ -141,7 +138,7 @@ function MapPage(props) {
   })
 
   // BSM layer local state variables
-  const [bsmPolygonSource, setMsgPolygonSource] = useState({
+  const [msgPolygonSource, setMsgPolygonSource] = useState({
     type: 'Feature',
     geometry: {
       type: 'Polygon',
@@ -287,7 +284,7 @@ function MapPage(props) {
     try {
       let mst = DateTime.fromISO(e.toISOString())
       mst.setZone('America/Denver')
-      dispatch(updateBsmDate({ type, date: mst.toString() }))
+      dispatch(updateMsgDate({ type, date: mst.toString() }))
     } catch (err) {
       console.error('Encountered issue updating date: ', err.message)
     }
@@ -299,12 +296,12 @@ function MapPage(props) {
       if (msgCoordinates[0] === msgCoordinates.slice(-1)[0]) {
         let tmp = [...msgCoordinates]
         tmp.pop()
-        dispatch(updateBsmPoints([...tmp, pointArray, msgCoordinates[0]]))
+        dispatch(updateMsgPoints([...tmp, pointArray, msgCoordinates[0]]))
       } else {
-        dispatch(updateBsmPoints([...msgCoordinates, pointArray, msgCoordinates[0]]))
+        dispatch(updateMsgPoints([...msgCoordinates, pointArray, msgCoordinates[0]]))
       }
     } else {
-      dispatch(updateBsmPoints([...msgCoordinates, pointArray]))
+      dispatch(updateMsgPoints([...msgCoordinates, pointArray]))
     }
   }
 
@@ -591,9 +588,9 @@ function MapPage(props) {
   const handleButtonToggle = (event, origin) => {
     if (origin === 'config') {
       dispatch(toggleConfigPointSelect())
-      if (addMsgPoint) dispatch(toggleBsmPointSelect())
+      if (addMsgPoint) dispatch(toggleMsgPointSelect())
     } else if (origin === 'bsm') {
-      dispatch(toggleBsmPointSelect())
+      dispatch(toggleMsgPointSelect())
       if (addConfigPoint) dispatch(toggleConfigPointSelect())
     }
   }
@@ -783,7 +780,7 @@ function MapPage(props) {
           {activeLayers.includes('bsm-layer') && (
             <div>
               {msgCoordinates.length > 2 ? (
-                <Source id={layers[2].id + '-fill'} type="geojson" data={bsmPolygonSource}>
+                <Source id={layers[2].id + '-fill'} type="geojson" data={msgPolygonSource}>
                   <Layer {...bsmOutlineLayer} />
                   <Layer {...bsmFillLayer} />
                 </Source>
@@ -889,7 +886,7 @@ function MapPage(props) {
                 placeholder={defaultSlider(filterStep)}
                 onChange={(e) => dispatch(setMsgFilterStep(e.value))}
               />
-              <button className="searchButton" onClick={() => dispatch(setBsmFilter(false))}>
+              <button className="searchButton" onClick={() => dispatch(setMsgFilter(false))}>
                 New Search
               </button>
             </div>
@@ -903,13 +900,13 @@ function MapPage(props) {
               <button
                 className="button"
                 onClick={(e) => {
-                  dispatch(clearBsm())
+                  dispatch(clearMsg())
                 }}
               >
                 Clear
               </button>
             </div>
-            <div className="selectContainer">
+            <div>
               <Select
                 options={messageTypeOptions}
                 defaultValue={messageTypeOptions.filter((o) => o.label === msgType)}
