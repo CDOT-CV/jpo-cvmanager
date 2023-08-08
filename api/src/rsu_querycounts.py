@@ -15,7 +15,6 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
     try:
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
-        collection_info = db.validate_collection(os.getenv("COUNTS_DB_NAME"))
         collection = db[os.getenv("COUNTS_DB_NAME")]
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")

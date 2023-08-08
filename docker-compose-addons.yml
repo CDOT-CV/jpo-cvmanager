@@ -11,7 +11,7 @@ services:
       PG_DB_PORT: ${PG_DB_PORT}
       PG_DB_USER: ${PG_DB_USER}
       PG_DB_PASS: ${PG_DB_PASS}
-      PG_DB_NAME: ${PG_DB_NAME}
+      PG_DB_NAME: postgres
 
       MONGO_DB_URI: ${MONGO_DB_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME}
@@ -47,6 +47,7 @@ services:
       context: webapp
       dockerfile: Dockerfile
       args:
+        ENV: 'dev'
         API_URI: http://${API_HOST_IP}:8081
         MAPBOX_TOKEN: ${MAPBOX_TOKEN}
         KEYCLOAK_HOST_URL: http://${KC_HOST_IP}:8084/
@@ -112,7 +113,7 @@ services:
     build:
       context: ./addons/images/bsm_query
       dockerfile: Dockerfile
-    image: jpo_bsm_query:latest
+    image: bsm_query:latest
     restart: always
     env_file:
       - ./addons/images/bsm_query/.env
@@ -125,7 +126,7 @@ services:
     build:
       context: ./addons/images/psm_query
       dockerfile: Dockerfile
-    image: jpo_psm_query:latest
+    image: psm_query:latest
     restart: always
     env_file:
       - ./addons/images/psm_query/.env
@@ -138,7 +139,7 @@ services:
     build:
       context: ./addons/images/count_metric
       dockerfile: Dockerfile
-    image: jpo_count_metric:latest
+    image: count_metric:latest
     restart: always
     env_file:
       - ./addons/images/count_metric/.env
@@ -151,7 +152,7 @@ services:
     build:
       context: ./addons/images/rsu_ping_fetch
       dockerfile: Dockerfile
-    image: jpo_rsu_ping_fetch:latest
+    image: rsu_ping_fetch:latest
     restart: always
     depends_on:
       - cvmanager_postgres

@@ -342,11 +342,19 @@ function MapPage(props) {
         let cell = []
         for (var idx = 0; idx < 2; idx++) {
           let cellID = `cell${i}-${idx}`
-          cell.push(
-            <td key={cellID} id={cellID}>
-              <pre>{data[i][idx]}</pre>
-            </td>
-          )
+          if (i == 0) {
+            cell.push(
+              <th key={cellID} id={cellID} style={{ minWidth: '120px' }}>
+                {data[i][idx]}
+              </th>
+            )
+          } else {
+            cell.push(
+              <td key={cellID} id={cellID} style={{ minWidth: '120px' }}>
+                <pre>{data[i][idx]}</pre>
+              </td>
+            )
+          }
         }
         rows.push(
           <tr key={i} id={rowID}>
@@ -440,8 +448,20 @@ function MapPage(props) {
 
   function break_line(val) {
     var arr = []
-    for (var i = 0; i < val.length; i += 100) {
-      arr.push(val.substring(i, i + 100))
+    var remainingData = ''
+    var maxLineLength = 40
+    for (var i = 0; i < val.length; i += maxLineLength) {
+      var data = remainingData + val.substring(i, i + maxLineLength)
+      var index = data.lastIndexOf(' ')
+      if (data[0] == ' ') {
+        data = data.substring(1, data.length)
+        remainingData = data.substring(index, data.length)
+      } else if (data?.[i + maxLineLength + 1] == ' ') {
+        remainingData = data.substring(index + 1, data.length)
+      } else if (data[index] == ' ') {
+        remainingData = data.substring(index + 1, data.length)
+      }
+      arr.push(data.substring(0, index))
     }
     return arr.join('\n')
   }
@@ -806,7 +826,7 @@ function MapPage(props) {
               altitude={12}
               onClose={closePopup}
               offsetTop={-25}
-              maxWidth={'950px'}
+              maxWidth={'500px'}
             >
               <div>{selectedWZDxMarker.props.feature.properties.table}</div>
             </Popup>
@@ -1082,10 +1102,9 @@ const theme = createTheme({
 })
 
 const dateTimeOptions = {
-  month: '2-digit', // Two-digit representation of the month (e.g., "01", "02", ..., "12")
-  day: '2-digit', // Two-digit representation of the day (e.g., "01", "02", ..., "31")
-  hour: '2-digit', // Two-digit representation of the hour (e.g., "00", "01", ..., "23")
-  minute: '2-digit', // Two-digit representation of the minute (e.g., "00", "01", ..., "59")
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
 }
 
 export default MapPage

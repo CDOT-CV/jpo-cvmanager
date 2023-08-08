@@ -11,7 +11,7 @@ services:
       PG_DB_PORT: ${PG_DB_PORT}
       PG_DB_USER: ${PG_DB_USER}
       PG_DB_PASS: ${PG_DB_PASS}
-      PG_DB_NAME: ${PG_DB_NAME}
+      PG_DB_NAME: postgres
 
       MONGO_DB_URI: ${MONGO_DB_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME}
@@ -46,6 +46,7 @@ services:
       context: webapp
       dockerfile: Dockerfile
       args:
+        ENV: 'dev'
         API_URI: http://${API_HOST_IP}:8081
         MAPBOX_TOKEN: ${MAPBOX_TOKEN}
         KEYCLOAK_HOST_URL: http://${KC_HOST_IP}:8084/

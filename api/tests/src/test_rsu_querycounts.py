@@ -76,7 +76,6 @@ def test_get_request_invalid_message_no_env():
         assert headers["Access-Control-Allow-Origin"] == "*"
         assert data == "Invalid Message Type.\nValid message types: TIM, BSM, SPAT, PSM, MAP"
 
-
 def test_schema_validate_bad_data():
     req = MagicMock()
     req.args = querycounts_data.request_args_bad_type
