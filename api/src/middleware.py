@@ -49,6 +49,7 @@ organization_required = {
     "/iss-scms-status": True,
     "/wzdx-feed": False,
     "/rsu-bsm-data": False,
+    "/rsu-psm-data": False,
     "/rsu-ssm-srm-data": False,
     "/admin-new-rsu": False,
     "/admin-rsu": False,
