@@ -4,6 +4,7 @@ import pgquery
 import util
 import os
 import logging
+import json
 from pymongo import MongoClient
 
 
@@ -15,9 +16,7 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
         collection_info = db.validate_collection(os.getenv("COUNTS_DB_NAME"))
-        print(collection_info)
         collection = db[os.getenv("COUNTS_DB_NAME")]
-        print("hello")
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")
         return {}, 503
@@ -136,10 +135,12 @@ class RsuQueryCounts(Resource):
         )
         end = request.args.get("end", default=((datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")))
         # Validate request with supported message types
-        msgList = ["TIM", "BSM", "SPAT", "PSM", "MAP"]
+        logging.debug(f"COUNTS_MSG_TYPES: {os.getenv('COUNTS_MSG_TYPES','NOT_SET')}")
+        msgList = json.loads(os.getenv('COUNTS_MSG_TYPES','["TIM","BSM","SPAT","PSM","MAP"]'))
+        msgList = [x.upper() for x in msgList]
         if message.upper() not in msgList:
             return (
-                "Invalid Message Type.\nValid message types: TIM, BSM, SPAT, PSM, MAP",
+                "Invalid Message Type.\nValid message types: " + ', '.join(msgList),
                 400,
                 self.headers,
             )

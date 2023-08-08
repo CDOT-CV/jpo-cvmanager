@@ -16,10 +16,12 @@ services:
       MONGO_DB_URI: ${MONGO_DB_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME}
 
+      COUNTS_MSG_TYPES: ${COUNTS_MSG_TYPES}
       COUNTS_DB_TYPE: ${COUNTS_DB_TYPE}
       COUNTS_DB_NAME: ${COUNTS_DB_NAME}
 
       BSM_DB_NAME: ${BSM_DB_NAME}
+      PSM_DB_NAME: ${PSM_DB_NAME}
       SSM_DB_NAME: ${SSM_DB_NAME}
       SRM_DB_NAME: ${SRM_DB_NAME}
 
@@ -119,11 +121,24 @@ services:
         max-size: '10m'
         max-file: '5'
 
+  jpo_psm_query:
+    build:
+      context: ./addons/images/psm_query
+      dockerfile: Dockerfile
+    image: jpo_psm_query:latest
+    restart: always
+    env_file:
+      - ./addons/images/psm_query/.env
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
   jpo_count_metric:
     build:
       context: ./addons/images/count_metric
       dockerfile: Dockerfile
-    image: jpo_kafka_counter:latest
+    image: jpo_count_metric:latest
     restart: always
     env_file:
       - ./addons/images/count_metric/.env
@@ -136,7 +151,7 @@ services:
     build:
       context: ./addons/images/rsu_ping_fetch
       dockerfile: Dockerfile
-    image: jpo_kafka_counter:latest
+    image: jpo_rsu_ping_fetch:latest
     restart: always
     depends_on:
       - cvmanager_postgres

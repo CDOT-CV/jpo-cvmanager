@@ -43,12 +43,12 @@ def test_middleware_class_call_options(mock_kc, mock_request, mock_get_user_role
 
     # create instance
     app = Mock()
-    middleware_keycloak_instance = middleware_keycloak.Middleware(app)
+    middleware_instance = middleware.Middleware(app)
 
     # call
     environ = {}
     start_response = Mock()
-    middleware_keycloak_instance(environ, start_response)
+    middleware_instance(environ, start_response)
 
     # check
     mock_get_user_role.assert_not_called()

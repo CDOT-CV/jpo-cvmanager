@@ -6,10 +6,10 @@ from datetime import datetime
 from pymongo import MongoClient
 
 coord_resolution = 0.0001  # lats more than this are considered different
-time_resolution = 10  # time deltas bigger than this are considered different
+time_resolution = 1  # time deltas bigger than this are considered different
 
 
-def bsm_hash(ip, timestamp, long, lat):
+def psm_hash(ip, timestamp, long, lat):
     return (
         ip
         + "_"
@@ -21,21 +21,15 @@ def bsm_hash(ip, timestamp, long, lat):
     )
 
 
-def query_bsm_data_mongo(pointList, start, end):
-    logging.debug("query_bsm_data_mongo")
+def query_psm_data_mongo(pointList, start, end):
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
 
-    logging.debug(f"start_date: {start_date}, end_date: {end_date}")
-
     try:
-        logging.debug(f"MONGO_DB_URI: {os.getenv('MONGO_DB_URI')}")
-        logging.debug(f"MONGO_DB_NAME: {os.getenv('MONGO_DB_NAME')}")
-        logging.debug(f"BSM_DB_NAME: {os.getenv('BSM_DB_NAME')}")
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
-        collection = db[os.getenv("BSM_DB_NAME")]
-        logging.debug("connection to MongoDB successfully established")
+        db.validate_collection(os.getenv("PSM_DB_NAME"))
+        collection = db[os.getenv("PSM_DB_NAME")]
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")
         return [], 503
@@ -49,9 +43,9 @@ def query_bsm_data_mongo(pointList, start, end):
     total_count = 0
 
     try:
-        logging.info(f"Running filter: {filter} on mongo collection {os.getenv('BSM_DB_NAME')}")
+        logging.debug(f"Running filter: {filter} on mongo collection {os.getenv('PSM_DB_NAME')}")
         for doc in collection.find(filter=filter):
-            message_hash = bsm_hash(
+            message_hash = psm_hash(
                 doc["properties"]["id"],
                 int(datetime.timestamp(doc["properties"]["timestamp"])),
                 doc["geometry"]["coordinates"][0],
@@ -75,11 +69,11 @@ def query_bsm_data_mongo(pointList, start, end):
         return [], 500
 
 
-def query_bsm_data_bq(pointList, start, end):
+def query_psm_data_bq(pointList, start, end):
     start_date = util.format_date_utc(start)
     end_date = util.format_date_utc(end)
     client = bigquery.Client()
-    tablename = os.environ["BSM_DB_NAME"]
+    tablename = os.environ["PSM_DB_NAME"]
     geogString = "POLYGON(("
     for elem in pointList:
         long = str(elem.pop(0))
@@ -89,15 +83,15 @@ def query_bsm_data_bq(pointList, start, end):
     geogString = geogString[:-1] + "))"
 
     query = (
-        "SELECT DISTINCT bsm.metadata.originIp as Ip, "
-        f"bsm.payload.data.coreData.position.longitude as long, "
-        f"bsm.payload.data.coreData.position.latitude as lat, "
-        f"bsm.metadata.odeReceivedAt as time "
+        "SELECT DISTINCT psm.metadata.originIp as Ip, "
+        f"psm.payload.data.coreData.position.longitude as long, "
+        f"psm.payload.data.coreData.position.latitude as lat, "
+        f"psm.metadata.odeReceivedAt as time "
         f"FROM `{tablename}` "
-        f'WHERE TIMESTAMP(bsm.metadata.odeReceivedAt) >= TIMESTAMP("{start_date}") '
-        f'AND TIMESTAMP(bsm.metadata.odeReceivedAt) <= TIMESTAMP("{end_date}") '
+        f'WHERE TIMESTAMP(psm.metadata.odeReceivedAt) >= TIMESTAMP("{start_date}") '
+        f'AND TIMESTAMP(psm.metadata.odeReceivedAt) <= TIMESTAMP("{end_date}") '
         f"AND ST_CONTAINS(ST_GEOGFROM('{geogString}'), "
-        f"ST_GEOGPOINT(bsm.payload.data.coreData.position.longitude, bsm.payload.data.coreData.position.latitude))"
+        f"ST_GEOGPOINT(psm.payload.data.coreData.position.longitude, psm.payload.data.coreData.position.latitude))"
     )
 
     logging.info(f"Running query on table {tablename}")
@@ -108,7 +102,7 @@ def query_bsm_data_bq(pointList, start, end):
     total_count = 0
 
     for row in query_job:
-        message_hash = bsm_hash(
+        message_hash = psm_hash(
             row["Ip"],
             int(datetime.timestamp(util.format_date_utc(row["time"], "DATETIME"))),
             row["long"],
@@ -140,13 +134,13 @@ from flask_restful import Resource
 from marshmallow import Schema, fields
 
 
-class RsuBsmDataSchema(Schema):
+class RsuPsmDataSchema(Schema):
     geometry = fields.String(required=False)
     start = fields.DateTime(required=False)
     end = fields.DateTime(required=False)
 
 
-class RsuBsmData(Resource):
+class RsuPsmData(Resource):
     options_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
@@ -161,7 +155,7 @@ class RsuBsmData(Resource):
         return ("", 204, self.options_headers)
 
     def post(self):
-        logging.debug("RsuBsmData POST requested")
+        logging.debug("RsuPsmData POST requested")
 
         # Get arguments from request
         try:
@@ -180,10 +174,8 @@ class RsuBsmData(Resource):
         code = None
 
         if db_type == "BIGQUERY":
-            logging.debug("RsuBsmData BigQuery query")
-            data, code = query_bsm_data_bq(pointList, start, end)
+            data, code = query_psm_data_bq(pointList, start, end)
         elif db_type == "MONGODB":
-            logging.debug("RsuBsmData Mongodb query")
-            data, code = query_bsm_data_mongo(pointList, start, end)
+            data, code = query_psm_data_mongo(pointList, start, end)
 
         return (data, code, self.headers)
