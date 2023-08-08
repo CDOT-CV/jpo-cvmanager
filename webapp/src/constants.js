@@ -1,4 +1,5 @@
 export const MessageTypes = ['BSM', 'SSM', 'SPAT', 'SRM', 'MAP']
+export const MessageViewerTypes = ['BSM', 'PSM']
 export const DotName = 'CDOT'
 export const MapboxInitViewState = {
   latitude: 40.2712,

@@ -23,6 +23,7 @@ class EnvironmentVars {
   static rsuMapInfoEndpoint = `${this.getBaseApiUrl()}/rsu-map-info`
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-geo-query`
   static bsmDataEndpoint = `${this.getBaseApiUrl()}/rsu-bsm-data`
+  static psmDataEndpoint = `${this.getBaseApiUrl()}/rsu-psm-data`
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static authEndpoint = `${this.getBaseApiUrl()}/user-auth`

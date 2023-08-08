@@ -72,6 +72,10 @@ class RsuApi {
     apiHelper._postData({ url: EnvironmentVars.bsmDataEndpoint + url_ext, body, token })
 
   // POST
+  postPsmData = async (token, body, url_ext = '') =>
+    apiHelper._postData({ url: EnvironmentVars.psmDataEndpoint + url_ext, body, token })
+
+  // POST
   postRsuData = async (token, org, body, url_ext = '') => {
     body = JSON.stringify(body)
     return await apiHelper._postData({

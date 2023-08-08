@@ -15,19 +15,20 @@ const initialState = {
   messageLoading: false,
   warningMessage: false,
   msgType: 'BSM',
+  msgViewerType: 'BSM',
   rsuMapData: {},
   mapList: [],
   mapDate: '',
   displayMap: false,
-  bsmStart: '',
-  bsmEnd: '',
-  addBsmPoint: false,
-  bsmCoordinates: [],
-  bsmData: [],
-  bsmDateError: false,
-  bsmFilter: false,
-  bsmFilterStep: 60,
-  bsmFilterOffset: 0,
+  msgStart: '',
+  msgEnd: '',
+  addMsgPoint: false,
+  msgCoordinates: [],
+  msgData: [],
+  msgDateError: false,
+  msgFilter: false,
+  msgFilterStep: 60,
+  msgFilterOffset: 0,
   issScmsStatusData: {},
   ssmDisplay: false,
   srmSsmList: [],
@@ -225,14 +226,14 @@ export const updateBsmData = createAsyncThunk(
   async (_, { getState }) => {
     const currentState = getState()
     const token = selectToken(currentState)
-
+    console.log('--------message selected------------')
     try {
       const bsmMapData = await RsuApi.postBsmData(
         token,
         JSON.stringify({
-          start: currentState.rsu.value.bsmStart,
-          end: currentState.rsu.value.bsmEnd,
-          geometry: currentState.rsu.value.bsmCoordinates,
+          start: currentState.rsu.value.msgStart,
+          end: currentState.rsu.value.msgEnd,
+          geometry: currentState.rsu.value.msgCoordinates,
         }),
         ''
       )
@@ -245,7 +246,53 @@ export const updateBsmData = createAsyncThunk(
     // Will guard thunk from being executed
     condition: (_, { getState }) => {
       const { rsu } = getState()
-      const valid = rsu.value.bsmStart !== '' && rsu.value.bsmEnd !== '' && rsu.value.bsmCoordinates.length > 2
+      console.log(
+        'time',
+        rsu.value.msgStart,
+        ' : ',
+        rsu.value.msgEnd,
+        ' Coordinate length: ',
+        rsu.value.msgCoordinates.length
+      )
+      const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
+      return valid
+    },
+  }
+)
+export const updatePsmData = createAsyncThunk(
+  'rsu/updatePsmData',
+  async (_, { getState }) => {
+    const currentState = getState()
+    const token = selectToken(currentState)
+
+    try {
+      const psmMapData = await RsuApi.postPsmData(
+        token,
+        JSON.stringify({
+          start: currentState.rsu.value.msgStart,
+          end: currentState.rsu.value.msgEnd,
+          geometry: currentState.rsu.value.msgCoordinates,
+        }),
+        ''
+      )
+      return psmMapData
+    } catch (err) {
+      console.error(err)
+    }
+  },
+  {
+    // Will guard thunk from being executed
+    condition: (_, { getState }) => {
+      const { rsu } = getState()
+      console.log(
+        'time',
+        rsu.value.msgStart,
+        ' : ',
+        rsu.value.msgEnd,
+        ' Coordinate length: ',
+        rsu.value.msgCoordinates.length
+      )
+      const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
       return valid
     },
   }
@@ -287,11 +334,11 @@ export const rsuSlice = createSlice({
       state.value.displayMap = !state.value.displayMap
     },
     clearBsm: (state) => {
-      state.value.bsmCoordinates = []
-      state.value.bsmData = []
-      state.value.bsmStart = ''
-      state.value.bsmEnd = ''
-      state.value.bsmDateError = false
+      state.value.msgCoordinates = []
+      state.value.msgData = []
+      state.value.msgStart = ''
+      state.value.msgEnd = ''
+      state.value.msgDateError = false
     },
     toggleSsmSrmDisplay: (state) => {
       state.value.ssmDisplay = !state.value.ssmDisplay
@@ -300,29 +347,32 @@ export const rsuSlice = createSlice({
       state.value.selectedSrm = Object.keys(action.payload).length === 0 ? [] : [action.payload]
     },
     toggleBsmPointSelect: (state) => {
-      state.value.addBsmPoint = !state.value.addBsmPoint
+      state.value.addMsgPoint = !state.value.addMsgPoint
     },
     updateBsmPoints: (state, action) => {
-      state.value.bsmCoordinates = action.payload
+      state.value.msgCoordinates = action.payload
     },
     updateBsmDate: (state, action) => {
-      if (action.payload.type === 'start') state.value.bsmStart = action.payload.date
-      else state.value.bsmEnd = action.payload.date
+      if (action.payload.type === 'start') state.value.msgStart = action.payload.date
+      else state.value.msgEnd = action.payload.date
     },
-    triggerBsmDateError: (state) => {
-      state.value.bsmDateError = true
+    triggerMsgDateError: (state) => {
+      state.value.msgDateError = true
     },
     changeMessageType: (state, action) => {
       state.value.msgType = action.payload
     },
+    changeMessageViewerType: (state, action) => {
+      state.value.msgViewerType = action.payload
+    },
     setBsmFilter: (state, action) => {
-      state.value.bsmFilter = action.payload
+      state.value.msgFilter = action.payload
     },
-    setBsmFilterStep: (state, action) => {
-      state.value.bsmFilterStep = action.payload
+    setMsgFilterStep: (state, action) => {
+      state.value.msgFilterStep = action.payload
     },
-    setBsmFilterOffset: (state, action) => {
-      state.value.bsmFilterOffset = action.payload
+    setMsgFilterOffset: (state, action) => {
+      state.value.msgFilterOffset = action.payload
     },
     setLoading: (state, action) => {
       state.loading = action.payload
@@ -443,20 +493,38 @@ export const rsuSlice = createSlice({
       })
       .addCase(updateBsmData.pending, (state) => {
         state.loading = true
-        state.value.addBsmPoint = false
-        state.value.bsmDateError =
-          new Date(state.value.bsmEnd).getTime() - new Date(state.value.bsmStart).getTime() > 86400000
+        state.value.addMsgPoint = false
+        state.value.msgDateError =
+          new Date(state.value.msgEnd).getTime() - new Date(state.value.msgStart).getTime() > 86400000
       })
       .addCase(updateBsmData.fulfilled, (state, action) => {
-        state.value.bsmData = action.payload.body
+        state.value.msgData = action.payload.body
         state.loading = false
-        state.value.bsmFilter = true
-        state.value.bsmFilterStep = 60
-        state.value.bsmFilterOffset = 0
+        state.value.msgFilter = true
+        state.value.msgFilterStep = 60
+        state.value.msgFilterOffset = 0
       })
       .addCase(updateBsmData.rejected, (state) => {
         state.loading = false
       })
+
+      .addCase(updatePsmData.pending, (state) => {
+        state.loading = true
+        state.value.addMsgPoint = false
+        state.value.msgDateError =
+          new Date(state.value.msgEnd).getTime() - new Date(state.value.msgStart).getTime() > 86400000
+      })
+      .addCase(updatePsmData.fulfilled, (state, action) => {
+        state.value.msgData = action.payload.body
+        state.loading = false
+        state.value.msgFilter = true
+        state.value.msgFilterStep = 60
+        state.value.msgFilterOffset = 0
+      })
+      .addCase(updatePsmData.rejected, (state) => {
+        state.loading = false
+      })
+
       .addCase(getMapData.pending, (state) => {
         state.loading = true
       })
@@ -488,19 +556,21 @@ export const selectEndDate = (state) => state.rsu.value.endDate
 export const selectMessageLoading = (state) => state.rsu.value.messageLoading
 export const selectWarningMessage = (state) => state.rsu.value.warningMessage
 export const selectMsgType = (state) => state.rsu.value.msgType
+export const selectMsgViewerType = (state) => state.rsu.value.msgViewerType
 export const selectRsuMapData = (state) => state.rsu.value.rsuMapData
 export const selectMapList = (state) => state.rsu.value.mapList
 export const selectMapDate = (state) => state.rsu.value.mapDate
 export const selectDisplayMap = (state) => state.rsu.value.displayMap
-export const selectBsmStart = (state) => state.rsu.value.bsmStart
-export const selectBsmEnd = (state) => state.rsu.value.bsmEnd
-export const selectAddBsmPoint = (state) => state.rsu.value.addBsmPoint
-export const selectBsmCoordinates = (state) => state.rsu.value.bsmCoordinates
-export const selectBsmData = (state) => state.rsu.value.bsmData
-export const selectBsmDateError = (state) => state.rsu.value.bsmDateError
-export const selectBsmFilter = (state) => state.rsu.value.bsmFilter
-export const selectBsmFilterStep = (state) => state.rsu.value.bsmFilterStep
-export const selectBsmFilterOffset = (state) => state.rsu.value.bsmFilterOffset
+export const selectMsgStart = (state) => state.rsu.value.msgStart
+export const selectMsgEnd = (state) => state.rsu.value.msgEnd
+export const selectAddMsgPoint = (state) => state.rsu.value.addMsgPoint
+export const selectMsgCoordinates = (state) => state.rsu.value.msgCoordinates
+export const selectMsgData = (state) => state.rsu.value.msgData
+export const selectPsmData = (state) => state.rsu.value.psmData
+export const selectMsgDateError = (state) => state.rsu.value.msgDateError
+export const selectMsgFilter = (state) => state.rsu.value.msgFilter
+export const selectMsgFilterStep = (state) => state.rsu.value.msgFilterStep
+export const selectMsgFilterOffset = (state) => state.rsu.value.msgFilterOffset
 export const selectIssScmsStatusData = (state) => state.rsu.value.issScmsStatusData
 export const selectSsmDisplay = (state) => state.rsu.value.ssmDisplay
 export const selectSrmSsmList = (state) => state.rsu.value.srmSsmList
@@ -516,11 +586,12 @@ export const {
   toggleBsmPointSelect,
   updateBsmPoints,
   updateBsmDate,
-  triggerBsmDateError,
+  triggerMsgDateError,
   changeMessageType,
+  changeMessageViewerType,
   setBsmFilter,
-  setBsmFilterStep,
-  setBsmFilterOffset,
+  setMsgFilterStep,
+  setMsgFilterOffset,
   setLoading,
 } = rsuSlice.actions
 

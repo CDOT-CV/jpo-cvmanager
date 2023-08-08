@@ -23,13 +23,20 @@
 }
 
 .buttonContainer {
-  display: flex;
+  /* display: flex; */
   width: 100%;
   height: fit-content;
   justify-content: space-evenly;
   align-content: center;
 }
-
+.selectContainer {
+  display: flex;
+  width: 100%;
+  height: fit-content;
+  justify-content: space-evenly;
+  align-content: center;
+  margin-bottom: 25px;
+}
 .button {
   margin: 10px 20px;
   height: fit-content;
