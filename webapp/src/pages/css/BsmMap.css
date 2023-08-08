@@ -29,14 +29,19 @@
   justify-content: space-evenly;
   align-content: center;
 }
+
 .selectContainer {
-  display: flex;
-  width: 100%;
-  height: fit-content;
-  justify-content: space-evenly;
-  align-content: center;
-  margin-bottom: 25px;
+  width: 90%;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
+#react-select-2-listbox {
+  margin-top: 0px;
+  /* background-color: black; */
+  z-index: 5;
+}
+
 .button {
   margin: 10px 20px;
   height: fit-content;
