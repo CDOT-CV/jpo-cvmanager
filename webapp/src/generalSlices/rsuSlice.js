@@ -349,9 +349,9 @@ export const rsuSlice = createSlice({
     toggleMsgPointSelect: (state) => {
       state.value.addMsgPoint = !state.value.addMsgPoint
     },
-    // updateBsmPoints: (state, action) => {
-    //   state.value.msgCoordinates = action.payload
-    // },
+    updateMsgPoints: (state, action) => {
+      state.value.msgCoordinates = action.payload
+    },
     updateMsgDate: (state, action) => {
       if (action.payload.type === 'start') state.value.msgStart = action.payload.date
       else state.value.msgEnd = action.payload.date

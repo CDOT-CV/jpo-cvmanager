@@ -145,7 +145,7 @@ function MapPage(props) {
       coordinates: [],
     },
   })
-  const [bsmPointSource, setBsmPointSource] = useState({
+  const [msgPointSource, setMsgPointSource] = useState({
     type: 'FeatureCollection',
     features: [],
   })
@@ -246,7 +246,7 @@ function MapPage(props) {
         })
       }
 
-      setBsmPointSource((prevPointSource) => {
+      setMsgPointSource((prevPointSource) => {
         return { ...prevPointSource, features: pointSourceFeatures }
       })
     }
@@ -781,12 +781,12 @@ function MapPage(props) {
             <div>
               {msgCoordinates.length > 2 ? (
                 <Source id={layers[2].id + '-fill'} type="geojson" data={msgPolygonSource}>
-                  <Layer {...bsmOutlineLayer} />
-                  <Layer {...bsmFillLayer} />
+                  <Layer {...msgOutlineLayer} />
+                  <Layer {...msgFillLayer} />
                 </Source>
               ) : null}
-              <Source id={layers[2].id + '-points'} type="geojson" data={bsmPointSource}>
-                <Layer {...bsmPointLayer} />
+              <Source id={layers[2].id + '-points'} type="geojson" data={msgPointSource}>
+                <Layer {...msgPointLayer} />
               </Source>
             </div>
           )}
@@ -965,8 +965,8 @@ function MapPage(props) {
   )
 }
 
-const bsmFillLayer = {
-  id: 'bsmFill',
+const msgFillLayer = {
+  id: 'msgFill',
   type: 'fill',
   source: 'polygonSource',
   layout: {},
@@ -976,7 +976,7 @@ const bsmFillLayer = {
   },
 }
 
-const bsmOutlineLayer = {
+const msgOutlineLayer = {
   id: 'bsmOutline',
   type: 'line',
   source: 'polygonSource',
@@ -1018,8 +1018,8 @@ const configPointLayer = {
     'circle-color': 'rgb(255, 0, 0)',
   },
 }
-const bsmPointLayer = {
-  id: 'bsmPointLayer',
+const msgPointLayer = {
+  id: 'msgPointLayer',
   type: 'circle',
   source: 'pointSource',
   paint: {
