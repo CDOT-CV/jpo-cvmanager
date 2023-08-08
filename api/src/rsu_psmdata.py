@@ -53,7 +53,7 @@ def query_psm_data_mongo(pointList, start, end):
             )
 
             if message_hash not in hashmap:
-                doc["properties"]["time"] = doc["properties"]["timestamp"].strftime("%Y-%m-%dT%H:%M:%S")
+                doc["properties"]["time"] = doc["properties"]["timestamp"].strftime("%Y-%m-%dT%H:%M:%SZ")
                 doc.pop("_id")
                 doc["properties"].pop("timestamp")
                 hashmap[message_hash] = doc
