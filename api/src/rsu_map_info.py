@@ -1,8 +1,26 @@
 import logging
+import os
 from util import format_date_denver
 import pgquery
 
-def get_map_data(ip_address, organization):
+def get_map_data_mongo(ip_address, organization):
+  query = "SELECT mi.geojson, mi.date " \
+          "FROM public.map_info AS mi " \
+          "JOIN public.rsus AS rd ON rd.ipv4_address = mi.ipv4_address " \
+          "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id " \
+          f"WHERE ron_v.name = '{organization}' AND mi.ipv4_address = '{ip_address}'"
+  try:
+    result = pgquery.query_db(query)
+  except Exception as e:
+    logging.info(f'Error selecting GeoJSON data for {ip_address}')
+    return (400, f"Error selecting GeoJSON data for {ip_address}")
+  return_value = {} if (len(result) > 0) else "No Data"
+  for row in result:
+    return_value["geojson"] = row[0]
+    return_value["date"] = format_date_denver(row[1])
+  return (200, return_value)
+
+def get_map_data_pg(ip_address, organization):
   query = "SELECT mi.geojson, mi.date " \
           "FROM public.map_info AS mi " \
           "JOIN public.rsus AS rd ON rd.ipv4_address = mi.ipv4_address " \
@@ -70,12 +88,16 @@ class RsuMapInfo(Resource):
       logging.error(errors)
       abort(400, errors)
 
+    db_type = os.getenv("COUNTS_DB_TYPE", "BIGQUERY").upper()
+
     ip = request.args.get('ip_address')
     ip_list = request.args.get('ip_list', default=False)
     if (ip_list == 'True'):
       logging.debug("RsuMapInfo GET IP_list")
       (code, data) = get_ip_list(request.environ['organization'])
     else:
-      logging.debug("RsuMapInfo GET get_map_data")
-      (code, data) = get_map_data(ip, request.environ['organization'])
+      if (db_type == "MONGODB"):
+        logging.info("MONGODB")
+      else:
+        (code, data) = get_map_data_pg(ip, request.environ['organization'])
     return (data, code, self.headers)

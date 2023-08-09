@@ -15,7 +15,7 @@ def test_options_request():
     assert code == 204
     assert headers['Access-Control-Allow-Methods'] == 'GET'
 
-@patch('src.rsu_map_info.get_map_data')
+@patch('src.rsu_map_info.get_map_data_pg')
 def test_get_request(mock_get_map_data):
     req = MagicMock()
     req.args = multidict.MultiDict([
@@ -55,7 +55,7 @@ def test_get_map_data_query(mock_pgquery):
           "JOIN public.rsus AS rd ON rd.ipv4_address = mi.ipv4_address " \
           "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id " \
           f"WHERE ron_v.name = '{organization}' AND mi.ipv4_address = '{ip_address}'"
-    rsu_map_info.get_map_data(ip_address, organization)  
+    rsu_map_info.get_map_data_pg(ip_address, organization)  
     mock_pgquery.query_db.assert_called_with(expected_query)
     mock_pgquery.query_db.assert_called_once()
 
@@ -63,7 +63,7 @@ def test_get_map_data_query(mock_pgquery):
 def test_get_map_data_no_data(mock_pgquery):
     mock_pgquery.query_db.return_value = {}
     organization = 'test'
-    (code, actual_result) = rsu_map_info.get_map_data('192.168.11.22', organization)
+    (code, actual_result) = rsu_map_info.get_map_data_pg('192.168.11.22', organization)
     assert code == 200
     assert actual_result == "No Data"
 
@@ -73,13 +73,13 @@ def test_get_map_data_return_data(mock_format_date_denver, mock_pgquery):
     mock_pgquery.query_db.return_value = [["some return data", "some return date"]]
     mock_format_date_denver.return_value = "some return date"
     organization = 'test'
-    (code, actual_result) = rsu_map_info.get_map_data('192.168.11.22', organization)
+    (code, actual_result) = rsu_map_info.get_map_data_pg('192.168.11.22', organization)
     assert code == 200
     assert actual_result == {"geojson": "some return data", "date": "some return date"}
 
 def test_get_map_data_exception():
     with patch('src.rsu_map_info.pgquery.query_db', side_effect=Exception('testing error handling')):
         organization = 'test'
-        (code, result) = rsu_map_info.get_map_data('192.168.11.22', organization)
+        (code, result) = rsu_map_info.get_map_data_pg('192.168.11.22', organization)
         assert code == 400
         assert result == "Error selecting GeoJSON data for 192.168.11.22"
