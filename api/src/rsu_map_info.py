@@ -73,7 +73,9 @@ class RsuMapInfo(Resource):
     ip = request.args.get('ip_address')
     ip_list = request.args.get('ip_list', default=False)
     if (ip_list == 'True'):
+      logging.debug("RsuMapInfo GET IP_list")
       (code, data) = get_ip_list(request.environ['organization'])
     else:
+      logging.debug("RsuMapInfo GET get_map_data")
       (code, data) = get_map_data(ip, request.environ['organization'])
     return (data, code, self.headers)
