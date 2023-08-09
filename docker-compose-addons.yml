@@ -163,6 +163,21 @@ services:
         max-size: '10m'
         max-file: '5'
 
+  jpo_map_query:
+    build:
+      context: ./addons/images/map_query
+      dockerfile: Dockerfile
+    image: map_query:latest
+    restart: always
+    depends_on:
+      - cvmanager_postgres
+    env_file:
+      - ./addons/images/map_query/.env
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
 volumes:
   pgdb:
     driver: local
