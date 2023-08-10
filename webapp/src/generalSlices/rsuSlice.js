@@ -531,7 +531,8 @@ export const rsuSlice = createSlice({
       .addCase(getMapData.fulfilled, (state, action) => {
         state.loading = false
         state.value.rsuMapData = action.payload.rsuMapData
-        state.value.mapDate = action.payload.mapDate
+        let date = new Date(action.payload.mapDate)
+        state.value.mapDate = date.toLocaleString()
       })
       .addCase(getMapData.rejected, (state) => {
         state.loading = false

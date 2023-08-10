@@ -106,8 +106,10 @@ function RsuMapView(props) {
       return { ...prevEgressData, features: egressDataFeatures }
     })
     const combinedList = ingressDataFeatures.concat(egressDataFeatures)
-    const position = calculateAverageLocation(combinedList)
-    setViewState({ latitude: position[1], longitude: position[0], zoom: 17 })
+    if (combinedList.length > 0) {
+      const position = calculateAverageLocation(combinedList)
+      setViewState({ latitude: position[1], longitude: position[0], zoom: 17 })
+    }
   }, [rsuMapData])
 
   const srmData = {
