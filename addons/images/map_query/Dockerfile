@@ -8,6 +8,7 @@ RUN pip3 install -r requirements.txt
 
 ADD map_query.py .
 ADD kafka_helper.py .
+ADD cvmsg_functions.py .
 
 CMD ["/home/map_query.py"]
 ENTRYPOINT ["python3"]

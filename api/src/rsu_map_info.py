@@ -22,7 +22,8 @@ def get_map_data(ip_address, organization):
     return_value = {} if (len(result) > 0) else "No Data"
     for row in result:
         return_value["geojson"] = row[0]
-        return_value["date"] = format_date_denver(row[1])
+        logging.info(row[1])
+        return_value["date"] = row[1]
     logging.debug(f"RsuMapInfo get_map_data return_value: {return_value}")
     return (200, return_value)
 

@@ -5,7 +5,7 @@ import kafka_helper
 import hashlib
 from datetime import datetime
 import sqlalchemy
-# from cvmsg_functions import map_intersection_geometry_to_geojson
+from cvmsg_functions import map_intersection_geometry_to_geojson
 
 db_config = {
     # Pool size is the maximum number of permanent connections to keep.
@@ -24,7 +24,7 @@ db_config = {
 
 db = None
 
-FRESHNESS_THRESHOLD = 1.0  # minutes
+FRESHNESS_THRESHOLD = 60.0  # minutes
 
 hashmap = {}
 last_cleanup = datetime.now()
@@ -80,16 +80,9 @@ def process_message(msg):
     try:
         json_msg = json.loads(msg.value.decode("utf8"))
 
-        # Check if malformed ProcessedMap
-        processed_map_parts = ["mapFeatureCollection", "connectingLanesFeatureCollection", "properties"]
-        if not all([part in processed_map_parts for part in json_msg]):
-            logging.warning("Malformed ProcessedMap detected, missing at least one expected part:")
-            logging.warning(json_msg)
-            return
-
         # Remove ODE and GeoJsonConverter generated timestamps
-        del json_msg["properties"]["odeReceivedAt"]
-        del json_msg["properties"]["timeStamp"]
+        del json_msg["metadata"]["odeReceivedAt"]
+        del json_msg["metadata"]["serialId"]
 
         # Create hashkey from message data
         hash_string = hashlib.sha256(str(json_msg).encode("utf-8")).hexdigest()
@@ -117,7 +110,7 @@ def process_message(msg):
     try:
         if writeTopic:
             json_msg = json.loads(msg.value.decode("utf8"))
-            logging.info(f'New record candidate from {json_msg["properties"]["originIp"]}')
+            logging.info(f'New record candidate from {json_msg["metadata"]["originIp"]}')
             insert_map_msg(json_msg)
     except Exception as e:
         logging.error("A ProcessedMap message failed to be written to Kafka: " + str(e))
@@ -130,12 +123,10 @@ def insert_map_msg(map_msg):
     logging.info("insert_map_msg")
     query = f"INSERT INTO public.map_info (ipv4_address, geojson, date) VALUES "
     with db.connect() as conn:
-        ip = map_msg["properties"]["originIp"]
-        time = map_msg["properties"]["odeReceivedAt"]
-        feature = map_msg["mapFeatureCollection"]
-        featureStr = json.dumps(feature)
-        logging.info(f"{ip}:{time}")
-        query += f"('{ip}', '{featureStr}', '{time}'), "
+        intersectionData = map_msg["payload"]["data"]["intersections"]["intersectionGeometry"][0]
+        feature = map_intersection_geometry_to_geojson(map_msg["metadata"]["originIp"], intersectionData)
+        featureStr = (str(feature)).replace("\'", "\"")
+        query += f'(\'{map_msg["metadata"]["originIp"]}\', \'{featureStr}\', \'{map_msg["metadata"]["odeReceivedAt"]}\'), '
         query = (
             query[:-2] + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
         )

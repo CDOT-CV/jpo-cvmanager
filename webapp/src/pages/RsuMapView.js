@@ -20,6 +20,26 @@ import {
   getSsmSrmData,
 } from '../generalSlices/rsuSlice'
 
+function calculateAverageLocation(geojson) {
+  let totalLatitude = 0
+  let totalLongitude = 0
+  let count = 0
+  // Iterate through coordinates and calculate the sum of latitudes and longitudes
+  geojson.forEach((feature) => {
+    const coordinates = feature.geometry.coordinates
+    coordinates.forEach((coordinate) => {
+      totalLatitude += coordinate[1] // latitude is index 1
+      totalLongitude += coordinate[0] // longitude is index 0
+      count += 1
+    })
+  })
+
+  const averageLatitude = totalLatitude / count
+  const averageLongitude = totalLongitude / count
+
+  return [averageLongitude, averageLatitude] // Return [longitude, latitude]
+}
+
 function RsuMapView(props) {
   const dispatch = useDispatch()
 
@@ -42,10 +62,6 @@ function RsuMapView(props) {
     type: 'FeatureCollection',
     features: [],
   })
-
-  // useEffect(() => {
-  //   dispatch(getSsmSrmData())
-  // }, [dispatch])
 
   useEffect(() => {
     let localSrmCount = 0
@@ -89,6 +105,9 @@ function RsuMapView(props) {
     setEgressData((prevEgressData) => {
       return { ...prevEgressData, features: egressDataFeatures }
     })
+    const combinedList = ingressDataFeatures.concat(egressDataFeatures)
+    const position = calculateAverageLocation(combinedList)
+    setViewState({ latitude: position[1], longitude: position[0], zoom: 17 })
   }, [rsuMapData])
 
   const srmData = {
@@ -183,7 +202,7 @@ function RsuMapView(props) {
         Back
       </button>
       <div className="dateStyle">MAP data from {mapDate}</div>
-      {ssmDisplay ? (
+      {ssmDisplay && srmData.length > 0 ? (
         <div className="ssmSrmContainer">
           <button id="toggle" onClick={() => dispatch(toggleSsmSrmDisplay())}>
             X
@@ -205,7 +224,8 @@ function RsuMapView(props) {
             <h4 id="countsData"> SRM: {srmCount} </h4>
           </div>
         </div>
-      ) : (
+      ) : null}
+      {ssmDisplay && srmData.length > 0 && (
         <button className="srmSsmToggle" onClick={() => dispatch(toggleSsmSrmDisplay())}>
           SSM/SRM Display
         </button>
@@ -222,18 +242,22 @@ function RsuMapView(props) {
           <div id="egressKey" />
           <p className="mapKeyInfo">- Egress Lane</p>
         </div>
-        <div id="referenceWrapper">
-          <div id="ssmKey" />
-          <p className="referenceInfo">- SSM (table)</p>
-        </div>
-        <div id="referenceWrapper">
-          <div id="srmKey" />
-          <p className="referenceInfo">- SRM (table)</p>
-        </div>
-        <div id="referenceWrapper">
-          <div id="srmKeyMap" />
-          <p className="referenceInfo">- SRM (map)</p>
-        </div>
+        {srmData.length > 0 ? (
+          <>
+            <div id="referenceWrapper">
+              <div id="ssmKey" />
+              <p className="referenceInfo">- SSM (table)</p>
+            </div>
+            <div id="referenceWrapper">
+              <div id="srmKey" />
+              <p className="referenceInfo">- SRM (table)</p>
+            </div>
+            <div id="referenceWrapper">
+              <div id="srmKeyMap" />
+              <p className="referenceInfo">- SRM (map)</p>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   )
