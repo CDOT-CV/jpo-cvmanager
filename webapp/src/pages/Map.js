@@ -224,14 +224,14 @@ function MapPage(props) {
           },
         }
       })
-      console.log('MSGData: ', msgData)
+
       const pointSourceFeatures = []
       if ((msgData?.length ?? 0) > 0) {
         for (const [, val] of Object.entries([...msgData])) {
           const bsmDate = new Date(val['properties']['time'])
           if (bsmDate >= startDate && bsmDate <= endDate) {
             pointSourceFeatures.push(val)
-            console.log('MSGData: ', msgData?.length)
+            console.debug('MSGData: ', msgData?.length)
           }
         }
       } else {
