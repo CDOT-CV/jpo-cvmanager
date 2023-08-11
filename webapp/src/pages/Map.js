@@ -572,9 +572,12 @@ function MapPage(props) {
   }
 
   const isOnline = () => {
-    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
+    if (rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')) {
+      let date = new Date(rsuOnlineStatus[rsuIpv4].last_online)
+      return date.toLocaleString([])
+    } else {
+      return 'No Data'
+    }
   }
 
   const getStatus = () => {
@@ -1104,6 +1107,15 @@ const dateTimeOptions = {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+}
+
+const rsuDateTimeOptions = {
+  year: '4-digit',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
 }
 
 export default MapPage

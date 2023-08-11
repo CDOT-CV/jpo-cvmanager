@@ -65,12 +65,9 @@ def get_last_online_data(ip, organization):
     logging.debug(f'Executing query: "{query};"')
     data = pgquery.query_db(query)
     result = [value[0] for value in data]
-
     return {
         "ip": ip,
-        "last_online": util.format_date_timezone(
-            result[0].strftime("%m/%d/%Y %I:%M:%S %p")
-        )
+        "last_online": util.format_date_utc_string(result[0])
         if len(result) != 0
         else "No Data",
     }

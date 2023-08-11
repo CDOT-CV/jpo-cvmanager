@@ -50,3 +50,10 @@ def utc2tz(d):
         return None
     tz_d = d.astimezone(pytz.timezone(os.getenv("TIMEZONE", "America/Denver")))
     return tz_d
+
+
+# expects datetime object
+def format_date_utc_string(d):
+    if not d:
+        return None
+    return d.strftime("%Y-%m-%dT%H:%M:%SZ")
