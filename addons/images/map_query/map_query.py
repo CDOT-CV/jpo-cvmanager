@@ -77,7 +77,7 @@ def process_message(msg):
 
     try:
         json_msg = json.loads(msg.value.decode("utf8"))
-        print(json_msg)
+
         # Remove ODE and GeoJsonConverter generated timestamps
         del json_msg["metadata"]["odeReceivedAt"]
         del json_msg["metadata"]["serialId"]
@@ -125,7 +125,6 @@ def insert_map_msg(map_msg):
     global db
     if db is None:
         db = init_tcp_connection_engine()
-    logging.info("insert_map_msg")
     query = f"INSERT INTO public.map_info (ipv4_address, geojson, date) VALUES "
     with db.connect() as conn:
         intersectionData = map_msg["payload"]["data"]["intersections"][
@@ -141,8 +140,10 @@ def insert_map_msg(map_msg):
             + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
         )
         try:
-            # logging.info(query)
             conn.execute(query)
+            logging.info(
+                f'Successfully updated Map message for {map_msg["metadata"]["originIp"]}'
+            )
             return f"update successful"
         except Exception as e:
             logging.exception(f"Error inserting MapInfo record: {e}")
