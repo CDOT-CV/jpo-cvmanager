@@ -113,10 +113,14 @@ services:
     build:
       context: ./addons/images/bsm_query
       dockerfile: Dockerfile
-    image: bsm_query:latest
+    image: jpo_bsm_query:latest
     restart: always
-    env_file:
-      - ./addons/images/bsm_query/.env
+    environment:
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_BSM_INPUT_COLLECTION: ${MONGO_BSM_INPUT_COLLECTION}
+      MONGO_GEO_OUTPUT_COLLECTION: ${BSM_DB_NAME}
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'
@@ -126,23 +130,44 @@ services:
     build:
       context: ./addons/images/psm_query
       dockerfile: Dockerfile
-    image: psm_query:latest
+    image: jpo_psm_query:latest
     restart: always
-    env_file:
-      - ./addons/images/psm_query/.env
+    environment:
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_PSM_INPUT_COLLECTION: ${MONGO_PSM_INPUT_COLLECTION}
+      MONGO_GEO_OUTPUT_COLLECTION: ${PSM_DB_NAME}
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'
         max-file: '5'
 
-  jpo_count_metric:
+  jpo_kafka_counter:
     build:
-      context: ./addons/images/count_metric
+      context: ./addons/images/kafka_counter
       dockerfile: Dockerfile
-    image: count_metric:latest
+    image: jpo_kafka_counter:latest
     restart: always
-    env_file:
-      - ./addons/images/count_metric/.env
+    depends_on:
+      - cvmanager_postgres
+    environment:
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
+      COUNTS_MSG_TYPES: ${COUNTS_MSG_TYPES}
+      PROJECT_ID: ${PROJECT_ID}
+      ODE_KAFKA_BROKERS: ${KAFKA_BROKERS}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      DESTINATION_DB: ${COUNTS_DB_TYPE}
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      INPUT_COUNTS_MONGO_COLLECTION_NAME: ${INPUT_COUNTS_MONGO_COLLECTION_NAME}
+      OUTPUT_COUNTS_MONGO_COLLECTION_NAME: ${OUTPUT_COUNTS_MONGO_COLLECTION_NAME}
+      KAFKA_BIGQUERY_TABLENAME: ${KAFKA_BIGQUERY_TABLENAME}
+      PUBSUB_BIGQUERY_TABLENAME: ${PUBSUB_BIGQUERY_TABLENAME}
     logging:
       options:
         max-size: '10m'
@@ -152,12 +177,21 @@ services:
     build:
       context: ./addons/images/rsu_ping_fetch
       dockerfile: Dockerfile
-    image: rsu_ping_fetch:latest
+    image: jpo_rsu_ping_fetch:latest
     restart: always
     depends_on:
       - cvmanager_postgres
-    env_file:
-      - ./addons/images/rsu_ping_fetch/.env
+    environment:
+      ZABBIX_ENDPOINT: ${ZABBIX_ENDPOINT}
+      ZABBIX_USER: ${ZABBIX_USER}
+      ZABBIX_PASSWORD: ${ZABBIX_PASSWORD}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      STALE_PERIOD: ${ZABBIX_STALE_PERIOD}
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'
@@ -167,12 +201,47 @@ services:
     build:
       context: ./addons/images/map_query
       dockerfile: Dockerfile
-    image: map_query:latest
+    image: jpo_map_query:latest
     restart: always
     depends_on:
       - cvmanager_postgres
-    env_file:
-      - ./addons/images/map_query/.env
+    environment:
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
+      CONFLUENT: ${CONFLUENT}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      DEDUP_INPUT_TOPIC: topic.OdeMapJson
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  jpo_iss_health_checker:
+    build:
+      context: ./addons/images/iss_health_check
+      dockerfile: Dockerfile
+    image: jpo_iss_health_checker:latest
+    restart: always
+    depends_on:
+      - cvmanager_postgres
+    environment:
+      ISS_API_KEY: ${ISS_API_KEY}
+      ISS_API_KEY_NAME: ${ISS_API_KEY_NAME}
+      ISS_PROJECT_ID: ${ISS_PROJECT_ID}
+      ISS_SCMS_TOKEN_REST_ENDPOINT: ${ISS_SCMS_TOKEN_REST_ENDPOINT}
+      ISS_SCMS_VEHICLE_REST_ENDPOINT: ${ISS_SCMS_VEHICLE_REST_ENDPOINT}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      PROJECT_ID: ${PROJECT_ID}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'

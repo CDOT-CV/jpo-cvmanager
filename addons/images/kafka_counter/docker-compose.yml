@@ -1,0 +1,27 @@
+version: '3'
+services:
+  jpo_kafka_counter:
+    build: .
+    image: jpo_kafka_counter:latest
+    restart: always
+    environment:
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
+      COUNTS_MSG_TYPES: ${MESSAGE_TYPES}
+      PROJECT_ID: ${PROJECT_ID}
+      ODE_KAFKA_BROKERS: ${ODE_KAFKA_BROKERS}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      DESTINATION_DB: ${COUNTS_DB_TYPE}
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      INPUT_COUNTS_MONGO_COLLECTION_NAME: ${INPUT_COUNTS_MONGO_COLLECTION_NAME}
+      OUTPUT_COUNTS_MONGO_COLLECTION_NAME: ${OUTPUT_COUNTS_MONGO_COLLECTION_NAME}
+      KAFKA_BIGQUERY_TABLENAME: ${KAFKA_BIGQUERY_TABLENAME}
+      PUBSUB_BIGQUERY_TABLENAME: ${PUBSUB_BIGQUERY_TABLENAME}
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'

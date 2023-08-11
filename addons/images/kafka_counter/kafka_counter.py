@@ -36,9 +36,9 @@ class KafkaMessageCounter:
         self.rsu_count_dict_zero = rsu_count_dict_zero
         self.type = type
         self.count_window = 5  # minutes
-        if os.getenv("DESTINATION_DB") == "BIGQUERY":
+        if os.getenv("DESTINATION_DB").upper() == "BIGQUERY":
             self.bq_client = bigquery.Client()
-        elif os.getenv("DESTINATION_DB") == "MONGODB":
+        elif os.getenv("DESTINATION_DB").upper() == "MONGODB":
             if os.getenv("MONGO_DB_URI"):
                 self.mongo_client = pymongo.MongoClient(os.getenv("MONGO_DB_URI"))
             else:
@@ -89,7 +89,7 @@ class KafkaMessageCounter:
         period = datetime.strftime(period, "%Y-%m-%d %H:%M:%S")
 
         logging.info(f"{self.thread_id}: Creating metrics...")
-        if os.getenv("DESTINATION_DB") == "BIGQUERY":
+        if os.getenv("DESTINATION_DB").upper() == "BIGQUERY":
             query_values = ""
             for road, rsu_counts in current_counts.items():
                 for ip, count in rsu_counts.items():
@@ -107,7 +107,7 @@ class KafkaMessageCounter:
                     f"{self.thread_id}: The metric publish to BigQuery failed for {self.message_type.upper()}: {e}"
                 )
                 return
-        elif os.getenv("DESTINATION_DB") == "MONGODB":
+        elif os.getenv("DESTINATION_DB").upper() == "MONGODB":
             time = parser.parse(period)
             count_list = []
             for road, rsu_counts in current_counts.items():

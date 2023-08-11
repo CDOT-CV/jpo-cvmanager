@@ -1,11 +1,12 @@
 import os
 import logging
 import json
-import kafka_helper
 import hashlib
 from datetime import datetime
 import sqlalchemy
-from cvmsg_functions import map_intersection_geometry_to_geojson
+import kafka_helper
+import cvmsg_functions
+
 
 db_config = {
     # Pool size is the maximum number of permanent connections to keep.
@@ -31,16 +32,13 @@ last_cleanup = datetime.now()
 
 
 def init_tcp_connection_engine():
-    db_user = os.environ["DB_USER"]
-    db_pass = os.environ["DB_PASS"]
-    db_name = os.environ["DB_NAME"]
-    db_host = os.environ["DB_HOST"]
+    db_user = os.environ["PG_DB_USER"]
+    db_pass = os.environ["PG_DB_PASS"]
+    db_name = os.environ["PG_DB_NAME"]
+    db_host = os.environ["PG_DB_IP"]
+    db_port = os.environ["PG_DB_PORT"]
 
-    # Extract host and port from db_host
-    host_args = db_host.split(":")
-    db_hostname, db_port = host_args[0], int(host_args[1])
-
-    logging.info(f"Creating DB pool to {db_hostname}:{db_port}")
+    logging.info(f"Creating DB pool to {db_host}:{db_port}")
     pool = sqlalchemy.create_engine(
         # Equivalent URL:
         # postgresql+pg8000://<db_user>:<db_pass>@<db_host>:<db_port>/<db_name>
@@ -48,7 +46,7 @@ def init_tcp_connection_engine():
             drivername="postgresql+pg8000",
             username=db_user,  # e.g. "my-database-user"
             password=db_pass,  # e.g. "my-database-password"
-            host=db_hostname,  # e.g. "127.0.0.1"
+            host=db_host,  # e.g. "127.0.0.1"
             port=db_port,  # e.g. 5432
             database=db_name,  # e.g. "my-database-name"
         ),
@@ -79,7 +77,7 @@ def process_message(msg):
 
     try:
         json_msg = json.loads(msg.value.decode("utf8"))
-
+        print(json_msg)
         # Remove ODE and GeoJsonConverter generated timestamps
         del json_msg["metadata"]["odeReceivedAt"]
         del json_msg["metadata"]["serialId"]
@@ -98,19 +96,26 @@ def process_message(msg):
         else:
             # Cleanup the hashmap if a cleanup has not occurred in 60 minutes
             global last_cleanup
-            if ((datetime.now() - last_cleanup).total_seconds() / 60.0) >= FRESHNESS_THRESHOLD:
+            if (
+                (datetime.now() - last_cleanup).total_seconds() / 60.0
+            ) >= FRESHNESS_THRESHOLD:
                 cleanup_hashmap()
                 last_cleanup = datetime.now()
 
             hashmap[hash_string] = current_time
             writeTopic = True
     except Exception as e:
-        logging.error("A ProcessedMap message failed to be processed with the following error: " + str(e))
+        logging.error(
+            "A ProcessedMap message failed to be processed with the following error: "
+            + str(e)
+        )
 
     try:
         if writeTopic:
             json_msg = json.loads(msg.value.decode("utf8"))
-            logging.info(f'New record candidate from {json_msg["metadata"]["originIp"]}')
+            logging.info(
+                f'New record candidate from {json_msg["metadata"]["originIp"]}'
+            )
             insert_map_msg(json_msg)
     except Exception as e:
         logging.error("A ProcessedMap message failed to be written to Kafka: " + str(e))
@@ -123,12 +128,17 @@ def insert_map_msg(map_msg):
     logging.info("insert_map_msg")
     query = f"INSERT INTO public.map_info (ipv4_address, geojson, date) VALUES "
     with db.connect() as conn:
-        intersectionData = map_msg["payload"]["data"]["intersections"]["intersectionGeometry"][0]
-        feature = map_intersection_geometry_to_geojson(map_msg["metadata"]["originIp"], intersectionData)
-        featureStr = (str(feature)).replace("\'", "\"")
+        intersectionData = map_msg["payload"]["data"]["intersections"][
+            "intersectionGeometry"
+        ][0]
+        feature = cvmsg_functions.map_intersection_geometry_to_geojson(
+            map_msg["metadata"]["originIp"], intersectionData
+        )
+        featureStr = (str(feature)).replace("'", '"')
         query += f'(\'{map_msg["metadata"]["originIp"]}\', \'{featureStr}\', \'{map_msg["metadata"]["odeReceivedAt"]}\'), '
         query = (
-            query[:-2] + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
+            query[:-2]
+            + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
         )
         try:
             # logging.info(query)
@@ -154,7 +164,9 @@ def start_consumers(reconnect_if_disconnected=True):
 
 
 if __name__ == "__main__":
-    log_level = "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
+    log_level = (
+        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
+    )
     logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
 
     db_type = os.getenv("DB_TYPE", "BIGQUERY").upper()

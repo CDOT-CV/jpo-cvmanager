@@ -1,11 +1,15 @@
 version: '3'
 services:
-  jpo_kafka_counter:
+  jpo_bsm_query:
     build: .
     image: jpo_bsm_query:latest
     restart: always
-    env_file:
-      - .env
+    environment:
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_BSM_INPUT_COLLECTION: ${MONGO_BSM_INPUT_COLLECTION}
+      MONGO_GEO_OUTPUT_COLLECTION: ${MONGO_GEO_OUTPUT_COLLECTION}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'

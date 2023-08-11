@@ -3,8 +3,20 @@ services:
   jpo_iss_health_checker:
     build: .
     image: jpo_iss_health_checker:latest
-    env_file:
-      - .env
+    environment:
+      ISS_API_KEY: ${ISS_API_KEY}
+      ISS_API_KEY_NAME: ${ISS_API_KEY_NAME}
+      ISS_PROJECT_ID: ${ISS_PROJECT_ID}
+      ISS_SCMS_TOKEN_REST_ENDPOINT: ${ISS_SCMS_TOKEN_REST_ENDPOINT}
+      ISS_SCMS_VEHICLE_REST_ENDPOINT: ${ISS_SCMS_VEHICLE_REST_ENDPOINT}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      PROJECT_ID: ${PROJECT_ID}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'

@@ -12,13 +12,13 @@ To run the script, the following environment variables must be set:
 
 <b>ODE_KAFKA_BROKERS:</b> The connection information for the kafka brokers that have the needed kafka streams.
 
-<b>DB_HOST:</b> The connection information for the Postgres database.
+<b>PG_DB_IP:</b> The connection information for the Postgres database.
 
-<b>DB_USER:</b> Postgres database username.
+<b>PG_DB_USER:</b> Postgres database username.
 
-<b>DB_PASS:</b> Postgres database password, surround in single quotes if this has any special characters.
+<b>PG_DB_PASS:</b> Postgres database password, surround in single quotes if this has any special characters.
 
-<b>DB_NAME:</b> Postgres database name.
+<b>PG_DB_NAME:</b> Postgres database name.
 
 <b>DESTINATION_DB:</b> Set this to either "MONGODB" or "BIGQUERY" depending on the desired output database.
 
