@@ -32,10 +32,10 @@ def populateRsuDict(rsu_data):
 
 def run():
     # Pull list of message types to run counts for from environment variable
-    messageTypesString = os.getenv("MESSAGE_TYPES")
+    messageTypesString = os.getenv("COUNTS_MSG_TYPES")
     if messageTypesString is None:
-        logging.error("MESSAGE_TYPES environment variable not set! Exiting.")
-        exit("MESSAGE_TYPES environment variable not set! Exiting.")
+        logging.error("COUNTS_MSG_TYPES environment variable not set! Exiting.")
+        exit("COUNTS_MSG_TYPES environment variable not set! Exiting.")
     message_types = json.loads(
         os.getenv("COUNTS_MSG_TYPES", '["TIM","BSM","SPAT","PSM","MAP"]')
     )

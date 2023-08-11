@@ -6,7 +6,7 @@ To run the script, the following environment variables must be set:
 
 <b>LOGGING_LEVEL:</b> The logging level of the deployment. Options are: 'critical', 'error', 'warning', 'info' and 'debug'. If not specified, will default to 'info'. Refer to Python's documentation for more info: [Python logging](https://docs.python.org/3/howto/logging.html).
 
-<b>MESSAGE_TYPES:</b> Message types to generate counts for separated by commas, ex: 'bsm,tim,map'.
+<b>COUNTS_MSG_TYPES:</b> Message types to generate counts for separated by commas, ex: 'bsm,tim,map'.
 
 <b>PROJECT_ID:</b> The name of the GCP project the Pub/Sub topics are located in. Must be the same for both the topic and the subscription in this iteration.
 

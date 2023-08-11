@@ -45,7 +45,7 @@ def test_run_success():
     driver.KafkaMessageCounter = MagicMock()
     driver.KafkaMessageCounter.return_value = MagicMock()
     driver.KafkaMessageCounter.return_value.run = MagicMock()
-    environ["MESSAGE_TYPES"] = "bsm"
+    environ["COUNTS_MSG_TYPES"] = "bsm"
 
     # call
     driver.run()
@@ -73,8 +73,8 @@ def test_run_message_types_not_set():
 
     # check
     driver.logging.error.assert_called_once_with(
-        "MESSAGE_TYPES environment variable not set! Exiting."
+        "COUNTS_MSG_TYPES environment variable not set! Exiting."
     )
     driver.exit.assert_called_once_with(
-        "MESSAGE_TYPES environment variable not set! Exiting."
+        "COUNTS_MSG_TYPES environment variable not set! Exiting."
     )
