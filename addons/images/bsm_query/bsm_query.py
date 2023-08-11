@@ -54,11 +54,6 @@ def run():
         logging.error("Environment variables are not set! Exiting.")
         exit("Environment variables are not set! Exiting.")
 
-    log_level = (
-        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
-    )
-    logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
-
     executor = ThreadPoolExecutor(max_workers=5)
 
     db, collection = set_mongo_client(
@@ -67,6 +62,9 @@ def run():
 
     count = 0
     with collection.watch() as stream:
+        logging.info(
+            f"Starting BSM Query service MongoDB watcher on collection: {MONGO_BSM_INPUT_COLLECTION}"
+        )
         for change in stream:
             count += 1
             executor.submit(
