@@ -209,7 +209,7 @@ services:
       LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
       CONFLUENT: ${CONFLUENT}
       KAFKA_BROKERS: ${KAFKA_BROKERS}
-      DEDUP_INPUT_TOPIC: topic.OdeMapJson
+      INPUT_TOPIC: topic.OdeMapJson
       PG_DB_IP: ${PG_DB_IP}
       PG_DB_PORT: ${PG_DB_PORT}
       PG_DB_USER: ${PG_DB_USER}
