@@ -11,8 +11,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from 'rc-slider'
 import Select from 'react-select'
-import { MapboxInitViewState } from '../constants'
-import { MessageViewerTypes } from '../constants'
+import { MapboxInitViewState, MessageViewerTypes } from '../constants'
 import {
   selectRsuOnlineStatus,
   selectMapList,
@@ -214,7 +213,7 @@ function MapPage(props) {
   }, [])
 
   useEffect(() => {
-    if (activeLayers.includes('bsm-layer')) {
+    if (activeLayers.includes('msg-viewer-layer')) {
       setMsgPolygonSource((prevPolygonSource) => {
         return {
           ...prevPolygonSource,
@@ -228,8 +227,8 @@ function MapPage(props) {
       const pointSourceFeatures = []
       if ((msgData?.length ?? 0) > 0) {
         for (const [, val] of Object.entries([...msgData])) {
-          const bsmDate = new Date(val['properties']['time'])
-          if (bsmDate >= startDate && bsmDate <= endDate) {
+          const msgViewerDate = new Date(val['properties']['time'])
+          if (msgViewerDate >= startDate && msgViewerDate <= endDate) {
             pointSourceFeatures.push(val)
             console.debug('MSGData: ', msgData?.length)
           }
@@ -282,9 +281,7 @@ function MapPage(props) {
 
   function dateChanged(e, type) {
     try {
-      let mst = DateTime.fromISO(e.toISOString())
-      mst.setZone('America/Denver')
-      dispatch(updateMsgDate({ type, date: mst.toString() }))
+      dispatch(updateMsgDate({ type, date: e.toISOString() }))
     } catch (err) {
       console.error('Encountered issue updating date: ', err.message)
     }
@@ -521,7 +518,7 @@ function MapPage(props) {
       },
     },
     {
-      id: 'bsm-layer',
+      id: 'msg-viewer-layer',
       label: 'Message Viewer',
     },
 
@@ -609,7 +606,7 @@ function MapPage(props) {
     if (origin === 'config') {
       dispatch(toggleConfigPointSelect())
       if (addMsgPoint) dispatch(toggleMsgPointSelect())
-    } else if (origin === 'bsm') {
+    } else if (origin === 'msgViewer') {
       dispatch(toggleMsgPointSelect())
       if (addConfigPoint) dispatch(toggleConfigPointSelect())
     }
@@ -797,7 +794,7 @@ function MapPage(props) {
               <Layer {...layers[1]} />
             </Source>
           )}
-          {activeLayers.includes('bsm-layer') && (
+          {activeLayers.includes('msg-viewer-layer') && (
             <div>
               {msgCoordinates.length > 2 ? (
                 <Source id={layers[2].id + '-fill'} type="geojson" data={msgPolygonSource}>
@@ -879,7 +876,7 @@ function MapPage(props) {
         </Map>
       </Container>
 
-      {activeLayers.includes('bsm-layer') &&
+      {activeLayers.includes('msg-viewer-layer') &&
         (filter ? (
           <div className="filterControl">
             <div id="timeContainer">
@@ -914,7 +911,10 @@ function MapPage(props) {
         ) : (
           <div className="control">
             <div className="buttonContainer">
-              <button className={addMsgPoint ? 'selected' : 'button'} onClick={(e) => handleButtonToggle(e, 'bsm')}>
+              <button
+                className={addMsgPoint ? 'selected' : 'button'}
+                onClick={(e) => handleButtonToggle(e, 'msgViewer')}
+              >
                 Add Point
               </button>
               <button
@@ -966,7 +966,6 @@ function MapPage(props) {
               <button
                 id="submitButton"
                 onClick={(e) => {
-                  console.log('Selected msgtype: ', msgType)
                   if (msgType === 'BSM') dispatch(updateBsmData())
                   else if (msgType === 'PSM') dispatch(updatePsmData())
                 }}
@@ -997,7 +996,7 @@ const msgFillLayer = {
 }
 
 const msgOutlineLayer = {
-  id: 'bsmOutline',
+  id: 'msgViewerOutline',
   type: 'line',
   source: 'polygonSource',
   layout: {},

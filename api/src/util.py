@@ -19,7 +19,7 @@ def format_date_utc(d, type="string"):
 
 
 # expects datetime string
-def format_date_denver(d):
+def format_date_timezone(d):
     if not d:
         return None
     tmp = parse(d)
@@ -28,7 +28,7 @@ def format_date_denver(d):
 
 
 # expects datetime object
-def format_date_denver_datetime(d):
+def format_date_timezone_datetime(d):
     if not d:
         return None
     denver_tz = d.astimezone(pytz.timezone(os.getenv("TIMEZONE", "America/Denver")))
@@ -36,7 +36,7 @@ def format_date_denver_datetime(d):
 
 
 # expects datetime string
-def format_date_denver_iso(d):
+def format_date_timezone_iso(d):
     if not d:
         return None
     tmp = parse(d)

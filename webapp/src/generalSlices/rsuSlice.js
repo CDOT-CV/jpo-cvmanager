@@ -144,7 +144,7 @@ export const _getRsuMapInfo = createAsyncThunk('rsu/_getRsuMapInfo', async ({ st
   const currentState = getState()
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
-  let local_date = DateTime.local({ zone: 'America/Denver' })
+  let local_date = DateTime.local()
   let localEndDate = endDate === '' ? local_date.toString() : endDate
   let localStartDate = startDate === '' ? local_date.minus({ days: 1 }).toString() : startDate
 
@@ -246,14 +246,6 @@ export const updateBsmData = createAsyncThunk(
     // Will guard thunk from being executed
     condition: (_, { getState }) => {
       const { rsu } = getState()
-      console.log(
-        'time',
-        rsu.value.msgStart,
-        ' : ',
-        rsu.value.msgEnd,
-        ' Coordinate length: ',
-        rsu.value.msgCoordinates.length
-      )
       const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
       return valid
     },

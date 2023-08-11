@@ -38,14 +38,11 @@ export const sortCountList = (key, currentSort, countList) => (dispatch) => {
 }
 
 export const changeDate = (e, type, requestOut, previousRequest) => (dispatch) => {
-  let tmp = e
-  let mst = DateTime.fromISO(tmp.toISOString())
-  mst.setZone('America/Denver')
   let data
   if (type === 'start') {
-    data = { start: mst.toString() }
+    data = { start: e.toISOString() }
   } else {
-    data = { end: mst.toString() }
+    data = { end: e.toISOString() }
   }
   if (requestOut) {
     previousRequest.abort()
@@ -70,7 +67,7 @@ export const menuSlice = createSlice({
     },
     setDisplay: (state, action) => {
       state.value.view = action.payload
-      state.value.displayCounts = action.payload == 'tab'
+      state.value.displayCounts = action.payload === 'tab'
     },
     setPreviousRequest: (state, action) => {
       state.value.previousRequest = action.payload

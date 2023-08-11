@@ -1,6 +1,6 @@
 import logging
 import os
-from util import format_date_denver
+from util import format_date_timezone
 import pgquery
 
 

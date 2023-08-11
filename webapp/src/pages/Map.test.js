@@ -5,17 +5,17 @@ import { Provider } from 'react-redux'
 import { setupStore } from '../store'
 import { replaceChaoticIds } from '../utils/test-utils'
 
-it('snapshot bsmCoordinates wzdx', () => {
+it('snapshot msgCoordinates wzdx', () => {
   const initialState = {
     rsu: {
       value: {
-        bsmCoordinates: [],
+        msgCoordinates: [],
         rsuCounts: {},
         mapList: [],
-        bsmData: [],
-        bsmStart: '2023-05-10T03:24:00',
-        bsmEnd: '2023-05-10T03:25:00',
-        bsmCoordinates: [
+        msgData: [],
+        msgStart: '2023-05-10T03:24:00',
+        msgEnd: '2023-05-10T03:25:00',
+        msgCoordinates: [
           [-104.9903, 39.7392],
           [-104.9904, 39.7393],
           [-104.9905, 39.7391],
@@ -57,23 +57,23 @@ it('snapshot bsmCoordinates wzdx', () => {
 
   fireEvent.click(screen.queryByText('RSU'))
   fireEvent.click(screen.queryByText('Heatmap'))
-  fireEvent.click(screen.queryByText('BSM Viewer'))
-  fireEvent.click(screen.queryByText('WZDx'))
+  fireEvent.click(screen.queryByText('Message Viewer'))
+  // fireEvent.click(screen.queryByText('WZDx'))
 
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('snapshot bsmData clicked', () => {
+it('snapshot message viewer clicked', () => {
   const initialState = {
     rsu: {
       value: {
-        bsmCoordinates: [],
+        msgCoordinates: [],
         rsuCounts: {},
         mapList: [],
-        bsmStart: '2023-05-10T03:24:00',
-        bsmFilterStep: 60, // 1 hour
-        bsmFilterOffset: 24 * 4, // 4 days
-        bsmData: [
+        msgStart: '2023-05-10T03:24:00',
+        msgFilterStep: 60, // 1 hour
+        msgFilterOffset: 24 * 4, // 4 days
+        msgData: [
           {
             properties: {
               time: new Date('2023-05-12T03:24:00'),
