@@ -40,12 +40,6 @@ def run():
         os.getenv("COUNTS_MSG_TYPES", '["TIM","BSM","SPAT","PSM","MAP"]')
     )
 
-    # Configure logging based on ENV var or use default if not set
-    log_level = (
-        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
-    )
-    logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
-
     rsu_data = pgquery_rsu.get_rsu_data()
 
     logging.debug(f"RSU_Data received: {rsu_data}")
@@ -88,4 +82,9 @@ def run():
 
 
 if __name__ == "__main__":
+    # Configure logging based on ENV var or use default if not set
+    log_level = (
+        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
+    )
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
     run()

@@ -45,7 +45,7 @@ def test_run_success():
     driver.KafkaMessageCounter = MagicMock()
     driver.KafkaMessageCounter.return_value = MagicMock()
     driver.KafkaMessageCounter.return_value.run = MagicMock()
-    environ["COUNTS_MSG_TYPES"] = "bsm"
+    environ["COUNTS_MSG_TYPES"] = '["TIM","BSM","SPAT","PSM","MAP"]'
 
     # call
     driver.run()
