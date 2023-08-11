@@ -169,7 +169,4 @@ if __name__ == "__main__":
     )
     logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
 
-    db_type = os.getenv("DB_TYPE", "BIGQUERY").upper()
-    logging.info(f"Starting MapInfo service for: {db_type}")
-
     start_consumers()
