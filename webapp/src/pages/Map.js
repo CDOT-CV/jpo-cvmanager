@@ -572,7 +572,11 @@ function MapPage(props) {
   }
 
   const isOnline = () => {
-    if (rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')) {
+    if (
+      rsuIpv4 in rsuOnlineStatus &&
+      rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online') &&
+      rsuOnlineStatus[rsuIpv4].last_online !== 'No Data'
+    ) {
       let date = new Date(rsuOnlineStatus[rsuIpv4].last_online)
       return date.toLocaleString([])
     } else {

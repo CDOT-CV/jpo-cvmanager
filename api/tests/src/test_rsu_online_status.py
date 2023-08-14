@@ -143,11 +143,11 @@ def test_online_statuses_no_data(mock_last_online, mock_ping):
 
 
 # Test to verify that the difference in times between the util.format_date_utc and
-# util.format_date_denver is correct. The strftime call in format_date_denver strips
+# util.format_date_timezone is correct. The strftime call in format_date_timezone strips
 # the time zone offset from the time, so by verifying the difference between the two
 # calls we can greenlight the slightly odd behavior in the two tests below.
 # The information currently displays correctly in MST on the rsu-manager webpage.
-def test_util_format_date_denver():
+def test_util_format_date_timezone():
     utc_tmp = util.format_date_utc("2022-06-14T20:26:58")
     den_tmp = util.format_date_timezone("2022-06-14T20:26:58")
     utc_dt = parse(utc_tmp)

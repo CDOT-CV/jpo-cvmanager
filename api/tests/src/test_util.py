@@ -15,17 +15,17 @@ def test_format_date_utc_failure():
     assert util.format_date_utc(d) == None
 
 
-def test_format_date_denver():
+def test_format_date_timezone():
     dt = datetime.datetime(2020, 1, 1, 1, 1, 1)
     datetimeString = dt.strftime("%Y-%m-%dT%H:%M:%S")
-    assert util.format_date_denver(datetimeString) == "01/01/2020 01:01:01 AM"
+    assert util.format_date_timezone(datetimeString) == "01/01/2020 01:01:01 AM"
 
 
-def test_format_date_denver_failure():
+def test_format_date_timezone_failure():
     d = False
-    assert util.format_date_denver(d) == None
+    assert util.format_date_timezone(d) == None
     d = None
-    assert util.format_date_denver(d) == None
+    assert util.format_date_timezone(d) == None
 
 
 def test_utc2tz():

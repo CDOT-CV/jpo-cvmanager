@@ -4,7 +4,10 @@ import datetime
 ##################################### request_data ###########################################
 
 request_params_good = multidict.MultiDict(
-    [("user_info", {"organizations": [{"name": "Test", "role": "user"}]}), ("organization", "Test")]
+    [
+        ("user_info", {"organizations": [{"name": "Test", "role": "user"}]}),
+        ("organization", "Test"),
+    ]
 )
 
 ###################################### Sample Data ##########################################
@@ -23,7 +26,10 @@ mongo_bsm_data_response = [
 processed_bsm_message_data = [
     {
         "type": "Feature",
-        "properties": {"id": "8.8.8.8", "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")},
+        "properties": {
+            "id": "8.8.8.8",
+            "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        },
         "geometry": {"type": "Point", "coordinates": point_list},
     }
 ]
