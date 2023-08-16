@@ -58,7 +58,6 @@ def create_message(original_message, msg_type):
                 "msg_type": msg_type,
             },
         }
-        print(new_message)
         return new_message
     else:
         logging.warn(f"create_message: Could not create a message for type: {msg_type}")
@@ -68,7 +67,6 @@ def create_message(original_message, msg_type):
 def process_message(message, collection, count, msg_type):
     try:
         json_msg = json.loads(message.value.decode("utf8"))
-        print(json_msg)
         new_message = create_message(json_msg, msg_type)
         if new_message:
             collection.insert_one(new_message)
