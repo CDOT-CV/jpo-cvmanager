@@ -221,46 +221,47 @@ export const updateRowData = createAsyncThunk(
   }
 )
 
-export const updateBsmData = createAsyncThunk(
-  'rsu/updateBsmData',
-  async (_, { getState }) => {
-    const currentState = getState()
-    const token = selectToken(currentState)
-    console.log('--------message selected------------')
-    try {
-      const bsmMapData = await RsuApi.postBsmData(
-        token,
-        JSON.stringify({
-          start: currentState.rsu.value.msgStart,
-          end: currentState.rsu.value.msgEnd,
-          geometry: currentState.rsu.value.msgCoordinates,
-        }),
-        ''
-      )
-      return bsmMapData
-    } catch (err) {
-      console.error(err)
-    }
-  },
-  {
-    // Will guard thunk from being executed
-    condition: (_, { getState }) => {
-      const { rsu } = getState()
-      const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
-      return valid
-    },
-  }
-)
-export const updatePsmData = createAsyncThunk(
-  'rsu/updatePsmData',
+// export const updateBsmData = createAsyncThunk(
+//   'rsu/updateBsmData',
+//   async (_, { getState }) => {
+//     const currentState = getState()
+//     const token = selectToken(currentState)
+//     console.log('--------message selected------------')
+//     try {
+//       const bsmMapData = await RsuApi.postBsmData(
+//         token,
+//         JSON.stringify({
+//           start: currentState.rsu.value.msgStart,
+//           end: currentState.rsu.value.msgEnd,
+//           geometry: currentState.rsu.value.msgCoordinates,
+//         }),
+//         ''
+//       )
+//       return bsmMapData
+//     } catch (err) {
+//       console.error(err)
+//     }
+//   },
+//   {
+//     // Will guard thunk from being executed
+//     condition: (_, { getState }) => {
+//       const { rsu } = getState()
+//       const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
+//       return valid
+//     },
+//   }
+// )
+export const updateGeoMsgData = createAsyncThunk(
+  'rsu/updateGeoMsgData',
   async (_, { getState }) => {
     const currentState = getState()
     const token = selectToken(currentState)
 
     try {
-      const psmMapData = await RsuApi.postPsmData(
+      const psmMapData = await RsuApi.postGeoMsgData(
         token,
         JSON.stringify({
+          msg_type: currentState.msgType,
           start: currentState.rsu.value.msgStart,
           end: currentState.rsu.value.msgEnd,
           geometry: currentState.rsu.value.msgCoordinates,
@@ -284,7 +285,11 @@ export const updatePsmData = createAsyncThunk(
         ' Coordinate length: ',
         rsu.value.msgCoordinates.length
       )
-      const valid = rsu.value.msgStart !== '' && rsu.value.msgEnd !== '' && rsu.value.msgCoordinates.length > 2
+      const valid =
+        rsu.value.msgStart !== '' &&
+        rsu.value.msgEnd !== '' &&
+        rsu.value.msgCoordinates.length > 2 &&
+        rsu.value.msgType !== ''
       return valid
     },
   }
@@ -483,40 +488,22 @@ export const rsuSlice = createSlice({
         state.value.requestOut = false
         state.value.messageLoading = false
       })
-      .addCase(updateBsmData.pending, (state) => {
+      .addCase(updateGeoMsgData.pending, (state) => {
         state.loading = true
         state.value.addMsgPoint = false
         state.value.msgDateError =
           new Date(state.value.msgEnd).getTime() - new Date(state.value.msgStart).getTime() > 86400000
       })
-      .addCase(updateBsmData.fulfilled, (state, action) => {
+      .addCase(updateGeoMsgData.fulfilled, (state, action) => {
         state.value.msgData = action.payload.body
         state.loading = false
         state.value.msgFilter = true
         state.value.msgFilterStep = 60
         state.value.msgFilterOffset = 0
       })
-      .addCase(updateBsmData.rejected, (state) => {
+      .addCase(updateGeoMsgData.rejected, (state) => {
         state.loading = false
       })
-
-      .addCase(updatePsmData.pending, (state) => {
-        state.loading = true
-        state.value.addMsgPoint = false
-        state.value.msgDateError =
-          new Date(state.value.msgEnd).getTime() - new Date(state.value.msgStart).getTime() > 86400000
-      })
-      .addCase(updatePsmData.fulfilled, (state, action) => {
-        state.value.msgData = action.payload.body
-        state.loading = false
-        state.value.msgFilter = true
-        state.value.msgFilterStep = 60
-        state.value.msgFilterOffset = 0
-      })
-      .addCase(updatePsmData.rejected, (state) => {
-        state.loading = false
-      })
-
       .addCase(getMapData.pending, (state) => {
         state.loading = true
       })

@@ -42,8 +42,7 @@ import {
   toggleMsgPointSelect,
   clearMsg,
   updateMsgPoints,
-  updateBsmData,
-  updatePsmData,
+  updateGeoMsgData,
   updateMsgDate,
   setMsgFilter,
   setMsgFilterStep,
@@ -973,8 +972,7 @@ function MapPage(props) {
               <button
                 id="submitButton"
                 onClick={(e) => {
-                  if (msgType === 'BSM') dispatch(updateBsmData())
-                  else if (msgType === 'PSM') dispatch(updatePsmData())
+                  dispatch(updateGeoMsgData())
                 }}
               >
                 Submit

@@ -67,13 +67,17 @@ class RsuApi {
       query_params,
     })
 
-  // POST
-  postBsmData = async (token, body, url_ext = '') =>
-    apiHelper._postData({ url: EnvironmentVars.bsmDataEndpoint + url_ext, body, token })
+  // // POST
+  // postBsmData = async (token, body, url_ext = '') =>
+  //   apiHelper._postData({ url: EnvironmentVars.bsmDataEndpoint + url_ext, body, token })
+
+  // // POST
+  // postPsmData = async (token, body, url_ext = '') =>
+  //   apiHelper._postData({ url: EnvironmentVars.psmDataEndpoint + url_ext, body, token })
 
   // POST
-  postPsmData = async (token, body, url_ext = '') =>
-    apiHelper._postData({ url: EnvironmentVars.psmDataEndpoint + url_ext, body, token })
+  postGeoMsgData = async (token, body, url_ext = '') =>
+    apiHelper._postData({ url: EnvironmentVars.geoMsgDataEndpoint + url_ext, body, token })
 
   // POST
   postRsuData = async (token, org, body, url_ext = '') => {
