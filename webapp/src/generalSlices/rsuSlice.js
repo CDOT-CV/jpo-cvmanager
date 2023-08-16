@@ -283,7 +283,9 @@ export const updateGeoMsgData = createAsyncThunk(
         ' : ',
         rsu.value.msgEnd,
         ' Coordinate length: ',
-        rsu.value.msgCoordinates.length
+        rsu.value.msgCoordinates.length,
+        ' msgType ',
+        rsu.value.msgType
       )
       const valid =
         rsu.value.msgStart !== '' &&
