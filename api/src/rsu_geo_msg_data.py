@@ -42,7 +42,7 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
         return [], 503
 
     filter = {
-        "properties.msg_type": {msg_type},
+        "properties.msg_type": msg_type,
         "properties.timestamp": {"$gte": start_date, "$lte": end_date},
         "geometry": {"$geoWithin": {"$geometry": {"type": "Polygon", "coordinates": [pointList]}}},
     }
@@ -190,9 +190,8 @@ class RsuGeoMsgData(Resource):
                 logging.debug("RsuBsmData BigQuery Bsm query")
                 data, code = query_bsm_data_bq(pointList, start, end)
             else:
-                data = f"RsuBsmData BigQuery message type:{msg_type.upper()} not supported!"
                 code = 400
-                logging.error(data)
+                logging.error(f"RsuBsmData BigQuery message type:{msg_type.upper()} not supported!")
         elif db_type == "MONGODB":
             logging.debug(f"RsuBsmData Mongodb {msg_type.capitalize()} query")
             data, code = query_geo_data_mongo(pointList, start, end, msg_type.capitalize())

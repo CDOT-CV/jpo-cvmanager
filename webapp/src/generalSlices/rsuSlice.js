@@ -261,7 +261,7 @@ export const updateGeoMsgData = createAsyncThunk(
       const psmMapData = await RsuApi.postGeoMsgData(
         token,
         JSON.stringify({
-          msg_type: currentState.msgType,
+          msg_type: currentState.rsu.value.msgType,
           start: currentState.rsu.value.msgStart,
           end: currentState.rsu.value.msgEnd,
           geometry: currentState.rsu.value.msgCoordinates,
