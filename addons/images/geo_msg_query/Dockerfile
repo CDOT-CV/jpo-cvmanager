@@ -6,7 +6,8 @@ ADD requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
-ADD psm_query.py .
+ADD geo_msg_query.py .
+ADD kafka_helper.py .
 
-CMD ["/home/psm_query.py"]
+CMD ["/home/geo_msg_query.py"]
 ENTRYPOINT ["python3"]

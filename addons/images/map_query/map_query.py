@@ -96,26 +96,19 @@ def process_message(msg):
         else:
             # Cleanup the hashmap if a cleanup has not occurred in 60 minutes
             global last_cleanup
-            if (
-                (datetime.now() - last_cleanup).total_seconds() / 60.0
-            ) >= FRESHNESS_THRESHOLD:
+            if ((datetime.now() - last_cleanup).total_seconds() / 60.0) >= FRESHNESS_THRESHOLD:
                 cleanup_hashmap()
                 last_cleanup = datetime.now()
 
             hashmap[hash_string] = current_time
             writeTopic = True
     except Exception as e:
-        logging.error(
-            "A ProcessedMap message failed to be processed with the following error: "
-            + str(e)
-        )
+        logging.error("A ProcessedMap message failed to be processed with the following error: " + str(e))
 
     try:
         if writeTopic:
             json_msg = json.loads(msg.value.decode("utf8"))
-            logging.info(
-                f'New record candidate from {json_msg["metadata"]["originIp"]}'
-            )
+            logging.info(f'New record candidate from {json_msg["metadata"]["originIp"]}')
             insert_map_msg(json_msg)
     except Exception as e:
         logging.error("A ProcessedMap message failed to be written to Kafka: " + str(e))
@@ -127,23 +120,20 @@ def insert_map_msg(map_msg):
         db = init_tcp_connection_engine()
     query = f"INSERT INTO public.map_info (ipv4_address, geojson, date) VALUES "
     with db.connect() as conn:
-        intersectionData = map_msg["payload"]["data"]["intersections"][
-            "intersectionGeometry"
-        ][0]
+        intersectionData = map_msg["payload"]["data"]["intersections"]["intersectionGeometry"][0]
         feature = cvmsg_functions.map_intersection_geometry_to_geojson(
             map_msg["metadata"]["originIp"], intersectionData
         )
         featureStr = (str(feature)).replace("'", '"')
-        query += f'(\'{map_msg["metadata"]["originIp"]}\', \'{featureStr}\', \'{map_msg["metadata"]["odeReceivedAt"]}\'), '
+        query += (
+            f'(\'{map_msg["metadata"]["originIp"]}\', \'{featureStr}\', \'{map_msg["metadata"]["odeReceivedAt"]}\'), '
+        )
         query = (
-            query[:-2]
-            + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
+            query[:-2] + f" ON CONFLICT(ipv4_address) DO UPDATE SET (geojson, date) = (EXCLUDED.geojson, EXCLUDED.date)"
         )
         try:
             conn.execute(query)
-            logging.info(
-                f'Successfully updated Map message for {map_msg["metadata"]["originIp"]}'
-            )
+            logging.info(f'Successfully updated Map message for {map_msg["metadata"]["originIp"]}')
             return f"update successful"
         except Exception as e:
             logging.exception(f"Error inserting MapInfo record: {e}")
@@ -151,11 +141,15 @@ def insert_map_msg(map_msg):
 
 
 def start_consumers(reconnect_if_disconnected=True):
-    topic = os.getenv("INPUT_TOPIC")
+    TOPIC = os.getenv("INPUT_TOPIC")
+
+    if TOPIC is None:
+        logging.error("Environment variables are not set! Exiting.")
+        exit("Environment variables are not set! Exiting.")
 
     while True:
-        logging.debug(f"Listening for messages on Kafka topic {topic}...")
-        consumer = kafka_helper.create_consumer(topic)
+        logging.debug(f"Listening for messages on Kafka topic {TOPIC}...")
+        consumer = kafka_helper.create_consumer(TOPIC)
         for msg in consumer:
             process_message(msg)
 
@@ -165,9 +159,7 @@ def start_consumers(reconnect_if_disconnected=True):
 
 
 if __name__ == "__main__":
-    log_level = (
-        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
-    )
+    log_level = "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
     logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
 
     start_consumers()

@@ -1,21 +1,20 @@
 version: '3'
 services:
-  jpo_map_query:
+  jpo_geo_msg_query:
     build: .
-    image: jpo_map_query:latest
+    image: jpo_geo_msg_query:latest
     restart: always
     environment:
-      LOGGING_LEVEL: ${LOGGING_LEVEL}
       CONFLUENT: ${CONFLUENT}
       CONFLUENT_KEY: ${CONFLUENT_KEY}
       CONFLUENT_SECRET: ${CONFLUENT_SECRET}
       KAFKA_BROKERS: ${KAFKA_BROKERS}
-      INPUT_TOPIC: ${INPUT_TOPIC}
-      PG_DB_IP: ${PG_DB_IP}
-      PG_DB_PORT: ${PG_DB_PORT}
-      PG_DB_USER: ${PG_DB_USER}
-      PG_DB_PASS: ${PG_DB_PASS}
-      PG_DB_NAME: postgres
+      GEO_MSG_TYPES: ${GEO_MSG_TYPES}
+      MONGO_DB_URI: ${MONGO_DB_URI}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_GEO_COLLECTION: ${MONGO_GEO_COLLECTION}
+      MONGO_TTL: ${MONGO_TTL}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'

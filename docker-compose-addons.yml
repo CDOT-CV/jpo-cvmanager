@@ -20,6 +20,7 @@ services:
       COUNTS_DB_TYPE: ${COUNTS_DB_TYPE}
       COUNTS_DB_NAME: ${COUNTS_DB_NAME}
 
+      MONGO_GEO_COLLECTION: ${MONGO_GEO_COLLECTION}
       BSM_DB_NAME: ${BSM_DB_NAME}
       PSM_DB_NAME: ${PSM_DB_NAME}
       SSM_DB_NAME: ${SSM_DB_NAME}
@@ -41,7 +42,6 @@ services:
         max-size: '10m'
         max-file: '5'
 
-  # Make sure to fill out the env file in the webapp directory
   cvmanager_webapp:
     build:
       context: webapp
@@ -109,41 +109,29 @@ services:
         max-size: '10m'
 
   # ADDONS:
-  jpo_bsm_query:
+  geo_msg_query:
     build:
-      context: ./addons/images/bsm_query
+      context: ./addons/images/geo_msg_query
       dockerfile: Dockerfile
-    image: jpo_bsm_query:latest
+    image: jpo_geo_msg_query:latest
     restart: always
     environment:
+      CONFLUENT: ${CONFLUENT}
+      CONFLUENT_KEY: ${CONFLUENT_KEY}
+      CONFLUENT_SECRET: ${CONFLUENT_SECRET}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      GEO_MSG_TYPES: ${GEO_MSG_TYPES}
       MONGO_DB_URI: ${MONGO_DB_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME}
-      MONGO_BSM_INPUT_COLLECTION: ${MONGO_BSM_INPUT_COLLECTION}
-      MONGO_GEO_OUTPUT_COLLECTION: ${BSM_DB_NAME}
+      MONGO_GEO_COLLECTION: ${MONGO_GEO_COLLECTION}
+      MONGO_TTL: ${MONGO_TTL}
       LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
     logging:
       options:
         max-size: '10m'
         max-file: '5'
 
-  jpo_psm_query:
-    build:
-      context: ./addons/images/psm_query
-      dockerfile: Dockerfile
-    image: jpo_psm_query:latest
-    restart: always
-    environment:
-      MONGO_DB_URI: ${MONGO_DB_URI}
-      MONGO_DB_NAME: ${MONGO_DB_NAME}
-      MONGO_PSM_INPUT_COLLECTION: ${MONGO_PSM_INPUT_COLLECTION}
-      MONGO_GEO_OUTPUT_COLLECTION: ${PSM_DB_NAME}
-      LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
-    logging:
-      options:
-        max-size: '10m'
-        max-file: '5'
-
-  jpo_kafka_counter:
+  kafka_counter:
     build:
       context: ./addons/images/kafka_counter
       dockerfile: Dockerfile
@@ -173,7 +161,7 @@ services:
         max-size: '10m'
         max-file: '5'
 
-  jpo_rsu_ping_fetch:
+  rsu_ping_fetch:
     build:
       context: ./addons/images/rsu_ping_fetch
       dockerfile: Dockerfile
@@ -197,7 +185,7 @@ services:
         max-size: '10m'
         max-file: '5'
 
-  jpo_map_query:
+  map_query:
     build:
       context: ./addons/images/map_query
       dockerfile: Dockerfile
@@ -208,6 +196,8 @@ services:
     environment:
       LOGGING_LEVEL: ${ADDONS_LOGGING_LEVEL}
       CONFLUENT: ${CONFLUENT}
+      CONFLUENT_KEY: ${CONFLUENT_KEY}
+      CONFLUENT_SECRET: ${CONFLUENT_SECRET}
       KAFKA_BROKERS: ${KAFKA_BROKERS}
       INPUT_TOPIC: topic.OdeMapJson
       PG_DB_IP: ${PG_DB_IP}
@@ -220,7 +210,7 @@ services:
         max-size: '10m'
         max-file: '5'
 
-  jpo_iss_health_checker:
+  iss_health_checker:
     build:
       context: ./addons/images/iss_health_check
       dockerfile: Dockerfile

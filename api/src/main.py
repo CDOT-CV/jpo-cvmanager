@@ -11,7 +11,7 @@ from rsu_querycounts import RsuQueryCounts
 from rsu_online_status import RsuOnlineStatus
 from rsu_commands import RsuCommandRequest
 from rsu_map_info import RsuMapInfo
-from rsu_geo_query import RsuGeoQuery
+from rsu_geo_msg_query import RsuGeoQuery
 from wzdx_feed import WzdxFeed
 from rsu_bsmdata import RsuBsmData
 from rsu_psmdata import RsuPsmData

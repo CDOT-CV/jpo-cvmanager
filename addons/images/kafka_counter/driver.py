@@ -36,9 +36,7 @@ def run():
     if messageTypesString is None:
         logging.error("COUNTS_MSG_TYPES environment variable not set! Exiting.")
         exit("COUNTS_MSG_TYPES environment variable not set! Exiting.")
-    message_types = json.loads(
-        os.getenv("COUNTS_MSG_TYPES", '["TIM","BSM","SPAT","PSM","MAP"]')
-    )
+    message_types = json.loads(os.getenv("COUNTS_MSG_TYPES", '["TIM","BSM","SPAT","PSM","MAP"]'))
 
     rsu_data = pgquery_rsu.get_rsu_data()
 
@@ -83,8 +81,6 @@ def run():
 
 if __name__ == "__main__":
     # Configure logging based on ENV var or use default if not set
-    log_level = (
-        "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
-    )
+    log_level = "INFO" if "LOGGING_LEVEL" not in os.environ else os.environ["LOGGING_LEVEL"]
     logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
     run()

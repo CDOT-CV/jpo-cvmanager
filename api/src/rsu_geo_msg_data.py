@@ -9,19 +9,20 @@ coord_resolution = 0.0001  # lats more than this are considered different
 time_resolution = 10  # time deltas bigger than this are considered different
 
 
-def bsm_hash(ip, timestamp, long, lat):
+def msg_hash(ip, msg_type, timestamp, long, lat):
     return (
         ip
+        + msg_type
         + "_"
         + str(int(timestamp / time_resolution))
         + "_"
-        + str(int(long / coord_resolution))
+        + str(int(long / (2 * coord_resolution)))
         + "_"
         + str(int(lat / coord_resolution))
     )
 
 
-def query_bsm_data_mongo(pointList, start, end):
+def query_geo_data_mongo(pointList, start, end, msg_type):
     logging.debug("query_bsm_data_mongo")
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
@@ -31,16 +32,17 @@ def query_bsm_data_mongo(pointList, start, end):
     try:
         logging.debug(f"MONGO_DB_URI: {os.getenv('MONGO_DB_URI')}")
         logging.debug(f"MONGO_DB_NAME: {os.getenv('MONGO_DB_NAME')}")
-        logging.debug(f"BSM_DB_NAME: {os.getenv('BSM_DB_NAME')}")
+        logging.debug(f"MONGO_GEO_COLLECTION: {os.getenv('MONGO_GEO_COLLECTION')}")
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
         db = client[os.getenv("MONGO_DB_NAME")]
-        collection = db[os.getenv("BSM_DB_NAME")]
+        collection = db[os.getenv("MONGO_GEO_COLLECTION")]
         logging.debug("connection to MongoDB successfully established")
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")
         return [], 503
 
     filter = {
+        "properties.msg_type": {msg_type},
         "properties.timestamp": {"$gte": start_date, "$lte": end_date},
         "geometry": {"$geoWithin": {"$geometry": {"type": "Polygon", "coordinates": [pointList]}}},
     }
@@ -49,9 +51,10 @@ def query_bsm_data_mongo(pointList, start, end):
     total_count = 0
 
     try:
-        logging.info(f"Running filter: {filter} on mongo collection {os.getenv('BSM_DB_NAME')}")
+        logging.info(f"Running filter: {filter} on mongo collection {os.getenv('MONGO_GEO_COLLECTION')}")
         for doc in collection.find(filter=filter):
-            message_hash = bsm_hash(
+            message_hash = msg_hash(
+                msg_type,
                 doc["properties"]["id"],
                 int(datetime.timestamp(doc["properties"]["timestamp"])),
                 doc["geometry"]["coordinates"][0],
@@ -108,7 +111,8 @@ def query_bsm_data_bq(pointList, start, end):
     total_count = 0
 
     for row in query_job:
-        message_hash = bsm_hash(
+        message_hash = msg_hash(
+            "Bsm",
             row["Ip"],
             int(datetime.timestamp(util.format_date_utc(row["time"], "DATETIME"))),
             row["long"],
@@ -140,13 +144,13 @@ from flask_restful import Resource
 from marshmallow import Schema, fields
 
 
-class RsuBsmDataSchema(Schema):
+class RsuGeoMsgDataSchema(Schema):
     geometry = fields.String(required=False)
     start = fields.DateTime(required=False)
     end = fields.DateTime(required=False)
 
 
-class RsuBsmData(Resource):
+class RsuGeoMsgData(Resource):
     options_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
@@ -161,17 +165,18 @@ class RsuBsmData(Resource):
         return ("", 204, self.options_headers)
 
     def post(self):
-        logging.debug("RsuBsmData POST requested")
+        logging.debug("RsuGeoMsgData POST requested")
 
         # Get arguments from request
         try:
             data = request.json
+            msg_type = data["type"]
             pointList = data["geometry"]
             start = data["start"]
             end = data["end"]
         except:
             return (
-                'Body format: {"start": string, "end": string, "geometry": coordinate list}',
+                'Body format: {"start": string, "end": string, "geometry": coordinate list, "msg_type"}',
                 400,
                 self.headers,
             )
@@ -180,10 +185,15 @@ class RsuBsmData(Resource):
         code = None
 
         if db_type == "BIGQUERY":
-            logging.debug("RsuBsmData BigQuery query")
-            data, code = query_bsm_data_bq(pointList, start, end)
+            if msg_type.upper() == "BSM":
+                logging.debug("RsuBsmData BigQuery Bsm query")
+                data, code = query_bsm_data_bq(pointList, start, end)
+            else:
+                data = f"RsuBsmData BigQuery message type:{msg_type.upper()} not supported!"
+                code = 400
+                logging.error(data)
         elif db_type == "MONGODB":
-            logging.debug("RsuBsmData Mongodb query")
-            data, code = query_bsm_data_mongo(pointList, start, end)
+            logging.debug(f"RsuBsmData Mongodb {msg_type.capitalize()} query")
+            data, code = query_geo_data_mongo(pointList, start, end, msg_type.capitalize())
 
         return (data, code, self.headers)
