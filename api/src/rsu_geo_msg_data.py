@@ -148,6 +148,7 @@ class RsuGeoMsgDataSchema(Schema):
     geometry = fields.String(required=False)
     start = fields.DateTime(required=False)
     end = fields.DateTime(required=False)
+    msg_type = fields.String(required=False)
 
 
 class RsuGeoMsgData(Resource):
@@ -170,13 +171,13 @@ class RsuGeoMsgData(Resource):
         # Get arguments from request
         try:
             data = request.json
-            msg_type = data["type"]
+            msg_type = data["msg_type"]
             pointList = data["geometry"]
             start = data["start"]
             end = data["end"]
         except:
             return (
-                'Body format: {"start": string, "end": string, "geometry": coordinate list, "msg_type"}',
+                'Body format: {"start": string, "end": string, "geometry": coordinate list, "msg_type": string}',
                 400,
                 self.headers,
             )
