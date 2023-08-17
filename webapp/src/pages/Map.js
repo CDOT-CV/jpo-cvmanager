@@ -243,7 +243,6 @@ function MapPage(props) {
           })
         })
       }
-
       setMsgPointSource((prevPointSource) => {
         return { ...prevPointSource, features: pointSourceFeatures }
       })

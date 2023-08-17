@@ -1,20 +1,20 @@
 from unittest.mock import patch, MagicMock
 import pytest
 import os
-import src.rsu_bsmdata as rsu_bsmdata
-from src.rsu_bsmdata import query_bsm_data_mongo, bsm_hash, query_bsm_data_bq
+import src.rsu_geo_msg_data as rsu_bsmdata
+from src.rsu_geo_msg_data import query_geo_data_mongo, msg_hash, query_bsm_data_bq
 import tests.data.rsu_bsmdata as rsu_bsmdata
 import datetime
 
 
-def test_bsm_hash():
-    result = bsm_hash("192.168.1.1", 1616636734, 123.4567, 234.5678)
+def test_msg_hash():
+    result = msg_hash("192.168.1.1", "Bsm", 1616636734, 123.4567, 234.5678)
     assert result is not None
 
 
 @patch.dict(os.environ, {"MONGO_DB_URI": "uri", "MONGO_DB_NAME": "name", "BSM_DB_NAME": "col"})
-@patch("src.rsu_bsmdata.MongoClient")
-def test_query_bsm_data_mongo(mock_mongo):
+@patch("src.rsu_geo_msg_data.MongoClient")
+def test_query_geo_data_mongo(mock_mongo):
     mock_db = MagicMock()
     mock_collection = MagicMock()
     mock_mongo.return_value.__getitem__.return_value = mock_db
@@ -25,7 +25,7 @@ def test_query_bsm_data_mongo(mock_mongo):
 
     start = "2023-07-01T00:00:00Z"
     end = "2023-07-02T00:00:00Z"
-    response, code = query_bsm_data_mongo(rsu_bsmdata.point_list, start, end)
+    response, code = query_geo_data_mongo(rsu_bsmdata.point_list, start, end, "Bsm")
     expected_response = rsu_bsmdata.processed_bsm_message_data
 
     mock_mongo.assert_called()
@@ -35,8 +35,8 @@ def test_query_bsm_data_mongo(mock_mongo):
 
 
 @patch.dict(os.environ, {"MONGO_DB_URI": "uri", "MONGO_DB_NAME": "name", "BSM_DB_NAME": "col"})
-@patch("src.rsu_bsmdata.MongoClient")
-def test_query_bsm_data_mongo_filter_failed(mock_mongo):
+@patch("src.rsu_geo_msg_data.MongoClient")
+def test_query_geo_data_mongo_filter_failed(mock_mongo):
     mock_db = MagicMock()
     mock_collection = MagicMock()
     mock_mongo.return_value.__getitem__.return_value = mock_db
@@ -47,7 +47,7 @@ def test_query_bsm_data_mongo_filter_failed(mock_mongo):
 
     start = "2023-07-01T00:00:00Z"
     end = "2023-07-02T00:00:00Z"
-    response, code = query_bsm_data_mongo(rsu_bsmdata.point_list, start, end)
+    response, code = query_geo_data_mongo(rsu_bsmdata.point_list, start, end, "Bsm")
     expected_response = []
 
     mock_mongo.assert_called()
@@ -57,13 +57,13 @@ def test_query_bsm_data_mongo_filter_failed(mock_mongo):
 
 
 @patch.dict(os.environ, {"MONGO_DB_URI": "uri", "MONGO_DB_NAME": "name", "BSM_DB_NAME": "col"})
-@patch("src.rsu_bsmdata.MongoClient")
-def test_query_bsm_data_mongo_failed_to_connect(mock_mongo):
+@patch("src.rsu_geo_msg_data.MongoClient")
+def test_query_geo_data_mongo_failed_to_connect(mock_mongo):
     mock_mongo.side_effect = Exception("Failed to connect")
 
     start = "2023-07-01T00:00:00Z"
     end = "2023-07-02T00:00:00Z"
-    response, code = query_bsm_data_mongo(rsu_bsmdata.point_list, start, end)
+    response, code = query_geo_data_mongo(rsu_bsmdata.point_list, start, end, "Bsm")
     expected_response = []
 
     mock_mongo.assert_called()
@@ -72,7 +72,7 @@ def test_query_bsm_data_mongo_failed_to_connect(mock_mongo):
 
 
 @patch.dict(os.environ, {"BSM_DB_NAME": "col"})
-@patch("src.rsu_bsmdata.bigquery")
+@patch("src.rsu_geo_msg_data.bigquery")
 def test_query_bsm_data_bq(mock_bq):
     mock_bq_client = MagicMock()
     mock_bq.Client.return_value = mock_bq_client

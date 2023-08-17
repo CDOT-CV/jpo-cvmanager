@@ -6,7 +6,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 coord_resolution = 0.0001  # lats more than this are considered different
-time_resolution = 10  # time deltas bigger than this are considered different
+time_resolution = 25  # time deltas bigger than this are considered different
 
 
 def msg_hash(ip, msg_type, timestamp, long, lat):
@@ -16,14 +16,14 @@ def msg_hash(ip, msg_type, timestamp, long, lat):
         + "_"
         + str(int(timestamp / time_resolution))
         + "_"
-        + str(int(long / (2 * coord_resolution)))
+        + str(int(long / coord_resolution))
         + "_"
         + str(int(lat / coord_resolution))
     )
 
 
 def query_geo_data_mongo(pointList, start, end, msg_type):
-    logging.debug("query_bsm_data_mongo")
+    logging.debug("query_geo_data_mongo")
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
 
@@ -72,6 +72,7 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
                 total_count += 1
 
         logging.info(f"Filter successful. Records returned: {count}, Total records: {total_count}")
+        client.close()
         return list(hashmap.values()), 200
     except Exception as e:
         logging.error(f"Filter failed: {e}")

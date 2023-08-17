@@ -61,7 +61,7 @@ def query_psm_data_mongo(pointList, start, end):
                 total_count += 1
             else:
                 total_count += 1
-
+        client.close()
         logging.info(f"Filter successful. Records returned: {count}, Total records: {total_count}")
         return list(hashmap.values()), 200
     except Exception as e:
