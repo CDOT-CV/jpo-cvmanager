@@ -2,13 +2,24 @@ import multidict
 import datetime
 
 ##################################### request_data ###########################################
+geometry = [[
+                    -104.891699,
+                    39.563912
+                ]]
 
-request_params_good = multidict.MultiDict(
-    [
-        ("user_info", {"organizations": [{"name": "Test", "role": "user"}]}),
-        ("organization", "Test"),
-    ]
-)
+request_params_bsm = {
+    "msg_type": "BSM",
+    "geometry": geometry,
+    "start": "start_date",
+    "end": "end_date",
+}
+
+request_params_psm = {
+    "msg_type": "PSM",
+    "geometry": geometry,
+    "start": "start_date",
+    "end": "end_date",
+}
 
 ###################################### Sample Data ##########################################
 

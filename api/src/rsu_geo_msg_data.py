@@ -126,7 +126,7 @@ def query_bsm_data_bq(pointList, start, end):
                 "geometry": {"type": "Point", "coordinates": [row["long"], row["lat"]]},
                 "properties": {
                     "id": row["Ip"],
-                    "time": util.format_date_utc(row["time"]),
+                    "time": util.format_date_utc(row["time"], "STRING", True),
                 },
             }
             hashmap[message_hash] = doc

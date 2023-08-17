@@ -65,7 +65,7 @@ last_online_query_return = [[datetime.strptime('06/14/2022 07:44:09 PM', '%m/%d/
 
 last_online_data_expected = {
         "ip": "10.0.0.1",
-        "last_online": "06/14/2022 07:44:09 PM"
+        "last_online": "2022-06-14T19:44:09Z"
     }
 
 last_online_no_data_expected = {

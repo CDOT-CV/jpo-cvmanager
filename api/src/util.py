@@ -4,14 +4,16 @@ import os
 
 
 # expects datetime string
-def format_date_utc(d, type="string"):
+def format_date_utc(d, type="string", tz=False):
     if not d:
         return None
     tmp = parse(d)
     utc_tz = tmp.astimezone(pytz.UTC)
 
-    if type.upper() == "STRING":
+    if not tz and type.upper() == "STRING":
         return utc_tz.strftime("%Y-%m-%dT%H:%M:%S")
+    elif tz and type.upper() == "STRING":
+        return utc_tz.strftime("%Y-%m-%dT%H:%M:%SZ")
     elif type.upper() == "DATETIME":
         return utc_tz
     else:
