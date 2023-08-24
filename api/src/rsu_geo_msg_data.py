@@ -3,7 +3,7 @@ import util
 import os
 import logging
 from datetime import datetime
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING, TEXT, GEOSPHERE
 
 coord_resolution = 0.0001  # lats more than this are considered different
 time_resolution = 25  # time deltas bigger than this are considered different
@@ -47,6 +47,9 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
 
     try:
         logging.info(f"Running filter: {filter} on mongo collection {os.getenv('MONGO_GEO_COLLECTION')}")
+        collection.create_index([("properties.msg_type", TEXT), 
+                                 ("properties.timestamp", DESCENDING), 
+                                 ("geometry", GEOSPHERE)])
         for doc in collection.find(filter=filter):
             message_hash = msg_hash(
                 msg_type,

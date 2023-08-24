@@ -5,7 +5,7 @@ import util
 import os
 import logging
 import json
-from pymongo import MongoClient
+from pymongo import MongoClient, DESCENDING, TEXT
 
 
 def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
@@ -32,8 +32,9 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
     count = 0
     try:
         logging.debug(f"Running filter: {filter}, on collection: {collection.name}")
-        collection.create_index([("timestamp", 1), ("message_type", 1)])
-        collection.create_index([("timestamp", 1), ("message_type", 1)])
+        collection.create_index([("timestamp", DESCENDING), 
+                                 ("message_type", TEXT), 
+                                 ("ip", TEXT)])
         for doc in collection.find(filter=filter):
             prev_count = 0
             if doc["ip"] in result:
