@@ -27,13 +27,8 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
     start_date = util.format_date_utc(start, "DATETIME")
     end_date = util.format_date_utc(end, "DATETIME")
 
-    logging.debug(f"start_date: {start_date}, end_date: {end_date}")
-
     try:
-        logging.debug(f"MONGO_DB_URI: {os.getenv('MONGO_DB_URI')}")
-        logging.debug(f"MONGO_DB_NAME: {os.getenv('MONGO_DB_NAME')}")
-        logging.debug(f"MONGO_GEO_COLLECTION: {os.getenv('MONGO_GEO_COLLECTION')}")
-        client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
+        client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000, maxPoolSize=10)
         db = client[os.getenv("MONGO_DB_NAME")]
         collection = db[os.getenv("MONGO_GEO_COLLECTION")]
         logging.debug("connection to MongoDB successfully established")
