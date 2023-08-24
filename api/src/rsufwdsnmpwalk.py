@@ -25,6 +25,7 @@ def message_type(val):
     return 'PSM'
   elif val == '00 00 80 03' or val == '00 03 27 71':
     return 'TIM'
+  logging.debug(f"Unknown message type of value: {val}")
   return 'Other'
 
 # Little endian
