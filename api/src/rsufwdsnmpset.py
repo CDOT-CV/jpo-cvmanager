@@ -284,6 +284,10 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44900', index, 'E0000015', raw=True)
     if msg_type.lower() == 'srm':
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44930', index, 'E0000016', raw=True)
+    if msg_type.lower() == 'psm':
+      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44940', index, '27', raw=True)
+    if msg_type.lower() == 'tim':
+      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '47900', index, '8003', raw=True)
     else:
       return "Supported message type is currently only BSM, SPaT, MAP, SSM and SRM", 501
   elif manufacturer == 'Yunex':
@@ -298,8 +302,12 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44900', index, 'E0000015', True)
     if msg_type.lower() == 'srm':
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44930', index, 'E0000016', False)
+    if msg_type.lower() == 'psm':
+      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44900', index, 'E0000015', True)
+    if msg_type.lower() == 'tim':
+      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '47900', index, '8003', False)
     else:
-      return "Supported message type is currently only BSM, SPaT, MAP, SSM and SRM", 501
+      return "Supported message type is currently only BSM, SPaT, MAP, SSM, SRM, PSM, and TIM", 501
   else:
     return "Supported RSU manufacturers are currently only Commsignia, Kapsch and Yunex", 501
 
