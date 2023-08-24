@@ -10,6 +10,8 @@ def message_type(val):
   # MAP  - E0000017
   # SSM  - E0000015
   # SRM  - E0000016
+  # PSM  - 27
+  # TIM  - 8003
   # Hex octets are spaced out in the output and are always 4 octets long
   if val == '\" \"' or val == '00 00 00 20' or val == '00 00 00 32':
     return 'BSM'
