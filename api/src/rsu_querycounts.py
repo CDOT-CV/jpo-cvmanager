@@ -13,8 +13,8 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
     end_date = util.format_date_utc(end, "DATETIME")
 
     try:
-        client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000, maxPoolSize=10)
-        db = client[os.getenv("MONGO_DB_NAME")]
+        client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000)
+        db = client.get_database(os.getenv("MONGO_DB_NAME"))
         collection = db[os.getenv("COUNTS_DB_NAME")]
     except Exception as e:
         logging.error(f"Failed to connect to Mongo counts collection with error message: {e}")
@@ -29,22 +29,16 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
     }
 
     result = {}
-    count = 0
     try:
-        logging.debug(f"Running filter: {filter}, on collection: {collection.name}")
-        collection.create_index([("timestamp", DESCENDING), 
-                                 ("message_type", TEXT), 
-                                 ("ip", TEXT)])
-        for doc in collection.find(filter=filter):
-            prev_count = 0
-            if doc["ip"] in result:
-                prev_count = result[doc["ip"]]["count"]
-            count += 1
-            v2x_count = prev_count + doc["count"]
-            item = {"road": doc["road"], "count": v2x_count}
-            result[doc["ip"]] = item
+        aggregation = [
+            {"$match": filter},
+            {"$group": {"_id": "$ip", "count": {"$sum": "$count"}, "road": {"$first": "$road"}}},
+            {"$project": {"_id": 0, "ip": "$_id", "count": 1, "road": 1}}
+        ]
+        logging.debug(f"Running aggregation: {aggregation}, on collection: {collection.name}")
+        result = list(collection.aggregate(aggregation))
         client.close()
-        logging.info(f"Filter successful. Length of data: {count}")
+        logging.info(f"Filter successful. Count response: {result}")
         return result, 200
     except Exception as e:
         logging.error(f"Filter failed: {e}")

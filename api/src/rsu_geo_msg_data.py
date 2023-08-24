@@ -29,7 +29,7 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
 
     try:
         client = MongoClient(os.getenv("MONGO_DB_URI"), serverSelectionTimeoutMS=5000, maxPoolSize=10)
-        db = client[os.getenv("MONGO_DB_NAME")]
+        db = client.get_database(os.getenv("MONGO_DB_NAME"))
         collection = db[os.getenv("MONGO_GEO_COLLECTION")]
         logging.debug("connection to MongoDB successfully established")
     except Exception as e:
