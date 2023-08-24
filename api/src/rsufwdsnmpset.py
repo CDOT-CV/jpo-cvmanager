@@ -303,7 +303,7 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
     if msg_type.lower() == 'srm':
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44930', index, 'E0000016', False)
     if msg_type.lower() == 'psm':
-      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44900', index, 'E0000015', True)
+      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44940', index, '27', True)
     if msg_type.lower() == 'tim':
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '47900', index, '8003', False)
     else:
