@@ -50,6 +50,8 @@ const SnmpsetMenu = ({ type, rsuIpList }) => {
             <option value="map">MAP</option>
             <option value="srm">SRM</option>
             <option value="ssm">SSM</option>
+            <option value="tim">TIM</option>
+            <option value="psm">PSM</option>
           </select>
         </label>
       </form>
