@@ -31,8 +31,12 @@ def query_rsu_counts_mongo(allowed_ips, message_type, start, end):
         logging.debug(f"Running filter: {filter}, on collection: {collection.name}")
         for doc in collection.find(filter=filter):
             if doc["ip"] in allowed_ips:
+                prev_count = 0
+                if doc["ip"] in result:
+                    prev_count = result[doc["ip"]]["count"]
                 count += 1
-                item = {"road": doc["road"], "count": doc["count"]}
+                v2x_count = prev_count + doc["count"]
+                item = {"road": doc["road"], "count": v2x_count}
                 result[doc["ip"]] = item
         client.close()
         logging.info(f"Filter successful. Length of data: {count}")
