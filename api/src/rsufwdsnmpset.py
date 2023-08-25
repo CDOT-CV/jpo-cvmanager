@@ -137,6 +137,9 @@ def config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, udp_port, rsu_index
     if rsu_mod_result != 'success':
       return rsu_mod_result, 500
     
+    if psid == "27" and manufacturer == 'Commsignia':
+      psid = "0027"
+    
     # Create a hex version of destIP using the specified endian type
     hex_dest_ip = ip_to_hex(dest_ip)
     
@@ -286,7 +289,7 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
     if msg_type.lower() == 'srm':
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44930', index, 'E0000016', raw=True)
     if msg_type.lower() == 'psm':
-      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44940', index, '0027')
+      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44940', index, '27')
     if msg_type.lower() == 'tim':
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '47900', index, '8003')
     else:
