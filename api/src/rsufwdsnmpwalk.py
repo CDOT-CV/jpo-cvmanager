@@ -25,7 +25,7 @@ def message_type(val):
     return 'SRM'
   elif val == '\"\'\"':
     return 'PSM'
-  elif val == '80 03':
+  elif val == '80 03' or val == '00 00 80 03':
     return 'TIM'
   logging.debug(f"Unknown message type of value: {val}")
   return 'Other'

@@ -141,6 +141,7 @@ def config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, udp_port, rsu_index
     hex_dest_ip = ip_to_hex(dest_ip)
     
     logging.info('Running SNMP config on {}'.format(rsu_ip))
+    logging.debug(f'SNMP config: Manufacturer:{manufacturer}, Destination:{dest_ip}:{udp_port}, Hex_PSID:{hex_dest_ip}')
     
     snmp_mods = []
     authstring = snmpcredential.get_authstring(snmp_creds)
@@ -285,11 +286,11 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
     if msg_type.lower() == 'srm':
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44930', index, 'E0000016', raw=True)
     if msg_type.lower() == 'psm':
-      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44940', index, '27')
+      return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '44940', index, '39')
     if msg_type.lower() == 'tim':
       return config_msgfwd(rsu_ip, manufacturer, snmp_creds, dest_ip, '47900', index, '8003')
     else:
-      return "Supported message type is currently only BSM, SPaT, MAP, SSM and SRM", 501
+      return "Supported message type is currently only BSM, SPaT, MAP, SSM SRM, PSM, and TIM", 501
   elif manufacturer == 'Yunex':
     # Based on message type, choose the right port
     if msg_type.lower() == 'bsm':
@@ -303,7 +304,7 @@ def config_init(rsu_ip, manufacturer, snmp_creds, dest_ip, msg_type, index):
     if msg_type.lower() == 'srm':
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44930', index, 'E0000016', False)
     if msg_type.lower() == 'psm':
-      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44940', index, '27', False)
+      return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '44940', index, '39', False)
     if msg_type.lower() == 'tim':
       return config_msgfwd_yunex(rsu_ip, snmp_creds, dest_ip, '47900', index, '8003', True)
     else:
