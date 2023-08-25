@@ -117,7 +117,7 @@ def fetch_index(command, rsu_ip, rsu_info, message_type=None, target_ip=None):
   if code == 200:
     walkResult = {}
     if rsu_info["manufacturer"] == "Yunex":
-      if message_type.upper() == 'BSM' or message_type.upper() == 'SSM':
+      if message_type.upper() == 'BSM' or message_type.upper() == 'SSM' or message_type.upper() == 'PSM':
         walkResult = data['RsuFwdSnmpwalk']['rsuReceivedMsgTable']
       else:
         walkResult = data['RsuFwdSnmpwalk']['rsuXmitMsgFwdingTable']
