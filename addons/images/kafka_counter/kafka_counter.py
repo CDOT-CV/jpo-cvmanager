@@ -1,4 +1,4 @@
-from kafka import KafkaConsumer
+from confluent_kafka import Consumer, KafkaError, KafkaException
 from google.cloud import bigquery
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import timedelta
@@ -76,11 +76,14 @@ class KafkaMessageCounter:
 
         result = collection.insert_many(documents)
 
-        result.acknowledged()
-
-        logging.info(
-            f"{self.thread_id}: Kafka insert for {self.message_type} succeeded"
-        )
+        if result.acknowledged:
+            logging.debug(
+                f"{self.thread_id}: Kafka insert for {self.message_type} succeeded"
+            )
+        else:
+            logging.error(
+                f"{self.thread_id}: The write_mongo method to MongoDB was not acknowledged for {self.message_type.upper()}"
+            )
 
     def push_metrics(self):
         current_counts = copy.deepcopy(self.rsu_count_dict)
@@ -142,7 +145,7 @@ class KafkaMessageCounter:
     def process_message(self, message):
         try:
             # Check if malformed message
-            jsonmsg = json.loads(message.value.decode("utf8"))
+            jsonmsg = json.loads(message.value().decode("utf8"))
 
             if self.type == 0:
                 contentKey = self.message_type.capitalize() + "MessageContent"
@@ -184,20 +187,47 @@ class KafkaMessageCounter:
             )
 
     def listen_for_message_and_process(self, topic, bootstrap_server):
-        logging.debug(
-            f"{self.thread_id}: Listening for messages on Kafka topic {topic}..."
-        )
-        consumer = KafkaConsumer(
-            topic,
-            group_id=f"{self.thread_id}-counter",
-            bootstrap_servers=bootstrap_server,
-        )
-        for msg in consumer:
-            self.process_message(msg)
-        logging.warning(
-            f"{self.thread_id}: Disconnected from Kafka topic, reconnecting..."
-        )
+        logging.debug(f'{self.thread_id}: Listening for messages on Kafka topic {topic}...')
 
+        if os.getenv('KAFKA_TYPE', '') == 'CONFLUENT':
+            username = os.getenv('CONFLUENT_KEY')
+            password = os.getenv('CONFLUENT_SECRET')
+            conf = {
+                'bootstrap.servers': bootstrap_server,
+                'security.protocol': 'SASL_SSL',
+                'sasl.mechanism': 'PLAIN',
+                'sasl.username': username,
+                'sasl.password': password,
+                'group.id': f'{self.thread_id}-counter',
+                'auto.offset.reset': 'latest'
+                }
+        else:
+            conf = {
+                'bootstrap.servers': bootstrap_server,
+                'group.id': f'{self.thread_id}-counter',
+                'auto.offset.reset': 'latest'
+            }
+
+        consumer = Consumer(conf)
+        try:
+            consumer.subscribe([topic])
+
+            while self.should_run():
+                msg = consumer.poll(timeout=1.0)
+                if msg is None: continue
+
+                if msg.error():
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        # End of partition event
+                        logging.warning('Topic %s [%d] reached end at offset %d\n' % (msg.topic(), msg.partition(), msg.offset()))
+                    elif msg.error():
+                        raise KafkaException(msg.error())
+                else:
+                    self.process_message(msg)
+        finally:
+            # Close down consumer to commit final offsets.
+            consumer.close()
+            logging.warning(f'{self.thread_id}: Disconnected from Kafka topic, reconnecting...')
     def get_topic_from_type(self):
         # 0 - in metric
         # 1 - out metric

@@ -1,0 +1,21 @@
+version: '3'
+services:
+  jpo_rsu_ping_fetch:
+    build: .
+    image: jpo_rsu_ping_fetch:latest
+    restart: always
+    environment:
+      ZABBIX_ENDPOINT: ${ZABBIX_ENDPOINT}
+      ZABBIX_USER: ${ZABBIX_USER}
+      ZABBIX_PASSWORD: ${ZABBIX_PASSWORD}
+      PG_DB_IP: ${PG_DB_IP}
+      PG_DB_PORT: ${PG_DB_PORT}
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      PG_DB_NAME: postgres
+      STALE_PERIOD: ${STALE_PERIOD}
+      LOGGING_LEVEL: ${LOGGING_LEVEL}
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'

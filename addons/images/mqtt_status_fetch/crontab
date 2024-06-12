@@ -1,0 +1,2 @@
+PYTHONPATH=/home/pingfetch
+0 0 * * * /usr/local/bin/python3 /home/pingfetch/purger.py

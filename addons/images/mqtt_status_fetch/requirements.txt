@@ -1,0 +1,5 @@
+requests==2.25.1
+sqlalchemy==2.0.27
+pg8000==1.30.4
+freezegun==1.4.0
+paho-mqtt==2.0.0

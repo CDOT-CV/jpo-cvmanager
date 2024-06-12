@@ -76,12 +76,7 @@ const AdminAddRsu = (props) => {
             type="text"
             placeholder="Enter RSU IP"
             {...register('ip', {
-              required: "Please enter the RSU's IP address",
-              pattern: {
-                value:
-                  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-                message: 'Please enter a valid IP address',
-              },
+              required: "Please enter the RSU's IP address"
             })}
           />
           {errors.ip && <p className="errorMsg">{errors.ip.message}</p>}

@@ -23,7 +23,7 @@ def message_type(val):
     return 'SSM'
   elif val == 'E0 00 00 16' or val == '37 58 09 64 05':
     return 'SRM'
-  elif val == '00 00 00 27':
+  elif val == '00 00 00 27' or val == '\"\'\"':
     return 'PSM'
   elif val == '80 03' or val == '00 00 80 03':
     return 'TIM'
