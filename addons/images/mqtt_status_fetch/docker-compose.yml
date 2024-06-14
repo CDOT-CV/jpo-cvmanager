@@ -1,8 +1,8 @@
 version: '3'
 services:
-  jpo_rsu_ping_fetch:
+  jpo_mqtt_status_fetch:
     build: .
-    image: jpo_rsu_ping_fetch:latest
+    image: jpo_mqtt_status_fetch:latest
     restart: always
     environment:
       ZABBIX_ENDPOINT: ${ZABBIX_ENDPOINT}

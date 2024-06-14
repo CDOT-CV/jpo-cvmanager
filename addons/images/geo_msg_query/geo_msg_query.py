@@ -43,6 +43,9 @@ def create_message(original_message, msg_type):
         longitude = original_message["payload"]["data"]["position"]["longitude"]
         latitude = original_message["payload"]["data"]["position"]["latitude"]
     if latitude and longitude:
+        timestamp_str = original_message["metadata"]["odeReceivedAt"]
+        if len(timestamp_str) > 26:
+                timestamp_str = timestamp_str[:26] + "Z"
         new_message = {
             "type": "Feature",
             "geometry": {
@@ -54,7 +57,10 @@ def create_message(original_message, msg_type):
             },
             "properties": {
                 "id": original_message["metadata"]["originIp"],
-                "timestamp": datetime.strptime(original_message["metadata"]["odeReceivedAt"], "%Y-%m-%dT%H:%M:%S.%fZ"),
+                "timestamp": datetime.strptime(
+                        timestamp_str,
+                        "%Y-%m-%dT%H:%M:%S.%fZ",
+                    ),
                 "msg_type": msg_type,
             },
         }

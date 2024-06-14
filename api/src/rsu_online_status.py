@@ -98,7 +98,7 @@ from marshmallow import Schema, fields
 
 
 class RsuOnlineStatusSchema(Schema):
-    rsu_ip = fields.IPv4(required=False)
+    rsu_ip = fields.String(required=False)
 
 
 class RsuOnlineStatus(Resource):
