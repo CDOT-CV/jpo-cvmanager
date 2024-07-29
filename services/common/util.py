@@ -43,18 +43,3 @@ def utc2tz(d):
         return None
     tz_d = d.astimezone(pytz.timezone(os.getenv("TIMEZONE", "America/Denver")))
     return tz_d
-
-
-def validate_file_type(file_name, extension=".tar"):
-    """Validate the file type of the file to be downloaded.
-
-    Args:
-        file_name (str): The name of the file to be downloaded.
-        extension (str): The file extension to validate against.
-    """
-    if not file_name.endswith(extension):
-        logging.error(
-            f'Unsupported file type for storage object {file_name}. Only "{extension}" files are supported.'
-        )
-        return False
-    return True

@@ -11,9 +11,6 @@ def download_docker_blob(blob_name, destination_file_name):
         destination_file_name (str): The name of the local file to copy the directory file to.
     """
 
-    if not validate_file_type(blob_name):
-        return False
-
     directory = "/mnt/blob_storage"
     source_file_name = f"{directory}/{blob_name}"
     os.system(f"cp {source_file_name} {destination_file_name}")

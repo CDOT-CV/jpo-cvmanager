@@ -12,9 +12,6 @@ def download_gcp_blob(blob_name, destination_file_name):
         destination_file_name (str): The name of the local file to download the bucket file to.
     """
 
-    if not validate_file_type(blob_name):
-        return False
-
     gcp_project = os.environ.get("GCP_PROJECT")
     bucket_name = os.environ.get("BLOB_STORAGE_BUCKET")
     storage_client = storage.Client(gcp_project)
