@@ -422,7 +422,7 @@ CREATE SEQUENCE public.user_email_notification_user_email_notification_id_seq
 CREATE TABLE IF NOT EXISTS public.user_email_notification
 (
    user_email_notification_id integer NOT NULL DEFAULT nextval('user_email_notification_user_email_notification_id_seq'::regclass),
-   user_id integer NOT NULL,
+   user_id UUID NOT NULL,
    email_type_id integer NOT NULL,
    CONSTRAINT user_email_notification_pkey PRIMARY KEY (user_email_notification_id),
    CONSTRAINT fk_user_id FOREIGN KEY (user_id)
