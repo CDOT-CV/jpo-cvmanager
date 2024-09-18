@@ -50,7 +50,7 @@ INSERT INTO public.rsu_organization(
 -- Replace user with a real gmail to test GCP OAuth2.0 support
 INSERT INTO public.users(
 	user_id, email, first_name, last_name, created_timestamp, super_user)
-	VALUES ('fc3d8729-8526-4aaa-805b-d64bf3b93860'::UUID, 'test@gmail.com', 'Test', 'User', (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000),'1');
+	VALUES ('fc3d8729-8526-4aaa-805b-d64bf3b93860'::UUID, 'test@gmail.com', 'Test', 'User', (EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000), '1');
 
 INSERT INTO public.user_organization(
 	user_id, organization_id, role_id)
