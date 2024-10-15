@@ -58,6 +58,7 @@
     "react-widgets": "5.8.4",
     "reactstrap": "^9.2.2",
     "recharts": "^2.12.6",
+    "rxjs": "^7.8.1",
     "styled-components": "^5.3.6",
     "worker-loader": "^3.0.8",
     "yup": "^1.4.0",
