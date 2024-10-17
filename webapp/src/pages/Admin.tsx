@@ -48,11 +48,13 @@ function Admin() {
                 path: 'rsus',
                 title: 'RSUs',
                 child: <AdminRsuTab />,
+                tag: 'rsu',
               },
               {
                 path: 'intersections',
                 title: 'Intersections',
                 child: <AdminIntersectionTab />,
+                tag: 'intersection',
               },
               {
                 path: 'users',
