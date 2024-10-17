@@ -4,7 +4,7 @@ import {
   Card,
   Container,
   Divider,
-  Grid,
+  Grid2,
   InputAdornment,
   Stack,
   Tab,
@@ -21,7 +21,7 @@ import NotificationApi from '../../../apis/intersections/notification-api'
 import React, { useEffect, useState, useRef } from 'react'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../../generalSlices/intersectionSlice'
-import { useSelector } from 'react-redux'
+import { useAppSelector } from '../../../hooks'
 
 const tabs = [
   {
@@ -76,9 +76,9 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
     query: '',
     tab: currentTab,
   })
-  const token = useSelector(selectToken)
-  const dbIntersectionId = useSelector(selectSelectedIntersectionId)
-  const roadRegulatorId = useSelector(selectSelectedRoadRegulatorId)
+  const token = useAppSelector(selectToken)
+  const dbIntersectionId = useAppSelector(selectSelectedIntersectionId)
+  const roadRegulatorId = useAppSelector(selectSelectedRoadRegulatorId)
 
   const updateNotifications = () => {
     if (dbIntersectionId) {
@@ -159,13 +159,13 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
                 m: -1,
               }}
             >
-              <Grid container justifyContent="space-between" spacing={3}>
-                <Grid item>
+              <Grid2 container justifyContent="space-between" spacing={3}>
+                <Grid2>
                   <Typography sx={{ m: 1 }} variant="h4" color="text.secondary">
                     Notifications
                   </Typography>
-                </Grid>
-              </Grid>
+                </Grid2>
+              </Grid2>
               <Box
                 sx={{
                   m: -1,
@@ -192,7 +192,7 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
             </Box>
           </>
         )}
-        <Card>
+        <Card sx={{ overflowY: 'scroll' }}>
           {!simple && (
             <>
               <CardHeader title="Notifications" />
@@ -231,13 +231,15 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
                     <TextField
                       defaultValue=""
                       fullWidth
-                      inputProps={{ ref: queryRef }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon fontSize="small" />
-                          </InputAdornment>
-                        ),
+                      slotProps={{
+                        input: {
+                          ref: queryRef,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        },
                       }}
                       placeholder="Search parameters"
                     />
@@ -269,8 +271,8 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
               mt: 3,
             }}
           >
-            <Grid container justifyContent="left" spacing={3}>
-              <Grid item>
+            <Grid2 container justifyContent="left" spacing={3}>
+              <Grid2>
                 <Button
                   sx={{
                     m: 1,
@@ -287,8 +289,8 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
                 >
                   Dismiss Notifications
                 </Button>
-              </Grid>
-            </Grid>
+              </Grid2>
+            </Grid2>
           </Box>
         </Box>
       </Container>

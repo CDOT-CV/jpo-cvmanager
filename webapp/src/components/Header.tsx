@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react'
-import Grid from '@mui/material/Grid'
+import Grid2 from '@mui/material/Grid2'
 import logo from '../icons/logo.png'
-import { useSelector, useDispatch } from 'react-redux'
 import EnvironmentVars from '../EnvironmentVars'
 import {
   selectOrganizationName,
@@ -22,20 +21,19 @@ import { useKeycloak } from '@react-keycloak/web'
 import './css/Header.css'
 
 import ContactSupportMenu from './ContactSupportMenu'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
+import { useAppDispatch, useAppSelector } from '../hooks'
 
 const Header = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
   const { keycloak } = useKeycloak()
 
-  const authLoginData = useSelector(selectAuthLoginData)
-  const organizationName = useSelector(selectOrganizationName)
-  const userName = useSelector(selectName)
-  const userEmail = useSelector(selectEmail)
-  const loginFailure = useSelector(selectLoginFailure)
-  const kcFailure = useSelector(selectKcFailure)
-  const loginMessage = useSelector(selectLoginMessage)
+  const authLoginData = useAppSelector(selectAuthLoginData)
+  const organizationName = useAppSelector(selectOrganizationName)
+  const userName = useAppSelector(selectName)
+  const userEmail = useAppSelector(selectEmail)
+  const loginFailure = useAppSelector(selectLoginFailure)
+  const kcFailure = useAppSelector(selectKcFailure)
+  const loginMessage = useAppSelector(selectLoginMessage)
 
   useEffect(() => {
     const kcFailureDelay = 500000
@@ -62,12 +60,12 @@ const Header = () => {
     <div>
       {authLoginData && keycloak?.authenticated ? (
         <header id="header">
-          <Grid container alignItems="center" style={{ height: 'fit-content' }}>
+          <Grid2 container alignItems="center" style={{ height: 'fit-content' }}>
             <img id="logo" src={logo} alt="Logo" />
             <h1 id="header-text">{EnvironmentVars.DOT_NAME} CV Manager</h1>
             <div id="login">
-              <Grid container alignItems="center">
-                <Grid id="userInfoGrid">
+              <Grid2 container alignItems="center">
+                <Grid2 id="userInfoGrid">
                   <h3 id="nameText">{userName}</h3>
                   <h3 id="emailText">{userEmail}</h3>
                   <select
@@ -81,21 +79,21 @@ const Header = () => {
                       </option>
                     ))}
                   </select>
-                </Grid>
+                </Grid2>
                 <button id="logout" onClick={() => handleUserLogout()}>
                   Logout
                 </button>
-              </Grid>
+              </Grid2>
             </div>
-          </Grid>
+          </Grid2>
         </header>
       ) : (
         <div id="frontpage">
-          <Grid container id="frontgrid" alignItems="center" direction="column">
-            <Grid container justifyContent="center" alignItems="center">
+          <Grid2 container id="frontgrid" alignItems="center" direction="column">
+            <Grid2 container justifyContent="center" alignItems="center">
               <img id="frontpagelogo" src={logo} alt="Logo" />
               <h1 id="header-text">{EnvironmentVars.DOT_NAME} CV Manager</h1>
-            </Grid>
+            </Grid2>
             {loginFailure && <h3 id="loginMessage">{loginMessage}</h3>}
             <div id="keycloakbtndiv">
               {loginFailure && (
@@ -109,7 +107,7 @@ const Header = () => {
             <br />
 
             {loginFailure && <ContactSupportMenu />}
-          </Grid>
+          </Grid2>
         </div>
       )}
     </div>

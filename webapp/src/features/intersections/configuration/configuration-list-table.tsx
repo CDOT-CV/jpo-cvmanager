@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom'
 export const ConfigParamListTable = (props) => {
   const { intersectionId, parameters, parametersCount, onPageChange, onRowsPerPageChange, page, rowsPerPage } = props
   const navigate = useNavigate()
+  console.log(parameters)
 
   const readOnlyRow = (param) => {
     return (
@@ -43,7 +44,7 @@ export const ConfigParamListTable = (props) => {
         <TableCell>{param.units?.toString()}</TableCell>
         <TableCell>{param.description}</TableCell>
         <TableCell align="right">
-          <IconButton component="a" onClick={() => navigate(`/configuration/${param.key}/edit`)}>
+          <IconButton component="a" onClick={() => navigate(`${param.key}/edit`)}>
             <PencilAltIcon fontSize="small" />
           </IconButton>
         </TableCell>
@@ -60,11 +61,11 @@ export const ConfigParamListTable = (props) => {
         <TableCell>{param.description}</TableCell>
         <TableCell align="right">
           {intersectionId != -1 ? (
-            <IconButton component="a" onClick={() => navigate(`/configuration/${param.key}/create`)}>
+            <IconButton component="a" onClick={() => navigate(`${param.key}/create`)}>
               <AddIcon fontSize="small" />
             </IconButton>
           ) : null}
-          <IconButton component="a" onClick={() => navigate(`/configuration/${param.key}/edit`)}>
+          <IconButton component="a" onClick={() => navigate(`${param.key}/edit`)}>
             <PencilAltIcon fontSize="small" />
           </IconButton>
         </TableCell>
@@ -89,7 +90,7 @@ export const ConfigParamListTable = (props) => {
                     fontWeight: '600',
                   }}
                 >
-                  Overrriden
+                  Overridden
                 </Typography>
               }
               size="small"
@@ -99,11 +100,11 @@ export const ConfigParamListTable = (props) => {
         <TableCell>{param.unit}</TableCell>
         <TableCell>{param.description}</TableCell>
         <TableCell align="right">
-          <IconButton component="a" onClick={() => navigate(`/configuration/${param.key}/edit`)}>
+          <IconButton component="a" onClick={() => navigate(`${param.key}/edit`)}>
             <PencilAltIcon fontSize="small" />
           </IconButton>
           {intersectionId != -1 ? (
-            <IconButton component="a" onClick={() => navigate(`/configuration/${param.key}/remove`)}>
+            <IconButton component="a" onClick={() => navigate(`${param.key}/remove`)}>
               <CancelIcon fontSize="small" />
             </IconButton>
           ) : null}
@@ -114,35 +115,36 @@ export const ConfigParamListTable = (props) => {
 
   return (
     <Card>
-      <PerfectScrollbar>
-        <Box sx={{ minWidth: 1050 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Value</TableCell>
-                <TableCell>Unit</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(parameters as Config[]).map((param) => {
-                switch (param.updateType) {
-                  case 'READ_ONLY':
-                    return readOnlyRow(param)
-                  case 'DEFAULT':
-                    return generalDefaultRow(param)
-                  case 'INTERSECTION':
-                    return 'intersectionID' in param ? intersectionRow(param) : generalIntersectionRow(param)
-                  default:
-                    return readOnlyRow(param)
-                }
-              })}
-            </TableBody>
-          </Table>
-        </Box>
-      </PerfectScrollbar>
+      <Box sx={{ minWidth: 1050, overflowY: 'scroll' }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ minWidth: 200 }}>Name</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>Value</TableCell>
+              <TableCell sx={{ minWidth: 90 }}>Unit</TableCell>
+              <TableCell sx={{ minWidth: 300 }}>Description</TableCell>
+              <TableCell align="right" sx={{ minWidth: 80 }}>
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {(parameters as Config[]).map((param) => {
+              switch (param.updateType) {
+                case 'READ_ONLY':
+                  return readOnlyRow(param)
+                case 'DEFAULT':
+                  return generalDefaultRow(param)
+                case 'INTERSECTION':
+                  console.log('intersectionRow')
+                  return 'intersectionID' in param ? intersectionRow(param) : generalIntersectionRow(param)
+                default:
+                  return readOnlyRow(param)
+              }
+            })}
+          </TableBody>
+        </Table>
+      </Box>
       <TablePagination
         component="div"
         count={parametersCount}
