@@ -1,33 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Box, Container, Typography } from '@mui/material'
-import { configParamApi } from '../../../apis/intersections/configuration-param-api'
 import { ConfigParamEditForm } from '../../../features/intersections/configuration/configuration-edit-form'
-import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../../generalSlices/intersectionSlice'
-import { selectToken } from '../../../generalSlices/userSlice'
 import { useParams } from 'react-router-dom'
 import { useAppSelector } from '../../../hooks'
+import { selectParameter } from '../../../features/api/intersectionApiSlice'
 
 const ConfigParamEdit = () => {
-  const [parameter, setParameter] = useState<Config | undefined>(undefined)
-  const intersectionId = useAppSelector(selectSelectedIntersectionId)
-  const roadRegulatorId = useAppSelector(selectSelectedRoadRegulatorId)
-  const token = useAppSelector(selectToken)
-
   const { key } = useParams<{ key: string }>()
 
-  const getParameter = async (key: string) => {
-    try {
-      const data = await configParamApi.getParameter(token, key, intersectionId, roadRegulatorId)
-
-      setParameter(data)
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  useEffect(() => {
-    getParameter(key as string)
-  }, [intersectionId])
+  const parameter = useAppSelector(selectParameter(key))
+  const formattedKey = parameter?.key.replace(/\./g, '.\u200B') // Replace periods with period and zero-width space, to help with line breaks
 
   if (!parameter) {
     return (
@@ -49,8 +31,10 @@ const ConfigParamEdit = () => {
               }}
             >
               <div>
-                <Typography noWrap variant="h4">
-                  Unable to find parameter {key}
+                <Typography variant="h6">
+                  Unable to find parameter:
+                  <br />
+                  {formattedKey}
                 </Typography>
               </div>
             </Box>
@@ -69,7 +53,7 @@ const ConfigParamEdit = () => {
             py: 8,
           }}
         >
-          <Container maxWidth="md">
+          <Container maxWidth="lg">
             <Box
               sx={{
                 alignItems: 'center',
@@ -77,11 +61,7 @@ const ConfigParamEdit = () => {
                 overflow: 'hidden',
               }}
             >
-              <div>
-                <Typography noWrap variant="h4">
-                  {parameter.key}
-                </Typography>
-              </div>
+              <Typography variant="h5">{formattedKey}</Typography>
             </Box>
             <Box mt={3}>
               <ConfigParamEditForm parameter={parameter} />

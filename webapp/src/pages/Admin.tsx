@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
+import { updateTableData as updateIntersectionTableData } from '../features/adminIntersectionTab/adminIntersectionTabSlice'
 import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 import '../features/adminRsuTab/Admin.css'
 import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganizationTab'
@@ -9,6 +10,7 @@ import { NotFound } from './404'
 import { SecureStorageManager } from '../managers'
 import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
 import VerticalTabs from '../components/VerticalTabs'
+import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersectionTab'
 import { useAppDispatch } from '../hooks'
 
 function Admin() {
@@ -16,6 +18,7 @@ function Admin() {
 
   useEffect(() => {
     dispatch(updateRsuTableData())
+    dispatch(updateIntersectionTableData())
     dispatch(getAvailableUsers())
     dispatch(getUserNotifications())
   }, [dispatch])
@@ -43,6 +46,11 @@ function Admin() {
                 path: 'rsus',
                 title: 'RSUs',
                 child: <AdminRsuTab />,
+              },
+              {
+                path: 'intersections',
+                title: 'Intersections',
+                child: <AdminIntersectionTab />,
               },
               {
                 path: 'users',
