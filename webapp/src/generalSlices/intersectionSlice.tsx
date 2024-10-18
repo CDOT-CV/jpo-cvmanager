@@ -10,7 +10,7 @@ export const intersectionMapLabelsLayer: SymbolLayer = {
   layout: {
     'text-field': ['to-string', ['get', 'intersectionName']],
     'text-size': 20,
-    'text-offset': [0, 2],
+    'text-offset': [0, 1],
     'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
     'text-allow-overlap': true,
     'icon-text-fit': 'both',

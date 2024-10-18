@@ -12,6 +12,7 @@ import spat_8805 from '../sample_data/intersection_8805_data/intersection_8805_S
 import map_8806 from '../sample_data/intersection_8806_data/intersection_8806_MAP_data.json'
 import spat_8806 from '../sample_data/intersection_8806_data/intersection_8806_SPAT_data.json'
 import { MinimalClient } from './live-intersection-api'
+import { sha256 } from 'js-sha256'
 
 export const mockIntersectionList: IntersectionReferenceData[] = [
   {
@@ -65,9 +66,10 @@ export const mockIntersectionList: IntersectionReferenceData[] = [
 ]
 
 class FakeLiveDataApi {
-  mapDataPeriodMs = 1000
-  spatDataPeriodMs = 1000
+  mapDataPeriodMs = 100
+  spatDataPeriodMs = 100
   bsmDataPeriodMs = 100
+  spatIndexes: { [key: number]: number } = {}
   bsmPositions: { [key: number]: { [key: number]: number[] } } = {}
 
   walkPoint = (point: number[]): number[] => {
@@ -133,25 +135,25 @@ class FakeLiveDataApi {
   }
 
   startMockedSpatData = (intersectionId: number, stream: Subject<liveSpat>): MinimalClient => {
-    let data = undefined as undefined | ProcessedSpat
+    let data = undefined as undefined | ProcessedSpat[]
     switch (intersectionId) {
       case 8801:
-        data = spat_8801 as unknown as ProcessedSpat
+        data = spat_8801 as unknown as ProcessedSpat[]
         break
       case 8802:
-        data = spat_8802 as unknown as ProcessedSpat
+        data = spat_8802 as unknown as ProcessedSpat[]
         break
       case 8803:
-        data = spat_8803 as unknown as ProcessedSpat
+        data = spat_8803 as unknown as ProcessedSpat[]
         break
       case 8804:
-        data = spat_8804 as unknown as ProcessedSpat
+        data = spat_8804 as unknown as ProcessedSpat[]
         break
       case 8805:
-        data = spat_8805 as unknown as ProcessedSpat
+        data = spat_8805 as unknown as ProcessedSpat[]
         break
       case 8806:
-        data = spat_8806 as unknown as ProcessedSpat
+        data = spat_8806 as unknown as ProcessedSpat[]
         break
     }
     if (data === undefined) {
@@ -161,19 +163,27 @@ class FakeLiveDataApi {
         subscribe: () => {},
       }
     }
-    data.odeReceivedAt = new Date().toISOString()
-    data.utcTimeStamp = Date.now()
+    data.forEach((v) => {
+      v.odeReceivedAt = new Date().toISOString()
+      v.utcTimeStamp = Date.now()
+    })
     const intervalId = setInterval(() => {
+      if (this.spatIndexes[intersectionId] == undefined) {
+        this.spatIndexes[intersectionId] = 0
+      }
+      let currentSpatIndex = this.spatIndexes[intersectionId]
+      const currentSpat = data[currentSpatIndex]
       const mockData: liveSpat = {
         type: 'spat',
         rcv_ts: Date.now(),
         update_ts: Date.now(),
-        payload: data,
+        payload: currentSpat,
         /* mock data content here */
       }
 
       // Push the data to the stream
       stream.next(mockData)
+      this.spatIndexes[intersectionId] = (currentSpatIndex + 1) % data.length
     }, this.spatDataPeriodMs)
     // Generate data 10x every second
     return {
@@ -217,21 +227,24 @@ class FakeLiveDataApi {
 
     const intervalId = setInterval(() => {
       for (let i = 0; i < 10; i++) {
+        // Combine intersection number and BSM ID to create a unique string
+        // Generate a deterministic hash from the combined string
+        const id = sha256(`${intersectionId}-${i}`)
         if (this.bsmPositions[intersectionId] == undefined) {
           this.bsmPositions[intersectionId] = {}
         }
-        if (this.bsmPositions[intersectionId][i] == undefined) {
-          this.bsmPositions[intersectionId][i] = [
+        if (this.bsmPositions[intersectionId][id] == undefined) {
+          this.bsmPositions[intersectionId][id] = [
             initialPosition[0] + (Math.random() - 0.5) * 0.001,
             initialPosition[1] + (Math.random() - 0.5) * 0.001,
           ]
         }
-        const newPosition = this.walkPoint(this.bsmPositions[intersectionId][i])
+        const newPosition = this.walkPoint(this.bsmPositions[intersectionId][id])
         const mockBsm: liveBsm = {
           type: 'bsm',
           rcv_ts: Date.now(),
           update_ts: Date.now(),
-          payload: this.mockBsm(i.toString(), newPosition, Math.random() * 100, Math.random() * 360, new Date()),
+          payload: this.mockBsm(id, newPosition, Math.random() * 100, Math.random() * 360, new Date()),
           /* mock data content here */
         }
         stream.next(mockBsm)

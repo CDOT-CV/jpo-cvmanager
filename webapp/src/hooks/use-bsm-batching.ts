@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { addBsmMultiple } from '../features/intersections/live/live-intersection-slice'
+// import { addBsmMultiple } from '../features/intersections/live/live-intersection-slice'
 import { useAppDispatch } from '../hooks'
 
 // Function to batch BSMs and dispatch in intervals
@@ -19,7 +19,7 @@ const useBsmBatching = () => {
     const intervalId = setInterval(() => {
       if (bsmBuffer.current.length > 0) {
         // Dispatch the batch to Redux store or update the map
-        dispatch(addBsmMultiple(bsmBuffer.current))
+        // dispatch(addBsmMultiple(bsmBuffer.current))
 
         // Clear the buffer after dispatch
         bsmBuffer.current = []

@@ -169,6 +169,15 @@ export const bsmLayerStyle: CircleLayer = {
   },
 }
 
+export const bsmRandomColorLayerStyle: CircleLayer = {
+  id: 'bsm-colored' as INTERSECTION_MAP_LAYER,
+  type: 'circle',
+  paint: {
+    'circle-color': ['get', 'color'],
+    'circle-radius': 8,
+  },
+}
+
 export const signalStateLayer: SymbolLayer = {
   id: 'signal-states' as INTERSECTION_MAP_LAYER,
   type: 'symbol',

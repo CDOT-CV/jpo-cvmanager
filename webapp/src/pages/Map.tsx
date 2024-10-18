@@ -84,15 +84,22 @@ import {
 } from '../generalSlices/intersectionSlice'
 import { mapTheme } from '../styles'
 import { useAppDispatch, useAppSelector } from '../hooks'
-import liveIntersectionApi from '../apis/intersections/live/live-intersection-api'
+import liveIntersectionApi, { getBsmColor } from '../apis/intersections/live/live-intersection-api'
 import {
   bsmLayerStyle,
+  bsmRandomColorLayerStyle,
   connectingLanesLabelsLayer,
   connectingLanesLayer,
   mapMessageLayer,
   signalStateLayer,
 } from '../features/intersections/map/map-layer-style-slice'
 import { mockIntersectionList } from '../apis/intersections/live/fake-data-api'
+import {
+  addConnections,
+  generateSignalStateFeatureCollection,
+  parseMapSignalGroups,
+  parseSpatSignalGroups,
+} from '../features/intersections/map/utilities/message-utils'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -227,12 +234,6 @@ function MapPage(props: MapPageProps) {
       }))
     })
   }, [])
-
-  console.log(
-    'liveIntersectionData',
-    liveIntersectionData.bsms?.[8801]?.[0]?.geometry?.coordinates?.[0],
-    liveIntersectionData.bsms?.[8801]?.[0]?.properties?.odeReceivedAt
-  )
 
   // useEffects for Mapbox
   useEffect(() => {
@@ -624,7 +625,165 @@ function MapPage(props: MapPageProps) {
     {
       label: 'Live Intersections',
       id: 'live-intersection-layer',
-      layers: [mapMessageLayer, connectingLanesLayer, bsmLayerStyle, signalStateLayer],
+      layers: [
+        {
+          id: 'map-message',
+          type: 'line',
+          minzoom: 12,
+          paint: {
+            'line-width': 5,
+            'line-color': ['case', ['==', ['get', 'ingressPath'], true], '#eb34e8', '#0004ff'],
+          },
+        },
+        {
+          id: 'connecting-lanes',
+          type: 'line',
+          minzoom: 14,
+          paint: {
+            'line-width': [
+              'match',
+              ['get', 'signalState'],
+              'UNAVAILABLE',
+              3,
+              'DARK',
+              3,
+              'STOP_THEN_PROCEED',
+              3,
+              'STOP_AND_REMAIN',
+              3,
+              'PRE_MOVEMENT',
+              5,
+              'PERMISSIVE_MOVEMENT_ALLOWED',
+              5,
+              'PROTECTED_MOVEMENT_ALLOWED',
+              5,
+              'PERMISSIVE_CLEARANCE',
+              5,
+              'PROTECTED_CLEARANCE',
+              5,
+              'CAUTION_CONFLICTING_TRAFFIC',
+              5,
+              5,
+            ],
+            'line-color': [
+              'match',
+              ['get', 'signalState'],
+              'UNAVAILABLE',
+              '#797979',
+              'DARK',
+              '#3a3a3a',
+              'STOP_THEN_PROCEED',
+              '#c00000',
+              'STOP_AND_REMAIN',
+              '#c00000',
+              'PRE_MOVEMENT',
+              '#c00000',
+              'PERMISSIVE_MOVEMENT_ALLOWED',
+              '#267700',
+              'PROTECTED_MOVEMENT_ALLOWED',
+              '#267700',
+              'PERMISSIVE_CLEARANCE',
+              '#e6b000',
+              'PROTECTED_CLEARANCE',
+              '#e6b000',
+              'CAUTION_CONFLICTING_TRAFFIC',
+              '#e6b000',
+              '#797979',
+            ],
+            'line-dasharray': [
+              'match',
+              ['get', 'signalState'],
+              'UNAVAILABLE',
+              ['literal', [2, 1]],
+              'DARK',
+              ['literal', [2, 1]],
+              'STOP_THEN_PROCEED',
+              ['literal', [2, 1]],
+              'STOP_AND_REMAIN',
+              ['literal', [1]],
+              'PRE_MOVEMENT',
+              ['literal', [2, 2]],
+              'PERMISSIVE_MOVEMENT_ALLOWED',
+              ['literal', [2, 1]],
+              'PROTECTED_MOVEMENT_ALLOWED',
+              ['literal', [1]],
+              'PERMISSIVE_CLEARANCE',
+              ['literal', [2, 1]],
+              'PROTECTED_CLEARANCE',
+              ['literal', [1]],
+              'CAUTION_CONFLICTING_TRAFFIC',
+              ['literal', [1, 4]],
+              ['literal', [2, 1]],
+            ],
+          },
+        },
+        {
+          id: 'signal-states',
+          type: 'symbol',
+          minzoom: 18,
+          layout: {
+            'icon-image': [
+              'match',
+              ['get', 'signalState'],
+              'UNAVAILABLE',
+              'traffic-light-icon-unknown',
+              'DARK',
+              'traffic-light-icon-unknown',
+              'STOP_THEN_PROCEED',
+              'traffic-light-icon-red-flashing',
+              'STOP_AND_REMAIN',
+              'traffic-light-icon-red-1',
+              'PRE_MOVEMENT',
+              'traffic-light-icon-yellow-red-1',
+              'PERMISSIVE_MOVEMENT_ALLOWED',
+              'traffic-light-icon-green-1',
+              'PROTECTED_MOVEMENT_ALLOWED',
+              'traffic-light-icon-green-1',
+              'PERMISSIVE_CLEARANCE',
+              'traffic-light-icon-yellow-1',
+              'PROTECTED_CLEARANCE',
+              'traffic-light-icon-yellow-1',
+              'CAUTION_CONFLICTING_TRAFFIC',
+              'traffic-light-icon-yellow-1',
+              'traffic-light-icon-unknown',
+            ],
+            'icon-rotate': ['get', 'orientation'],
+            'icon-allow-overlap': true,
+            'icon-rotation-alignment': 'map',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 9, 0.01, 19, 0.15, 22, 0.4],
+          },
+        },
+        {
+          id: 'bsm-colored',
+          type: 'circle',
+          minzoom: 16,
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-radius': 8,
+          },
+        },
+        {
+          id: 'intersection-labels',
+          type: 'symbol',
+          maxzoom: 15,
+          layout: {
+            'text-field': ['to-string', ['get', 'intersectionName']],
+            'text-size': 20,
+            'text-offset': [0, 2],
+            'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
+            'icon-allow-overlap': true,
+            'text-allow-overlap': true,
+            // 'icon-text-fit': 'both',
+            'icon-image': 'intersection_icon',
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 12, 0.05, 18, 0.02, 22, 0.03],
+          },
+          paint: {
+            'text-color': '#000000',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 5,
+          },
+        },
+      ],
     },
     {
       label: 'Intersections',
@@ -846,6 +1005,25 @@ function MapPage(props: MapPageProps) {
               addConfigPointToCoordinates(e.lngLat)
             }
           }}
+          onLoad={(e: mapboxgl.MapboxEvent<undefined>) => {
+            const map = e.target
+            if (!map) return
+            const images = [
+              'traffic-light-icon-unknown',
+              'traffic-light-icon-red-flashing',
+              'traffic-light-icon-red-1',
+              'traffic-light-icon-yellow-red-1',
+              'traffic-light-icon-green-1',
+              'traffic-light-icon-yellow-1',
+              'intersection_icon',
+            ]
+            for (const image_name of images) {
+              map.loadImage(`/icons/${image_name}.png`, (error, image) => {
+                if (error) throw error
+                if (!map.hasImage(image_name)) map.addImage(image_name, image)
+              })
+            }
+          }}
         >
           {activeLayers.includes('live-intersection-layer') && (
             <div>
@@ -866,13 +1044,56 @@ function MapPage(props: MapPageProps) {
                         <Layer {...layer} />
                       </Source>
                     )
-                  // case 'connecting-lanes':
-                  //   return (
-                  //     <Source id={layer.id} type="geojson" data={liveIntersectionData.maps}>
-                  //       <Layer {...layer} />
-                  //     </Source>
-                  //   )
-                  case 'bsm':
+                  case 'connecting-lanes':
+                    return (
+                      <Source
+                        id={layer.id}
+                        type="geojson"
+                        data={{
+                          type: 'FeatureCollection',
+                          features: Object.entries(liveIntersectionData.spats)
+                            .flatMap(([intersectionId, spat]) => {
+                              if (!spat) return null
+                              const signalGroup = Object.values(parseSpatSignalGroups([spat]))[0]
+                              const mapMessage = liveIntersectionData.maps[parseInt(intersectionId)]
+                              if (!mapMessage || !signalGroup) return null
+                              return addConnections(
+                                mapMessage.connectingLanesFeatureCollection,
+                                signalGroup,
+                                mapMessage.mapFeatureCollection
+                              )
+                            })
+                            .flatMap((v) => v?.features)
+                            .filter((f) => f !== null && f !== undefined),
+                        }}
+                      >
+                        <Layer {...layer} />
+                      </Source>
+                    )
+                  case 'signal-states':
+                    return (
+                      <Source
+                        id={layer.id}
+                        type="geojson"
+                        data={{
+                          type: 'FeatureCollection',
+                          features: Object.entries(liveIntersectionData.spats)
+                            .flatMap(([intersectionId, spat]) => {
+                              if (!spat) return null
+                              const signalGroup = Object.values(parseSpatSignalGroups([spat]))[0]
+                              const mapMessage = liveIntersectionData.maps[parseInt(intersectionId)]
+                              if (!mapMessage || !signalGroup) return null
+                              const mapSignalGroup = parseMapSignalGroups(mapMessage)
+                              return generateSignalStateFeatureCollection(mapSignalGroup, signalGroup)
+                            })
+                            .flatMap((v) => v?.features)
+                            .filter((f) => f !== null && f !== undefined),
+                        }}
+                      >
+                        <Layer {...layer} />
+                      </Source>
+                    )
+                  case 'bsm-colored':
                     return (
                       <Source
                         id={layer.id}
@@ -882,7 +1103,33 @@ function MapPage(props: MapPageProps) {
                           features: Object.values(liveIntersectionData.bsms)
                             .filter((f) => f !== undefined)
                             .flatMap((o) => Object.values(o))
-                            .filter((f) => f !== undefined),
+                            .filter((f) => f !== undefined)
+                            .map((feature) => ({
+                              ...feature,
+                              properties: { ...feature.properties, color: getBsmColor(feature) },
+                            })),
+                        }}
+                      >
+                        <Layer {...layer} />
+                      </Source>
+                    )
+                  case 'intersection-labels':
+                    return (
+                      <Source
+                        type="geojson"
+                        data={{
+                          type: 'FeatureCollection',
+                          features: mockIntersectionList.map((intersection) => ({
+                            type: 'Feature',
+                            properties: {
+                              intersectionId: intersection.intersectionID,
+                              intersectionName: intersection.intersectionID,
+                            },
+                            geometry: {
+                              type: 'Point',
+                              coordinates: [intersection.longitude, intersection.latitude],
+                            },
+                          })),
                         }}
                       >
                         <Layer {...layer} />
