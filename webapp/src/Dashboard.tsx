@@ -5,11 +5,10 @@ import Header from './components/Header'
 import Menu from './features/menu/Menu'
 import Help from './components/Help'
 import Admin from './pages/Admin'
-import Grid from '@mui/material/Grid'
+import Grid2 from '@mui/material/Grid2'
 import Tabs, { TabItem } from './components/Tabs'
 import Map from './pages/Map'
 import './App.css'
-import { useSelector, useDispatch } from 'react-redux'
 import {
   // Actions
   getRsuData,
@@ -19,22 +18,20 @@ import { SecureStorageManager } from './managers'
 import { ReactKeycloakProvider } from '@react-keycloak/web'
 import keycloak from './keycloak-config'
 import { keycloakLogin } from './generalSlices/userSlice'
-import { ThunkDispatch } from 'redux-thunk'
-import { RootState } from './store'
-import { AnyAction } from '@reduxjs/toolkit'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import IntersectionMapView from './pages/IntersectionMapView'
 import IntersectionDashboard from './pages/IntersectionDashboard'
 import { NotFound } from './pages/404'
 import AdminNotificationTab from './features/adminNotificationTab/AdminNotificationTab'
+import { useAppDispatch, useAppSelector } from './hooks'
 
 let loginDispatched = false
 
 const Dashboard = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
-  const authLoginData = useSelector(selectAuthLoginData)
-  const loadingGlobal = useSelector(selectLoadingGlobal)
-  const organizationName = useSelector(selectOrganizationName)
+  const dispatch = useAppDispatch()
+  const authLoginData = useAppSelector(selectAuthLoginData)
+  const loadingGlobal = useAppSelector(selectLoadingGlobal)
+  const organizationName = useAppSelector(selectOrganizationName)
 
   useEffect(() => {
     keycloak
@@ -74,7 +71,7 @@ const Dashboard = () => {
       }}
     >
       <div id="masterdiv">
-        <Grid container id="content-grid" alignItems="center">
+        <Grid2 container id="content-grid" alignItems="center">
           <Header />
           {authLoginData && keycloak?.authenticated ? (
             <>
@@ -112,7 +109,7 @@ const Dashboard = () => {
           ) : (
             <div></div>
           )}
-        </Grid>
+        </Grid2>
         <RingLoader css={loadercss} size={200} color={'#13d48d'} loading={loadingGlobal} speedMultiplier={1} />
       </div>
     </ReactKeycloakProvider>

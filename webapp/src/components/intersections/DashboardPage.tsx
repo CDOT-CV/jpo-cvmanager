@@ -1,4 +1,4 @@
-import { Box, Container, Grid } from '@mui/material'
+import { Box, Container, Grid2 } from '@mui/material'
 import { NotificationsTable } from '../../features/intersections/notifications/notifications-table'
 import { ConnectionOfTravelAssessmentCard } from '../../features/intersections/assessments/connection-of-travel-assessment'
 import { LaneDirectionOfTravelAssessmentCard } from '../../features/intersections/assessments/lane-direction-of-travel-assessment'
@@ -8,13 +8,12 @@ import React, { useEffect, useState } from 'react'
 import AssessmentsApi from '../../apis/intersections/assessments-api'
 import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../generalSlices/intersectionSlice'
 import { selectToken } from '../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
+import { useAppSelector } from '../../hooks'
 
 const Page = () => {
-  const [assessment, setAssessments] = useState<Assessment[]>([])
-  const intersectionId = useSelector(selectSelectedIntersectionId)
-  const roadRegulatorId = useSelector(selectSelectedRoadRegulatorId)
-  const token = useSelector(selectToken)
+  const intersectionId = useAppSelector(selectSelectedIntersectionId)
+  const roadRegulatorId = useAppSelector(selectSelectedRoadRegulatorId)
+  const token = useAppSelector(selectToken)
 
   // create hooks, and methods for each assessment type:
   const [stopLineStopAssessment, setStopLineStopAssessment] = useState<StopLineStopAssessment | undefined>(undefined)
@@ -82,15 +81,15 @@ const Page = () => {
         }}
       >
         <Container maxWidth={false}>
-          <Grid container spacing={3} alignItems="flex-start">
+          <Grid2 container spacing={3} alignItems="flex-start">
             <ConnectionOfTravelAssessmentCard assessment={connectionOfTravelAssessment} />
             <StopLineStopAssessmentCard assessment={stopLineStopAssessment} />
             <SignalStateEventAssessmentCard assessment={signalStateEventAssessment} />
             <LaneDirectionOfTravelAssessmentCard assessment={laneDirectionOfTravelAssessment} />
-            <Grid item xs={12}>
+            <Grid2 size={12}>
               <NotificationsTable simple={true} />
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
         </Container>
       </Box>
     </>
