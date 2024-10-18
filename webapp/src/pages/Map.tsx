@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import mapboxgl, { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
-import Map, { Marker, Popup, Source, Layer, LayerProps } from 'react-map-gl'
+import Map, { Marker, Popup, Source, Layer, LayerProps, MapRef } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import RsuMarker from '../components/RsuMarker'
 import mbStyle from '../styles/mb_style.json'
@@ -84,6 +84,15 @@ import {
 } from '../generalSlices/intersectionSlice'
 import { mapTheme } from '../styles'
 import { useAppDispatch, useAppSelector } from '../hooks'
+import liveIntersectionApi from '../apis/intersections/live/live-intersection-api'
+import {
+  bsmLayerStyle,
+  connectingLanesLabelsLayer,
+  connectingLanesLayer,
+  mapMessageLayer,
+  signalStateLayer,
+} from '../features/intersections/map/map-layer-style-slice'
+import { mockIntersectionList } from '../apis/intersections/live/fake-data-api'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -128,6 +137,8 @@ function MapPage(props: MapPageProps) {
 
   // Mapbox local state variables
   const [viewState, setViewState] = useState(EnvironmentVars.getMapboxInitViewState())
+
+  const mapRef = React.useRef<MapRef>(null)
 
   // RSU layer local state variables
   const [selectedRsuCount, setSelectedRsuCount] = useState(null)
@@ -186,7 +197,7 @@ function MapPage(props: MapPageProps) {
   const [wzdxMarkers, setWzdxMarkers] = useState([])
   const [pageOpen, setPageOpen] = useState(true)
 
-  const [activeLayers, setActiveLayers] = useState(['rsu-layer'])
+  const [activeLayers, setActiveLayers] = useState<MAP_LAYER_TYPES[]>(['rsu-layer'])
 
   // Vendor filter local state variable
   const [selectedVendor, setSelectedVendor] = useState('Select Vendor')
@@ -199,6 +210,29 @@ function MapPage(props: MapPageProps) {
     setSelectedWZDxMarkerIndex(null)
     setSelectedWZDxMarker(null)
   }
+
+  const [liveIntersectionData, setLiveIntersectionData] = useState({ maps: {}, spats: {}, bsms: {} } as {
+    maps: { [key: number]: ProcessedMap }
+    spats: { [key: number]: ProcessedSpat }
+    bsms: { [key: number]: { [key: string]: BsmFeature } }
+  })
+
+  useEffect(() => {
+    liveIntersectionApi.initialize((v) => {
+      setLiveIntersectionData((prevData) => ({
+        ...prevData,
+        maps: { ...v.maps },
+        spats: { ...v.spats },
+        bsms: { ...v.bsms },
+      }))
+    })
+  }, [])
+
+  console.log(
+    'liveIntersectionData',
+    liveIntersectionData.bsms?.[8801]?.[0]?.geometry?.coordinates?.[0],
+    liveIntersectionData.bsms?.[8801]?.[0]?.properties?.odeReceivedAt
+  )
 
   // useEffects for Mapbox
   useEffect(() => {
@@ -511,68 +545,101 @@ function MapPage(props: MapPageProps) {
     return stopsArray
   }
 
-  const layers: (LayerProps & { label: string })[] = [
+  type MAP_LAYER_TYPES =
+    | 'rsu-layer'
+    | 'heatmap-layer'
+    | 'msg-viewer-layer'
+    | 'wzdx-layer'
+    | 'live-intersection-layer'
+    | 'intersection-layer'
+  const layers: { label: string; id: MAP_LAYER_TYPES; layers: LayerProps[] }[] = [
     {
-      id: 'rsu-layer',
       label: 'RSU Viewer',
-      type: 'symbol',
-    },
-    {
-      id: 'heatmap-layer',
-      label: 'Heatmap',
-      type: 'heatmap',
-      maxzoom: 14,
-      source: 'heatMapData',
-      paint: {
-        'heatmap-weight': {
-          property: 'count',
-          type: 'exponential',
-          stops: getStops(),
+      id: 'rsu-layer',
+      layers: [
+        {
+          id: 'rsu-layer',
+          type: 'symbol',
         },
-        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0, 10, 1, 13, 2],
-        'heatmap-color': [
-          'interpolate',
-          ['linear'],
-          ['heatmap-density'],
-          0,
-          'rgba(33,102,172,0)',
-          0.2,
-          'rgb(103,169,207)',
-          0.4,
-          'rgb(209,229,240)',
-          0.6,
-          'rgb(253,219,199)',
-          0.8,
-          'rgb(239,138,98)',
-          0.9,
-          'rgb(255,201,101)',
-        ],
-        'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 1, 13, 0.6, 14, 0],
-      },
+      ],
     },
     {
-      id: 'msg-viewer-layer',
+      label: 'Heatmap',
+      id: 'heatmap-layer',
+      layers: [
+        {
+          id: 'heatmap-layer',
+          type: 'heatmap',
+          maxzoom: 14,
+          source: 'heatMapData',
+          paint: {
+            'heatmap-weight': {
+              property: 'count',
+              type: 'exponential',
+              stops: getStops(),
+            },
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0, 10, 1, 13, 2],
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0,
+              'rgba(33,102,172,0)',
+              0.2,
+              'rgb(103,169,207)',
+              0.4,
+              'rgb(209,229,240)',
+              0.6,
+              'rgb(253,219,199)',
+              0.8,
+              'rgb(239,138,98)',
+              0.9,
+              'rgb(255,201,101)',
+            ],
+            'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 1, 13, 0.6, 14, 0],
+          },
+        },
+      ],
+    },
+    {
       label: 'V2X Msg Viewer',
-      type: 'symbol',
+      id: 'msg-viewer-layer',
+      layers: [
+        {
+          id: 'msg-viewer-layer',
+          type: 'symbol',
+        },
+      ],
     },
     {
-      id: 'wzdx-layer',
       label: 'WZDx Viewer',
-      type: 'line',
-      paint: {
-        'line-color': '#F29543',
-        'line-width': 8,
-      },
+      id: 'wzdx-layer',
+      layers: [
+        {
+          id: 'wzdx-layer',
+          type: 'line',
+        },
+      ],
     },
     {
-      id: 'intersection-layer',
+      label: 'Live Intersections',
+      id: 'live-intersection-layer',
+      layers: [mapMessageLayer, connectingLanesLayer, bsmLayerStyle, signalStateLayer],
+    },
+    {
       label: 'Intersections',
-      type: 'symbol',
+      id: 'intersection-layer',
+      layers: [
+        {
+          id: 'intersection-layer',
+          type: 'symbol',
+        },
+      ],
     },
   ]
 
   const Legend = () => {
-    const toggleLayer = (id: string) => {
+    const toggleLayer = (id: MAP_LAYER_TYPES) => {
       if (activeLayers.includes(id)) {
         if (id === 'rsu-layer') {
           dispatch(selectRsu(null))
@@ -591,7 +658,7 @@ function MapPage(props: MapPageProps) {
     return (
       <div className="legend">
         <h1 className="legend-header">Map Layers</h1>
-        {layers.map((layer: { id?: string; label: string }) => (
+        {layers.map((layer: { id: MAP_LAYER_TYPES; label: string }) => (
           <div key={layer.id} className="legend-item">
             <label className="legend-label">
               <input
@@ -763,10 +830,14 @@ function MapPage(props: MapPageProps) {
       >
         <Map
           {...viewState}
+          ref={mapRef}
           mapboxAccessToken={EnvironmentVars.MAPBOX_TOKEN}
           mapStyle={mbStyle as mapboxgl.Style}
           style={{ width: '100%', height: '100%' }}
-          onMove={(evt) => setViewState(evt.viewState)}
+          onMove={(evt) => {
+            setViewState(evt.viewState)
+            liveIntersectionApi.viewBoundsChanged(mapRef.current?.getBounds(), mockIntersectionList)
+          }}
           onClick={(e) => {
             if (addGeoMsgPoint) {
               addGeoMsgPointToCoordinates(e.lngLat)
@@ -776,6 +847,57 @@ function MapPage(props: MapPageProps) {
             }
           }}
         >
+          {activeLayers.includes('live-intersection-layer') && (
+            <div>
+              {layers[4].layers.map((layer) => {
+                switch (layer.id) {
+                  case 'map-message':
+                    return (
+                      <Source
+                        id={layer.id}
+                        type="geojson"
+                        data={{
+                          type: 'FeatureCollection',
+                          features: Object.values(liveIntersectionData.maps)
+                            .flatMap((v) => v?.mapFeatureCollection.features)
+                            .filter((f) => f !== undefined),
+                        }}
+                      >
+                        <Layer {...layer} />
+                      </Source>
+                    )
+                  // case 'connecting-lanes':
+                  //   return (
+                  //     <Source id={layer.id} type="geojson" data={liveIntersectionData.maps}>
+                  //       <Layer {...layer} />
+                  //     </Source>
+                  //   )
+                  case 'bsm':
+                    return (
+                      <Source
+                        id={layer.id}
+                        type="geojson"
+                        data={{
+                          type: 'FeatureCollection',
+                          features: Object.values(liveIntersectionData.bsms)
+                            .filter((f) => f !== undefined)
+                            .flatMap((o) => Object.values(o))
+                            .filter((f) => f !== undefined),
+                        }}
+                      >
+                        <Layer {...layer} />
+                      </Source>
+                    )
+                  // case 'signal-states':
+                  //   return (
+                  //     <Source id={layer.id} type="geojson" data={liveIntersectionData.maps}>
+                  //       <Layer {...layer} />
+                  //     </Source>
+                  //   )
+                }
+              })}
+            </div>
+          )}
           {activeLayers.includes('rsu-layer') && (
             <div>
               {configCoordinates?.length > 2 ? (
@@ -846,7 +968,7 @@ function MapPage(props: MapPageProps) {
           )}
           {activeLayers.includes('heatmap-layer') && (
             <Source id={layers[1].id} type="geojson" data={heatMapData}>
-              <Layer {...layers[1]} />
+              <Layer {...layers[1].layers[0]} />
             </Source>
           )}
           {activeLayers.includes('msg-viewer-layer') && (
@@ -865,7 +987,7 @@ function MapPage(props: MapPageProps) {
           {activeLayers.includes('wzdx-layer') && (
             <div>
               <Source id={layers[3].id} type="geojson" data={wzdxData}>
-                <Layer {...layers[3]} />
+                <Layer {...layers[3].layers[0]} />
               </Source>
               {wzdxMarkers}
             </div>

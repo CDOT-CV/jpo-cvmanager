@@ -1,11 +1,17 @@
-import { AnyAction, createAsyncThunk, createSlice, PayloadAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { CircleLayer, LayerProps, LineLayer, SymbolLayer } from 'react-map-gl'
-import { CirclePaint, Layer } from 'mapbox-gl'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { CircleLayer, LineLayer, SymbolLayer } from 'react-map-gl'
 import { RootState } from '../../../store'
-import { createDraft } from 'immer'
 
-const mapMessageLayer: LineLayer = {
-  id: 'map-message',
+export type INTERSECTION_MAP_LAYER =
+  | 'map-message'
+  | 'map-message-labels'
+  | 'connecting-lanes'
+  | 'connecting-lanes-labels'
+  | 'invalid-lane-collection'
+  | 'bsm'
+  | 'signal-states'
+export const mapMessageLayer: LineLayer = {
+  id: 'map-message' as INTERSECTION_MAP_LAYER,
   type: 'line',
   paint: {
     'line-width': 5,
@@ -13,8 +19,8 @@ const mapMessageLayer: LineLayer = {
   },
 }
 
-const mapMessageLabelsLayer: SymbolLayer = {
-  id: 'map-message-labels',
+export const mapMessageLabelsLayer: SymbolLayer = {
+  id: 'map-message-labels' as INTERSECTION_MAP_LAYER,
   type: 'symbol',
   layout: {
     'text-field': ['concat', 'lane: ', ['to-string', ['get', 'laneId']]],
@@ -31,8 +37,8 @@ const mapMessageLabelsLayer: SymbolLayer = {
   },
 }
 
-const connectingLanesLayer: LineLayer = {
-  id: 'connecting-lanes',
+export const connectingLanesLayer: LineLayer = {
+  id: 'connecting-lanes' as INTERSECTION_MAP_LAYER,
   type: 'line',
   paint: {
     'line-width': [
@@ -113,8 +119,8 @@ const connectingLanesLayer: LineLayer = {
   },
 }
 
-const connectingLanesLabelsLayer: SymbolLayer = {
-  id: 'connecting-lanes-labels',
+export const connectingLanesLabelsLayer: SymbolLayer = {
+  id: 'connecting-lanes-labels' as INTERSECTION_MAP_LAYER,
   type: 'symbol',
   layout: {
     'text-field': ['concat', 'sig-group: ', ['to-string', ['get', 'signalGroupId']]],
@@ -133,8 +139,8 @@ const connectingLanesLabelsLayer: SymbolLayer = {
   },
 }
 
-const srmLayer: CircleLayer = {
-  id: 'srmMarker',
+export const srmLayer: CircleLayer = {
+  id: 'srmMarker' as INTERSECTION_MAP_LAYER,
   type: 'circle',
   source: 'srmData',
   minzoom: 12,
@@ -144,8 +150,8 @@ const srmLayer: CircleLayer = {
   },
 }
 
-const markerLayer: LineLayer = {
-  id: 'invalid-lane-collection',
+export const markerLayer: LineLayer = {
+  id: 'invalid-lane-collection' as INTERSECTION_MAP_LAYER,
   type: 'line',
   paint: {
     'line-width': 20,
@@ -154,8 +160,8 @@ const markerLayer: LineLayer = {
   },
 }
 
-const bsmLayerStyle: CircleLayer = {
-  id: 'bsm',
+export const bsmLayerStyle: CircleLayer = {
+  id: 'bsm' as INTERSECTION_MAP_LAYER,
   type: 'circle',
   paint: {
     'circle-color': ['match', ['get', 'id'], 'temp-id', '#0004ff', '#0004ff'],
@@ -163,8 +169,8 @@ const bsmLayerStyle: CircleLayer = {
   },
 }
 
-const signalStateLayer: SymbolLayer = {
-  id: 'signal-states',
+export const signalStateLayer: SymbolLayer = {
+  id: 'signal-states' as INTERSECTION_MAP_LAYER,
   type: 'symbol',
   layout: {
     'icon-image': [
