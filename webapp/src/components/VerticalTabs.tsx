@@ -55,7 +55,9 @@ function VerticalTabs(props: VerticalTabProps) {
   const location = useLocation()
   const defaultTabKey = tabs[defaultTabIndex ?? 0]?.path
 
-  const getSelectedTab = () => location.pathname.split('/').at(-1) || defaultTabKey
+  const tabKeys = tabs.map((tab) => tab.path)
+  const pathSegments = location.pathname.split('/')
+  const getSelectedTab = () => tabKeys.find((key) => pathSegments.includes(key)) ?? defaultTabKey
 
   const [value, setValue] = useState<string | number>(getSelectedTab())
   const [menuOpen, setMenuOpen] = React.useState(false)
@@ -98,7 +100,7 @@ function VerticalTabs(props: VerticalTabProps) {
           indicatorColor="primary"
           textColor="inherit"
           orientation="vertical"
-          sx={{ width: menuOpen ? 170 : 80 }}
+          sx={{ width: menuOpen ? 170 : 60 }}
           TabIndicatorProps={{
             style: {
               right: 'auto', // remove the default right positioning
@@ -121,7 +123,10 @@ function VerticalTabs(props: VerticalTabProps) {
                   backgroundColor: value === tab.path || value === index ? '#0e2052' : 'transparent',
                   fontSize: 20,
                   height: '70px',
-                  // alignItems: 'flex-start',
+                  left: 0,
+                  alignItems: 'center',
+                  justifyContent: 'flex-start', // Align contents to the left
+
                   textTransform: 'none',
                   '&&': { color: value === tab.path || value === index ? '#fff' : '#d4d4d4' },
                 }}

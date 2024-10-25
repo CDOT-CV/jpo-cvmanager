@@ -29,8 +29,11 @@ import { NotFound } from './pages/404'
 import AdminNotificationTab from './features/adminNotificationTab/AdminNotificationTab'
 import VerticalTabs from './components/VerticalTabs'
 import MapIcon from '@mui/icons-material/Map'
-import { IconButton } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import TrafficIcon from '@mui/icons-material/Traffic'
+import DashboardIcon from '@mui/icons-material/Dashboard'
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
+import HelpIcon from '@mui/icons-material/Help'
+import SettingsIcon from '@mui/icons-material/Settings'
 
 let loginDispatched = false
 
@@ -106,26 +109,31 @@ const Dashboard = () => {
                   path: 'intersectionMap',
                   title: 'Intersection Map',
                   child: <IntersectionMapView />,
+                  icon: <TrafficIcon />,
                 },
                 {
                   path: 'intersectionDashboard',
                   title: 'Intersection Dashboard',
                   child: <IntersectionDashboard />,
+                  icon: <DashboardIcon />,
                 },
                 {
                   path: 'admin',
                   title: 'Admin',
                   child: <Admin />,
+                  icon: <ManageAccountsIcon />,
                 },
                 {
                   path: 'help',
                   title: 'Help',
                   child: <Help />,
+                  icon: <HelpIcon />,
                 },
                 {
                   path: 'settings',
                   title: 'User Settings',
                   child: <AdminNotificationTab />,
+                  icon: <SettingsIcon />,
                 },
               ]}
             />
