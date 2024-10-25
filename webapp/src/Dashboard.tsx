@@ -27,6 +27,10 @@ import IntersectionMapView from './pages/IntersectionMapView'
 import IntersectionDashboard from './pages/IntersectionDashboard'
 import { NotFound } from './pages/404'
 import AdminNotificationTab from './features/adminNotificationTab/AdminNotificationTab'
+import VerticalTabs from './components/VerticalTabs'
+import MapIcon from '@mui/icons-material/Map'
+import { IconButton } from '@mui/material'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 let loginDispatched = false
 
@@ -73,46 +77,62 @@ const Dashboard = () => {
         setTimeout(() => (loginDispatched = false), 5000)
       }}
     >
-      <div id="masterdiv">
-        <Grid2 container id="content-grid" alignItems="center">
-          <Header />
-          {authLoginData && keycloak?.authenticated ? (
-            <>
-              <Tabs>
-                <TabItem label={'RSU Map'} path={'map'} />
-                <TabItem label={'Intersection Map'} path={'intersectionMap'} />
-                <TabItem label={'Intersection Dashboard'} path={'intersectionDashboard'} />
-                {SecureStorageManager.getUserRole() !== 'admin' ? <></> : <TabItem label={'Admin'} path={'admin'} />}
-                <TabItem label={'Help'} path={'help'} />
-                <TabItem label={'User Settings'} path={'settings'} />
-              </Tabs>
-              <div className="tabs">
-                <div className="tab-content">
-                  <Routes>
-                    <Route index element={<Navigate to="map" replace />} />
-                    <Route
-                      path="map"
-                      element={
-                        <>
-                          <Menu />
-                          <Map auth={true} />
-                        </>
-                      }
-                    />
-                    <Route path="intersectionMap/*" element={<IntersectionMapView />} />
-                    <Route path="intersectionDashboard/*" element={<IntersectionDashboard />} />
-                    <Route path="admin/*" element={<Admin />} />
-                    <Route path="settings/*" element={<AdminNotificationTab />} />
-                    <Route path="help" element={<Help />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div></div>
-          )}
-        </Grid2>
+      <div id="masterdiv" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Header />
+        {authLoginData && keycloak?.authenticated ? (
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <VerticalTabs
+              notFoundRoute={
+                <NotFound
+                  redirectRoute="/dashboard/admin"
+                  redirectRouteName="Admin Page"
+                  description="This page does not exist. Please return to the main admin page."
+                />
+              }
+              defaultTabIndex={0}
+              tabs={[
+                {
+                  path: 'map',
+                  title: 'RSU Map',
+                  child: (
+                    <>
+                      <Menu />
+                      <Map auth={true} />
+                    </>
+                  ),
+                  icon: <MapIcon />,
+                },
+                {
+                  path: 'intersectionMap',
+                  title: 'Intersection Map',
+                  child: <IntersectionMapView />,
+                },
+                {
+                  path: 'intersectionDashboard',
+                  title: 'Intersection Dashboard',
+                  child: <IntersectionDashboard />,
+                },
+                {
+                  path: 'admin',
+                  title: 'Admin',
+                  child: <Admin />,
+                },
+                {
+                  path: 'help',
+                  title: 'Help',
+                  child: <Help />,
+                },
+                {
+                  path: 'settings',
+                  title: 'User Settings',
+                  child: <AdminNotificationTab />,
+                },
+              ]}
+            />
+          </div>
+        ) : (
+          <div></div>
+        )}
         <RingLoader css={loadercss} size={200} color={'#13d48d'} loading={loadingGlobal} speedMultiplier={1} />
       </div>
     </ReactKeycloakProvider>

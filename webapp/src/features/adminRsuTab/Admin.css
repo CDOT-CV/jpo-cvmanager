@@ -1,12 +1,12 @@
 #admin {
   width: 100%;
-  height: calc(100vh - 135px);
+  height: 100vh;
 }
 
 .adminHeader {
-  padding-top: 20px;
+  /* padding-top: 10px; */
   padding-left: 25px;
-  padding-bottom: 20px;
+  /* padding-bottom: 10px; */
   text-align: left;
   color: white;
   font-family: sans-serif;
@@ -191,18 +191,18 @@
 }
 
 .scroll-div {
-  height: calc(100vh - 275px);
+  height: calc(100vh - 175px);
   overflow-y: auto;
   margin-right: 10px;
 }
 
 .scroll-div-tab {
-  height: calc(100vh - 340px);
+  height: calc(100vh - 240px);
   overflow-y: auto;
 }
 
 .scroll-div-org-tab {
-  height: calc(100vh - 390px);
+  height: calc(100vh - 290px);
   overflow-y: auto;
 }
 

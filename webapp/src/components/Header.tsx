@@ -68,8 +68,9 @@ const Header = () => {
             <div id="login">
               <Grid2 container alignItems="center">
                 <Grid2 id="userInfoGrid">
-                  <h3 id="nameText">{userName}</h3>
-                  <h3 id="emailText">{userEmail}</h3>
+                  <h3 id="nameText" style={{ marginTop: 12 }}>
+                    {userName}
+                  </h3>
                   <select
                     id="organizationDropdown"
                     value={organizationName}

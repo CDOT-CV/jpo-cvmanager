@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { ReactElement, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
 import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
@@ -6,9 +6,11 @@ import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 import '../features/adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
-import { Box, Tab, Tabs, Typography } from '@mui/material'
+import { Box, IconButton, Tab, Tabs, Typography } from '@mui/material'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { NotFound } from '../pages/404'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -35,6 +37,7 @@ function TabPanel(props: TabPanelProps) {
 interface VerticalTabItem {
   path: string
   title: string
+  icon?: ReactElement
   adminRequired?: boolean
   child: React.ReactNode
 }
@@ -43,6 +46,7 @@ interface VerticalTabProps {
   notFoundRoute: React.ReactNode
   defaultTabIndex?: number
   tabs: VerticalTabItem[]
+  iconOnly?: boolean
 }
 
 function VerticalTabs(props: VerticalTabProps) {
@@ -54,6 +58,7 @@ function VerticalTabs(props: VerticalTabProps) {
   const getSelectedTab = () => location.pathname.split('/').at(-1) || defaultTabKey
 
   const [value, setValue] = useState<string | number>(getSelectedTab())
+  const [menuOpen, setMenuOpen] = React.useState(false)
 
   useEffect(() => {
     setValue(getSelectedTab())
@@ -83,6 +88,9 @@ function VerticalTabs(props: VerticalTabProps) {
           bgcolor: 'background.paper',
         }}
       >
+        <IconButton onClick={() => setMenuOpen(!menuOpen)} style={{ marginLeft: menuOpen ? 120 : 20 }}>
+          {menuOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+        </IconButton>
         <Tabs
           value={value}
           onChange={handleChange}
@@ -90,7 +98,7 @@ function VerticalTabs(props: VerticalTabProps) {
           indicatorColor="primary"
           textColor="inherit"
           orientation="vertical"
-          sx={{ width: 170 }}
+          sx={{ width: menuOpen ? 170 : 80 }}
           TabIndicatorProps={{
             style: {
               right: 'auto', // remove the default right positioning
@@ -103,15 +111,17 @@ function VerticalTabs(props: VerticalTabProps) {
             const index = tabs.indexOf(tab)
             return (
               <Tab
-                label={tab.title}
+                label={menuOpen ? tab.title : null}
                 value={tab.path}
                 component={Link}
                 to={tab.path}
+                icon={tab.icon}
+                iconPosition="start"
                 sx={{
                   backgroundColor: value === tab.path || value === index ? '#0e2052' : 'transparent',
                   fontSize: 20,
-                  height: '80px',
-                  alignItems: 'flex-start',
+                  height: '70px',
+                  // alignItems: 'flex-start',
                   textTransform: 'none',
                   '&&': { color: value === tab.path || value === index ? '#fff' : '#d4d4d4' },
                 }}

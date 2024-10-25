@@ -1,6 +1,7 @@
 #help {
   width: '100%';
-  height: calc(100vh - 215px);
+  height: '100%';
+  /* //calc(100vh - 141px);; */
   padding-bottom: 5em;
   overflow-y: scroll;
 }

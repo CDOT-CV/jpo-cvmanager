@@ -118,7 +118,6 @@ const AdminRsuTab = () => {
     <div>
       <div>
         <h3 className="panel-header">
-          {title}
           {activeTab === undefined && [
             <button
               key="plus_button"
