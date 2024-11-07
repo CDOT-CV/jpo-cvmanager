@@ -154,11 +154,16 @@ class LiveIntersectionApi {
     }, 1000)
   }
 
-  viewBoundsChanged = (viewBounds: mapboxgl.LngLatBounds, allIntersections: IntersectionReferenceData[]) => {
+  viewBoundsChanged = (
+    viewBounds: mapboxgl.LngLatBounds,
+    allIntersections: IntersectionReferenceData[],
+    isLayerActive: boolean
+  ) => {
     const intersections = allIntersections
       .filter((intersection) => {
         return viewBounds.contains(new mapboxgl.LngLat(intersection.longitude, intersection.latitude))
       })
+      .filter((_) => isLayerActive)
       .map((intersection) => intersection.intersectionID)
     if (this.activeIntersections != intersections) {
       this.updateSubscriptionList(intersections)

@@ -997,7 +997,11 @@ function MapPage(props: MapPageProps) {
           style={{ width: '100%', height: '100%' }}
           onMove={(evt) => {
             dispatch(setMapViewState(evt.viewState))
-            liveIntersectionApi.viewBoundsChanged(mapRef.current?.getBounds(), mockIntersectionList)
+            liveIntersectionApi.viewBoundsChanged(
+              mapRef.current?.getBounds(),
+              mockIntersectionList,
+              activeLayers.includes('live-intersection-layer')
+            )
           }}
           onClick={(e) => {
             if (addGeoMsgPoint) {
