@@ -47,7 +47,7 @@ import {
   changeGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
-import { selectOrganizationName } from '../generalSlices/userSlice'
+import { selectOrganizationName, selectToken } from '../generalSlices/userSlice'
 import { SecureStorageManager } from '../managers'
 import {
   selectConfigCoordinates,
@@ -139,6 +139,8 @@ function MapPage(props: MapPageProps) {
   const filterOffset = useAppSelector(selectGeoMsgFilterOffset)
 
   const wzdxData = useAppSelector(selectWzdxData)
+
+  const token = useAppSelector(selectToken)
 
   const intersectionsList = useAppSelector(selectIntersections)
   const selectedIntersection = useAppSelector(selectSelectedIntersection)
@@ -809,6 +811,8 @@ function MapPage(props: MapPageProps) {
         } else if (id === 'wzdx-layer') {
           setSelectedWZDxMarkerIndex(null)
           setSelectedWZDxMarker(null)
+        } else if (id == 'live-intersection-layer') {
+          liveIntersectionApi.cancelAll()
         }
         setActiveLayers(activeLayers.filter((layerId) => layerId !== id))
       } else {
@@ -999,8 +1003,9 @@ function MapPage(props: MapPageProps) {
             dispatch(setMapViewState(evt.viewState))
             liveIntersectionApi.viewBoundsChanged(
               mapRef.current?.getBounds(),
-              mockIntersectionList,
-              activeLayers.includes('live-intersection-layer')
+              intersectionsList,
+              activeLayers.includes('live-intersection-layer'),
+              token
             )
           }}
           onClick={(e) => {
@@ -1125,7 +1130,7 @@ function MapPage(props: MapPageProps) {
                         type="geojson"
                         data={{
                           type: 'FeatureCollection',
-                          features: mockIntersectionList.map((intersection) => ({
+                          features: intersectionsList.map((intersection) => ({
                             type: 'Feature',
                             properties: {
                               intersectionId: intersection.intersectionID,
