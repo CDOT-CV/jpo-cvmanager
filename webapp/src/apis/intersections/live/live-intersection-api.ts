@@ -222,6 +222,15 @@ class LiveIntersectionApi {
       console.debug('Not connecting to intersection ' + intersectionId + ' as it is not active')
       return { client: null, mapStream: null, spatStream: null, bsmStream: null }
     }
+    if (this.activeClients.maps[intersectionId]?.client != null) {
+      console.debug('Not connecting to intersection ' + intersectionId + ' as it is already connected')
+      return {
+        client: this.activeClients.maps[intersectionId].client,
+        mapStream: this.activeClients.maps[intersectionId].stream,
+        spatStream: this.activeClients.spats[intersectionId].stream,
+        bsmStream: this.activeClients.bsms[intersectionId].stream,
+      }
+    }
     let protocols = ['v10.stomp', 'v11.stomp']
     protocols.push(token)
     console.debug('Connecting to live STOMP endpoint: ' + url + ' with intersectionId: ' + intersectionId)
