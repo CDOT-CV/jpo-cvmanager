@@ -102,6 +102,7 @@ class LiveIntersectionApi {
 
   updateSubscriptionList = (intersections: number[], token: string) => {
     console.log('live-intersection-api Updating subscription list', intersections, 'Active', this.activeIntersections)
+    this.activeIntersections = intersections
 
     // Remove old subscriptions
     Object.entries(this.activeClients).forEach(([type, clients]) => {
@@ -153,6 +154,7 @@ class LiveIntersectionApi {
         delete this.activeClients.maps[intersectionId]
         delete this.activeClients.spats[intersectionId]
         delete this.activeClients.bsms[intersectionId]
+        return
       }
 
       //   const mapStream = new Subject<liveMap>()
@@ -199,8 +201,6 @@ class LiveIntersectionApi {
         subscription: bsmSubscription,
       }
     })
-
-    this.activeIntersections = intersections
   }
 
   createWebsocketConnection = (
