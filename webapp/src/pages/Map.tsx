@@ -816,6 +816,14 @@ function MapPage(props: MapPageProps) {
         }
         setActiveLayers(activeLayers.filter((layerId) => layerId !== id))
       } else {
+        if (id == 'live-intersection-layer') {
+          liveIntersectionApi.viewBoundsChanged(
+            mapRef.current?.getBounds(),
+            intersectionsList,
+            activeLayers.includes('live-intersection-layer'),
+            token
+          )
+        }
         setActiveLayers([...activeLayers, id])
       }
     }

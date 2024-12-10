@@ -39,101 +39,6 @@ export const getBsmColor = (bsm?: BsmFeature): string => {
   return hexColor
 }
 
-const createWebsocketConnection = (
-  token: string,
-  url: string,
-  intersectionId: number,
-  roadRegulatorId: number,
-  numRestarts: number = 0,
-  inputMapStream: Subject<liveMap> = null,
-  inputSpatStream: Subject<liveSpat> = null,
-  inputBsmStream: Subject<liveBsm> = null
-): {
-  client: MinimalClient
-  mapStream: Subject<liveMap>
-  spatStream: Subject<liveSpat>
-  bsmStream: Subject<liveBsm>
-} => {
-  let protocols = ['v10.stomp', 'v11.stomp']
-  protocols.push(token)
-  console.debug('Connecting to live STOMP endpoint: ' + url + ' with token: ' + token)
-
-  // Stomp Client Documentation: https://stomp-js.github.io/stomp-websocket/codo/extra/docs-src/Usage.md.html
-  let client = Stomp.client(url, protocols)
-  client.debug = (e) => {
-    console.debug('STOMP Debug: ' + e)
-  }
-
-  // Topics are in the format /live/{roadRegulatorID}/{intersectionID}/{spat,map,bsm}
-  let spatTopic = `/live/${roadRegulatorId}/${intersectionId}/spat`
-  let mapTopic = `/live/${roadRegulatorId}/${intersectionId}/map`
-  let bsmTopic = `/live/${roadRegulatorId}/${intersectionId}/bsm` // TODO: Filter by road regulator ID
-
-  const mapStream = inputMapStream ?? new Subject<liveMap>()
-  const spatStream = inputSpatStream ?? new Subject<liveSpat>()
-  const bsmStream = inputBsmStream ?? new Subject<liveBsm>()
-  let connectionStartTime = Date.now()
-
-  client.connect(
-    {},
-    () => {
-      client.subscribe(mapTopic, function (mes: IMessage) {
-        const message: ProcessedMap = JSON.parse(mes.body)
-        const ts = Date.now()
-        mapStream.next({ type: 'map', rcv_ts: ts, update_ts: ts, payload: message })
-      })
-      client.subscribe(spatTopic, function (mes: IMessage) {
-        const message: ProcessedSpat = JSON.parse(mes.body)
-        const ts = Date.now()
-        spatStream.next({ type: 'spat', rcv_ts: ts, update_ts: ts, payload: message })
-      })
-      client.subscribe(bsmTopic, function (mes: IMessage) {
-        const message: BsmFeature = JSON.parse(mes.body)
-        const ts = Date.now()
-        bsmStream.next({ type: 'bsm', rcv_ts: ts, update_ts: ts, payload: message })
-      })
-    },
-    (error) => {
-      console.error('Live Intersection Streaming ERROR connecting to live data Websocket: ' + error)
-    }
-  )
-
-  client.onStompError = (frame) => {
-    console.error('Live Intersection Streaming STOMP ERROR', frame)
-  }
-
-  client.onWebSocketClose = (frame) => {
-    console.debug('Live Intersection Streaming STOMP WebSocket Closed', frame)
-    if (numRestarts < 5) {
-      let numRestartsLocal = numRestarts
-      if (Date.now() - connectionStartTime > 10000) {
-        numRestartsLocal = 0
-      }
-      console.debug(
-        'Attempting to reconnect to live intersection STOMP endpoint (numRestarts: ' + numRestartsLocal + ')'
-      )
-
-      createWebsocketConnection(
-        token,
-        url,
-        intersectionId,
-        roadRegulatorId,
-        numRestartsLocal + 1,
-        mapStream,
-        spatStream,
-        bsmStream
-      )
-    }
-  }
-
-  client.onWebSocketError = (frame) => {
-    // TODO: Consider restarting connection on error
-    console.error('Live Intersection Streaming STOMP WebSocket Error', frame)
-  }
-
-  return { client, mapStream, spatStream, bsmStream }
-}
-
 class LiveIntersectionApi {
   // A map of subjects to simulate streams of data for different intersections
   dataStream = new Subject<liveIntersectionData>()
@@ -196,13 +101,14 @@ class LiveIntersectionApi {
   }
 
   updateSubscriptionList = (intersections: number[], token: string) => {
-    this.activeIntersections = intersections
+    console.log('live-intersection-api Updating subscription list', intersections, 'Active', this.activeIntersections)
 
     // Remove old subscriptions
     Object.entries(this.activeClients).forEach(([type, clients]) => {
       Object.entries(clients).forEach(([key, { client, subscription }]) => {
         const intersectionId = parseInt(key, 10)
-        if (!intersections.includes(intersectionId)) {
+        if (!intersections.includes(intersectionId) && client != null) {
+          console.log('live-intersection-api Unsubscribing from intersection ' + intersectionId)
           client.disconnect()
           subscription.unsubscribe()
           delete clients[intersectionId]
@@ -212,61 +118,196 @@ class LiveIntersectionApi {
       })
     })
 
+    const intersectionIds = intersections.filter(
+      (intersection) => !Object.keys(this.activeClients.maps).includes(intersection.toString())
+    )
+
+    intersectionIds.forEach((intersectionId) => {
+      this.activeClients.maps[intersectionId] = {
+        stream: null,
+        client: null,
+        subscription: null,
+      }
+      this.activeClients.spats[intersectionId] = {
+        stream: null,
+        client: null,
+        subscription: null,
+      }
+      this.activeClients.bsms[intersectionId] = {
+        stream: null,
+        client: null,
+        subscription: null,
+      }
+    })
+
     // Add new subscriptions
-    intersections
-      .filter((intersection) => !Object.keys(this.activeClients.maps).includes(intersection.toString()))
-      .forEach((intersectionId) => {
-        const { client, mapStream, spatStream, bsmStream } = createWebsocketConnection(
-          token,
-          `${EnvironmentVars.CVIZ_API_WS_URL}/stomp`,
-          intersectionId,
-          -1
-        )
-        this.activeClients.maps[intersectionId] = { stream: mapStream, client, subscription: null }
-        this.activeClients.spats[intersectionId] = { stream: spatStream, client, subscription: null }
-        this.activeClients.bsms[intersectionId] = { stream: bsmStream, client, subscription: null }
+    intersectionIds.forEach((intersectionId) => {
+      console.log('live-intersection-api Subscribing to intersection ' + intersectionId)
+      const { client, mapStream, spatStream, bsmStream } = this.createWebsocketConnection(
+        token,
+        `${EnvironmentVars.CVIZ_API_WS_URL}/stomp`,
+        intersectionId,
+        -1
+      )
+      if (client == null) {
+        delete this.activeClients.maps[intersectionId]
+        delete this.activeClients.spats[intersectionId]
+        delete this.activeClients.bsms[intersectionId]
+      }
 
-        // const mapStream = new Subject<liveMap>()
-        // const spatStream = new Subject<liveSpat>()
-        // const bsmStream = new Subject<liveBsm>()
+      //   const mapStream = new Subject<liveMap>()
+      //   const spatStream = new Subject<liveSpat>()
+      //   const bsmStream = new Subject<liveBsm>()
 
-        // const mapClient = FakeLiveDataApi.startMockedMapData(intersectionId, mapStream)
-        const mapSubscription = mapStream.subscribe((data) => {
-          this.dataStream.next(data)
-          this.activeData.maps = { ...this.activeData.maps, [intersectionId]: data.payload }
-        })
-        // const spatClient = FakeLiveDataApi.startMockedSpatData(intersectionId, spatStream)
-        const spatSubscription = spatStream.subscribe((data) => {
-          this.dataStream.next(data)
-          this.activeData.spats = { ...this.activeData.spats, [intersectionId]: data.payload }
-        })
-        // const bsmClient = FakeLiveDataApi.startMockedBsmData(intersectionId, bsmStream)
-        const bsmSubscription = bsmStream.subscribe((data) => {
-          this.dataStream.next(data)
-          this.activeData.bsms = {
-            ...this.activeData.bsms,
-            [intersectionId]: {
-              ...(this.activeData.bsms[intersectionId] ?? {}),
-              [data.payload.properties.id]: data.payload,
-            },
-          }
-        })
-        this.activeClients.maps[intersectionId] = {
-          stream: mapStream,
-          client: client,
-          subscription: mapSubscription,
-        }
-        this.activeClients.spats[intersectionId] = {
-          stream: spatStream,
-          client: client,
-          subscription: spatSubscription,
-        }
-        this.activeClients.bsms[intersectionId] = {
-          stream: bsmStream,
-          client: client,
-          subscription: bsmSubscription,
+      //   const mapClient = FakeLiveDataApi.startMockedMapData(intersectionId, mapStream)
+      const mapSubscription = mapStream.subscribe((data) => {
+        this.dataStream.next(data)
+        this.activeData.maps = { ...this.activeData.maps, [intersectionId]: data.payload }
+      })
+      //   const spatClient = FakeLiveDataApi.startMockedSpatData(intersectionId, spatStream)
+      const spatSubscription = spatStream.subscribe((data) => {
+        this.dataStream.next(data)
+        this.activeData.spats = { ...this.activeData.spats, [intersectionId]: data.payload }
+      })
+      //   const bsmClient = FakeLiveDataApi.startMockedBsmData(intersectionId, bsmStream)
+      const bsmSubscription = bsmStream.subscribe((data) => {
+        this.dataStream.next(data)
+        this.activeData.bsms = {
+          ...this.activeData.bsms,
+          [intersectionId]: {
+            ...(this.activeData.bsms[intersectionId] ?? {}),
+            [data.payload.properties.id]: data.payload,
+          },
         }
       })
+      this.activeClients.maps[intersectionId] = {
+        stream: mapStream,
+        client,
+        // client: mapClient,
+        subscription: mapSubscription,
+      }
+      this.activeClients.spats[intersectionId] = {
+        stream: spatStream,
+        client,
+        // client: spatClient,
+        subscription: spatSubscription,
+      }
+      this.activeClients.bsms[intersectionId] = {
+        stream: bsmStream,
+        client,
+        // client: bsmClient,
+        subscription: bsmSubscription,
+      }
+    })
+
+    this.activeIntersections = intersections
+  }
+
+  createWebsocketConnection = (
+    token: string,
+    url: string,
+    intersectionId: number,
+    roadRegulatorId: number,
+    numRestarts: number = 0,
+    inputMapStream: Subject<liveMap> = null,
+    inputSpatStream: Subject<liveSpat> = null,
+    inputBsmStream: Subject<liveBsm> = null
+  ): {
+    client: MinimalClient
+    mapStream: Subject<liveMap>
+    spatStream: Subject<liveSpat>
+    bsmStream: Subject<liveBsm>
+  } => {
+    if (!this.activeIntersections.includes(intersectionId)) {
+      console.debug('Not connecting to intersection ' + intersectionId + ' as it is not active')
+      return { client: null, mapStream: null, spatStream: null, bsmStream: null }
+    }
+    let protocols = ['v10.stomp', 'v11.stomp']
+    protocols.push(token)
+    console.debug('Connecting to live STOMP endpoint: ' + url + ' with intersectionId: ' + intersectionId)
+
+    // Stomp Client Documentation: https://stomp-js.github.io/stomp-websocket/codo/extra/docs-src/Usage.md.html
+    let client = Stomp.client(url, protocols)
+    client.debug = (e) => {
+      console.debug('STOMP Debug: ' + e)
+    }
+
+    // Topics are in the format /live/{roadRegulatorID}/{intersectionID}/{spat,map,bsm}
+    let spatTopic = `/live/${roadRegulatorId}/${intersectionId}/spat`
+    let mapTopic = `/live/${roadRegulatorId}/${intersectionId}/map`
+    let bsmTopic = `/live/${roadRegulatorId}/${intersectionId}/bsm` // TODO: Filter by road regulator ID
+
+    const mapStream = inputMapStream ?? new Subject<liveMap>()
+    const spatStream = inputSpatStream ?? new Subject<liveSpat>()
+    const bsmStream = inputBsmStream ?? new Subject<liveBsm>()
+    let connectionStartTime = Date.now()
+
+    client.connect(
+      {},
+      () => {
+        client.subscribe(mapTopic, function (mes: IMessage) {
+          const message: ProcessedMap = JSON.parse(mes.body)
+          const ts = Date.now()
+          mapStream.next({ type: 'map', rcv_ts: ts, update_ts: ts, payload: message })
+        })
+        client.subscribe(spatTopic, function (mes: IMessage) {
+          const message: ProcessedSpat = JSON.parse(mes.body)
+          const ts = Date.now()
+          spatStream.next({ type: 'spat', rcv_ts: ts, update_ts: ts, payload: message })
+        })
+        client.subscribe(bsmTopic, function (mes: IMessage) {
+          const message: BsmFeature = JSON.parse(mes.body)
+          const ts = Date.now()
+          bsmStream.next({ type: 'bsm', rcv_ts: ts, update_ts: ts, payload: message })
+        })
+      },
+      (error) => {
+        console.error(
+          'Live Intersection Streaming ERROR connecting to live data Websocket:  for intersection ' +
+            intersectionId +
+            ', ' +
+            error
+        )
+      }
+    )
+
+    client.onStompError = (frame) => {
+      console.error('Live Intersection Streaming STOMP ERROR for intersection ' + intersectionId, frame)
+    }
+
+    client.onWebSocketClose = (frame) => {
+      console.debug('Live Intersection Streaming STOMP WebSocket Closed for intersection ' + intersectionId, frame)
+      if (numRestarts < 5) {
+        let numRestartsLocal = numRestarts
+        if (Date.now() - connectionStartTime > 10000) {
+          numRestartsLocal = 0
+        }
+        console.debug(
+          'Attempting to reconnect to live intersection STOMP endpoint (numRestarts: ' +
+            numRestartsLocal +
+            ') for intersection ' +
+            intersectionId
+        )
+
+        this.createWebsocketConnection(
+          token,
+          url,
+          intersectionId,
+          roadRegulatorId,
+          numRestartsLocal + 1,
+          mapStream,
+          spatStream,
+          bsmStream
+        )
+      }
+    }
+
+    client.onWebSocketError = (frame) => {
+      // TODO: Consider restarting connection on error
+      console.error('Live Intersection Streaming STOMP WebSocket Error for intersection ' + intersectionId, frame)
+    }
+
+    return { client, mapStream, spatStream, bsmStream }
   }
 }
 
