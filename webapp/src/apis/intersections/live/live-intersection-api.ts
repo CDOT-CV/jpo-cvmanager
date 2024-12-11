@@ -222,7 +222,7 @@ class LiveIntersectionApi {
       console.debug('Not connecting to intersection ' + intersectionId + ' as it is not active')
       return { client: null, mapStream: null, spatStream: null, bsmStream: null }
     }
-    if (this.activeClients.maps[intersectionId]?.client != null) {
+    if (this.activeClients.maps[intersectionId]?.client != null && numRestarts != 0) {
       console.debug('Not connecting to intersection ' + intersectionId + ' as it is already connected')
       return {
         client: this.activeClients.maps[intersectionId].client,
