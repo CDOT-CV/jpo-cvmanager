@@ -1021,6 +1021,79 @@ function MapPage(props: MapPageProps) {
             }
           }}
         >
+          {activeLayers.includes('rsu-layer') && (
+            <div>
+              {configCoordinates?.length > 2 ? (
+                <Source id={layers[0].id + '-fill'} type="geojson" data={configPolygonSource}>
+                  <Layer {...configOutlineLayer} />
+                  <Layer {...configFillLayer} />
+                </Source>
+              ) : null}
+              <Source id={layers[0].id + '-points'} type="geojson" data={configPointSource}>
+                <Layer {...configPointLayer} />
+              </Source>
+            </div>
+          )}
+          {rsuData?.map(
+            (rsu) =>
+              activeLayers.includes('rsu-layer') &&
+              (selectedVendor === 'Select Vendor' || rsu['properties']['manufacturer_name'] === selectedVendor) && [
+                <Marker
+                  // className="rsu-marker"
+                  key={rsu.id}
+                  latitude={rsu.geometry.coordinates[1]}
+                  longitude={rsu.geometry.coordinates[0]}
+                  onClick={(e) => {
+                    e.originalEvent.stopPropagation()
+                    dispatch(selectRsu(rsu))
+                    setSelectedWZDxMarkerIndex(null)
+                    setSelectedWZDxMarker(null)
+                    dispatch(clearFirmware()) // TODO: Should remove??
+                    dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
+                    dispatch(getIssScmsStatus())
+                    if (rsuCounts.hasOwnProperty(rsu.properties.ipv4_address))
+                      setSelectedRsuCount(rsuCounts[rsu.properties.ipv4_address].count)
+                    else setSelectedRsuCount(0)
+                  }}
+                >
+                  <button
+                    className="marker-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dispatch(selectRsu(rsu))
+                      dispatch(clearFirmware()) // TODO: Should remove??
+                      setSelectedWZDxMarkerIndex(null)
+                      setSelectedWZDxMarker(null)
+                      dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
+                      dispatch(getIssScmsStatus())
+                      if (rsuCounts.hasOwnProperty(rsu.properties.ipv4_address))
+                        setSelectedRsuCount(rsuCounts[rsu.properties.ipv4_address].count)
+                      else setSelectedRsuCount(0)
+                    }}
+                  >
+                    <RsuMarker
+                      displayType={displayType}
+                      onlineStatus={
+                        rsuOnlineStatus.hasOwnProperty(rsu.properties.ipv4_address)
+                          ? rsuOnlineStatus[rsu.properties.ipv4_address].current_status
+                          : 'offline'
+                      }
+                      scmsStatus={
+                        issScmsStatusData.hasOwnProperty(rsu.properties.ipv4_address) &&
+                        issScmsStatusData[rsu.properties.ipv4_address]
+                          ? issScmsStatusData[rsu.properties.ipv4_address].health
+                          : '0'
+                      }
+                    />
+                  </button>
+                </Marker>,
+              ]
+          )}
+          {activeLayers.includes('heatmap-layer') && (
+            <Source id={layers[1].id} type="geojson" data={heatMapData}>
+              <Layer {...layers[1].layers[0]} />
+            </Source>
+          )}
           {activeLayers.includes('live-intersection-layer') && (
             <div>
               {layers[4].layers.map((layer) => {
@@ -1140,79 +1213,6 @@ function MapPage(props: MapPageProps) {
                 }
               })}
             </div>
-          )}
-          {activeLayers.includes('rsu-layer') && (
-            <div>
-              {configCoordinates?.length > 2 ? (
-                <Source id={layers[0].id + '-fill'} type="geojson" data={configPolygonSource}>
-                  <Layer {...configOutlineLayer} />
-                  <Layer {...configFillLayer} />
-                </Source>
-              ) : null}
-              <Source id={layers[0].id + '-points'} type="geojson" data={configPointSource}>
-                <Layer {...configPointLayer} />
-              </Source>
-            </div>
-          )}
-          {rsuData?.map(
-            (rsu) =>
-              activeLayers.includes('rsu-layer') &&
-              (selectedVendor === 'Select Vendor' || rsu['properties']['manufacturer_name'] === selectedVendor) && [
-                <Marker
-                  // className="rsu-marker"
-                  key={rsu.id}
-                  latitude={rsu.geometry.coordinates[1]}
-                  longitude={rsu.geometry.coordinates[0]}
-                  onClick={(e) => {
-                    e.originalEvent.stopPropagation()
-                    dispatch(selectRsu(rsu))
-                    setSelectedWZDxMarkerIndex(null)
-                    setSelectedWZDxMarker(null)
-                    dispatch(clearFirmware()) // TODO: Should remove??
-                    dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                    dispatch(getIssScmsStatus())
-                    if (rsuCounts.hasOwnProperty(rsu.properties.ipv4_address))
-                      setSelectedRsuCount(rsuCounts[rsu.properties.ipv4_address].count)
-                    else setSelectedRsuCount(0)
-                  }}
-                >
-                  <button
-                    className="marker-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      dispatch(selectRsu(rsu))
-                      dispatch(clearFirmware()) // TODO: Should remove??
-                      setSelectedWZDxMarkerIndex(null)
-                      setSelectedWZDxMarker(null)
-                      dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                      dispatch(getIssScmsStatus())
-                      if (rsuCounts.hasOwnProperty(rsu.properties.ipv4_address))
-                        setSelectedRsuCount(rsuCounts[rsu.properties.ipv4_address].count)
-                      else setSelectedRsuCount(0)
-                    }}
-                  >
-                    <RsuMarker
-                      displayType={displayType}
-                      onlineStatus={
-                        rsuOnlineStatus.hasOwnProperty(rsu.properties.ipv4_address)
-                          ? rsuOnlineStatus[rsu.properties.ipv4_address].current_status
-                          : 'offline'
-                      }
-                      scmsStatus={
-                        issScmsStatusData.hasOwnProperty(rsu.properties.ipv4_address) &&
-                        issScmsStatusData[rsu.properties.ipv4_address]
-                          ? issScmsStatusData[rsu.properties.ipv4_address].health
-                          : '0'
-                      }
-                    />
-                  </button>
-                </Marker>,
-              ]
-          )}
-          {activeLayers.includes('heatmap-layer') && (
-            <Source id={layers[1].id} type="geojson" data={heatMapData}>
-              <Layer {...layers[1].layers[0]} />
-            </Source>
           )}
           {activeLayers.includes('msg-viewer-layer') && (
             <div>
