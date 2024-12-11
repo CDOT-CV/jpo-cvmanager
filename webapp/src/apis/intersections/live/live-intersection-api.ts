@@ -87,10 +87,15 @@ class LiveIntersectionApi {
 
   viewBoundsChanged = (
     viewBounds: mapboxgl.LngLatBounds,
+    zoom: number,
     allIntersections: IntersectionReferenceData[],
     isLayerActive: boolean,
     token: string
   ) => {
+    if (zoom < 12) {
+      this.updateSubscriptionList([], token)
+      return
+    }
     const intersections = allIntersections
       .filter((intersection) => {
         return viewBounds.contains(new mapboxgl.LngLat(intersection.longitude, intersection.latitude))

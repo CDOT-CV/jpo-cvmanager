@@ -796,6 +796,7 @@ function MapPage(props: MapPageProps) {
         if (id == 'live-intersection-layer') {
           liveIntersectionApi.viewBoundsChanged(
             mapRef.current?.getBounds(),
+            viewState.zoom,
             intersectionsList,
             activeLayers.includes('live-intersection-layer'),
             token
@@ -988,6 +989,7 @@ function MapPage(props: MapPageProps) {
             dispatch(setMapViewState(evt.viewState))
             liveIntersectionApi.viewBoundsChanged(
               mapRef.current?.getBounds(),
+              evt.viewState.zoom,
               intersectionsList,
               activeLayers.includes('live-intersection-layer'),
               token
