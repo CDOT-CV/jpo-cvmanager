@@ -192,16 +192,16 @@ class LiveIntersectionApi {
       })
       //   const bsmClient = FakeLiveDataApi.startMockedBsmData(intersectionId, bsmStream)
       const bsmSubscription = bsmStream.subscribe((data) => {
-        console.log('live-intersection-api BSM data', data)
-        // const prevData = this.activeData.bsms[intersectionId]
-        // const prevBsm = prevData?.[data.payload.properties.id]
-        // if (prevBsm != null) {
-        //   const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
-        //   const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
-        //   if (newTs < prevTs) {
-        //     return
-        //   }
-        // }
+        console.debug('live-intersection-api BSM data', data)
+        const prevData = this.activeData.bsms[intersectionId]
+        const prevBsm = prevData?.[data.payload.properties.id]
+        if (prevBsm != null) {
+          const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
+          const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
+          if (newTs < prevTs) {
+            return
+          }
+        }
         this.dataStream.next(data)
         this.activeData.bsms = {
           ...this.activeData.bsms,
