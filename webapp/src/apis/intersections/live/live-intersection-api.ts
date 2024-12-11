@@ -3,6 +3,7 @@ import { Subject, Subscription } from 'rxjs'
 import FakeLiveDataApi from './fake-data-api'
 import mapboxgl from 'mapbox-gl'
 import EnvironmentVars from '../../../EnvironmentVars'
+import { getTimestamp } from '../../../features/intersections/map/map-component'
 
 export interface MinimalClient {
   connect: (headers: unknown, connectCallback: () => void, errorCallback?: (error: string) => void) => void
@@ -163,16 +164,35 @@ class LiveIntersectionApi {
 
       //   const mapClient = FakeLiveDataApi.startMockedMapData(intersectionId, mapStream)
       const mapSubscription = mapStream.subscribe((data) => {
+        const prevData = this.activeData.maps[intersectionId]
+        const prevTs = getTimestamp(prevData?.properties?.odeReceivedAt)
+        const newTs = getTimestamp(data.payload?.properties?.odeReceivedAt)
+        if (newTs == null || newTs < prevTs) {
+          return
+        }
         this.dataStream.next(data)
         this.activeData.maps = { ...this.activeData.maps, [intersectionId]: data.payload }
       })
       //   const spatClient = FakeLiveDataApi.startMockedSpatData(intersectionId, spatStream)
       const spatSubscription = spatStream.subscribe((data) => {
+        const prevData = this.activeData.spats[intersectionId]
+        const prevTs = getTimestamp(prevData?.utcTimeStamp)
+        const newTs = getTimestamp(data.payload?.utcTimeStamp)
+        if (newTs == null || newTs < prevTs) {
+          return
+        }
         this.dataStream.next(data)
         this.activeData.spats = { ...this.activeData.spats, [intersectionId]: data.payload }
       })
       //   const bsmClient = FakeLiveDataApi.startMockedBsmData(intersectionId, bsmStream)
       const bsmSubscription = bsmStream.subscribe((data) => {
+        const prevData = this.activeData.bsms[intersectionId]
+        const prevBsm = prevData?.[data.payload.properties.id]
+        const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
+        const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
+        if (newTs == null || newTs < prevTs) {
+          return
+        }
         this.dataStream.next(data)
         this.activeData.bsms = {
           ...this.activeData.bsms,
