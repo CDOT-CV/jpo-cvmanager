@@ -6,12 +6,7 @@ type BsmFeatureCollection = {
 type BsmFeature = {
   type: 'Feature'
   properties: J2735BsmCoreData & bsmReceivedAt
-  geometry: PointGemetry
-}
-
-type PointGemetry = {
-  type: 'Point'
-  coordinates: number[]
+  geometry: PointGeometry
 }
 
 type bsmReceivedAt = {

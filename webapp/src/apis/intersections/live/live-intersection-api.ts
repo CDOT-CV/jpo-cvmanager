@@ -4,6 +4,7 @@ import FakeLiveDataApi from './fake-data-api'
 import mapboxgl from 'mapbox-gl'
 import EnvironmentVars from '../../../EnvironmentVars'
 import { getTimestamp } from '../../../features/intersections/map/map-component'
+import { parseBsmToGeojson } from '../../../features/intersections/map/utilities/message-utils'
 
 export interface MinimalClient {
   connect: (headers: unknown, connectCallback: () => void, errorCallback?: (error: string) => void) => void
@@ -188,10 +189,12 @@ class LiveIntersectionApi {
       const bsmSubscription = bsmStream.subscribe((data) => {
         const prevData = this.activeData.bsms[intersectionId]
         const prevBsm = prevData?.[data.payload.properties.id]
-        const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
-        const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
-        if (newTs == null || newTs < prevTs) {
-          return
+        if (prevBsm != null) {
+          const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
+          const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
+          if (newTs < prevTs) {
+            return
+          }
         }
         this.dataStream.next(data)
         this.activeData.bsms = {
@@ -242,7 +245,7 @@ class LiveIntersectionApi {
       console.debug('Not connecting to intersection ' + intersectionId + ' as it is not active')
       return { client: null, mapStream: null, spatStream: null, bsmStream: null }
     }
-    if (this.activeClients.maps[intersectionId]?.client != null && numRestarts != 0) {
+    if (this.activeClients.maps[intersectionId]?.client != null && numRestarts == 0) {
       console.debug('Not connecting to intersection ' + intersectionId + ' as it is already connected')
       return {
         client: this.activeClients.maps[intersectionId].client,
@@ -285,9 +288,9 @@ class LiveIntersectionApi {
           spatStream.next({ type: 'spat', rcv_ts: ts, update_ts: ts, payload: message })
         })
         client.subscribe(bsmTopic, function (mes: IMessage) {
-          const message: BsmFeature = JSON.parse(mes.body)
+          const message: OdeBsmData = JSON.parse(mes.body)
           const ts = Date.now()
-          bsmStream.next({ type: 'bsm', rcv_ts: ts, update_ts: ts, payload: message })
+          bsmStream.next({ type: 'bsm', rcv_ts: ts, update_ts: ts, payload: parseBsmToGeojson([message]).features[0] })
         })
       },
       (error) => {

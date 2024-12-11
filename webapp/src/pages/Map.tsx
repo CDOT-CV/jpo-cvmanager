@@ -635,8 +635,9 @@ function MapPage(props: MapPageProps) {
           type: 'line',
           minzoom: 12,
           paint: {
-            'line-width': 5,
+            'line-width': 3,
             'line-color': ['case', ['==', ['get', 'ingressPath'], true], '#eb34e8', '#0004ff'],
+            'line-opacity': ['interpolate', ['linear'], ['zoom'], 0, 0, 15, 0.5, 18, 0.6, 20, 0.9, 22, 1],
           },
         },
         {
@@ -644,31 +645,7 @@ function MapPage(props: MapPageProps) {
           type: 'line',
           minzoom: 14,
           paint: {
-            'line-width': [
-              'match',
-              ['get', 'signalState'],
-              'UNAVAILABLE',
-              3,
-              'DARK',
-              3,
-              'STOP_THEN_PROCEED',
-              3,
-              'STOP_AND_REMAIN',
-              3,
-              'PRE_MOVEMENT',
-              5,
-              'PERMISSIVE_MOVEMENT_ALLOWED',
-              5,
-              'PROTECTED_MOVEMENT_ALLOWED',
-              5,
-              'PERMISSIVE_CLEARANCE',
-              5,
-              'PROTECTED_CLEARANCE',
-              5,
-              'CAUTION_CONFLICTING_TRAFFIC',
-              5,
-              5,
-            ],
+            'line-width': 3,
             'line-color': [
               'match',
               ['get', 'signalState'],
@@ -724,7 +701,7 @@ function MapPage(props: MapPageProps) {
         {
           id: 'signal-states',
           type: 'symbol',
-          minzoom: 18,
+          minzoom: 14,
           layout: {
             'icon-image': [
               'match',
@@ -754,22 +731,13 @@ function MapPage(props: MapPageProps) {
             'icon-rotate': ['get', 'orientation'],
             'icon-allow-overlap': true,
             'icon-rotation-alignment': 'map',
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 9, 0.01, 19, 0.15, 22, 0.4],
-          },
-        },
-        {
-          id: 'bsm-colored',
-          type: 'circle',
-          minzoom: 16,
-          paint: {
-            'circle-color': ['get', 'color'],
-            'circle-radius': 8,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 14, 0.01, 15, 0.015, 18, 0.07, 20, 0.2, 22, 0.4],
           },
         },
         {
           id: 'intersection-labels',
           type: 'symbol',
-          maxzoom: 15,
+          maxzoom: 14,
           layout: {
             'text-field': ['to-string', ['get', 'intersectionName']],
             'text-size': 20,
@@ -785,6 +753,15 @@ function MapPage(props: MapPageProps) {
             'text-color': '#000000',
             'text-halo-color': '#ffffff',
             'text-halo-width': 5,
+          },
+        },
+        {
+          id: 'bsm-colored',
+          type: 'circle',
+          minzoom: 14,
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-radius': 8,
           },
         },
       ],

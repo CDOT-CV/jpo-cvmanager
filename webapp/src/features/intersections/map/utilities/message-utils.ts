@@ -158,6 +158,19 @@ export const generateSignalStateFeatureCollection = (
   }
 }
 
+const SPAT_STATE_ORDER = {
+  UNAVAILABLE: 0,
+  DARK: 1,
+  PRE_MOVEMENT: 2,
+  STOP_AND_REMAIN: 3,
+  STOP_THEN_PROCEED: 4,
+  CAUTION_CONFLICTING_TRAFFIC: 5,
+  PERMISSIVE_CLEARANCE: 6,
+  PERMISSIVE_MOVEMENT_ALLOWED: 7,
+  PROTECTED_CLEARANCE: 8,
+  PROTECTED_MOVEMENT_ALLOWED: 9,
+}
+
 export const parseSpatSignalGroups = (spats: ProcessedSpat[]): SpatSignalGroups => {
   const timedSignalGroups: SpatSignalGroups = {}
   spats?.forEach((spat: ProcessedSpat) => {
@@ -275,13 +288,19 @@ export const addConnections = (
 
   return {
     ...connectingLanes,
-    features: connectingLanes.features.map((feature) => ({
-      ...feature,
-      properties: {
-        ...feature.properties,
-        signalState: signalGroups.find((signalGroup) => signalGroup.signalGroup == feature.properties.signalGroupId)
-          ?.state,
-      },
-    })),
+    features: connectingLanes.features
+      .map((feature) => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          signalState: signalGroups.find((signalGroup) => signalGroup.signalGroup == feature.properties.signalGroupId)
+            ?.state,
+        },
+      }))
+      .sort((a, b) => {
+        const orderA = SPAT_STATE_ORDER[a.properties.signalState] ?? 0
+        const orderB = SPAT_STATE_ORDER[b.properties.signalState] ?? 0
+        return orderA - orderB
+      }),
   }
 }
