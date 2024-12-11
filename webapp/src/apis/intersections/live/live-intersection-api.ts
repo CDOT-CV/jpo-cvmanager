@@ -305,6 +305,29 @@ class LiveIntersectionApi {
 
     client.onStompError = (frame) => {
       console.error('Live Intersection Streaming STOMP ERROR for intersection ' + intersectionId, frame)
+      if (numRestarts < 5) {
+        let numRestartsLocal = numRestarts
+        if (Date.now() - connectionStartTime > 10000) {
+          numRestartsLocal = 0
+        }
+        console.debug(
+          'Attempting to reconnect to live intersection STOMP endpoint (numRestarts: ' +
+            numRestartsLocal +
+            ') for intersection ' +
+            intersectionId
+        )
+
+        this.createWebsocketConnection(
+          token,
+          url,
+          intersectionId,
+          roadRegulatorId,
+          numRestartsLocal + 1,
+          mapStream,
+          spatStream,
+          bsmStream
+        )
+      }
     }
 
     client.onWebSocketClose = (frame) => {
@@ -335,8 +358,30 @@ class LiveIntersectionApi {
     }
 
     client.onWebSocketError = (frame) => {
-      // TODO: Consider restarting connection on error
       console.error('Live Intersection Streaming STOMP WebSocket Error for intersection ' + intersectionId, frame)
+      if (numRestarts < 5) {
+        let numRestartsLocal = numRestarts
+        if (Date.now() - connectionStartTime > 10000) {
+          numRestartsLocal = 0
+        }
+        console.debug(
+          'Attempting to reconnect to live intersection STOMP endpoint (numRestarts: ' +
+            numRestartsLocal +
+            ') for intersection ' +
+            intersectionId
+        )
+
+        this.createWebsocketConnection(
+          token,
+          url,
+          intersectionId,
+          roadRegulatorId,
+          numRestartsLocal + 1,
+          mapStream,
+          spatStream,
+          bsmStream
+        )
+      }
     }
 
     return { client, mapStream, spatStream, bsmStream }
