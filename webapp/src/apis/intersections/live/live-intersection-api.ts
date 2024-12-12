@@ -75,7 +75,7 @@ class LiveIntersectionApi {
       clearInterval(this.intervalId)
     }
     this.intervalId = setInterval(() => {
-      //   const clone = cloneDeep(this.activeData)
+      // const clone = cloneDeep(this.activeData)
       this.batchedDataStream.next(this.activeData)
       callback(this.activeData)
     }, 1000)
@@ -193,20 +193,29 @@ class LiveIntersectionApi {
       //   const bsmClient = FakeLiveDataApi.startMockedBsmData(intersectionId, bsmStream)
       const bsmSubscription = bsmStream.subscribe((data) => {
         console.debug('live-intersection-api BSM data', data)
-        const prevData = this.activeData.bsms[intersectionId]
-        const prevBsm = prevData?.[data.payload.properties.id]
-        if (prevBsm != null) {
-          const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
-          const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
-          if (newTs < prevTs) {
-            return
+        // const prevData = this.activeData.bsms[intersectionId]
+        // const prevBsm = prevData?.[data.payload.properties.id]
+        // if (prevBsm != null) {
+        //   const prevTs = new Date(prevBsm.properties.odeReceivedAt as unknown as string)
+        //   const newTs = new Date(data.payload.properties.odeReceivedAt as unknown as string)
+        //   if (newTs < prevTs) {
+        //     return
+        //   }
+        // }
+        const tempBsms = { ...this.activeData.bsms }
+        const bsmId = data.payload.properties.id
+        for (const intersection in tempBsms) {
+          if (tempBsms[intersection]?.[bsmId]) {
+            const tempBsmIntersection = { ...tempBsms[intersection] }
+            delete tempBsmIntersection[bsmId]
+            tempBsms[intersection] = tempBsmIntersection
           }
         }
         this.dataStream.next(data)
         this.activeData.bsms = {
-          ...this.activeData.bsms,
+          ...tempBsms,
           [intersectionId]: {
-            ...(this.activeData.bsms[intersectionId] ?? {}),
+            ...(tempBsms[intersectionId] ?? {}),
             [data.payload.properties.id]: data.payload,
           },
         }
