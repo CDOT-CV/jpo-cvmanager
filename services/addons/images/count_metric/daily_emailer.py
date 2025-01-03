@@ -85,13 +85,14 @@ def query_mongo_out_counts(rsu_dict, start_dt, end_dt, mongo_db):
 
 
 def prepare_org_rsu_dict():
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT o.name org_name, r.ipv4_address, r.primary_route "
-        "FROM public.rsu_organization ro "
-        "JOIN public.organizations o ON ro.organization_id = o.organization_id "
-        "JOIN public.rsus r ON ro.rsu_id = r.rsu_id "
+        f"FROM {schema_name}.rsu_organization ro "
+        f"JOIN {schema_name}.organizations o ON ro.organization_id = o.organization_id "
+        "JOIN {schema_name}.rsus r ON ro.rsu_id = r.rsu_id "
         "ORDER BY o.name, r.primary_route ASC, r.milepost ASC"
         ") as row"
     )
