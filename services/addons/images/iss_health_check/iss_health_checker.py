@@ -41,10 +41,11 @@ class RsuDataWrapper:
 def get_rsu_data() -> RsuDataWrapper:
     """Get RSU data from PostgreSQL and return it in a wrapper object"""
 
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     result = {}
     query = (
         "SELECT jsonb_build_object('rsu_id', rsu_id, 'iss_scms_id', iss_scms_id) "
-        "FROM public.rsus "
+        f"FROM {schema_name}.rsus "
         "WHERE iss_scms_id IS NOT NULL "
         "ORDER BY rsu_id"
     )
@@ -120,8 +121,10 @@ def insert_scms_data(data):
     logger.info("Inserting SCMS data into PostgreSQL...")
     now_ts = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S.000Z")
 
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+
     query = (
-        'INSERT INTO public.scms_health("timestamp", health, expiration, rsu_id) VALUES'
+        f'INSERT INTO {schema_name}.scms_health("timestamp", health, expiration, rsu_id) VALUES'
     )
     for value in data.values():
         if validate_scms_data(value) is False:
