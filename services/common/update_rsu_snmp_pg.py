@@ -6,8 +6,9 @@ from datetime import datetime
 
 
 def insert_config_list(snmp_config_list):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
-        "INSERT INTO public.snmp_msgfwd_config("
+        f"INSERT INTO {schema_name}.snmp_msgfwd_config("
         "rsu_id, msgfwd_type, snmp_index, message_type, dest_ipv4, dest_port, start_datetime, end_datetime, active) "
         "VALUES"
     )
@@ -23,9 +24,10 @@ def insert_config_list(snmp_config_list):
 
 
 def delete_config_list(snmp_config_list):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     for snmp_config in snmp_config_list:
         query = (
-            "DELETE FROM public.snmp_msgfwd_config "
+            f"DELETE FROM {schema_name}.snmp_msgfwd_config "
             f"WHERE rsu_id={snmp_config['rsu_id']} AND msgfwd_type={snmp_config['msgfwd_type']} AND snmp_index={snmp_config['snmp_index']}"
         )
 
@@ -33,11 +35,12 @@ def delete_config_list(snmp_config_list):
 
 
 def get_msgfwd_types():
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT snmp_msgfwd_type_id, name "
-        "FROM public.snmp_msgfwd_type"
+        f"FROM {schema_name}.snmp_msgfwd_type"
         ") as row"
     )
 
@@ -53,12 +56,13 @@ def get_msgfwd_types():
 
 
 def get_config_list(rsu_obj={}):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT rsu_id, smt.name msgfwd_type, snmp_index, message_type, dest_ipv4, dest_port, start_datetime, end_datetime, active "
-        "FROM public.snmp_msgfwd_config smc "
-        "JOIN public.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id"
+        f"FROM {schema_name}.snmp_msgfwd_config smc "
+        f"JOIN {schema_name}.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id"
     )
 
     # If an rsu_obj was provided, only return the RSU information for the subset
