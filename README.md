@@ -325,6 +325,7 @@ docker compose up -d cvmanager_api cvmanager_webapp cvmanager_postgres cvmanager
 - PG_DB_HOST: The database host, must include the port (normally hostname:5432). Defaults to DOCKER_HOST_IP:5432 but can be configured to a separate endpoint.
 - PG_DB_USER: The database user that will be used to authenticate the cloud function when it queries the database.
 - PG_DB_PASS: The database user's password that will be used to authenticate the cloud function.
+- POSTGRES_SCHEMA_NAME: The database primary schema name. By default this will be "public".
 - INSTANCE_CONNECTION_NAME: The connection name for the Cloud SQL instance. (project-id:region:name)
 
 <b>MongoDB Variables</b>
