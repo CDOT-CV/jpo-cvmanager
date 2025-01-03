@@ -47,17 +47,18 @@ def get_upgrade_limit() -> int:
 # - A target firmware that complies with an existing upgrade rule relative to the RSU's current version
 # - An optional RSU IP can be specified for only returning results for a single RSU
 def get_rsu_upgrade_data(rsu_ip="all"):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT ipv4_address, man.name AS manufacturer, rm.name AS model, rc.username AS ssh_username, rc.password AS ssh_password, "
         "fi.firmware_id AS target_firmware_id, fi.version AS target_firmware_version, fi.install_package AS install_package "
-        "FROM public.rsus rd "
-        "JOIN public.rsu_models rm ON rm.rsu_model_id = rd.model "
-        "JOIN public.manufacturers man ON man.manufacturer_id = rm.manufacturer "
-        "JOIN public.rsu_credentials rc ON rc.credential_id = rd.credential_id "
-        "JOIN public.firmware_upgrade_rules fur ON fur.from_id = rd.firmware_version "
-        "JOIN public.firmware_images fi ON fi.firmware_id = rd.target_firmware_version "
+        f"FROM {schema_name}.rsus rd "
+        f"JOIN {schema_name}.rsu_models rm ON rm.rsu_model_id = rd.model "
+        f"JOIN {schema_name}.manufacturers man ON man.manufacturer_id = rm.manufacturer "
+        f"JOIN {schema_name}.rsu_credentials rc ON rc.credential_id = rd.credential_id "
+        f"JOIN {schema_name}.firmware_upgrade_rules fur ON fur.from_id = rd.firmware_version "
+        f"JOIN {schema_name}.firmware_images fi ON fi.firmware_id = rd.target_firmware_version "
         "WHERE firmware_version != target_firmware_version AND target_firmware_version = fur.to_id"
     )
     if rsu_ip != "all":
@@ -212,12 +213,14 @@ def firmware_upgrade_completed():
                 400,
             )
 
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+
         # Update RSU firmware_version in PostgreSQL if the upgrade was successful
         if request_args["status"] == "success":
             reset_consecutive_failure_count_for_rsu(request_args["rsu_ip"])
             try:
                 upgrade_info = active_upgrades[request_args["rsu_ip"]]
-                query = f"UPDATE public.rsus SET firmware_version={upgrade_info['target_firmware_id']} WHERE ipv4_address='{request_args['rsu_ip']}'"
+                query = f"UPDATE {schema_name}.rsus SET firmware_version={upgrade_info['target_firmware_id']} WHERE ipv4_address='{request_args['rsu_ip']}'"
                 pgquery.write_db(query)
             except Exception as err:
                 logging.error(
@@ -239,7 +242,7 @@ def firmware_upgrade_completed():
                 )
 
                 # set target_firmware_version to firmware_version value
-                query = f"UPDATE public.rsus SET target_firmware_version=firmware_version WHERE ipv4_address='{request_args['rsu_ip']}'"
+                query = f"UPDATE {schema_name}.rsus SET target_firmware_version=firmware_version WHERE ipv4_address='{request_args['rsu_ip']}'"
                 pgquery.write_db(query)
 
                 log_max_retries_reached_incident_for_rsu_to_postgres(
