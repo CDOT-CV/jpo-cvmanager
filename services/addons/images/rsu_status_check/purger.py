@@ -5,7 +5,8 @@ import common.pgquery as pgquery
 
 
 def get_all_rsus():
-    query = "SELECT to_jsonb(row) FROM (SELECT rsu_id FROM public.rsus) AS row ORDER BY rsu_id"
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+    query = f"SELECT to_jsonb(row) FROM (SELECT rsu_id FROM {schema_name}.rsus) AS row ORDER BY rsu_id"
     data = pgquery.query_db(query)
 
     rsu_obj = {}
@@ -17,13 +18,14 @@ def get_all_rsus():
 
 
 def get_last_online_rsu_records(rsu_dict):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT a.ping_id, a.rsu_id, a.timestamp "
         "FROM ("
         "SELECT pd.ping_id, pd.rsu_id, pd.timestamp, ROW_NUMBER() OVER (PARTITION BY pd.rsu_id order by pd.timestamp DESC) AS row_id "
-        "FROM public.ping AS pd "
+        f"FROM {schema_name}.ping AS pd "
         "WHERE pd.result = '1'"
         ") AS a "
         "WHERE a.row_id <= 1 ORDER BY rsu_id"
@@ -55,6 +57,8 @@ def purge_ping_data(stale_period):
     stale_point = datetime.now() - timedelta(hours=stale_period)
     stale_point_str = stale_point.strftime("%Y-%m-%dT%H:%M:%S")
 
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+
     logging.info(f"Purging all ping data before {stale_point_str}")
 
     for key, value in online_rsu_dict.items():
@@ -65,7 +69,7 @@ def purge_ping_data(stale_period):
             if value["timestamp"] < stale_point:
                 # Create query to delete all records of the stale ping data besides the latest record
                 purge_query = (
-                    "DELETE FROM public.ping "
+                    f"DELETE FROM {schema_name}.ping "
                     f"WHERE rsu_id = {str(key)} AND ping_id != {str(value["ping_id"])}"
                 )
 
@@ -73,7 +77,7 @@ def purge_ping_data(stale_period):
         if purge_query == "":
             # Create query to delete all records before the stale_point
             purge_query = (
-                "DELETE FROM public.ping "
+                f"DELETE FROM {schema_name}.ping "
                 f"WHERE rsu_id = {str(key)} AND timestamp < '{stale_point_str}'::timestamp"
             )
 

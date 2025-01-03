@@ -8,7 +8,8 @@ def get_rsu_data():
     result = []
 
     # Execute the query and fetch all results
-    query = "SELECT rsu_id, ipv4_address FROM public.rsus ORDER BY rsu_id"
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+    query = f"SELECT rsu_id, ipv4_address FROM {schema_name}.rsus ORDER BY rsu_id"
     data = pgquery.query_db(query)
 
     logging.debug("Parsing results...")
@@ -22,11 +23,12 @@ def get_rsu_data():
 def insert_rsu_ping(request_json):
     rsu_id = request_json["rsu_id"]
     histories = request_json["histories"]
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
 
     logging.debug(f"Inserting {len(histories)} new Ping records for RsuData {rsu_id}")
     for history in histories:
         try:
-            query = f'INSERT INTO public.ping (timestamp, result, rsu_id) VALUES (to_timestamp({history["clock"]}), B\'{history["value"]}\', {rsu_id})'
+            query = f'INSERT INTO {schema_name}.ping (timestamp, result, rsu_id) VALUES (to_timestamp({history["clock"]}), B\'{history["value"]}\', {rsu_id})'
             pgquery.write_db(query)
         except Exception as e:
             logging.exception(f"Error inserting Ping record: {e}")
