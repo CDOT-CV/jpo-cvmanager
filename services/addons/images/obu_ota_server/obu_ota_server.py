@@ -131,18 +131,19 @@ async def read_file(
 
 def removed_old_logs(serialnum: str):
     try:
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         max_count = int(os.getenv("MAX_COUNT", 10))
         success_count = pgquery.query_db(
-            f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0'"
+            f"SELECT COUNT(*) FROM {schema_name}.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0'"
         )
         if success_count[0][0] > max_count:
             excess_count = success_count[0][0] - max_count
             oldest_entries = pgquery.query_db(
-                f"SELECT request_id FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0' ORDER BY request_datetime ASC LIMIT {excess_count}"
+                f"SELECT request_id FROM {schema_name}.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0' ORDER BY request_datetime ASC LIMIT {excess_count}"
             )
             oldest_ids = [entry[0] for entry in oldest_entries]
             pgquery.write_db(
-                f"DELETE FROM public.obu_ota_requests WHERE request_id IN ({','.join(map(str, oldest_ids))})"
+                f"DELETE FROM {schema_name}.obu_ota_requests WHERE request_id IN ({','.join(map(str, oldest_ids))})"
             )
             logging.debug(
                 f"removed_old_logs: Removed {excess_count} old logs for serialnum: {serialnum}"
@@ -166,7 +167,8 @@ async def log_request(
         origin_ip = request.client.host
 
         current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = f"INSERT INTO public.obu_ota_requests (obu_sn, manufacturer, request_datetime, origin_ip, obu_firmware_version, requested_firmware_version, error_status, error_message) VALUES\
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+        query = f"INSERT INTO {schema_name}.obu_ota_requests (obu_sn, manufacturer, request_datetime, origin_ip, obu_firmware_version, requested_firmware_version, error_status, error_message) VALUES\
                 ('{serialnum}', {manufacturer}, '{current_dt}', '{origin_ip}', '{version}', '{firmware_id}', B'{error_status}', '{error_message}')"
         logging.debug(f"Logging request to postgres with insert query: \n{query}")
         pgquery.write_db(query)
