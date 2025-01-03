@@ -6,6 +6,7 @@ import os
 
 
 def get_intersection_data(intersection_id):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
@@ -14,11 +15,11 @@ def get_intersection_data(intersection_id):
         "ST_XMax(bbox::geometry) AS bbox_longitude_2, ST_YMax(bbox::geometry) AS bbox_latitude_2, "
         "intersection_name, origin_ip, "
         "org.name AS org_name, rsu.ipv4_address AS rsu_ip  "
-        "FROM public.intersections "
-        "JOIN public.intersection_organization AS ro ON ro.intersection_id = intersections.intersection_id  "
-        "JOIN public.organizations AS org ON org.organization_id = ro.organization_id  "
-        "LEFT JOIN public.rsu_intersection AS ri ON ri.intersection_id = intersections.intersection_id  "
-        "LEFT JOIN public.rsus AS rsu ON rsu.rsu_id = ri.rsu_id"
+        f"FROM {schema_name}.intersections "
+        f"JOIN {schema_name}.intersection_organization AS ro ON ro.intersection_id = intersections.intersection_id  "
+        f"JOIN {schema_name}.organizations AS org ON org.organization_id = ro.organization_id  "
+        f"LEFT JOIN {schema_name}.rsu_intersection AS ri ON ri.intersection_id = intersections.intersection_id  "
+        f"LEFT JOIN {schema_name}.rsus AS rsu ON rsu.rsu_id = ri.rsu_id"
     )
     if intersection_id != "all":
         query += f" WHERE intersection_number = '{intersection_id}'"
@@ -86,8 +87,9 @@ def modify_intersection(intersection_spec):
 
     try:
         # Modify the existing Intersection data
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
-            "UPDATE public.intersections SET "
+            f"UPDATE {schema_name}.intersections SET "
             f"intersection_number='{intersection_spec['intersection_id']}', "
             f"ref_pt=ST_GeomFromText('POINT({str(intersection_spec['ref_pt']['longitude'])} {str(intersection_spec['ref_pt']['latitude'])})')"
         )
@@ -104,12 +106,12 @@ def modify_intersection(intersection_spec):
 
         # Add the intersection-to-organization relationships for the organizations to add
         if len(intersection_spec["organizations_to_add"]) > 0:
-            org_add_query = "INSERT INTO public.intersection_organization(intersection_id, organization_id) VALUES"
+            org_add_query = f"INSERT INTO {schema_name}.intersection_organization(intersection_id, organization_id) VALUES"
             for organization in intersection_spec["organizations_to_add"]:
                 org_add_query += (
                     " ("
-                    f"(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}'), "
-                    f"(SELECT organization_id FROM public.organizations WHERE name = '{organization}')"
+                    f"(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}'), "
+                    f"(SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization}')"
                     "),"
                 )
             org_add_query = org_add_query[:-1]
@@ -118,22 +120,22 @@ def modify_intersection(intersection_spec):
         # Remove the intersection-to-organization relationships for the organizations to remove
         for organization in intersection_spec["organizations_to_remove"]:
             org_remove_query = (
-                "DELETE FROM public.intersection_organization WHERE "
-                f"intersection_id=(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}') "
-                f"AND organization_id=(SELECT organization_id FROM public.organizations WHERE name = '{organization}')"
+                f"DELETE FROM {schema_name}.intersection_organization WHERE "
+                f"intersection_id=(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}') "
+                f"AND organization_id=(SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization}')"
             )
             pgquery.write_db(org_remove_query)
 
         # Add the rsu-to-intersection relationships for the rsus to add
         if len(intersection_spec["rsus_to_add"]) > 0:
             rsu_add_query = (
-                "INSERT INTO public.rsu_intersection(rsu_id, intersection_id) VALUES"
+                f"INSERT INTO {schema_name}.rsu_intersection(rsu_id, intersection_id) VALUES"
             )
             for ip in intersection_spec["rsus_to_add"]:
                 rsu_add_query += (
                     " ("
-                    f"(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '{ip}'), "
-                    f"(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}')"
+                    f"(SELECT rsu_id FROM {schema_name}.rsus WHERE ipv4_address = '{ip}'), "
+                    f"(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}')"
                     "),"
                 )
             rsu_add_query = rsu_add_query[:-1]
@@ -142,9 +144,9 @@ def modify_intersection(intersection_spec):
         # Remove the rsu-to-intersection relationships for the rsus to remove
         for ip in intersection_spec["rsus_to_remove"]:
             rsu_remove_query = (
-                "DELETE FROM public.rsu_intersection WHERE "
-                f"intersection_id=(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}') "
-                f"AND rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '{ip}')"
+                f"DELETE FROM {schema_name}.rsu_intersection WHERE "
+                f"intersection_id=(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}') "
+                f"AND rsu_id=(SELECT rsu_id FROM {schema_name}.rsus WHERE ipv4_address = '{ip}')"
             )
             pgquery.write_db(rsu_remove_query)
     except sqlalchemy.exc.IntegrityError as e:
@@ -163,21 +165,22 @@ def modify_intersection(intersection_spec):
 
 def delete_intersection(intersection_id):
     # Delete Intersection to Organization relationships
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     org_remove_query = (
-        "DELETE FROM public.intersection_organization WHERE "
-        f"intersection_id=(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_id}')"
+        f"DELETE FROM {schema_name}.intersection_organization WHERE "
+        f"intersection_id=(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_id}')"
     )
     pgquery.write_db(org_remove_query)
 
     rsu_intersection_remove_query = (
-        "DELETE FROM public.rsu_intersection WHERE "
-        f"intersection_id=(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_id}')"
+        f"DELETE FROM {schema_name}.rsu_intersection WHERE "
+        f"intersection_id=(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_id}')"
     )
     pgquery.write_db(rsu_intersection_remove_query)
 
     # Delete Intersection data
     intersection_remove_query = (
-        "DELETE FROM public.intersections WHERE "
+        f"DELETE FROM {schema_name}.intersections WHERE "
         f"intersection_number = '{intersection_id}'"
     )
     pgquery.write_db(intersection_remove_query)

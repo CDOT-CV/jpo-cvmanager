@@ -23,12 +23,13 @@ def get_user_role(token):
         email = userinfo["email"]
 
         # TODO: Eventually convert this query to allow users without organizations. This involves changing the query to use LEFT JOIN(s).
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
             "SELECT jsonb_build_object('email', u.email, 'first_name', u.first_name, 'last_name', u.last_name, 'organization', org.name, 'role', roles.name, 'super_user', u.super_user) "
-            "FROM public.users u "
-            "JOIN public.user_organization uo on u.user_id = uo.user_id "
-            "JOIN public.organizations org on uo.organization_id = org.organization_id "
-            "JOIN public.roles on uo.role_id = roles.role_id "
+            f"FROM {schema_name}.users u "
+            f"JOIN {schema_name}.user_organization uo on u.user_id = uo.user_id "
+            f"JOIN {schema_name}.organizations org on uo.organization_id = org.organization_id "
+            f"JOIN {schema_name}.roles on uo.role_id = roles.role_id "
             f"WHERE u.email = '{email}'"
         )
 

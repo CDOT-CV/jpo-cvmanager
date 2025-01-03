@@ -64,12 +64,13 @@ def get_organization_rsus(organization):
     logging.info(f"Preparing to query for all RSU IPs for {organization}...")
 
     # Execute the query and fetch all results
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT rd.ipv4_address, rd.primary_route "
-        "FROM public.rsus rd "
-        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
+        f"FROM {schema_name}.rsus rd "
+        f"JOIN {schema_name}.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
         f"WHERE ron_v.name = '{organization}' "
         "ORDER BY primary_route ASC, milepost ASC"
         ") as row"

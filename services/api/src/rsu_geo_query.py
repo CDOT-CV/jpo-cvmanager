@@ -4,9 +4,10 @@ import os
 
 
 def query_org_rsus(orgName):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
-        "SELECT ipv4_address from public.rsus as rd "
-        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
+        f"SELECT ipv4_address from {schema_name}.rsus as rd "
+        f"JOIN {schema_name}.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
         f"WHERE ron_v.name = '{orgName}'"
     )
 
@@ -43,11 +44,12 @@ def query_rsu_devices(ipList, pointList, vendor=None):
         f"WHERE ipv4_address = ANY('{{{ipList}}}'::inet[]) "
     )
     if vendor is not None:
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query += (
             f" AND ipv4_address IN (SELECT rd.ipv4_address "
-            "FROM public.rsus as rd "
-            "JOIN public.rsu_models as rm ON rm.rsu_model_id = rd.model "
-            "JOIN public.manufacturers as man on man.manufacturer_id = rm.manufacturer "
+            f"FROM {schema_name}.rsus as rd "
+            f"JOIN {schema_name}.rsu_models as rm ON rm.rsu_model_id = rd.model "
+            f"JOIN {schema_name}.manufacturers as man on man.manufacturer_id = rm.manufacturer "
             f"WHERE man.name = '{vendor}') "
         )
     query +=  f"AND ST_Contains(ST_SetSRID(ST_GeomFromText('{geogString}'), 4326), rsus.geography::geometry)) as row"

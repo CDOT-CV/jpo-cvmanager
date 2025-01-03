@@ -15,10 +15,11 @@ def query_and_return_list(query):
 def get_allowed_selections():
     allowed = {}
 
-    organizations_query = "SELECT name FROM public.organizations ORDER BY name ASC"
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+    organizations_query = f"SELECT name FROM {schema_name}.organizations ORDER BY name ASC"
     allowed["organizations"] = query_and_return_list(organizations_query)
 
-    rsus_query = "SELECT ipv4_address::text AS ipv4_address FROM public.rsus ORDER BY ipv4_address ASC"
+    rsus_query = f"SELECT ipv4_address::text AS ipv4_address FROM {schema_name}.rsus ORDER BY ipv4_address ASC"
     allowed["rsus"] = query_and_return_list(rsus_query)
 
     return allowed
@@ -61,7 +62,8 @@ def add_intersection(intersection_spec):
         }, 500
 
     try:
-        query = "INSERT INTO public.intersections(intersection_number, ref_pt"
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+        query = f"INSERT INTO {schema_name}.intersections(intersection_number, ref_pt"
 
         # Add optional fields if they are present
         if "bbox" in intersection_spec:
@@ -97,25 +99,25 @@ def add_intersection(intersection_spec):
         query += ")"
         pgquery.write_db(query)
 
-        org_query = "INSERT INTO public.intersection_organization(intersection_id, organization_id) VALUES"
+        org_query = f"INSERT INTO {schema_name}.intersection_organization(intersection_id, organization_id) VALUES"
         for organization in intersection_spec["organizations"]:
             org_query += (
                 " ("
-                f"(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}'), "
-                f"(SELECT organization_id FROM public.organizations WHERE name = '{organization}')"
+                f"(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}'), "
+                f"(SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization}')"
                 "),"
             )
         org_query = org_query[:-1]
         pgquery.write_db(org_query)
         if intersection_spec["rsus"]:
             rsu_intersection_query = (
-                "INSERT INTO public.rsu_intersection(rsu_id, intersection_id) VALUES"
+                f"INSERT INTO {schema_name}.rsu_intersection(rsu_id, intersection_id) VALUES"
             )
             for rsu_ip in intersection_spec["rsus"]:
                 rsu_intersection_query += (
                     " ("
-                    f"(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '{rsu_ip}'), "
-                    f"(SELECT intersection_id FROM public.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}')"
+                    f"(SELECT rsu_id FROM {schema_name}.rsus WHERE ipv4_address = '{rsu_ip}'), "
+                    f"(SELECT intersection_id FROM {schema_name}.intersections WHERE intersection_number = '{intersection_spec['intersection_id']}')"
                     "),"
                 )
             rsu_intersection_query = rsu_intersection_query[:-1]

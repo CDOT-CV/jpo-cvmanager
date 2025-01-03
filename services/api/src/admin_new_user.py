@@ -15,8 +15,9 @@ def query_and_return_list(query):
 def get_allowed_selections():
     allowed = {}
 
-    organizations_query = "SELECT name FROM public.organizations ORDER BY name ASC"
-    roles_query = "SELECT name FROM public.roles ORDER BY name"
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
+    organizations_query = f"SELECT name FROM {schema_name}.organizations ORDER BY name ASC"
+    roles_query = f"SELECT name FROM {schema_name}.roles ORDER BY name"
 
     allowed["organizations"] = query_and_return_list(organizations_query)
     allowed["roles"] = query_and_return_list(roles_query)
@@ -89,19 +90,20 @@ def add_user(user_spec):
         }, 500
 
     try:
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         user_insert_query = (
-            "INSERT INTO public.users(email, first_name, last_name, super_user) "
+            f"INSERT INTO {schema_name}.users(email, first_name, last_name, super_user) "
             f"VALUES ('{user_spec['email']}', '{user_spec['first_name']}', '{user_spec['last_name']}', '{'1' if user_spec['super_user'] else '0'}')"
         )
         pgquery.write_db(user_insert_query)
 
-        user_org_insert_query = "INSERT INTO public.user_organization(user_id, organization_id, role_id) VALUES"
+        user_org_insert_query = f"INSERT INTO {schema_name}.user_organization(user_id, organization_id, role_id) VALUES"
         for organization in user_spec["organizations"]:
             user_org_insert_query += (
                 " ("
-                f"(SELECT user_id FROM public.users WHERE email = '{user_spec['email']}'), "
-                f"(SELECT organization_id FROM public.organizations WHERE name = '{organization['name']}'), "
-                f"(SELECT role_id FROM public.roles WHERE name = '{organization['role']}')"
+                f"(SELECT user_id FROM {schema_name}.users WHERE email = '{user_spec['email']}'), "
+                f"(SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization['name']}'), "
+                f"(SELECT role_id FROM {schema_name}.roles WHERE name = '{organization['role']}')"
                 "),"
             )
         user_org_insert_query = user_org_insert_query[:-1]

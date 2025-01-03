@@ -14,12 +14,13 @@ def get_ping_data(organization):
 
     t = datetime.now(pytz.utc) - timedelta(minutes=20)
     # Execute the query and fetch all results
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT jsonb_build_object('id', rd.rsu_id, 'ip', rd.ipv4_address, 'datetime', ping_data.timestamp, 'online_status', ping_data.result) "
-        "FROM public.rsus AS rd "
-        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
+        f"FROM {schema_name}.rsus AS rd "
+        f"JOIN {schema_name}.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
         "JOIN ("
-        "SELECT * FROM public.ping AS ping_data "
+        f"SELECT * FROM {schema_name}.ping AS ping_data "
         f"WHERE ping_data.timestamp >= '{t.strftime('%Y/%m/%dT%H:%M:%S')}'::timestamp"
         ") AS ping_data ON rd.rsu_id = ping_data.rsu_id "
         f"WHERE ron_v.name = '{organization}' "
@@ -50,13 +51,14 @@ def get_last_online_data(ip, organization):
     result = {}
 
     # Execute the query and fetch all results
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT ping.timestamp "
-        "FROM public.ping "
+        f"FROM {schema_name}.ping "
         "JOIN ("
         "SELECT rsus.rsu_id, rsus.ipv4_address "
-        "FROM public.rsus "
-        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rsus.rsu_id "
+        f"FROM {schema_name}.rsus "
+        f"JOIN {schema_name}.rsu_organization_name AS ron_v ON ron_v.rsu_id = rsus.rsu_id "
         f"WHERE rsus.ipv4_address = '{ip}' "
         f"AND ron_v.name = '{organization}'"
         ") AS rd ON ping.rsu_id = rd.rsu_id "

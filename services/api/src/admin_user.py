@@ -6,14 +6,15 @@ import os
 
 
 def get_user_data(user_email):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT u.email, u.first_name, u.last_name, u.super_user, org.name, roles.name AS role "
-        "FROM public.users u "
-        "LEFT JOIN public.user_organization AS uo ON uo.user_id = u.user_id "
-        "LEFT JOIN public.organizations AS org ON org.organization_id = uo.organization_id "
-        "LEFT JOIN public.roles ON roles.role_id = uo.role_id"
+        f"FROM {schema_name}.users u "
+        f"LEFT JOIN {schema_name}.user_organization AS uo ON uo.user_id = u.user_id "
+        f"LEFT JOIN {schema_name}.organizations AS org ON org.organization_id = uo.organization_id "
+        f"LEFT JOIN {schema_name}.roles ON roles.role_id = uo.role_id"
     )
     if user_email != "all":
         query += f" WHERE u.email = '{user_email}'"
@@ -94,8 +95,9 @@ def modify_user(user_spec):
 
     try:
         # Modify the existing user data
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
-            "UPDATE public.users SET "
+            f"UPDATE {schema_name}.users SET "
             f"email='{user_spec['email']}', "
             f"first_name='{user_spec['first_name']}', "
             f"last_name='{user_spec['last_name']}', "
@@ -106,13 +108,13 @@ def modify_user(user_spec):
 
         # Add the user-to-organization relationships
         if len(user_spec["organizations_to_add"]) > 0:
-            org_add_query = "INSERT INTO public.user_organization(user_id, organization_id, role_id) VALUES"
+            org_add_query = f"INSERT INTO {schema_name}.user_organization(user_id, organization_id, role_id) VALUES"
             for organization in user_spec["organizations_to_add"]:
                 org_add_query += (
                     " ("
-                    f"(SELECT user_id FROM public.users WHERE email = '{user_spec['email']}'), "
-                    f"(SELECT organization_id FROM public.organizations WHERE name = '{organization['name']}'), "
-                    f"(SELECT role_id FROM public.roles WHERE name = '{organization['role']}')"
+                    f"(SELECT user_id FROM {schema_name}.users WHERE email = '{user_spec['email']}'), "
+                    f"(SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization['name']}'), "
+                    f"(SELECT role_id FROM {schema_name}.roles WHERE name = '{organization['role']}')"
                     "),"
                 )
             org_add_query = org_add_query[:-1]
@@ -121,19 +123,19 @@ def modify_user(user_spec):
         # Modify the user-to-organization relationships
         for organization in user_spec["organizations_to_modify"]:
             org_modify_query = (
-                "UPDATE public.user_organization "
-                f"SET role_id = (SELECT role_id FROM public.roles WHERE name = '{organization['role']}') "
-                f"WHERE user_id = (SELECT user_id FROM public.users WHERE email = '{user_spec['email']}') "
-                f"AND organization_id = (SELECT organization_id FROM public.organizations WHERE name = '{organization['name']}')"
+                f"UPDATE {schema_name}.user_organization "
+                f"SET role_id = (SELECT role_id FROM {schema_name}.roles WHERE name = '{organization['role']}') "
+                f"WHERE user_id = (SELECT user_id FROM {schema_name}.users WHERE email = '{user_spec['email']}') "
+                f"AND organization_id = (SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization['name']}')"
             )
             pgquery.write_db(org_modify_query)
 
         # Remove the user-to-organization relationships
         for organization in user_spec["organizations_to_remove"]:
             org_remove_query = (
-                "DELETE FROM public.user_organization WHERE "
-                f"user_id = (SELECT user_id FROM public.users WHERE email = '{user_spec['email']}') "
-                f"AND organization_id = (SELECT organization_id FROM public.organizations WHERE name = '{organization['name']}')"
+                f"DELETE FROM {schema_name}.user_organization WHERE "
+                f"user_id = (SELECT user_id FROM {schema_name}.users WHERE email = '{user_spec['email']}') "
+                f"AND organization_id = (SELECT organization_id FROM {schema_name}.organizations WHERE name = '{organization['name']}')"
             )
             pgquery.write_db(org_remove_query)
     except sqlalchemy.exc.IntegrityError as e:
@@ -152,14 +154,15 @@ def modify_user(user_spec):
 
 def delete_user(user_email):
     # Delete user-to-organization relationships
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     org_remove_query = (
-        "DELETE FROM public.user_organization WHERE "
-        f"user_id = (SELECT user_id FROM public.users WHERE email = '{user_email}')"
+        f"DELETE FROM {schema_name}.user_organization WHERE "
+        f"user_id = (SELECT user_id FROM {schema_name}.users WHERE email = '{user_email}')"
     )
     pgquery.write_db(org_remove_query)
 
     # Delete user data
-    user_remove_query = "DELETE FROM public.users WHERE " f"email = '{user_email}'"
+    user_remove_query = f"DELETE FROM {schema_name}.users WHERE " f"email = '{user_email}'"
     pgquery.write_db(user_remove_query)
 
     return {"message": "User successfully deleted"}

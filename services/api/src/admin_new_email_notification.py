@@ -15,10 +15,11 @@ def query_and_return_list(query):
 def get_allowed_types(user_email):
     allowed = {}
 
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     email_types_query = (
-        "SELECT email_type FROM public.email_type WHERE email_type_id NOT IN ("
-        "SELECT email_type_id FROM public.user_email_notification WHERE user_id ="
-        f"(SELECT user_id FROM public.users WHERE email = '{user_email}'))"
+        f"SELECT email_type FROM {schema_name}.email_type WHERE email_type_id NOT IN ("
+        f"SELECT email_type_id FROM {schema_name}.user_email_notification WHERE user_id ="
+        f"(SELECT user_id FROM {schema_name}.users WHERE email = '{user_email}'))"
     )
 
     allowed["email_types"] = query_and_return_list(email_types_query)
@@ -50,10 +51,11 @@ def add_notification(notification_spec):
             "message": "No special characters are allowed: !\"#$%&'()*+,./:;<=>?@[\\]^`{|}~. No sequences of '-' characters are allowed"
         }, 500
     try:
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         notification_insert_query = (
-            "INSERT into public.user_email_notification(user_id, email_type_id) VALUES ("
-            f"(SELECT user_id FROM public.users WHERE email='{notification_spec['email']}'), "
-            f"(SELECT email_type_id FROM public.email_type WHERE email_type='{notification_spec['email_type']}'))"
+            f"INSERT into {schema_name}.user_email_notification(user_id, email_type_id) VALUES ("
+            f"(SELECT user_id FROM {schema_name}.users WHERE email='{notification_spec['email']}'), "
+            f"(SELECT email_type_id FROM {schema_name}.email_type WHERE email_type='{notification_spec['email_type']}'))"
         )
         pgquery.write_db(notification_insert_query)
 

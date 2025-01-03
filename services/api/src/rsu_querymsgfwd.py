@@ -9,16 +9,17 @@ def query_snmp_msgfwd(rsu_ip, organization):
     logging.info(f"Preparing to query for all RSU IPs for {organization}...")
 
     # Execute the query and fetch all results
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT smt.name msgfwd_type, snmp_index, message_type, dest_ipv4, dest_port, start_datetime, end_datetime, active "
-        "FROM public.snmp_msgfwd_config smc "
-        "JOIN public.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id "
+        f"FROM {schema_name}.snmp_msgfwd_config smc "
+        f"JOIN {schema_name}.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id "
         "JOIN ("
         "SELECT rd.rsu_id, rd.ipv4_address "
-        "FROM public.rsus rd "
-        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
+        f"FROM {schema_name}.rsus rd "
+        f"JOIN {schema_name}.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
         f"WHERE ron_v.name = '{organization}'"
         ") rdo ON smc.rsu_id = rdo.rsu_id "
         f"WHERE rdo.ipv4_address = '{rsu_ip}' "

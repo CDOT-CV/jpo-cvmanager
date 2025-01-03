@@ -27,8 +27,9 @@ def add_organization(org_spec):
             return {"message": "Organization email is not valid"}, 500
 
     try:
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         org_insert_query = (
-            "INSERT INTO public.organizations(name, email) "
+            f"INSERT INTO {schema_name}.organizations(name, email) "
             f"VALUES ('{org_spec['name']}', '{org_spec['email']}')"
         )
         pgquery.write_db(org_insert_query)

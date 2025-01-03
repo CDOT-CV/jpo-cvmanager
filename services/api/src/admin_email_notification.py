@@ -5,14 +5,15 @@ import os
 
 
 def get_notification_data(user_email):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT u.email, u.first_name, u.last_name, e.email_type "
-        "FROM public.user_email_notification "
-        "JOIN public.users AS u ON u.user_id = user_email_notification.user_id "
-        "JOIN public.email_type AS e ON e.email_type_id = user_email_notification.email_type_id "
-        f"WHERE user_email_notification.user_id IN (SELECT user_id FROM public.users WHERE email = '{user_email}')"
+        f"FROM {schema_name}.user_email_notification "
+        f"JOIN {schema_name}.users AS u ON u.user_id = user_email_notification.user_id "
+        f"JOIN {schema_name}.email_type AS e ON e.email_type_id = user_email_notification.email_type_id "
+        f"WHERE user_email_notification.user_id IN (SELECT user_id FROM {schema_name}.users WHERE email = '{user_email}')"
         ") as row"
     )
 
@@ -73,11 +74,12 @@ def modify_notification(notification_spec):
 
     try:
         # Modify the existing user data
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
-            "UPDATE public.user_email_notification SET "
-            f"email_type_id = (SELECT email_type_id FROM public.email_type WHERE email_type = '{notification_spec['new_email_type']}') "
-            f"WHERE user_id = (SELECT user_id FROM public.users WHERE email = '{notification_spec['email']}')  "
-            f"AND email_type_id = (SELECT email_type_id FROM public.email_type WHERE email_type = '{notification_spec['old_email_type']}')"
+            f"UPDATE {schema_name}.user_email_notification SET "
+            f"email_type_id = (SELECT email_type_id FROM {schema_name}.email_type WHERE email_type = '{notification_spec['new_email_type']}') "
+            f"WHERE user_id = (SELECT user_id FROM {schema_name}.users WHERE email = '{notification_spec['email']}')  "
+            f"AND email_type_id = (SELECT email_type_id FROM {schema_name}.email_type WHERE email_type = '{notification_spec['old_email_type']}')"
         )
         pgquery.write_db(query)
 
@@ -96,10 +98,11 @@ def modify_notification(notification_spec):
 
 
 def delete_notification(user_email, email_type):
+    schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
     notification_remove_query = (
-        "DELETE FROM public.user_email_notification WHERE "
-        f"user_id IN (SELECT user_id FROM public.users WHERE email = '{user_email}') "
-        f"AND email_type_id IN (SELECT email_type_id FROM public.email_type WHERE email_type = '{email_type}')"
+        f"DELETE FROM {schema_name}.user_email_notification WHERE "
+        f"user_id IN (SELECT user_id FROM {schema_name}.users WHERE email = '{user_email}') "
+        f"AND email_type_id IN (SELECT email_type_id FROM {schema_name}.email_type WHERE email_type = '{email_type}')"
     )
     pgquery.write_db(notification_remove_query)
 
