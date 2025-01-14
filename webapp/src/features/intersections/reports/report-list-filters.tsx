@@ -1,6 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { Box, Button, CircularProgress, Drawer, IconButton, Stack, TextField, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Drawer,
+  FormControlLabel,
+  FormGroup,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Select,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+  useMediaQuery,
+} from '@mui/material'
 import { styled } from '@mui/material/styles'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { Close } from '@mui/icons-material'
@@ -85,13 +102,19 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
   const content = (
     <Box
       sx={{
-        pb: 1,
-        pt: 1,
+        pb: 3,
+        pt: {
+          xs: 3,
+          lg: 8,
+        },
         px: 3,
       }}
     >
       <Box
         sx={{
+          display: {
+            lg: 'none',
+          },
           mb: 2,
         }}
       >
@@ -103,6 +126,7 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
         Issue date
       </Typography>
       <Stack spacing={2} sx={{ mt: 2 }}>
+        {' '}
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DateTimePicker
             label="From"

@@ -9,6 +9,8 @@ import { ReportGenerationDialog } from '../../features/intersections/reports/rep
 import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../generalSlices/intersectionSlice'
 import { selectToken } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
+import ReportDetailsModal from '../../features/intersections/reports/report-details-modal'
+import toast from 'react-hot-toast'
 
 const applyPagination = (logs, page, rowsPerPage) => logs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -129,6 +131,28 @@ const Page = () => {
   // Usually query is done on backend with indexing solutions
   const paginatedLogs = applyPagination(logs, page, rowsPerPage)
 
+  // Inside the parent component
+  const [selectedReport, setSelectedReport] = useState<ReportMetadata | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleViewReport = (report: ReportMetadata) => {
+    setSelectedReport(report)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseReportModal = () => {
+    setIsModalOpen(false)
+    setSelectedReport(null)
+  }
+
+  const handleReportGenerated = () => {
+    setOpenReportGenerationDialog(false)
+    const refreshTime = new Date(Date.now() + 15 * 60 * 1000)
+    toast.success(
+      `Reports usually take 10-15 minutes to generate. Please refresh the page at ${refreshTime.toLocaleTimeString()} to see the new report.`
+    )
+  }
+
   return (
     <>
       <Box
@@ -184,6 +208,7 @@ const Page = () => {
             onRowsPerPageChange={handleRowsPerPageChange}
             page={page}
             rowsPerPage={rowsPerPage}
+            onViewReport={handleViewReport}
           />
         </LogsListInner>
       </Box>
@@ -192,7 +217,9 @@ const Page = () => {
         onClose={() => {
           setOpenReportGenerationDialog(false)
         }}
+        onReportGenerated={handleReportGenerated}
       />
+      <ReportDetailsModal open={isModalOpen} onClose={handleCloseReportModal} report={selectedReport} />
     </>
   )
 }

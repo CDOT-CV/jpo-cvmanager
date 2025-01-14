@@ -22,26 +22,13 @@ import { selectToken } from '../../../generalSlices/userSlice'
 
 interface ReportRowProps {
   report: ReportMetadata
+  onViewReport: (report: ReportMetadata) => void
 }
 
 const ReportRow = (props: ReportRowProps) => {
   const navigate = useNavigate()
   const token = useSelector(selectToken)
-  const { report } = props
-
-  const downloadReport = async (reportName: string) => {
-    const promise = ReportsApi.downloadReport({ token: token, reportName })
-    toast.promise(promise, {
-      loading: `Downloading Performance Report ${reportName}`,
-      success: `Successfully Downloaded Performance Report ${reportName}`,
-      error: `Error Downloading Performance Report ${reportName}`,
-    })
-    const report = await promise
-    const name = `Performance Report ${reportName}.pdf`
-    if (report !== undefined) {
-      downloadPdf(report, name)
-    }
-  }
+  const { report, onViewReport } = props
 
   const downloadPdf = (contents: Blob, name: string) => {
     const url = window.URL.createObjectURL(contents)
@@ -116,14 +103,7 @@ const ReportRow = (props: ReportRowProps) => {
         </Box>
       </TableCell>
       <TableCell align="right">
-        <Button
-          endIcon={<ArrowDownward fontSize="small" />}
-          onClick={() => {
-            downloadReport(report.reportName)
-          }}
-        >
-          Download
-        </Button>
+        <Button onClick={() => onViewReport(report)}>View</Button>
       </TableCell>
     </TableRow>
   )
@@ -137,10 +117,12 @@ interface ReportListTableProps {
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   page: number
   rowsPerPage: number
+  onViewReport: (report: ReportMetadata) => void
 }
 
 export const ReportListTable = (props: ReportListTableProps) => {
-  const { group, reports, reportsCount, onPageChange, onRowsPerPageChange, page, rowsPerPage, ...other } = props
+  const { group, reports, reportsCount, onPageChange, onRowsPerPageChange, page, rowsPerPage, onViewReport, ...other } =
+    props
 
   return (
     <div {...other}>
@@ -157,7 +139,7 @@ export const ReportListTable = (props: ReportListTableProps) => {
           {
             <TableBody>
               {reports.map((report: ReportMetadata) => (
-                <ReportRow report={report} />
+                <ReportRow report={report} onViewReport={onViewReport} />
               ))}
             </TableBody>
           }
