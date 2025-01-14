@@ -1,23 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import {
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  Drawer,
-  FormControlLabel,
-  FormGroup,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Select,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-  useMediaQuery,
-} from '@mui/material'
+import { Box, Button, CircularProgress, Drawer, IconButton, Stack, Typography } from '@mui/material'
 import { styled } from '@mui/material/styles'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { Close } from '@mui/icons-material'
@@ -31,17 +14,6 @@ const FiltersDrawerDesktop = styled(Drawer)({
   width: 380,
   '& .MuiDrawer-paper': {
     position: 'relative',
-    width: 380,
-  },
-})
-
-const FiltersDrawerMobile = styled(Drawer)({
-  maxWidth: '100%',
-  width: 380,
-  '& .MuiDrawer-paper': {
-    height: 'calc(100% - 64px)',
-    maxWidth: '100%',
-    top: 64,
     width: 380,
   },
 })
@@ -76,10 +48,6 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
 
   const endDateChange = (date: Date | null) => {
     setCurrentFilters({ ...currentFilters, endDate: date })
-  }
-
-  const updateFilters = () => {
-    onChange?.(currentFilters)
   }
 
   const updateFiltersValid = () => {

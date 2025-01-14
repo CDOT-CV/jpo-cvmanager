@@ -1,4 +1,4 @@
-import { eachDayOfInterval, format, isEqual, subDays } from 'date-fns'
+import { eachDayOfInterval, format, subDays } from 'date-fns'
 
 export type LaneDirectionOfTravelReportData = {
   timestamp: number
@@ -91,7 +91,7 @@ export const processMissingElements = (elements: string[]): string[] => {
   // Step 3: Create readable strings from the grouped elements
   const readableStrings = Object.entries(groupedElements).map(([key, values]) => {
     const uniqueValues = Array.from(new Set(values))
-    let readableString
+    let readableString: string
     if (uniqueValues.length > 2) {
       const lastValue = uniqueValues.pop()
       readableString = `${uniqueValues.join(', ')}, and ${lastValue} missing from ${key

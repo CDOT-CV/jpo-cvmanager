@@ -1,24 +1,9 @@
 import React from 'react'
 import { format } from 'date-fns'
-import {
-  Avatar,
-  Box,
-  Button,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TablePagination,
-  TableRow,
-  Typography,
-} from '@mui/material'
+import { Box, Button, Table, TableBody, TableCell, TablePagination, TableRow, Typography } from '@mui/material'
 import PerfectScrollbar from 'react-perfect-scrollbar'
-import { ArrowDownward } from '@mui/icons-material'
-import toast from 'react-hot-toast'
-import ReportsApi, { ReportMetadata } from '../../../apis/intersections/reports-api'
-import { useSelector } from 'react-redux'
+import { ReportMetadata } from '../../../apis/intersections/reports-api'
 import { useNavigate } from 'react-router-dom'
-import { selectToken } from '../../../generalSlices/userSlice'
 
 interface ReportRowProps {
   report: ReportMetadata
@@ -27,17 +12,7 @@ interface ReportRowProps {
 
 const ReportRow = (props: ReportRowProps) => {
   const navigate = useNavigate()
-  const token = useSelector(selectToken)
   const { report, onViewReport } = props
-
-  const downloadPdf = (contents: Blob, name: string) => {
-    const url = window.URL.createObjectURL(contents)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', name) //or any other extension
-    document.body.appendChild(link)
-    link.click()
-  }
 
   return (
     <TableRow

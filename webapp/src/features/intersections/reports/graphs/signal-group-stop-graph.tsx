@@ -10,7 +10,6 @@ interface SignalGroupStopGraphProps {
 }
 
 const roundToTwoDecimals = (num: number) => Math.round(num * 100) / 100
-const roundToInteger = (num: number) => Math.round(num)
 
 const CustomTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {

@@ -1,4 +1,3 @@
-// report-color-palette.ts
 const reportColorPalette = [
   '#C1666B',
   '#9a6d32',

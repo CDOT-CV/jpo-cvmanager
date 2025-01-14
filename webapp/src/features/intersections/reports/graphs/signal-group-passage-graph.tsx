@@ -3,7 +3,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, TooltipPro
 import { Box, Typography } from '@mui/material'
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
 import { StopLinePassageReportData } from '../report-utils'
-import { report } from 'process'
 import reportColorPalette from '../report-color-palette'
 
 interface SignalGroupPassageGraphProps {
