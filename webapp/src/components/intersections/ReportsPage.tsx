@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Box, Button, Stack, Typography } from '@mui/material'
-import { styled } from '@mui/material/styles'
+import { styled, StyledEngineProvider, ThemeProvider } from '@mui/material/styles'
 import { FilterAlt } from '@mui/icons-material'
 import { ReportListFilters } from '../../features/intersections/reports/report-list-filters'
 import { ReportListTable } from '../../features/intersections/reports/report-list-table'
@@ -11,6 +11,7 @@ import { selectToken } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 import ReportDetailsModal from '../../features/intersections/reports/report-details-modal'
 import toast from 'react-hot-toast'
+import { ReportTheme } from '../../styles/report-theme'
 
 const applyPagination = (logs, page, rowsPerPage) => logs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -102,10 +103,6 @@ const Page = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filters, intersectionId]
   )
-
-  const handleChangeGroup = (event) => {
-    setGroup(event.target.checked)
-  }
 
   const handleToggleFilters = () => {
     setOpenFilters((prevState) => !prevState)
@@ -219,7 +216,11 @@ const Page = () => {
         }}
         onReportGenerated={handleReportGenerated}
       />
-      <ReportDetailsModal open={isModalOpen} onClose={handleCloseReportModal} report={selectedReport} />
+      <StyledEngineProvider injectFirst>
+        <ThemeProvider theme={ReportTheme}>
+          <ReportDetailsModal open={isModalOpen} onClose={handleCloseReportModal} report={selectedReport} />
+        </ThemeProvider>
+      </StyledEngineProvider>
     </>
   )
 }
