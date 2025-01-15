@@ -71,19 +71,15 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     <Box
       sx={{
         pb: 3,
-        pt: {
-          xs: 3,
-          lg: 8,
-        },
         px: 3,
       }}
     >
       <Box
         sx={{
-          display: {
-            lg: 'none',
-          },
           mb: 2,
+          position: 'absolute',
+          right: 10,
+          top: 10,
         }}
       >
         <IconButton onClick={onClose}>
