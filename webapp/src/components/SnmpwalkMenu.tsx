@@ -1,9 +1,10 @@
+import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import React, { useEffect } from 'react'
 import SnmpwalkItem from './SnmpwalkItem'
 import { useSelector, useDispatch } from 'react-redux'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from './AdminDeletionOptions'
-import { selectRsuManufacturer, selectRsuIpv4 } from '../generalSlices/rsuSlice'
+import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
 import {
   selectMsgFwdConfig,
 
@@ -17,7 +18,6 @@ import {
   deleteSnmpSet,
 } from '../generalSlices/configSlice'
 import { IconButton, Tooltip } from '@mui/material'
-import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
 
@@ -27,7 +27,6 @@ const SnmpwalkMenu = () => {
   const msgFwdConfig = useSelector(selectMsgFwdConfig)
 
   const rsuIp = useSelector(selectRsuIpv4)
-  const rsuManufacturer = useSelector(selectRsuManufacturer)
 
   useEffect(() => {
     // Refresh Data
