@@ -11,9 +11,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import { selectSelectedRsu, selectRsu } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { PositionedToggleIconButton } from '../../styles/components/PositionedToggleButton'
 import CloseIcon from '@mui/icons-material/Close'
 import '../../components/css/SnmpwalkMenu.css'
@@ -39,15 +37,15 @@ const ConfigMenu = ({ children }) => {
 }
 
 const ConfigureRSU = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+    const dispatch = useAppDispatch()
   const theme = useTheme()
 
   const [expanded, setExpanded] = useState<string | undefined>(undefined)
   const handleChange = (panel: string) => (event: React.SyntheticEvent<Element, Event>, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : undefined)
   }
-  const selectedRsu = useSelector(selectSelectedRsu)
-  const selectedConfigList = useSelector(selectConfigList)
+  const selectedRsu = useAppSelector(selectSelectedRsu)
+  const selectedConfigList = useAppSelector(selectConfigList)
 
   return (
     <Paper sx={{ lineHeight: 1.1, backgroundColor: theme.palette.custom.mapLegendBackground }}>

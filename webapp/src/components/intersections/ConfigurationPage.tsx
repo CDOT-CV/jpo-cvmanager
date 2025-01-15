@@ -18,7 +18,7 @@ import { ConfigParamListTable } from '../../features/intersections/configuration
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
 import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
-import { useSelector } from 'react-redux'
+import { useAppSelector } from '../../hooks'
 import { useGetIntersectionParametersQuery } from '../../features/api/intersectionApiSlice'
 import { Route, Routes } from 'react-router-dom'
 import ConfigParamEdit from './configuration/edit'
@@ -101,7 +101,7 @@ const Page = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [currentDescription, setCurrentDescription] = useState('')
-  const intersectionId = useSelector(selectSelectedIntersectionId)
+  const intersectionId = useAppSelector(selectSelectedIntersectionId)
   const [filter, setFilter] = useState({
     query: '',
     tab: currentTab,

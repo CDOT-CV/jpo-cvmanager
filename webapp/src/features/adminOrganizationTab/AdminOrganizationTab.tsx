@@ -32,9 +32,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import { changeOrganization, selectOrganizationName, setOrganizationList } from '../../generalSlices/userSlice'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 
@@ -50,24 +48,24 @@ const getTitle = (activeTab: string) => {
 }
 
 const AdminOrganizationTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
 
   const activeTab = location.pathname.split('/')[4]
   const title = getTitle(activeTab)
 
-  const orgData = useSelector(selectOrgData)
-  const selectedOrg = useSelector(selectSelectedOrg)
-  const selectedOrgName = useSelector(selectSelectedOrgName)
-  const selectedOrgEmail = useSelector(selectSelectedOrgEmail)
-  const rsuTableData = useSelector(selectRsuTableData)
-  const intersectionTableData = useSelector(selectIntersectionTableData)
-  const userTableData = useSelector(selectUserTableData)
+  const orgData = useAppSelector(selectOrgData)
+  const selectedOrg = useAppSelector(selectSelectedOrg)
+  const selectedOrgName = useAppSelector(selectSelectedOrgName)
+  const selectedOrgEmail = useAppSelector(selectSelectedOrgEmail)
+  const rsuTableData = useAppSelector(selectRsuTableData)
+  const intersectionTableData = useAppSelector(selectIntersectionTableData)
+  const userTableData = useAppSelector(selectUserTableData)
 
   const notifySuccess = (message: string) => toast.success(message)
   const notifyError = (message: string) => toast.error(message)
-  const defaultOrgName = useSelector(selectOrganizationName)
+  const defaultOrgName = useAppSelector(selectOrganizationName)
   var defaultOrgData = orgData.find((org) => org.name === defaultOrgName)
 
   useEffect(() => {

@@ -24,18 +24,16 @@ import {
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { AdminButton } from '../../styles/components/AdminButton'
 
 const AdminEditOrganization = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
 
   const [open, setOpen] = useState(true)
-  const successMsg = useSelector(selectSuccessMsg)
-  const selectedOrg = useSelector(selectSelectedOrg)
-  const orgData = useSelector(selectOrgData)
+  const successMsg = useAppSelector(selectSuccessMsg)
+  const selectedOrg = useAppSelector(selectSelectedOrg)
+  const orgData = useAppSelector(selectOrgData)
   const {
     register,
     handleSubmit,

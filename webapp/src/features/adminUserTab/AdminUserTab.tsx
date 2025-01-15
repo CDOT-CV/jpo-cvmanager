@@ -23,9 +23,7 @@ import { Action } from '@material-table/core'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 
 const getTitle = (activeTab: string) => {
@@ -40,14 +38,14 @@ const getTitle = (activeTab: string) => {
 }
 
 const AdminUserTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
 
   const activeTab = location.pathname.split('/')[4]
   const title = getTitle(activeTab)
 
-  const tableData = useSelector(selectTableData)
+  const tableData = useAppSelector(selectTableData)
   const [columns] = useState([
     { title: 'First Name', field: 'first_name', id: 0 },
     { title: 'Last Name', field: 'last_name', id: 1 },
@@ -59,7 +57,7 @@ const AdminUserTab = () => {
       render: (rowData: AdminUserWithId) => (rowData.super_user ? 'Yes' : 'No'),
     },
   ])
-  const loading = useSelector(selectLoading)
+  const loading = useAppSelector(selectLoading)
 
   let tableActions: Action<AdminUserWithId>[] = [
     {

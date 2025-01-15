@@ -3,15 +3,15 @@ import { Box, Container, Typography } from '@mui/material'
 import { ConfigParamCreateForm } from '../../../features/intersections/configuration/configuration-create-form'
 import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
 import { useParams } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useAppSelector } from '../../../hooks'
 import { selectParameter } from '../../../features/api/intersectionApiSlice'
 
 const ConfigParamCreate = () => {
-  const intersectionId = useSelector(selectSelectedIntersectionId)
+  const intersectionId = useAppSelector(selectSelectedIntersectionId)
 
   const { key } = useParams<{ key: string }>()
 
-  const parameter = useSelector(selectParameter(key))
+  const parameter = useAppSelector(selectParameter(key))
   const formattedKey = parameter?.key.replace(/\./g, '.\u200B') // Replace periods with period and zero-width space, to help with line breaks
 
   if (!parameter || intersectionId === -1) {

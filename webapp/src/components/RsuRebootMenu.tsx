@@ -12,16 +12,14 @@ import {
 import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
 
 import './css/SnmpwalkMenu.css'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
+import { useAppDispatch, useAppSelector } from '../hooks'
 import { Button, Typography } from '@mui/material'
 
 const RsuRebootMenu = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
-  const changeSuccess = useSelector(selectRebootChangeSuccess)
+  const dispatch = useAppDispatch()
+  const changeSuccess = useAppSelector(selectRebootChangeSuccess)
 
-  const rsuIp = useSelector(selectRsuIpv4)
+  const rsuIp = useAppSelector(selectRsuIpv4)
 
   const options = {
     title: 'RSU Reboot',

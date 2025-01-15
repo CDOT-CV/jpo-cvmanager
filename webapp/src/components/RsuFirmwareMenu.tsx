@@ -14,9 +14,7 @@ import {
 } from '../generalSlices/configSlice'
 
 import './css/SnmpwalkMenu.css'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
+import { useAppDispatch, useAppSelector } from '../hooks'
 import { Button, Typography, useTheme } from '@mui/material'
 
 interface RsuFirmwareMenuProps {
@@ -25,12 +23,12 @@ interface RsuFirmwareMenuProps {
 }
 
 const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
   const theme = useTheme()
-  const firmwareUpgradeAvailable = useSelector(selectFirmwareUpgradeAvailable)
-  const firmwareUpgradeName = useSelector(selectFirmwareUpgradeName)
-  const firmwareUpgradeMsg = useSelector(selectFirmwareUpgradeMsg)
-  const firmwareUpgradeErr = useSelector(selectFirmwareUpgradeErr)
+  const firmwareUpgradeAvailable = useAppSelector(selectFirmwareUpgradeAvailable)
+  const firmwareUpgradeName = useAppSelector(selectFirmwareUpgradeName)
+  const firmwareUpgradeMsg = useAppSelector(selectFirmwareUpgradeMsg)
+  const firmwareUpgradeErr = useAppSelector(selectFirmwareUpgradeErr)
 
   const options = {
     title: 'RSU Firmware Upgrade',

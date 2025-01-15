@@ -18,7 +18,7 @@ import toast from 'react-hot-toast'
 import ReportsApi, { ReportMetadata } from '../../../apis/intersections/reports-api'
 import { useNavigate } from 'react-router-dom'
 import { selectToken } from '../../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
+import { useAppSelector } from '../../../hooks'
 
 interface ReportRowProps {
   report: ReportMetadata
@@ -26,7 +26,7 @@ interface ReportRowProps {
 
 const ReportRow = (props: ReportRowProps) => {
   const navigate = useNavigate()
-  const token = useSelector(selectToken)
+  const token = useAppSelector(selectToken)
   const { report } = props
 
   const downloadReport = async (reportName: string) => {

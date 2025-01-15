@@ -28,9 +28,7 @@ import { Action, Column } from '@material-table/core'
 import { AdminOrgRsu } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 
 interface AdminOrganizationTabRsuProps {
@@ -42,11 +40,11 @@ interface AdminOrganizationTabRsuProps {
 
 const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const { selectedOrg, selectedOrgEmail, updateTableData } = props
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
 
-  const availableRsuList = useSelector(selectAvailableRsuList)
-  const selectedRsuList = useSelector(selectSelectedRsuList)
-  const loadingGlobal = useSelector(selectLoadingGlobal)
+  const availableRsuList = useAppSelector(selectAvailableRsuList)
+  const selectedRsuList = useAppSelector(selectSelectedRsuList)
+  const loadingGlobal = useAppSelector(selectLoadingGlobal)
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '31%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '31%' },

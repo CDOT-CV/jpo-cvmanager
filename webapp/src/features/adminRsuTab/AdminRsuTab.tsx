@@ -22,9 +22,7 @@ import { Action } from '@material-table/core'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
+import { useAppDispatch, useAppSelector } from '../../hooks'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 
 const getTitle = (activeTab: string) => {
@@ -39,14 +37,14 @@ const getTitle = (activeTab: string) => {
 }
 
 const AdminRsuTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
 
   const activeTab = location.pathname.split('/')[4]
   const title = getTitle(activeTab)
 
-  const tableData = useSelector(selectTableData)
+  const tableData = useAppSelector(selectTableData)
   const [columns] = useState([
     { title: 'Milepost', field: 'milepost', id: 0 },
     { title: 'IP Address', field: 'ip', id: 1 },
@@ -55,7 +53,7 @@ const AdminRsuTab = () => {
     { title: 'Serial Number', field: 'serial_number', id: 4 },
   ])
 
-  const loading = useSelector(selectLoading)
+  const loading = useAppSelector(selectLoading)
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
     {
