@@ -100,17 +100,22 @@ COPY --from=builder /build /build
 # # Add test data. This changes frequently so keep it low in the file.
 ADD ./asn1_codec/docker-test /asn1_codec/docker-test
 
+# Install tshark tool for decoding pcap files
+RUN yum install -y wireshark-cli
+
 # # Put workdir back to Java home
 WORKDIR /home
 
 ENTRYPOINT ["java", \
-    "-Djava.rmi.server.hostname=$DOCKER_HOST_IP", \
-    "-Dcom.sun.management.jmxremote.port=9090", \
-    "-Dcom.sun.management.jmxremote.rmi.port=9090", \
-    "-Dcom.sun.management.jmxremote", \
-    "-Dcom.sun.management.jmxremote.local.only=true", \
-    "-Dcom.sun.management.jmxremote.authenticate=false", \
-    "-Dcom.sun.management.jmxremote.ssl=false", \
     "-Dlogback.configurationFile=/home/logback.xml", \
     "-jar", \
     "/home/jpo-conflictvisualizer-api.jar"]
+
+    # JMX isn't used
+    # "-Djava.rmi.server.hostname=$DOCKER_HOST_IP", \
+    # "-Dcom.sun.management.jmxremote.port=9090", \
+    # "-Dcom.sun.management.jmxremote.rmi.port=9090", \
+    # "-Dcom.sun.management.jmxremote", \
+    # "-Dcom.sun.management.jmxremote.local.only=true", \
+    # "-Dcom.sun.management.jmxremote.authenticate=false", \
+    # "-Dcom.sun.management.jmxremote.ssl=false", \
