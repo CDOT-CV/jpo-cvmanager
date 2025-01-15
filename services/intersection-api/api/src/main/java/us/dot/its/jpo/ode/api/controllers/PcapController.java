@@ -43,14 +43,13 @@ public class PcapController {
     PcapDecoder decoder;
 
     /**
-     * Attempts to convert pcap data to a {@link TimestampedHexList}.
-     * If this fails try the wireshark-json endpoint to retrieve raw wireshark json.
-     * @param bytes
-     * @return Timestamped Hex data
+     * Converts pcap data to Wireshark's verbose JSON format
+     * @param bytes PCAP data
+     * @return JSON data output by Wireshark
      * @throws IOException
      */
     @RequestMapping(
-        value = "/pcap/timestamped-hex", 
+        value = "/pcap/wireshark-json", 
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE)
@@ -63,13 +62,14 @@ public class PcapController {
     }
 
     /**
-     * Converts pcap data to Wireshark's verbose JSON format
-     * @param bytes
-     * @return JSON 
+     * Attempts to convert pcap data to a {@link TimestampedHexList}.
+     * If this fails try the wireshark-json endpoint to retrieve raw wireshark json.
+     * @param bytes PCAP data
+     * @return JSON array of Timestamped Hex data 
      * @throws IOException
      */
     @RequestMapping(
-        value = "/pcap/wireshark-json", 
+        value = "/pcap/timestamped-hex", 
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE)
