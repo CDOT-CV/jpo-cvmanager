@@ -12,6 +12,7 @@ import { useSelector } from 'react-redux'
 import ReportDetailsModal from '../../features/intersections/reports/report-details-modal'
 import toast from 'react-hot-toast'
 import { ReportTheme } from '../../styles/report-theme'
+import RefreshIcon from '@mui/icons-material/Refresh'
 
 const applyPagination = (logs, page, rowsPerPage) => logs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
@@ -186,6 +187,16 @@ const Page = () => {
                   size="small"
                 >
                   Filters
+                </Button>
+                <Button
+                  endIcon={<RefreshIcon fontSize="small" />}
+                  onClick={() => listReports(filters.startDate, filters.endDate, intersectionId, roadRegulatorId)}
+                  variant="outlined"
+                  fullWidth={false}
+                  size="small"
+                  sx={{ m: 1 }}
+                >
+                  Refresh
                 </Button>
               </Box>
             </Stack>
