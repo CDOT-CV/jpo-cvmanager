@@ -9,13 +9,10 @@ import {
   editOrganization,
   setSuccessMsg,
 } from './adminEditOrganizationSlice'
-import { useDispatch, useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import {
   AdminOrgSummary,
   adminOrgPatch,
@@ -27,6 +24,9 @@ import {
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import { AdminButton } from '../../styles/components/AdminButton'
 
 const AdminEditOrganization = () => {

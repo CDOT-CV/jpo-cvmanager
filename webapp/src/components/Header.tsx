@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
 import Grid2 from '@mui/material/Grid2'
-import { useDispatch, useSelector } from 'react-redux'
 import EnvironmentVars from '../EnvironmentVars'
 import {
   selectOrganizationName,
@@ -21,6 +20,7 @@ import { useKeycloak } from '@react-keycloak/web'
 import './css/Header.css'
 
 import ContactSupportMenu from './ContactSupportMenu'
+import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import { Button, FormControl, InputLabel, MenuItem, Paper, Select, useTheme } from '@mui/material'

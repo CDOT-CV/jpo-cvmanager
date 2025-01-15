@@ -1,5 +1,4 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import dayjs from 'dayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -21,10 +20,11 @@ import {
 import { selectCurrentSort, selectSortedCountList, sortCountList, changeDate } from './menuSlice'
 
 import '../../components/css/SnmpwalkMenu.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import { CountsListElement } from '../../models/Rsu'
 import { MessageType } from '../../models/MessageTypes'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import { MenuItem, Select, Typography, useTheme } from '@mui/material'
 
 const messageTypeOptions = EnvironmentVars.getMessageTypes().map((type) => {
