@@ -67,9 +67,7 @@ import {
 import pauseIcon from '../../../icons/pause.png'
 import playIcon from '../../../icons/play.png'
 import { BarChart, XAxis, Bar, ResponsiveContainer, Tooltip } from 'recharts'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../../store'
+import { useAppDispatch, useAppSelector } from '../../../hooks'
 import { decoderModeToggled, setAsn1DecoderDialogOpen } from '../decoder/asn1-decoder-slice'
 import toast from 'react-hot-toast'
 

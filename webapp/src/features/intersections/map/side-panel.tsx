@@ -16,9 +16,7 @@ import SsmSrmItem from '../../../components/SsmSrmItem'
 import { setSelectedSrm } from '../../../generalSlices/rsuSlice'
 import { selectSelectedIntersection } from '../../../generalSlices/intersectionSlice'
 import '../../../components/css/RsuMapView.css'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../../store'
+import { useAppDispatch, useAppSelector } from '../../../hooks'
 
 const Accordion = styled((props: AccordionProps) => <MuiAccordion disableGutters elevation={0} square {...props} />)(
   ({ theme }) => ({})

@@ -9,9 +9,7 @@ import {
   selectSelectedIntersection,
   setSelectedIntersection,
 } from '../../../generalSlices/intersectionSlice'
-import { useDispatch, useSelector } from 'react-redux'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../../store'
+import { useAppDispatch, useAppSelector } from '../../../hooks'
 
 const getBoundsForIntersections = (
   selectedIntersection: IntersectionReferenceData | undefined,
