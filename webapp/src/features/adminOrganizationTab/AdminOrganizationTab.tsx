@@ -26,7 +26,7 @@ import {
   setSelectedOrg,
   AdminOrgSummary,
 } from './adminOrganizationTabSlice'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'

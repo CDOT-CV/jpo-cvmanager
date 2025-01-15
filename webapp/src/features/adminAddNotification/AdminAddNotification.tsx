@@ -19,7 +19,7 @@ import {
   getNotificationData,
 } from './adminAddNotificationSlice'
 import { selectEmail } from '../../generalSlices/userSlice'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'

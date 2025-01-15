@@ -31,7 +31,7 @@ import {
   setSelectedSnmpVersion,
   setSelectedOrganizations,
 } from './adminEditRsuSlice'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'

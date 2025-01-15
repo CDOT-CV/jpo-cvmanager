@@ -1,4 +1,4 @@
-import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import React from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import 'react-confirm-alert/src/react-confirm-alert.css'

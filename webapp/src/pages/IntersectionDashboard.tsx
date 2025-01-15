@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
 import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 
@@ -18,10 +17,11 @@ import {
 } from '../generalSlices/intersectionSlice'
 import MapIconRounded from '@mui/icons-material/Map'
 import MapDialog from '../features/intersections/intersection-selector/intersection-selector-dialog'
-import ConfigurationPage from '../components/intersections/ConfigurationPage'
-import { headerTabHeight } from '../styles/index'
+import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
+import ConfigurationPage from '../components/intersections/ConfigurationPage'
+import { headerTabHeight } from '../styles/index'
 
 function IntersectionDashboard() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
