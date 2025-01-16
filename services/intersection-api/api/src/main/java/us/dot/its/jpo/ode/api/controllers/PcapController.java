@@ -43,7 +43,7 @@ public class PcapController {
     PcapDecoder decoder;
 
     /**
-     * Converts pcap data to Wireshark's verbose JSON format
+     * Converts pcap data to Wireshark's JSON format
      * @param bytes PCAP data
      * @return JSON data output by Wireshark
      * @throws IOException
@@ -51,7 +51,9 @@ public class PcapController {
     @RequestMapping(
         value = "/pcap/wireshark-json", 
         method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    "application/pcap",
+                    "application/vnd.tcpdump.pcap"},
         produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<String> pcapToJson(@RequestBody byte[] bytes) throws IOException {
             return ResponseEntity
@@ -62,8 +64,9 @@ public class PcapController {
     }
 
     /**
-     * Attempts to convert pcap data to a {@link TimestampedHexList}.
-     * If this fails try the wireshark-json endpoint to retrieve raw wireshark json.
+     * Convert pcap data to a {@link TimestampedHexList}.
+     * Attempts to extract UDP or unsecured WAVE payloads.
+     * If this fails, try the wireshark-json endpoint to retrieve raw wireshark json.
      * @param bytes PCAP data
      * @return JSON array of Timestamped Hex data 
      * @throws IOException
@@ -71,7 +74,9 @@ public class PcapController {
     @RequestMapping(
         value = "/pcap/timestamped-hex", 
         method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    "application/pcap",
+                    "application/vnd.tcpdump.pcap"},
         produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<TimestampedHexList> pcapToTimestampedHex(@RequestBody byte[] bytes) throws IOException {
         return ResponseEntity

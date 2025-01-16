@@ -43,7 +43,7 @@ public class PcapDecoder {
             var pb = new ProcessBuilder(
                 "/usr/bin/tshark",
                 "-r", tempFile.getAbsolutePath(),
-                "-T", "json", "-x");
+                "-T", "json");
 
             pb.directory(new File(tempDir));
             Process process = pb.start();
