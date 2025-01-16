@@ -104,7 +104,7 @@ public class PcapController {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(decoder.csvToTimestampedHexList(decoder.pcapToCsv(bytes)));
+            .body(decoder.parseCsvFile(decoder.pcapToCsv(bytes)));
     }
 
 

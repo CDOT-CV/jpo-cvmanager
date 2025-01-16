@@ -24,17 +24,6 @@ import java.util.Scanner;
 public class PcapDecoder {
 
     /**
-     * Extract timestamps and hex values from tshark CSV output
-     * @param csv format: timestamp, udp.payload, IEEE 1690.2 unsecured data
-     * @return Timestmaped hex
-     */
-    public TimestampedHexList csvToTimestampedHexList(String csv) {
-        var hexList = new TimestampedHexList();
-        // TODO
-        return hexList;
-    }
-
-    /**
      * Use the tshark command line tool to decode pcap bytes to json
      * @param bytes
      * @return json
@@ -64,12 +53,17 @@ public class PcapDecoder {
         });
     }
 
+    /**
+     * Extract timestamps and hex values from tshark CSV output
+     * @param csv format: timestamp, udp.payload, IEEE 1690.2 unsecured data
+     * @return Timestmaped hex
+     */
     public TimestampedHexList parseCsvFile(String csv) {
         var hexList = new TimestampedHexList();
         try (var scanner = new Scanner(csv)) {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
-                parseCsvLine(line).ifPresent(hex -> hexList.add(hex);
+                parseCsvLine(line).ifPresent(hex -> hexList.add(hex));
             }
         }
         return hexList;
@@ -80,25 +74,16 @@ public class PcapDecoder {
             log.warn("CSV line is empty");
             return Optional.empty();
         };
+
+        // Get hex from the second or third csv item for UDP or WAVE
         String[] lineArr = line.split(",");
-        if (lineArr.length != 3) {
-            log.error("CSV line should have 3 items");
+        if (lineArr.length != 3 && lineArr.length != 2) {
+            log.error("CSV line should have 2 or 3 items: {}", line);
             return Optional.empty();
         }
+        String hex = lineArr.length == 3 ? lineArr[2] : lineArr[1];
 
-        long epochMillis;
-        try {
-            epochMillis = (long)(Double.parseDouble(lineArr[0]) * 1000);
-        } catch (Exception e) {
-            log.error("Error parsing timestamp in csv line {}", line, e);
-            return Optional.empty();
-        }
-
-        
-        String udpHex = lineArr[1];
-        String waveHex = lineArr[2];
-        String hex = StringUtils.isNotBlank(udpHex) ? udpHex : waveHex;
-
+        // Parse and validate hex
         HexFormat hexFormat = HexFormat.of();
         byte[] bytes;
         try {
@@ -108,10 +93,19 @@ public class PcapDecoder {
             return Optional.empty();
         }
 
+        // Get timestamp
+        long epochMillis;
+        try {
+            epochMillis = (long)(Double.parseDouble(lineArr[0]) * 1000);
+        } catch (Exception e) {
+            log.error("Error parsing timestamp in csv line {}", line, e);
+            return Optional.empty();
+        }
+
         var tsHex = new TimestampedHex();
         tsHex.setTimestamp(epochMillis);
-        tsHex.setHexMessage(hex);
-        tsHex.setBytes(bytes);
+        tsHex.setMessage(bytes);
+
         return Optional.of(tsHex);
     }
 
