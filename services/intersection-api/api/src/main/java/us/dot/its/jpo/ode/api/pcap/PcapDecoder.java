@@ -78,16 +78,16 @@ public class PcapDecoder {
         // Get hex from the second or third csv item for UDP or WAVE
         String[] lineArr = line.split(",");
         if (lineArr.length != 3 && lineArr.length != 2) {
-            log.error("CSV line should have 2 or 3 items: {}", line);
+            log.warn("CSV line should have 2 or 3 items: {}", line);
             return Optional.empty();
         }
         String hex = lineArr.length == 3 ? lineArr[2] : lineArr[1];
 
+        var tsHex = new TimestampedHex();
+    
         // Parse and validate hex
-        HexFormat hexFormat = HexFormat.of();
-        byte[] bytes;
         try {
-            bytes = hexFormat.parseHex(hex);
+            tsHex.setHexMessage(hex);
         } catch (Exception e) {
             log.error("Hex is invalid in csv line {}", line, e);
             return Optional.empty();
@@ -101,10 +101,9 @@ public class PcapDecoder {
             log.error("Error parsing timestamp in csv line {}", line, e);
             return Optional.empty();
         }
-
-        var tsHex = new TimestampedHex();
         tsHex.setTimestamp(epochMillis);
-        tsHex.setMessage(bytes);
+
+        
 
         return Optional.of(tsHex);
     }

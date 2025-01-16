@@ -43,7 +43,7 @@ public class PcapController {
     PcapDecoder decoder;
 
     /**
-     * Converts pcap data to Wireshark's JSON format
+     * Converts pcap data to Wireshark's JSON format with full details.
      * @param bytes PCAP data
      * @return JSON data output by Wireshark
      * @throws IOException
@@ -55,40 +55,18 @@ public class PcapController {
                     "application/pcap",
                     "application/vnd.tcpdump.pcap"},
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<String> pcapToJson(@RequestBody byte[] bytes) throws IOException {
-            return ResponseEntity
-                .status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(decoder.pcapToJson(bytes));
-
-    }
-
-    /**
-     * Convert pcap data to CSV.
-     * Attempts to extract UDP or unsecured WAVE payloads.
-     * If this fails, try the verbose-json endpoint to retrieve raw wireshark json.
-     * @param bytes PCAP data
-     * @return JSON array of Timestamped Hex data 
-     * @throws IOException
-     */
-    @RequestMapping(
-        value = "/pcap/csv", 
-        method = RequestMethod.POST,
-        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                    "application/pcap",
-                    "application/vnd.tcpdump.pcap"},
-        produces = MediaType.TEXT_PLAIN_VALUE)
-    public @ResponseBody ResponseEntity<String> pcapToTimestampedCsv(@RequestBody byte[] bytes) throws IOException {
+    public @ResponseBody ResponseEntity<String> pcapToJson(
+            @RequestBody byte[] bytes) throws IOException {
         return ResponseEntity
             .status(HttpStatus.OK)
-            .contentType(MediaType.TEXT_PLAIN)
-            .body(decoder.pcapToCsv(bytes));
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(decoder.pcapToJson(bytes));
     }
 
     /**
      * Convert pcap data to a {@link TimestampedHexList}.
      * Attempts to extract UDP or unsecured WAVE payloads.
-     * If this fails, try the verbose-json endpoint to retrieve the raw wireshark json.
+     * If this method fails, try the verbose-json endpoint to retrieve the detailed wireshark json.
      * @param bytes PCAP data
      * @return JSON array of Timestamped Hex data 
      * @throws IOException
@@ -100,7 +78,8 @@ public class PcapController {
                     "application/pcap",
                     "application/vnd.tcpdump.pcap"},
         produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<TimestampedHexList> pcapToTimestampedHex(@RequestBody byte[] bytes) throws IOException {
+    public @ResponseBody ResponseEntity<TimestampedHexList> pcapToTimestampedHex(
+            @RequestBody byte[] bytes) throws IOException {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
