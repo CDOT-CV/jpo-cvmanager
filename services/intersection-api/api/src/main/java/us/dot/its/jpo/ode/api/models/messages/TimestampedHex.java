@@ -11,4 +11,5 @@ import lombok.Generated;
 public class TimestampedHex {
     long timestamp;
     String hexMessage;
+    byte[] bytes;
 }

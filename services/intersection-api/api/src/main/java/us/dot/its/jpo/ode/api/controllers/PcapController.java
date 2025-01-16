@@ -49,7 +49,7 @@ public class PcapController {
      * @throws IOException
      */
     @RequestMapping(
-        value = "/pcap/wireshark-json", 
+        value = "/pcap/verbose-json", 
         method = RequestMethod.POST,
         consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     "application/pcap",
@@ -64,15 +64,37 @@ public class PcapController {
     }
 
     /**
-     * Convert pcap data to a {@link TimestampedHexList}.
+     * Convert pcap data to CSV.
      * Attempts to extract UDP or unsecured WAVE payloads.
-     * If this fails, try the wireshark-json endpoint to retrieve raw wireshark json.
+     * If this fails, try the verbose-json endpoint to retrieve raw wireshark json.
      * @param bytes PCAP data
      * @return JSON array of Timestamped Hex data 
      * @throws IOException
      */
     @RequestMapping(
-        value = "/pcap/timestamped-hex", 
+        value = "/pcap/csv", 
+        method = RequestMethod.POST,
+        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    "application/pcap",
+                    "application/vnd.tcpdump.pcap"},
+        produces = MediaType.TEXT_PLAIN_VALUE)
+    public @ResponseBody ResponseEntity<String> pcapToTimestampedCsv(@RequestBody byte[] bytes) throws IOException {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .contentType(MediaType.TEXT_PLAIN)
+            .body(decoder.pcapToCsv(bytes));
+    }
+
+    /**
+     * Convert pcap data to a {@link TimestampedHexList}.
+     * Attempts to extract UDP or unsecured WAVE payloads.
+     * If this fails, try the verbose-json endpoint to retrieve the raw wireshark json.
+     * @param bytes PCAP data
+     * @return JSON array of Timestamped Hex data 
+     * @throws IOException
+     */
+    @RequestMapping(
+        value = "/pcap/json", 
         method = RequestMethod.POST,
         consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     "application/pcap",
@@ -82,7 +104,9 @@ public class PcapController {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(decoder.jsonToTimestampedHexList(decoder.pcapToJson(bytes)));
+            .body(decoder.csvToTimestampedHexList(decoder.pcapToCsv(bytes)));
     }
+
+
 
 }
