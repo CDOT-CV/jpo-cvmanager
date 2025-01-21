@@ -4,8 +4,15 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
+import static org.apache.commons.lang3.StringUtils.*;
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.DocumentContext;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.messages.TimestampedHex;
@@ -14,7 +21,7 @@ import java.nio.file.Path;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-import java.util.HexFormat;
+
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -23,6 +30,8 @@ import java.util.Scanner;
 @Slf4j
 public class PcapDecoder {
 
+    private static final ObjectMapper mapper = new ObjectMapper();
+    
     /**
      * Use the tshark command line tool to decode pcap bytes to json
      * @param bytes
@@ -31,7 +40,7 @@ public class PcapDecoder {
      */
     public String pcapToJson(byte[] bytes) throws IOException {
         return decodePcap(bytes, new String[] { 
-            "-T", "json" 
+            "-T", "json", "-x"
         });
     }
 
@@ -53,6 +62,60 @@ public class PcapDecoder {
         });
     }
 
+    public TimestampedHexList parsePcapJson(String json) throws JsonMappingException, JsonProcessingException {
+        JsonNode[] nodeArr = mapper.readerForArrayOf(JsonNode.class).readValue(json);
+        var hexList = new TimestampedHexList();
+        for (JsonNode frame : nodeArr) {
+            parsePcapFrame(frame.toString()).ifPresent(hex -> hexList.add(hex));
+        }
+        return hexList;
+    }
+
+    private Optional<TimestampedHex> parsePcapFrame(String frameJson) {
+        DocumentContext context = JsonPath.parse(frameJson);
+        var hexData = new TimestampedHex();
+        
+        String timestamp = context.read("$..['frame.time_epoch']");
+        long epochMillis;
+        try {
+            epochMillis = (long)(Double.parseDouble(timestamp) * 1000);
+        } catch (Exception e) {
+            log.error("Error parsing timestamp in frame {}", frameJson, e);
+            return Optional.empty();
+        }
+        hexData.setTimestamp(epochMillis);
+        
+        // Look for bytes in order of most to least desirable form.
+        // Prefer unsecured Data, no further processing needed
+        String unsecuredData = context.read("$..['ieee1609dot2.unsecuredData_raw']");
+        if (isNotBlank(unsecuredData)) {
+            hexData.setUnsecuredData(unsecuredData);
+            hexData.setHexMessage(unsecuredData);
+            return Optional.of(hexData);
+        }
+
+        // UDP payload
+        String udpPayload = context.read("$..['udp.payload_raw']");
+        if (isNotBlank(udpPayload)) {
+            hexData.setUdpPayload(udpPayload);
+            // TODO: Process
+            hexData.setHexMessage(udpPayload);
+            return Optional.of(hexData);
+        }
+
+        // Raw data frame
+        String rawFrame = context.read("$..frame_raw");
+        if (isNotBlank(rawFrame)) {
+            hexData.setRawFrame(rawFrame);
+            // TODO: Process
+            hexData.setHexMessage(rawFrame);
+            return Optional.of(hexData);
+        }
+        
+        // No hex data found
+        return Optional.empty();
+    }
+
     /**
      * Extract timestamps and hex values from tshark CSV output
      * @param csv format: timestamp, udp.payload, IEEE 1690.2 unsecured data
@@ -70,7 +133,7 @@ public class PcapDecoder {
     }
 
     public Optional<TimestampedHex> parseCsvLine(String line) {
-        if (StringUtils.isBlank(line)) {
+        if (isBlank(line)) {
             log.warn("CSV line is empty");
             return Optional.empty();
         };

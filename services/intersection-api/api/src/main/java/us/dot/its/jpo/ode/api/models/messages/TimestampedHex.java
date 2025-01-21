@@ -17,6 +17,10 @@ public class TimestampedHex {
     @JsonIgnore
     byte[] bytes;
 
+    String unsecuredData;
+    String udpPayload;
+    String rawFrame;
+
     private final static HexFormat hexFormat = HexFormat.of();
 
     public String getHexMessage() {
