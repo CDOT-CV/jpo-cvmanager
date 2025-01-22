@@ -42,7 +42,7 @@ public class SpatController {
     ConflictMonitorApiProperties props;
 
     public SpatController(){
-        System.out.println("Enabling SPaT API Endpoints");
+        logger.info("Enabling SPaT API Endpoints");
     }
 
     public String getCurrentTime() {

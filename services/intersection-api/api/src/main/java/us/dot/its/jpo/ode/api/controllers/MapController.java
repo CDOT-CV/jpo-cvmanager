@@ -42,7 +42,7 @@ public class MapController {
     ConflictMonitorApiProperties props;
 
     public MapController(){
-        System.out.println("Enabling BSM API Endpoints");
+        logger.info("Enabling BSM API Endpoints");
     }
 
     public String getCurrentTime() {

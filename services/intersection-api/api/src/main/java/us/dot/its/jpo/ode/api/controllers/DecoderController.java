@@ -46,7 +46,7 @@ public class DecoderController {
     DecoderManager decoderManager;
 
     public DecoderController(){
-        System.out.println("Enabling Decoder API Endpoints");
+        logger.info("Enabling Decoder API Endpoints");
     }
 
     public String getCurrentTime() {

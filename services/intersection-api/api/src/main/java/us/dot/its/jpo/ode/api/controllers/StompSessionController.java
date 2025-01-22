@@ -1,6 +1,9 @@
 package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
@@ -35,16 +38,18 @@ public class StompSessionController {
 
     private final KafkaListenerControlService listenerControlService;
 
+    private static final Logger logger = LoggerFactory.getLogger(StompController.class);
+
     @Autowired
     public StompSessionController(KafkaListenerControlService listenerControlService) {
-        System.out.println("Enabling STOMP Session API Endpoints");
+        logger.info("Enabling STOMP Session API Endpoints");
         this.listenerControlService = listenerControlService;
     }
 
     @EventListener(SessionConnectEvent.class)
     public void handleSessionConnectEvent(SessionConnectEvent event) {
         String sessionId = getSessionIdFromHeader(event);
-        log.info("Session Connect Event, session ID: {}, event: {}", sessionId, event);
+        logger.info("Session Connect Event, session ID: {}, event: {}", sessionId, event);
 
         if (sessionId == null) {
             throw new RuntimeException("Null session ID from connect event.  This should not happen.");

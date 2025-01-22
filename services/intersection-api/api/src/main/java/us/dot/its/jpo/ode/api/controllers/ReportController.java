@@ -45,7 +45,7 @@ public class ReportController {
     ReportRepository reportRepo;
 
     public ReportController(){
-        System.out.println("Enabling Report API Endpoints");
+        logger.info("Enabling Report API Endpoints");
     }
 
     public String getCurrentTime() {

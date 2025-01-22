@@ -101,7 +101,7 @@ public class NotificationController {
     ObjectMapper objectMapper = new ObjectMapper();
 
     public NotificationController(){
-        System.out.println("Enabling Notification API Endpoints");
+        logger.info("Enabling Notification API Endpoints");
     }
 
     public String getCurrentTime() {

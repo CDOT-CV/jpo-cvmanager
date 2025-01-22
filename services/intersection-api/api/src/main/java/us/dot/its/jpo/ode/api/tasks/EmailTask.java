@@ -32,7 +32,7 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 )
 public class EmailTask {
 
-	private static final Logger log = LoggerFactory.getLogger(EmailTask.class);
+	private static final Logger logger = LoggerFactory.getLogger(EmailTask.class);
 
 	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
@@ -53,12 +53,12 @@ public class EmailTask {
 
 
     public EmailTask(){
-        System.out.println("Enabling Automatic Email Task");
+        logger.info("Enabling Automatic Email Task");
     }
 
 	@Scheduled(fixedRate = 10000)
 	public void sendAlwaysNotifications() {
-		log.info("Checking Always Notifications", dateFormat.format(new Date()));
+		logger.info("Checking Always Notifications", dateFormat.format(new Date()));
         if(lastAlwaysList == null){
             lastAlwaysList = getActiveNotifications();
             return;
@@ -79,7 +79,7 @@ public class EmailTask {
 
     @Scheduled(fixedRate = 1000 * 60 * 60)
 	public void sendHourlyNotifications() {
-		log.info("Checking Hourly Notifications", dateFormat.format(new Date()));
+		logger.info("Checking Hourly Notifications", dateFormat.format(new Date()));
         if(lastHourList == null){
             lastHourList = getActiveNotifications();
             return;
@@ -100,7 +100,7 @@ public class EmailTask {
 
     @Scheduled(cron = "0 0 0 * * ?")
 	public void sendDailyNotifications() {
-		log.info("Checking Daily Notifications", dateFormat.format(new Date()));
+		logger.info("Checking Daily Notifications", dateFormat.format(new Date()));
         if(lastDayList == null){
             lastDayList = getActiveNotifications();
             return;
@@ -121,7 +121,7 @@ public class EmailTask {
 
     @Scheduled(cron = "0 0 0 * * 0")
 	public void sendWeeklyNotifications() {
-		log.info("Checking Weekly Notifications", dateFormat.format(new Date()));
+		logger.info("Checking Weekly Notifications", dateFormat.format(new Date()));
         if(lastWeekList == null){
             lastWeekList = getActiveNotifications();
             return;
@@ -142,7 +142,7 @@ public class EmailTask {
 
     @Scheduled(cron = "0 0 0 1 * ?")
 	public void sendMonthlyNotifications() {
-		log.info("Checking Monthly Notifications", dateFormat.format(new Date()));
+		logger.info("Checking Monthly Notifications", dateFormat.format(new Date()));
         if(lastMonthList == null){
             lastMonthList = getActiveNotifications();
             return;

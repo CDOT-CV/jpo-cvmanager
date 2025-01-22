@@ -3,6 +3,8 @@ package us.dot.its.jpo.ode.api.controllers;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +29,10 @@ public class IntersectionController {
     @Autowired
     ProcessedMapRepository processedMapRepo;
 
+    private static final Logger logger = LoggerFactory.getLogger(IntersectionController.class);
+
     public IntersectionController(){
-        System.out.println("Enabling Intersection API Endpoints");
+        logger.info("Enabling Intersection API Endpoints");
     }
 
     @CrossOrigin(origins = "http://localhost:3000")

@@ -123,7 +123,7 @@ public class EventController {
     DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
     public EventController(){
-        System.out.println("Enabling Event API Endpoints");
+        logger.info("Enabling Event API Endpoints");
     }
 
     public String getCurrentTime() {

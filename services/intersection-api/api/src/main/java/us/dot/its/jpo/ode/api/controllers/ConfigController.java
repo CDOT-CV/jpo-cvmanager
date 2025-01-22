@@ -72,7 +72,7 @@ public class ConfigController {
     private final String intersectionConfigAllTemplate = "%s/config/intersections";
 
     public ConfigController(){
-        System.out.println("Enabling Config API Endpoints");
+        logger.info("Enabling Config API Endpoints");
     }
     
 

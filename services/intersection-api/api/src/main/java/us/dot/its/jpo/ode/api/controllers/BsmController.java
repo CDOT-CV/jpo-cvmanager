@@ -40,7 +40,7 @@ public class BsmController {
     ConflictMonitorApiProperties props;
 
     public BsmController(){
-        System.out.println("Enabling BSM API Endpoints");
+        logger.info("Enabling BSM API Endpoints");
     }
 
     public String getCurrentTime() {

@@ -54,7 +54,7 @@ import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 )
 public class UserController {
 
-    // private static final Logger logger = LoggerFactory.getLogger(AssessmentController.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -74,7 +74,7 @@ public class UserController {
     private String realm;
 
     public UserController(){
-        System.out.println("Enabling User API Endpoints");
+        logger.info("Enabling User API Endpoints");
     }
 
     public String getCurrentTime() {

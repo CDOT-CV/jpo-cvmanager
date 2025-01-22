@@ -4,6 +4,9 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -36,10 +39,12 @@ public class StompController {
 
     private ObjectMapper mapper;
 
+    private static final Logger logger = LoggerFactory.getLogger(StompController.class);
+
     public StompController() {
 
         
-        System.out.println("Enabling STOMP API Endpoints");
+        logger.info("Enabling STOMP API Endpoints");
         
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
