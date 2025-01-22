@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.Byte.toUnsignedInt;
 
-
 /**
  * Timestamped byte data containing a MessageFrame, decoded from a PCAP packet
  */
@@ -73,15 +72,19 @@ public class TimestampedHex {
             endIndex = 0;
             return false;
         }
+        if (path == null) {
+            throw new RuntimeException("Path is not set. Path must be set before setting data.");
+        }
         if (path.contains("unsecuredData_raw")) {
             // We already have the unwrapped message frame
             return true;
         }
+
         final byte[] slice = new byte[7];
         // Scan for patterns
-        for (int idx = 0; idx < bytes.length; idx++) {
+        for (int idx = 0; idx < bytes.length - 7; idx++) {
             System.arraycopy(bytes, idx, slice, 0, 7);
-            if (findMessageFrame(idx, slice)) {
+            if (checkIfMessageFrame(idx, slice)) {
                 return true;
             }
         }
@@ -89,20 +92,20 @@ public class TimestampedHex {
     }
 
     /**
-     * Check a 7 item byte array for for the pattern:
+     * Check a 7 item byte array for the pattern:
      * <p>OER unsecured data tag, followed by OER length determinant, Message Frame ID</p>
      * <p>Side effect: sets beginIndex and endIndex if found</p>
      * @param slice A 7 item byte array
      * @return True if found
      */
-    public boolean findMessageFrame(int sliceStartIndex, byte[] slice) {
+    public boolean checkIfMessageFrame(int sliceStartIndex, byte[] slice) {
         int[] b = new int[7];
         for (int i = 0; i < 7; i++) {
             b[i] = toUnsignedInt(slice[i]);
         }
 
         // Check for OER unsecured data tag
-        if (!(b[0] == 0 && b[1] == 0x80)) {
+        if (!(b[0] == 0x03 && b[1] == 0x80)) {
             // OER unsecured tag not there
             return false;
         }
@@ -174,11 +177,5 @@ public class TimestampedHex {
                 "The data may be truncated: {}", iEnd, length, bytes.length, getRawData());
         return false;
     }
-
-
-
-
-
-
 
 }

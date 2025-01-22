@@ -114,8 +114,8 @@ public class PcapDecoder {
         String data = !dataArr.isEmpty() ? (String)dataArr.getFirst() : null;
         if (isNotBlank(data)) {
             List<String> pathList = pathContext.read(path);
-            hexData.setRawData(data);
             hexData.setPath(pathList.getFirst());
+            hexData.setRawData(data);
             return true;
         }
         return false;
