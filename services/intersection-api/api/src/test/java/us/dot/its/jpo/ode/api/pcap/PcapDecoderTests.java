@@ -23,7 +23,8 @@ public class PcapDecoderTests {
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683155397596L));
-        assertThat(tsHex.getHexMessage(), startsWith("0103002080c003810"));
+        assertThat(tsHex.getRawData(), startsWith("0103002080c003810"));
+        assertThat(tsHex.getMessageFrame(), startsWith("0103002080c003810"));
         assertThat(tsHex.getPath(), containsString("udp.payload_raw"));
         log.info("{}", tsHex);
     }
@@ -36,7 +37,8 @@ public class PcapDecoderTests {
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683156721857L));
-        assertThat(tsHex.getHexMessage(), startsWith("00134a42b3c30180c7ce400302b"));
+        assertThat(tsHex.getRawData(), startsWith("00134a42b3c30180c7ce400302b"));
+        assertThat(tsHex.getMessageFrame(), startsWith("00134a42b3c30180c7ce400302b"));
         assertThat(tsHex.getPath(), containsString("ieee1609dot2.unsecuredData_raw"));
         log.info("{}", tsHex);
     }
@@ -49,7 +51,8 @@ public class PcapDecoderTests {
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683156721857L));
-        assertThat(tsHex.getHexMessage(), startsWith("00002c00020000400"));
+        assertThat(tsHex.getRawData(), startsWith("00002c00020000400"));
+        assertThat(tsHex.getMessageFrame(), startsWith("00002c00020000400"));
         assertThat(tsHex.getPath(), containsString("frame_raw"));
         log.info("{}", tsHex);
     }

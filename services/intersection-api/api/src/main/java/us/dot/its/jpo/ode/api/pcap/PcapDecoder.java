@@ -45,6 +45,29 @@ public class PcapDecoder {
         });
     }
 
+    private String decodePcap(byte[] bytes, String[] tsharkOptions) throws IOException {
+        String result = null;
+        File tempFile = null;
+        try {
+            String tempDir = FileUtils.getTempDirectoryPath();
+            String tempFileName = "tshark-" + UUID.randomUUID().toString() + ".pcap";
+            Path tempFilePath = Path.of(tempDir, tempFileName);
+            tempFile = new File(tempFilePath.toString());
+            FileUtils.writeByteArrayToFile(tempFile, bytes);
+            String[] tsharkCommand = new String[] { "/usr/bin/tshark", "-r", tempFile.getAbsolutePath()};
+            String[] tsharkCommandWithOptions = ArrayUtils.addAll(tsharkCommand, tsharkOptions);
+            var pb = new ProcessBuilder(tsharkCommandWithOptions);
+            pb.directory(new File(tempDir));
+            Process process = pb.start();
+            result = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
+        } finally {
+            if (tempFile != null) {
+                tempFile.delete();
+            }
+        }
+        return result;
+    }
+
     public TimestampedHexList parsePcapJson(String json) throws JsonMappingException, JsonProcessingException {
         JsonNode[] nodeArr = mapper.readerForArrayOf(JsonNode.class).readValue(json);
         var hexList = new TimestampedHexList();
@@ -91,8 +114,7 @@ public class PcapDecoder {
         String data = !dataArr.isEmpty() ? (String)dataArr.getFirst() : null;
         if (isNotBlank(data)) {
             List<String> pathList = pathContext.read(path);
-            // TOTO: Process
-            hexData.setHexMessage(data);
+            hexData.setRawData(data);
             hexData.setPath(pathList.getFirst());
             return true;
         }
@@ -100,81 +122,7 @@ public class PcapDecoder {
     }
 
 
-//    /**
-//     * Extract timestamps and hex values from tshark CSV output
-//     * @param csv format: timestamp, udp.payload, IEEE 1690.2 unsecured data
-//     * @return Timestmaped hex
-//     */
-//    public TimestampedHexList parseCsvFile(String csv) {
-//        var hexList = new TimestampedHexList();
-//        try (var scanner = new Scanner(csv)) {
-//            while (scanner.hasNextLine()) {
-//                String line = scanner.nextLine();
-//                parseCsvLine(line).ifPresent(hex -> hexList.add(hex));
-//            }
-//        }
-//        return hexList;
-//    }
 
-//    public Optional<TimestampedHex> parseCsvLine(String line) {
-//        if (isBlank(line)) {
-//            log.warn("CSV line is empty");
-//            return Optional.empty();
-//        };
-//
-//        // Get hex from the second or third csv item for UDP or WAVE
-//        String[] lineArr = line.split(",");
-//        if (lineArr.length != 3 && lineArr.length != 2) {
-//            log.warn("CSV line should have 2 or 3 items: {}", line);
-//            return Optional.empty();
-//        }
-//        String hex = lineArr.length == 3 ? lineArr[2] : lineArr[1];
-//
-//        var tsHex = new TimestampedHex();
-//
-//        // Parse and validate hex
-//        try {
-//            tsHex.setHexMessage(hex);
-//        } catch (Exception e) {
-//            log.error("Hex is invalid in csv line {}", line, e);
-//            return Optional.empty();
-//        }
-//
-//        // Get timestamp
-//        long epochMillis;
-//        try {
-//            epochMillis = (long)(Double.parseDouble(lineArr[0]) * 1000);
-//        } catch (Exception e) {
-//            log.error("Error parsing timestamp in csv line {}", line, e);
-//            return Optional.empty();
-//        }
-//        tsHex.setTimestamp(epochMillis);
-//
-//
-//
-//        return Optional.of(tsHex);
-//    }
 
-    private String decodePcap(byte[] bytes, String[] tsharkOptions) throws IOException {
-        String result = null;
-        File tempFile = null;
-        try {
-            String tempDir = FileUtils.getTempDirectoryPath();
-            String tempFileName = "tshark-" + UUID.randomUUID().toString() + ".pcap";
-            Path tempFilePath = Path.of(tempDir, tempFileName);
-            tempFile = new File(tempFilePath.toString());
-            FileUtils.writeByteArrayToFile(tempFile, bytes);
-            String[] tsharkCommand = new String[] { "/usr/bin/tshark", "-r", tempFile.getAbsolutePath()};
-            String[] tsharkCommandWithOptions = ArrayUtils.addAll(tsharkCommand, tsharkOptions);
-            var pb = new ProcessBuilder(tsharkCommandWithOptions);
-            pb.directory(new File(tempDir));
-            Process process = pb.start();
-            result = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
-        } finally {
-            if (tempFile != null) {
-                tempFile.delete();
-            }
-        }
-        return result;
-    }
+
 }

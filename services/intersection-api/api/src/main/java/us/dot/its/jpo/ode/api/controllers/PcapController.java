@@ -57,6 +57,7 @@ public class PcapController {
         produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<String> pcapToJson(
             @RequestBody byte[] bytes) throws IOException {
+        log.info("pcapToJson");
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
@@ -80,6 +81,7 @@ public class PcapController {
         produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<TimestampedHexList> pcapToTimestampedHex(
             @RequestBody byte[] bytes) throws IOException {
+        log.info("pcapToVerboseJson");
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
