@@ -149,7 +149,7 @@ public class TimestampedHex {
         return false;
     }
 
-    public static final int[] OER_UNSECURED_TAG = new int[] { 0x00, 0x80 };
+
     // Incomplete list of Message Frame IDs, just the ones of interest for intersections for now
     public static final Set<Integer> MESSAGE_FRAME_IDS = Set.of(
             0x12,   // MAP
