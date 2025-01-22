@@ -4,6 +4,7 @@ import java.util.HexFormat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.ToString;
 
 
 /**
@@ -11,15 +12,20 @@ import lombok.Data;
  */
 @Data
 public class TimestampedHex {
-    
+
+    /**
+     * Timestamp of the data frame
+     */
     long timestamp;
 
+    @ToString.Exclude
     @JsonIgnore
     byte[] bytes;
 
-    String unsecuredData;
-    String udpPayload;
-    String rawFrame;
+    /**
+     * Path to the data within the frame.
+     */
+    String path;
 
     private final static HexFormat hexFormat = HexFormat.of();
 
