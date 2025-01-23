@@ -22,7 +22,7 @@ public class TimestampedMessageFrame {
     /**
      * Timestamp of the data frame, epoch milliseconds
      */
-    @JsonProperty("ts")
+    @JsonProperty("timestamp")
     long timestamp;
 
     @JsonProperty("type")
@@ -35,17 +35,18 @@ public class TimestampedMessageFrame {
 
     private final static HexFormat hexFormat = HexFormat.of();
 
-    @JsonProperty("msg")
+    @JsonProperty("base64")
     public byte[] getMessageFrame() {
         return bytes;
     }
 
+    //@JsonProperty("asn1Message")
     @JsonIgnore
     public String getMessageFrameHex() {
         return hexFormat.formatHex(bytes);
     }
 
-    @JsonIgnore
+    @JsonProperty("base64")
     public void setMessageFrame(byte[] bytes) {
         this.bytes = bytes;
         if (!findMessageFrame()) {
@@ -62,14 +63,28 @@ public class TimestampedMessageFrame {
             return false;
         }
 
+        if (bytes.length < 7) {
+            log.warn("Less than 7 bytes in message");
+            return false;
+        }
+
         final byte[] slice = new byte[7];
-        // Scan for patterns
+        // Scan for OER length determinant and message frame id
         for (int idx = 0; idx < bytes.length - 7; idx++) {
             System.arraycopy(bytes, idx, slice, 0, 7);
             if (checkIfMessageFrame(idx, slice)) {
                 return true;
             }
         }
+
+        // Couldn't find wrapper, check if it may be an uwrapped msg frame:
+        // is there is a message frame id at the beginning?
+        // Do this after the OER scan to avoid false positives with the first 2 bytes.
+        if (checkIfMessageFrameAtBeginning()) {
+            return true;
+        }
+
+        messageFrameType = MessageType.UNKNOWN;
         return false;
     }
 
@@ -134,7 +149,16 @@ public class TimestampedMessageFrame {
         return false;
     }
 
-    public static final Set<Integer> MESSAGE_FRAME_IDS = MessageType.idSet();
+    public boolean checkIfMessageFrameAtBeginning() {
+        int first = toUnsignedInt(bytes[0]);
+        int second = toUnsignedInt(bytes[1]);
+        MessageType type = MessageType.fromId(second);
+        if (first == 0 && type != null) {
+            messageFrameType = type;
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Validate indices don't overflow reset the byte array to the extracted the message using the indices.
