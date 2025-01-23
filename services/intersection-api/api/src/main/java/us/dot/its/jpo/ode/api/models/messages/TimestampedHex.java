@@ -25,67 +25,31 @@ public class TimestampedHex {
     @JsonProperty("ts")
     long timestamp;
 
-    @JsonProperty("mt")
-    String messageType;
+    @JsonProperty("type")
+    MessageFrameId messageFrameType;
 
     @ToString.Exclude
     @JsonIgnore
     byte[] bytes;
 
-    /**
-     * Start index (inclusive) of the MessageFrame in the byte array
-      */
-    @JsonIgnore
-    int startIndex;
-
-    /**
-     * End index (exclusive) of the MessageFrame in the byte array
-      */
-    @JsonIgnore
-    int endIndex;
-
-    /**
-     * Path to the data within the frame.
-     */
-    @JsonIgnore
-    String path;
 
     private final static HexFormat hexFormat = HexFormat.of();
 
-    @JsonProperty("mf")
+    @JsonProperty("msg")
     public byte[] getMessageFrame() {
-        return Arrays.copyOfRange(bytes, startIndex, endIndex);
-    }
-
-    @JsonIgnore
-    public String getMessageFrameHex() {
-        return hexFormat.formatHex(bytes, startIndex, endIndex);
-    }
-
-    @JsonIgnore
-    public void setRawDataHex(String hex) {
-        bytes = hexFormat.parseHex(hex);
-        if (!findMessageFrame()) {
-            log.warn("No MessageFrame was found in raw data: {}", hex);
-        }
-    }
-
-    @JsonIgnore
-    public String getRawDataHex() {
-        if (bytes == null) return "";
-        return hexFormat.formatHex(bytes);
-    }
-
-    @JsonIgnore
-    public byte[] getRawData() {
         return bytes;
     }
 
     @JsonIgnore
-    public void setRawData(byte[] bytes) {
+    public String getMessageFrameHex() {
+        return hexFormat.formatHex(bytes);
+    }
+
+    @JsonIgnore
+    public void setMessageFrame(byte[] bytes) {
         this.bytes = bytes;
         if (!findMessageFrame()) {
-            //log.warn("No MessageFrame was found in raw data: {}", getRawDataHex());
+            log.warn("No MessageFrame was found in raw data: {}", getMessageFrameHex());
         }
     }
 
@@ -94,19 +58,8 @@ public class TimestampedHex {
      * @return true if a MessageFrame was detected, false if not
      */
     public boolean findMessageFrame() {
-        startIndex = 0;
-        if (bytes != null) {
-            endIndex = bytes.length;
-        } else {
-            endIndex = 0;
+        if (bytes == null) {
             return false;
-        }
-        if (path == null) {
-            throw new RuntimeException("Path is not set. Path must be set before setting data.");
-        }
-        if (path.contains("unsecuredData_raw")) {
-            // We already have the unwrapped message frame
-            return true;
         }
 
         final byte[] slice = new byte[7];
@@ -123,12 +76,12 @@ public class TimestampedHex {
     /**
      * Check a 7 item byte array for the pattern:
      * <p>OER unsecured data tag, followed by OER length determinant, Message Frame ID</p>
-     * <p>Side effect: sets beginIndex and endIndex if found</p>
+     * <p>Side effect: sets message frame type beginIndex and endIndex if found</p>
      * @param slice A 7 item byte array
      * @return True if found
      */
-    public boolean checkIfMessageFrame(int sliceStartIndex, byte[] slice) {
-        int[] b = new int[7];
+    public boolean checkIfMessageFrame(final int sliceStartIndex, final byte[] slice) {
+        final int[] b = new int[7];
         for (int i = 0; i < 7; i++) {
             b[i] = toUnsignedInt(slice[i]);
         }
@@ -143,8 +96,9 @@ public class TimestampedHex {
         // First byte can be length less than 128, or marker that the next 2 bytes are the length
         if (b[2] < 0x80) {
             // It could be a length, check for message frame
-            if (b[3] == 0 && MESSAGE_FRAME_IDS.contains(b[4])) {
-                return validateIndices(sliceStartIndex + 3, b[2]);
+            final var type = MessageFrameId.fromId(b[4]);
+            if (b[3] == 0 && type != null) {
+                return validateIndices(sliceStartIndex + 3, b[2], type);
             }
             return false;
         }
@@ -155,8 +109,9 @@ public class TimestampedHex {
             if (!(b[3] >= 0x80)) {
                 return false; // Nope
             }
-            if (b[4] == 0 && MESSAGE_FRAME_IDS.contains(b[5])) {
-                return validateIndices(sliceStartIndex + 4, b[3]);
+            final var type = MessageFrameId.fromId(b[5]);
+            if (b[4] == 0 && type != null) {
+                return validateIndices(sliceStartIndex + 4, b[3], type);
             }
             return false;
         }
@@ -164,10 +119,11 @@ public class TimestampedHex {
         // Check for two byte length determinant
         if (b[2] == 0x82) {
             // b[3] + b[4] could be a 16 bit length
-            if (b[5] == 0 && MESSAGE_FRAME_IDS.contains(b[6])) {
+            final var type = MessageFrameId.fromId(b[6]);
+            if (b[5] == 0 && type != null) {
                 // Combine b3 and b4 into a 16 bit integer
                 int length = (b[3] << 8) | b[4];
-                return validateIndices(sliceStartIndex + 5, length);
+                return validateIndices(sliceStartIndex + 5, length, type);
             }
             return false;
         }
@@ -180,30 +136,25 @@ public class TimestampedHex {
 
 
     // Incomplete list of Message Frame IDs, just the ones of interest for intersections for now
-    public static final Set<Integer> MESSAGE_FRAME_IDS = Set.of(
-            0x12,   // MAP
-            0x13,   // SPAT
-            0x14,   // BSM
-            0x1D,   // SRM
-            0x1E    // SSM
-    );
+    public static final Set<Integer> MESSAGE_FRAME_IDS = MessageFrameId.idSet();
 
     /**
-     * Validate indices don't overflow and set the message frame indices
-     * @param iStart
-     * @param length
+     * Validate indices don't overflow reset the byte array to the extracted the message using the indices.
+     * @param iStart Start index
+     * @param length End index
      * @return true if valid, false if overflow
      */
-    private boolean validateIndices(int iStart, int length) {
+    private boolean validateIndices(final int iStart, final int length, final MessageFrameId messageId) {
         int iEnd = iStart + length;
         if (iEnd <= bytes.length) {
-            startIndex = iStart;
-            endIndex = iEnd;
+            // Resize the byte array
+            bytes = Arrays.copyOfRange(bytes, iStart, iEnd);
+            this.messageFrameType = messageId;
             return true;
         }
         log.warn("Tried to set invalid end index {}, based on length determinant: {}, " +
                 "greater than {}, the number of bytes in the raw data.  " +
-                "The data may be truncated: {}", iEnd, length, bytes.length, getRawDataHex());
+                "The data may be truncated: {}", iEnd, length, bytes.length, getMessageFrameHex());
         return false;
     }
 

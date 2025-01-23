@@ -28,9 +28,9 @@ public class PcapDecoderKaitai implements PcapDecoder {
                         packet.inclLen(), packet.origLen(), packet.tsUsec());
 
                 var hex = new TimestampedHex();
-                hex.setPath("_raw_body");
+                //hex.setPath("_raw_body");
                 hex.setTimestamp(packet.tsUsec());
-                hex.setRawData(packetBytes);
+                hex.setMessageFrame(packetBytes);
                 hexList.add(hex);
             }
         }
