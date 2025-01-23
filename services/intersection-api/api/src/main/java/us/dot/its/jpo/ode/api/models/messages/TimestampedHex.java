@@ -1,9 +1,11 @@
 package us.dot.its.jpo.ode.api.models.messages;
 
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +22,11 @@ public class TimestampedHex {
     /**
      * Timestamp of the data frame
      */
+    @JsonProperty("ts")
     long timestamp;
+
+    @JsonProperty("mt")
+    String messageType;
 
     @ToString.Exclude
     @JsonIgnore
@@ -29,35 +35,58 @@ public class TimestampedHex {
     /**
      * Start index (inclusive) of the MessageFrame in the byte array
       */
+    @JsonIgnore
     int startIndex;
 
     /**
      * End index (exclusive) of the MessageFrame in the byte array
       */
+    @JsonIgnore
     int endIndex;
 
     /**
      * Path to the data within the frame.
      */
+    @JsonIgnore
     String path;
 
     private final static HexFormat hexFormat = HexFormat.of();
 
-    public String getMessageFrame() {
-        if (bytes == null) return "";
+    @JsonProperty("mf")
+    public byte[] getMessageFrame() {
+        return Arrays.copyOfRange(bytes, startIndex, endIndex);
+    }
+
+    @JsonIgnore
+    public String getMessageFrameHex() {
         return hexFormat.formatHex(bytes, startIndex, endIndex);
     }
 
-    public void setRawData(String hex) {
+    @JsonIgnore
+    public void setRawDataHex(String hex) {
         bytes = hexFormat.parseHex(hex);
         if (!findMessageFrame()) {
             log.warn("No MessageFrame was found in raw data: {}", hex);
         }
     }
 
-    public String getRawData() {
+    @JsonIgnore
+    public String getRawDataHex() {
         if (bytes == null) return "";
         return hexFormat.formatHex(bytes);
+    }
+
+    @JsonIgnore
+    public byte[] getRawData() {
+        return bytes;
+    }
+
+    @JsonIgnore
+    public void setRawData(byte[] bytes) {
+        this.bytes = bytes;
+        if (!findMessageFrame()) {
+            //log.warn("No MessageFrame was found in raw data: {}", getRawDataHex());
+        }
     }
 
     /**
@@ -174,7 +203,7 @@ public class TimestampedHex {
         }
         log.warn("Tried to set invalid end index {}, based on length determinant: {}, " +
                 "greater than {}, the number of bytes in the raw data.  " +
-                "The data may be truncated: {}", iEnd, length, bytes.length, getRawData());
+                "The data may be truncated: {}", iEnd, length, bytes.length, getRawDataHex());
         return false;
     }
 

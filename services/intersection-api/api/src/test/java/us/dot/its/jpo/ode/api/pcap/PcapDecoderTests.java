@@ -17,70 +17,70 @@ public class PcapDecoderTests {
 
     @Test
     public void testParsePcapFrame_UDP() {
-        var pcapDecoder = new PcapDecoder();
+        var pcapDecoder = new PcapDecoderTshark();
         Optional<TimestampedHex> optHex = pcapDecoder.parsePcapFrame(UDP_FRAME);
 
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683155397596L));
-        assertThat(tsHex.getRawData(), startsWith("0103002080c003810"));
-        assertThat(tsHex.getMessageFrame(), startsWith("0014604"));
+        assertThat(tsHex.getRawDataHex(), startsWith("0103002080c003810"));
+        assertThat(tsHex.getMessageFrameHex(), startsWith("0014604"));
         assertThat(tsHex.getPath(), containsString("udp.payload_raw"));
         log.info("{}", tsHex);
     }
 
     @Test
     public void testParsePcapFrame_UDP_MAP() {
-        var pcapDecoder = new PcapDecoder();
+        var pcapDecoder = new PcapDecoderTshark();
         Optional<TimestampedHex> optHex = pcapDecoder.parsePcapFrame(UDP_MAP_FRAME);
 
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683155397596L));
-        assertThat(tsHex.getRawData(), startsWith("010b030401930f01b410010c"));
-        assertThat(tsHex.getMessageFrame(), startsWith("001283fb78158"));
+        assertThat(tsHex.getRawDataHex(), startsWith("010b030401930f01b410010c"));
+        assertThat(tsHex.getMessageFrameHex(), startsWith("001283fb78158"));
         assertThat(tsHex.getPath(), containsString("udp.payload_raw"));
         log.info("{}", tsHex);
     }
 
     @Test
     public void testParsePcapFrame_UDP_BSM() {
-        var pcapDecoder = new PcapDecoder();
+        var pcapDecoder = new PcapDecoderTshark();
         Optional<TimestampedHex> optHex = pcapDecoder.parsePcapFrame(UDP_BSM_FRAME);
 
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683155397596L));
-        assertThat(tsHex.getRawData(), startsWith("0103002080e4038100400380818600148082519ee641a"));
-        assertThat(tsHex.getMessageFrame(), startsWith("00148082519ee641a"));
+        assertThat(tsHex.getRawDataHex(), startsWith("0103002080e4038100400380818600148082519ee641a"));
+        assertThat(tsHex.getMessageFrameHex(), startsWith("00148082519ee641a"));
         assertThat(tsHex.getPath(), containsString("udp.payload_raw"));
         log.info("{}", tsHex);
     }
 
     @Test
     public void testParsePcapFrame_WSMP() {
-        var pcapDecoder = new PcapDecoder();
+        var pcapDecoder = new PcapDecoderTshark();
         Optional<TimestampedHex> optHex = pcapDecoder.parsePcapFrame(WSMP_FRAME);
 
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683156721857L));
-        assertThat(tsHex.getRawData(), startsWith("00134a42b3c30180c7ce400302b"));
-        assertThat(tsHex.getMessageFrame(), startsWith("00134a42b3c30180c7ce400302b"));
+        assertThat(tsHex.getRawDataHex(), startsWith("00134a42b3c30180c7ce400302b"));
+        assertThat(tsHex.getMessageFrameHex(), startsWith("00134a42b3c30180c7ce400302b"));
         assertThat(tsHex.getPath(), containsString("ieee1609dot2.unsecuredData_raw"));
         log.info("{}", tsHex);
     }
 
     @Test
     public void testParsePcapFrame_WSMP_MISSING() {
-        var pcapDecoder = new PcapDecoder();
+        var pcapDecoder = new PcapDecoderTshark();
         Optional<TimestampedHex> optHex = pcapDecoder.parsePcapFrame(WSMP_MISSING_FRAME);
 
         assertThat(optHex.isPresent(), equalTo(true));
         TimestampedHex tsHex = optHex.get();
         assertThat(tsHex.getTimestamp(), equalTo(1683156721857L));
-        assertThat(tsHex.getRawData(), startsWith("00002c00020000400"));
-        assertThat(tsHex.getMessageFrame(), startsWith("00134a42b3c30180c7ce400302b"));
+        assertThat(tsHex.getRawDataHex(), startsWith("00002c00020000400"));
+        assertThat(tsHex.getMessageFrameHex(), startsWith("00134a42b3c30180c7ce400302b"));
         assertThat(tsHex.getPath(), containsString("frame_raw"));
         log.info("{}", tsHex);
     }

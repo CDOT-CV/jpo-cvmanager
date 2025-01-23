@@ -254,6 +254,12 @@
 			<version>2.5.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>io.kaitai</groupId>
+			<artifactId>kaitai-struct-runtime</artifactId>
+			<version>0.10</version>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<finalName>${project.artifactId}</finalName>
