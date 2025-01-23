@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import us.dot.its.jpo.ode.api.models.messages.MessageType;
 
 @ToString
 @Setter

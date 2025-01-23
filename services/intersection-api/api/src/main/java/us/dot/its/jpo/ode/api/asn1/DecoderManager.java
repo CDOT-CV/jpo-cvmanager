@@ -1,7 +1,7 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.MessageType;
+import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
 import org.apache.commons.io.FileUtils;

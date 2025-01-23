@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.models.messages;
 
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
-import us.dot.its.jpo.ode.api.models.MessageType;
 import us.dot.its.jpo.ode.model.OdeSpatData;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.models.messages;
 
-import us.dot.its.jpo.ode.api.models.MessageType;
 import us.dot.its.jpo.ode.model.OdeSrmData;
 import lombok.Getter;
 import lombok.Setter;

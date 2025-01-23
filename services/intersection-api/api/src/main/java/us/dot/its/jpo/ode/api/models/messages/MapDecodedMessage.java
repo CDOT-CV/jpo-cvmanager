@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.models.messages;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
-import us.dot.its.jpo.ode.api.models.MessageType;
 import us.dot.its.jpo.ode.model.OdeMapData;
 import lombok.Getter;
 import lombok.Setter;

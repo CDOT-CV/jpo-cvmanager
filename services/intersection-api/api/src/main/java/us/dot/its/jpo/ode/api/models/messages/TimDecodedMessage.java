@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.models.messages;
 
-import us.dot.its.jpo.ode.api.models.MessageType;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.Getter;

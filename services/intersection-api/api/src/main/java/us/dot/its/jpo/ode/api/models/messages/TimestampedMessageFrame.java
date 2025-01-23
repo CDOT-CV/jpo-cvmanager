@@ -26,7 +26,7 @@ public class TimestampedMessageFrame {
     long timestamp;
 
     @JsonProperty("type")
-    MessageFrameId messageFrameType;
+    MessageType messageFrameType;
 
     @ToString.Exclude
     @JsonIgnore
@@ -96,7 +96,7 @@ public class TimestampedMessageFrame {
         // First byte can be length less than 128, or marker that the next 2 bytes are the length
         if (b[2] < 0x80) {
             // It could be a length, check for message frame
-            final var type = MessageFrameId.fromId(b[4]);
+            final var type = MessageType.fromId(b[4]);
             if (b[3] == 0 && type != null) {
                 return validateIndices(sliceStartIndex + 3, b[2], type);
             }
@@ -109,7 +109,7 @@ public class TimestampedMessageFrame {
             if (!(b[3] >= 0x80)) {
                 return false; // Nope
             }
-            final var type = MessageFrameId.fromId(b[5]);
+            final var type = MessageType.fromId(b[5]);
             if (b[4] == 0 && type != null) {
                 return validateIndices(sliceStartIndex + 4, b[3], type);
             }
@@ -119,7 +119,7 @@ public class TimestampedMessageFrame {
         // Check for two byte length determinant
         if (b[2] == 0x82) {
             // b[3] + b[4] could be a 16 bit length
-            final var type = MessageFrameId.fromId(b[6]);
+            final var type = MessageType.fromId(b[6]);
             if (b[5] == 0 && type != null) {
                 // Combine b3 and b4 into a 16 bit integer
                 int length = (b[3] << 8) | b[4];
@@ -134,7 +134,7 @@ public class TimestampedMessageFrame {
         return false;
     }
 
-    public static final Set<Integer> MESSAGE_FRAME_IDS = MessageFrameId.idSet();
+    public static final Set<Integer> MESSAGE_FRAME_IDS = MessageType.idSet();
 
     /**
      * Validate indices don't overflow reset the byte array to the extracted the message using the indices.
@@ -142,7 +142,7 @@ public class TimestampedMessageFrame {
      * @param length End index
      * @return true if valid, false if overflow
      */
-    private boolean validateIndices(final int iStart, final int length, final MessageFrameId messageId) {
+    private boolean validateIndices(final int iStart, final int length, final MessageType messageId) {
         int iEnd = iStart + length;
         if (iEnd <= bytes.length) {
             // Resize the byte array

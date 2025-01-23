@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.pcap;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
-import us.dot.its.jpo.ode.api.models.messages.MessageFrameId;
+import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrame;
 
 import java.util.HexFormat;
@@ -23,7 +23,7 @@ public class TimestampedMessageFrameTest {
         byte[] frame = hexFormat.parseHex(UDP_FRAME);
         mf.setMessageFrame(frame);
         assertThat(mf.getMessageFrameHex(), startsWith("0014604"));
-        assertThat(mf.getMessageFrameType(), equalTo(MessageFrameId.BSM));
+        assertThat(mf.getMessageFrameType(), equalTo(MessageType.BSM));
     }
 
     @Test
@@ -32,7 +32,7 @@ public class TimestampedMessageFrameTest {
         byte[] frame = hexFormat.parseHex(UDP_MAP_FRAME);
         mf.setMessageFrame(frame);
         assertThat(mf.getMessageFrameHex(), startsWith("001283fb78158"));
-        assertThat(mf.getMessageFrameType(), equalTo(MessageFrameId.MAP));
+        assertThat(mf.getMessageFrameType(), equalTo(MessageType.MAP));
     }
 
     @Test
@@ -41,7 +41,7 @@ public class TimestampedMessageFrameTest {
         byte[] frame = hexFormat.parseHex(UDP_BSM_FRAME);
         mf.setMessageFrame(frame);
         assertThat(mf.getMessageFrameHex(), startsWith("00148082519ee641a"));
-        assertThat(mf.getMessageFrameType(), equalTo(MessageFrameId.BSM));
+        assertThat(mf.getMessageFrameType(), equalTo(MessageType.BSM));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class TimestampedMessageFrameTest {
         byte[] frame = hexFormat.parseHex(WSMP_FRAME);
         mf.setMessageFrame(frame);
         assertThat(mf.getMessageFrameHex(), startsWith("00134a42b3c30180c7ce400302b"));
-        assertThat(mf.getMessageFrameType(), equalTo(MessageFrameId.SPAT));
+        assertThat(mf.getMessageFrameType(), equalTo(MessageType.SPAT));
     }
 
     public static final String UDP_FRAME = "000002120000000000000000000086dd6030000000ce110080f80f80f80f80f80000000000facc3e80f80f80f80f80f8650c80931b40a4fd2328232800ce00000103002080c0038100400380630014604edee641a6f6c566d3144e145c1cb823de1d9415ba70005510fdfa1fa1007fff8000a02801009cc061002dbfcd500019b81002bbecb6ffc1fca0fe713456efde2ab20fe36af550fce334afffec802107c0009000014e9b5fbfffc7ffff28000040012000022b029e7fa620807eee4644feddb2898080f9cc5b0e1fdf0341a83402f32ed81815bd20f6af31e46d907d255ab1e2bb544cf5420c3a91211db23249119980d24ed35f0fea3270309d118328a129f52189f9";
