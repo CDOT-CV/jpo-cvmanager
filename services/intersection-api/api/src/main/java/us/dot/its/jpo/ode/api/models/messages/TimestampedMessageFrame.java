@@ -17,10 +17,10 @@ import static java.lang.Byte.toUnsignedInt;
  */
 @Data
 @Slf4j
-public class TimestampedHex {
+public class TimestampedMessageFrame {
 
     /**
-     * Timestamp of the data frame
+     * Timestamp of the data frame, epoch milliseconds
      */
     @JsonProperty("ts")
     long timestamp;
@@ -134,8 +134,6 @@ public class TimestampedHex {
         return false;
     }
 
-
-    // Incomplete list of Message Frame IDs, just the ones of interest for intersections for now
     public static final Set<Integer> MESSAGE_FRAME_IDS = MessageFrameId.idSet();
 
     /**

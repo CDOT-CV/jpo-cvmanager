@@ -17,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import us.dot.its.jpo.ode.api.models.messages.TimestampedHexList;
+import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameList;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,33 +26,32 @@ import lombok.extern.slf4j.Slf4j;
 public class PcapController {
 
     @Autowired
-    @Qualifier("kaitaiPcapDecoder")
     PcapDecoder decoder;
 
-    /**
-     * Converts pcap data to Wireshark's JSON format with full details.
-     * @param bytes PCAP data
-     * @return JSON data output by Wireshark
-     * @throws IOException
-     */
-    @RequestMapping(
-        value = "/pcap/verbose-json", 
-        method = RequestMethod.POST,
-        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                    "application/pcap",
-                    "application/vnd.tcpdump.pcap"},
-        produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<String> pcapToJson(
-            @RequestBody byte[] bytes) throws IOException {
-        log.info("pcapToVerboseJson");
-        return ResponseEntity
-            .status(HttpStatus.OK)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(decoder.decodeVerbosely(bytes));
-    }
+//    /**
+//     * Converts pcap data to Wireshark's JSON format with full details.
+//     * @param bytes PCAP data
+//     * @return JSON data output by Wireshark
+//     * @throws IOException
+//     */
+//    @RequestMapping(
+//        value = "/pcap/verbose-json",
+//        method = RequestMethod.POST,
+//        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
+//                    "application/pcap",
+//                    "application/vnd.tcpdump.pcap"},
+//        produces = MediaType.APPLICATION_JSON_VALUE)
+//    public @ResponseBody ResponseEntity<String> pcapToJson(
+//            @RequestBody byte[] bytes) throws IOException {
+//        log.info("pcapToVerboseJson");
+//        return ResponseEntity
+//            .status(HttpStatus.OK)
+//            .contentType(MediaType.APPLICATION_JSON)
+//            .body(decoder.decodeVerbosely(bytes));
+//    }
 
     /**
-     * Convert pcap data to a {@link TimestampedHexList}.
+     * Convert pcap data to a {@link TimestampedMessageFrameList}.
      * Attempts to extract UDP or unsecured WAVE payloads.
      * If this method fails, try the verbose-json endpoint to retrieve the detailed wireshark json.
      * @param bytes PCAP data
@@ -66,7 +65,7 @@ public class PcapController {
                     "application/pcap",
                     "application/vnd.tcpdump.pcap"},
         produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
-    public @ResponseBody ResponseEntity<TimestampedHexList> pcapToTimestampedHex(
+    public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedHex(
             @RequestBody byte[] bytes) throws IOException {
         log.info("pcapToJson received {}", bytes.length);
         try {
@@ -79,7 +78,7 @@ public class PcapController {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new TimestampedHexList());
+                    .body(new TimestampedMessageFrameList());
         }
     }
 
