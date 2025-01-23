@@ -100,9 +100,6 @@ COPY --from=builder /build /build
 # # Add test data. This changes frequently so keep it low in the file.
 ADD ./asn1_codec/docker-test /asn1_codec/docker-test
 
-# Install tshark tool for decoding pcap files
-RUN yum install -y wireshark-cli
-
 # # Put workdir back to Java home
 WORKDIR /home
 
