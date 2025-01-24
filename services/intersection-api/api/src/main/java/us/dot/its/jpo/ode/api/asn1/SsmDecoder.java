@@ -13,7 +13,6 @@ import us.dot.its.jpo.ode.context.AppContext;
 import us.dot.its.jpo.ode.model.*;
 import us.dot.its.jpo.ode.model.Asn1Encoding.EncodingRule;
 import us.dot.its.jpo.ode.model.OdeLogMetadata.RecordType;
-import us.dot.its.jpo.ode.plugin.j2735.builders.BsmBuilder;
 import us.dot.its.jpo.ode.plugin.j2735.builders.SSMBuilder;
 import us.dot.its.jpo.ode.util.JsonUtils;
 import us.dot.its.jpo.ode.util.XmlUtils;
@@ -83,7 +82,7 @@ public class SsmDecoder implements Decoder {
         var receivedMessageDetails = new ReceivedMessageDetails();
         receivedMessageDetails.setRxSource(RxSource.NA);
         metadata.setSsmSource(OdeSsmMetadata.SsmSource.unknown);
-        OdeSsmPayload payload = new OdeSsmPayload(SSMBuilder.genericSSM(messageFrameNode.findValue("SignalRequestMessage")));
+        OdeSsmPayload payload = new OdeSsmPayload(SSMBuilder.genericSSM(messageFrameNode.findValue("SignalStatusMessage")));
         return new OdeSsmData(metadata, payload);
     }
 

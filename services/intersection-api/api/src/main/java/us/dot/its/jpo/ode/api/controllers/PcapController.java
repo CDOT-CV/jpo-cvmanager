@@ -3,11 +3,9 @@ package us.dot.its.jpo.ode.api.controllers;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -17,15 +15,11 @@ import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
-import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
-import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
-import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrame;
 import us.dot.its.jpo.ode.api.pcap.PcapDecoder;
 
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -39,8 +33,6 @@ import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameList;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.model.*;
-import us.dot.its.jpo.ode.plugin.j2735.builders.SPATBuilder;
-import us.dot.its.jpo.ode.util.XmlUtils;
 
 @RestController
 @Slf4j
@@ -158,14 +150,14 @@ public class PcapController {
                         ProcessedSpat processedSpat = decoderManager.spatDecoder.createProcessedSpat(spatData);
                         decodedMessages.add(processedSpat.toString());
                     } catch (Exception e) {
-                        log.error("Error converting to processed spat: {}", e.getMessage());
+                        log.error("Error converting to processed spat: {}, OdeSpatData: {}", e.getMessage(), spatData.toJson());
                     }
                 } else if (data instanceof OdeMapData mapData) {
                     try {
                         ProcessedMap<LineString> processedMap = decoderManager.mapDecoder.createProcessedMap(mapData);
                         decodedMessages.add(processedMap.toString());
                     } catch (Exception e) {
-                        log.error("Error converting to processed map: {}", e.getMessage());
+                        log.error("Error converting to processed map: {}, OdeMapData: {}", e.getMessage(), mapData.toJson());
                     }
                 } else {
                     decodedMessages.add(data.toJson());
