@@ -16,22 +16,11 @@ import us.dot.its.jpo.geojsonconverter.validator.SpatJsonValidator;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
 import us.dot.its.jpo.ode.context.AppContext;
-import us.dot.its.jpo.ode.model.Asn1Encoding;
+import us.dot.its.jpo.ode.model.*;
 import us.dot.its.jpo.ode.model.Asn1Encoding.EncodingRule;
-import us.dot.its.jpo.ode.model.OdeAsn1Data;
-import us.dot.its.jpo.ode.model.OdeAsn1Payload;
-import us.dot.its.jpo.ode.model.OdeSpatData;
-import us.dot.its.jpo.ode.model.OdeSpatMetadata;
 import us.dot.its.jpo.ode.model.OdeSpatMetadata.SpatSource;
-import us.dot.its.jpo.ode.model.OdeSpatPayload;
-import us.dot.its.jpo.ode.model.OdeData;
-import us.dot.its.jpo.ode.model.OdeHexByteArray;
 import us.dot.its.jpo.ode.model.OdeLogMetadata.RecordType;
 import us.dot.its.jpo.ode.model.OdeLogMetadata.SecurityResultCode;
-import us.dot.its.jpo.ode.model.OdeLogMsgMetadataLocation;
-import us.dot.its.jpo.ode.model.OdeMsgPayload;
-import us.dot.its.jpo.ode.model.ReceivedMessageDetails;
-import us.dot.its.jpo.ode.model.RxSource;
 import us.dot.its.jpo.ode.plugin.j2735.J2735IntersectionState;
 import us.dot.its.jpo.ode.plugin.j2735.builders.SPATBuilder;
 import us.dot.its.jpo.ode.util.JsonUtils;
@@ -152,9 +141,24 @@ public class SpatDecoder implements Decoder {
 		return new OdeSpatData(metadata, payload);
     }
 
-    public ProcessedSpat createProcessedSpat(OdeSpatData odeSpat){
+    public OdeSpatData getOdeSpatDataFromMessageFrameXml(String xml) throws XmlUtilsException {
+        ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
+        OdeSpatMetadata metadata = new OdeSpatMetadata();
+        metadata.setOdeReceivedAt(DecoderManager.getOdeReceivedAt());
+        metadata.setOriginIp(DecoderManager.getOriginIp());
+        metadata.setRecordType(OdeLogMetadata.RecordType.spatTx);
+        metadata.setSecurityResultCode(OdeLogMetadata.SecurityResultCode.success);
+        var receivedMessageDetails = new ReceivedMessageDetails();
+        receivedMessageDetails.setRxSource(RxSource.NA);
+        metadata.setSpatSource(OdeSpatMetadata.SpatSource.V2X);
+        OdeSpatPayload payload = new OdeSpatPayload(SPATBuilder.genericSPAT(messageFrameNode.findValue("SPAT")));
+        return new OdeSpatData(metadata, payload);
+    }
 
-        JsonValidatorResult validationResults = spatJsonValidator.validate(odeSpat.toString());
+    public ProcessedSpat createProcessedSpat(OdeSpatData odeSpat){
+        // Skip validation
+        //JsonValidatorResult validationResults = spatJsonValidator.validate(odeSpat.toString());
+        JsonValidatorResult validationResults = new JsonValidatorResult();
         OdeSpatData rawValue = new OdeSpatData();
         rawValue.setMetadata(odeSpat.getMetadata());
         OdeSpatMetadata spatMetadata = (OdeSpatMetadata)rawValue.getMetadata();

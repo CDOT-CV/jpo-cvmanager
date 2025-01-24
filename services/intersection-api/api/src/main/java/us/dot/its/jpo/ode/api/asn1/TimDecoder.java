@@ -9,17 +9,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import us.dot.its.jpo.ode.api.models.messages.TimDecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
-import us.dot.its.jpo.ode.model.Asn1Encoding;
+import us.dot.its.jpo.ode.model.*;
 import us.dot.its.jpo.ode.model.Asn1Encoding.EncodingRule;
-import us.dot.its.jpo.ode.model.OdeAsn1Data;
-import us.dot.its.jpo.ode.model.OdeAsn1Payload;
-import us.dot.its.jpo.ode.model.OdeTimData;
-import us.dot.its.jpo.ode.model.OdeTimMetadata;
-import us.dot.its.jpo.ode.model.OdeData;
-import us.dot.its.jpo.ode.model.OdeHexByteArray;
 import us.dot.its.jpo.ode.model.OdeLogMetadata.RecordType;
 import us.dot.its.jpo.ode.model.OdeMsgMetadata.GeneratedBy;
-import us.dot.its.jpo.ode.model.OdeMsgPayload;
+import us.dot.its.jpo.ode.plugin.j2735.builders.SSMBuilder;
 import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
@@ -79,6 +73,8 @@ public class TimDecoder implements Decoder {
         //construct odeData
         return new OdeAsn1Data(metadata, payload);
     }
+
+
 
     @Override
     public OdeTimData getAsOdeJson(String consumedData) throws XmlUtilsException {
