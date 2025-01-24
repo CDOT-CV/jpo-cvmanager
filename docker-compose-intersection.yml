@@ -41,6 +41,15 @@ services:
       - ./resources/kafka/kafka_init.sh:/kafka_init.sh
     entrypoint: ['/bin/sh', 'kafka_init.sh']
 
+  j2735_2024_api:
+    profiles:
+      - intersection
+    image: iyourshaw/j2735-2024-api:develop
+    restart: always
+    ports:
+      - "4000:4000"
+    
+
   intersection_api:
     profiles:
       - intersection

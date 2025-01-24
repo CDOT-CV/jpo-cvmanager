@@ -7,7 +7,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
@@ -24,9 +26,6 @@ import java.util.List;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -43,6 +42,9 @@ public class PcapController {
 
     @Autowired
     DecoderManager decoderManager;
+
+    RestTemplate codecTemplate = new RestTemplate();
+    String decodeBatchUrl = "http://172.26.19.45:4000/batch";
 
     /**
      * Convert pcap data to a {@link TimestampedMessageFrameList}.
@@ -86,16 +88,21 @@ public class PcapController {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
         try {
             List<String> decodedMessages = new ArrayList<>();
-            for (TimestampedMessageFrame messageFrame : messageFrameList) {
-                EncodedMessage encodedMessage = new EncodedMessage();
-                encodedMessage.setType(messageFrame.getMessageFrameType());
-                encodedMessage.setAsn1Message(messageFrame.getMessageFrameHex());
-                DecodedMessage decodedMessage = decoderManager.decode(encodedMessage);
-                decodedMessages.add(decodedMessage.toString());
-            }
-            String json = "[" + String.join(",", decodedMessages) + "]";
-            log.info("finished decoding messages");
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
+//            for (TimestampedMessageFrame messageFrame : messageFrameList) {
+//                EncodedMessage encodedMessage = new EncodedMessage();
+//                encodedMessage.setType(messageFrame.getMessageFrameType());
+//                encodedMessage.setAsn1Message(messageFrame.getMessageFrameHex());
+//                DecodedMessage decodedMessage = decoderManager.decode(encodedMessage);
+//                decodedMessages.add(decodedMessage.toString());
+//            }
+//            String json = "[" + String.join(",", decodedMessages) + "]";
+//            log.info("finished decoding messages");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<TimestampedMessageFrameList> request = new HttpEntity<>(messageFrameList, headers);
+            String xmlBatch = codecTemplate.postForObject(decodeBatchUrl, request, String.class);
+            log.info("Received xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(xmlBatch);
         } catch (Exception e) {
             log.info("Failed to decode message frames");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
