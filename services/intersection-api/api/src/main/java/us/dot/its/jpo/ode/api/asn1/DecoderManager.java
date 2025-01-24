@@ -209,6 +209,13 @@ public class DecoderManager {
         List<OdeData> odeDataList = new ArrayList<>();
         log.info("Converting xml to ode json");
         long numXml = 0;
+        long numSpat = 0;
+        long numMap = 0;
+        long numBsm = 0;
+        long numSrm = 0;
+        long numSsm = 0;
+        long numTim = 0;
+        long numUnknown = 0;
         while (scanner.hasNextLine()) {
             String typeTimestamp = scanner.nextLine();
 
@@ -239,19 +246,13 @@ public class DecoderManager {
             ++numXml;
             try {
                 OdeData odeData = switch (type) {
-                    case SPAT -> spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp);
-                    case MAP -> mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp);
-                    case BSM -> bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp);
-                    case SRM -> srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp);
-                    case SSM -> ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp);
-                    case TIM -> {
-                        log.warn("TIM XML message, not supported: {}", xml);
-                        yield null;
-                    }
-                    default -> {
-                        log.warn("Unknown XML message type: {}: {}", type, xml);
-                        yield null;
-                    }
+                    case SPAT -> { ++numSpat; yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp); }
+                    case MAP -> { ++numMap; yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp); }
+                    case BSM -> { ++numBsm; yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp); }
+                    case SRM -> { ++numSrm; yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp); }
+                    case SSM -> { ++numSsm; yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp); }
+                    case TIM -> { ++numTim; log.warn("TIM XML message, not supported: {}", xml); yield null; }
+                    default -> { ++numUnknown; log.warn("Unknown XML message type: {}: {}", type, xml); yield null; }
                 };
                 odeDataList.add(odeData);
             } catch (Exception e) {
@@ -259,7 +260,10 @@ public class DecoderManager {
             }
 
         }
-        log.info("finished converting {} xml items to {} ode json items", numXml, odeDataList.size());
+        log.info("finished converting {} xml items to {} ode json items. " +
+                "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}{",
+                numXml, odeDataList.size(),
+                numSpat, numMap, numBsm, numSrm, numSsm, numTim, numUnknown);
         return odeDataList;
     }
 
