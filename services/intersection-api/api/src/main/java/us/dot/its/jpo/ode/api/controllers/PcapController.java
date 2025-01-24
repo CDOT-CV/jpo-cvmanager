@@ -94,75 +94,8 @@ public class PcapController {
             HttpEntity<TimestampedMessageFrameList> request = new HttpEntity<>(messageFrameList, headers);
             String xmlBatch = codecTemplate.postForObject(decodeBatchUrl, request, String.class);
             log.info("Received xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
-            Scanner scanner = new Scanner(xmlBatch);
-            List<OdeData> odeDataList = new ArrayList<>();
-            log.info("Converting xml to ode json");
-            long numXml = 0;
-            while (scanner.hasNextLine()) {
-                String xml = scanner.nextLine();
-                ++numXml;
-                if (xml.contains("<SPAT>")) {
-                    try {
-                        OdeSpatData spatData = decoderManager.spatDecoder.getOdeSpatDataFromMessageFrameXml(xml);
-                        odeDataList.add(spatData);
-                    } catch (Exception e) {
-                        log.error("Error converting XML to OdeSpatData: {}, xml: {}", e.getMessage(), xml);
-                    }
-                } else if (xml.contains("<MapData>")) {
-                    try {
-                        OdeMapData mapData = decoderManager.mapDecoder.getOdeMapDataFromMessageFrameXml(xml);
-                        odeDataList.add(mapData);
-                    } catch (Exception e) {
-                        log.error("Error converting XML to OdeMapData: {}, xml: {}", e.getMessage(), xml);
-                    }
-                } else if (xml.contains("<BasicSafetyMessage>")) {
-                    try {
-                        OdeBsmData bsmData = decoderManager.bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml);
-                        odeDataList.add(bsmData);
-                    } catch (Exception e) {
-                        log.error("Error converting XML to OdeBsmData: {}, xml: {}", e.getMessage(), xml);
-                    }
-                } else if (xml.contains("<SignalRequestMessage>")) {
-                    try {
-                        OdeSrmData srmData = decoderManager.srmDecoder.getOdeSrmDataFromMessageFrameXml(xml);
-                        odeDataList.add(srmData);
-                    } catch (Exception e) {
-                        log.error("Error converting XML to OdeSrmData: {}, xml: {}", e.getMessage(), xml);
-                    }
-                } else if (xml.contains("<SignalStatusMessage>")) {
-                    try {
-                        OdeSsmData ssmData = decoderManager.ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml);
-                        odeDataList.add(ssmData);
-                    } catch (Exception e) {
-                        log.error("Error converting XML to OdeSsmData: {}, xml: {}", e.getMessage(), xml);
-                    }
-                } else if (xml.contains("<TravelerInformation>")) {
-                    log.error("TIM XML message, not supported: {}", xml);
-                } else {
-                    log.error("Unknown message type XML: {}", xml);
-                }
-            }
-            log.info("finished converting {} xml items to {} ode json items", numXml, odeDataList.size());
-            List<String> decodedMessages = new ArrayList<>();
-            for (OdeData data : odeDataList) {
-                if (data instanceof OdeSpatData spatData) {
-                    try {
-                        ProcessedSpat processedSpat = decoderManager.spatDecoder.createProcessedSpat(spatData);
-                        decodedMessages.add(processedSpat.toString());
-                    } catch (Exception e) {
-                        log.error("Error converting to processed spat: {}, OdeSpatData: {}", e.getMessage(), spatData.toJson());
-                    }
-                } else if (data instanceof OdeMapData mapData) {
-                    try {
-                        ProcessedMap<LineString> processedMap = decoderManager.mapDecoder.createProcessedMap(mapData);
-                        decodedMessages.add(processedMap.toString());
-                    } catch (Exception e) {
-                        log.error("Error converting to processed map: {}, OdeMapData: {}", e.getMessage(), mapData.toJson());
-                    }
-                } else {
-                    decodedMessages.add(data.toJson());
-                }
-            }
+            List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlBatch);
+            List<String> decodedMessages = decoderManager.convertBatchOdeDataToJson(odeDataList);
             String json = "[" + String.join(",", decodedMessages) + "]";
             log.info("Finished converting ode Json to {} processed json items", decodedMessages.size());
             if (decodedMessages.size() < messageFrameList.size()) {
@@ -175,14 +108,6 @@ public class PcapController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
                     .body(ExceptionUtils.getStackTrace(e));
         }
-    }
-
-    public ObjectMapper defaultMapper() {
-        ObjectMapper objectMapper = DateJsonMapper.getInstance();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        return objectMapper;
     }
 
 }

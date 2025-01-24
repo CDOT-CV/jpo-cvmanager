@@ -18,6 +18,8 @@ import us.dot.its.jpo.ode.util.JsonUtils;
 import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
+import java.time.Instant;
+
 
 @Component
 public class SrmDecoder implements Decoder {
@@ -76,10 +78,10 @@ public class SrmDecoder implements Decoder {
 
     }
 
-    public OdeSrmData getOdeSrmDataFromMessageFrameXml(String xml) throws XmlUtilsException {
+    public OdeSrmData getOdeSrmDataFromMessageFrameXml(String xml, long timestamp) throws XmlUtilsException {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeSrmMetadata metadata = new OdeSrmMetadata();
-        metadata.setOdeReceivedAt(DecoderManager.getOdeReceivedAt());
+        metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
         metadata.setOriginIp(DecoderManager.getOriginIp());
         metadata.setRecordType(RecordType.srmTx);
         var receivedMessageDetails = new ReceivedMessageDetails();

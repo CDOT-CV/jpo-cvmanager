@@ -1,6 +1,10 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
+import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
+import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
+import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
@@ -9,12 +13,17 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import us.dot.its.jpo.ode.model.*;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 import java.util.UUID;
 
 @Component
@@ -193,5 +202,88 @@ public class DecoderManager {
         tempFile.delete();
 
         return result;
+    }
+
+    public List<OdeData> convertBatchXmlToOdeData(String xmlBatch) {
+        Scanner scanner = new Scanner(xmlBatch);
+        List<OdeData> odeDataList = new ArrayList<>();
+        log.info("Converting xml to ode json");
+        long numXml = 0;
+        while (scanner.hasNextLine()) {
+            String typeTimestamp = scanner.nextLine();
+
+            // Parse line of format:
+            // MessageType,timestamp
+
+            String[] typeTimestampArr = typeTimestamp.split(",");
+            if (typeTimestampArr.length != 2) {
+                throw new IllegalArgumentException(String.format("Type/timestamp line doesn't have 2 items: %s", typeTimestamp));
+            }
+
+            MessageType type;
+            try {
+                type = MessageType.valueOf(typeTimestampArr[0]);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(String.format("Invalid message type in %s", typeTimestamp), e);
+            }
+
+            long timestamp;
+            try {
+                timestamp = Long.parseLong(typeTimestampArr[1]);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(String.format("Invalid timestamp format in %s", typeTimestamp), e);
+            }
+
+            // Read XML line
+            String xml = scanner.nextLine();
+            ++numXml;
+            try {
+                OdeData odeData = switch (type) {
+                    case SPAT -> spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp);
+                    case MAP -> mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp);
+                    case BSM -> bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp);
+                    case SRM -> srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp);
+                    case SSM -> ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp);
+                    case TIM -> {
+                        log.warn("TIM XML message, not supported: {}", xml);
+                        yield null;
+                    }
+                    default -> {
+                        log.warn("Unknown XML message type: {}: {}", type, xml);
+                        yield null;
+                    }
+                };
+                odeDataList.add(odeData);
+            } catch (Exception e) {
+                log.error("Error converting XML to OdeData: {}, xml: {}", e.getMessage(), xml);
+            }
+
+        }
+        log.info("finished converting {} xml items to {} ode json items", numXml, odeDataList.size());
+        return odeDataList;
+    }
+
+    public List<String> convertBatchOdeDataToJson(List<OdeData> odeDataList) {
+        List<String> decodedMessages = new ArrayList<>();
+        for (OdeData data : odeDataList) {
+            if (data instanceof OdeSpatData spatData) {
+                try {
+                    ProcessedSpat processedSpat = spatDecoder.createProcessedSpat(spatData);
+                    decodedMessages.add(processedSpat.toString());
+                } catch (Exception e) {
+                    log.error("Error converting to processed spat: {}, OdeSpatData: {}", e.getMessage(), spatData.toJson());
+                }
+            } else if (data instanceof OdeMapData mapData) {
+                try {
+                    ProcessedMap<LineString> processedMap = mapDecoder.createProcessedMap(mapData);
+                    decodedMessages.add(processedMap.toString());
+                } catch (Exception e) {
+                    log.error("Error converting to processed map: {}, OdeMapData: {}", e.getMessage(), mapData.toJson());
+                }
+            } else {
+                decodedMessages.add(data.toJson());
+            }
+        }
+        return decodedMessages;
     }
 }

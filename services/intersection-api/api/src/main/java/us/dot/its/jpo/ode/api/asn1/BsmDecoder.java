@@ -19,6 +19,8 @@ import us.dot.its.jpo.ode.util.JsonUtils;
 import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
+import java.time.Instant;
+
 
 @Component
 public class BsmDecoder implements Decoder {
@@ -84,10 +86,10 @@ public class BsmDecoder implements Decoder {
         return new OdeAsn1Data(metadata, payload);
     }
 
-    public OdeBsmData getOdeBsmDataFromMessageFrameXml(String xml) throws XmlUtilsException {
+    public OdeBsmData getOdeBsmDataFromMessageFrameXml(String xml, long timestamp) throws XmlUtilsException {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeBsmMetadata metadata = new OdeBsmMetadata();
-        metadata.setOdeReceivedAt(DecoderManager.getOdeReceivedAt());
+        metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
         metadata.setOriginIp(DecoderManager.getOriginIp());
         metadata.setRecordType(RecordType.bsmTx);
         metadata.setSecurityResultCode(OdeLogMetadata.SecurityResultCode.success);

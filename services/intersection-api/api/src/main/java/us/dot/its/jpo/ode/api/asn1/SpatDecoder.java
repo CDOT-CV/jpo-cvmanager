@@ -27,6 +27,8 @@ import us.dot.its.jpo.ode.util.JsonUtils;
 import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
+import java.time.Instant;
+
 
 @Component
 public class SpatDecoder implements Decoder {
@@ -141,10 +143,10 @@ public class SpatDecoder implements Decoder {
 		return new OdeSpatData(metadata, payload);
     }
 
-    public OdeSpatData getOdeSpatDataFromMessageFrameXml(String xml) throws XmlUtilsException {
+    public OdeSpatData getOdeSpatDataFromMessageFrameXml(String xml, long timestamp) throws XmlUtilsException {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeSpatMetadata metadata = new OdeSpatMetadata();
-        metadata.setOdeReceivedAt(DecoderManager.getOdeReceivedAt());
+        metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
         metadata.setOriginIp(DecoderManager.getOriginIp());
         metadata.setRecordType(OdeLogMetadata.RecordType.spatTx);
         metadata.setSecurityResultCode(OdeLogMetadata.SecurityResultCode.success);
@@ -175,5 +177,7 @@ public class SpatDecoder implements Decoder {
         return processedSpat;
         
     }
+
+
 
 }
