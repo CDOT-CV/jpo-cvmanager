@@ -23,14 +23,14 @@ public class TimestampedMessageFrame {
      * Timestamp of the data frame, epoch milliseconds
      */
     @JsonProperty("timestamp")
-    long timestamp;
+    protected long timestamp;
 
     @JsonProperty("type")
-    MessageType messageFrameType;
+    protected MessageType messageFrameType;
 
     @ToString.Exclude
     @JsonIgnore
-    byte[] bytes;
+    protected byte[] bytes;
 
 
     private final static HexFormat hexFormat = HexFormat.of();
@@ -40,7 +40,6 @@ public class TimestampedMessageFrame {
         return bytes;
     }
 
-    //@JsonProperty("asn1Message")
     @JsonIgnore
     public String getMessageFrameHex() {
         return hexFormat.formatHex(bytes);

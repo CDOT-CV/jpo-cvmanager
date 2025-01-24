@@ -216,6 +216,7 @@ public class DecoderManager {
         long numSsm = 0;
         long numTim = 0;
         long numUnknown = 0;
+        long numError = 0;
         while (scanner.hasNextLine()) {
             String typeTimestamp = scanner.nextLine();
 
@@ -256,14 +257,15 @@ public class DecoderManager {
                 };
                 odeDataList.add(odeData);
             } catch (Exception e) {
+                ++numError;
                 log.error("Error converting XML to OdeData: {}, xml: {}", e.getMessage(), xml);
             }
 
         }
         log.info("finished converting {} xml items to {} ode json items. " +
-                "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}{",
+                "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}, Error: {}",
                 numXml, odeDataList.size(),
-                numSpat, numMap, numBsm, numSrm, numSsm, numTim, numUnknown);
+                numSpat, numMap, numBsm, numSrm, numSsm, numTim, numUnknown, numError);
         return odeDataList;
     }
 

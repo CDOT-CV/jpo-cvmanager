@@ -7,7 +7,6 @@ import lombok.Generated;
 /**
  * A list of {@link TimestampedMessageFrame}s decoded from a PCAP file.
  */
-@Generated
 public class TimestampedMessageFrameList extends ArrayList<TimestampedMessageFrame> {
 
 }

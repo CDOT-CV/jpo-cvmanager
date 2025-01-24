@@ -1,27 +1,18 @@
 package us.dot.its.jpo.ode.api.controllers;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.converter.spat.SpatProcessedJsonConverter;
-import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
-import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
-import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
+import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameHexList;
 import us.dot.its.jpo.ode.api.pcap.PcapDecoder;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -45,7 +36,7 @@ public class PcapController {
     DecoderManager decoderManager;
 
     RestTemplate codecTemplate = new RestTemplate();
-    String decodeBatchUrl = "http://172.26.19.45:4000/batch";
+    String decodeBatchUrl = "http://172.26.19.45:4000/batch/uper/b64/xer";
     SpatProcessedJsonConverter spatConverter = new SpatProcessedJsonConverter();
 
     /**
@@ -57,15 +48,15 @@ public class PcapController {
      * @throws IOException
      */
     @RequestMapping(
-        value = "/pcap/json", 
+        value = "/pcap/uper/b64",
         method = RequestMethod.POST,
         consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     "application/pcap",
                     "application/vnd.tcpdump.pcap"},
-        produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
-    public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedHex(
+        produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedBase64(
             @RequestBody byte[] bytes) throws IOException {
-        log.info("pcapToJson received {}", bytes.length);
+        log.info("pcapToTimestampedBase64 received {}", bytes.length);
         try {
             return ResponseEntity
                     .status(HttpStatus.OK)
@@ -77,6 +68,30 @@ public class PcapController {
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(new TimestampedMessageFrameList());
+        }
+    }
+
+    @RequestMapping(
+            value = "/pcap/uper/hex",
+            method = RequestMethod.POST,
+            consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    "application/pcap",
+                    "application/vnd.tcpdump.pcap"},
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseEntity<TimestampedMessageFrameHexList> pcapToTimestampedHex(
+            @RequestBody byte[] bytes) throws IOException {
+        log.info("pcapToTimestampedHex received {}", bytes.length);
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new TimestampedMessageFrameHexList(decoder.decodePcap(bytes)));
+        } catch (Exception ex) {
+            log.error("Exception in /pcap/json", ex);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new TimestampedMessageFrameHexList());
         }
     }
 
@@ -104,10 +119,13 @@ public class PcapController {
             }
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
         } catch (Exception e) {
-            log.info("Failed to decode message frames");
+            String message = String.format("Failed to decode message frames: %s", e.getMessage());
+            log.error(message, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
-                    .body(ExceptionUtils.getStackTrace(e));
+                    .body(message + ", " + ExceptionUtils.getStackTrace(e));
         }
     }
+
+
 
 }
