@@ -3,8 +3,9 @@ package us.dot.its.jpo.ode.api.controllers;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.converter.spat.SpatProcessedJsonConverter;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
 import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameHexList;
@@ -12,13 +13,9 @@ import us.dot.its.jpo.ode.api.pcap.PcapDecoder;
 
 
 import java.io.IOException;
+import java.util.Formatter;
 import java.util.List;
-
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
+import java.util.Optional;
 
 import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameList;
 
@@ -77,21 +74,37 @@ public class PcapController {
             consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     "application/pcap",
                     "application/vnd.tcpdump.pcap"},
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<TimestampedMessageFrameHexList> pcapToTimestampedHex(
-            @RequestBody byte[] bytes) throws IOException {
+            produces = {MediaType.APPLICATION_JSON_VALUE,
+                        MediaType.TEXT_PLAIN_VALUE})
+    public @ResponseBody ResponseEntity<String> pcapToTimestampedHex(
+            @RequestBody byte[] bytes,
+            @RequestParam Optional<String> text) throws IOException {
         log.info("pcapToTimestampedHex received {}", bytes.length);
         try {
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new TimestampedMessageFrameHexList(decoder.decodePcap(bytes)));
+            var hexList = new TimestampedMessageFrameHexList(decoder.decodePcap(bytes));
+            if (text.isPresent()) {
+                // Send hex as plain line-delimited text
+                Formatter lines = new Formatter();
+                for (var hex : hexList) {
+                    lines.format("%s%n", hex.getHex());
+                }
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(lines.toString());
+            } else {
+                // Send TimestmapedMessageFrameHexList as JSON
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(DateJsonMapper.getInstance().writeValueAsString(hexList));
+            }
         } catch (Exception ex) {
             log.error("Exception in /pcap/json", ex);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new TimestampedMessageFrameHexList());
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(ExceptionUtils.getStackTrace(ex));
         }
     }
 
