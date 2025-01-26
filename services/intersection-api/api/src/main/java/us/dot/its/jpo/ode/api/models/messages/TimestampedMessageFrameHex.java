@@ -25,10 +25,8 @@ public class TimestampedMessageFrameHex extends TimestampedMessageFrame {
         return super.getMessageFrame();
     }
 
-
-    @Override
     @JsonProperty("hex")
-    public String getMessageFrameHex() {
-        return super.getMessageFrameHex();
+    public String getHex() {
+        return getMessageFrameHex();
     }
 }
