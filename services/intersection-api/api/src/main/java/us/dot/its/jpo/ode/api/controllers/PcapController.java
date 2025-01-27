@@ -152,7 +152,9 @@ public class PcapController {
             // Save timestamps
             var xmlList = new TimestampedMessageFrameXmlList();
             for (TimestampedMessageFrame tmf : messageFrameList) {
-                formatter.format("%s%n", tmf.getMessageFrameHex());
+                // Include a space at the end of each line to accommodate cpp-httplib which likes to strip newlines
+                // from text/plain
+                formatter.format("%s %n", tmf.getMessageFrameHex());
                 var xmlItem = new TimestampedMessageFrameXml();
                 xmlItem.setTimestamp(tmf.getTimestamp());
                 xmlItem.setType(tmf.getMessageFrameType());
