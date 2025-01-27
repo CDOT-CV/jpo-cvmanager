@@ -77,15 +77,21 @@ public class PcapController {
                         MediaType.TEXT_PLAIN_VALUE})
     public @ResponseBody ResponseEntity<String> pcapToTimestampedHex(
             @RequestBody byte[] bytes,
-            @RequestParam Optional<String> text) throws IOException {
+            @RequestParam Optional<String> text,
+            @RequestParam Optional<String> space) throws IOException {
         log.info("pcapToTimestampedHex received {}", bytes.length);
         try {
             var hexList = new TimestampedMessageFrameHexList(decoder.decodePcap(bytes));
             if (text.isPresent()) {
                 // Send hex as plain line-delimited text
                 Formatter lines = new Formatter();
+                // If 'space' param is present, use space as delimiter to accommodate cpp-httplib
+                // which likes to strip newlines from text/plain
+                final String fmt = space.isPresent()
+                        ? "%s "
+                        : "%s%n";
                 for (var hex : hexList) {
-                    lines.format("%s%n", hex.getHex());
+                    lines.format(fmt, hex.getHex());
                 }
                 return ResponseEntity
                         .status(HttpStatus.OK)
@@ -144,8 +150,7 @@ public class PcapController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
     public @ResponseBody ResponseEntity<String> decodeMessageFramesWithAcm(
-            @RequestBody TimestampedMessageFrameList messageFrameList,
-            @RequestParam Optional<String> space) {
+            @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
         try {
             Formatter formatter = new Formatter();
@@ -153,14 +158,7 @@ public class PcapController {
             // Save timestamps
             var xmlList = new TimestampedMessageFrameXmlList();
             for (TimestampedMessageFrame tmf : messageFrameList) {
-
-                // If 'space' param is present, include use space as delimiter to accommodate cpp-httplib
-                // which likes to strip newlines from text/plain
-                final String fmt = space.isPresent()
-                        ? "%s "
-                        : "%s%n";
-
-                formatter.format(fmt, tmf.getMessageFrameHex());
+                formatter.format("%s%n", tmf.getMessageFrameHex());
                 var xmlItem = new TimestampedMessageFrameXml();
                 xmlItem.setTimestamp(tmf.getTimestamp());
                 xmlItem.setType(tmf.getMessageFrameType());
