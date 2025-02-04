@@ -54,7 +54,8 @@ public class TimestampedMessageFrame {
     }
 
     /**
-     * Search for a J2735 Message Frame, and set startIndex and endIndex to the beginning and end of it
+     * Search for a J2735 Message Frame.
+     * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
      * @return true if a MessageFrame was detected, false if not
      */
     public boolean findMessageFrame() {
@@ -76,11 +77,16 @@ public class TimestampedMessageFrame {
             }
         }
 
-        // Couldn't find wrapper, check if it may be an uwrapped msg frame:
-        // is there is a message frame id at the beginning?
-        // Do this after the OER scan to avoid false positives with the first 2 bytes.
-        if (checkIfMessageFrameAtBeginning()) {
-            return true;
+        // Nothing found with a 1609.2 wrapper.
+        // Scan again to check for a message frame with UPER length determinant anywhere in the byte array, in
+        // case we have a bare MessageFrame with UDP headers or something.
+        // This only requires 4 bytes
+        final byte[] uperSlice = new byte[4];
+        for (int idx = 0; idx < bytes.length - 4; idx++) {
+            System.arraycopy(bytes, idx, uperSlice, 0, 4);
+            if (checkIfBareMessageFrame(idx, uperSlice)) {
+                return true;
+            }
         }
 
         messageFrameType = MessageType.UNKNOWN;
@@ -90,7 +96,7 @@ public class TimestampedMessageFrame {
     /**
      * Check a 7 item byte array for the pattern:
      * <p>OER unsecured data tag, followed by OER length determinant, Message Frame ID</p>
-     * <p>Side effect: sets message frame type beginIndex and endIndex if found</p>
+     * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
      * @param slice A 7 item byte array
      * @return True if found
      */
@@ -107,6 +113,7 @@ public class TimestampedMessageFrame {
         }
 
         // Check for OER length determinant
+        // Ref. ITU-T X.696, 8.6
         // First byte can be length less than 128, or marker that the next 2 bytes are the length
         if (b[2] < 0x80) {
             // It could be a length, check for message frame
@@ -136,7 +143,7 @@ public class TimestampedMessageFrame {
             final var type = MessageType.fromId(b[6]);
             if (b[5] == 0 && type != null) {
                 // Combine b3 and b4 into a 16 bit integer
-                int length = (b[3] << 8) | b[4];
+                final int length = (b[3] << 8) | b[4];
                 return validateIndices(sliceStartIndex + 5, length, type);
             }
             return false;
@@ -148,19 +155,55 @@ public class TimestampedMessageFrame {
         return false;
     }
 
-    public boolean checkIfMessageFrameAtBeginning() {
-        int first = toUnsignedInt(bytes[0]);
-        int second = toUnsignedInt(bytes[1]);
+    public boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
+        final int first = toUnsignedInt(slice[0]);
+        final int second = toUnsignedInt(slice[1]);
         MessageType type = MessageType.fromId(second);
-        if (first == 0 && type != null) {
-            messageFrameType = type;
-            return true;
+
+        if (first != 0) return false;
+        if (type == null) return false;
+
+        // We have a valid massage type.  Is it followed by a plausible UPER length determinant?  Check
+        // everything we know must be true to avoid false positives.
+        // Ref. ITU-T X.691, 11.9
+        final int third = toUnsignedInt(slice[2]);
+        boolean bit8 = (third & 0x80) != 0;
+        boolean bit7 = (third & 0x40) != 0;
+
+        if (!bit8) {
+            // bit 8 = 0: May be a single byte length determinant
+            final int messageFramePayloadLength = third;
+
+            // Not sure what the minimum possible number of bytes in a message payload is, but it definitely can't be 0
+            if (messageFramePayloadLength == 0) {
+                return false;
+            }
+
+            final int totalMessageFrameLength = messageFramePayloadLength + 3;
+            return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
+        } else if (!bit7) {
+            // bit 8 = 1 and bit 7 = 0: May be a two byte length determinant
+            final int fourth = toUnsignedInt(slice[3]);
+
+            // Remove bit 8 and combine b3 and b4 into a 16 bit integer
+            final int messageFramePayloadLength = ((third & 0x7F) << 8) | fourth;
+
+            // The length must be >= 128, otherwise there would have been a single byte determinant
+            if (messageFramePayloadLength < 0x80) {
+                return false;
+            }
+
+            final int totalMessageFrameLength = messageFramePayloadLength + 4;
+            return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
+        } else {
+            // bit8 = 1 and bit7 = 1: This would be a message frame with length > 16 Kbytes. We don't handle this
+            // case because it is unlikely to happen.
         }
         return false;
     }
 
     /**
-     * Validate indices don't overflow reset the byte array to the extracted the message using the indices.
+     * Validate indices don't overflow and reset the byte array to the extracted message using the indices.
      * @param iStart Start index
      * @param length End index
      * @return true if valid, false if overflow

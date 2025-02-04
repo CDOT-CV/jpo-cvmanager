@@ -262,47 +262,7 @@ public class DecoderManager {
 
     }
 
-    public static String batchDecodeHexWithAcm(String batchHex) throws Exception {
-        final String tempDir = FileUtils.getTempDirectoryPath();
-        final UUID tempId = UUID.randomUUID();
-        final String tempFileName = "batch-hex-" + tempId + ".hex";
-        final String outFileName = "batch-xml-" + tempId + ".xml.txt";
-        log.info("Saved hex to temp file: {}", tempFileName);
-        final Path tempFilePath = Path.of(tempDir, tempFileName);
-        final File tempFile = new File(tempFilePath.toString());
-        FileUtils.writeStringToFile(tempFile, batchHex, StandardCharsets.UTF_8);
 
-        final Path outFilePath = Path.of(tempDir, outFileName);
-        final File outFile = new File(outFilePath.toString());
-        String xmlResult = null;
-        try {
-            // Run ACM batch file decode
-            var pb = new ProcessBuilder(
-                    "/build/acm",
-                    "-c", "/build/config/example.properties",
-                    "-B", tempFile.getAbsolutePath(),
-                    "-A", outFile.getAbsolutePath());
-            pb.directory(new File("/build"));
-            Process process = pb.start();
-            String result = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
-            String error = IOUtils.toString(process.getErrorStream(), StandardCharsets.UTF_8);
-            log.info("cout: {}", result);
-            log.info("cerr: {}", error);
-            xmlResult = FileUtils.readFileToString(outFile, StandardCharsets.UTF_8);
-        } finally {
-            try {
-                tempFile.delete();
-            } catch (Exception de) {
-                log.error("Error deleting temp input file", de);
-            }
-            try {
-                outFile.delete();
-            } catch (Exception de) {
-                log.error("Error deleting temp output file", de);
-            }
-        }
-        return xmlResult;
-    }
 
     public List<OdeData> convertBatchXmlToOdeData(String xmlBatch) {
         Scanner scanner = new Scanner(xmlBatch);
@@ -320,7 +280,7 @@ public class DecoderManager {
         while (scanner.hasNextLine()) {
             String typeTimestamp = scanner.nextLine();
 
-            // Parse line of format:
+            // Parse metadata line of format:
             // MessageType,timestamp
 
             String[] typeTimestampArr = typeTimestamp.split(",");
@@ -343,7 +303,7 @@ public class DecoderManager {
                 throw new IllegalArgumentException(String.format("Invalid timestamp format in %s", typeTimestamp), e);
             }
 
-            // Read XML line
+            // Read the XML line itself
             String xml = scanner.nextLine();
             ++numXml;
             try {
@@ -393,70 +353,6 @@ public class DecoderManager {
         return odeDataList;
     }
 
-    public List<OdeData> convertBatchXmlToOdeData(TimestampedMessageFrameXmlList xmlBatch) {
-
-        List<OdeData> odeDataList = new ArrayList<>();
-        log.info("Converting xml to ode json");
-        long numXml = 0;
-        long numSpat = 0;
-        long numMap = 0;
-        long numBsm = 0;
-        long numSrm = 0;
-        long numSsm = 0;
-        long numTim = 0;
-        long numUnknown = 0;
-        long numError = 0;
-        for (TimestampedMessageFrameXml mfXml : xmlBatch) {
-            ++numXml;
-            final String xml = mfXml.getXml();
-            try {
-                final MessageType type = mfXml.getType();
-                final long timestamp = mfXml.getTimestamp();
-
-                OdeData odeData = switch (type) {
-                    case SPAT -> {
-                        ++numSpat;
-                        yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp);
-                    }
-                    case MAP -> {
-                        ++numMap;
-                        yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp);
-                    }
-                    case BSM -> {
-                        ++numBsm;
-                        yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp);
-                    }
-                    case SRM -> {
-                        ++numSrm;
-                        yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp);
-                    }
-                    case SSM -> {
-                        ++numSsm;
-                        yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp);
-                    }
-                    case TIM -> {
-                        ++numTim;
-                        log.warn("TIM XML message, not supported: {}", xml);
-                        yield null;
-                    }
-                    default -> {
-                        ++numUnknown;
-                        log.warn("Unknown XML message type: {}: {}", type, xml);
-                        yield null;
-                    }
-                };
-                odeDataList.add(odeData);
-            } catch (Exception e) {
-                ++numError;
-                log.error("Error converting XML to OdeData: {}, xml: {}", e.getMessage(), xml);
-            }
-        }
-        log.info("finished converting {} xml items to {} ode json items. " +
-                "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}, Error: {}",
-                numXml, odeDataList.size(),
-                numSpat, numMap, numBsm, numSrm, numSsm, numTim, numUnknown, numError);
-        return odeDataList;
-    }
 
     public List<String> convertBatchOdeDataToJson(List<OdeData> odeDataList) {
         List<String> decodedMessages = new ArrayList<>();

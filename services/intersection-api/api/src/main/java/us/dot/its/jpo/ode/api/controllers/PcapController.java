@@ -24,70 +24,46 @@ import us.dot.its.jpo.ode.model.*;
 @Slf4j
 public class PcapController {
 
-    @Autowired
-    PcapDecoder decoder;
+    private final PcapDecoder decoder;
+    private final DecoderManager decoderManager;
 
     @Autowired
-    DecoderManager decoderManager;
-
-    RestTemplate codecTemplate = new RestTemplate();
-    String decodeBatchUrl = "http://172.26.19.45:4000/batch/uper/b64/xer";
-    SpatProcessedJsonConverter spatConverter = new SpatProcessedJsonConverter();
-
-    /**
-     * Convert pcap data to a {@link TimestampedMessageFrameList}.
-     * Attempts to extract UDP or unsecured WAVE payloads.
-     * If this method fails, try the verbose-json endpoint to retrieve the detailed
-     * wireshark json.
-     * 
-     * @param bytes PCAP data
-     * @return JSON array of Timestamped Hex data
-     * @throws IOException
-     */
-    @RequestMapping(value = "/pcap/uper/b64", method = RequestMethod.POST, consumes = {
-            MediaType.APPLICATION_OCTET_STREAM_VALUE,
-            "application/pcap",
-            "application/vnd.tcpdump.pcap" }, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedBase64(
-            @RequestBody byte[] bytes) throws IOException {
-        log.info("pcapToTimestampedBase64 received {}", bytes.length);
-        try {
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(decoder.decodePcap(bytes));
-        } catch (Exception ex) {
-            log.error("Exception in /pcap/json", ex);
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new TimestampedMessageFrameList());
-        }
+    public PcapController(PcapDecoder decoder, DecoderManager decoderManager) {
+        this.decoder = decoder;
+        this.decoderManager = decoderManager;
     }
 
-    @RequestMapping(value = "/pcap/uper/hex", method = RequestMethod.POST, consumes = {
-            MediaType.APPLICATION_OCTET_STREAM_VALUE,
-            "application/pcap",
-            "application/vnd.tcpdump.pcap" }, produces = { MediaType.APPLICATION_JSON_VALUE,
-                    MediaType.TEXT_PLAIN_VALUE })
+    RestTemplate codecTemplate = new RestTemplate();
+    String decodeBatchUrl = "http://172.26.19.45:4000/batch/j2735/uper/xer";
+
+
+    /**
+     * Convert standard binary pcap data to a {@link TimestampedMessageFrameHexList}.
+     * Find and extract PCAP frame timestamps and J2735 MessageFrames.
+     *
+     * @param bytes Raw PCAP data
+     * @return JSON array of timestamped message frame data, hex format.
+     */
+    @RequestMapping(value = "/pcap/uper/hex",
+            method = RequestMethod.POST,
+            consumes = {
+                MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                "application/pcap",
+                "application/vnd.tcpdump.pcap" },
+            produces = {
+                MediaType.APPLICATION_JSON_VALUE,
+                MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> pcapToTimestampedHex(
             @RequestBody byte[] bytes,
-            @RequestParam Optional<String> text,
-            @RequestParam Optional<String> space) throws IOException {
+            @RequestParam Optional<String> text) throws IOException {
         log.info("pcapToTimestampedHex received {}", bytes.length);
         try {
             var hexList = new TimestampedMessageFrameHexList(decoder.decodePcap(bytes));
             if (text.isPresent()) {
                 // Send hex as plain line-delimited text
                 Formatter lines = new Formatter();
-                // If 'space' param is present, use space as delimiter to accommodate
-                // cpp-httplib
-                // which likes to strip newlines from text/plain
-                final String fmt = space.isPresent()
-                        ? "%s "
-                        : "%s%n";
                 for (var hex : hexList) {
-                    lines.format(fmt, hex.getHex());
+                    lines.format("%s%n", hex.getHex());
                 }
                 return ResponseEntity
                         .status(HttpStatus.OK)
@@ -101,7 +77,7 @@ public class PcapController {
                         .body(DateJsonMapper.getInstance().writeValueAsString(hexList));
             }
         } catch (Exception ex) {
-            log.error("Exception in /pcap/json", ex);
+            log.error("Exception in /pcap/uper/hex", ex);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.TEXT_PLAIN)
@@ -109,15 +85,21 @@ public class PcapController {
         }
     }
 
-    @RequestMapping(value = "/pcap/decode", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
-            MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
+
+
+    @RequestMapping(value = "/pcap/decode",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = {
+                    MediaType.APPLICATION_JSON_VALUE,
+                    MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> decodeMessageFrames(
-            @RequestBody TimestampedMessageFrameList messageFrameList) {
+            @RequestBody TimestampedMessageFrameHexList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<TimestampedMessageFrameList> request = new HttpEntity<>(messageFrameList, headers);
+            HttpEntity<TimestampedMessageFrameHexList> request = new HttpEntity<>(messageFrameList, headers);
             String xmlBatch = codecTemplate.postForObject(decodeBatchUrl, request, String.class);
             log.info("Received xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
             List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlBatch);
@@ -138,59 +120,59 @@ public class PcapController {
         }
     }
 
-    /**
-     *
-     * @param messageFrameList
-     * @return
-     */
-    @RequestMapping(value = "/pcap/acmdecode", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
-            MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
-    public @ResponseBody ResponseEntity<String> decodeMessageFramesWithAcm(
-            @RequestBody TimestampedMessageFrameList messageFrameList) {
-        log.info("decodeMessageFrames received {} messages", messageFrameList.size());
-        try {
-            Formatter formatter = new Formatter();
-
-            // Save timestamps
-            var xmlList = new TimestampedMessageFrameXmlList();
-            for (TimestampedMessageFrame tmf : messageFrameList) {
-                formatter.format("%s%n", tmf.getMessageFrameHex());
-                var xmlItem = new TimestampedMessageFrameXml();
-                xmlItem.setTimestamp(tmf.getTimestamp());
-                xmlItem.setType(tmf.getMessageFrameType());
-                xmlList.add(xmlItem);
-            }
-
-            // Decode XML using batch ACM command line
-            String xmlBatch = DecoderManager.batchDecodeHexWithAcm(formatter.toString());
-            log.info("Converted xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
-
-            // Read XML lines into list with timestamps
-            Scanner scanner = new Scanner(xmlBatch);
-            int xmlLineNum = 0;
-            while (scanner.hasNextLine()) {
-                String xmlLine = scanner.nextLine();
-                TimestampedMessageFrameXml xmlItem = xmlList.get(xmlLineNum);
-                xmlItem.setXml(xmlLine);
-                ++xmlLineNum;
-            }
-
-            List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlList);
-            List<String> decodedMessages = decoderManager.convertBatchOdeDataToJson(odeDataList);
-            String json = "[" + String.join(",", decodedMessages) + "]";
-            log.info("Finished converting ode Json to {} processed json items", decodedMessages.size());
-            if (decodedMessages.size() < messageFrameList.size()) {
-                log.error(
-                        "{} items were dropped due to errors or unknown message types while converting message frames to json",
-                        messageFrameList.size() - decodedMessages.size());
-            }
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
-        } catch (Exception e) {
-            String message = String.format("Failed to decode message frames: %s", e.getMessage());
-            log.error(message, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
-                    .body(message + ", " + ExceptionUtils.getStackTrace(e));
-        }
-    }
+//    /**
+//     *
+//     * @param messageFrameList
+//     * @return
+//     */
+//    @RequestMapping(value = "/pcap/acmdecode", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
+//            MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
+//    public @ResponseBody ResponseEntity<String> decodeMessageFramesWithAcm(
+//            @RequestBody TimestampedMessageFrameList messageFrameList) {
+//        log.info("decodeMessageFrames received {} messages", messageFrameList.size());
+//        try {
+//            Formatter formatter = new Formatter();
+//
+//            // Save timestamps
+//            var xmlList = new TimestampedMessageFrameXmlList();
+//            for (TimestampedMessageFrame tmf : messageFrameList) {
+//                formatter.format("%s%n", tmf.getMessageFrameHex());
+//                var xmlItem = new TimestampedMessageFrameXml();
+//                xmlItem.setTimestamp(tmf.getTimestamp());
+//                xmlItem.setType(tmf.getMessageFrameType());
+//                xmlList.add(xmlItem);
+//            }
+//
+//            // Decode XML using batch ACM command line
+//            String xmlBatch = DecoderManager.batchDecodeHexWithAcm(formatter.toString());
+//            log.info("Converted xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
+//
+//            // Read XML lines into list with timestamps
+//            Scanner scanner = new Scanner(xmlBatch);
+//            int xmlLineNum = 0;
+//            while (scanner.hasNextLine()) {
+//                String xmlLine = scanner.nextLine();
+//                TimestampedMessageFrameXml xmlItem = xmlList.get(xmlLineNum);
+//                xmlItem.setXml(xmlLine);
+//                ++xmlLineNum;
+//            }
+//
+//            List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlList);
+//            List<String> decodedMessages = decoderManager.convertBatchOdeDataToJson(odeDataList);
+//            String json = "[" + String.join(",", decodedMessages) + "]";
+//            log.info("Finished converting ode Json to {} processed json items", decodedMessages.size());
+//            if (decodedMessages.size() < messageFrameList.size()) {
+//                log.error(
+//                        "{} items were dropped due to errors or unknown message types while converting message frames to json",
+//                        messageFrameList.size() - decodedMessages.size());
+//            }
+//            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
+//        } catch (Exception e) {
+//            String message = String.format("Failed to decode message frames: %s", e.getMessage());
+//            log.error(message, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
+//                    .body(message + ", " + ExceptionUtils.getStackTrace(e));
+//        }
+//    }
 
 }
