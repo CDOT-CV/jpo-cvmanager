@@ -41,14 +41,24 @@ services:
       - ./resources/kafka/kafka_init.sh:/kafka_init.sh
     entrypoint: ['/bin/sh', 'kafka_init.sh']
 
-  j2735_2024_api:
-    profiles:
-      - intersection
-    image: iyourshaw/j2735-2024-api:develop
-    restart: always
+
+  asn1_codec:
+    build:
+      context: ./services/intersection-api/asn1_codec
+      dockerfile: Dockerfile.server.amazonlinux
     ports:
-      - "4000:4000"
-    
+      - "4000:8080"
+    environment:
+      DOCKER_HOST_IP: ${KAFKA_BROKER_IP}  #Not used
+      KAFKA_TYPE: "ON-PREM" # Not used
+      ACM_CONFIG_FILE: adm.properties
+      ACM_LOG_TO_CONSOLE: "${ACM_LOG_TO_CONSOLE}"
+      ACM_LOG_TO_FILE: "${ACM_LOG_TO_FILE}"
+      ACM_LOG_LEVEL: "${ACM_LOG_LEVEL}"
+      ACM_HTTP_SERVER_PORT: ${ACM_HTTP_SERVER_PORT}
+      ACM_HTTP_SERVER_CONCURRENCY: ${ACM_HTTP_SERVER_CONCURRENCY}
+    restart: on-failure
+
 
   intersection_api:
     profiles:
