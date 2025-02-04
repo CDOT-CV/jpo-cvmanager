@@ -2,7 +2,7 @@ package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import us.dot.its.jpo.ode.api.models.MessageType;
+import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
 import org.apache.commons.lang3.tuple.Pair;
@@ -37,15 +37,14 @@ import static us.dot.its.jpo.ode.api.models.messages.MessageType.*;
 public class DecoderManager {
 
     public static final Map<String, Pair<MessageType, Integer>> startFlagsToTypesAndSizes = Map.of(
-        "0014", Pair.of(MessageType.BSM, 500),
-        "0012", Pair.of(MessageType.MAP, 2048),
-        "0013", Pair.of(MessageType.SPAT, 1000),
-        "001d", Pair.of(MessageType.SRM, 500),
-        "001e", Pair.of(MessageType.SSM, 500),
-        "001f", Pair.of(MessageType.TIM, 500)
-    );
+            "0014", Pair.of(MessageType.BSM, 500),
+            "0012", Pair.of(MessageType.MAP, 2048),
+            "0013", Pair.of(MessageType.SPAT, 1000),
+            "001d", Pair.of(MessageType.SRM, 500),
+            "001e", Pair.of(MessageType.SSM, 500),
+            "001f", Pair.of(MessageType.TIM, 500));
     public static final Map<MessageType, String> typesToStartFlags = startFlagsToTypesAndSizes.entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getValue().getLeft(), Map.Entry::getKey));
+            .collect(Collectors.toMap(entry -> entry.getValue().getLeft(), Map.Entry::getKey));
     public static final int HEADER_MINIMUM_SIZE = 20;
 
     @Autowired
@@ -66,14 +65,18 @@ public class DecoderManager {
     @Autowired
     public TimDecoder timDecoder;
 
-
     /**
-     * This function takes in an Encoded message object, and decodes it into a DecodedMessage Object. 
+     * This function takes in an Encoded message object, and decodes it into a
+     * DecodedMessage Object.
      * During the decoding process this function performs the following
      * Remove Message Headers
      * Pass the Message to the ACM module for Decoding
-     * Pass the message to the appropriate Message type decoder to be converted to the correct J2735 and Processed- message formats. 
-     * @return A DecodedMessage object representing the object in its multiple representations. This includes, asn.1, ODEJsonFormat, and Processed formats for available message types.
+     * Pass the message to the appropriate Message type decoder to be converted to
+     * the correct J2735 and Processed- message formats.
+     * 
+     * @return A DecodedMessage object representing the object in its multiple
+     *         representations. This includes, asn.1, ODEJsonFormat, and Processed
+     *         formats for available message types.
      */
     public DecodedMessage decode(EncodedMessage message) {
         final String payload = removeHeader(message.getAsn1Message(), message.getType());
@@ -84,25 +87,33 @@ public class DecoderManager {
                     "Unable to find valid message start flag within input data");
         }
 
-        final Decoder decoder = switch(message.getType()) {
-            case MessageType.BSM: yield bsmDecoder;
-            case MessageType.MAP: yield mapDecoder;
-            case MessageType.SPAT: yield spatDecoder;
-            case MessageType.SRM: yield srmDecoder;
-            case MessageType.SSM: yield ssmDecoder;
-            case MessageType.TIM: yield timDecoder;
-            case MessageType.UNKNOWN: yield null;
+        final Decoder decoder = switch (message.getType()) {
+            case MessageType.BSM:
+                yield bsmDecoder;
+            case MessageType.MAP:
+                yield mapDecoder;
+            case MessageType.SPAT:
+                yield spatDecoder;
+            case MessageType.SRM:
+                yield srmDecoder;
+            case MessageType.SSM:
+                yield ssmDecoder;
+            case MessageType.TIM:
+                yield timDecoder;
+            case MessageType.UNKNOWN:
+                yield null;
         };
         if (decoder == null) {
             return new DecodedMessage(payload, message.getType(), "No Valid Decoder found for Message Type UNKNOWN");
-        }
-        else {
+        } else {
             return decoder.decode(message);
         }
     }
 
     /**
-     * This is a helper function to return the current time as an ISO formatted String
+     * This is a helper function to return the current time as an ISO formatted
+     * String
+     * 
      * @return An ISO formatted string representing the current time
      */
     public static String getCurrentIsoTimestamp() {
@@ -111,17 +122,22 @@ public class DecoderManager {
     }
 
     /**
-     * This returns a static string representing the "Origin IP" for user-uploaded data
+     * This returns a static string representing the "Origin IP" for user-uploaded
+     * data
+     * 
      * @return "user-upload"
      */
     public static String getStaticUserOriginIp() {
         return "user-upload";
     }
 
-
     /**
-     * This returns a Hex Encoded ASN.1 String where any header bytes before the message frame type bytes have been removed.
-     * @return A hexadecimal string representing an ASN.1 encoded message. The first 4 characters of the hex string should correspond to an ASN.1 message type. 
+     * This returns a Hex Encoded ASN.1 String where any header bytes before the
+     * message frame type bytes have been removed.
+     * 
+     * @return A hexadecimal string representing an ASN.1 encoded message. The first
+     *         4 characters of the hex string should correspond to an ASN.1 message
+     *         type.
      */
     public static String removeHeader(String hexPacket, MessageType type) {
 
@@ -129,9 +145,11 @@ public class DecoderManager {
 
         int startIndex = hexPacket.indexOf(startFlag);
 
-        return switch(startIndex) {
-            case 0: yield hexPacket; // Raw Message no Headers
-            case -1: yield null;
+        return switch (startIndex) {
+            case 0:
+                yield hexPacket; // Raw Message no Headers
+            case -1:
+                yield null;
             default:
                 // We likely found a message with a header, look past the first 20
                 // bytes for the start of the message
@@ -142,8 +160,12 @@ public class DecoderManager {
     }
 
     /**
-     * This method takes in a hex encoded ASN.1 packet and returns the message type that matches the corresponding method. 
-     * @return An EncodedMessage object containing a String representing the hex encoded asn.1 and MessageType object representing MAP, SPaT, BSM, etc. 
+     * This method takes in a hex encoded ASN.1 packet and returns the message type
+     * that matches the corresponding method.
+     * 
+     * @return An EncodedMessage object containing a String representing the hex
+     *         encoded asn.1 and MessageType object representing MAP, SPaT, BSM,
+     *         etc.
      */
     public static EncodedMessage identifyAsn1(String hexPacket) {
 
@@ -200,8 +222,11 @@ public class DecoderManager {
     }
 
     /**
-     * The input to this function is an XML String containing the asn.1 of an encoded message as well as ODE metadata fields. 
-     * This function passes the XML string to the ACM module which returns back an XML object representing the J2735 Encoded Message.
+     * The input to this function is an XML String containing the asn.1 of an
+     * encoded message as well as ODE metadata fields.
+     * This function passes the XML string to the ACM module which returns back an
+     * XML object representing the J2735 Encoded Message.
+     * 
      * @return An xml string containing the Decoded ASN.1 from the input xml
      */
     public static String decodeXmlWithAcm(String xmlMessage) throws Exception {
@@ -227,8 +252,7 @@ public class DecoderManager {
             log.info("Decode Result: {}", result);
 
             return result;
-        }
-        finally {
+        } finally {
             // Clean up temp file
             boolean deleteResult = tempFile.delete();
             if (!deleteResult) {
@@ -301,7 +325,8 @@ public class DecoderManager {
 
             String[] typeTimestampArr = typeTimestamp.split(",");
             if (typeTimestampArr.length != 2) {
-                throw new IllegalArgumentException(String.format("Type/timestamp line doesn't have 2 items: %s", typeTimestamp));
+                throw new IllegalArgumentException(
+                        String.format("Type/timestamp line doesn't have 2 items: %s", typeTimestamp));
             }
 
             MessageType type;
@@ -323,13 +348,36 @@ public class DecoderManager {
             ++numXml;
             try {
                 OdeData odeData = switch (type) {
-                    case SPAT -> { ++numSpat; yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp); }
-                    case MAP -> { ++numMap; yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp); }
-                    case BSM -> { ++numBsm; yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp); }
-                    case SRM -> { ++numSrm; yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp); }
-                    case SSM -> { ++numSsm; yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp); }
-                    case TIM -> { ++numTim; log.warn("TIM XML message, not supported: {}", xml); yield null; }
-                    default -> { ++numUnknown; log.warn("Unknown XML message type: {}: {}", type, xml); yield null; }
+                    case SPAT -> {
+                        ++numSpat;
+                        yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case MAP -> {
+                        ++numMap;
+                        yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case BSM -> {
+                        ++numBsm;
+                        yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case SRM -> {
+                        ++numSrm;
+                        yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case SSM -> {
+                        ++numSsm;
+                        yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case TIM -> {
+                        ++numTim;
+                        log.warn("TIM XML message, not supported: {}", xml);
+                        yield null;
+                    }
+                    default -> {
+                        ++numUnknown;
+                        log.warn("Unknown XML message type: {}: {}", type, xml);
+                        yield null;
+                    }
                 };
                 odeDataList.add(odeData);
             } catch (Exception e) {
@@ -366,13 +414,36 @@ public class DecoderManager {
                 final long timestamp = mfXml.getTimestamp();
 
                 OdeData odeData = switch (type) {
-                    case SPAT -> { ++numSpat; yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp); }
-                    case MAP -> { ++numMap; yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp); }
-                    case BSM -> { ++numBsm; yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp); }
-                    case SRM -> { ++numSrm; yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp); }
-                    case SSM -> { ++numSsm; yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp); }
-                    case TIM -> { ++numTim; log.warn("TIM XML message, not supported: {}", xml); yield null; }
-                    default -> { ++numUnknown; log.warn("Unknown XML message type: {}: {}", type, xml); yield null; }
+                    case SPAT -> {
+                        ++numSpat;
+                        yield spatDecoder.getOdeSpatDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case MAP -> {
+                        ++numMap;
+                        yield mapDecoder.getOdeMapDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case BSM -> {
+                        ++numBsm;
+                        yield bsmDecoder.getOdeBsmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case SRM -> {
+                        ++numSrm;
+                        yield srmDecoder.getOdeSrmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case SSM -> {
+                        ++numSsm;
+                        yield ssmDecoder.getOdeSsmDataFromMessageFrameXml(xml, timestamp);
+                    }
+                    case TIM -> {
+                        ++numTim;
+                        log.warn("TIM XML message, not supported: {}", xml);
+                        yield null;
+                    }
+                    default -> {
+                        ++numUnknown;
+                        log.warn("Unknown XML message type: {}: {}", type, xml);
+                        yield null;
+                    }
                 };
                 odeDataList.add(odeData);
             } catch (Exception e) {
@@ -381,7 +452,7 @@ public class DecoderManager {
             }
         }
         log.info("finished converting {} xml items to {} ode json items. " +
-                        "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}, Error: {}",
+                "SPATs: {}, MAPs: {}, BSMs: {}, SRMs: {}, SSMs: {}, TIMs: {}, Unknown: {}, Error: {}",
                 numXml, odeDataList.size(),
                 numSpat, numMap, numBsm, numSrm, numSsm, numTim, numUnknown, numError);
         return odeDataList;
@@ -395,14 +466,16 @@ public class DecoderManager {
                     ProcessedSpat processedSpat = spatDecoder.createProcessedSpat(spatData);
                     decodedMessages.add(processedSpat.toString());
                 } catch (Exception e) {
-                    log.error("Error converting to processed spat: {}, OdeSpatData: {}", e.getMessage(), spatData.toJson());
+                    log.error("Error converting to processed spat: {}, OdeSpatData: {}", e.getMessage(),
+                            spatData.toJson());
                 }
             } else if (data instanceof OdeMapData mapData) {
                 try {
                     ProcessedMap<LineString> processedMap = mapDecoder.createProcessedMap(mapData);
                     decodedMessages.add(processedMap.toString());
                 } catch (Exception e) {
-                    log.error("Error converting to processed map: {}, OdeMapData: {}", e.getMessage(), mapData.toJson());
+                    log.error("Error converting to processed map: {}, OdeMapData: {}", e.getMessage(),
+                            mapData.toJson());
                 }
             } else {
                 decodedMessages.add(data.toJson());

@@ -75,12 +75,13 @@ public class SrmDecoder implements Decoder {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeSrmMetadata metadata = new OdeSrmMetadata();
         metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
-        metadata.setOriginIp(DecoderManager.getOriginIp());
+        metadata.setOriginIp(DecoderManager.getStaticUserOriginIp());
         metadata.setRecordType(RecordType.srmTx);
         var receivedMessageDetails = new ReceivedMessageDetails();
         receivedMessageDetails.setRxSource(RxSource.NA);
         metadata.setSrmSource(OdeSrmMetadata.SrmSource.unknown);
-        OdeSrmPayload payload = new OdeSrmPayload(SRMBuilder.genericSRM(messageFrameNode.findValue("SignalRequestMessage")));
+        OdeSrmPayload payload = new OdeSrmPayload(
+                SRMBuilder.genericSRM(messageFrameNode.findValue("SignalRequestMessage")));
         return new OdeSrmData(metadata, payload);
     }
 

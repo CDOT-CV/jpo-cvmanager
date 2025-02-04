@@ -22,14 +22,13 @@ import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
 import java.time.Instant;
 
-
 @Slf4j
 @Component
 public class BsmDecoder implements Decoder {
 
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-        
+
         // Convert to Ode Data type and Add Metadata
         OdeData data = getAsOdeData(message.getAsn1Message());
 
@@ -42,13 +41,13 @@ public class BsmDecoder implements Decoder {
             // Send String through ASN.1 Decoder to get Decoded XML Data
             String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
 
-            // Convert to Ode Json 
+            // Convert to Ode Json
             OdeBsmData bsm = getAsOdeJson(decodedXml);
 
             // build output data structure
             DecodedMessage decodedMessage = new BsmDecodedMessage(bsm, message.getAsn1Message(), "");
             return decodedMessage;
-            
+
         } catch (JsonProcessingException e) {
             log.error("JSON error decoding BSM", e);
             return new BsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
@@ -91,13 +90,14 @@ public class BsmDecoder implements Decoder {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeBsmMetadata metadata = new OdeBsmMetadata();
         metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
-        metadata.setOriginIp(DecoderManager.getOriginIp());
+        metadata.setOriginIp(DecoderManager.getStaticUserOriginIp());
         metadata.setRecordType(RecordType.bsmTx);
         metadata.setSecurityResultCode(OdeLogMetadata.SecurityResultCode.success);
         var receivedMessageDetails = new ReceivedMessageDetails();
         receivedMessageDetails.setRxSource(RxSource.RV);
         metadata.setBsmSource(BsmSource.RV);
-        OdeBsmPayload payload = new OdeBsmPayload(BsmBuilder.genericBsm(messageFrameNode.findValue("BasicSafetyMessage")));
+        OdeBsmPayload payload = new OdeBsmPayload(
+                BsmBuilder.genericBsm(messageFrameNode.findValue("BasicSafetyMessage")));
         return new OdeBsmData(metadata, payload);
     }
 
@@ -110,12 +110,12 @@ public class BsmDecoder implements Decoder {
             // Removing encodings to match ODE behavior
             object.remove(AppContext.ENCODINGS_STRING);
         }
-        
+
         OdeBsmMetadata metadata = (OdeBsmMetadata) JsonUtils.fromJson(
-            metadataNode.toString(), OdeBsmMetadata.class);
-        
+                metadataNode.toString(), OdeBsmMetadata.class);
+
         OdeBsmPayload payload = new OdeBsmPayload(
-            BsmBuilder.genericBsm(consumed.findValue("BasicSafetyMessage")));
+                BsmBuilder.genericBsm(consumed.findValue("BasicSafetyMessage")));
         return new OdeBsmData(metadata, payload);
     }
 

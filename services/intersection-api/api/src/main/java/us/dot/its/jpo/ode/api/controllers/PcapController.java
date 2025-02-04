@@ -11,7 +11,6 @@ import us.dot.its.jpo.ode.api.asn1.DecoderManager;
 import us.dot.its.jpo.ode.api.models.messages.*;
 import us.dot.its.jpo.ode.api.pcap.PcapDecoder;
 
-
 import java.io.IOException;
 import java.util.Formatter;
 import java.util.List;
@@ -38,18 +37,17 @@ public class PcapController {
     /**
      * Convert pcap data to a {@link TimestampedMessageFrameList}.
      * Attempts to extract UDP or unsecured WAVE payloads.
-     * If this method fails, try the verbose-json endpoint to retrieve the detailed wireshark json.
+     * If this method fails, try the verbose-json endpoint to retrieve the detailed
+     * wireshark json.
+     * 
      * @param bytes PCAP data
-     * @return JSON array of Timestamped Hex data 
+     * @return JSON array of Timestamped Hex data
      * @throws IOException
      */
-    @RequestMapping(
-        value = "/pcap/uper/b64",
-        method = RequestMethod.POST,
-        consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                    "application/pcap",
-                    "application/vnd.tcpdump.pcap"},
-        produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/pcap/uper/b64", method = RequestMethod.POST, consumes = {
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            "application/pcap",
+            "application/vnd.tcpdump.pcap" }, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedBase64(
             @RequestBody byte[] bytes) throws IOException {
         log.info("pcapToTimestampedBase64 received {}", bytes.length);
@@ -67,14 +65,11 @@ public class PcapController {
         }
     }
 
-    @RequestMapping(
-            value = "/pcap/uper/hex",
-            method = RequestMethod.POST,
-            consumes = {MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                    "application/pcap",
-                    "application/vnd.tcpdump.pcap"},
-            produces = {MediaType.APPLICATION_JSON_VALUE,
-                        MediaType.TEXT_PLAIN_VALUE})
+    @RequestMapping(value = "/pcap/uper/hex", method = RequestMethod.POST, consumes = {
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            "application/pcap",
+            "application/vnd.tcpdump.pcap" }, produces = { MediaType.APPLICATION_JSON_VALUE,
+                    MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> pcapToTimestampedHex(
             @RequestBody byte[] bytes,
             @RequestParam Optional<String> text,
@@ -85,7 +80,8 @@ public class PcapController {
             if (text.isPresent()) {
                 // Send hex as plain line-delimited text
                 Formatter lines = new Formatter();
-                // If 'space' param is present, use space as delimiter to accommodate cpp-httplib
+                // If 'space' param is present, use space as delimiter to accommodate
+                // cpp-httplib
                 // which likes to strip newlines from text/plain
                 final String fmt = space.isPresent()
                         ? "%s "
@@ -113,11 +109,8 @@ public class PcapController {
         }
     }
 
-    @RequestMapping(
-            value = "/pcap/decode",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
+    @RequestMapping(value = "/pcap/decode", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
+            MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> decodeMessageFrames(
             @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
@@ -132,7 +125,8 @@ public class PcapController {
             String json = "[" + String.join(",", decodedMessages) + "]";
             log.info("Finished converting ode Json to {} processed json items", decodedMessages.size());
             if (decodedMessages.size() < messageFrameList.size()) {
-                log.error("{} items were dropped due to errors or unknown message types while converting message frames to json",
+                log.error(
+                        "{} items were dropped due to errors or unknown message types while converting message frames to json",
                         messageFrameList.size() - decodedMessages.size());
             }
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
@@ -149,11 +143,8 @@ public class PcapController {
      * @param messageFrameList
      * @return
      */
-    @RequestMapping(
-            value = "/pcap/acmdecode",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
+    @RequestMapping(value = "/pcap/acmdecode", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
+            MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> decodeMessageFramesWithAcm(
             @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
@@ -189,7 +180,8 @@ public class PcapController {
             String json = "[" + String.join(",", decodedMessages) + "]";
             log.info("Finished converting ode Json to {} processed json items", decodedMessages.size());
             if (decodedMessages.size() < messageFrameList.size()) {
-                log.error("{} items were dropped due to errors or unknown message types while converting message frames to json",
+                log.error(
+                        "{} items were dropped due to errors or unknown message types while converting message frames to json",
                         messageFrameList.size() - decodedMessages.size());
             }
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
@@ -200,7 +192,5 @@ public class PcapController {
                     .body(message + ", " + ExceptionUtils.getStackTrace(e));
         }
     }
-
-
 
 }

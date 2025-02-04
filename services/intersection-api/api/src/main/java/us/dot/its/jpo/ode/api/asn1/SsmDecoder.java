@@ -25,10 +25,9 @@ import java.time.Instant;
 @Component
 public class SsmDecoder implements Decoder {
 
-
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-        
+
         // Convert to Ode Data type and Add Metadata
         OdeData data = getAsOdeData(message.getAsn1Message());
 
@@ -40,9 +39,8 @@ public class SsmDecoder implements Decoder {
 
             // Send String through ASN.1 Decoder to get Decoded XML Data
             String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
-            
 
-            // Convert to Ode Json 
+            // Convert to Ode Json
             OdeSsmData ssm = getAsOdeJson(decodedXml);
 
             // build output data structure
@@ -63,11 +61,11 @@ public class SsmDecoder implements Decoder {
         metadata.setOdeReceivedAt(DecoderManager.getCurrentIsoTimestamp());
         metadata.setOriginIp(DecoderManager.getStaticUserOriginIp());
         metadata.setRecordType(RecordType.ssmTx);
-        
-        Asn1Encoding unsecuredDataEncoding = new Asn1Encoding("unsecuredData", "MessageFrame",EncodingRule.UPER);
+
+        Asn1Encoding unsecuredDataEncoding = new Asn1Encoding("unsecuredData", "MessageFrame", EncodingRule.UPER);
         metadata.addEncoding(unsecuredDataEncoding);
-        
-        //construct odeData
+
+        // construct odeData
         return new OdeAsn1Data(metadata, payload);
 
     }
@@ -76,12 +74,13 @@ public class SsmDecoder implements Decoder {
         ObjectNode messageFrameNode = XmlUtils.toObjectNode(xml);
         OdeSsmMetadata metadata = new OdeSsmMetadata();
         metadata.setOdeReceivedAt(Instant.ofEpochMilli(timestamp).toString());
-        metadata.setOriginIp(DecoderManager.getOriginIp());
+        metadata.setOriginIp(DecoderManager.getStaticUserOriginIp());
         metadata.setRecordType(RecordType.ssmTx);
         var receivedMessageDetails = new ReceivedMessageDetails();
         receivedMessageDetails.setRxSource(RxSource.NA);
         metadata.setSsmSource(OdeSsmMetadata.SsmSource.unknown);
-        OdeSsmPayload payload = new OdeSsmPayload(SSMBuilder.genericSSM(messageFrameNode.findValue("SignalStatusMessage")));
+        OdeSsmPayload payload = new OdeSsmPayload(
+                SSMBuilder.genericSSM(messageFrameNode.findValue("SignalStatusMessage")));
         return new OdeSsmData(metadata, payload);
     }
 
@@ -107,7 +106,7 @@ public class SsmDecoder implements Decoder {
                 log.error("Exception decoding SSM to ODE json", e);
             }
         }
-        
+
         OdeSsmMetadata metadata = (OdeSsmMetadata) JsonUtils.fromJson(metadataNode.toString(), OdeSsmMetadata.class);
 
         if (metadata.getSchemaVersion() <= 4) {
@@ -117,6 +116,5 @@ public class SsmDecoder implements Decoder {
         OdeSsmPayload payload = new OdeSsmPayload(SSMBuilder.genericSSM(consumed.findValue("SignalStatusMessage")));
         return new OdeSsmData(metadata, payload);
     }
-
 
 }
