@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import mapboxgl, { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
-import Map, { Marker, Popup, Source, Layer, LayerProps } from 'react-map-gl'
+import Map, { Marker, Popup, Source, Layer } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import RsuMarker from '../components/RsuMarker'
 import EnvironmentVars from '../EnvironmentVars'
@@ -62,10 +62,10 @@ import {
 import { useSelector, useDispatch } from 'react-redux'
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import {
   Button,
   FormGroup,
-  Grid2,
   IconButton,
   Switch,
   StyledEngineProvider,
@@ -85,6 +85,10 @@ import {
   Select,
   MenuItem,
   alpha,
+  FormControl,
+  RadioGroup,
+  Radio,
+  Collapse,
 } from '@mui/material'
 
 import 'rc-slider/assets/index.css'
@@ -99,10 +103,10 @@ import {
   selectSelectedIntersection,
   setSelectedIntersectionId,
 } from '../generalSlices/intersectionSlice'
-import { evaluateFeatureFlags } from '../feature-flags'
-import { headerTabHeight } from '../styles/index'
-import { selectViewState, setMapViewState } from './mapSlice'
-import { setDisplay } from '../features/menu/menuSlice'
+import { selectActiveLayers, selectViewState, setMapViewState, toggleLayerActive } from './mapSlice'
+import { selectMenuSelection, toggleMapMenuSelection } from '../features/menu/menuSlice'
+import { MapLayer } from '../models/MapLayer'
+import { headerTabHeight } from '../styles'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -110,11 +114,7 @@ mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worke
 
 const { DateTime } = require('luxon')
 
-interface MapPageProps {
-  auth: boolean
-}
-
-function MapPage(props: MapPageProps) {
+function MapPage() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const theme = useTheme()
@@ -153,8 +153,9 @@ function MapPage(props: MapPageProps) {
   const selectedIntersection = useSelector(selectSelectedIntersection)
 
   // Mapbox local state variables
-
   const viewState = useSelector(selectViewState)
+  const menuSelection = useSelector(selectMenuSelection)
+  const activeLayers = useSelector(selectActiveLayers)
 
   // RSU layer local state variables
   const [selectedRsuCount, setSelectedRsuCount] = useState(null)
@@ -162,7 +163,6 @@ function MapPage(props: MapPageProps) {
 
   // Menu local state variable
   const [displayMenu, setDisplayMenu] = useState(false)
-  const [menuSelection, setMenuSelection] = useState([])
 
   const [configPolygonSource, setConfigPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
     type: 'Feature',
@@ -201,7 +201,6 @@ function MapPage(props: MapPageProps) {
     { value: 30, label: '30 minutes' },
     { value: 60, label: '60 minutes' },
   ]
-  const [selectedOption, setSelectedOption] = useState({ value: 60, label: '60 minutes' })
 
   function stepValueToOption(val: number) {
     for (var i = 0; i < stepOptions.length; i++) {
@@ -217,11 +216,7 @@ function MapPage(props: MapPageProps) {
   const [wzdxMarkers, setWzdxMarkers] = useState([])
   const [pageOpen, setPageOpen] = useState(true)
 
-  const [activeLayers, setActiveLayers] = useState(
-    [{ id: 'rsu-layer', tag: 'rsu' as FEATURE_KEY }]
-      .filter((layer) => evaluateFeatureFlags(layer.tag))
-      .map((layer) => layer.id)
-  )
+  const [expandedLayers, setExpandedLayers] = useState<string[]>([])
 
   // Vendor filter local state variable
   const [selectedVendor, setSelectedVendor] = useState('Select Vendor')
@@ -536,12 +531,78 @@ function MapPage(props: MapPageProps) {
     return stopsArray
   }
 
-  const layers: (LayerProps & { label: string; tag?: FEATURE_KEY })[] = [
+  const isOnline = () => {
+    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')
+      ? rsuOnlineStatus[rsuIpv4].last_online
+      : 'No Data'
+  }
+
+  const getStatus = () => {
+    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('current_status')
+      ? rsuOnlineStatus[rsuIpv4].current_status
+      : 'Offline'
+  }
+
+  const handleScmsStatus = () => {
+    dispatch(getIssScmsStatus())
+    setDisplayType('scms')
+  }
+
+  const handleOnlineStatus = () => {
+    setDisplayType('online')
+  }
+
+  const handleNoneStatus = () => {
+    setDisplayType('none')
+  }
+
+  const handleRsuDisplayTypeChange = (event: React.SyntheticEvent) => {
+    const target = event.target as HTMLInputElement
+    if (target.value === 'online') handleOnlineStatus()
+    else if (target.value === 'scms') handleScmsStatus()
+    else if (target.value === 'none') handleNoneStatus()
+  }
+
+  const toggleExpandLayer = (layerId: string) => {
+    setExpandedLayers((prev) => (prev.includes(layerId) ? prev.filter((id) => id !== layerId) : [...prev, layerId]))
+  }
+
+  const layers: MapLayer[] = [
     {
       id: 'rsu-layer',
       label: 'RSU Viewer',
       type: 'symbol',
       tag: 'rsu',
+      control: (
+        <>
+          <Typography variant="h6">RSU Status</Typography>
+          <FormControl sx={{ ml: 2, mt: 1 }}>
+            <RadioGroup value={displayType} onChange={handleRsuDisplayTypeChange}>
+              {[
+                { key: 'none', label: 'None' },
+                { key: 'online', label: 'Online Status' },
+                { key: 'scms', label: 'SCMS Status' },
+              ].map((val) => (
+                <FormControlLabel
+                  value={val.key}
+                  sx={{ mt: -1 }}
+                  control={
+                    <Radio
+                      sx={{
+                        color: theme.palette.text.primary,
+                        '&.Mui-checked': {
+                          color: theme.palette.primary.main,
+                        },
+                      }}
+                    />
+                  }
+                  label={val.label}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+        </>
+      ),
     },
     {
       id: 'heatmap-layer',
@@ -631,6 +692,7 @@ function MapPage(props: MapPageProps) {
 
   const Legend = () => {
     const toggleLayer = (id: string) => {
+      dispatch(toggleLayerActive(id))
       if (activeLayers.includes(id)) {
         if (id === 'rsu-layer') {
           dispatch(selectRsu(null))
@@ -639,60 +701,39 @@ function MapPage(props: MapPageProps) {
         } else if (id === 'wzdx-layer') {
           setSelectedWZDxMarkerIndex(null)
         }
-        setActiveLayers(activeLayers.filter((layerId) => layerId !== id))
       } else {
         if (id === 'wzdx-layer' && wzdxData?.features?.length === 0) {
           dispatch(getWzdxData())
         }
-        setActiveLayers([...activeLayers, id])
       }
     }
 
     return (
       <FormGroup>
-        {layers.map((layer: { id?: string; label: string }) => (
-          <Typography fontSize="small">
-            <FormControlLabel
-              onClick={() => toggleLayer(layer.id)}
-              label={layer.label}
-              control={<Checkbox checked={activeLayers.includes(layer.id)} />}
-            ></FormControlLabel>
-          </Typography>
+        {layers.map((layer) => (
+          <div key={layer.id}>
+            <Typography fontSize="small" display="flex" alignItems="center">
+              {layer.control && (
+                <IconButton
+                  onClick={() => toggleExpandLayer(layer.id)}
+                  size="small"
+                  edge="start"
+                  aria-label={expandedLayers.includes(layer.id) ? 'Collapse' : 'Expand'}
+                >
+                  {expandedLayers.includes(layer.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              )}
+              <FormControlLabel
+                onClick={() => toggleLayer(layer.id)}
+                label={layer.label}
+                control={<Checkbox checked={activeLayers.includes(layer.id)} />}
+              />
+            </Typography>
+            {layer.control && <Collapse in={expandedLayers.includes(layer.id)}>{layer.control}</Collapse>}
+          </div>
         ))}
       </FormGroup>
     )
-  }
-
-  const isOnline = () => {
-    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
-  }
-
-  const getStatus = () => {
-    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('current_status')
-      ? rsuOnlineStatus[rsuIpv4].current_status
-      : 'Offline'
-  }
-
-  const handleScmsStatus = () => {
-    dispatch(getIssScmsStatus())
-    setDisplayType('scms')
-  }
-
-  const handleOnlineStatus = () => {
-    setDisplayType('online')
-  }
-
-  const handleNoneStatus = () => {
-    setDisplayType('none')
-  }
-
-  const handleRsuDisplayTypeChange = (event: React.SyntheticEvent) => {
-    const target = event.target as HTMLInputElement
-    if (target.value === 'online') handleOnlineStatus()
-    else if (target.value === 'scms') handleScmsStatus()
-    else if (target.value === 'none') handleNoneStatus()
   }
 
   const handleButtonToggle = (event: React.SyntheticEvent<Element, Event>, origin: 'config' | 'msgViewer') => {
@@ -709,46 +750,6 @@ function MapPage(props: MapPageProps) {
   const messageTypeOptions = messageViewerTypes.map((type) => {
     return { value: type, label: type }
   })
-
-  const handleMenuSelection = (label: string) => {
-    if (menuSelection.includes(label)) {
-      setMenuSelection(menuSelection.filter((item) => item !== label))
-      switch (label) {
-        case 'Display Message Counts':
-          dispatch(setDisplay({ view: 'tab', display: '' }))
-          break
-        case 'Display RSU Status':
-          dispatch(setDisplay({ view: 'tab', display: '' }))
-          break
-        case 'V2x Message Viewer':
-          setActiveLayers(activeLayers.filter((layerId) => layerId !== 'msg-viewer-layer'))
-      }
-    } else {
-      setMenuSelection([...menuSelection, label])
-      switch (label) {
-        case 'Display Message Counts':
-          if (menuSelection.includes('Display RSU Status')) {
-            setMenuSelection([
-              ...menuSelection.filter((item) => item !== 'Display RSU Status'),
-              'Display Message Counts',
-            ])
-          }
-          dispatch(setDisplay({ view: 'tab', display: 'displayCounts' }))
-          break
-        case 'Display RSU Status':
-          if (menuSelection.includes('Display Message Counts')) {
-            setMenuSelection([
-              ...menuSelection.filter((item) => item !== 'Display Message Counts'),
-              'Display RSU Status',
-            ])
-          }
-          dispatch(setDisplay({ view: 'tab', display: 'displayRsuErrors' }))
-          break
-        case 'V2x Message Viewer':
-          setActiveLayers([...activeLayers, 'msg-viewer-layer'])
-      }
-    }
-  }
 
   return (
     <div className="container">
@@ -791,7 +792,7 @@ function MapPage(props: MapPageProps) {
             <List>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => handleMenuSelection('Display Message Counts')}
+                  onClick={() => dispatch(toggleMapMenuSelection('Display Message Counts'))}
                   sx={{
                     backgroundColor: menuSelection.includes('Display Message Counts')
                       ? theme.palette.custom.mapMenuItemBackgroundSelected
@@ -811,7 +812,7 @@ function MapPage(props: MapPageProps) {
               </ListItem>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => handleMenuSelection('Display RSU Status')}
+                  onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))}
                   sx={{
                     backgroundColor: menuSelection.includes('Display RSU Status')
                       ? theme.palette.custom.mapMenuItemBackgroundSelected
@@ -831,7 +832,7 @@ function MapPage(props: MapPageProps) {
               </ListItem>
               <ListItem disablePadding>
                 <ListItemButton
-                  onClick={() => handleMenuSelection('V2x Message Viewer')}
+                  onClick={() => dispatch(toggleMapMenuSelection('V2x Message Viewer'))}
                   sx={{
                     backgroundColor: menuSelection.includes('V2x Message Viewer')
                       ? theme.palette.custom.mapMenuItemBackgroundSelected
@@ -852,7 +853,7 @@ function MapPage(props: MapPageProps) {
               {SecureStorageManager.getUserRole() === 'admin' && (
                 <ListItem disablePadding>
                   <ListItemButton
-                    onClick={() => handleMenuSelection('Configure RSUs')}
+                    onClick={() => dispatch(toggleMapMenuSelection('Configure RSUs'))}
                     sx={{
                       backgroundColor: menuSelection.includes('Configure RSUs')
                         ? theme.palette.custom.mapMenuItemBackgroundSelected
@@ -955,7 +956,11 @@ function MapPage(props: MapPageProps) {
       )}
       <Container
         fluid={true}
-        style={{ width: '100%', height: props.auth ? 'calc(100vh - 136px)' : 'calc(100vh - 100px)', display: 'flex' }}
+        style={{
+          width: '100%',
+          height: `calc(100vh - ${headerTabHeight}px)`,
+          display: 'flex',
+        }}
       >
         <Map
           {...viewState}

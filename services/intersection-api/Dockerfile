@@ -1,5 +1,4 @@
 # === BUILDER IMAGE for ACM ===
-# FROM alpine:3.12 as builder
 FROM amazonlinux:2023 as builder
 USER root
 WORKDIR /asn1_codec
@@ -58,10 +57,10 @@ ARG MAVEN_GITHUB_ORG
 ENV MAVEN_GITHUB_TOKEN=$MAVEN_GITHUB_TOKEN
 ENV MAVEN_GITHUB_ORG=$MAVEN_GITHUB_ORG
 
-COPY ./api/pom.xml ./jpo-conflictvisualizer-api/
-COPY ./api/settings.xml ./jpo-conflictvisualizer-api/
+COPY ./api/pom.xml ./intersection-api/
+COPY ./api/settings.xml ./intersection-api/
 
-WORKDIR /home/jpo-conflictvisualizer-api
+WORKDIR /home/intersection-api
 RUN mvn -s settings.xml dependency:resolve
 
 COPY ./api/src ./src
@@ -74,9 +73,9 @@ FROM amazoncorretto:21-al2023
 
 WORKDIR /home
 
-COPY --from=jbuilder /home/jpo-conflictvisualizer-api/src/main/resources/application.yaml /home
-COPY --from=jbuilder /home/jpo-conflictvisualizer-api/src/main/resources/logback.xml /home
-COPY --from=jbuilder /home/jpo-conflictvisualizer-api/target/jpo-conflictvisualizer-api.jar /home
+COPY --from=jbuilder /home/intersection-api/src/main/resources/application.yaml /home
+COPY --from=jbuilder /home/intersection-api/src/main/resources/logback.xml /home
+COPY --from=jbuilder /home/intersection-api/target/intersection-api.jar /home
 # # Copy asn1_codec executable and test files
 USER root
 WORKDIR /asn1_codec
@@ -104,15 +103,13 @@ ADD ./asn1_codec/docker-test /asn1_codec/docker-test
 WORKDIR /home
 
 ENTRYPOINT ["java", \
+    "-Djava.rmi.server.hostname=$DOCKER_HOST_IP", \
+    "-Dcom.sun.management.jmxremote.port=9090", \
+    "-Dcom.sun.management.jmxremote.rmi.port=9090", \
+    "-Dcom.sun.management.jmxremote", \
+    "-Dcom.sun.management.jmxremote.local.only=true", \
+    "-Dcom.sun.management.jmxremote.authenticate=false", \
+    "-Dcom.sun.management.jmxremote.ssl=false", \
     "-Dlogback.configurationFile=/home/logback.xml", \
     "-jar", \
-    "/home/jpo-conflictvisualizer-api.jar"]
-
-    # JMX isn't used
-    # "-Djava.rmi.server.hostname=$DOCKER_HOST_IP", \
-    # "-Dcom.sun.management.jmxremote.port=9090", \
-    # "-Dcom.sun.management.jmxremote.rmi.port=9090", \
-    # "-Dcom.sun.management.jmxremote", \
-    # "-Dcom.sun.management.jmxremote.local.only=true", \
-    # "-Dcom.sun.management.jmxremote.authenticate=false", \
-    # "-Dcom.sun.management.jmxremote.ssl=false", \
+    "/home/intersection-api.jar"]
