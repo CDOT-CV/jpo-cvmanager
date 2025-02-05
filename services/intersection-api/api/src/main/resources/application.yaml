@@ -44,6 +44,7 @@ conflict:
   monitor:
     api:
       kafka-consumers-always-on: false
+      asn1-codec-base-url: ${ASN1_CODEC_BASE_URL:http://localhost:4000}
 
 # MongoDB Configuration
 spring:

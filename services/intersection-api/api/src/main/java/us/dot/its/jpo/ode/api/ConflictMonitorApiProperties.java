@@ -58,6 +58,10 @@ public class ConflictMonitorApiProperties {
     @Setter
     private boolean kafkaConsumersAlwaysOn;
 
+    @Getter
+    @Setter
+    private String asn1CodecBaseUrl;
+
     private static int maximumResponseSize;
     private static String cors;
     private static final Logger logger = LoggerFactory.getLogger(ConflictMonitorApiProperties.class);

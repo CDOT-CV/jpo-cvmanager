@@ -39,28 +39,26 @@ import java.time.Instant;
 public class MapDecoder implements Decoder {
     private static final Logger logger = LoggerFactory.getLogger(MapDecoder.class);
 
+    private final MapJsonValidator mapJsonValidator;
+
+    private final CodecClient codecClient;
+
     @Autowired
-    MapJsonValidator mapJsonValidator;
+    public MapDecoder(MapJsonValidator mapJsonValidator, CodecClient codecClient) {
+        this.mapJsonValidator = mapJsonValidator;
+        this.codecClient = codecClient;
+    }
 
     public MapProcessedJsonConverter converter = new MapProcessedJsonConverter();
 
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-
-        XmlUtils xmlUtils = new XmlUtils();
-
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
 
             // Convert to Ode Json
-            OdeMapData map = getAsOdeJson(decodedXml);
+            OdeMapData map = getOdeMapDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
 
             try {
                 ProcessedMap<LineString> processedMap = createProcessedMap(map);
@@ -71,9 +69,6 @@ public class MapDecoder implements Decoder {
                 return new MapDecodedMessage(null, map, message.getAsn1Message(), e.getMessage());
             }
 
-        } catch (JsonProcessingException e) {
-            logger.error("JSON Processing Exception: {}", e.getMessage(), e);
-            return new MapDecodedMessage(null, null, message.getAsn1Message(), e.getMessage());
         } catch (Exception e) {
             logger.error("Generic Exception: {}", e.getMessage(), e);
             return new MapDecodedMessage(null, null, message.getAsn1Message(), e.getMessage());

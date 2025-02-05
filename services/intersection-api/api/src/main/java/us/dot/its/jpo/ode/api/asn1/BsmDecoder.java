@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,31 +27,23 @@ import java.time.Instant;
 @Component
 public class BsmDecoder implements Decoder {
 
+    private final CodecClient codecClient;
+
+    @Autowired
+    public BsmDecoder(CodecClient codecClient) {
+        this.codecClient = codecClient;
+    }
+
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-
-        XmlUtils xmlUtils = new XmlUtils();
-
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
-
-            // Convert to Ode Json
-            OdeBsmData bsm = getAsOdeJson(decodedXml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+            OdeBsmData bsm = getOdeBsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
 
             // build output data structure
-            DecodedMessage decodedMessage = new BsmDecodedMessage(bsm, message.getAsn1Message(), "");
-            return decodedMessage;
+            return new BsmDecodedMessage(bsm, message.getAsn1Message(), "");
 
-        } catch (JsonProcessingException e) {
-            log.error("JSON error decoding BSM", e);
-            return new BsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         } catch (Exception e) {
             log.error("General error decoding BSM", e);
             return new BsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
