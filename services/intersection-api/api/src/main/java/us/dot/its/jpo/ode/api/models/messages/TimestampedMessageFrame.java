@@ -54,6 +54,7 @@ public class TimestampedMessageFrame {
     /**
      * Search for a J2735 Message Frame.
      * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
+     * <p>This will only work if the message frame is unencrypted obv.</p>
      * @return true if a MessageFrame was detected, false if not
      */
     private boolean findMessageFrame() {
@@ -77,8 +78,8 @@ public class TimestampedMessageFrame {
 
         // Nothing found with a 1609.2 wrapper.
         // Scan again to check for a message frame with UPER length determinant anywhere in the byte array, in
-        // case we have a bare MessageFrame with UDP headers or something.
-        // This only requires 4 bytes
+        // case we have some other wrapper such as ASD, or a bare MessageFrame with UDP headers, or something.
+        // This only requires 4 bytes, so may be susceptible to false positives.
         final byte[] uperSlice = new byte[4];
         for (int idx = 0; idx < bytes.length - 4; idx++) {
             System.arraycopy(bytes, idx, uperSlice, 0, 4);
@@ -93,8 +94,13 @@ public class TimestampedMessageFrame {
 
     /**
      * Check a 7 item byte array for the pattern:
-     * <p>OER unsecured data tag, followed by OER length determinant, Message Frame ID</p>
-     * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
+     * <ul>
+     *     <li>OER unsecured data tag</li>
+     *     <li>followed by a OER length determinant consistent with the total number of bytes</li>
+     *     <li>followed by a Message Frame ID</li>
+     * </ul>
+     * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
+     * @param sliceStartIndex The start index of the slice
      * @param slice A 7 item byte array
      * @return True if found
      */
@@ -122,7 +128,7 @@ public class TimestampedMessageFrame {
             return false;
         }
 
-        // Check for one byte length determinant
+        // Check for one byte length determinant >=128
         if (b[2] == 0x81) {
             // b[3] Could be a length if it is >= 128
             if (!(b[3] >= 0x80)) {
@@ -135,7 +141,7 @@ public class TimestampedMessageFrame {
             return false;
         }
 
-        // Check for two byte length determinant
+        // Check for two-byte length determinant
         if (b[2] == 0x82) {
             // b[3] + b[4] could be a 16 bit length
             final var type = MessageType.fromId(b[6]);
@@ -153,6 +159,18 @@ public class TimestampedMessageFrame {
         return false;
     }
 
+    /**
+     * Check a 4-byte array for the pattern:
+     * <ul>
+     *     <li>A Message Frame ID</li>
+     *     <li>followed by an UPER length determinant for an open type payload consistent with the
+     *     total number of bytes</li>
+     * </ul>
+     * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
+     * @param sliceStartIndex The start index of the slice
+     * @param slice A 4-byte array
+     * @return True if found
+     */
     private boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
         final int first = toUnsignedInt(slice[0]);
         final int second = toUnsignedInt(slice[1]);
