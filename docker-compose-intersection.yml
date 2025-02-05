@@ -47,7 +47,7 @@ services:
       context: ./services/intersection-api/asn1_codec
       dockerfile: Dockerfile.server.amazonlinux
     ports:
-      - "4000:8080"
+      - "${ACM_HTTP_SERVER_PORT}:${ACM_HTTP_SERVER_PORT}"
     environment:
       DOCKER_HOST_IP: ${KAFKA_BROKER_IP}  #Not used
       KAFKA_TYPE: "ON-PREM" # Not used
