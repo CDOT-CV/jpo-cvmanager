@@ -10,8 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
-import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameHex;
-import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameHexList;
+import us.dot.its.jpo.ode.api.models.messages.TimestampedMessageFrameList;
 
 @Service
 public class CodecClient {
@@ -39,7 +38,7 @@ public class CodecClient {
         return codecTemplate.postForObject(decodeSingleUrl, request, String.class);
     }
 
-    public String decodeBatch(TimestampedMessageFrameHexList messageFrameList) throws JsonProcessingException {
+    public String decodeBatch(TimestampedMessageFrameList messageFrameList) throws JsonProcessingException {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_NDJSON);
         HttpEntity<String> request = new HttpEntity<>(messageFrameList.toLineDelimitedJson(), headers);

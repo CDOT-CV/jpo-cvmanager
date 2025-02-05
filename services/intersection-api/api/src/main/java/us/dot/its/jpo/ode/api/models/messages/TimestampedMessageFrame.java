@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.models.messages;
 
 import java.util.Arrays;
 import java.util.HexFormat;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -32,24 +31,23 @@ public class TimestampedMessageFrame {
     @JsonIgnore
     protected byte[] bytes;
 
-
     private final static HexFormat hexFormat = HexFormat.of();
 
-    @JsonProperty("base64")
-    public byte[] getMessageFrame() {
-        return bytes;
-    }
-
-    @JsonIgnore
-    public String getMessageFrameHex() {
+    @JsonProperty("hex")
+    public String getHex() {
         return hexFormat.formatHex(bytes);
     }
 
-    @JsonProperty("base64")
-    public void setMessageFrame(byte[] bytes) {
+    @JsonProperty("hex")
+    public void setHex(String hex) {
+        setBytes(hexFormat.parseHex(hex));
+    }
+
+    @JsonIgnore
+    public void setBytes(byte[] bytes) {
         this.bytes = bytes;
         if (!findMessageFrame()) {
-            log.warn("No MessageFrame was found in raw data: {}", getMessageFrameHex());
+            log.warn("No MessageFrame was found in raw data: {}", getHex());
         }
     }
 
@@ -58,7 +56,7 @@ public class TimestampedMessageFrame {
      * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
      * @return true if a MessageFrame was detected, false if not
      */
-    public boolean findMessageFrame() {
+    private boolean findMessageFrame() {
         if (bytes == null) {
             return false;
         }
@@ -100,7 +98,7 @@ public class TimestampedMessageFrame {
      * @param slice A 7 item byte array
      * @return True if found
      */
-    public boolean checkIfMessageFrame(final int sliceStartIndex, final byte[] slice) {
+    private boolean checkIfMessageFrame(final int sliceStartIndex, final byte[] slice) {
         final int[] b = new int[7];
         for (int i = 0; i < 7; i++) {
             b[i] = toUnsignedInt(slice[i]);
@@ -155,7 +153,7 @@ public class TimestampedMessageFrame {
         return false;
     }
 
-    public boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
+    private boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
         final int first = toUnsignedInt(slice[0]);
         final int second = toUnsignedInt(slice[1]);
         MessageType type = MessageType.fromId(second);
@@ -218,8 +216,10 @@ public class TimestampedMessageFrame {
         }
         log.warn("Tried to set invalid end index {}, based on length determinant: {}, " +
                 "greater than {}, the number of bytes in the raw data.  " +
-                "The data may be truncated: {}", iEnd, length, bytes.length, getMessageFrameHex());
+                "The data may be truncated: {}", iEnd, length, bytes.length, getHex());
         return false;
     }
+
+
 
 }

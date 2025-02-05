@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -26,23 +27,22 @@ import java.time.Instant;
 @Component
 public class SrmDecoder implements Decoder {
 
+    private final CodecClient codecClient;
+
+    @Autowired
+    public SrmDecoder(CodecClient codecClient) {
+        this.codecClient = codecClient;
+    }
+
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-
-        XmlUtils xmlUtils = new XmlUtils();
-
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
 
             // Convert to Ode Json
-            OdeSrmData srm = getAsOdeJson(decodedXml);
+            OdeSrmData srm = getOdeSrmDataFromMessageFrameXml(messageFrameXml,
+                    DecoderManager.getCurrentTimestamp());
 
             // build output data structure
             return new SrmDecodedMessage(srm, message.getAsn1Message(), "");

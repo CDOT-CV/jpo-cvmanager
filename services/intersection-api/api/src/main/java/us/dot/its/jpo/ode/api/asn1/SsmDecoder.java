@@ -25,23 +25,20 @@ import java.time.Instant;
 @Component
 public class SsmDecoder implements Decoder {
 
+    private final CodecClient codecClient;
+
+    public SsmDecoder(CodecClient codecClient) {
+        this.codecClient = codecClient;
+    }
+
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-
-        XmlUtils xmlUtils = new XmlUtils();
-
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
 
             // Convert to Ode Json
-            OdeSsmData ssm = getAsOdeJson(decodedXml);
+            OdeSsmData ssm = getOdeSsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
 
             // build output data structure
             return new SsmDecodedMessage(ssm, message.getAsn1Message(), "");

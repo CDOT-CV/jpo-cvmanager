@@ -21,8 +21,8 @@ public class TimestampedMessageFrameTest {
     public void testSetMessageFrame_UDP() {
         var mf = new TimestampedMessageFrame();
         byte[] frame = hexFormat.parseHex(UDP_FRAME);
-        mf.setMessageFrame(frame);
-        assertThat(mf.getMessageFrameHex(), startsWith("0014604"));
+        mf.setBytes(frame);
+        assertThat(mf.getHex(), startsWith("0014604"));
         assertThat(mf.getMessageFrameType(), equalTo(MessageType.BSM));
     }
 
@@ -30,8 +30,8 @@ public class TimestampedMessageFrameTest {
     public void testSetMessageFrame_UDP_MAP() {
         var mf = new TimestampedMessageFrame();
         byte[] frame = hexFormat.parseHex(UDP_MAP_FRAME);
-        mf.setMessageFrame(frame);
-        assertThat(mf.getMessageFrameHex(), startsWith("001283fb78158"));
+        mf.setBytes(frame);
+        assertThat(mf.getHex(), startsWith("001283fb78158"));
         assertThat(mf.getMessageFrameType(), equalTo(MessageType.MAP));
     }
 
@@ -39,8 +39,8 @@ public class TimestampedMessageFrameTest {
     public void testSetMessageFrame_UDP_BSM() {
         var mf = new TimestampedMessageFrame();
         byte[] frame = hexFormat.parseHex(UDP_BSM_FRAME);
-        mf.setMessageFrame(frame);
-        assertThat(mf.getMessageFrameHex(), startsWith("00148082519ee641a"));
+        mf.setBytes(frame);
+        assertThat(mf.getHex(), startsWith("00148082519ee641a"));
         assertThat(mf.getMessageFrameType(), equalTo(MessageType.BSM));
     }
 
@@ -48,8 +48,8 @@ public class TimestampedMessageFrameTest {
     public void testSetMessageFrame_WSMP() {
         var mf = new TimestampedMessageFrame();
         byte[] frame = hexFormat.parseHex(WSMP_FRAME);
-        mf.setMessageFrame(frame);
-        assertThat(mf.getMessageFrameHex(), startsWith("00134a42b3c30180c7ce400302b"));
+        mf.setBytes(frame);
+        assertThat(mf.getHex(), startsWith("00134a42b3c30180c7ce400302b"));
         assertThat(mf.getMessageFrameType(), equalTo(MessageType.SPAT));
     }
 

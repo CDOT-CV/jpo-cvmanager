@@ -28,7 +28,7 @@ public class PcapDecoder  {
                 double seconds = packet.tsSec() + packet.tsUsec()/1e6d;
                 long timestamp = (long)(seconds * 1000);
                 hex.setTimestamp(timestamp);
-                hex.setMessageFrame(packetBytes);
+                hex.setBytes(packetBytes);
                 hexList.add(hex);
             }
         }

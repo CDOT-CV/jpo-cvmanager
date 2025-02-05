@@ -35,28 +35,27 @@ import java.time.Instant;
 @Component
 public class SpatDecoder implements Decoder {
 
+    private final CodecClient codecClient;
+
+    private final SpatJsonValidator spatJsonValidator;
+
     @Autowired
-    SpatJsonValidator spatJsonValidator;
+    public SpatDecoder(CodecClient codecClient, SpatJsonValidator spatJsonValidator) {
+        this.codecClient = codecClient;
+        this.spatJsonValidator = spatJsonValidator;
+    }
+
 
     public SpatProcessedJsonConverter converter = new SpatProcessedJsonConverter();
 
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-
-        XmlUtils xmlUtils = new XmlUtils();
-
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
 
             // Convert to Ode Json
-            OdeSpatData spat = getAsOdeJson(decodedXml);
+            OdeSpatData spat = getOdeSpatDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
 
             // build output data structure
             try {

@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,30 +20,31 @@ import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 @Slf4j
 @Component
 public class TimDecoder implements Decoder {
+
+    private final CodecClient codecClient;
+
     private final XmlUtils xmlUtils = new XmlUtils();
+
+    @Autowired
+    public TimDecoder(CodecClient codecClient) {
+        this.codecClient = codecClient;
+    }
 
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-        
-        // Convert to Ode Data type and Add Metadata
-        OdeData data = getAsOdeData(message.getAsn1Message());
-        
         try {
-            // Convert to XML for ASN.1 Decoder
-            String xml = xmlUtils.toXml(data);
-
             // Send String through ASN.1 Decoder to get Decoded XML Data
-            String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
+            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+
+            // Convert to Ode Data type and Add Metadata
+            OdeData data = getAsOdeData(message.getAsn1Message());
 
             // Convert to Ode Json 
-            ObjectNode tim = XmlUtils.toObjectNode(decodedXml);
+            ObjectNode tim = XmlUtils.toObjectNode(messageFrameXml);
 
             // build output data structure
             return new TimDecodedMessage(tim, message.getAsn1Message(), "");
             
-        } catch (JsonProcessingException e) {
-            log.error("JSON Processing Exception: {}", e.getMessage(), e);
-            return new TimDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         } catch (Exception e) {
             log.error("Generic Exception: {}", e.getMessage(), e);
             return new TimDecodedMessage(null, message.getAsn1Message(), e.getMessage());

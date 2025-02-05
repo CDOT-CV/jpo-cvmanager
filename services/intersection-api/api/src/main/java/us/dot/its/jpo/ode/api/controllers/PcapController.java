@@ -39,7 +39,7 @@ public class PcapController {
     String decodeBatchUrl = "http://172.26.19.45:4000/batch/j2735/uper/xer";
 
     /**
-     * Convert standard binary pcap data to JSON of {@link TimestampedMessageFrameHexList}.
+     * Convert standard binary pcap data to JSON of {@link TimestampedMessageFrameList}.
      * Find and extract PCAP frame timestamps and J2735 MessageFrames.
      *
      * @param bytes Raw PCAP data
@@ -52,10 +52,10 @@ public class PcapController {
                 "application/pcap",
                 "application/vnd.tcpdump.pcap" },
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<TimestampedMessageFrameHexList> pcapToTimestampedHex(
+    public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedHex(
             @RequestBody byte[] bytes) throws IOException {
         log.info("pcapToTimestampedHex received {} bytes", bytes.length);
-        var hexList = new TimestampedMessageFrameHexList(decoder.decodePcap(bytes));
+        var hexList = decoder.decodePcap(bytes);
         return ResponseEntity
                     .status(HttpStatus.OK)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -75,7 +75,7 @@ public class PcapController {
                     MediaType.APPLICATION_JSON_VALUE,
                     MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> decodeMessageFrames(
-            @RequestBody TimestampedMessageFrameHexList messageFrameList) {
+            @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
         try {
             String xmlBatch = codecClient.decodeBatch(messageFrameList);
