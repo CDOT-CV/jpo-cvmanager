@@ -17,6 +17,7 @@ import DownloadIcon from '@mui/icons-material/Download'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   onFileUploaded,
+  onPcapFileUploaded,
   onItemDeleted,
   onItemSelected,
   onTextChanged,
@@ -79,6 +80,25 @@ export const DecoderTables = () => {
     }
   }
 
+  const pcapFileUploaded = (event) => {
+    console.log("pcapFileUploaded")
+    const file = event.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = function (evt) {
+        console.log("pcapFileUploaded: reader.onload")
+        try {
+          const bytes = evt.target?.result as ArrayBuffer
+          console.log("Got an ArrayBuffer with " + bytes.byteLength + " bytes");
+          onPcapFileUploaded(bytes)
+        } catch (e) {
+          console.error('Error reading uploaded pcap file', e)
+        }
+      }
+      reader.readAsArrayBuffer(file)
+    }
+  }
+
   const handleDownloadClick = (type: DECODER_MESSAGE_TYPE) => {
     let files = contents.filter((v) => v.type === type && v.decodedResponse != undefined).map((v) => v.decodedResponse)
     if (files.length > 0) {
@@ -99,6 +119,10 @@ export const DecoderTables = () => {
 
   return (
     <Card>
+      <Box sx={{ margin: '5px'}}>
+        Upload PCAP File:
+        <input type="file" onChange={ (event) => pcapFileUploaded(event) } title="Upload PCAP File"/>
+      </Box>
       <PerfectScrollbar>
         <Box display="flex" justifyContent="space-between" sx={{ minWidth: 1050 }}>
           <TableContainer>

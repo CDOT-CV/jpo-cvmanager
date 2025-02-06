@@ -165,6 +165,25 @@ export const onFileUploaded = createAsyncThunk(
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
 
+export const onPcapFileUploaded = 
+  (contents: ArrayBuffer) => {
+    console.log("onPcapFileUploaded")
+    let promise: Promise<undefined>
+    promise = submitPcapDecoderRequest(contents)
+    finishedDecodingPcap()
+  }
+
+
+const submitPcapDecoderRequest = (contents: ArrayBuffer) => {
+  return new Promise<undefined>(() => {
+    console.log("Decoding pcap...")
+  })
+}
+
+const finishedDecodingPcap = () => {
+  console.log("pcap decoded")
+}
+
 export const updateAllDataOnMap = createAsyncThunk(
   'asn1Decoder/updateAllDataOnMap',
   async (_, { getState, dispatch }) => {
@@ -330,7 +349,7 @@ export const asn1DecoderSlice = createSlice({
     },
     setAsn1DecoderDialogOpen: (state, action: PayloadAction<boolean>) => {
       state.value.dialogOpen = action.payload
-    },
+    }
   },
   extraReducers: (builder) => {
     builder.addCase(onTextChanged.fulfilled, (state, action) => {

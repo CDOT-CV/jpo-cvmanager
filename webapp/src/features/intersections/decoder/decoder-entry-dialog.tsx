@@ -58,7 +58,7 @@ const DecoderEntryDialog = () => {
         </Typography>
         <Container sx={{ height: '60vh' }}>
           <DecoderTables />
-        </Container>
+        </Container>     
         <DialogActions>
           <Button autoFocus onClick={handleClose} variant="contained">
             Close
