@@ -79,6 +79,7 @@ public class DecoderManager {
      *         formats for available message types.
      */
     public DecodedMessage decode(EncodedMessage message) {
+        log.info("EncodedMessage: {}", message);
         final String payload = removeHeader(message.getAsn1Message(), message.getType());
         message.setAsn1Message(payload);
 

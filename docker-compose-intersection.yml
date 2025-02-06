@@ -43,6 +43,9 @@ services:
 
 
   asn1_codec:
+    profiles:
+      - intersection
+    image: asn1_codec:latest
     build:
       context: ./services/intersection-api/asn1_codec
       dockerfile: Dockerfile.server.amazonlinux
@@ -104,6 +107,8 @@ services:
       INTERSECTION_API_ENABLE_API: ${INTERSECTION_API_ENABLE_API}
       INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER}
       INTERSECTION_API_ENABLE_REPORTS: ${INTERSECTION_API_ENABLE_REPORTS}
+
+      ASN1_CODEC_BASE_URL: ${ASN1_CODEC_BASE_URL}
     entrypoint:
       - sh
       - -c

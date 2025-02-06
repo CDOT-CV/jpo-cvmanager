@@ -50,6 +50,7 @@ public class DecoderController {
         public @ResponseBody ResponseEntity<String> decode_request(
                         @RequestBody EncodedMessage encodedMessage,
                         @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+                log.info("EncodedMessage: {}", encodedMessage);
                 try {
                         if (testData) {
                                 return switch (encodedMessage.getType()) {

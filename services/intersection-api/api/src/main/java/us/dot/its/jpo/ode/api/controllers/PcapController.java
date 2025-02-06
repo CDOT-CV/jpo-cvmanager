@@ -35,9 +35,6 @@ public class PcapController {
         this.codecClient = codecClient;
     }
 
-    RestTemplate codecTemplate = new RestTemplate();
-    String decodeBatchUrl = "http://172.26.19.45:4000/batch/j2735/uper/xer";
-
     /**
      * Convert standard binary pcap data to JSON of {@link TimestampedMessageFrameList}.
      * Find and extract PCAP frame timestamps and J2735 MessageFrames.
