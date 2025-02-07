@@ -63,14 +63,23 @@ class CvizApiHelper {
       id = setTimeout(() => abortController?.abort(), timeout)
     }
 
+    let postBody;
+
+    if (body && body instanceof ArrayBuffer) {
+      console.debug("body is an ArrayBuffer with " + body.byteLength + " bytes")
+      postBody = body
+    } else {
+      postBody = body
+                  ? localHeaders['Content-Type'] === 'application/x-www-form-urlencoded'
+                    ? (body as string)
+                    : JSON.stringify(body)
+                  : undefined
+    }
+
     const options: RequestInit = {
       method: method,
       headers: localHeaders,
-      body: body
-        ? localHeaders['Content-Type'] === 'application/x-www-form-urlencoded'
-          ? (body as string)
-          : JSON.stringify(body)
-        : undefined,
+      body: postBody,
       mode: 'cors',
       signal: abortController?.signal,
     }

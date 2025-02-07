@@ -32,6 +32,8 @@ const submitDecoderRequest = (token: string, data: string, type: DECODER_MESSAGE
   })
 }
 
+
+
 const getTimestampFromType = (type: DECODER_MESSAGE_TYPE, decodedResponse: DecoderApiResponseGeneric | undefined) => {
   switch (type) {
     case 'MAP':
@@ -168,16 +170,17 @@ export const onFileUploaded = createAsyncThunk(
 export const onPcapFileUploaded = 
   (contents: ArrayBuffer) => {
     console.log("onPcapFileUploaded")
-    let promise: Promise<undefined>
+    let promise: Promise<DecoderApiResponseGeneric | undefined>
     promise = submitPcapDecoderRequest(contents)
-    finishedDecodingPcap()
+    promise.then((value) => {
+      finishedDecodingPcap()
+    })
   }
 
 
 const submitPcapDecoderRequest = (contents: ArrayBuffer) => {
-  return new Promise<undefined>(() => {
-    console.log("Decoding pcap...")
-  })
+  console.log("submitPcapDecoderRequest")  
+  return DecoderApi.submitPcapDecodeRequest({data: contents});
 }
 
 const finishedDecodingPcap = () => {

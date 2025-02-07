@@ -42,6 +42,25 @@ class DecoderApi {
     })
     return response as DecoderApiResponseGeneric | undefined
   }
+
+  async submitPcapDecodeRequest({
+    data,
+    abortController
+  }: {
+    data: ArrayBuffer,
+    abortController?: AbortController
+  }) : Promise<DecoderApiResponseGeneric | undefined> {
+    console.log("submitPcapDecodeRequest.  posting " + data.byteLength + " bytes")
+    const response = await authApiHelper.invokeApi({
+      path: '/pcap/uper',
+      method: 'POST',
+      headers: { "Content-Type": 'application/octet-stream' },
+      body: data,
+      tag: 'intersection',
+      abortController: abortController
+    })
+    return response as DecoderApiResponseGeneric | undefined
+  }
 }
 
 export default new DecoderApi()
