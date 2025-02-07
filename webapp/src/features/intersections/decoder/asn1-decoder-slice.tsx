@@ -22,6 +22,19 @@ const initialState = {
   selectedBsms: [] as string[],
   currentBsms: [] as OdeBsmData[],
   dialogOpen: false,
+  pcapData: [],
+  pcapDataStats: {
+    totalCount: 0,
+    firstTimestamp: 0,
+    lastTimestamp: 0,
+    mapCount: 0,
+    uniqueMapCount: 0,
+    spatCount: 0,
+    bsmCount: 0,
+    ssmCount: 0,
+    srmCount: 0,
+    unknownCount: 0
+  }
 }
 
 const submitDecoderRequest = (token: string, data: string, type: DECODER_MESSAGE_TYPE) => {
@@ -167,15 +180,15 @@ export const onFileUploaded = createAsyncThunk(
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
 
-export const onPcapFileUploaded = 
-  (contents: ArrayBuffer) => {
+export const onPcapFileUploaded = createAsyncThunk(
+  'asn1Decoder/onPcapFileUploaded',
+  async (contents: ArrayBuffer) => {
     console.log("onPcapFileUploaded")
-    let promise: Promise<DecoderApiResponseGeneric | undefined>
-    promise = submitPcapDecoderRequest(contents)
-    promise.then((value) => {
-      finishedDecodingPcap()
-    })
+    const response = await submitPcapDecoderRequest(contents)
+    finishedDecodingPcap()
+    return response
   }
+)
 
 
 const submitPcapDecoderRequest = (contents: ArrayBuffer) => {
@@ -361,6 +374,36 @@ export const asn1DecoderSlice = createSlice({
     builder.addCase(onFileUploaded.fulfilled, (state, action) => {
       state.value.data = action.payload
     })
+    builder.addCase(onPcapFileUploaded.fulfilled, (state, action) => {
+      console.debug("onPcapFileUploaded.fulfilled reducer")
+      state.value.pcapData = action.payload
+      
+      const pcapDataArr = Object.values(state.value.pcapData)
+      const firstTimestamp = pcapDataArr[0].timestamp
+      const lastTimestamp = pcapDataArr.slice(-1)[0].timestamp
+      const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
+      const mapCount = allMaps.length
+      const uniqueMapHex = new Set(allMaps.map(item => item.hex))
+      const uniqueMapCount = uniqueMapHex.size
+      const spatCount = pcapDataArr.filter(item => item.type === 'SPAT').length
+      const bsmCount = pcapDataArr.filter(item => item.type === 'BSM').length
+      const ssmCount = pcapDataArr.filter(item => item.type === 'SSM').length
+      const srmCount = pcapDataArr.filter(item => item.type === 'SRM').length
+      const unknownCount = pcapDataArr.filter(item => item.type === 'UNKNOWN').length
+      
+      state.value.pcapDataStats = {
+        totalCount: pcapDataArr.length,
+        firstTimestamp: firstTimestamp,
+        lastTimestamp: lastTimestamp,
+        mapCount: mapCount,
+        uniqueMapCount: uniqueMapCount,
+        spatCount: spatCount,
+        bsmCount: bsmCount,
+        ssmCount: ssmCount,
+        srmCount: srmCount,
+        unknownCount: unknownCount
+      }
+    });
   },
 })
 
@@ -378,6 +421,8 @@ export const {
 } = asn1DecoderSlice.actions
 
 export const selectData = (state: RootState) => state.asn1Decoder.value.data
+export const selectPcapData = (state: RootState) => state.asn1Decoder.value.pcapData
+export const selectPcapDataStats = (state: RootState) => state.asn1Decoder.value.pcapDataStats
 export const selectSelectedMapMessage = (state: RootState) => state.asn1Decoder.value.selectedMapMessage
 export const selectSelectedBsms = (state: RootState) => state.asn1Decoder.value.selectedBsms
 export const selectCurrentBsms = (state: RootState) => state.asn1Decoder.value.currentBsms

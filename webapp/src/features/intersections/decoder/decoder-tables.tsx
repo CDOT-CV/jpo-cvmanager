@@ -22,6 +22,8 @@ import {
   onItemSelected,
   onTextChanged,
   selectData,
+  selectPcapData,
+  selectPcapDataStats,
   selectSelectedBsms,
   selectSelectedMapMessage,
   toggleBsmSelection,
@@ -35,8 +37,11 @@ export const DecoderTables = () => {
   const data = useSelector(selectData)
   const selectedMapMessage = useSelector(selectSelectedMapMessage)
   const selectedBsms = useSelector(selectSelectedBsms)
+  const pcapData = useSelector(selectPcapData)
+  const pcapDataStats = useSelector(selectPcapDataStats)
 
   const contents = Object.values(data)
+  const pcapContents = Object.values(pcapData)
   const selectedIntersectionId = selectedMapMessage?.intersectionId
   const selectedMapMessageId = selectedMapMessage?.id
 
@@ -81,16 +86,16 @@ export const DecoderTables = () => {
   }
 
   const pcapFileUploaded = (event) => {
-    console.log("pcapFileUploaded")
+    console.debug("pcapFileUploaded")
     const file = event.target.files[0]
     if (file) {
       const reader = new FileReader()
       reader.onload = function (evt) {
-        console.log("pcapFileUploaded: reader.onload")
+        console.debug("pcapFileUploaded: reader.onload")
         try {
           const bytes = evt.target?.result as ArrayBuffer
-          console.log("Got an ArrayBuffer with " + bytes.byteLength + " bytes");
-          onPcapFileUploaded(bytes)
+          console.debug("Got an ArrayBuffer with " + bytes.byteLength + " bytes");
+          dispatch(onPcapFileUploaded(bytes))
         } catch (e) {
           console.error('Error reading uploaded pcap file', e)
         }
@@ -120,9 +125,43 @@ export const DecoderTables = () => {
   return (
     <Card>
       <Box sx={{ margin: '5px'}}>
-        Upload PCAP File:
+        <span>Upload PCAP File: </span>
         <input type="file" onChange={ (event) => pcapFileUploaded(event) } title="Upload PCAP File"/>
       </Box>
+      {pcapDataStats?.totalCount > 0 &&
+        <Box sx={{ margin: '5px' }}>
+          <TableContainer>
+            <TableHead>
+              <TableRow>
+                <TableCell>First Timestamp</TableCell>
+                <TableCell>Last Timestmap</TableCell>
+                <TableCell>MAPs</TableCell>
+                <TableCell>Unique MAPs</TableCell>
+                <TableCell>SPATs</TableCell>
+                <TableCell>BSMs</TableCell>
+                <TableCell>SSMs</TableCell>
+                <TableCell>SRMs</TableCell>
+                <TableCell>Unknown</TableCell>
+                <TableCell>Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>{new Date(pcapDataStats.firstTimestamp).toISOString()}</TableCell>
+                <TableCell>{new Date(pcapDataStats.lastTimestamp).toISOString()}</TableCell>
+                <TableCell>{pcapDataStats.mapCount}</TableCell>
+                <TableCell>{pcapDataStats.uniqueMapCount}</TableCell>
+                <TableCell>{pcapDataStats.spatCount}</TableCell>
+                <TableCell>{pcapDataStats.bsmCount}</TableCell>
+                <TableCell>{pcapDataStats.ssmCount}</TableCell>
+                <TableCell>{pcapDataStats.srmCount}</TableCell>
+                <TableCell>{pcapDataStats.unknownCount}</TableCell>
+                <TableCell>{pcapDataStats.totalCount}</TableCell>
+              </TableRow>
+            </TableBody>
+          </TableContainer>
+        </Box>
+      }
       <PerfectScrollbar>
         <Box display="flex" justifyContent="space-between" sx={{ minWidth: 1050 }}>
           <TableContainer>

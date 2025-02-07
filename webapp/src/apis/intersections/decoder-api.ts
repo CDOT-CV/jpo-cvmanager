@@ -49,7 +49,7 @@ class DecoderApi {
   }: {
     data: ArrayBuffer,
     abortController?: AbortController
-  }) : Promise<DecoderApiResponseGeneric | undefined> {
+  }) : Promise<any> {
     console.log("submitPcapDecodeRequest.  posting " + data.byteLength + " bytes")
     const response = await authApiHelper.invokeApi({
       path: '/pcap/uper',
@@ -59,7 +59,7 @@ class DecoderApi {
       tag: 'intersection',
       abortController: abortController
     })
-    return response as DecoderApiResponseGeneric | undefined
+    return response
   }
 }
 
