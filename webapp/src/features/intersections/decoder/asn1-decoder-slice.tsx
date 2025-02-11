@@ -34,7 +34,8 @@ const initialState = {
     ssmCount: 0,
     srmCount: 0,
     unknownCount: 0
-  }
+  },
+  uniqueMaps: [] as ProcessedMap[]
 }
 
 const submitDecoderRequest = (token: string, data: string, type: DECODER_MESSAGE_TYPE) => {
