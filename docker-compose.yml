@@ -103,7 +103,7 @@ services:
       ${WEBAPP_DOMAIN}: ${WEBAPP_HOST_IP}
       ${KEYCLOAK_DOMAIN}: ${KC_HOST_IP}
     ports:
-      - '80:80'
+      - '3000:80'
     logging:
       options:
         max-size: '10m'
@@ -145,7 +145,7 @@ services:
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      WEBAPP_ORIGIN: http://${WEBAPP_DOMAIN}
+      WEBAPP_ORIGIN: http://${WEBAPP_DOMAIN}:3000
       KC_HEALTH_ENABLED: true
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://${PG_DB_HOST}/postgres?currentSchema=keycloak
@@ -155,10 +155,14 @@ services:
       KEYCLOAK_API_CLIENT_SECRET_KEY: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      KC_HOSTNAME_STRICT_HTTPS: 'false'
+      KC_PROXY: 'edge'
+      KC_HTTP_ENABLED: 'true'
+      KC_LOG_LEVEL: ${KC_LOGGING_LEVEL}
+      PROXY_ADDRESS_FORWARDING: 'true'
     command:
-      - start-dev
-      - --log-level=${KC_LOGGING_LEVEL}
-      - --import-realm
+      - start
+        - --import-realm
       - --spi-theme-welcome-theme=custom-welcome
     logging:
       options:
@@ -169,6 +173,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - cvmanager_keycloak
 
 volumes:
   pgdb:
