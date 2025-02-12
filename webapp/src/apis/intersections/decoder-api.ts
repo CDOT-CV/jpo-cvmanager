@@ -61,6 +61,27 @@ class DecoderApi {
     })
     return response
   }
+
+  async submitBatchDecodeRequest({
+    data, 
+    abortController
+  }: {
+    data: any[], 
+    abortController?: AbortController
+  }) : Promise<any> {
+    console.log("submitBatchDecodeRequest.  posting " + data.length + " chars")
+    const response = await authApiHelper.invokeApi({
+      path: '/uper/json',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: data,
+      tag: 'intersection',
+      abortController: abortController
+    })
+    return response
+  }
 }
+
+
 
 export default new DecoderApi()

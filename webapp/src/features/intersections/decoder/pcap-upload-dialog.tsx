@@ -11,12 +11,6 @@ import { PcapTables } from './pcap-tables'
 import {
   setPcapDecoderDialogOpen,
   selectDialogOpen,
-  updateCurrentBsms,
-  selectData,
-  selectSelectedBsms,
-  updateAllDataOnMap,
-  selectSelectedMapMessage,
-  onItemSelected,
 } from './pcap-decoder-slice'
 import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -28,9 +22,6 @@ const PcapUploadDialog = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const open = useSelector(selectDialogOpen)
-  const data = useSelector(selectData)
-  const selectedBsms = useSelector(selectSelectedBsms)
-  const selectedMapMessage = useSelector(selectSelectedMapMessage)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const handleClose = () => {
@@ -39,24 +30,16 @@ const PcapUploadDialog = () => {
 
   useEffect(() => {
     if (decoderModeEnabled) {
-      if (Object.values(data).filter((v) => v.type === 'MAP').length !== 0 && selectedMapMessage === undefined) {
-        dispatch(onItemSelected(Object.values(data).filter((v) => v.type === 'MAP')[0].id))
-      }
-      dispatch(updateCurrentBsms(Object.values(data)))
-      dispatch(updateAllDataOnMap())
+      
     }
-  }, [data, selectedBsms, decoderModeEnabled])
+  }, [decoderModeEnabled])
 
-  useEffect(() => {
-    dispatch(updateAllDataOnMap())
-  }, [selectedMapMessage])
+  
 
   return (
     <>
       <Dialog onClose={handleClose} open={open} fullWidth maxWidth={'lg'}>
         <DialogTitle>PCAP Upload</DialogTitle>
-
-        
         <Container sx={{ height: '60vh' }}>
           <PcapTables/>
         </Container>     

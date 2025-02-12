@@ -1,5 +1,5 @@
 import React from 'react'
-import PerfectScrollbar from 'react-perfect-scrollbar'
+
 import {
   Box,
   Card,
@@ -17,17 +17,11 @@ import { DecoderEntry } from './decoder-entry'
 import DownloadIcon from '@mui/icons-material/Download'
 import { useDispatch, useSelector } from 'react-redux'
 import {
-  onFileUploaded,
   onPcapFileUploaded,
-  onItemDeleted,
-  onItemSelected,
-  onTextChanged,
-  selectData,
+  decodeAllToJson,
   selectPcapData,
   selectPcapDataStats,
-  selectSelectedBsms,
-  selectSelectedMapMessage,
-  toggleBsmSelection,
+  selectDecodedJsonData,
 } from './pcap-decoder-slice'
 import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
@@ -35,19 +29,12 @@ import { RootState } from '../../../store'
 export const PcapTables = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
-  const data = useSelector(selectData)
-  const selectedMapMessage = useSelector(selectSelectedMapMessage)
-  const selectedBsms = useSelector(selectSelectedBsms)
   const pcapData = useSelector(selectPcapData)
   const pcapDataStats = useSelector(selectPcapDataStats)
+  const decodedJsonData = useSelector(selectDecodedJsonData)
 
-  const contents = Object.values(data)
   const pcapContents = Object.values(pcapData)
-  const selectedIntersectionId = selectedMapMessage?.intersectionId
-  const selectedMapMessageId = selectedMapMessage?.id
-
  
-
   const pcapFileUploaded = (event) => {
     console.debug("pcapFileUploaded")
     const file = event.target.files[0]
@@ -57,7 +44,7 @@ export const PcapTables = () => {
         console.debug("pcapFileUploaded: reader.onload")
         try {
           const bytes = evt.target?.result as ArrayBuffer
-          console.debug("Got an ArrayBuffer with " + bytes.byteLength + " bytes");
+          console.debug("Got an ArrayBuffer with " + bytes.byteLength + " bytes")
           dispatch(onPcapFileUploaded(bytes))
         } catch (e) {
           console.error('Error reading uploaded pcap file', e)
@@ -67,13 +54,17 @@ export const PcapTables = () => {
     }
   }
 
+  
+
   const handleDownloadHexClick = () => {
     downloadJsonFile(pcapContents, "hex.json")
   }
 
   const handleDownloadJsonClick = () => {
-    
+    downloadJsonFile(decodedJsonData, "all-messages.json")
   }
+
+  
 
   const downloadJsonFile = (contents: any, name: string, alreadyStringified = false) => {
     const element = document.createElement('a')
@@ -107,7 +98,6 @@ export const PcapTables = () => {
             onClick={() => handleDownloadJsonClick()}>
             <DownloadIcon/>Download Decoded JSON
           </IconButton>
-
           
           <Card>
             <Typography sx={{ m: 1 }} variant="h5">
