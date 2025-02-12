@@ -19,6 +19,7 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.model.*;
+import java.util.stream.Collectors;
 
 @RestController
 @Slf4j
@@ -36,46 +37,52 @@ public class PcapController {
     }
 
     /**
-     * Convert standard binary pcap data to JSON of {@link TimestampedMessageFrameList}.
+     * Convert standard binary pcap data to JSON of
+     * {@link TimestampedMessageFrameList}.
      * Find and extract PCAP frame timestamps and J2735 MessageFrames.
      *
      * @param bytes Raw PCAP data
      * @return Line delimited JSON. Timestamped message frame data, hex format.
      */
-    @RequestMapping(value = "/pcap/uper",
-            method = RequestMethod.POST,
-            consumes = {
-                MediaType.APPLICATION_OCTET_STREAM_VALUE,
-                "application/pcap",
-                "application/vnd.tcpdump.pcap" },
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/pcap/uper", method = RequestMethod.POST, consumes = {
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            "application/pcap",
+            "application/vnd.tcpdump.pcap" }, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<TimestampedMessageFrameList> pcapToTimestampedHex(
             @RequestBody byte[] bytes) throws IOException {
         log.info("pcapToTimestampedHex received {} bytes", bytes.length);
         var hexList = decoder.decodePcap(bytes);
         return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(hexList);
+                .status(HttpStatus.OK)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(hexList);
     }
 
     /**
-     * Convert a JSON array of hex MessageFrames data to ProcessedMap and ProcessedSpat
+     * Convert a JSON array of hex MessageFrames data to ProcessedMap and
+     * ProcessedSpat
      * JSON, or ODE JSON for other message types.
+     * 
      * @param messageFrameList Hex data
-     * @return  A JSON array of Processed/ODE JSON.
+     * @return A JSON array of Processed/ODE JSON.
      */
-    @RequestMapping(value = "/uper/json",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = {
-                    MediaType.APPLICATION_JSON_VALUE,
-                    MediaType.TEXT_PLAIN_VALUE })
+    @RequestMapping(value = "/uper/json", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
+            MediaType.APPLICATION_JSON_VALUE,
+            MediaType.TEXT_PLAIN_VALUE })
     public @ResponseBody ResponseEntity<String> decodeMessageFrames(
             @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
         try {
-            String xmlBatch = codecClient.decodeBatch(messageFrameList);
+            // Filter out unknown messages
+            List<TimestampedMessageFrame> filtered = messageFrameList.stream()
+                    .filter(tmf -> tmf.getMessageFrameType() != MessageType.UNKNOWN)
+                    .collect(Collectors.toList());
+            var filteredList = new TimestampedMessageFrameList();
+            filteredList.addAll(filtered);
+            if (filteredList.size() < messageFrameList.size()) {
+                log.warn("Filtered out {} unknown messages", messageFrameList.size() - filteredList.size());
+            }
+            String xmlBatch = codecClient.decodeBatch(filteredList);
             log.info("Received xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
             List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlBatch);
             List<String> decodedMessages = decoderManager.convertBatchOdeDataToJson(odeDataList);
@@ -94,7 +101,5 @@ public class PcapController {
                     .body(message + ", " + ExceptionUtils.getStackTrace(e));
         }
     }
-
-
 
 }

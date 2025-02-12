@@ -41,8 +41,13 @@ export const onPcapFileUploaded = createAsyncThunk(
   'pcapDecoder/onPcapFileUploaded',
   async (contents: ArrayBuffer, { getState, dispatch }) => {
     console.log("onPcapFileUploaded")
+    
     const response = await submitPcapDecoderRequest(contents)
+    
+    // Start decode all to JSON asynchroously.  Don't await because it is slower.
+    // TODO: Grey out the download button until this is done
     dispatch(decodeAllToJson(response))
+    
     return response
   }
 )
@@ -57,7 +62,6 @@ export const decodeAllToJson = createAsyncThunk(
   'pcapDecoder/decodeAllToJson',
   async (hexData: any[], {getState, dispatch}) => {
     console.log("decodeAlltoJson")
-    //const hexData = selectPcapData(getState() as RootState)
     const response = await DecoderApi.submitBatchDecodeRequest({data: hexData})
     return response
   }
