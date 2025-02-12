@@ -80,6 +80,7 @@ import { MapLegend } from './map-legend'
 import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
+import PcapUploadDialog from '../decoder/pcap-upload-dialog'
 import { useLocation } from 'react-router-dom'
 
 export const getTimestamp = (dt: any): number => {
@@ -492,6 +493,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
         />
       </Col>
       <DecoderEntryDialog />
+      <PcapUploadDialog />
     </Container>
   )
 }

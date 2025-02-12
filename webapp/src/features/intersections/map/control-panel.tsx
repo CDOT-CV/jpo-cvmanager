@@ -68,6 +68,7 @@ import pauseIcon from '../../../icons/pause.png'
 import playIcon from '../../../icons/play.png'
 import { BarChart, XAxis, Bar, ResponsiveContainer, Tooltip } from 'recharts'
 import { decoderModeToggled, setAsn1DecoderDialogOpen } from '../decoder/asn1-decoder-slice'
+import { pcapDecoderModeToggled, setPcapDecoderDialogOpen } from '../decoder/pcap-decoder-slice'
 import toast from 'react-hot-toast'
 
 const Accordion = styled((props: AccordionProps) => <MuiAccordion disableGutters elevation={0} square {...props} />)(
@@ -699,6 +700,7 @@ function ControlPanel() {
                 checked={decoderModeEnabled}
                 onChange={(event) => {
                   dispatch(decoderModeToggled(event.target.checked))
+                  dispatch(pcapDecoderModeToggled(event.target.checked))
                 }}
               />
             </div>
@@ -710,6 +712,12 @@ function ControlPanel() {
                 disabled={!decoderModeEnabled}
               >
                 Decode + Render Data
+              </Button>
+              <Button sx={{ m: 1 }}
+                variant="contained"
+                onClick={() => dispatch(setPcapDecoderDialogOpen(true))}
+                disabled={!decoderModeEnabled}>
+                Decode PCAP Data
               </Button>
             </div>
           </div>
