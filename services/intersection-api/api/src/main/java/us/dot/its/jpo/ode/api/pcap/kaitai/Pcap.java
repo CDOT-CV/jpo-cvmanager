@@ -1,10 +1,13 @@
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
+// NOTE Edited to add error recovery
 
 package us.dot.its.jpo.ode.api.pcap.kaitai;
 
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.KaitaiStruct;
 import io.kaitai.struct.KaitaiStream;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.Arrays;
  * [Wireshark](https://www.wireshark.org/).
  * @see <a href="https://wiki.wireshark.org/Development/LibpcapFileFormat">Source</a>
  */
+@Slf4j
 public class Pcap extends KaitaiStruct {
     public static Pcap fromFile(String fileName) throws IOException {
         return new Pcap(new ByteBufferKaitaiStream(fileName));
@@ -265,9 +269,16 @@ public class Pcap extends KaitaiStruct {
         this.packets = new ArrayList<Packet>();
         {
             int i = 0;
-            while (!this._io.isEof()) {
-                this.packets.add(new Packet(this._io, this, _root));
-                i++;
+
+            // EDIT: add try-catch to try to salvage some packets if not all
+            // of them can be read
+            try {
+                while (!this._io.isEof()) {
+                    this.packets.add(new Packet(this._io, this, _root));
+                    i++;
+                }
+            } catch (Exception ex) {
+                log.error("Error reading packets, interrupted after reading {}", i, ex);
             }
         }
     }

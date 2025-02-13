@@ -17,6 +17,8 @@ import {
   handleNewMapMessageData
 } from '../map/map-slice'
 
+import { parseMapSignalGroups } from '../map/utilities/message-utils'
+
 const initialState = {
   dialogOpen: false,
   pcapData: [],
@@ -126,17 +128,12 @@ export const updateMap = createAsyncThunk(
   'pcapDecoder/updateMap',
   async(_, { getState, dispatch }) => {
     console.log("updateMap")
-    
     const selectedMap = selectSelectedMap(getState() as RootState)
-    const initialSourceDataType = selectInitialSourceDataType(getState() as RootState)
-    const intersectionId = selectedMap?.properties?.intersectionId
-    const roadRegulatorId = selectedMap?.properties?.region
-    const loadOnNull = selectLoadOnNull(getState() as RootState)
     dispatch(handleNewMapMessageData({
       mapData: selectedMap, 
       connectingLanes: selectedMap.connectingLanesFeatureCollection, 
-      mapSignalGroups: {} as SignalStateFeatureCollection, 
-      mapTime: Date.now()
+      mapSignalGroups: parseMapSignalGroups(selectedMap), 
+      mapTime: Date.now() // TODO Populate with the correct timestamp
     }))
   }
 )
