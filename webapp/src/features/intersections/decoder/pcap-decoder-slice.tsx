@@ -14,6 +14,7 @@ import {
   selectSourceDataType,
   setDecoderModeEnabled,
   setMapProps,
+  handleNewMapMessageData
 } from '../map/map-slice'
 
 const initialState = {
@@ -32,7 +33,8 @@ const initialState = {
     srmCount: 0,
     unknownCount: 0
   },
-  uniqueMaps: [] as ProcessedMap[]
+  uniqueMaps: [] as ProcessedMap[],
+  selectedMap: {} as ProcessedMap,
 }
 
 
@@ -120,6 +122,25 @@ export const pcapDecoderModeToggled = createAsyncThunk(
   }
 )
 
+export const updateMap = createAsyncThunk(
+  'pcapDecoder/updateMap',
+  async(_, { getState, dispatch }) => {
+    console.log("updateMap")
+    
+    const selectedMap = selectSelectedMap(getState() as RootState)
+    const initialSourceDataType = selectInitialSourceDataType(getState() as RootState)
+    const intersectionId = selectedMap?.properties?.intersectionId
+    const roadRegulatorId = selectedMap?.properties?.region
+    const loadOnNull = selectLoadOnNull(getState() as RootState)
+    dispatch(handleNewMapMessageData({
+      mapData: selectedMap, 
+      connectingLanes: selectedMap.connectingLanesFeatureCollection, 
+      mapSignalGroups: {} as SignalStateFeatureCollection, 
+      mapTime: Date.now()
+    }))
+  }
+)
+
 export const pcapDecoderSlice = createSlice({
   name: 'pcapDecoder',
   initialState: {
@@ -130,6 +151,15 @@ export const pcapDecoderSlice = createSlice({
     setPcapDecoderDialogOpen: (state, action: PayloadAction<boolean>) => {
         console.log("setPcapDecoderDialogOpen: " + action.payload)
         state.value.dialogOpen = action.payload
+    },
+    onMapSelected: (state, action: PayloadAction<any>) => {
+      const intersectionId = action.payload
+      console.log("onMapSelected " + intersectionId)
+      state.value.selectedMap = state.value.uniqueMaps.find(function(aMap) {
+        return aMap.properties.intersectionId == intersectionId
+      })
+      console.log("selectedMap: ")
+      console.log(state.value.selectedMap)
     }
   },
   extraReducers: (builder) => {
@@ -176,6 +206,7 @@ export const pcapDecoderSlice = createSlice({
 
 export const {
   setPcapDecoderDialogOpen,
+  onMapSelected,
 } = pcapDecoderSlice.actions
 
 
@@ -184,5 +215,6 @@ export const selectPcapDataStats = (state: RootState) => state.pcapDecoder.value
 export const selectDecodedJsonData = (state: RootState) => state.pcapDecoder.value.decodedJsonData
 export const selectDialogOpen = (state: RootState) => state.pcapDecoder.value.dialogOpen
 export const selectUniqueMaps = (state: RootState) => state.pcapDecoder.value.uniqueMaps
+export const selectSelectedMap = (state: RootState) => state.pcapDecoder.value.selectedMap
 
 export default pcapDecoderSlice.reducer

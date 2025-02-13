@@ -11,11 +11,15 @@ import { PcapTables } from './pcap-tables'
 import {
   setPcapDecoderDialogOpen,
   selectDialogOpen,
+  updateMap,
+  selectSelectedMap,
 } from './pcap-decoder-slice'
 import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
-import { selectDecoderModeEnabled } from '../map/map-slice'
+import { 
+    selectDecoderModeEnabled,
+ } from '../map/map-slice'
 
 const PcapUploadDialog = () => {
     console.log("PcapUploadDialog")
@@ -23,6 +27,7 @@ const PcapUploadDialog = () => {
 
   const open = useSelector(selectDialogOpen)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
+  const selectedMap = useSelector(selectSelectedMap)
 
   const handleClose = () => {
     dispatch(setPcapDecoderDialogOpen(false))
@@ -34,7 +39,10 @@ const PcapUploadDialog = () => {
     }
   }, [decoderModeEnabled])
 
-  
+    useEffect(() => {
+        console.log("useEffect.selectedMap")
+        dispatch(updateMap())
+    }, [selectedMap])
 
   return (
     <>

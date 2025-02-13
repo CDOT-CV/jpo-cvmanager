@@ -24,12 +24,15 @@ import {
   selectPcapDataStats,
   selectDecodedJsonData,
   selectUniqueMaps,
+  onMapSelected
 } from './pcap-decoder-slice'
 import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 
 export const PcapTables = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+
+
 
   const pcapData = useSelector(selectPcapData)
   const pcapDataStats = useSelector(selectPcapDataStats)
@@ -80,8 +83,9 @@ export const PcapTables = () => {
     element.click()
   }
 
-  const handleCheckboxChange = (intersectionId) => {
-    console.log("Checkbox changed for intersection " + intersectionId);
+  const showMapButtonClick = (intersectionId) => {
+    console.log("Show map button click for intersection " + intersectionId);
+    dispatch(onMapSelected(intersectionId))
   }
 
 
@@ -168,7 +172,7 @@ export const PcapTables = () => {
                         <TableCell>
                           <Button size="small"
                               variant="contained"
-                              onClick={() => handleCheckboxChange(mapMsg?.properties?.intersectionId)}
+                              onClick={() => showMapButtonClick(mapMsg?.properties?.intersectionId)}
                             >Show</Button>
                         </TableCell>
                         <TableCell>{mapMsg?.properties?.intersectionId}</TableCell>
