@@ -11,7 +11,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Typography
+  Typography,
+  Button
 } from '@mui/material'
 import { DecoderEntry } from './decoder-entry'
 import DownloadIcon from '@mui/icons-material/Download'
@@ -22,6 +23,7 @@ import {
   selectPcapData,
   selectPcapDataStats,
   selectDecodedJsonData,
+  selectUniqueMaps,
 } from './pcap-decoder-slice'
 import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
@@ -32,6 +34,7 @@ export const PcapTables = () => {
   const pcapData = useSelector(selectPcapData)
   const pcapDataStats = useSelector(selectPcapDataStats)
   const decodedJsonData = useSelector(selectDecodedJsonData)
+  const uniqueMaps = useSelector(selectUniqueMaps)
 
   const pcapContents = Object.values(pcapData)
  
@@ -77,6 +80,10 @@ export const PcapTables = () => {
     element.click()
   }
 
+  const handleCheckboxChange = (intersectionId) => {
+    console.log("Checkbox changed for intersection " + intersectionId);
+  }
+
 
   return (
     <Box>
@@ -100,7 +107,7 @@ export const PcapTables = () => {
           </IconButton>
           
           <Card>
-            <Typography sx={{ m: 1 }} variant="h5">
+            <Typography sx={{ m: 1 }} variant="h6">
               Statistics
             </Typography>
             <TableContainer>
@@ -135,32 +142,47 @@ export const PcapTables = () => {
             </TableContainer>
           </Card>
 
-          
-          <Card>
-            <Typography sx={{ m: 1 }} variant="h5">
-              Unique MAPs
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      MAP Messages
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Card>
         
         </Box>
       }
- 
+
+      {uniqueMaps?.length > 0 &&
+        <Card>
+          <Typography sx={{ m: 1 }} variant="h6">
+            Unique MAP Messages
+          </Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Select</TableCell>
+                  <TableCell>Intersection ID</TableCell>
+                  <TableCell>Intersection Name</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+              {uniqueMaps.map((mapMsg) => {
+                  console.log(mapMsg)
+                    return (
+                      <TableRow>
+                        <TableCell>
+                          <Button size="small"
+                              variant="contained"
+                              onClick={() => handleCheckboxChange(mapMsg?.properties?.intersectionId)}
+                            >Show</Button>
+                        </TableCell>
+                        <TableCell>{mapMsg?.properties?.intersectionId}</TableCell>
+                        <TableCell>{mapMsg?.properties?.intersectionName}</TableCell>
+                      </TableRow>
+                    )
+                  }
+                )
+              }
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      }
     </Box>
   )
 }

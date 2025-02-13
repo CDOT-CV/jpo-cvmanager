@@ -47,6 +47,8 @@ export const onPcapFileUploaded = createAsyncThunk(
     // Start decode all to JSON asynchroously.  Don't await because it is slower.
     // TODO: Grey out the download button until this is done
     dispatch(decodeAllToJson(response))
+
+    dispatch(decodeUniqueMaps(response))
     
     return response
   }
@@ -67,7 +69,20 @@ export const decodeAllToJson = createAsyncThunk(
   }
 )
 
-
+export const decodeUniqueMaps = createAsyncThunk(
+  'pcapDecoder/decodeUniqueMaps',
+  async (hexData: any[], {getState, dispatch}) => {
+    console.log("decodeUniqueMaps")
+    const pcapDataArr = Object.values(hexData)
+    const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
+    const uniqueMapHexSet = new Set(allMaps.map(item => item.hex))
+    const uniqueMaps = []
+    uniqueMapHexSet.forEach(hex => uniqueMaps.push({type: "MAP", timestamp: 0, hex: hex}))
+    console.log(uniqueMaps)
+    const response = await DecoderApi.submitBatchDecodeRequest({data: uniqueMaps})
+    return response
+  }
+)
 
 
 export const pcapDecoderModeToggled = createAsyncThunk(
@@ -152,6 +167,10 @@ export const pcapDecoderSlice = createSlice({
       console.debug("decodeAllToJson.fulfilled reducer")
       state.value.decodedJsonData = action.payload
     });
+    builder.addCase(decodeUniqueMaps.fulfilled, (state, action) => {
+      console.debug("decodeUniqueMaps.fulfilled reducer")
+      state.value.uniqueMaps = action.payload
+    });
   },
 })
 
@@ -164,5 +183,6 @@ export const selectPcapData = (state: RootState) => state.pcapDecoder.value.pcap
 export const selectPcapDataStats = (state: RootState) => state.pcapDecoder.value.pcapDataStats
 export const selectDecodedJsonData = (state: RootState) => state.pcapDecoder.value.decodedJsonData
 export const selectDialogOpen = (state: RootState) => state.pcapDecoder.value.dialogOpen
+export const selectUniqueMaps = (state: RootState) => state.pcapDecoder.value.uniqueMaps
 
 export default pcapDecoderSlice.reducer
