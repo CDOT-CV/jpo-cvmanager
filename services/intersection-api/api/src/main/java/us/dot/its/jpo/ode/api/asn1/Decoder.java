@@ -5,13 +5,15 @@ import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
 import us.dot.its.jpo.ode.model.OdeData;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface Decoder {
     
     /**
      * This function manages the decoding for the corresponding J2735 Data type. This includes transforming the data to the correct ODE data format, and Processed formats where applicable
      * @return DecodedMessage Object including all intermediate formats during the decoding procedure.
      */
-    public DecodedMessage decode(EncodedMessage message);
+    public CompletableFuture<? extends DecodedMessage> decode(EncodedMessage message);
 
 
     /**

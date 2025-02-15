@@ -22,6 +22,7 @@ import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -35,19 +36,22 @@ public class BsmDecoder implements Decoder {
     }
 
     @Override
-    public DecodedMessage decode(EncodedMessage message) {
-        try {
-            // Send String through ASN.1 Decoder to get Decoded XML Data
-            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
-            OdeBsmData bsm = getOdeBsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
-
+    public CompletableFuture<BsmDecodedMessage> decode(EncodedMessage message) {
+        // Send String through ASN.1 Decoder to get Decoded XML Data
+        CompletableFuture<String> messageFrameXmlFuture = codecClient.decodeSingle(message.getAsn1Message());
+        return messageFrameXmlFuture.thenApply(messageFrameXml -> {
+            OdeBsmData bsm = null;
+            try {
+                bsm = getOdeBsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
+            } catch (XmlUtilsException e) {
+                throw new RuntimeException(e);
+            }
             // build output data structure
             return new BsmDecodedMessage(bsm, message.getAsn1Message(), "");
-
-        } catch (Exception e) {
-            log.error("General error decoding BSM", e);
-            return new BsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
-        }
+        }).exceptionally(ex -> {
+            log.error("General error decoding BSM", ex);
+            return new BsmDecodedMessage(null, message.getAsn1Message(), ex.getMessage());
+        });
     }
 
     @Override

@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -32,20 +33,26 @@ public class SsmDecoder implements Decoder {
     }
 
     @Override
-    public DecodedMessage decode(EncodedMessage message) {
-        try {
-            // Send String through ASN.1 Decoder to get Decoded XML Data
-            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+    public CompletableFuture<SsmDecodedMessage> decode(EncodedMessage message) {
 
+        // Send String through ASN.1 Decoder to get Decoded XML Data
+        CompletableFuture<String> messageFrameXmlFuture = codecClient.decodeSingle(message.getAsn1Message());
+        return messageFrameXmlFuture.thenApply(messageFrameXml -> {
             // Convert to Ode Json
-            OdeSsmData ssm = getOdeSsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
+            OdeSsmData ssm = null;
+            try {
+                ssm = getOdeSsmDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
+            } catch (XmlUtilsException e) {
+                throw new RuntimeException(e);
+            }
 
             // build output data structure
             return new SsmDecodedMessage(ssm, message.getAsn1Message(), "");
-        } catch (Exception e) {
-            log.error("Exception decoding SSM message", e);
-            return new SsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
-        }
+        }).exceptionally(ex -> {
+            log.error("Exception decoding SSM message", ex);
+            return new SsmDecodedMessage(null, message.getAsn1Message(), ex.getMessage());
+        });
+
     }
 
     @Override

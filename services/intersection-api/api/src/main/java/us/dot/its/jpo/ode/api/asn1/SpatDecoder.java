@@ -29,6 +29,7 @@ import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 
@@ -49,26 +50,26 @@ public class SpatDecoder implements Decoder {
     public SpatProcessedJsonConverter converter = new SpatProcessedJsonConverter();
 
     @Override
-    public DecodedMessage decode(EncodedMessage message) {
-        try {
-            // Send String through ASN.1 Decoder to get Decoded XML Data
-            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+    public CompletableFuture<SpatDecodedMessage> decode(EncodedMessage message) {
 
+        // Send String through ASN.1 Decoder to get Decoded XML Data
+        CompletableFuture<String> messageFrameXmlFuture = codecClient.decodeSingle(message.getAsn1Message());
+
+        return messageFrameXmlFuture.thenApply(messageFrameXml -> {
             // Convert to Ode Json
-            OdeSpatData spat = getOdeSpatDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
-
-            // build output data structure
+            OdeSpatData spat = null;
             try {
+                spat = getOdeSpatDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
                 ProcessedSpat processedSpat = createProcessedSpat(spat);
                 return new SpatDecodedMessage(processedSpat, spat, message.getAsn1Message(), "");
-            } catch (Exception e) {
-                return new SpatDecodedMessage(null, spat, message.getAsn1Message(), e.getMessage());
+            } catch (XmlUtilsException e) {
+                throw new RuntimeException(e);
             }
+        }).exceptionally(ex -> {
+            log.error("Exception decoding SPaT message", ex);
+            return new SpatDecodedMessage(null, null, message.getAsn1Message(), ex.getMessage());
+        });
 
-        } catch (Exception e) {
-            log.error("Exception decoding SPaT message", e);
-            return new SpatDecodedMessage(null, null, message.getAsn1Message(), e.getMessage());
-        }
     }
 
     @Override

@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -19,6 +20,9 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.model.*;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @RestController
@@ -28,12 +32,15 @@ public class PcapController {
     private final PcapDecoder decoder;
     private final DecoderManager decoderManager;
     private final CodecClient codecClient;
+    private final Executor executor;
 
     @Autowired
-    public PcapController(PcapDecoder decoder, DecoderManager decoderManager, CodecClient codecClient) {
+    public PcapController(PcapDecoder decoder, DecoderManager decoderManager, CodecClient codecClient,
+                          @Qualifier("codecClientExecutor") Executor executorBean) {
         this.decoder = decoder;
         this.decoderManager = decoderManager;
         this.codecClient = codecClient;
+        this.executor = executorBean;
     }
 
     /**
@@ -62,28 +69,55 @@ public class PcapController {
      * Convert a JSON array of hex MessageFrames data to ProcessedMap and
      * ProcessedSpat
      * JSON, or ODE JSON for other message types.
-     * 
+     * <p>Performs the call the the decoder endpoint asynchronously, without blocking a server thread</p>
      * @param messageFrameList Hex data
-     * @return A JSON array of Processed/ODE JSON.
+     * @return A CompletableFuture that resolves to a JSON array of Processed/ODE JSON.
      */
     @RequestMapping(value = "/uper/json", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = {
             MediaType.APPLICATION_JSON_VALUE,
             MediaType.TEXT_PLAIN_VALUE })
-    public @ResponseBody ResponseEntity<String> decodeMessageFrames(
+    public @ResponseBody CompletableFuture<ResponseEntity<String>> decodeMessageFrames(
             @RequestBody TimestampedMessageFrameList messageFrameList) {
         log.info("decodeMessageFrames received {} messages", messageFrameList.size());
+
+        CompletableFuture<String> xmlBatchFuture = null;
         try {
             // Filter out unknown messages
             List<TimestampedMessageFrame> filtered = messageFrameList.stream()
                     .filter(tmf -> tmf.getMessageFrameType() != MessageType.UNKNOWN)
-                    .collect(Collectors.toList());
+                    .toList();
             var filteredList = new TimestampedMessageFrameList();
             filteredList.addAll(filtered);
             if (filteredList.size() < messageFrameList.size()) {
                 log.warn("Filtered out {} unknown messages", messageFrameList.size() - filteredList.size());
             }
-            String xmlBatch = codecClient.decodeBatch(filteredList);
+
+            // Call the Codec API asynchronously, doesn't block server thread.
+            xmlBatchFuture = codecClient.decodeBatch(filteredList);
+
+        } catch (JsonProcessingException e) {
+            String message = String.format("Json processing exception: %s", e.getMessage());
+            log.error(message, e);
+            return CompletableFuture.supplyAsync(
+                    () -> ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(message + ", " + ExceptionUtils.getStackTrace(e)),
+                    executor);
+        }
+
+        return xmlBatchFuture.thenApply((xmlBatch) -> {
+
+
+
             log.info("Received xmlBatch of {} chars", xmlBatch != null ? xmlBatch.length() : 0);
+            if (xmlBatch == null) {
+                log.error("The batch result is empty maybe because the codec call timed out");
+                return ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body("Codec returned empty batch XML or timed out");
+            }
             List<OdeData> odeDataList = decoderManager.convertBatchXmlToOdeData(xmlBatch);
             List<String> decodedMessages = decoderManager.convertBatchOdeDataToJson(odeDataList);
             String json = "[" + String.join(",", decodedMessages) + "]";
@@ -94,12 +128,16 @@ public class PcapController {
                         messageFrameList.size() - decodedMessages.size());
             }
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
-        } catch (Exception e) {
-            String message = String.format("Failed to decode message frames: %s", e.getMessage());
-            log.error(message, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.TEXT_PLAIN)
-                    .body(message + ", " + ExceptionUtils.getStackTrace(e));
-        }
+        }).exceptionally(ex -> {
+            String message = String.format("Failed to decode message frames: %s", ex.getMessage());
+            log.error(message, ex);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(message + ", " + ExceptionUtils.getStackTrace(ex));
+        });
+
+
     }
 
 }

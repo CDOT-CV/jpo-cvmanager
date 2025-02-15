@@ -17,6 +17,8 @@ import us.dot.its.jpo.ode.model.OdeMsgMetadata.GeneratedBy;
 import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
+import java.util.concurrent.CompletableFuture;
+
 @Slf4j
 @Component
 public class TimDecoder implements Decoder {
@@ -31,24 +33,30 @@ public class TimDecoder implements Decoder {
     }
 
     @Override
-    public DecodedMessage decode(EncodedMessage message) {
-        try {
-            // Send String through ASN.1 Decoder to get Decoded XML Data
-            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+    public CompletableFuture<TimDecodedMessage> decode(EncodedMessage message) {
 
+        // Send String through ASN.1 Decoder to get Decoded XML Data
+        CompletableFuture<String> messageFrameXmlFuture = codecClient.decodeSingle(message.getAsn1Message());
+
+        return messageFrameXmlFuture.thenApply(messageFrameXml -> {
             // Convert to Ode Data type and Add Metadata
             OdeData data = getAsOdeData(message.getAsn1Message());
 
-            // Convert to Ode Json 
-            ObjectNode tim = XmlUtils.toObjectNode(messageFrameXml);
+            // Convert to Ode Json
+            ObjectNode tim = null;
+            try {
+                tim = XmlUtils.toObjectNode(messageFrameXml);
+            } catch (XmlUtilsException e) {
+                throw new RuntimeException(e);
+            }
 
             // build output data structure
             return new TimDecodedMessage(tim, message.getAsn1Message(), "");
-            
-        } catch (Exception e) {
-            log.error("Generic Exception: {}", e.getMessage(), e);
-            return new TimDecodedMessage(null, message.getAsn1Message(), e.getMessage());
-        }
+        }).exceptionally(ex -> {
+            log.error("Generic Exception: {}", ex.getMessage(), ex);
+            return new TimDecodedMessage(null, message.getAsn1Message(), ex.getMessage());
+        });
+
     }
 
     @Override

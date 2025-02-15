@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
 
+import java.util.concurrent.CompletableFuture;
+
 @Slf4j
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
@@ -47,65 +49,57 @@ public class DecoderController {
                         @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
                         @ApiResponse(responseCode = "400", description = "Message type not supported for asn.1 decoding"),
         })
-        public @ResponseBody ResponseEntity<String> decode_request(
-                        @RequestBody EncodedMessage encodedMessage,
+        public @ResponseBody CompletableFuture<ResponseEntity<String>> decode_request(
+                        @RequestBody final EncodedMessage encodedMessage,
                         @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
                 log.info("EncodedMessage: {}", encodedMessage);
-                try {
-                        if (testData) {
-                                return switch (encodedMessage.getType()) {
-                                        case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
-                                                                        .toString());
-                                        case MAP -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getMapDecodedMessage()
-                                                                        .toString());
-                                        case SPAT -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
-                                                                        .toString());
-                                        case SRM -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
-                                                                        .toString());
-                                        case SSM -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
-                                                                        .toString());
-                                        case TIM -> ResponseEntity.status(HttpStatus.OK)
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .body(MockDecodedMessageGenerator.getTimDecodedMessage()
-                                                                        .toString());
-                                        case null ->
-                                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                                String.format("No test data available for Message Type %s",
-                                                                                encodedMessage.getType()));
-                                };
-                        } else {
-                                if (encodedMessage.getType() == MessageType.UNKNOWN) {
-                                        EncodedMessage newEncodedMessage = DecoderManager
-                                                        .identifyAsn1(encodedMessage.getAsn1Message());
+                if (testData) {
+                        return CompletableFuture.supplyAsync(() -> switch (encodedMessage.getType()) {
+                                case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
+                                                .toString());
+                                case MAP -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getMapDecodedMessage()
+                                                .toString());
+                                case SPAT -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
+                                                .toString());
+                                case SRM -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
+                                                .toString());
+                                case SSM -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
+                                                .toString());
+                                case TIM -> ResponseEntity.status(HttpStatus.OK)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(MockDecodedMessageGenerator.getTimDecodedMessage()
+                                                .toString());
+                                case null ->
+                                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                                String.format("No test data available for Message Type %s",
+                                                        encodedMessage.getType()));
+                        });
 
-                                        if (newEncodedMessage.getType() != MessageType.UNKNOWN) {
-                                                encodedMessage = newEncodedMessage;
-                                        } else {
-                                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                                "Unable to identify Message Type from ASN.1");
-                                        }
-                                }
+                } else {
+                        CompletableFuture<? extends DecodedMessage> decodedMessageFuture = decoderManager.decode(encodedMessage);
 
-                                DecodedMessage decodedMessage = decoderManager.decode(encodedMessage);
-
-                                return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON)
-                                                .body(decodedMessage.toString());
-                        }
-
-                } catch (Exception e) {
-                        log.warn("Failed to decode data: {}", e.getMessage(), e);
-                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        return decodedMessageFuture.thenApply(
+                                decodedMessage ->
+                                        ResponseEntity
+                                                .status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(decodedMessage.toString())
+                        ).exceptionally(e -> {
+                                log.warn("Failed to decode data: {}", e.getMessage(), e);
+                                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                                         String.format("Exception handling encoded data: %s", e.getMessage()), e);
+                        });
                 }
+
         }
 }

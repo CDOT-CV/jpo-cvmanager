@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.util.XmlUtils;
 import us.dot.its.jpo.ode.util.XmlUtils.XmlUtilsException;
 
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class MapDecoder implements Decoder {
@@ -52,27 +53,27 @@ public class MapDecoder implements Decoder {
     public MapProcessedJsonConverter converter = new MapProcessedJsonConverter();
 
     @Override
-    public DecodedMessage decode(EncodedMessage message) {
-        try {
-            // Send String through ASN.1 Decoder to get Decoded XML Data
-            String messageFrameXml = codecClient.decodeSingle(message.getAsn1Message());
+    public CompletableFuture<MapDecodedMessage> decode(EncodedMessage message) {
 
+        // Send String through ASN.1 Decoder to get Decoded XML Data
+        CompletableFuture<String> messageFrameXmlFuture = codecClient.decodeSingle(message.getAsn1Message());
+
+        return messageFrameXmlFuture.thenApply(messageFrameXml -> {
             // Convert to Ode Json
-            OdeMapData map = getOdeMapDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
-
+            OdeMapData map = null;
             try {
+                map = getOdeMapDataFromMessageFrameXml(messageFrameXml, DecoderManager.getCurrentTimestamp());
                 ProcessedMap<LineString> processedMap = createProcessedMap(map);
                 // build output data structure
                 return new MapDecodedMessage(processedMap, map, message.getAsn1Message(), "");
-            } catch (Exception e) {
+            } catch (XmlUtilsException e) {
                 logger.error("XML Exception: {}", e.getMessage());
-                return new MapDecodedMessage(null, map, message.getAsn1Message(), e.getMessage());
+                throw new RuntimeException(e);
             }
-
-        } catch (Exception e) {
-            logger.error("Generic Exception: {}", e.getMessage(), e);
-            return new MapDecodedMessage(null, null, message.getAsn1Message(), e.getMessage());
-        }
+        }).exceptionally(ex -> {
+            logger.error("Generic Exception: {}", ex.getMessage(), ex);
+            return new MapDecodedMessage(null, null, message.getAsn1Message(), ex.getMessage());
+        });
     }
 
     @Override

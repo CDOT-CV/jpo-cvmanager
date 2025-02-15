@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.annotation.Qualifier;
 import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
@@ -28,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import static us.dot.its.jpo.ode.api.models.messages.MessageType.*;
@@ -47,23 +50,24 @@ public class DecoderManager {
             .collect(Collectors.toMap(entry -> entry.getValue().getLeft(), Map.Entry::getKey));
     public static final int HEADER_MINIMUM_SIZE = 20;
 
-    @Autowired
     public BsmDecoder bsmDecoder;
-
-    @Autowired
     public MapDecoder mapDecoder;
-
-    @Autowired
     public SpatDecoder spatDecoder;
-
-    @Autowired
     public SrmDecoder srmDecoder;
-
-    @Autowired
     public SsmDecoder ssmDecoder;
-
-    @Autowired
     public TimDecoder timDecoder;
+    private Executor executor;
+
+    public DecoderManager(BsmDecoder bsmDecoder, MapDecoder mapDecoder, SpatDecoder spatDecoder, SrmDecoder srmDecoder,
+            SsmDecoder ssmDecoder, TimDecoder timDecoder,  @Qualifier("codecClientExecutor") Executor executorBean) {
+        this.bsmDecoder = bsmDecoder;
+        this.mapDecoder = mapDecoder;
+        this.spatDecoder = spatDecoder;
+        this.srmDecoder = srmDecoder;
+        this.ssmDecoder = ssmDecoder;
+        this.timDecoder = timDecoder;
+        this.executor = executorBean;
+    }
 
     /**
      * This function takes in an Encoded message object, and decodes it into a
@@ -78,14 +82,16 @@ public class DecoderManager {
      *         representations. This includes, asn.1, ODEJsonFormat, and Processed
      *         formats for available message types.
      */
-    public DecodedMessage decode(EncodedMessage message) {
+    public CompletableFuture<? extends DecodedMessage> decode(EncodedMessage message) {
         log.info("EncodedMessage: {}", message);
         final String payload = removeHeader(message.getAsn1Message(), message.getType());
         message.setAsn1Message(payload);
 
         if (payload == null) {
-            return new DecodedMessage(null, message.getType(),
-                    "Unable to find valid message start flag within input data");
+            return CompletableFuture.supplyAsync(
+                    () -> new DecodedMessage(null, message.getType(),
+                    "Unable to find valid message start flag within input data"),
+                    executor);
         }
 
         final Decoder decoder = switch (message.getType()) {
@@ -105,7 +111,9 @@ public class DecoderManager {
                 yield null;
         };
         if (decoder == null) {
-            return new DecodedMessage(payload, message.getType(), "No Valid Decoder found for Message Type UNKNOWN");
+            return CompletableFuture.supplyAsync(
+                    () -> new DecodedMessage(payload, message.getType(), "No Valid Decoder found for Message Type UNKNOWN"),
+                    executor);
         } else {
             return decoder.decode(message);
         }
@@ -225,47 +233,6 @@ public class DecoderManager {
             return new EncodedMessage(hexPacket.substring(closestStartIndex), closestMessageType);
         }
     }
-
-//    /**
-//     * The input to this function is an XML String containing the asn.1 of an
-//     * encoded message as well as ODE metadata fields.
-//     * This function passes the XML string to the ACM module which returns back an
-//     * XML object representing the J2735 Encoded Message.
-//     *
-//     * @return An xml string containing the Decoded ASN.1 from the input xml
-//     */
-//    public static String decodeXmlWithAcm(String xmlMessage) throws Exception {
-//
-//        log.info("Decoding message: {}", xmlMessage);
-//
-//        // Save XML to temp file
-//        String tempDir = FileUtils.getTempDirectoryPath();
-//        String tempFileName = "asn1-codec-java-" + UUID.randomUUID() + ".xml";
-//        log.info("Temp file name: {}", tempFileName);
-//        Path tempFilePath = Path.of(tempDir, tempFileName);
-//        File tempFile = new File(tempFilePath.toString());
-//        FileUtils.writeStringToFile(tempFile, xmlMessage, StandardCharsets.UTF_8);
-//
-//        try {
-//            // Run ACM tool to decode message
-//            var pb = new ProcessBuilder(
-//                    "/build/acm", "-F", "-c", "/build/config/example.properties", "-T", "decode",
-//                    tempFile.getAbsolutePath());
-//            pb.directory(new File("/build"));
-//            Process process = pb.start();
-//            String result = IOUtils.toString(process.getInputStream(), StandardCharsets.UTF_8);
-//            log.info("Decode Result: {}", result);
-//
-//            return result;
-//        } finally {
-//            // Clean up temp file
-//            boolean deleteResult = tempFile.delete();
-//            if (!deleteResult) {
-//                log.error("Failed to delete tempFile: {}", tempFile.getPath());
-//            }
-//        }
-//
-//    }
 
 
 
