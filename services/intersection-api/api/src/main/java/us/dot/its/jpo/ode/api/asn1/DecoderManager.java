@@ -2,24 +2,15 @@ package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Qualifier;
 import us.dot.its.jpo.ode.api.models.messages.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
-import org.apache.commons.lang3.tuple.Pair;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
-import us.dot.its.jpo.ode.api.models.messages.*;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import us.dot.its.jpo.ode.model.*;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -28,12 +19,8 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-
-import static us.dot.its.jpo.ode.api.models.messages.MessageType.*;
 
 @Component
 @Slf4j
@@ -56,17 +43,15 @@ public class DecoderManager {
     public SrmDecoder srmDecoder;
     public SsmDecoder ssmDecoder;
     public TimDecoder timDecoder;
-    private Executor executor;
 
     public DecoderManager(BsmDecoder bsmDecoder, MapDecoder mapDecoder, SpatDecoder spatDecoder, SrmDecoder srmDecoder,
-            SsmDecoder ssmDecoder, TimDecoder timDecoder,  @Qualifier("codecClientExecutor") Executor executorBean) {
+            SsmDecoder ssmDecoder, TimDecoder timDecoder) {
         this.bsmDecoder = bsmDecoder;
         this.mapDecoder = mapDecoder;
         this.spatDecoder = spatDecoder;
         this.srmDecoder = srmDecoder;
         this.ssmDecoder = ssmDecoder;
         this.timDecoder = timDecoder;
-        this.executor = executorBean;
     }
 
     /**
@@ -88,10 +73,9 @@ public class DecoderManager {
         message.setAsn1Message(payload);
 
         if (payload == null) {
-            return CompletableFuture.supplyAsync(
-                    () -> new DecodedMessage(null, message.getType(),
-                    "Unable to find valid message start flag within input data"),
-                    executor);
+            return CompletableFuture.completedFuture(
+                    new DecodedMessage(null, message.getType(),
+                    "Unable to find valid message start flag within input data"));
         }
 
         final Decoder decoder = switch (message.getType()) {
@@ -111,9 +95,9 @@ public class DecoderManager {
                 yield null;
         };
         if (decoder == null) {
-            return CompletableFuture.supplyAsync(
-                    () -> new DecodedMessage(payload, message.getType(), "No Valid Decoder found for Message Type UNKNOWN"),
-                    executor);
+            return CompletableFuture.completedFuture(
+                    new DecodedMessage(payload, message.getType(),
+                            "No Valid Decoder found for Message Type UNKNOWN"));
         } else {
             return decoder.decode(message);
         }

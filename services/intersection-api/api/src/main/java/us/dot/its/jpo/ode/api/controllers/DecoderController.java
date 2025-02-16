@@ -54,37 +54,37 @@ public class DecoderController {
                         @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
                 log.info("EncodedMessage: {}", encodedMessage);
                 if (testData) {
-                        return CompletableFuture.supplyAsync(() -> switch (encodedMessage.getType()) {
-                                case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
-                                                .toString());
-                                case MAP -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getMapDecodedMessage()
-                                                .toString());
-                                case SPAT -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
-                                                .toString());
-                                case SRM -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
-                                                .toString());
-                                case SSM -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
-                                                .toString());
-                                case TIM -> ResponseEntity.status(HttpStatus.OK)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .body(MockDecodedMessageGenerator.getTimDecodedMessage()
-                                                .toString());
-                                case null ->
-                                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                String.format("No test data available for Message Type %s",
-                                                        encodedMessage.getType()));
-                        });
-
+                        return CompletableFuture.completedFuture(
+                                switch (encodedMessage.getType()) {
+                                        case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
+                                                        .toString());
+                                        case MAP -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getMapDecodedMessage()
+                                                        .toString());
+                                        case SPAT -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
+                                                        .toString());
+                                        case SRM -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
+                                                        .toString());
+                                        case SSM -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
+                                                        .toString());
+                                        case TIM -> ResponseEntity.status(HttpStatus.OK)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .body(MockDecodedMessageGenerator.getTimDecodedMessage()
+                                                        .toString());
+                                        case null ->
+                                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                                        String.format("Null message type %s",
+                                                                encodedMessage));
+                                });
                 } else {
                         CompletableFuture<? extends DecodedMessage> decodedMessageFuture = decoderManager.decode(encodedMessage);
 

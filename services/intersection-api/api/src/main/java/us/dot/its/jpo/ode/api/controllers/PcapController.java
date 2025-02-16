@@ -3,13 +3,8 @@ package us.dot.its.jpo.ode.api.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.asn1.CodecClient;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
 import us.dot.its.jpo.ode.api.models.messages.*;
@@ -22,8 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.model.*;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 @RestController
 @Slf4j
@@ -32,19 +25,16 @@ public class PcapController {
     private final PcapDecoder decoder;
     private final DecoderManager decoderManager;
     private final CodecClient codecClient;
-    private final Executor executor;
 
     @Autowired
-    public PcapController(PcapDecoder decoder, DecoderManager decoderManager, CodecClient codecClient,
-                          @Qualifier("codecClientExecutor") Executor executorBean) {
+    public PcapController(PcapDecoder decoder, DecoderManager decoderManager, CodecClient codecClient) {
         this.decoder = decoder;
         this.decoderManager = decoderManager;
         this.codecClient = codecClient;
-        this.executor = executorBean;
     }
 
     /**
-     * Convert standard binary pcap data to JSON of
+     * Convert standard binary pcap data to JSON array of
      * {@link TimestampedMessageFrameList}.
      * Find and extract PCAP frame timestamps and J2735 MessageFrames.
      *
@@ -98,12 +88,11 @@ public class PcapController {
         } catch (JsonProcessingException e) {
             String message = String.format("Json processing exception: %s", e.getMessage());
             log.error(message, e);
-            return CompletableFuture.supplyAsync(
-                    () -> ResponseEntity
+            return CompletableFuture.completedFuture(
+                    ResponseEntity
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.TEXT_PLAIN)
-                        .body(message + ", " + ExceptionUtils.getStackTrace(e)),
-                    executor);
+                        .body(message + ", " + ExceptionUtils.getStackTrace(e)));
         }
 
         return xmlBatchFuture.thenApply((xmlBatch) -> {

@@ -26,29 +26,23 @@ public class CodecClient {
     final static String SINGLE_METHOD = "/j2735/uper/xer";
     final static String BATCH_METHOD = "/batch/j2735/uper/xer";
 
+    // TODO Don't hardcode
+    final int numberOfThreads = 5;
+
 
     private final String decodeSingleUrl;
     private final String decodeBatchUrl;
     private final Executor executor;
 
-    // TODO Config setting
-    final int numberOfThreads = 5;
-
-    @Bean
-    public Executor codecClientExecutor() {
-        return Executors.newFixedThreadPool(numberOfThreads);
-    }
-
     @Autowired
-    public CodecClient(RestTemplateBuilder builder, ConflictMonitorApiProperties properties,
-                       @Qualifier("codecClientExecutor") Executor executorBean) {
+    public CodecClient(RestTemplateBuilder builder, ConflictMonitorApiProperties properties) {
         codecTemplate = builder.build();
         String codecBaseUrl = properties.getAsn1CodecBaseUrl();
         decodeSingleUrl = UriComponentsBuilder.fromUriString(codecBaseUrl).path(SINGLE_METHOD).build().toUriString();
         decodeBatchUrl = UriComponentsBuilder.fromUriString(codecBaseUrl).path(BATCH_METHOD).build().toUriString();
-        executor = executorBean;
-        log.info("Created CodecClient service.  decodeSingleUrl = {}, decodeBatchUrl = {}, " +
-                "thread pool with {} threads", decodeSingleUrl, decodeBatchUrl, numberOfThreads);
+        executor = Executors.newFixedThreadPool(numberOfThreads);;
+        log.info("Created CodecClient service.  decodeSingleUrl = {}, decodeBatchUrl = {}, executor with {} threads" ,
+                decodeSingleUrl, decodeBatchUrl, numberOfThreads);
     }
 
     /**
