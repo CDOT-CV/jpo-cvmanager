@@ -107,8 +107,7 @@ public class ConflictMonitorApiProperties {
     private boolean enableEmails;
     private boolean enableReports;
 
-    @Autowired
-    BuildProperties buildProperties;
+    private BuildProperties buildProperties;
 
     @Getter
     @Setter
@@ -118,6 +117,11 @@ public class ConflictMonitorApiProperties {
     @Setter
     private String dockerHostIP = null;
     private static final String DEFAULT_CONNECT_PORT = "8083";
+
+    @Autowired
+    public ConflictMonitorApiProperties(BuildProperties buildProperties) {
+        this.buildProperties = buildProperties;
+    }
 
     public int getMaximumResponseSize() {
         return maximumResponseSize;
