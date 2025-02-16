@@ -49,21 +49,21 @@ public class MapDecoderTests {
         metadata.setOdeReceivedAt("2024-05-14T23:01:21.516531700Z");
         metadata.setSerialId(metadata.getSerialId().setStreamId("fc430f29-b761-4a2c-90fb-dc4c9f5d4e9c"));
 
-        assertEquals(data.toJson(), odeMapDataReference);
+        assertEquals(odeMapDataReference, data.toJson());
 
     }
 
     @Test
     public void testMapGetAsOdeJson() throws XmlUtilsException {
         OdeMapData map = mapDecoder.getAsOdeJson(odeMapDecodedXmlReference);
-        assertEquals(map.toJson(), odeMapDecodedDataReference);
+        assertEquals(odeMapDecodedDataReference, map.toJson());
     }
 
     @Test
     public void testCreateProcessedMap() throws XmlUtilsException {
         OdeMapData map = mapDecoder.getAsOdeJson(odeMapDecodedXmlReference);
-        ProcessedMap<LineString> processedMap = mapDecoder.createProcessedMap(map);
-        assertEquals(processedMap.toString(), processedMapDataReference);
+        ProcessedMap<LineString> processedMap = mapDecoder.createProcessedMap(map, true);
+        assertEquals(processedMapDataReference, processedMap.toString());
     }
 
 }

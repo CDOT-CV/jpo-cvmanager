@@ -47,21 +47,21 @@ public class SpatDecoderTests {
         metadata.setOdeReceivedAt("2024-05-15T19:54:27.056948Z");
         metadata.setSerialId(metadata.getSerialId().setStreamId("f21c4bce-c04b-4ccb-a854-ca4d2f6da547"));
 
-        assertEquals(data.toJson(), odeSpatDataReference);
+        assertEquals(odeSpatDataReference, data.toJson());
 
     }
 
     @Test
     public void testSpatGetAsOdeJson() throws XmlUtilsException {
         OdeSpatData spat = spatDecoder.getAsOdeJson(odeSpatDecodedXmlReference);
-        assertEquals(spat.toJson(), odeSpatDecodedDataReference);
+        assertEquals(odeSpatDecodedDataReference, spat.toJson());
     }
 
     @Test
     public void testCreateProcessedSpat() throws XmlUtilsException {
         OdeSpatData spat = spatDecoder.getAsOdeJson(odeSpatDecodedXmlReference);
-        ProcessedSpat processedSpat = spatDecoder.createProcessedSpat(spat);
-        assertEquals(processedSpat.toString(), processedSpatDataReference);
+        ProcessedSpat processedSpat = spatDecoder.createProcessedSpat(spat, true);
+        assertEquals(processedSpatDataReference, processedSpat.toString());
     }
 
 }

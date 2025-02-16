@@ -146,11 +146,16 @@ public class MapDecoder implements Decoder {
     }
 
     public ProcessedMap<LineString> createProcessedMap(OdeMapData odeMap) {
+        // Don't validate by default
+        return createProcessedMap(odeMap, false);
+    }
 
-        // Skip validation
-        // JsonValidatorResult validationResults =
-        // mapJsonValidator.validate(odeMap.toString());
-        JsonValidatorResult validationResults = new JsonValidatorResult();
+    public ProcessedMap<LineString> createProcessedMap(OdeMapData odeMap, boolean validate) {
+
+        JsonValidatorResult validationResults =
+                validate ? mapJsonValidator.validate(odeMap.toString())
+                        : new JsonValidatorResult();
+
         OdeMapMetadata mapMetadata = (OdeMapMetadata) odeMap.getMetadata();
         OdeMapPayload mapPayload = (OdeMapPayload) odeMap.getPayload();
         J2735IntersectionGeometry intersection = mapPayload.getMap().getIntersections().getIntersections().get(0);

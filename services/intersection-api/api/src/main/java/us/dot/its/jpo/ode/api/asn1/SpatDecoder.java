@@ -156,10 +156,16 @@ public class SpatDecoder implements Decoder {
     }
 
     public ProcessedSpat createProcessedSpat(OdeSpatData odeSpat) {
-        // Skip validation
-        // JsonValidatorResult validationResults =
-        // spatJsonValidator.validate(odeSpat.toString());
-        JsonValidatorResult validationResults = new JsonValidatorResult();
+        // Don't validate by default
+        return createProcessedSpat(odeSpat, false);
+    }
+
+    public ProcessedSpat createProcessedSpat(OdeSpatData odeSpat, boolean validate) {
+
+        JsonValidatorResult validationResults =
+                validate ? spatJsonValidator.validate(odeSpat.toString())
+                        : new JsonValidatorResult();
+
         OdeSpatData rawValue = new OdeSpatData();
         rawValue.setMetadata(odeSpat.getMetadata());
         OdeSpatMetadata spatMetadata = (OdeSpatMetadata) rawValue.getMetadata();
