@@ -362,7 +362,7 @@ public class DecoderManager {
         odeDataJson = data.toJson();
       }
       String wrappedJson = String.format("""
-          {"timestamp":%s,"type":%s,%s}
+          {"timestamp":%s,"type":"%s","odeData":%s}
           """, timestampedData.getTimestamp(), timestampedData.getType(), odeDataJson);
       decodedMessages.add(wrappedJson);
     }
