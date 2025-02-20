@@ -1835,6 +1835,7 @@ export const {
   setMapRef,
   setDecoderModeEnabled,
   setAbortAllFutureRequests,
+  setCurrentSpatData,
 } = intersectionMapSlice.actions
 
 export default intersectionMapSlice.reducer

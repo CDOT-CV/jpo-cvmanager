@@ -13,6 +13,8 @@ import {
   selectDialogOpen,
   updateMap,
   selectSelectedMap,
+  selectImportedData,
+  loadAllData
 } from './pcap-decoder-slice'
 import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -27,21 +29,27 @@ const PcapUploadDialog = () => {
   const open = useSelector(selectDialogOpen)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
   const selectedMap = useSelector(selectSelectedMap)
+  const importedData = useSelector(selectImportedData)
 
   const handleClose = () => {
     dispatch(setPcapDecoderDialogOpen(false))
   }
 
-  useEffect(() => {
-    if (decoderModeEnabled) {
+  // useEffect(() => {
+  //   if (decoderModeEnabled) {
       
-    }
-  }, [decoderModeEnabled])
+  //   }
+  // }, [decoderModeEnabled])
 
-    useEffect(() => {
-        console.log("useEffect.selectedMap")
-        dispatch(updateMap())
-    }, [selectedMap])
+  useEffect(() => {
+    console.log("useEffect.importedData")
+    dispatch(loadAllData())
+  }, [importedData])
+
+  useEffect(() => {
+      console.log("useEffect.selectedMap")
+      dispatch(updateMap())
+  }, [selectedMap])
 
   return (
     <>

@@ -39,6 +39,7 @@ export const PcapTables = () => {
   const decodedJsonData = useSelector(selectDecodedJsonData)
   const uniqueMaps = useSelector(selectUniqueMaps)
 
+
   const pcapContents = Object.values(pcapData)
  
   const pcapFileUploaded = (event) => {

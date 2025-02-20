@@ -14,10 +14,14 @@ import {
   selectSourceDataType,
   setDecoderModeEnabled,
   setMapProps,
-  handleNewMapMessageData
+  handleNewMapMessageData,
+  handleImportedMapMessageData,
 } from '../map/map-slice'
 
-import { parseMapSignalGroups } from '../map/utilities/message-utils'
+import { 
+  parseMapSignalGroups,
+  parseBsmToGeojson,
+} from '../map/utilities/message-utils'
 
 const initialState = {
   dialogOpen: false,
@@ -37,6 +41,12 @@ const initialState = {
   },
   uniqueMaps: [] as TimestampedOdeData[],
   selectedMap: {} as TimestampedOdeData,
+  importedData: {} as {
+    mapData: ProcessedMap[],
+    bsmData: OdeBsmData[],
+    spatData: ProcessedSpat[],
+    notificationData: any
+  }
 }
 
 
@@ -132,7 +142,7 @@ export const pcapDecoderModeToggled = createAsyncThunk(
 export const updateMap = createAsyncThunk(
   'pcapDecoder/updateMap',
   async(_, { getState, dispatch }) => {
-    console.log("updateMap")
+    console.log("pcapDecoder/updateMap")
     const timestampedData = selectSelectedMap(getState() as RootState)
     const selectedMap = timestampedData?.odeData as ProcessedMap
     dispatch(handleNewMapMessageData({
@@ -141,6 +151,15 @@ export const updateMap = createAsyncThunk(
       mapSignalGroups: parseMapSignalGroups(selectedMap), 
       mapTime: timestampedData?.timestamp ?? Date.now()
     }))
+  }
+)
+
+export const loadAllData = createAsyncThunk(
+  'pcapDecoder/loadAllData',
+  async(_, { getState, dispatch }) => {
+    console.log("pcapDecoder/loadAllData")
+    const importedData = selectImportedData(getState() as RootState)
+    dispatch(handleImportedMapMessageData(importedData))
   }
 )
 
@@ -206,6 +225,16 @@ export const pcapDecoderSlice = createSlice({
       try {
         console.debug("decodeAllToJson.fulfilled reducer")
         state.value.decodedJsonData = action.payload
+        const jsonDataArr = Object.values(state.value.decodedJsonData)
+        const decodedMaps = jsonDataArr.filter(item => item.type === 'MAP')
+        const decodedSpats = jsonDataArr.filter(item => item.type === 'SPAT')
+        const decodedBsms = jsonDataArr.filter(item => item.type === 'BSM')
+        state.value.importedData = {
+          mapData: decodedMaps as ProcessedMap[],
+          bsmData: decodedBsms as OdeBsmData[],
+          spatData: decodedSpats as ProcessedSpat[],
+          notificationData: []
+        }
       } catch (e) {
         console.error("decodeAllToJson.fulfilled")
         console.error(e)
@@ -235,5 +264,6 @@ export const selectDecodedJsonData = (state: RootState) => state.pcapDecoder.val
 export const selectDialogOpen = (state: RootState) => state.pcapDecoder.value.dialogOpen
 export const selectUniqueMaps = (state: RootState) => state.pcapDecoder.value.uniqueMaps
 export const selectSelectedMap = (state: RootState) => state.pcapDecoder.value.selectedMap
+export const selectImportedData = (state: RootState) => state.pcapDecoder.value.importedData
 
 export default pcapDecoderSlice.reducer
