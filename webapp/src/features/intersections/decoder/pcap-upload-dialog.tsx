@@ -22,7 +22,6 @@ import {
  } from '../map/map-slice'
 
 const PcapUploadDialog = () => {
-    console.log("PcapUploadDialog")
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const open = useSelector(selectDialogOpen)

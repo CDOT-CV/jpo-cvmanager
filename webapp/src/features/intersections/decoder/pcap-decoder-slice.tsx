@@ -35,8 +35,8 @@ const initialState = {
     srmCount: 0,
     unknownCount: 0
   },
-  uniqueMaps: [] as ProcessedMap[],
-  selectedMap: {} as ProcessedMap,
+  uniqueMaps: [] as TimestampedOdeData[],
+  selectedMap: {} as TimestampedOdeData,
 }
 
 
@@ -79,9 +79,14 @@ export const decodeUniqueMaps = createAsyncThunk(
     console.log("decodeUniqueMaps")
     const pcapDataArr = Object.values(hexData)
     const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
-    const uniqueMapHexSet = new Set(allMaps.map(item => item.hex))
+    const uniqueMapHexSet = new Set()
     const uniqueMaps = []
-    uniqueMapHexSet.forEach(hex => uniqueMaps.push({type: "MAP", timestamp: 0, hex: hex}))
+    allMaps.forEach(item => {
+      if (!uniqueMapHexSet.has(item.hex)) {
+        uniqueMapHexSet.add(item.hex)
+        uniqueMaps.push(item)
+      }
+    })
     console.log(uniqueMaps)
     const response = await DecoderApi.submitBatchDecodeRequest({data: uniqueMaps})
     return response
@@ -128,12 +133,13 @@ export const updateMap = createAsyncThunk(
   'pcapDecoder/updateMap',
   async(_, { getState, dispatch }) => {
     console.log("updateMap")
-    const selectedMap = selectSelectedMap(getState() as RootState)
+    const timestampedData = selectSelectedMap(getState() as RootState)
+    const selectedMap = timestampedData?.odeData as ProcessedMap
     dispatch(handleNewMapMessageData({
       mapData: selectedMap, 
-      connectingLanes: selectedMap.connectingLanesFeatureCollection, 
+      connectingLanes: selectedMap?.connectingLanesFeatureCollection, 
       mapSignalGroups: parseMapSignalGroups(selectedMap), 
-      mapTime: Date.now() // TODO Populate with the correct timestamp
+      mapTime: timestampedData?.timestamp ?? Date.now()
     }))
   }
 )
@@ -152,7 +158,8 @@ export const pcapDecoderSlice = createSlice({
     onMapSelected: (state, action: PayloadAction<any>) => {
       const intersectionId = action.payload
       console.log("onMapSelected " + intersectionId)
-      state.value.selectedMap = state.value.uniqueMaps.find(function(aMap) {
+      state.value.selectedMap = state.value.uniqueMaps.find(function(timestampedData) {
+        const aMap = timestampedData.odeData as ProcessedMap
         return aMap.properties.intersectionId == intersectionId
       })
       console.log("selectedMap: ")
@@ -162,41 +169,56 @@ export const pcapDecoderSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(onPcapFileUploaded.fulfilled, (state, action) => {
       console.debug("onPcapFileUploaded.fulfilled reducer")
-      state.value.pcapData = action.payload
+      try {
+        state.value.pcapData = action.payload
       
-      const pcapDataArr = Object.values(state.value.pcapData)
-      const firstTimestamp = pcapDataArr[0].timestamp
-      const lastTimestamp = pcapDataArr.slice(-1)[0].timestamp
-      const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
-      const mapCount = allMaps.length
-      const uniqueMapHex = new Set(allMaps.map(item => item.hex))
-      const uniqueMapCount = uniqueMapHex.size
-      const spatCount = pcapDataArr.filter(item => item.type === 'SPAT').length
-      const bsmCount = pcapDataArr.filter(item => item.type === 'BSM').length
-      const ssmCount = pcapDataArr.filter(item => item.type === 'SSM').length
-      const srmCount = pcapDataArr.filter(item => item.type === 'SRM').length
-      const unknownCount = pcapDataArr.filter(item => item.type === 'UNKNOWN').length
-      
-      state.value.pcapDataStats = {
-        totalCount: pcapDataArr.length,
-        firstTimestamp: firstTimestamp,
-        lastTimestamp: lastTimestamp,
-        mapCount: mapCount,
-        uniqueMapCount: uniqueMapCount,
-        spatCount: spatCount,
-        bsmCount: bsmCount,
-        ssmCount: ssmCount,
-        srmCount: srmCount,
-        unknownCount: unknownCount
+        const pcapDataArr = Object.values(state.value.pcapData)
+        const firstTimestamp = pcapDataArr[0].timestamp
+        const lastTimestamp = pcapDataArr.slice(-1)[0].timestamp
+        const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
+        const mapCount = allMaps.length
+        const uniqueMapHex = new Set(allMaps.map(item => item.hex))
+        const uniqueMapCount = uniqueMapHex.size
+        const spatCount = pcapDataArr.filter(item => item.type === 'SPAT').length
+        const bsmCount = pcapDataArr.filter(item => item.type === 'BSM').length
+        const ssmCount = pcapDataArr.filter(item => item.type === 'SSM').length
+        const srmCount = pcapDataArr.filter(item => item.type === 'SRM').length
+        const unknownCount = pcapDataArr.filter(item => item.type === 'UNKNOWN').length
+        
+        state.value.pcapDataStats = {
+          totalCount: pcapDataArr.length,
+          firstTimestamp: firstTimestamp,
+          lastTimestamp: lastTimestamp,
+          mapCount: mapCount,
+          uniqueMapCount: uniqueMapCount,
+          spatCount: spatCount,
+          bsmCount: bsmCount,
+          ssmCount: ssmCount,
+          srmCount: srmCount,
+          unknownCount: unknownCount
+        }
+      } catch (e) {
+        console.error("onPcapFileUploaded.fulfilled")
+        console.error(e)
       }
     });
     builder.addCase(decodeAllToJson.fulfilled, (state, action) => {
-      console.debug("decodeAllToJson.fulfilled reducer")
-      state.value.decodedJsonData = action.payload
+      try {
+        console.debug("decodeAllToJson.fulfilled reducer")
+        state.value.decodedJsonData = action.payload
+      } catch (e) {
+        console.error("decodeAllToJson.fulfilled")
+        console.error(e)
+      }
     });
     builder.addCase(decodeUniqueMaps.fulfilled, (state, action) => {
-      console.debug("decodeUniqueMaps.fulfilled reducer")
-      state.value.uniqueMaps = action.payload
+      try {
+        console.debug("decodeUniqueMaps.fulfilled reducer")
+        state.value.uniqueMaps = action.payload
+      } catch (e) {
+        console.error("decodeUniqueMaps.fulfilled")
+        console.error(e)
+      }
     });
   },
 })

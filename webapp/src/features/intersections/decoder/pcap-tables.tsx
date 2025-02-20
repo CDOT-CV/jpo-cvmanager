@@ -162,10 +162,14 @@ export const PcapTables = () => {
                   <TableCell>Select</TableCell>
                   <TableCell>Intersection ID</TableCell>
                   <TableCell>Intersection Name</TableCell>
+                  <TableCell>First Timestamp</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-              {uniqueMaps.map((mapMsg) => {
+              {uniqueMaps.map((mapData) => {
+                const mapMsg = mapData?.odeData as ProcessedMap
+                const firstTimestamp = mapData?.timestamp ?? Date.now()
+                console.log("firstTimestamp: " + firstTimestamp)
                   console.log(mapMsg)
                     return (
                       <TableRow>
@@ -177,6 +181,7 @@ export const PcapTables = () => {
                         </TableCell>
                         <TableCell>{mapMsg?.properties?.intersectionId}</TableCell>
                         <TableCell>{mapMsg?.properties?.intersectionName}</TableCell>
+                        <TableCell>{new Date(firstTimestamp).toISOString()}</TableCell>
                       </TableRow>
                     )
                   }
