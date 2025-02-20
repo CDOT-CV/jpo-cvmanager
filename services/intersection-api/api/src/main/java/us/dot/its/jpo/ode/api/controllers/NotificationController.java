@@ -1,6 +1,9 @@
 package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -49,8 +52,6 @@ import us.dot.its.jpo.ode.api.accessors.notifications.SpatBroadcastRateNotificat
 import us.dot.its.jpo.ode.api.accessors.notifications.StopLinePassageNotification.StopLinePassageNotificationRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.StopLineStopNotification.StopLineStopNotificationRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.TimeChangeDetailsNotification.TimeChangeDetailsNotificationRepository;
-import us.dot.its.jpo.ode.api.models.DataResponse;
-import us.dot.its.jpo.ode.api.models.PageWithProperties;
 import us.dot.its.jpo.ode.mockdata.MockNotificationGenerator;
 
 @Slf4j
@@ -180,10 +181,9 @@ public class NotificationController {
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role with access to the intersection requested")
     })
-    public ResponseEntity<DataResponse<ConnectionOfTravelNotification>> findConnectionOfTravelNotification(
+    public ResponseEntity<Page<ConnectionOfTravelNotification>> findConnectionOfTravelNotification(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
@@ -192,14 +192,16 @@ public class NotificationController {
             @RequestParam(defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
-            List<ConnectionOfTravelNotification> list = new ArrayList<>();
-            list.add(MockNotificationGenerator.getConnectionOfTravelNotification());
-            return new DataResponse<ConnectionOfTravelNotification>(list).getResponseEntity();
+            // Mock response for test data
+            List<ConnectionOfTravelNotification> mockList = List.of(MockNotificationGenerator.getConnectionOfTravelNotification());
+            Page<ConnectionOfTravelNotification> mockPage = new PageImpl<>(mockList, PageRequest.of(page, size), mockList.size());
+            return ResponseEntity.ok(mockPage);
         } else {
-            PageWithProperties<ConnectionOfTravelNotification> response = connectionOfTravelNotificationRepo.find(
-                    intersectionID, startTime, endTime, latest, PageRequest.of(page, size));
-            log.debug("Returning ConnectionOfTravelNotification Response with Size: {}", response.getContent().size());
-            return new DataResponse<ConnectionOfTravelNotification>(response).getResponseEntity();
+            // Retrieve a paginated result from the repository
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ConnectionOfTravelNotification> response = connectionOfTravelNotificationRepo.find(intersectionID, startTime, endTime, latest, pageable);
+            log.debug("Returning ConnectionOfTravelNotification Page with Size: {}", response.getContent().size());
+            return ResponseEntity.ok(response);
         }
     }
 
