@@ -31,14 +31,18 @@ import {
   setSelectedSnmpVersion,
   setSelectedOrganizations,
 } from './adminEditRsuSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import { AdminRsu } from '../../models/Rsu'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { selectTableData, updateTableData } from '../adminRsuTab/adminRsuTabSlice'
 import { Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import toast from 'react-hot-toast'
-import { useAppDispatch, useAppSelector } from '../../hooks'
+import { AdminButton } from '../../styles/components/AdminButton'
+import { ErrorMessageText } from '../../styles/components/Messages'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -61,23 +65,23 @@ export type AdminEditRsuFormType = {
 }
 
 const AdminEditRsu = () => {
-  const dispatch = useAppDispatch()
-  const apiData = useAppSelector(selectApiData)
-  const primaryRoutes = useAppSelector(selectPrimaryRoutes)
-  const selectedRoute = useAppSelector(selectSelectedRoute)
-  const otherRouteDisabled = useAppSelector(selectOtherRouteDisabled)
-  const rsuModels = useAppSelector(selectRsuModels)
-  const selectedModel = useAppSelector(selectSelectedModel)
-  const sshCredentialGroups = useAppSelector(selectSshCredentialGroups)
-  const selectedSshGroup = useAppSelector(selectSelectedSshGroup)
-  const snmpCredentialGroups = useAppSelector(selectSnmpCredentialGroups)
-  const selectedSnmpGroup = useAppSelector(selectSelectedSnmpGroup)
-  const snmpVersions = useAppSelector(selectSnmpVersions)
-  const selectedSnmpVersion = useAppSelector(selectSelectedSnmpVersion)
-  const organizations = useAppSelector(selectOrganizations)
-  const selectedOrganizations = useAppSelector(selectSelectedOrganizations)
-  const submitAttempt = useAppSelector(selectSubmitAttempt)
-  const rsuTableData = useAppSelector(selectTableData)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const apiData = useSelector(selectApiData)
+  const primaryRoutes = useSelector(selectPrimaryRoutes)
+  const selectedRoute = useSelector(selectSelectedRoute)
+  const otherRouteDisabled = useSelector(selectOtherRouteDisabled)
+  const rsuModels = useSelector(selectRsuModels)
+  const selectedModel = useSelector(selectSelectedModel)
+  const sshCredentialGroups = useSelector(selectSshCredentialGroups)
+  const selectedSshGroup = useSelector(selectSelectedSshGroup)
+  const snmpCredentialGroups = useSelector(selectSnmpCredentialGroups)
+  const selectedSnmpGroup = useSelector(selectSelectedSnmpGroup)
+  const snmpVersions = useSelector(selectSnmpVersions)
+  const selectedSnmpVersion = useSelector(selectSelectedSnmpVersion)
+  const organizations = useSelector(selectOrganizations)
+  const selectedOrganizations = useSelector(selectSelectedOrganizations)
+  const submitAttempt = useSelector(selectSubmitAttempt)
+  const rsuTableData = useSelector(selectTableData)
 
   const [open, setOpen] = useState(true)
   const navigate = useNavigate()
@@ -273,9 +277,7 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedRoute === '' && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select a primary route
-                </p>
+                <ErrorMessageText role="alert">Must select a primary route</ErrorMessageText>
               )}
               {(() => {
                 if (selectedRoute === 'Other') {
@@ -322,9 +324,7 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedModel === '' && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select a RSU model
-                </p>
+                <ErrorMessageText role="alert">Must select a RSU model</ErrorMessageText>
               )}
             </Form.Group>
 
@@ -357,9 +357,7 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedSshGroup === '' && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select a SSH credential group
-                </p>
+                <ErrorMessageText role="alert">Must select a SSH credential group</ErrorMessageText>
               )}
             </Form.Group>
 
@@ -376,9 +374,7 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedSnmpGroup === '' && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select a SNMP credential group
-                </p>
+                <ErrorMessageText role="alert">Must select a SNMP credential group</ErrorMessageText>
               )}
             </Form.Group>
 
@@ -395,9 +391,7 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedSnmpVersion === '' && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select a SNMP protocol
-                </p>
+                <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
               )}
             </Form.Group>
 
@@ -415,32 +409,29 @@ const AdminEditRsu = () => {
                 }}
               />
               {selectedOrganizations.length === 0 && submitAttempt && (
-                <p className="error-msg" role="alert">
-                  Must select an organization
-                </p>
+                <ErrorMessageText role="alert">Must select an organization</ErrorMessageText>
               )}
             </Form.Group>
           </Form>
         ) : (
-          <Typography variant={'h4'} style={{ color: '#fff' }}>
+          <Typography variant={'h4'}>
             Unknown RSU IP address. Either this RSU does not exist, or you do not have access to it.{' '}
             <Link to="../">RSUs</Link>
           </Typography>
         )}
       </DialogContent>
       <DialogActions>
-        <button
+        <AdminButton
           onClick={() => {
             setOpen(false)
             navigate('/dashboard/admin/rsus')
           }}
-          className="admin-button"
         >
           Close
-        </button>
-        <button form="edit-rsu-form" type="submit" className="admin-button">
+        </AdminButton>
+        <AdminButton form="edit-rsu-form" type="submit">
           Apply Changes
-        </button>
+        </AdminButton>
       </DialogActions>
     </Dialog>
   )

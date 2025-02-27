@@ -1,3 +1,5 @@
+import { evaluateFeatureFlags } from '../feature-flags'
+
 class ApiHelper {
   formatQueryParams(query_params: Record<string, string>) {
     if (
@@ -22,14 +24,19 @@ class ApiHelper {
     query_params = {},
     url_ext = '',
     additional_headers = {},
+    tag,
   }: {
     url: string
     token: string
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
+    tag?: FEATURE_KEY
   }) {
-    console.debug('GETTING DATA FROM ' + url)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      return null
+    }
     try {
       const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
         method: 'GET',
@@ -40,15 +47,6 @@ class ApiHelper {
       })
 
       const response = await resp.json()
-      console.debug(
-        'GET REQUEST MADE TO ' +
-          url +
-          url_ext +
-          ' WITH QUERY PARAMS ' +
-          query_params +
-          ' AND RESPONSE ' +
-          JSON.stringify(response)
-      )
       return response
     } catch (err) {
       console.error('Error in _getData: ' + err)
@@ -63,14 +61,19 @@ class ApiHelper {
     query_params = {},
     url_ext = '',
     additional_headers = {},
+    tag,
   }: {
     url: string
     token: string
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
+    tag?: FEATURE_KEY
   }) {
-    console.debug('GETTING DATA FROM ' + url)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      return null
+    }
     try {
       const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
         method: 'GET',
@@ -86,15 +89,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _getDataWithCodes: ' + err)
       }
-      console.debug(
-        'GET CODES REQUEST MADE TO ' +
-          url +
-          url_ext +
-          ' WITH QUERY PARAMS ' +
-          query_params +
-          ' AND RESPONSE ' +
-          JSON.stringify(respBody)
-      )
 
       return {
         body: respBody,
@@ -114,6 +108,7 @@ class ApiHelper {
     query_params = {},
     url_ext = '',
     additional_headers = {},
+    tag,
   }: {
     url: string
     body: Object | string
@@ -121,8 +116,12 @@ class ApiHelper {
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
+    tag?: FEATURE_KEY
   }) {
-    console.debug('POSTING DATA TO ' + url)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      return null
+    }
     try {
       const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
         method: 'POST',
@@ -140,17 +139,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _postData: ' + err)
       }
-      console.debug(
-        'POST REQUEST MADE TO ' +
-          url +
-          url_ext +
-          ' WITH QUERY PARAMS ' +
-          query_params +
-          ' AND BODY ' +
-          body +
-          ' AND RESPONSE ' +
-          JSON.stringify(respBody)
-      )
 
       return {
         body: respBody,
@@ -170,14 +158,19 @@ class ApiHelper {
     query_params = {},
     url_ext = '',
     additional_headers = {},
+    tag,
   }: {
     url: string
     token: string
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
+    tag?: FEATURE_KEY
   }) {
-    console.debug('DELETING DATA FROM ' + url)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      return null
+    }
     try {
       const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
         method: 'DELETE',
@@ -194,15 +187,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _deleteData: ' + err)
       }
-      console.debug(
-        'DELETE REQUEST MADE TO ' +
-          url +
-          url_ext +
-          ' WITH QUERY PARAMS ' +
-          query_params +
-          ' AND RESPONSE ' +
-          JSON.stringify(respBody)
-      )
 
       return {
         body: respBody,
@@ -223,6 +207,7 @@ class ApiHelper {
     query_params = {},
     url_ext = '',
     additional_headers = {},
+    tag,
   }: {
     url: string
     token: string
@@ -230,10 +215,13 @@ class ApiHelper {
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
+    tag?: FEATURE_KEY
   }) {
-    console.debug('PATCHING DATA FROM ' + url)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      return null
+    }
     try {
-      console.debug('REQUEST BODY', body)
       const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
         method: 'PATCH',
         body: body as BodyInit,
@@ -250,18 +238,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _patchData: ' + err)
       }
-
-      console.debug(
-        'PATCH REQUEST MADE TO ' +
-          url +
-          url_ext +
-          ' WITH QUERY PARAMS ' +
-          query_params +
-          ' AND BODY ' +
-          body +
-          ' AND RESPONSE ' +
-          JSON.stringify(respBody)
-      )
 
       return {
         body: respBody,

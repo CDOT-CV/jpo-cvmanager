@@ -2,6 +2,7 @@ import { ThunkDispatch, AnyAction } from '@reduxjs/toolkit'
 import React from 'react'
 import { confirmAlert } from 'react-confirm-alert'
 import 'react-confirm-alert/src/react-confirm-alert.css'
+import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../store'
 
 import {
@@ -14,13 +15,13 @@ import {
 import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
 
 import './css/SnmpwalkMenu.css'
-import { useAppDispatch, useAppSelector } from '../hooks'
+import { Button, Typography } from '@mui/material'
 
 const RsuRebootMenu = () => {
-  const dispatch = useAppDispatch()
-  const changeSuccess = useAppSelector(selectRebootChangeSuccess)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const changeSuccess = useSelector(selectRebootChangeSuccess)
 
-  const rsuIp = useAppSelector(selectRsuIpv4)
+  const rsuIp = useSelector(selectRsuIpv4)
 
   const options = {
     title: 'RSU Reboot',
@@ -46,22 +47,21 @@ const RsuRebootMenu = () => {
   }
 
   return (
-    <div id="snmpdiv">
+    <div>
       <h2 id="snmpheader">RSU Reboot</h2>
 
-      <button id="refreshbtn" onClick={() => confirmAlert(options)}>
+      <Button variant="contained" size="small" onClick={() => confirmAlert(options)} sx={{ mt: '10px', mb: '10px' }}>
         Reboot
-      </button>
+      </Button>
 
       {changeSuccess ? (
         <div>
-          <p id="successtext" role="status">
+          <Typography color="success" role="status">
             Successful reboot, the RSU will now be offline for a brief time
-          </p>
-          <p id="infotext">Warning: This action could result in taking the RSU offline</p>
+          </Typography>
         </div>
       ) : (
-        <p id="infotext">Warning: This action could result in taking the RSU offline</p>
+        <Typography>Warning: This action could result in taking the RSU offline</Typography>
       )}
     </div>
   )

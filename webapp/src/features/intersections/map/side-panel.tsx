@@ -7,17 +7,19 @@ import MuiAccordion, { AccordionProps } from '@mui/material/Accordion'
 import MuiAccordionSummary, { AccordionSummaryProps } from '@mui/material/AccordionSummary'
 import MuiAccordionDetails from '@mui/material/AccordionDetails'
 import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp'
-import { styled } from '@mui/material/styles'
+import { styled, useTheme } from '@mui/material/styles'
 import { CustomTable } from './custom-table'
 import { format } from 'date-fns'
 import { ExpandableTable } from './expandable-table'
 import { MAP_PROPS, selectSrmCount, selectSrmMsgList, selectSrmSsmCount } from './map-slice'
-import { RsuInfo } from '../../../apis/rsu-api-types'
+import { RsuInfo } from '../../../models/RsuApi'
 import SsmSrmItem from '../../../components/SsmSrmItem'
 import { setSelectedSrm } from '../../../generalSlices/rsuSlice'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../../store'
 import { selectSelectedIntersection } from '../../../generalSlices/intersectionSlice'
 import '../../../components/css/RsuMapView.css'
-import { useAppDispatch, useAppSelector } from '../../../hooks'
 
 const Accordion = styled((props: AccordionProps) => <MuiAccordion disableGutters elevation={0} square {...props} />)(
   ({ theme }) => ({})
@@ -54,12 +56,13 @@ interface SidePanelProps {
 export const SidePanel = (props: SidePanelProps) => {
   const { laneInfo, signalGroups, bsms, events, notifications, sourceData, sourceDataType } = props
 
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const theme = useTheme()
 
-  const srmCount = useAppSelector(selectSrmCount)
-  const srmSsmCount = useAppSelector(selectSrmSsmCount)
-  const srmMsgList = useAppSelector(selectSrmMsgList)
-  const selectedIntersection = useAppSelector(selectSelectedIntersection)
+  const srmCount = useSelector(selectSrmCount)
+  const srmSsmCount = useSelector(selectSrmSsmCount)
+  const srmMsgList = useSelector(selectSrmMsgList)
+  const selectedIntersection = useSelector(selectSelectedIntersection)
 
   const [open, setOpen] = useState(false)
 
@@ -121,33 +124,12 @@ export const SidePanel = (props: SidePanelProps) => {
     )
   }
 
-  const getRsuInfoTable = (rsuInfo: RsuInfo['rsuList'][0]) => {
-    const fields = [
-      ['id', rsuInfo?.properties?.rsu_id],
-      ['milepost', rsuInfo?.properties?.milepost],
-      ['geography', rsuInfo?.properties?.geography],
-      ['model_name', rsuInfo?.properties?.model_name],
-      ['ipv4_address', rsuInfo?.properties?.ipv4_address],
-      ['primary_route', rsuInfo?.properties?.primary_route],
-      ['serial_number', rsuInfo?.properties?.serial_number],
-      ['manufacturer_name', rsuInfo?.properties?.manufacturer_name],
-    ]
-    return (
-      <>
-        <Typography variant="h6">{rsuInfo?.properties?.ipv4_address}</Typography>
-        <Box sx={{ mt: 1 }}>
-          <CustomTable headers={['Field', 'Value']} data={rsuInfo == undefined ? [] : fields} />
-        </Box>
-      </>
-    )
-  }
-
   const getSsmSrmTable = (msgList, rsuIpv4: string | undefined, ssmCount: number, srmCount: number) => {
     if (rsuIpv4 == undefined) return <div>No RSU IP Found</div>
     return (
       <div className="ssmSrmContainer">
         <h3 id="ssmsrmDataHeader">SSM / SRM Data For {rsuIpv4}</h3>
-        <div id="ssmSrmHeaderContainer">
+        <div id="ssmSrmHeaderContainer" style={{ borderBottom: `1px ${theme.palette.text.primary} solid` }}>
           <p id="ssmTimeHeader">Time</p>
           <p id="requestHeader">Request Id</p>
           <p id="roleHeader">Role</p>

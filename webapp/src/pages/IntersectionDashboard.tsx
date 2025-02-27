@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
 import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 
-import './css/IntersectionDashboard.css'
 import './css/NoTableWidth.css'
 import { NotFound } from './404'
 import VerticalTabs from '../components/VerticalTabs'
@@ -18,13 +18,15 @@ import {
 } from '../generalSlices/intersectionSlice'
 import MapIconRounded from '@mui/icons-material/Map'
 import MapDialog from '../features/intersections/intersection-selector/intersection-selector-dialog'
-import { useAppDispatch, useAppSelector } from '../hooks'
 import ConfigurationPage from '../components/intersections/ConfigurationPage'
+import { headerTabHeight } from '../styles/index'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../store'
 
 function IntersectionDashboard() {
-  const dispatch = useAppDispatch()
-  const intersectionId = useAppSelector(selectSelectedIntersectionId)
-  const intersections = useAppSelector(selectIntersections)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const intersectionId = useSelector(selectSelectedIntersectionId)
+  const intersections = useSelector(selectIntersections)
   const [openMapDialog, setOpenMapDialog] = useState(false)
 
   useEffect(() => {
@@ -34,7 +36,7 @@ function IntersectionDashboard() {
 
   return (
     <>
-      <div id="admin">
+      <div id="admin" style={{ height: `calc(100vh - ${headerTabHeight}px)` }}>
         <h2 className="adminHeader">Intersection Dashboard</h2>
         <FormControl sx={{ mt: 1, minWidth: 200 }}>
           <InputLabel>Intersection ID</InputLabel>
@@ -63,6 +65,7 @@ function IntersectionDashboard() {
           </IconButton>
         </Tooltip>
         <VerticalTabs
+          height={`calc(100vh - ${headerTabHeight + 140}px)`}
           notFoundRoute={
             <NotFound
               redirectRoute="/dashboard/intersection"

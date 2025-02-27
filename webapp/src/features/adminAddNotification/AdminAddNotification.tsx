@@ -19,21 +19,25 @@ import {
   getNotificationData,
 } from './adminAddNotificationSlice'
 import { selectEmail } from '../../generalSlices/userSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
-import { useAppDispatch, useAppSelector } from '../../hooks'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
+import { AdminButton } from '../../styles/components/AdminButton'
+import { ErrorMessageText, SuccessMessageText } from '../../styles/components/Messages'
 
 const AdminAddNotification = () => {
-  const dispatch = useAppDispatch()
-  const successMsg = useAppSelector(selectSuccessMsg)
-  const apiData = useAppSelector(selectApiData)
-  const errorState = useAppSelector(selectErrorState)
-  const errorMsg = useAppSelector(selectErrorMsg)
-  const submitAttempt = useAppSelector(selectSubmitAttempt)
-  const selectedType = useAppSelector(selectSelectedType)
-  const availableTypes = useAppSelector(selectAvailableTypes)
-  const userEmail = useAppSelector(selectEmail)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const successMsg = useSelector(selectSuccessMsg)
+  const apiData = useSelector(selectApiData)
+  const errorState = useSelector(selectErrorState)
+  const errorMsg = useSelector(selectErrorMsg)
+  const submitAttempt = useSelector(selectSubmitAttempt)
+  const selectedType = useSelector(selectSelectedType)
+  const availableTypes = useSelector(selectAvailableTypes)
+  const userEmail = useSelector(selectEmail)
   const {
     register,
     handleSubmit,
@@ -60,7 +64,7 @@ const AdminAddNotification = () => {
         <Form.Group className="mb-3" controlId="email">
           <Form.Label>Email</Form.Label>
           <br />
-          <p style={{ color: 'white' }}>{userEmail}</p>
+          <p>{userEmail}</p>
         </Form.Group>
 
         <Form.Group className="mb-3" controlId="email_type">
@@ -79,26 +83,16 @@ const AdminAddNotification = () => {
         </Form.Group>
 
         {selectedType.type === '' && submitAttempt && (
-          <p className="error-msg" role="alert">
-            Must select at least one email notification type
-          </p>
+          <ErrorMessageText role="alert">Must select at least one email notification type</ErrorMessageText>
         )}
 
-        {successMsg && (
-          <p className="success-msg" role="status">
-            {successMsg}
-          </p>
-        )}
+        {successMsg && <SuccessMessageText role="status">{successMsg}</SuccessMessageText>}
         {errorState && (
-          <p className="error-msg" role="alert">
-            Failed to add email notification due to error: {errorMsg}
-          </p>
+          <ErrorMessageText role="alert">Failed to add email notification due to error: {errorMsg}</ErrorMessageText>
         )}
         <div className="form-control">
           <label></label>
-          <button type="submit" className="admin-button">
-            Add Email Notification
-          </button>
+          <AdminButton type="submit">Add Email Notification</AdminButton>
         </div>
       </Form>
     </div>

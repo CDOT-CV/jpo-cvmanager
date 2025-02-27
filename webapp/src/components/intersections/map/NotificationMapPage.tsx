@@ -5,7 +5,8 @@ import { setSelectedIntersectionId, setSelectedRoadRegulatorId } from '../../../
 import NotificationApi from '../../../apis/intersections/notification-api'
 import { useParams } from 'react-router-dom'
 import { selectToken } from '../../../generalSlices/userSlice'
-import { useAppSelector } from '../../../hooks'
+import { useSelector } from 'react-redux'
+import { headerTabHeight } from '../../../styles/index'
 
 function NotificationMapPage() {
   const { intersectionId, roadRegulatorId, notificationId } = useParams<{
@@ -14,7 +15,7 @@ function NotificationMapPage() {
     notificationId: string
   }>()
   const [notification, setNotification] = useState<MessageMonitor.Notification | undefined>()
-  const token = useAppSelector(selectToken)
+  const token = useSelector(selectToken)
 
   const intersectionIdInt = parseInt(intersectionId) ?? -1
   const roadRegulatorIdInt = parseInt(roadRegulatorId) ?? -1
@@ -52,7 +53,13 @@ function NotificationMapPage() {
       >
         <Container
           maxWidth={false}
-          style={{ width: '100%', height: 'calc(100vh - 135px)', display: 'flex', position: 'relative', padding: 0 }}
+          style={{
+            width: '100%',
+            height: `calc(100vh - ${headerTabHeight}px)`,
+            display: 'flex',
+            position: 'relative',
+            padding: 0,
+          }}
         >
           <IntersectionMap
             sourceData={notification}

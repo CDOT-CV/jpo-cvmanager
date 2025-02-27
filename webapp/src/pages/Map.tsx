@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import mapboxgl, { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
 import Map, { Marker, Popup, Source, Layer, LayerProps, MapRef } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import RsuMarker from '../components/RsuMarker'
-import mbStyle from '../styles/mb_style.json'
 import EnvironmentVars from '../EnvironmentVars'
 import dayjs from 'dayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -11,7 +10,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from 'rc-slider'
-import Select from 'react-select'
 import { DropdownList } from 'react-widgets'
 import {
   selectRsuOnlineStatus,
@@ -45,9 +43,22 @@ import {
   setGeoMsgFilterStep,
   setGeoMsgFilterOffset,
   changeGeoMsgType,
+  selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
 import { selectOrganizationName, selectToken } from '../generalSlices/userSlice'
+import {
+  selectMooveAiData,
+  selectAddMooveAiPoint,
+  selectMooveAiCoordinates,
+  selectMooveAiFilter,
+
+  // actions
+  clearMooveAiData,
+  updateMooveAiData,
+  toggleMooveAiPointSelect,
+  updateMooveAiPoints,
+} from '../generalSlices/mooveAiSlice'
 import { SecureStorageManager } from '../managers'
 import {
   selectConfigCoordinates,
@@ -59,17 +70,34 @@ import {
   clearFirmware,
 } from '../generalSlices/configSlice'
 import ClearIcon from '@mui/icons-material/Clear'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import {
   Button,
-  FormControlLabel,
   FormGroup,
-  Grid2,
   IconButton,
   Switch,
-  TextField,
-  ThemeProvider,
   StyledEngineProvider,
   Tooltip,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  FormControlLabel,
+  Checkbox,
+  useTheme,
+  Paper,
+  Select,
+  MenuItem,
+  alpha,
+  FormControl,
+  RadioGroup,
+  Radio,
+  Collapse,
 } from '@mui/material'
 
 import 'rc-slider/assets/index.css'
@@ -82,8 +110,6 @@ import {
   selectSelectedIntersection,
   setSelectedIntersectionId,
 } from '../generalSlices/intersectionSlice'
-import { mapTheme } from '../styles'
-import { useAppDispatch, useAppSelector } from '../hooks'
 import liveIntersectionApi, { getBsmColor } from '../apis/intersections/live/live-intersection-api'
 import {
   bsmLayerStyle,
@@ -100,7 +126,15 @@ import {
   parseMapSignalGroups,
   parseSpatSignalGroups,
 } from '../features/intersections/map/utilities/message-utils'
-import { selectViewState, setMapViewState } from './mapSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../store'
+import { headerTabHeight } from '../styles/index'
+import { selectActiveLayers, selectViewState, setMapViewState, toggleLayerActive } from './mapSlice'
+import { selectMenuSelection, toggleMapMenuSelection } from '../features/menu/menuSlice'
+import { MapLayer } from '../models/MapLayer'
+import { toast } from 'react-hot-toast'
+import MooveAiHardBrakingLegend from '../components/MooveAiHardBrakingLegend'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -108,52 +142,63 @@ mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worke
 
 const { DateTime } = require('luxon')
 
-interface MapPageProps {
-  auth: boolean
-}
+function MapPage() {
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
-function MapPage(props: MapPageProps) {
-  const dispatch = useAppDispatch()
+  const theme = useTheme()
+  const mapRef = React.useRef<MapRef>(null)
 
-  const organization = useAppSelector(selectOrganizationName)
-  const rsuData = useAppSelector(selectRsuData)
-  const rsuCounts = useAppSelector(selectRsuCounts)
-  const selectedRsu = useAppSelector(selectSelectedRsu)
-  const countsMsgType = useAppSelector(selectMsgType)
-  const issScmsStatusData = useAppSelector(selectIssScmsStatusData)
-  const rsuOnlineStatus = useAppSelector(selectRsuOnlineStatus)
-  const rsuIpv4 = useAppSelector(selectRsuIpv4)
-  const addConfigPoint = useAppSelector(selectAddConfigPoint)
-  const configCoordinates = useAppSelector(selectConfigCoordinates)
+  const organization = useSelector(selectOrganizationName)
+  const rsuData = useSelector(selectRsuData)
+  const rsuCounts = useSelector(selectRsuCounts)
+  const selectedRsu = useSelector(selectSelectedRsu)
+  const countsMsgType = useSelector(selectMsgType)
+  const issScmsStatusData = useSelector(selectIssScmsStatusData)
+  const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
+  const rsuIpv4 = useSelector(selectRsuIpv4)
+  const addConfigPoint = useSelector(selectAddConfigPoint)
+  const configCoordinates = useSelector(selectConfigCoordinates)
+  const geoMsgType = useSelector(selectGeoMsgType)
 
-  const heatMapData = useAppSelector(selectHeatMapData)
+  const heatMapData = useSelector(selectHeatMapData)
 
-  const geoMsgData = useAppSelector(selectGeoMsgData)
-  const geoMsgCoordinates = useAppSelector(selectGeoMsgCoordinates)
-  const addGeoMsgPoint = useAppSelector(selectAddGeoMsgPoint)
-  const startGeoMsgDate = useAppSelector(selectGeoMsgStart)
-  const endGeoMsgDate = useAppSelector(selectGeoMsgEnd)
+  const geoMsgData = useSelector(selectGeoMsgData)
+  const geoMsgCoordinates = useSelector(selectGeoMsgCoordinates)
+  const addGeoMsgPoint = useSelector(selectAddGeoMsgPoint)
+  const startGeoMsgDate = useSelector(selectGeoMsgStart)
+  const endGeoMsgDate = useSelector(selectGeoMsgEnd)
 
-  const filter = useAppSelector(selectGeoMsgFilter)
-  const filterStep = useAppSelector(selectGeoMsgFilterStep)
-  const filterOffset = useAppSelector(selectGeoMsgFilterOffset)
+  const filter = useSelector(selectGeoMsgFilter)
+  const filterStep = useSelector(selectGeoMsgFilterStep)
+  const filterOffset = useSelector(selectGeoMsgFilterOffset)
 
-  const wzdxData = useAppSelector(selectWzdxData)
+  const wzdxData = useSelector(selectWzdxData)
 
-  const token = useAppSelector(selectToken)
+  const token = useSelector(selectToken)
 
-  const intersectionsList = useAppSelector(selectIntersections)
-  const selectedIntersection = useAppSelector(selectSelectedIntersection)
+  const mooveAiData = useSelector(selectMooveAiData)
+  const addMooveAiPoint = useSelector(selectAddMooveAiPoint)
+  const mooveAiCoordinates = useSelector(selectMooveAiCoordinates)
+  const mooveAiFilter = useSelector(selectMooveAiFilter)
+
+  const intersectionsList = useSelector(selectIntersections)
+  const selectedIntersection = useSelector(selectSelectedIntersection)
 
   // Mapbox local state variables
-
-  const viewState = useAppSelector(selectViewState)
-
-  const mapRef = React.useRef<MapRef>(null)
+  const viewState = useSelector(selectViewState)
+  const [lastClickTime, setLastClickTime] = useState<number>(0)
+  const menuSelection = useSelector(selectMenuSelection)
+  const activeLayers = useSelector(selectActiveLayers)
 
   // RSU layer local state variables
   const [selectedRsuCount, setSelectedRsuCount] = useState(null)
-  const [displayType, setDisplayType] = useState('')
+  const [displayType, setDisplayType] = useState('none')
+
+  // Menu local state variable
+  const [displayMenu, setDisplayMenu] = useState(false)
+
+  // Add these new state variables near the other source states
+  const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
 
   const [configPolygonSource, setConfigPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
     type: 'Feature',
@@ -177,14 +222,30 @@ function MapPage(props: MapPageProps) {
     },
     properties: {},
   })
-  const [bsmPointSource, setMsgPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
+
+  const [geoMsgPolygonPointSource, setGeoMsgPolygonPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(
+    {
+      type: 'FeatureCollection',
+      features: [],
+    }
+  )
+
+  const [geoMsgPointSource, setGeoMsgPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
     type: 'FeatureCollection',
     features: [],
   })
 
+  // baseDate is only used to set the startDate from a Date object
   const [baseDate, setBaseDate] = useState(new Date(startGeoMsgDate))
-  const [startDate, setStartDate] = useState(new Date(baseDate.getTime() + 60000 * filterOffset * filterStep))
-  const [endDate, setEndDate] = useState(new Date(startDate.getTime() + 60000 * filterStep))
+
+  const [msgViewerSliderStartDate, setMsgViewerSliderStartDate] = useState(
+    new Date(baseDate.getTime() + 60000 * filterOffset * filterStep)
+  )
+  const [msgViewerSliderEndDate, setMsgViewerSliderEndDate] = useState(
+    new Date(msgViewerSliderStartDate.getTime() + 60000 * filterStep)
+  )
+
+  // stepOptions is used to set the step options for the message viewer
   const stepOptions = [
     { value: 1, label: '1 minute' },
     { value: 5, label: '5 minutes' },
@@ -208,7 +269,7 @@ function MapPage(props: MapPageProps) {
   const [wzdxMarkers, setWzdxMarkers] = useState([])
   const [pageOpen, setPageOpen] = useState(true)
 
-  const [activeLayers, setActiveLayers] = useState<MAP_LAYER_TYPES[]>(['rsu-layer'])
+  const [expandedLayers, setExpandedLayers] = useState<string[]>([])
 
   // Vendor filter local state variable
   const [selectedVendor, setSelectedVendor] = useState('Select Vendor')
@@ -217,10 +278,12 @@ function MapPage(props: MapPageProps) {
     setSelectedVendor(newVal)
   }
 
+  // TODO: Remove??
   if (!wzdxMarkers) {
     setSelectedWZDxMarkerIndex(null)
     setSelectedWZDxMarker(null)
   }
+  const mbStyle = require(`../styles/${theme.palette.custom.mapStyleFilePath}`)
 
   const [liveIntersectionData, setLiveIntersectionData] = useState({ maps: {}, spats: {}, bsms: {} } as {
     maps: { [key: number]: ProcessedMap }
@@ -268,9 +331,9 @@ function MapPage(props: MapPageProps) {
     const localBaseDate = new Date(startGeoMsgDate)
     const localStartDate = new Date(localBaseDate.getTime() + 60000 * filterOffset * filterStep)
     const localEndDate = new Date(new Date(localStartDate).getTime() + 60000 * filterStep)
-    setBaseDate(localBaseDate)
-    setStartDate(localStartDate)
-    setEndDate(localEndDate)
+
+    setMsgViewerSliderStartDate(localStartDate)
+    setMsgViewerSliderEndDate(localEndDate)
   }, [startGeoMsgDate, filterOffset, filterStep])
 
   useEffect(() => {
@@ -285,53 +348,148 @@ function MapPage(props: MapPageProps) {
     }
   }, [dispatch])
 
+  const createPointFeature = (point: number[]): GeoJSON.Feature<GeoJSON.Geometry> => {
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [...point],
+      },
+      properties: {},
+    }
+  }
+
+  const isDateInRange = (date: Date, startDate: Date, endDate: Date): boolean => {
+    return date >= startDate && date <= endDate
+  }
+
+  // Effect for handling polygon updates msg-viewer-layer
   useEffect(() => {
-    if (activeLayers.includes('msg-viewer-layer')) {
-      setGeoMsgPolygonSource((prevPolygonSource) => {
-        return {
+    if (!activeLayers.includes('msg-viewer-layer')) return
+
+    setGeoMsgPolygonPointSource((prevPointSource) => ({
+      ...prevPointSource,
+      features: geoMsgCoordinates.map((point) => createPointFeature(point)),
+    }))
+
+    // Get coordinates including preview point if it exists
+    let polygonCoords = [...geoMsgCoordinates]
+    if (previewPoint && addGeoMsgPoint) {
+      const previewCoords = previewPoint.geometry.coordinates
+
+      if (polygonCoords.length >= 3 && polygonCoords[0] === polygonCoords[polygonCoords.length - 1]) {
+        // For completed polygon: Remove closing point, add preview, then close
+        polygonCoords = polygonCoords.slice(0, -1)
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 2) {
+        // For two points: Draw triangle with preview point
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 1) {
+        // For one point: Draw line to preview point
+        polygonCoords = [[...polygonCoords[0]], [...previewCoords]] // Create a fresh array with both points
+      }
+    } else if (polygonCoords.length >= 3) {
+      // Close the polygon if we have 3+ points and no preview
+      polygonCoords.push(polygonCoords[0])
+    }
+
+    setGeoMsgPolygonSource(
+      (prevPolygonSource) =>
+        ({
           ...prevPolygonSource,
           geometry: {
-            ...prevPolygonSource.geometry,
-            coordinates: [[...geoMsgCoordinates]],
+            type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+            coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
           },
-        } as GeoJSON.Feature<GeoJSON.Geometry>
-      })
+        } as GeoJSON.Feature<GeoJSON.Geometry>)
+    )
+  }, [geoMsgCoordinates, activeLayers, addGeoMsgPoint, previewPoint])
 
-      const pointSourceFeatures = [] as Array<GeoJSON.Feature<GeoJSON.Geometry>>
-      if ((geoMsgData?.length ?? 0) > 0) {
-        const start_date = new Date(geoMsgData.slice(-1)[0]['properties']['time'])
-        const end_date = new Date(geoMsgData[0]['properties']['time'])
-        if (filter) {
-          // trim start / end dates to the first / last records
-          dateChanged(start_date, 'start')
-          dateChanged(end_date, 'end')
-        }
-        for (const [, val] of Object.entries([...geoMsgData])) {
-          const msgViewerDate = new Date(val['properties']['time'])
-          if (msgViewerDate >= startDate && msgViewerDate <= endDate) {
-            pointSourceFeatures.push(val)
-          }
-        }
-      } else {
-        geoMsgCoordinates.forEach((point: number[]) => {
-          pointSourceFeatures.push({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [...point],
-            },
-            properties: {},
-          })
-        })
+  const mooveAiPolygonPointSource = useMemo(
+    () =>
+      ({
+        type: 'FeatureCollection',
+        features: mooveAiCoordinates.map(createPointFeature),
+      } as GeoJSON.FeatureCollection<GeoJSON.Geometry>),
+    [mooveAiCoordinates]
+  )
+
+  const mooveAiPolygonSource = useMemo(() => {
+    // Get coordinates including preview point if it exists
+    let polygonCoords = [...mooveAiCoordinates]
+    if (previewPoint && addMooveAiPoint) {
+      const previewCoords = previewPoint.geometry.coordinates
+
+      if (polygonCoords.length >= 3 && polygonCoords[0] === polygonCoords[polygonCoords.length - 1]) {
+        // For completed polygon: Remove closing point, add preview, then close
+        polygonCoords = polygonCoords.slice(0, -1)
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 2) {
+        // For two points: Draw triangle with preview point
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 1) {
+        // For one point: Draw line to preview point
+        polygonCoords = [[...polygonCoords[0]], [...previewCoords]] // Create a fresh array with both points
       }
+    } else if (polygonCoords.length >= 3) {
+      // Close the polygon if we have 3+ points and no preview
+      polygonCoords.push(polygonCoords[0])
+    }
 
-      console.debug('geoMsgData pointSourceFeatures: ', pointSourceFeatures)
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
+      },
+    } as GeoJSON.Feature<GeoJSON.Geometry>
+  }, [mooveAiCoordinates, addMooveAiPoint, previewPoint])
 
-      setMsgPointSource((prevPointSource) => {
-        return { ...prevPointSource, features: pointSourceFeatures }
+  // Effect for handling point source updates msg-viewer-layer
+  useEffect(() => {
+    // if the msg-viewer-layer is not active, exit the effect
+    if (!activeLayers.includes('msg-viewer-layer') || activeLayers.includes('moove-ai-layer')) return
+
+    const pointSourceFeatures: Array<GeoJSON.Feature<GeoJSON.Geometry>> = []
+
+    // Handle case when we have message data
+    if ((geoMsgData?.length ?? 0) > 0) {
+      // Filter messages within the selected time range and preserve properties
+      geoMsgData.forEach((message) => {
+        const messageDate = new Date(message['properties']['timeStamp'])
+        if (isDateInRange(messageDate, msgViewerSliderStartDate, msgViewerSliderEndDate)) {
+          // Create a new feature with all original properties
+          const feature: GeoJSON.Feature<GeoJSON.Geometry> = {
+            type: 'Feature',
+            geometry: message.geometry,
+            properties: {
+              ...message.properties,
+            },
+          }
+          pointSourceFeatures.push(feature)
+        }
       })
     }
-  }, [geoMsgCoordinates, geoMsgData, startDate, endDate, activeLayers])
+
+    setGeoMsgPointSource((prevPointSource) => ({
+      ...prevPointSource,
+      features: pointSourceFeatures,
+    }))
+  }, [geoMsgData, msgViewerSliderStartDate, msgViewerSliderEndDate, activeLayers, filter])
+
+  // Helper function to calculate the maximum offset based on the start and end dates and the step
+  const calculateMaxOffset = (start: string | Date, end: string | Date, step: number) => {
+    return Math.floor((new Date(end).getTime() - new Date(start).getTime()) / (step * 60000))
+  }
+
+  const geoMsgFilterMaxOffset = useMemo(() => {
+    return calculateMaxOffset(startGeoMsgDate, endGeoMsgDate, filterStep)
+  }, [startGeoMsgDate, endGeoMsgDate, filterStep])
 
   useEffect(() => {
     if (activeLayers.includes('rsu-layer')) {
@@ -366,7 +524,6 @@ function MapPage(props: MapPageProps) {
     try {
       let date = DateTime.fromISO(e.toISOString())
       date.setZone(DateTime.local().zoneName)
-
       dispatch(updateGeoMsgDate({ type, date: date.toString() }))
     } catch (err) {
       console.error('Encountered issue updating date: ', err.message)
@@ -400,6 +557,21 @@ function MapPage(props: MapPageProps) {
       }
     } else {
       dispatch(updateConfigPoints([...configCoordinates, pointArray]))
+    }
+  }
+
+  const addMooveAiPointToCoordinates = (point: { lat: number; lng: number }) => {
+    const pointArray = [point.lng, point.lat]
+    if (mooveAiCoordinates.length > 1) {
+      if (mooveAiCoordinates[0] === mooveAiCoordinates.slice(-1)[0]) {
+        let tmp = [...mooveAiCoordinates]
+        tmp.pop()
+        dispatch(updateMooveAiPoints([...tmp, pointArray, mooveAiCoordinates[0]]))
+      } else {
+        dispatch(updateMooveAiPoints([...mooveAiCoordinates, pointArray, mooveAiCoordinates[0]]))
+      }
+    } else {
+      dispatch(updateMooveAiPoints([...mooveAiCoordinates, pointArray]))
     }
   }
 
@@ -459,7 +631,6 @@ function MapPage(props: MapPageProps) {
     }
 
     function openPopup(index: number) {
-      console.log('WZDx openPopup', index, wzdxMarkers)
       setSelectedWZDxMarkerIndex(index)
       dispatch(selectRsu(null))
       dispatch(clearFirmware())
@@ -509,7 +680,6 @@ function MapPage(props: MapPageProps) {
       }
     }
 
-    console.log('Generating Markers', wzdxData, getAllMarkers(wzdxData))
     setWzdxMarkers(getAllMarkers(wzdxData))
   }, [dispatch, wzdxData])
 
@@ -550,81 +720,120 @@ function MapPage(props: MapPageProps) {
     return stopsArray
   }
 
-  type MAP_LAYER_TYPES =
-    | 'rsu-layer'
-    | 'heatmap-layer'
-    | 'msg-viewer-layer'
-    | 'wzdx-layer'
-    | 'live-intersection-layer'
-    | 'intersection-layer'
-  const layers: { label: string; id: MAP_LAYER_TYPES; layers: LayerProps[] }[] = [
+  const isOnline = () => {
+    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')
+      ? rsuOnlineStatus[rsuIpv4].last_online
+      : 'No Data'
+  }
+
+  const getStatus = () => {
+    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('current_status')
+      ? rsuOnlineStatus[rsuIpv4].current_status
+      : 'Offline'
+  }
+
+  const handleScmsStatus = () => {
+    dispatch(getIssScmsStatus())
+    setDisplayType('scms')
+  }
+
+  const handleOnlineStatus = () => {
+    setDisplayType('online')
+  }
+
+  const handleNoneStatus = () => {
+    setDisplayType('none')
+  }
+
+  const handleRsuDisplayTypeChange = (event: React.SyntheticEvent) => {
+    const target = event.target as HTMLInputElement
+    if (target.value === 'online') handleOnlineStatus()
+    else if (target.value === 'scms') handleScmsStatus()
+    else if (target.value === 'none') handleNoneStatus()
+  }
+
+  const toggleExpandLayer = (layerId: string) => {
+    setExpandedLayers((prev) => (prev.includes(layerId) ? prev.filter((id) => id !== layerId) : [...prev, layerId]))
+  }
+
+  const layers: MapLayer[] = [
     {
       label: 'RSU Viewer',
-      id: 'rsu-layer',
-      layers: [
-        {
-          id: 'rsu-layer',
-          type: 'symbol',
-        },
-      ],
+      type: 'symbol',
+      tag: 'rsu',
+      control: (
+        <>
+          <Typography variant="h6">RSU Status</Typography>
+          <FormControl sx={{ ml: 2, mt: 1 }}>
+            <RadioGroup value={displayType} onChange={handleRsuDisplayTypeChange}>
+              {[
+                { key: 'none', label: 'None' },
+                { key: 'online', label: 'Online Status' },
+                { key: 'scms', label: 'SCMS Status' },
+              ].map((val) => (
+                <FormControlLabel
+                  value={val.key}
+                  sx={{ mt: -1 }}
+                  control={
+                    <Radio
+                      sx={{
+                        color: theme.palette.text.primary,
+                        '&.Mui-checked': {
+                          color: theme.palette.primary.main,
+                        },
+                      }}
+                    />
+                  }
+                  label={val.label}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+        </>
+      ),
     },
     {
-      label: 'Heatmap',
       id: 'heatmap-layer',
-      layers: [
-        {
-          id: 'heatmap-layer',
-          type: 'heatmap',
-          maxzoom: 14,
-          source: 'heatMapData',
-          paint: {
-            'heatmap-weight': {
-              property: 'count',
-              type: 'exponential',
-              stops: getStops(),
-            },
-            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0, 10, 1, 13, 2],
-            'heatmap-color': [
-              'interpolate',
-              ['linear'],
-              ['heatmap-density'],
-              0,
-              'rgba(33,102,172,0)',
-              0.2,
-              'rgb(103,169,207)',
-              0.4,
-              'rgb(209,229,240)',
-              0.6,
-              'rgb(253,219,199)',
-              0.8,
-              'rgb(239,138,98)',
-              0.9,
-              'rgb(255,201,101)',
-            ],
-            'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 1, 13, 0.6, 14, 0],
-          },
+      label: 'Heatmap',
+      type: 'heatmap',
+      maxzoom: 14,
+      source: 'heatMapData',
+      paint: {
+        'heatmap-weight': {
+          property: 'count',
+          type: 'exponential',
+          stops: getStops(),
         },
-      ],
-    },
-    {
-      label: 'V2X Msg Viewer',
-      id: 'msg-viewer-layer',
-      layers: [
-        {
-          id: 'msg-viewer-layer',
-          type: 'symbol',
-        },
-      ],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0, 10, 1, 13, 2],
+        'heatmap-color': [
+          'interpolate',
+          ['linear'],
+          ['heatmap-density'],
+          0,
+          'rgba(33,102,172,0)',
+          0.2,
+          'rgb(103,169,207)',
+          0.4,
+          'rgb(209,229,240)',
+          0.6,
+          'rgb(253,219,199)',
+          0.8,
+          'rgb(239,138,98)',
+          0.9,
+          'rgb(255,201,101)',
+        ],
+        'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 10, 1, 13, 0.6, 14, 0],
+      },
+      tag: 'rsu',
     },
     {
       label: 'WZDx Viewer',
-      id: 'wzdx-layer',
-      layers: [
-        {
-          id: 'wzdx-layer',
-          type: 'line',
-        },
-      ],
+      type: 'line',
+      tag: 'wzdx',
+      paint: {
+        'line-color': '#F29543',
+        'line-width': 8,
+      },
     },
     {
       label: 'Live Intersections',
@@ -768,103 +977,133 @@ function MapPage(props: MapPageProps) {
     },
     {
       label: 'Intersections',
-      id: 'intersection-layer',
-      layers: [
-        {
-          id: 'intersection-layer',
-          type: 'symbol',
-        },
-      ],
+      type: 'symbol',
+      tag: 'intersection',
+    },
+    {
+      id: 'moove-ai-layer',
+      label: 'Moove AI Viewer',
+      type: 'line',
+      tag: 'mooveai',
     },
   ]
 
+  const mapboxLayers = theme.palette.custom.mapStyleHasTraffic
+    ? [
+        {
+          label: 'Mapbox Traffic',
+          ids: [
+            'traffic-tunnel-link-navigation',
+            'traffic-tunnel-minor-navigation',
+            'traffic-tunnel-street-navigation',
+            'traffic-tunnel-secondary-tertiary-navigation',
+            'traffic-tunnel-primary-navigation',
+            'traffic-tunnel-major-link-navigation',
+            'traffic-tunnel-motorway-trunk-navigation',
+            'traffic-bridge-road-link-navigation',
+            'traffic-bridge-road-minor-navigation',
+            'traffic-bridge-road-street-navigation',
+            'traffic-bridge-road-secondary-tertiary-navigation',
+            'traffic-bridge-road-primary-navigation',
+            'traffic-bridge-road-major-link-navigation',
+            'traffic-bridge-road-motorway-trunk-case-navigation',
+            'traffic-bridge-road-motorway-trunk-navigation',
+          ],
+        },
+        {
+          label: 'Mapbox Incidents',
+          ids: [
+            'incident-closure-lines-navigation',
+            'incident-closure-line-highlights-navigation',
+            'incident-endpoints-navigation',
+            'incident-startpoints-navigation',
+          ],
+        },
+      ]
+    : []
+
   const Legend = () => {
-    const toggleLayer = (id: MAP_LAYER_TYPES) => {
+    const toggleLayer = (id: string) => {
+      dispatch(toggleLayerActive(id))
       if (activeLayers.includes(id)) {
-        if (id === 'rsu-layer') {
-          dispatch(selectRsu(null))
-          dispatch(clearFirmware())
-          setSelectedRsuCount(null)
-        } else if (id === 'wzdx-layer') {
-          setSelectedWZDxMarkerIndex(null)
-          setSelectedWZDxMarker(null)
-        } else if (id == 'live-intersection-layer') {
-          liveIntersectionApi.cancelAll()
+        switch (id) {
+          case 'rsu-layer':
+            dispatch(selectRsu(null))
+            dispatch(clearFirmware())
+            setSelectedRsuCount(null)
+            break
+          case 'wzdx-layer':
+            setSelectedWZDxMarkerIndex(null)
+            setSelectedWZDxMarker(null)
+            break
+          case 'live-intersection-layer':
+            liveIntersectionApi.cancelAll()
+            break
+          case 'moove-ai-layer':
+            dispatch(clearMooveAiData())
         }
-        setActiveLayers(activeLayers.filter((layerId) => layerId !== id))
       } else {
-        if (id == 'live-intersection-layer') {
-          liveIntersectionApi.viewBoundsChanged(
-            mapRef.current?.getBounds(),
-            viewState.zoom,
-            intersectionsList,
-            activeLayers.includes('live-intersection-layer'),
-            token
-          )
+        switch (id) {
+          case 'wzdx-layer':
+            dispatch(getWzdxData())
+            break
+          case 'live-intersection-layer':
+            liveIntersectionApi.viewBoundsChanged(
+              mapRef.current?.getBounds(),
+              viewState.zoom,
+              intersectionsList,
+              activeLayers.includes('live-intersection-layer'),
+              token
+            )
+            break
+          case 'moove-ai-layer':
+            if (activeLayers.includes('msg-viewer-layer')) dispatch(toggleMapMenuSelection('V2x Message Viewer'))
         }
-        setActiveLayers([...activeLayers, id])
       }
     }
 
     return (
-      <div className="legend">
-        <h1 className="legend-header">Map Layers</h1>
-        {layers.map((layer: { id: MAP_LAYER_TYPES; label: string }) => (
-          <div key={layer.id} className="legend-item">
-            <label className="legend-label">
-              <input
-                className="legend-input"
-                type="checkbox"
-                checked={activeLayers.includes(layer.id)}
-                onChange={() => toggleLayer(layer.id)}
+      <FormGroup>
+        {layers.map((layer) => (
+          <div key={layer.id}>
+            <Typography fontSize="small" display="flex" alignItems="center">
+              {layer.control && (
+                <IconButton
+                  onClick={() => toggleExpandLayer(layer.id)}
+                  size="small"
+                  edge="start"
+                  aria-label={expandedLayers.includes(layer.id) ? 'Collapse' : 'Expand'}
+                >
+                  {expandedLayers.includes(layer.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              )}
+              <FormControlLabel
+                onClick={() => toggleLayer(layer.id)}
+                label={layer.label}
+                control={<Checkbox checked={activeLayers.includes(layer.id)} />}
               />
-              {layer.label}
-            </label>
+            </Typography>
+            {layer.control && <Collapse in={expandedLayers.includes(layer.id)}>{layer.control}</Collapse>}
           </div>
         ))}
-      </div>
+      </FormGroup>
     )
   }
 
-  const isOnline = () => {
-    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
-  }
-
-  const getStatus = () => {
-    return rsuIpv4 in rsuOnlineStatus && rsuOnlineStatus[rsuIpv4].hasOwnProperty('current_status')
-      ? rsuOnlineStatus[rsuIpv4].current_status
-      : 'Offline'
-  }
-
-  const handleScmsStatus = () => {
-    dispatch(getIssScmsStatus())
-    setDisplayType('scms')
-  }
-
-  const handleOnlineStatus = () => {
-    setDisplayType('online')
-  }
-
-  const handleNoneStatus = () => {
-    setDisplayType('')
-  }
-
-  const handleRsuDisplayTypeChange = (event: React.SyntheticEvent) => {
-    const target = event.target as HTMLInputElement
-    if (target.value === 'online') handleOnlineStatus()
-    else if (target.value === 'scms') handleScmsStatus()
-    else if (target.value === 'none') handleNoneStatus()
-  }
-
-  const handleButtonToggle = (event: React.SyntheticEvent<Element, Event>, origin: 'config' | 'msgViewer') => {
+  const handleButtonToggle = (
+    event: React.SyntheticEvent<Element, Event>,
+    origin: 'config' | 'msgViewer' | 'mooveai'
+  ) => {
     if (origin === 'config') {
       dispatch(toggleConfigPointSelect())
       if (addGeoMsgPoint) dispatch(toggleGeoMsgPointSelect())
+      if (addMooveAiPoint) dispatch(toggleMooveAiPointSelect())
     } else if (origin === 'msgViewer') {
       dispatch(toggleGeoMsgPointSelect())
       if (addConfigPoint) dispatch(toggleConfigPointSelect())
+      if (addMooveAiPoint) dispatch(toggleMooveAiPointSelect())
+    } else if (origin === 'mooveai') {
+      dispatch(toggleMooveAiPointSelect())
     }
   }
 
@@ -875,115 +1114,223 @@ function MapPage(props: MapPageProps) {
 
   return (
     <div className="container">
-      <Grid2 container className="legend-grid" direction="row">
-        <Legend />
-        {activeLayers.includes('rsu-layer') && (
-          <div className="rsu-status-div">
-            <h1 className="legend-header">RSU Status</h1>
-            <label className="rsu-status-label">
-              <input
-                className="rsu-status-input"
-                type="radio"
-                name="none-status-radio"
-                value="none"
-                checked={displayType === ''}
-                onChange={handleRsuDisplayTypeChange}
+      <div className="menu-container">
+        <Accordion
+          style={{ backgroundColor: alpha(theme.palette.custom.mapMenuBackground, 0.8) }}
+          disableGutters={true}
+          className="menuAccordion"
+          sx={{ '&.accordion': { marginBottom: 0 } }}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+            aria-controls="panel1-content"
+            id="panel1-header"
+          >
+            <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="medium" color={theme.palette.text.primary}>
+              Layers
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Legend />
+          </AccordionDetails>
+        </Accordion>
+        <Accordion
+          style={{ backgroundColor: alpha(theme.palette.custom.mapMenuBackground, 0.8) }}
+          disableGutters={true}
+          className="menuAccordion"
+          sx={{ '&.accordion': { marginBottom: 0 } }}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+            aria-controls="panel2-content"
+            id="panel2-header"
+          >
+            <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="medium" color={theme.palette.text.primary}>
+              Map Controls
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <List>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => dispatch(toggleMapMenuSelection('Display Message Counts'))}
+                  sx={{
+                    backgroundColor: menuSelection.includes('Display Message Counts')
+                      ? theme.palette.custom.mapMenuItemBackgroundSelected
+                      : theme.palette.custom.mapMenuBackground,
+                    borderBottom: menuSelection.includes('Display Message Counts')
+                      ? theme.palette.custom.mapMenuItemBorderSelected
+                      : 'none',
+                    ':hover': {
+                      backgroundColor: menuSelection.includes('Display Message Counts')
+                        ? theme.palette.custom.mapMenuItemHoverSelected
+                        : theme.palette.custom.mapMenuItemHoverUnselected,
+                    },
+                  }}
+                >
+                  <ListItemText primary="Display Message Counts" />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))}
+                  sx={{
+                    backgroundColor: menuSelection.includes('Display RSU Status')
+                      ? theme.palette.custom.mapMenuItemBackgroundSelected
+                      : theme.palette.custom.mapMenuBackground,
+                    borderBottom: menuSelection.includes('Display RSU Status')
+                      ? theme.palette.custom.mapMenuItemBorderSelected
+                      : 'none',
+                    ':hover': {
+                      backgroundColor: menuSelection.includes('Display RSU Status')
+                        ? theme.palette.custom.mapMenuItemHoverSelected
+                        : theme.palette.custom.mapMenuItemHoverUnselected,
+                    },
+                  }}
+                >
+                  <ListItemText primary="Display RSU Status" />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    dispatch(toggleMapMenuSelection('V2x Message Viewer'))
+                    if (activeLayers.includes('moove-ai-layer')) dispatch(toggleLayerActive('moove-ai-layer'))
+                  }}
+                  sx={{
+                    backgroundColor: menuSelection.includes('V2x Message Viewer')
+                      ? theme.palette.custom.mapMenuItemBackgroundSelected
+                      : theme.palette.custom.mapMenuBackground,
+                    borderBottom: menuSelection.includes('V2x Message Viewer')
+                      ? theme.palette.custom.mapMenuItemBorderSelected
+                      : 'none',
+                    ':hover': {
+                      backgroundColor: menuSelection.includes('V2x Message Viewer')
+                        ? theme.palette.custom.mapMenuItemHoverSelected
+                        : theme.palette.custom.mapMenuItemHoverUnselected,
+                    },
+                  }}
+                >
+                  <ListItemText primary="Display V2X Message Viewer" />
+                </ListItemButton>
+              </ListItem>
+              {SecureStorageManager.getUserRole() === 'admin' && (
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => dispatch(toggleMapMenuSelection('Configure RSUs'))}
+                    sx={{
+                      backgroundColor: menuSelection.includes('Configure RSUs')
+                        ? theme.palette.custom.mapMenuItemBackgroundSelected
+                        : theme.palette.custom.mapMenuBackground,
+                      borderBottom: menuSelection.includes('Configure RSUs')
+                        ? theme.palette.custom.mapMenuItemBorderSelected
+                        : 'none',
+                      ':hover': {
+                        backgroundColor: menuSelection.includes('Configure RSUs')
+                          ? theme.palette.custom.mapMenuItemHoverSelected
+                          : theme.palette.custom.mapMenuItemHoverUnselected,
+                      },
+                    }}
+                  >
+                    <ListItemText primary="Configure RSUs" />
+                  </ListItemButton>
+                </ListItem>
+              )}
+            </List>
+          </AccordionDetails>
+        </Accordion>
+        <Accordion
+          style={{ backgroundColor: alpha(theme.palette.custom.mapMenuBackground, 0.8) }}
+          disableGutters={true}
+          className="menuAccordion"
+          sx={{ '&.accordion': { marginBottom: 0 } }}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+            aria-controls="panel3-content"
+            id="panel3-header"
+          >
+            <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="medium" color={theme.palette.text.primary}>
+              Filter RSUs
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <ListItem>
+              <DropdownList
+                dataKey="id"
+                textField="name"
+                data={vendorArray}
+                value={selectedVendor}
+                onChange={(value) => {
+                  setVendor(value)
+                }}
+                style={{ width: '100%' }}
               />
-              None
-            </label>
-
-            <label className="rsu-status-label">
-              <input
-                className="rsu-status-input"
-                type="radio"
-                name="online-status-radio"
-                value="online"
-                checked={displayType === 'online'}
-                onChange={handleRsuDisplayTypeChange}
-              />
-              Online Status
-            </label>
-
-            <label className="rsu-status-label">
-              <input
-                className="rsu-status-input"
-                type="radio"
-                name="scms-status-radio"
-                value="scms"
-                checked={displayType === 'scms'}
-                onChange={handleRsuDisplayTypeChange}
-              />
-              SCMS Status
-            </label>
-            {SecureStorageManager.getUserRole() === 'admin' && (
-              <>
-                <h1 className="legend-header">RSU Configuration</h1>
-                <StyledEngineProvider injectFirst>
-                  <ThemeProvider theme={mapTheme}>
-                    <FormGroup row className="form-group-row">
-                      <FormControlLabel
-                        control={<Switch checked={addConfigPoint} />}
-                        label={'Add Points'}
-                        onChange={(e) => handleButtonToggle(e, 'config')}
-                      />
-                      {configCoordinates.length > 0 && (
-                        <Tooltip title="Clear Points">
-                          <IconButton
-                            onClick={() => {
-                              dispatch(clearConfig())
-                            }}
-                            size="large"
-                          >
-                            <ClearIcon />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </FormGroup>
-                    <FormGroup row>
-                      <Button
-                        variant="contained"
-                        className="contained-button"
-                        sx={{ backgroundColor: '#B55e12' }}
-                        disabled={!(configCoordinates.length > 2 && addConfigPoint)}
-                        onClick={() => {
-                          dispatch(geoRsuQuery(selectedVendor))
-                        }}
-                      >
-                        Configure RSUs
-                      </Button>
-                    </FormGroup>
-                  </ThemeProvider>
-                </StyledEngineProvider>
-              </>
-            )}
+            </ListItem>
+          </AccordionDetails>
+        </Accordion>
+      </div>
+      {SecureStorageManager.getUserRole() === 'admin' && menuSelection.includes('Configure RSUs') && (
+        <>
+          <div className="rsu-status-div" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
+            <h1 className="legend-header">RSU Configuration</h1>
+            <StyledEngineProvider injectFirst>
+              <FormGroup row className="form-group-row">
+                <FormControlLabel
+                  control={<Switch checked={addConfigPoint} />}
+                  label={'Add Points'}
+                  onChange={(e) => handleButtonToggle(e, 'config')}
+                  sx={{ ml: 1 }}
+                />
+                {configCoordinates.length > 0 && (
+                  <Tooltip title="Clear Points">
+                    <IconButton
+                      onClick={() => {
+                        dispatch(clearConfig())
+                      }}
+                      size="large"
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </FormGroup>
+              <FormGroup row>
+                <Button
+                  variant="contained"
+                  className="contained-button"
+                  sx={{
+                    borderRadius: 4,
+                    width: '100%',
+                    '&.Mui-disabled': {
+                      backgroundColor: alpha(theme.palette.primary.light, 0.5),
+                    },
+                  }}
+                  disabled={!(configCoordinates.length > 2 && addConfigPoint)}
+                  onClick={() => {
+                    dispatch(geoRsuQuery(selectedVendor))
+                  }}
+                >
+                  Configure RSUs
+                </Button>
+              </FormGroup>
+            </StyledEngineProvider>
           </div>
-        )}
-        {activeLayers.includes('rsu-layer') ? (
-          <div className="vendor-filter-div">
-            <h2>Filter RSUs</h2>
-            <h4>Vendor</h4>
-            <DropdownList
-              className="form-dropdown"
-              dataKey="id"
-              textField="name"
-              data={vendorArray}
-              value={selectedVendor}
-              onChange={(value) => {
-                setVendor(value)
-              }}
-            />
-          </div>
-        ) : null}
-      </Grid2>
+        </>
+      )}
       <Container
         fluid={true}
-        style={{ width: '100%', height: props.auth ? 'calc(100vh - 136px)' : 'calc(100vh - 100px)', display: 'flex' }}
+        style={{
+          width: '100%',
+          height: `calc(100vh - ${headerTabHeight}px)`,
+          display: 'flex',
+        }}
       >
         <Map
           {...viewState}
           ref={mapRef}
           mapboxAccessToken={EnvironmentVars.MAPBOX_TOKEN}
-          mapStyle={mbStyle as mapboxgl.Style}
+          mapStyle={mbStyle}
           style={{ width: '100%', height: '100%' }}
           onMove={(evt) => {
             dispatch(setMapViewState(evt.viewState))
@@ -995,12 +1342,50 @@ function MapPage(props: MapPageProps) {
               token
             )
           }}
+          interactiveLayerIds={['geoMsgPointLayer']}
+          onMouseMove={(e) => {
+            if (addGeoMsgPoint || addConfigPoint || addMooveAiPoint) {
+              const point: GeoJSON.Feature<GeoJSON.Point> = {
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [e.lngLat.lng, e.lngLat.lat],
+                },
+                properties: {},
+              }
+              setPreviewPoint(point)
+            } else {
+              setPreviewPoint(null)
+            }
+          }}
           onClick={(e) => {
+            // Prevent double click from triggering single click
+            const clickTime = new Date().getTime()
+            if (clickTime - lastClickTime < 300) {
+              return
+            }
+            setLastClickTime(clickTime)
+
             if (addGeoMsgPoint) {
               addGeoMsgPointToCoordinates(e.lngLat)
             }
             if (addConfigPoint) {
               addConfigPointToCoordinates(e.lngLat)
+            }
+            if (addMooveAiPoint) {
+              addMooveAiPointToCoordinates(e.lngLat)
+            }
+          }}
+          onDblClick={(e) => {
+            e.preventDefault() // Prevent map zoom
+            if (addGeoMsgPoint) {
+              dispatch(toggleGeoMsgPointSelect())
+            }
+            if (addConfigPoint) {
+              dispatch(toggleConfigPointSelect())
+            }
+            if (addMooveAiPoint) {
+              dispatch(toggleMooveAiPointSelect())
             }
           }}
           onLoad={(e: mapboxgl.MapboxEvent<undefined>) => {
@@ -1023,6 +1408,30 @@ function MapPage(props: MapPageProps) {
             }
           }}
         >
+          {/* Add preview sources and layers */}
+          {(activeLayers.includes('msg-viewer-layer') || activeLayers.includes('moove-ai-layer')) && previewPoint && (
+            <Source id="preview-point" type="geojson" data={previewPoint}>
+              <Layer
+                id="preview-point-layer"
+                type="circle"
+                paint={{
+                  'circle-radius': 5,
+                  'circle-color': addGeoMsgPoint
+                    ? 'rgba(255, 164, 0, 0.5)'
+                    : addMooveAiPoint
+                    ? 'rgb(53, 121, 148)'
+                    : 'rgba(255, 0, 0, 0.5)',
+                  'circle-stroke-width': 2,
+                  'circle-stroke-color': addGeoMsgPoint
+                    ? 'rgb(255, 164, 0)'
+                    : addMooveAiPoint
+                    ? 'rgb(94, 206, 250)'
+                    : 'rgb(255, 0, 0)',
+                }}
+              />
+            </Source>
+          )}
+
           {activeLayers.includes('rsu-layer') && (
             <div>
               {configCoordinates?.length > 2 ? (
@@ -1041,7 +1450,6 @@ function MapPage(props: MapPageProps) {
               activeLayers.includes('rsu-layer') &&
               (selectedVendor === 'Select Vendor' || rsu['properties']['manufacturer_name'] === selectedVendor) && [
                 <Marker
-                  // className="rsu-marker"
                   key={rsu.id}
                   latitude={rsu.geometry.coordinates[1]}
                   longitude={rsu.geometry.coordinates[0]}
@@ -1218,15 +1626,22 @@ function MapPage(props: MapPageProps) {
           )}
           {activeLayers.includes('msg-viewer-layer') && (
             <div>
-              {geoMsgCoordinates.length > 2 ? (
+              {geoMsgCoordinates.length >= 1 ? (
                 <Source id={layers[2].id + '-fill'} type="geojson" data={geoMsgPolygonSource}>
-                  <Layer {...bsmOutlineLayer} />
-                  <Layer {...bsmFillLayer} />
+                  <Layer {...getGeoMsgOutlineLayer(addGeoMsgPoint)} />
+                  <Layer {...geoMsgFillLayer} />
                 </Source>
               ) : null}
-              <Source id={layers[2].id + '-points'} type="geojson" data={bsmPointSource}>
-                <Layer {...bsmPointLayer} />
-              </Source>
+              {addGeoMsgPoint && (
+                <Source id={layers[2].id + '-polygon-points'} type="geojson" data={geoMsgPolygonPointSource}>
+                  <Layer {...geoMsgPolygonPointLayer} />
+                </Source>
+              )}
+              {filter && (
+                <Source id={layers[2].id + '-geo-msg-points'} type="geojson" data={geoMsgPointSource}>
+                  <Layer {...geoMsgPointLayer} />
+                </Source>
+              )}
             </div>
           )}
           {activeLayers.includes('wzdx-layer') && (
@@ -1297,20 +1712,39 @@ function MapPage(props: MapPageProps) {
               <Layer {...intersectionMapLabelsLayer} />
             </Source>
           )}
+          {activeLayers.includes('moove-ai-layer') && (
+            <div>
+              {mooveAiCoordinates.length >= 1 ? (
+                <Source id={layers[4].id + '-fill'} type="geojson" data={mooveAiPolygonSource}>
+                  <Layer {...getMooveAiDataOutlineLayer(addMooveAiPoint)} />
+                  <Layer {...mooveAiDataFillLayer} />
+                </Source>
+              ) : null}
+              {addMooveAiPoint && (
+                <Source id={layers[4].id + '-polygon-points'} type="geojson" data={mooveAiPolygonPointSource}>
+                  <Layer {...mooveAiDataPolygonPointLayer} />
+                </Source>
+              )}
+              {mooveAiFilter && (
+                <Source id={layers[4].id + '-feature-lines'} type="geojson" data={mooveAiData}>
+                  <Layer {...mooveAiDataLineLayer} />
+                </Source>
+              )}
+            </div>
+          )}
           {selectedRsu ? (
             <Popup
               latitude={selectedRsu.geometry.coordinates[1]}
               longitude={selectedRsu.geometry.coordinates[0]}
               onClose={() => {
                 if (pageOpen) {
-                  console.debug('POPUP CLOSED', pageOpen)
                   dispatch(selectRsu(null))
                   dispatch(clearFirmware())
                   setSelectedRsuCount(null)
                 }
               }}
             >
-              <div>
+              <div style={{ color: theme.palette.common.black }}>
                 <h2 className="popop-h2">{rsuIpv4}</h2>
                 <p className="popop-p">Milepost: {selectedRsu.properties.milepost}</p>
                 <p className="popop-p">
@@ -1348,76 +1782,107 @@ function MapPage(props: MapPageProps) {
 
       {activeLayers.includes('msg-viewer-layer') &&
         (filter && geoMsgData.length > 0 ? (
-          <div className="filterControl">
-            <div id="timeContainer">
+          <div className="filterControl" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
+            <div id="timeContainer" style={{ textAlign: 'center' }}>
               <p id="timeHeader">
-                {startDate.toLocaleString([], dateTimeOptions)} - {endDate.toLocaleTimeString([], dateTimeOptions)}
+                {msgViewerSliderStartDate.toLocaleString([], dateTimeOptions)} -{' '}
+                {msgViewerSliderEndDate.toLocaleTimeString([], dateTimeOptions)}
               </p>
             </div>
-            <div id="sliderContainer">
+            <div id="sliderContainer" style={{ margin: '5px 10px' }}>
               <Slider
                 allowCross={false}
                 included={false}
-                max={(new Date(endGeoMsgDate).getTime() - baseDate.getTime()) / (filterStep * 60000)}
+                min={0}
+                max={geoMsgFilterMaxOffset}
                 value={filterOffset}
                 onChange={(e) => {
                   dispatch(setGeoMsgFilterOffset(e as number))
                 }}
               />
-              {/* <div className="dataIndicator" style={{ width: `${(filterOffset / maxFilterOffset) * 100}%` }}></div> */}
             </div>
             <div id="controlContainer">
               <Select
                 id="stepSelect"
-                defaultValue={stepValueToOption(filterStep)}
-                placeholder={stepValueToOption(filterStep)}
-                onChange={(e) => dispatch(setGeoMsgFilterStep(e.value))}
-                options={stepOptions}
-              />
-              <button className="searchButton" onClick={() => dispatch(setGeoMsgFilter(false))}>
+                onChange={(e) => {
+                  const newStep = Number(e.target.value)
+                  const maxOffset = geoMsgFilterMaxOffset
+
+                  // Adjust offset if it would exceed the new maximum
+                  if (filterOffset > maxOffset) {
+                    dispatch(setGeoMsgFilterOffset(maxOffset))
+                  }
+
+                  dispatch(setGeoMsgFilterStep(newStep))
+                }}
+                value={stepValueToOption(filterStep)?.value?.toString()}
+              >
+                {stepOptions.map((option) => {
+                  return (
+                    <MenuItem value={option.value} key={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  )
+                })}
+              </Select>
+
+              <Button variant="contained" onClick={() => dispatch(setGeoMsgFilter(false))}>
                 New Search
-              </button>
+              </Button>
             </div>
           </div>
         ) : filter && geoMsgData.length === 0 ? (
-          <div className="filterControl">
+          <div
+            className={menuSelection.includes('Configure RSUs') ? 'expandedFilterControl' : 'filterControl'}
+            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
+          >
             <div id="timeContainer">
-              <p>No data found for the selected date range. Please try a new search with a different date range.</p>
+              <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="small">
+                No data found for the selected date range. Please try a new search with a different date range.
+              </Typography>
             </div>
             <div id="controlContainer">
-              <button className="searchButton" onClick={() => dispatch(setGeoMsgFilter(false))}>
+              <Button variant="contained" onClick={() => dispatch(setGeoMsgFilter(false))}>
                 New Search
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <div className="control">
-            <div className="buttonContainer">
-              <button
-                className={addGeoMsgPoint ? 'selected' : 'button'}
-                onClick={(e) => handleButtonToggle(e, 'msgViewer')}
-              >
+          <Paper
+            className={menuSelection.includes('Configure RSUs') ? 'expandedControl' : 'control'}
+            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
+          >
+            <div className="buttonContainer" style={{ marginBottom: 15 }}>
+              <Button variant="contained" size="small" onClick={(e) => handleButtonToggle(e, 'msgViewer')}>
                 Add Point
-              </button>
-              <button
-                className="button"
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
                 onClick={(e) => {
                   dispatch(clearGeoMsg())
                 }}
               >
                 Clear
-              </button>
+              </Button>
             </div>
-            <div>
+            <div style={{ marginBottom: 15, marginLeft: 15 }}>
               <Select
-                options={messageTypeOptions}
-                defaultValue={messageTypeOptions.filter((o) => o.label === countsMsgType)}
                 placeholder="Select Message Type"
                 className="selectContainer"
-                onChange={(value) => dispatch(changeGeoMsgType(value.value))}
-              />
+                value={geoMsgType}
+                onChange={(event) => dispatch(changeGeoMsgType(event.target.value))}
+              >
+                {messageTypeOptions.map((option) => {
+                  return (
+                    <MenuItem value={option.value} key={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  )
+                })}
+              </Select>
             </div>
-            <div className="dateContainer">
+            <div style={{ marginBottom: 15 }}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   label="Select start date"
@@ -1428,15 +1893,10 @@ function MapPage(props: MapPageProps) {
                       dateChanged(e.toDate(), 'start')
                     }
                   }}
-                  slotProps={{
-                    textField: {
-                      InputProps: { style: { color: 'black' } },
-                    },
-                  }}
                 />
               </LocalizationProvider>
             </div>
-            <div className="dateContainer">
+            <div style={{ marginBottom: 15 }}>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <DateTimePicker
                   label="Select end date"
@@ -1448,32 +1908,99 @@ function MapPage(props: MapPageProps) {
                       dateChanged(e.toDate(), 'end')
                     }
                   }}
-                  slotProps={{
-                    textField: {
-                      InputProps: { style: { color: 'black' } },
-                    },
-                  }}
                 />
               </LocalizationProvider>
             </div>
-            <div className="submitContainer">
-              <button
-                id="submitButton"
+            <div style={{ marginBottom: 15 }} className="submitContainer">
+              <Button
+                variant="contained"
+                size="small"
                 onClick={(e) => {
-                  dispatch(updateGeoMsgData())
+                  if (!addGeoMsgPoint) {
+                    dispatch(updateGeoMsgData())
+                  } else {
+                    toast.error('Please complete the polygon (double click to close) before submitting')
+                  }
                 }}
               >
                 Submit
-              </button>
+              </Button>
+            </div>
+          </Paper>
+        ))}
+      {activeLayers.includes('moove-ai-layer') &&
+        (mooveAiData.features.length > 0 ? (
+          <div className="filterControl" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
+            <MooveAiHardBrakingLegend />
+            <div id="controlContainer">
+              <Button variant="contained" onClick={() => dispatch(clearMooveAiData())}>
+                New Search
+              </Button>
             </div>
           </div>
+        ) : mooveAiFilter && mooveAiData.features.length === 0 ? (
+          <div
+            className={menuSelection.includes('Configure RSUs') ? 'expandedFilterControl' : 'filterControl'}
+            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
+          >
+            <div id="timeContainer">
+              <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="small">
+                No data found for the selected polygon. Please try a new search for different geospatial area.
+              </Typography>
+            </div>
+            <div id="controlContainer">
+              <Button variant="contained" onClick={() => dispatch(clearMooveAiData())}>
+                New Search
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Paper
+            className={menuSelection.includes('Configure RSUs') ? 'expandedControl' : 'control'}
+            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
+          >
+            <div className="buttonContainer" style={{ marginBottom: 15 }}>
+              <Button variant="contained" size="small" onClick={(e) => handleButtonToggle(e, 'mooveai')}>
+                Add Point
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={(e) => {
+                  dispatch(clearMooveAiData())
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+            <div id="mooveAiDescription" style={{ marginBottom: 15 }}>
+              <Typography fontFamily="Arial, Helvetica, sans-serif" fontSize="small">
+                Add points on the map to create a geospatial polygon to query for Moove AI harsh braking data
+              </Typography>
+            </div>
+            <div style={{ marginBottom: 5 }} className="submitContainer">
+              <Button
+                variant="contained"
+                size="small"
+                onClick={(e) => {
+                  if (!addMooveAiPoint) {
+                    dispatch(updateMooveAiData())
+                  } else {
+                    toast.error('Please complete the polygon (double click to close) before submitting')
+                  }
+                }}
+              >
+                Submit
+              </Button>
+            </div>
+          </Paper>
         ))}
     </div>
   )
 }
 
-const bsmFillLayer: FillLayer = {
-  id: 'bsmFill',
+const geoMsgFillLayer: FillLayer = {
+  id: 'geoMsgFill',
   type: 'fill',
   source: 'polygonSource',
   layout: {},
@@ -1483,16 +2010,17 @@ const bsmFillLayer: FillLayer = {
   },
 }
 
-const bsmOutlineLayer: LineLayer = {
-  id: 'bsmOutline',
+const getGeoMsgOutlineLayer = (isEditing: boolean): LineLayer => ({
+  id: 'geoMsgOutline',
   type: 'line',
   source: 'polygonSource',
   layout: {},
   paint: {
     'line-color': '#000',
     'line-width': 3,
+    'line-dasharray': isEditing ? [2, 2] : undefined,
   },
-}
+})
 
 const configFillLayer: FillLayer = {
   id: 'configFill',
@@ -1525,13 +2053,101 @@ const configPointLayer: CircleLayer = {
     'circle-color': 'rgb(255, 0, 0)',
   },
 }
-const bsmPointLayer: CircleLayer = {
-  id: 'bsmPointLayer',
+
+const geoMsgPolygonPointLayer: CircleLayer = {
+  id: 'geoMsgPolygonPointLayer',
   type: 'circle',
   source: 'pointSource',
   paint: {
     'circle-radius': 5,
     'circle-color': 'rgb(255, 164, 0)',
+  },
+}
+
+const geoMsgPointLayer: CircleLayer = {
+  id: 'geoMsgPointLayer',
+  type: 'circle',
+  source: 'pointSource',
+  paint: {
+    'circle-radius': 5,
+    'circle-color': [
+      'match',
+      ['get', 'colorIndex'],
+      0,
+      '#FF0000',
+      1,
+      '#00FF00',
+      2,
+      '#0000FF',
+      3,
+      '#FFFF00',
+      4,
+      '#FF00FF',
+      5,
+      '#00FFFF',
+      6,
+      '#FFA500',
+      7,
+      '#800080',
+      8,
+      '#A52A2A',
+      9,
+      '#008000',
+      '#999999',
+    ],
+  },
+}
+
+const getMooveAiDataOutlineLayer = (isEditing: boolean): LineLayer => ({
+  id: 'mooveAiDataOutline',
+  type: 'line',
+  source: 'mooveAiPolygonSource',
+  layout: {},
+  paint: {
+    'line-color': '#000',
+    'line-width': 3,
+    'line-dasharray': isEditing ? [2, 2] : undefined,
+  },
+})
+
+const mooveAiDataFillLayer: FillLayer = {
+  id: 'mooveAiDataFill',
+  type: 'fill',
+  source: 'mooveAiPolygonSource',
+  layout: {},
+  paint: {
+    'fill-color': '#0080ff',
+    'fill-opacity': 0.2,
+  },
+}
+
+const mooveAiDataPolygonPointLayer: CircleLayer = {
+  id: 'mooveAiDataPolygonPoint',
+  type: 'circle',
+  source: 'mooveAiPolygonPointSource',
+  paint: {
+    'circle-radius': 5,
+    'circle-color': 'rgb(94, 206, 250)',
+  },
+}
+
+const mooveAiDataLineLayer: LineLayer = {
+  id: 'mooveAiDataLine',
+  type: 'line',
+  source: 'mooveAiData',
+  layout: {},
+  paint: {
+    'line-color': [
+      'case',
+      ['>=', ['get', 'total_hard_brake_count'], 750],
+      'rgb(255, 0, 0)', // Red for values 750 and above
+      ['>=', ['get', 'total_hard_brake_count'], 500],
+      'rgb(255, 165, 0)', // Orange for values between 500 and 750
+      ['>=', ['get', 'total_hard_brake_count'], 250],
+      'rgb(255, 255, 0)', // Yellow for values between 250 and 500
+      'rgb(0, 255, 0)', // Green for values below 250
+    ],
+    'line-width': 5,
   },
 }
 

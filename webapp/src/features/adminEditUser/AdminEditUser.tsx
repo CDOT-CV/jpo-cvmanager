@@ -17,25 +17,29 @@ import {
   updateOrganizations,
   UserApiDataOrgs,
 } from './adminEditUserSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getAvailableUsers, selectTableData } from '../adminUserTab/adminUserTabSlice'
 import { DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
-import { useAppDispatch, useAppSelector } from '../../hooks'
+import { AdminButton } from '../../styles/components/AdminButton'
+import { ErrorMessageText } from '../../styles/components/Messages'
 
 const AdminEditUser = () => {
-  const dispatch = useAppDispatch()
-  const selectedOrganizationNames = useAppSelector(selectSelectedOrganizationNames)
-  const selectedOrganizations = useAppSelector(selectSelectedOrganizations)
-  const organizationNames = useAppSelector(selectOrganizationNames)
-  const availableRoles = useAppSelector(selectAvailableRoles)
-  const apiData = useAppSelector(selectApiData)
-  const submitAttempt = useAppSelector(selectSubmitAttempt)
-  const userTableData = useAppSelector(selectTableData)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const selectedOrganizationNames = useSelector(selectSelectedOrganizationNames)
+  const selectedOrganizations = useSelector(selectSelectedOrganizations)
+  const organizationNames = useSelector(selectOrganizationNames)
+  const availableRoles = useSelector(selectAvailableRoles)
+  const apiData = useSelector(selectApiData)
+  const submitAttempt = useSelector(selectSubmitAttempt)
+  const userTableData = useSelector(selectTableData)
   const [open, setOpen] = useState(true)
   const navigate = useNavigate()
   const {
@@ -157,7 +161,7 @@ const AdminEditUser = () => {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="super_user">
-              <Form.Check label=" Super User" type="switch" {...register('super_user')} style={{ color: '#fff' }} />
+              <Form.Check label=" Super User" type="switch" {...register('super_user')} />
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="organizations">
@@ -202,31 +206,28 @@ const AdminEditUser = () => {
             )}
 
             {selectedOrganizations.length === 0 && submitAttempt && (
-              <p className="error-msg" role="alert">
-                Must select at least one organization
-              </p>
+              <ErrorMessageText role="alert">Must select at least one organization</ErrorMessageText>
             )}
           </Form>
         ) : (
-          <Typography variant={'h4'} style={{ color: '#fff' }}>
+          <Typography variant={'h4'}>
             Unknown email address. Either this user does not exist, or you do not have permissions to view them.{' '}
             <Link to="../">Users</Link>
           </Typography>
         )}
       </DialogContent>
       <DialogActions>
-        <button
+        <AdminButton
           onClick={() => {
             setOpen(false)
             navigate('/dashboard/admin/users')
           }}
-          className="admin-button"
         >
           Close
-        </button>
-        <button form="edit-user-form" type="submit" className="admin-button">
+        </AdminButton>
+        <AdminButton form="edit-user-form" type="submit">
           Apply Changes
-        </button>
+        </AdminButton>
       </DialogActions>
     </Dialog>
   )

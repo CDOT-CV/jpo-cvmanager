@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react'
 import Map, { Layer, MapRef, Marker, Popup, Source, SymbolLayer } from 'react-map-gl'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 
-import { Container } from 'reactstrap'
+import { Container, Col } from 'reactstrap'
 import EnvironmentVars from '../../../EnvironmentVars'
 import {
   selectIntersections,
   selectSelectedIntersection,
   setSelectedIntersection,
 } from '../../../generalSlices/intersectionSlice'
-import { useAppDispatch, useAppSelector } from '../../../hooks'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../../store'
 
 const getBoundsForIntersections = (
   selectedIntersection: IntersectionReferenceData | undefined,
@@ -104,10 +106,10 @@ const intersectionLabelsLayer: SymbolLayer = {
 }
 
 const IntersectionMap = () => {
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
-  const intersections = useAppSelector(selectIntersections)
-  const selectedIntersection = useAppSelector(selectSelectedIntersection)
+  const intersections = useSelector(selectIntersections)
+  const selectedIntersection = useSelector(selectSelectedIntersection)
 
   const [viewState, setViewState] = useState({
     latitude: selectedIntersection?.latitude ?? 39.587905,

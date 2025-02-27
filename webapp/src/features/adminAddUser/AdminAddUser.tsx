@@ -19,23 +19,27 @@ import {
   submitForm,
   AdminUserForm,
 } from './adminAddUserSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import Dialog from '@mui/material/Dialog'
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material'
-import { useAppDispatch, useAppSelector } from '../../hooks'
+import { AdminButton } from '../../styles/components/AdminButton'
+import { ErrorMessageText } from '../../styles/components/Messages'
 
 const AdminAddUser = () => {
-  const dispatch = useAppDispatch()
-  const selectedOrganizationNames = useAppSelector(selectSelectedOrganizationNames)
-  const selectedOrganizations = useAppSelector(selectSelectedOrganizations)
-  const organizationNames = useAppSelector(selectOrganizationNames)
-  const availableRoles = useAppSelector(selectAvailableRoles)
-  const apiData = useAppSelector(selectApiData)
-  const submitAttempt = useAppSelector(selectSubmitAttempt)
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const selectedOrganizationNames = useSelector(selectSelectedOrganizationNames)
+  const selectedOrganizations = useSelector(selectSelectedOrganizations)
+  const organizationNames = useSelector(selectOrganizationNames)
+  const availableRoles = useSelector(selectAvailableRoles)
+  const apiData = useSelector(selectApiData)
+  const submitAttempt = useSelector(selectSubmitAttempt)
   const [open, setOpen] = useState(true)
   const navigate = useNavigate()
   const {
@@ -128,7 +132,7 @@ const AdminAddUser = () => {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="super_user">
-            <Form.Check label=" Super User" type="switch" {...register('super_user')} style={{ color: '#fff' }} />
+            <Form.Check label=" Super User" type="switch" {...register('super_user')} />
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="organizations">
@@ -174,25 +178,22 @@ const AdminAddUser = () => {
           )}
 
           {selectedOrganizations.length === 0 && submitAttempt && (
-            <p className="error-msg" role="alert">
-              Must select at least one organization
-            </p>
+            <ErrorMessageText role="alert">Must select at least one organization</ErrorMessageText>
           )}
         </Form>
       </DialogContent>
       <DialogActions>
-        <button
+        <AdminButton
           onClick={() => {
             setOpen(false)
             navigate('/dashboard/admin/users')
           }}
-          className="admin-button"
         >
           Close
-        </button>
-        <button form="add-user-form" type="submit" className="admin-button">
+        </AdminButton>
+        <AdminButton form="add-user-form" type="submit">
           Add User
-        </button>
+        </AdminButton>
       </DialogActions>
     </Dialog>
   )

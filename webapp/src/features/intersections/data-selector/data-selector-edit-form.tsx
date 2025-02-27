@@ -22,8 +22,10 @@ import {
   FormControl,
 } from '@mui/material'
 import { FormikCheckboxList } from './formik-checkbox-list'
-import { selectDataSelectorForm, setDataSelectorForm } from './dataSelectorSlice'
-import { useAppDispatch, useAppSelector } from '../../../hooks'
+import { selectDataSelectorForm, selectRoadRegulatorIntersectionIds, setDataSelectorForm } from './dataSelectorSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../../store'
 
 interface Item {
   label: string
@@ -61,12 +63,12 @@ export const DataSelectorEditForm = (props: {
   dbIntersectionId: number | undefined
   roadRegulatorIntersectionIds: { [roadRegulatorId: number]: number[] }
 }) => {
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const { onQuery, onVisualize, dbIntersectionId, roadRegulatorIntersectionIds, ...other } = props
   const [visualize, setVisualize] = useState(false)
 
-  const dataSelectorForm = useAppSelector(selectDataSelectorForm)
+  const dataSelectorForm = useSelector(selectDataSelectorForm)
 
   const formik = useFormik({
     initialValues: {

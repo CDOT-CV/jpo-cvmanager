@@ -5,15 +5,18 @@ import {
   // actions
   addOrg,
 } from './adminAddOrganizationSlice'
+import { useSelector, useDispatch } from 'react-redux'
 import toast from 'react-hot-toast'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 
 import Dialog from '@mui/material/Dialog'
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { useAppDispatch } from '../../hooks'
+import { AdminButton } from '../../styles/components/AdminButton'
 
 export type AdminAddOrgForm = {
   name: string
@@ -21,7 +24,7 @@ export type AdminAddOrgForm = {
 }
 
 const AdminAddOrganization = () => {
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const notifySuccess = (message: string) => toast.success(message)
   const notifyError = (message: string) => toast.error(message)
   const [open, setOpen] = useState(true)
@@ -71,18 +74,17 @@ const AdminAddOrganization = () => {
         </Form>
       </DialogContent>
       <DialogActions>
-        <button
+        <AdminButton
           onClick={() => {
             setOpen(false)
             navigate('/dashboard/admin/organizations')
           }}
-          className="admin-button"
         >
           Close
-        </button>
-        <button form="add-organization-form" type="submit" className="admin-button">
+        </AdminButton>
+        <AdminButton form="add-organization-form" type="submit">
           Add Organization
-        </button>
+        </AdminButton>
       </DialogActions>
     </Dialog>
   )

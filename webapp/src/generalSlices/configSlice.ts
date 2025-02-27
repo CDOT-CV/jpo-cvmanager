@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
-import { RsuCommandPostBody, RsuDsrcFwdConfigs, RsuRxTxMsgFwdConfigs, SnmpFwdWalkConfig } from '../apis/rsu-api-types'
+import { RsuCommandPostBody, RsuDsrcFwdConfigs, RsuRxTxMsgFwdConfigs, SnmpFwdWalkConfig } from '../models/RsuApi'
 
 const initialState = {
   msgFwdConfig: {} as any,
@@ -211,7 +211,6 @@ export const geoRsuQuery = createAsyncThunk(
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
     const configCoordinates = selectConfigCoordinates(currentState)
-    console.debug(configCoordinates)
 
     return await RsuApi.postRsuGeo(
       token,
@@ -253,7 +252,6 @@ export const configSlice = createSlice({
     },
     updateConfigPoints: (state, action) => {
       state.value.configCoordinates = action.payload
-      console.debug('updateConfigPoints', action.payload)
     },
     clearConfig: (state) => {
       state.value.configCoordinates = []
@@ -279,13 +277,11 @@ export const configSlice = createSlice({
         state.value.changeSuccess = false
         state.value.snmpFilterErr = false
         state.value.rebootChangeSuccess = false
-        console.debug('Pending refreshSnmpFwdConfig', state.loading)
       })
       .addCase(refreshSnmpFwdConfig.fulfilled, (state, action) => {
         state.loading = false
         state.value.msgFwdConfig = action.payload.msgFwdConfig
         state.value.errorState = action.payload.errorState
-        console.debug('fulfilled refreshSnmpFwdConfig', state.loading)
       })
       .addCase(refreshSnmpFwdConfig.rejected, (state) => {
         state.loading = false

@@ -33,6 +33,7 @@ import {
   onMapMouseMove,
   pullInitialData,
   renderRsuData,
+  resetInitialDataAbortControllers,
   selectAllInteractiveLayerIds,
   selectBsmData,
   selectConnectingLanes,
@@ -77,8 +78,9 @@ import { RootState } from '../../../store'
 import { MapLegend } from './map-legend'
 import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
-import { useAppDispatch, useAppSelector } from '../../../hooks'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
+import { useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 
 export const getTimestamp = (dt: any): number => {
   try {
@@ -103,57 +105,60 @@ type timestamp = {
 }
 
 const IntersectionMap = (props: MAP_PROPS) => {
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const location = useLocation()
 
   // userSlice
-  const authToken = useAppSelector(selectToken)
+  const authToken = useSelector(selectToken)
 
-  const mapMessageLayerStyle = useAppSelector(selectMapMessageLayerStyle)
-  const mapMessageLabelsLayerStyle = useAppSelector(selectMapMessageLabelsLayerStyle)
-  const connectingLanesLayerStyle = useAppSelector(selectConnectingLanesLayerStyle)
-  const connectingLanesLabelsLayerStyle = useAppSelector(selectConnectingLanesLabelsLayerStyle)
-  const markerLayerStyle = useAppSelector(selectMarkerLayerStyle)
-  const srmLayerStyle = useAppSelector(selectSrmLayerStyle)
-  const bsmLayerStyle = useAppSelector(selectBsmLayerStyle)
-  const signalStateLayerStyle = useAppSelector(selectSignalStateLayerStyle)
+  const mapMessageLayerStyle = useSelector(selectMapMessageLayerStyle)
+  const mapMessageLabelsLayerStyle = useSelector(selectMapMessageLabelsLayerStyle)
+  const connectingLanesLayerStyle = useSelector(selectConnectingLanesLayerStyle)
+  const connectingLanesLabelsLayerStyle = useSelector(selectConnectingLanesLabelsLayerStyle)
+  const markerLayerStyle = useSelector(selectMarkerLayerStyle)
+  const srmLayerStyle = useSelector(selectSrmLayerStyle)
+  const bsmLayerStyle = useSelector(selectBsmLayerStyle)
+  const signalStateLayerStyle = useSelector(selectSignalStateLayerStyle)
 
-  const selectedSrm = useAppSelector(selectSelectedSrm)
+  const selectedSrm = useSelector(selectSelectedSrm)
 
-  const allInteractiveLayerIds = useAppSelector(selectAllInteractiveLayerIds)
-  const queryParams = useAppSelector(selectQueryParams)
-  const mapData = useAppSelector(selectMapData)
-  const bsmData = useAppSelector(selectBsmData)
-  const mapSignalGroups = useAppSelector(selectMapSignalGroups)
-  const signalStateData = useAppSelector(selectSignalStateData)
-  const spatSignalGroups = useAppSelector(selectSpatSignalGroups)
-  const currentSignalGroups = useAppSelector(selectCurrentSignalGroups)
-  const currentBsms = useAppSelector(selectCurrentBsms)
-  const connectingLanes = useAppSelector(selectConnectingLanes)
-  const filteredSurroundingEvents = useAppSelector(selectFilteredSurroundingEvents)
-  const filteredSurroundingNotifications = useAppSelector(selectFilteredSurroundingNotifications)
-  const viewState = useAppSelector(selectViewState)
-  const timeWindowSeconds = useAppSelector(selectTimeWindowSeconds)
-  const sliderValue = useAppSelector(selectSliderValue)
-  const renderTimeInterval = useAppSelector(selectRenderTimeInterval)
-  const hoveredFeature = useAppSelector(selectHoveredFeature)
-  const selectedFeature = useAppSelector(selectSelectedFeature)
-  const sigGroupLabelsVisible = useAppSelector(selectSigGroupLabelsVisible)
-  const laneLabelsVisible = useAppSelector(selectLaneLabelsVisible)
-  const showPopupOnHover = useAppSelector(selectShowPopupOnHover)
-  const cursor = useAppSelector(selectCursor)
-  const loadInitialDataTimeoutId = useAppSelector(selectLoadInitialDataTimeoutId)
-  const liveDataActive = useAppSelector(selectLiveDataActive)
-  const playbackModeActive = useAppSelector(selectPlaybackModeActive)
-  const liveDataRestartTimeoutId = useAppSelector(selectLiveDataRestartTimeoutId)
-  const liveDataRestart = useAppSelector(selectLiveDataRestart)
-  const decoderModeEnabled = useAppSelector(selectDecoderModeEnabled)
+  const allInteractiveLayerIds = useSelector(selectAllInteractiveLayerIds)
+  const queryParams = useSelector(selectQueryParams)
+  const mapData = useSelector(selectMapData)
+  const bsmData = useSelector(selectBsmData)
+  const mapSignalGroups = useSelector(selectMapSignalGroups)
+  const signalStateData = useSelector(selectSignalStateData)
+  const spatSignalGroups = useSelector(selectSpatSignalGroups)
+  const currentSignalGroups = useSelector(selectCurrentSignalGroups)
+  const currentBsms = useSelector(selectCurrentBsms)
+  const connectingLanes = useSelector(selectConnectingLanes)
+  const filteredSurroundingEvents = useSelector(selectFilteredSurroundingEvents)
+  const filteredSurroundingNotifications = useSelector(selectFilteredSurroundingNotifications)
+  const viewState = useSelector(selectViewState)
+  const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
+  const sliderValue = useSelector(selectSliderValue)
+  const renderTimeInterval = useSelector(selectRenderTimeInterval)
+  const hoveredFeature = useSelector(selectHoveredFeature)
+  const selectedFeature = useSelector(selectSelectedFeature)
+  const sigGroupLabelsVisible = useSelector(selectSigGroupLabelsVisible)
+  const laneLabelsVisible = useSelector(selectLaneLabelsVisible)
+  const showPopupOnHover = useSelector(selectShowPopupOnHover)
+  const cursor = useSelector(selectCursor)
+  const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
+  const liveDataActive = useSelector(selectLiveDataActive)
+  const playbackModeActive = useSelector(selectPlaybackModeActive)
+  const liveDataRestartTimeoutId = useSelector(selectLiveDataRestartTimeoutId)
+  const liveDataRestart = useSelector(selectLiveDataRestart)
+  const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const mapRef = React.useRef<MapRef>(null)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
 
   useEffect(() => {
-    console.debug('SELECTED FEATURE', selectedFeature)
-  }, [selectedFeature])
+    return () => {
+      dispatch(resetInitialDataAbortControllers())
+    }
+  }, [location.pathname, dispatch])
 
   useEffect(() => {
     dispatch(setMapProps(props))
@@ -240,8 +245,8 @@ const IntersectionMap = (props: MAP_PROPS) => {
         setRawData({})
       } else {
         console.error(
-          'Did not attempt to update notifications. Access token:',
-          authToken,
+          'Did not attempt to update notifications. Access token missing:',
+          authToken == null || authToken == undefined,
           'Intersection ID:',
           props.intersectionId,
           'Road Regulator ID:',
@@ -303,8 +308,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
             zIndex: 10,
             top: 0,
             left: 0,
-            // width: 1200,
-            // width: 'calc(100% - 500px)',
             borderRadius: '4px',
             fontSize: '16px',
             maxHeight: 'calc(100vh - 120px)',

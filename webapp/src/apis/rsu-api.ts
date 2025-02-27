@@ -1,22 +1,20 @@
 import EnvironmentVars from '../EnvironmentVars'
 import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
+import { MooveAiFeature } from '../models/moove-ai/MooveAiData'
 import apiHelper from './api-helper'
 import {
   ApiMsgRespWithCodes,
-  GeoMsgDataPostBody,
   GetRsuCommandResp,
   GetRsuUserAuthResp,
   IssScmsStatus,
   RsuCommandPostBody,
   RsuCounts,
-  RsuInfo,
-  RsuMapInfo,
-  RsuMapInfoIpList,
+  RsuInfoList,
   RsuMsgFwdConfigs,
   RsuOnlineStatusRespMultiple,
   RsuOnlineStatusRespSingle,
   SsmSrmData,
-} from './rsu-api-types'
+} from '../models/RsuApi'
 
 class RsuApi {
   // External Methods
@@ -25,12 +23,13 @@ class RsuApi {
     org: string,
     url_ext: string = '',
     query_params: Record<string, string> = {}
-  ): Promise<RsuInfo> =>
+  ): Promise<RsuInfoList> =>
     apiHelper._getData({
       url: EnvironmentVars.rsuInfoEndpoint + url_ext,
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getRsuOnline = async (
     token: string,
@@ -43,6 +42,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getRsuCounts = async (
     token: string,
@@ -55,6 +55,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getRsuMsgFwdConfigs = async (
     token: string,
@@ -67,6 +68,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getRsuAuth = async (
     token: string,
@@ -79,6 +81,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getRsuCommand = async (
     token: string,
@@ -91,6 +94,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   getSsmSrmData = async (
     token: string,
@@ -101,6 +105,7 @@ class RsuApi {
       url: EnvironmentVars.ssmSrmEndpoint + url_ext,
       token,
       query_params,
+      tag: 'rsu',
     })
   getIssScmsStatus = async (
     token: string,
@@ -113,6 +118,7 @@ class RsuApi {
       token,
       query_params,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
 
   // WZDx
@@ -121,11 +127,25 @@ class RsuApi {
       url: EnvironmentVars.wzdxEndpoint + url_ext,
       token,
       query_params,
+      tag: 'wzdx',
+    })
+
+  // Moove AI
+  postMooveAiData = async (
+    token: string,
+    body: Object,
+    url_ext: string = ''
+  ): Promise<ApiMsgRespWithCodes<MooveAiFeature[]>> =>
+    apiHelper._postData({
+      url: EnvironmentVars.mooveAiDataEndpoint + url_ext,
+      body,
+      token,
+      tag: 'mooveai',
     })
 
   // POST
   postGeoMsgData = async (token: string, body: Object, url_ext: string = ''): Promise<ApiMsgRespWithCodes<any>> =>
-    apiHelper._postData({ url: EnvironmentVars.geoMsgDataEndpoint + url_ext, body, token })
+    apiHelper._postData({ url: EnvironmentVars.geoMsgDataEndpoint + url_ext, body, token, tag: 'rsu' })
 
   // POST
   postRsuData = async (
@@ -139,6 +159,7 @@ class RsuApi {
       body: JSON.stringify(body),
       token,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   }
 
@@ -149,6 +170,7 @@ class RsuApi {
       body,
       token,
       additional_headers: { Organization: org },
+      tag: 'rsu',
     })
   }
 
@@ -157,12 +179,12 @@ class RsuApi {
     return await apiHelper._postData({
       url: EnvironmentVars.contactSupport,
       body: JSON.stringify(json),
+      tag: 'rsu',
     })
   }
 
   // POST
   postRsuErrorSummary = async (json: Object): Promise<ApiMsgRespWithCodes<any>> => {
-    console.log('api: ', json)
     return await apiHelper._postData({
       url: EnvironmentVars.rsuErrorSummary,
       body: JSON.stringify(json),

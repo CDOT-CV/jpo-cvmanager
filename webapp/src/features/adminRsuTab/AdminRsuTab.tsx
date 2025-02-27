@@ -1,14 +1,15 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import AdminTable from '../../components/AdminTable'
-import { IoRefresh } from 'react-icons/io5'
+import { IoChevronBackCircleOutline, IoRefresh } from 'react-icons/io5'
 import { AiOutlinePlusCircle } from 'react-icons/ai'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import {
   selectLoading,
   selectTableData,
+  selectEditRsuRowData,
 
   // actions
   updateTableData,
@@ -16,13 +17,16 @@ import {
   deleteRsu,
   setEditRsuRowData,
 } from './adminRsuTabSlice'
+import { useSelector, useDispatch } from 'react-redux'
 
 import './Admin.css'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import { Action } from '@material-table/core'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { useAppDispatch, useAppSelector } from '../../hooks'
+import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 
 const getTitle = (activeTab: string) => {
   if (activeTab === undefined) {
@@ -36,14 +40,14 @@ const getTitle = (activeTab: string) => {
 }
 
 const AdminRsuTab = () => {
-  const dispatch = useAppDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
 
   const activeTab = location.pathname.split('/')[4]
   const title = getTitle(activeTab)
 
-  const tableData = useAppSelector(selectTableData)
+  const tableData = useSelector(selectTableData)
   const [columns] = useState([
     { title: 'Milepost', field: 'milepost', id: 0 },
     { title: 'IP Address', field: 'ip', id: 1 },
@@ -52,7 +56,7 @@ const AdminRsuTab = () => {
     { title: 'Serial Number', field: 'serial_number', id: 4 },
   ])
 
-  const loading = useAppSelector(selectLoading)
+  const loading = useSelector(selectLoading)
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
     {
@@ -114,29 +118,39 @@ const AdminRsuTab = () => {
   return (
     <div>
       <div>
-        <h3 className="panel-header">
+        <h3 className="panel-header" key="adminRsuTab">
           {title}
           {activeTab === undefined && [
-            <button
-              key="plus_button"
-              className="plus_button"
-              onClick={(value) => {
-                navigate('addRsu')
-              }}
-              title="Add RSU"
-            >
-              <AiOutlinePlusCircle size={20} />
-            </button>,
-            <button
-              key="refresh_button"
-              className="plus_button"
-              onClick={(value) => {
-                dispatch(updateTableData())
-              }}
-              title="Refresh RSUs"
-            >
-              <IoRefresh size={20} />
-            </button>,
+            <>
+              <ContainedIconButton
+                key="plus_button"
+                title="Add RSU"
+                onClick={() => navigate('addRsu')}
+                sx={{
+                  float: 'right',
+                  margin: 2,
+                  mt: -0.5,
+                  mr: 0,
+                  ml: 0.5,
+                }}
+              >
+                <AiOutlinePlusCircle size={20} />
+              </ContainedIconButton>
+              <ContainedIconButton
+                key="refresh_button"
+                title="Refresh RSUs"
+                onClick={() => dispatch(updateTableData())}
+                sx={{
+                  float: 'right',
+                  margin: 2,
+                  mt: -0.5,
+                  mr: 0,
+                  ml: 0.5,
+                }}
+              >
+                <IoRefresh size={20} />
+              </ContainedIconButton>
+            </>,
           ]}
         </h3>
       </div>
