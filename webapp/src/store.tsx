@@ -30,7 +30,7 @@ import intersectionMapReducer from './features/intersections/map/new/intersectio
 import intersectionMapControllerReducer from './features/intersections/map/new/intersection-map-controller-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
-import { intersectionApiSlice } from './features/api/intersectionApiSlice'
+import { intersectionApiSlice } from './features/api/intersections/intersectionConfigApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 
 export const setupStore = (preloadedState: any) => {

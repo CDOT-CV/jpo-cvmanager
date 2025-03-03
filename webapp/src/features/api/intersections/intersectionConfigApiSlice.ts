@@ -1,10 +1,10 @@
 // Need to use the React-specific entry point to import createApi
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { createSelector } from '@reduxjs/toolkit'
-import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
-import { selectToken } from '../../generalSlices/userSlice'
-import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
+import EnvironmentVars from '../../../EnvironmentVars'
+import { RootState } from '../../../store'
+import { selectToken } from '../../../generalSlices/userSlice'
+import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
 
 const getQueryString = (query_params: Record<string, string>) => {
   // filter out undefined values from query params

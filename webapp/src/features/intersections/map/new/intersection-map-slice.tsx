@@ -31,7 +31,6 @@ const initialState = {
   } as Partial<ViewState>,
   currentMapMessages: { type: 'FeatureCollection', features: [] } as { [key: number]: ProcessedMap },
   currentSpatMessages: { type: 'FeatureCollection', features: [] } as { [key: number]: ProcessedSpat },
-  currentSpatSignalGroups: {} as { [key: number]: SpatSignalGroup[] },
   currentNotificationMessages: [] as MessageMonitor.Notification[],
   currentBsmMessages: { type: 'FeatureCollection', features: [] } as BsmFeatureCollection,
   showPopupOnHover: false as boolean,
@@ -109,7 +108,6 @@ export const selectAllInteractiveLayerIds = (state: RootState) => state.intersec
 export const selectViewState = (state: RootState) => state.intersectionMap.value.viewState
 export const selectCurrentMapMessages = (state: RootState) => state.intersectionMap.value.currentMapMessages
 export const selectCurrentSpatMessages = (state: RootState) => state.intersectionMap.value.currentSpatMessages
-export const selectCurrentSpatSignalGroups = (state: RootState) => state.intersectionMap.value.currentSpatSignalGroups
 export const selectCurrentBsmMessages = (state: RootState) => state.intersectionMap.value.currentBsmMessages
 export const selectCurrentNotificationMessages = (state: RootState) =>
   state.intersectionMap.value.currentNotificationMessages

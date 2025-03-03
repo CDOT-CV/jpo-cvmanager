@@ -7,7 +7,7 @@ import { Button, Card, CardActions, CardContent, CardHeader, Divider, Grid2, Tex
 import { useNavigate } from 'react-router-dom'
 import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../../generalSlices/intersectionSlice'
 import { useSelector } from 'react-redux'
-import { useUpdateIntersectionParameterMutation } from '../../api/intersectionApiSlice'
+import { useUpdateIntersectionParameterMutation } from '../../api/intersections/intersectionConfigApiSlice'
 
 export const ConfigParamCreateForm = (props) => {
   const navigate = useNavigate()

@@ -194,6 +194,10 @@ export const pullInitialData = createAsyncThunk(
     const sourceData = selectSourceData(currentState)
     const decoderModeEnabled = selectDecoderModeEnabled(currentState)
 
+    // Logic:
+    // 1. If intersectionId is -1, we have no MAP message with which to display data - reset the view.
+    //
+
     if (
       queryParams.intersectionId === -1 &&
       (!decoderModeEnabled || (sourceData as { map: ProcessedMap[] })?.map?.length === 0)
