@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
 import { Container, Col } from 'reactstrap'
@@ -38,8 +38,11 @@ import {
   selectAllInteractiveLayerIds,
   selectBsmData,
   selectConnectingLanes,
+  selectCurrentBsmData,
   selectCurrentBsms,
+  selectCurrentMapData,
   selectCurrentSignalGroups,
+  selectCurrentSpatData,
   selectCursor,
   selectDecoderModeEnabled,
   selectFilteredSurroundingEvents,
@@ -73,7 +76,13 @@ import {
   updateRenderedMapState,
 } from './map-slice'
 import EnvironmentVars from '../../../EnvironmentVars'
-import { addConnections, createMarkerForNotification } from './utilities/message-utils'
+import {
+  addConnections,
+  createMarkerForNotification,
+  generateSignalStateFeatureCollection,
+  parseMapSignalGroups,
+  parseSpatSignalGroups,
+} from './utilities/message-utils'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { MapLegend } from './map-legend'
@@ -82,24 +91,7 @@ import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import PcapUploadDialog from '../decoder/pcap-upload-dialog'
 import { useLocation } from 'react-router-dom'
-
-export const getTimestamp = (dt: any): number => {
-  try {
-    const dtFromString = Date.parse(dt as any as string)
-    if (isNaN(dtFromString)) {
-      if (dt > 1000000000000) {
-        return dt // already in milliseconds
-      } else {
-        return dt * 1000
-      }
-    } else {
-      return dtFromString
-    }
-  } catch (e) {
-    console.error('Failed to parse timestamp from value: ' + dt, e)
-    return 0
-  }
-}
+import IntersectionBaseMap from './intersection-base-map'
 
 type timestamp = {
   timestamp: number
@@ -125,6 +117,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   const allInteractiveLayerIds = useSelector(selectAllInteractiveLayerIds)
   const queryParams = useSelector(selectQueryParams)
+  const currentMapData = useSelector(selectCurrentMapData)
+  const currentSpatData = useSelector(selectCurrentSpatData)
+  const currentBsmData = useSelector(selectCurrentBsmData)
   const mapData = useSelector(selectMapData)
   const bsmData = useSelector(selectBsmData)
   const mapSignalGroups = useSelector(selectMapSignalGroups)
@@ -302,6 +297,87 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
 
+  const renderMaps = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.values(currentMapData)
+        .flatMap((v) => v?.mapFeatureCollection.features)
+        .filter((f) => f !== undefined),
+    }
+  }, [currentMapData])
+
+  const renderSpatConnectingLanes = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.entries(currentSpatData)
+        .flatMap(([intersectionId, spat]) => {
+          if (!spat) return null
+          const signalGroup = Object.values(parseSpatSignalGroups([spat]))[0]
+          const mapMessage = currentMapData[parseInt(intersectionId)]
+          if (!mapMessage || !signalGroup) return null
+          return addConnections(
+            mapMessage.connectingLanesFeatureCollection,
+            signalGroup,
+            mapMessage.mapFeatureCollection
+          )
+        })
+        .flatMap((v) => v?.features)
+        .filter((f) => f !== null && f !== undefined),
+    }
+  }, [currentSpatData, currentMapData])
+
+  const srmRenderData = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: selectedSrm?.map((srm) => {
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [srm.long, srm.lat],
+          },
+          properties: {
+            requestId: srm.requestId,
+            requestedId: srm.requestedId,
+            status: srm.status,
+            time: srm.time,
+            role: srm.role,
+          },
+        }
+      }),
+    } as GeoJSON.FeatureCollection<GeoJSON.Point>
+  }, [])
+
+  const renderBsmData = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.values(currentBsmData)
+        .filter((f) => f !== undefined)
+        .flatMap((o) => Object.values(o))
+        .filter((f) => f !== undefined)
+        .map((feature) => ({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            // , color: getBsmColor(feature)
+          },
+        })),
+    }
+  }, [currentBsmData])
+
+  const renderNotificationData = useMemo(() => {
+    if (props.sourceDataType !== 'notification' || !props.sourceData)
+      return { type: 'FeatureCollection' as 'FeatureCollection', features: [] }
+    const notification: MessageMonitor.Notification = props.sourceData as MessageMonitor.Notification
+    const mapMessage = currentMapData[notification.intersectionID]
+    if (!mapMessage) return { type: 'FeatureCollection' as 'FeatureCollection', features: [] }
+    return createMarkerForNotification([0, 0], notification, mapMessage.mapFeatureCollection)
+  }, [])
+
+  const signalStateRenderData = useMemo(() => {
+    return generateSignalStateFeatureCollection(mapSignalGroups!, closestSignalGroup.spat)
+  }, [])
+
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
       <Col className="mapContainer" style={{ overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}>
@@ -347,141 +423,13 @@ const IntersectionMap = (props: MAP_PROPS) => {
           </Box>
         </div>
 
-        <Map
-          {...viewState}
-          ref={mapRef}
-          mapStyle={mbStyle as mapboxgl.Style}
-          mapboxAccessToken={EnvironmentVars.MAPBOX_TOKEN}
-          attributionControl={true}
-          customAttribution={['<a href="https://www.cotrip.com/" target="_blank">© CDOT</a>']}
-          styleDiffing
-          style={{ width: '100%', height: '100%' }}
-          onMove={(evt) => dispatch(setViewState(evt.viewState))}
-          onClick={(e) => dispatch(onMapClick({ event: { point: e.point, lngLat: e.lngLat }, mapRef }))}
-          interactiveLayerIds={allInteractiveLayerIds}
-          cursor={cursor}
-          onMouseMove={(e) => dispatch(onMapMouseMove({ features: e.features, lngLat: e.lngLat }))}
-          onMouseEnter={(e) => dispatch(onMapMouseEnter({ features: e.features, lngLat: e.lngLat }))}
-          onMouseLeave={(e) => dispatch(onMapMouseLeave())}
-          onLoad={(e: mapboxgl.MapboxEvent<undefined>) => {
-            const map = e.target
-            if (!map) return
-            const images = [
-              'traffic-light-icon-unknown',
-              'traffic-light-icon-red-flashing',
-              'traffic-light-icon-red-1',
-              'traffic-light-icon-yellow-red-1',
-              'traffic-light-icon-green-1',
-              'traffic-light-icon-yellow-1',
-            ]
-            for (const image_name of images) {
-              map.loadImage(`/icons/${image_name}.png`, (error, image) => {
-                if (error) throw error
-                if (!map.hasImage(image_name)) map.addImage(image_name, image)
-              })
-            }
-            if (mapRef.current) dispatch(setMapRef(mapRef))
-          }}
-        >
-          <Source type="geojson" data={mapData?.mapFeatureCollection ?? { type: 'FeatureCollection', features: [] }}>
-            <Layer {...mapMessageLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes &&
-                currentSignalGroups &&
-                mapData?.mapFeatureCollection &&
-                addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)) ?? {
-                type: 'FeatureCollection',
-                features: [],
-              }
-            }
-          >
-            <Layer {...connectingLanesLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              {
-                type: 'FeatureCollection',
-                features: selectedSrm?.map((srm) => {
-                  return {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [srm.long, srm.lat],
-                    },
-                    properties: {
-                      requestId: srm.requestId,
-                      requestedId: srm.requestedId,
-                      status: srm.status,
-                      time: srm.time,
-                      role: srm.role,
-                    },
-                  }
-                }),
-              } as GeoJSON.FeatureCollection<GeoJSON.Point>
-            }
-          >
-            <Layer {...srmLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (mapData && props.sourceData && props.sourceDataType == 'notification'
-                ? createMarkerForNotification(
-                    [0, 0],
-                    props.sourceData as MessageMonitor.Notification,
-                    mapData.mapFeatureCollection
-                  )
-                : undefined) ?? { type: 'FeatureCollection', features: [] }
-            }
-          >
-            <Layer {...markerLayerStyle} />
-          </Source>
-          <Source type="geojson" data={currentBsms ?? { type: 'FeatureCollection', features: [] }}>
-            <Layer {...bsmLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes && currentSignalGroups ? signalStateData : undefined) ?? {
-                type: 'FeatureCollection',
-                features: [],
-              }
-            }
-          >
-            <Layer {...signalStateLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (laneLabelsVisible ? mapData?.mapFeatureCollection : undefined) ?? {
-                type: 'FeatureCollection',
-                features: [],
-              }
-            }
-          >
-            <Layer {...mapMessageLabelsLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes && currentSignalGroups && sigGroupLabelsVisible && mapData?.mapFeatureCollection
-                ? addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)
-                : undefined) ?? { type: 'FeatureCollection', features: [] }
-            }
-          >
-            <Layer {...connectingLanesLabelsLayerStyle} />
-          </Source>
-          {selectedFeature && (
-            <CustomPopup selectedFeature={selectedFeature} onClose={() => dispatch(clearSelectedFeature())} />
-          )}
-          {showPopupOnHover && hoveredFeature && !selectedFeature && (
-            <CustomPopup selectedFeature={hoveredFeature} onClose={() => dispatch(clearHoveredFeature())} />
-          )}
-        </Map>
+        <IntersectionBaseMap
+          sourceData={props.sourceData}
+          sourceDataType={props.sourceDataType}
+          intersectionId={props.intersectionId}
+          roadRegulatorId={props.roadRegulatorId}
+          loadOnNull={props.loadOnNull}
+        />
         <SidePanel
           laneInfo={connectingLanes}
           signalGroups={currentSignalGroups}

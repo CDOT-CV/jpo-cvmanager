@@ -1,6 +1,23 @@
-import { getTimestamp } from '../map-component'
 import { getBearingBetweenPoints } from './map-utils'
 import * as turf from '@turf/turf'
+
+export const getTimestamp = (dt: any): number => {
+  try {
+    const dtFromString = Date.parse(dt as any as string)
+    if (isNaN(dtFromString)) {
+      if (dt > 1000000000000) {
+        return dt // already in milliseconds
+      } else {
+        return dt * 1000
+      }
+    } else {
+      return dtFromString
+    }
+  } catch (e) {
+    console.error('Failed to parse timestamp from value: ' + dt, e)
+    return 0
+  }
+}
 
 export const parseMapSignalGroups = (mapMessage: ProcessedMap): SignalStateFeatureCollection => {
   const features: SignalStateFeature[] = []

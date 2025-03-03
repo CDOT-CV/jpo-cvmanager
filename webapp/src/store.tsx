@@ -25,7 +25,8 @@ import adminEditNotificationReducer from './features/adminEditNotification/admin
 import menuReducer from './features/menu/menuSlice'
 import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
 import pcapDecoderSlice from './features/intersections/decoder/pcap-decoder-slice'
-import intersectionMapReducer from './features/intersections/map/map-slice'
+import intersectionMapReducer from './features/intersections/map/new/intersection-map-slice'
+import intersectionMapControllerReducer from './features/intersections/map/new/intersection-map-controller-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
 import mapSliceReducer from './pages/mapSlice'
@@ -58,11 +59,12 @@ export const setupStore = (preloadedState: any) => {
       adminEditNotification: adminEditNotificationReducer,
       menu: menuReducer,
       intersectionMap: intersectionMapReducer,
+      intersectionMapController: intersectionMapControllerReducer,
       intersectionMapLayerStyle: intersectionMapLayerStyleReducer,
       dataSelector: dataSelectorReducer,
       map: mapSliceReducer,
       asn1Decoder: asn1DecoderSlice,
-      pcapDecoder: pcapDecoderSlice
+      pcapDecoder: pcapDecoderSlice,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>

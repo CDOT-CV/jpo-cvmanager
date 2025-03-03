@@ -19,10 +19,7 @@ import {
   onFileUploaded,
   onItemDeleted,
   onItemSelected,
-  onTextChanged,
   selectData,
-  selectPcapData,
-  selectPcapDataStats,
   selectSelectedBsms,
   selectSelectedMapMessage,
   toggleBsmSelection,
@@ -101,8 +98,6 @@ export const DecoderTables = () => {
 
   return (
     <Card>
-      
-      
       <PerfectScrollbar>
         <Box display="flex" justifyContent="space-between" sx={{ minWidth: 1050 }}>
           <TableContainer>
