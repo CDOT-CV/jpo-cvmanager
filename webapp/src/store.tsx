@@ -30,6 +30,7 @@ import intersectionMapReducer from './features/intersections/map/new/intersectio
 import intersectionMapControllerReducer from './features/intersections/map/new/intersection-map-controller-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import { intersectionApiSlice } from './features/api/intersectionApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 
 export const setupStore = (preloadedState: any) => {
@@ -67,6 +68,7 @@ export const setupStore = (preloadedState: any) => {
       map: mapSliceReducer,
       asn1Decoder: asn1DecoderSlice,
       pcapDecoder: pcapDecoderSlice,
+      [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -74,7 +76,7 @@ export const setupStore = (preloadedState: any) => {
         thunk: true,
         serializableCheck: false,
         immutableCheck: false,
-      }),
+      }).concat(intersectionApiSlice.middleware),
     devTools: true,
   })
 }
@@ -82,5 +84,7 @@ export const setupStore = (preloadedState: any) => {
 type AppStore = ReturnType<typeof setupStore>
 export type AppState = ReturnType<AppStore['getState']>
 type AppThunk<ReturnType = void> = ThunkAction<ReturnType, AppState, unknown, Action>
+
+export type AppDispatch = ReturnType<typeof setupStore>['dispatch']
 
 export type RootState = ReturnType<ReturnType<typeof setupStore>['getState']>
