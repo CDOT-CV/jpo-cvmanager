@@ -15,8 +15,8 @@ const getQueryString = (query_params: Record<string, string>) => {
 }
 
 // Define a service using a base URL and expected endpoints
-export const intersectionApiSlice = createApi({
-  reducerPath: 'intersectionApi',
+export const intersectionConfigApiSlice = createApi({
+  reducerPath: 'intersectionConfigApi',
   baseQuery: fetchBaseQuery({
     baseUrl: EnvironmentVars.CVIZ_API_SERVER_URL,
     prepareHeaders: (headers, { getState, endpoint }) => {
@@ -61,7 +61,7 @@ export const intersectionApiSlice = createApi({
         // Special code to invalidate tags after a pre-set delay
         setTimeout(
           () => {
-            dispatch(intersectionApiSlice.util.invalidateTags(['defaultConfigs', 'intersectionConfigs']))
+            dispatch(intersectionConfigApiSlice.util.invalidateTags(['defaultConfigs', 'intersectionConfigs']))
           },
           500 //milliseconds
         )
@@ -103,7 +103,7 @@ export const {
 
   useLazyGetGeneralParametersQuery,
   useLazyGetIntersectionParametersQuery,
-} = intersectionApiSlice
+} = intersectionConfigApiSlice
 
 const filterParameter = (
   key: string,
@@ -113,8 +113,8 @@ const filterParameter = (
   intersectionParameters?.find((p) => p.key === key) ?? generalParameters?.find((p) => p.key === key)
 
 const intersectionParameters = (intersectionId: number) =>
-  intersectionApiSlice.endpoints.getIntersectionParameters.select(intersectionId)
-const generalParameters = intersectionApiSlice.endpoints.getGeneralParameters.select(undefined)
+  intersectionConfigApiSlice.endpoints.getIntersectionParameters.select(intersectionId)
+const generalParameters = intersectionConfigApiSlice.endpoints.getGeneralParameters.select(undefined)
 
 const selectIntersectionParametersById = (intersectionId: number) =>
   createSelector(intersectionParameters(intersectionId), (result) => result.data ?? [])
