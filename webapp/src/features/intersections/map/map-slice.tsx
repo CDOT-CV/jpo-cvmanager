@@ -134,11 +134,13 @@ const initialState = {
   intersectionId: undefined as MAP_PROPS['intersectionId'] | undefined,
   roadRegulatorId: undefined as MAP_PROPS['roadRegulatorId'] | undefined,
   loadOnNull: true as MAP_PROPS['loadOnNull'] | undefined,
+  totalBufferedMapData: {} as { [key: number]: { [epochMillis: number]: ProcessedMap } },
   mapData: undefined as ProcessedMap | undefined,
   mapSignalGroups: undefined as SignalStateFeatureCollection | undefined,
   signalStateData: undefined as SignalStateFeatureCollection | undefined,
   spatSignalGroups: undefined as SpatSignalGroups | undefined,
   currentSignalGroups: undefined as SpatSignalGroup[] | undefined,
+  //{} as { [key: number]: { [epochMillis: number]: ProcessedMap } }
   currentBsms: {
     type: 'FeatureCollection' as 'FeatureCollection',
     features: [],
@@ -159,9 +161,10 @@ const initialState = {
     longitude: -105.0907089,
     zoom: 19,
   } as Partial<ViewState>,
-  timeWindowSeconds: 60,
-  sliderValue: 0,
+  timeWindowSeconds: 60, // seconds
+  sliderValue: 0, // tenths of a second
   sliderTimeValue: {
+    // start and end time of the slider
     start: new Date(),
     end: new Date(),
   },

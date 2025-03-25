@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
 import { Container, Col } from 'reactstrap'
@@ -300,6 +300,87 @@ const IntersectionMap = (props: MAP_PROPS) => {
     }
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
+
+  const renderMaps = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.values(currentMapData)
+        .flatMap((v) => v?.mapFeatureCollection.features)
+        .filter((f) => f !== undefined),
+    }
+  }, [currentMapData])
+
+  const renderSpatConnectingLanes = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.entries(currentSpatData)
+        .flatMap(([intersectionId, spat]) => {
+          if (!spat) return null
+          const signalGroup = Object.values(parseSpatSignalGroups([spat]))[0]
+          const mapMessage = currentMapData[parseInt(intersectionId)]
+          if (!mapMessage || !signalGroup) return null
+          return addConnections(
+            mapMessage.connectingLanesFeatureCollection,
+            signalGroup,
+            mapMessage.mapFeatureCollection
+          )
+        })
+        .flatMap((v) => v?.features)
+        .filter((f) => f !== null && f !== undefined),
+    }
+  }, [currentSpatData, currentMapData])
+
+  const srmRenderData = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: selectedSrm?.map((srm) => {
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [srm.long, srm.lat],
+          },
+          properties: {
+            requestId: srm.requestId,
+            requestedId: srm.requestedId,
+            status: srm.status,
+            time: srm.time,
+            role: srm.role,
+          },
+        }
+      }),
+    } as GeoJSON.FeatureCollection<GeoJSON.Point>
+  }, [])
+
+  const renderBsmData = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: Object.values(currentBsmData)
+        .filter((f) => f !== undefined)
+        .flatMap((o) => Object.values(o))
+        .filter((f) => f !== undefined)
+        .map((feature) => ({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            // , color: getBsmColor(feature)
+          },
+        })),
+    }
+  }, [currentBsmData])
+
+  const renderNotificationData = useMemo(() => {
+    if (props.sourceDataType !== 'notification' || !props.sourceData)
+      return { type: 'FeatureCollection' as 'FeatureCollection', features: [] }
+    const notification: MessageMonitor.Notification = props.sourceData as MessageMonitor.Notification
+    const mapMessage = currentMapData[notification.intersectionID]
+    if (!mapMessage) return { type: 'FeatureCollection' as 'FeatureCollection', features: [] }
+    return createMarkerForNotification([0, 0], notification, mapMessage.mapFeatureCollection)
+  }, [])
+
+  const signalStateRenderData = useMemo(() => {
+    return generateSignalStateFeatureCollection(mapSignalGroups!, closestSignalGroup.spat)
+  }, [])
 
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
