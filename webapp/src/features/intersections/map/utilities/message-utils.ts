@@ -171,6 +171,14 @@ export const parseSpatSignalGroups = (spats: ProcessedSpat[]): SpatSignalGroups 
   return timedSignalGroups
 }
 
+export const parseSpatSignalGroupsSingle = (spat: ProcessedSpat): SpatSignalGroup[] =>
+  spat.states.map((state) => {
+    return {
+      signalGroup: state.signalGroup,
+      state: state.stateTimeSpeed?.[0]?.eventState as SignalState,
+    }
+  })
+
 export const parseBsmToGeojson = (bsmData: OdeBsmData[]): BsmFeatureCollection => {
   return {
     type: 'FeatureCollection' as 'FeatureCollection',
