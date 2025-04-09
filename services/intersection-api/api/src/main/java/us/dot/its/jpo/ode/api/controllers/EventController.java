@@ -18,9 +18,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,7 +54,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.MapMini
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.MapMinimumDataEventAggregation;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEvent;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEventAggregation;
-import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.IntersectionReferenceAlignmentNotification;
+import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.api.accessors.events.BsmEvent.BsmEventRepository;
 import us.dot.its.jpo.ode.api.accessors.events.BsmMessageCountProgressionEventRepository.BsmMessageCountProgressionEventRepository;
 import us.dot.its.jpo.ode.api.accessors.events.ConnectionOfTravelEvent.ConnectionOfTravelEventRepository;
@@ -89,7 +86,6 @@ import us.dot.its.jpo.ode.api.models.MinuteCount;
 import us.dot.its.jpo.ode.mockdata.MockAggregatedEventGenerator;
 import us.dot.its.jpo.ode.mockdata.MockEventGenerator;
 import us.dot.its.jpo.ode.mockdata.MockIDCountGenerator;
-import us.dot.its.jpo.ode.mockdata.MockNotificationGenerator;
 import us.dot.its.jpo.ode.plugin.j2735.J2735Bsm;
 
 @Slf4j
@@ -99,7 +95,7 @@ import us.dot.its.jpo.ode.plugin.j2735.J2735Bsm;
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
-public class EventController {
+public class EventController implements PageableQuery {
 
     private final ConnectionOfTravelEventRepository connectionOfTravelEventRepo;
     private final IntersectionReferenceAlignmentEventRepository intersectionReferenceAlignmentEventRepo;
@@ -199,22 +195,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<IntersectionReferenceAlignmentEvent>> findIntersectionReferenceAlignmentEvents(
+    public ResponseEntity<Page<IntersectionReferenceAlignmentEvent>> findIntersectionReferenceAlignmentEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<IntersectionReferenceAlignmentEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getIntersectionReferenceAlignmentEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(intersectionReferenceAlignmentEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = intersectionReferenceAlignmentEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<IntersectionReferenceAlignmentEvent> results = intersectionReferenceAlignmentEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<IntersectionReferenceAlignmentEvent> response = intersectionReferenceAlignmentEventRepo
+                    .find(intersectionID, startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -230,21 +234,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = intersectionReferenceAlignmentEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = intersectionReferenceAlignmentEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = intersectionReferenceAlignmentEventRepo.getQueryFullCount(query);
-            } else {
-                count = intersectionReferenceAlignmentEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} IntersectionReferenceAlignmentEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -257,22 +256,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<ConnectionOfTravelEvent>> findConnectionOfTravelEvents(
+    public ResponseEntity<Page<ConnectionOfTravelEvent>> findConnectionOfTravelEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<ConnectionOfTravelEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getConnectionOfTravelEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(connectionOfTravelEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = connectionOfTravelEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<ConnectionOfTravelEvent> results = connectionOfTravelEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<ConnectionOfTravelEvent> response = connectionOfTravelEventRepo.find(intersectionID, startTime,
+                    endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -288,21 +295,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = connectionOfTravelEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = connectionOfTravelEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = connectionOfTravelEventRepo.getQueryFullCount(query);
-            } else {
-                count = connectionOfTravelEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} ConnectionOfTravelEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -337,22 +339,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<LaneDirectionOfTravelEvent>> findLaneDirectionOfTravelEvent(
+    public ResponseEntity<Page<LaneDirectionOfTravelEvent>> findLaneDirectionOfTravelEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<LaneDirectionOfTravelEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getLaneDirectionOfTravelEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(laneDirectionOfTravelEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = laneDirectionOfTravelEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<LaneDirectionOfTravelEvent> results = laneDirectionOfTravelEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<LaneDirectionOfTravelEvent> response = laneDirectionOfTravelEventRepo.find(intersectionID, startTime,
+                    endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -363,26 +373,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countLaneDirectionOfTravelEvent(
+    public ResponseEntity<Long> countLaneDirectionOfTravelEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = laneDirectionOfTravelEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = laneDirectionOfTravelEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = laneDirectionOfTravelEventRepo.getQueryFullCount(query);
-            } else {
-                count = laneDirectionOfTravelEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} LaneDirectionOfTravelEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -417,22 +422,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<SignalGroupAlignmentEvent>> findSignalGroupAlignmentEvent(
+    public ResponseEntity<Page<SignalGroupAlignmentEvent>> findSignalGroupAlignmentEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SignalGroupAlignmentEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getSignalGroupAlignmentEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(signalGroupAlignmentEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = signalGroupAlignmentEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<SignalGroupAlignmentEvent> results = signalGroupAlignmentEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<SignalGroupAlignmentEvent> response = signalGroupAlignmentEventRepo.find(intersectionID, startTime,
+                    endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -443,26 +456,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countSignalGroupAlignmentEvent(
+    public ResponseEntity<Long> countSignalGroupAlignmentEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = signalGroupAlignmentEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = signalGroupAlignmentEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = signalGroupAlignmentEventRepo.getQueryFullCount(query);
-            } else {
-                count = signalGroupAlignmentEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SignalGroupAlignmentEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -497,22 +505,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<SignalStateConflictEvent>> findSignalStateConflictEvent(
+    public ResponseEntity<Page<SignalStateConflictEvent>> findSignalStateConflictEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SignalStateConflictEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getSignalStateConflictEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(signalStateConflictEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = signalStateConflictEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<SignalStateConflictEvent> results = signalStateConflictEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<SignalStateConflictEvent> response = signalStateConflictEventRepo.find(intersectionID, startTime,
+                    endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -523,26 +539,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countSignalStateConflictEvent(
+    public ResponseEntity<Long> countSignalStateConflictEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = signalStateConflictEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = signalStateConflictEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = signalStateConflictEventRepo.getQueryFullCount(query);
-            } else {
-                count = signalStateConflictEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SignalStateConflictEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -577,22 +588,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<StopLinePassageEvent>> findSignalStateEvent(
+    public ResponseEntity<Page<StopLinePassageEvent>> findSignalStateEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<StopLinePassageEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getStopLinePassageEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(signalStateEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = signalStateEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<StopLinePassageEvent> results = signalStateEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<StopLinePassageEvent> response = signalStateEventRepo.find(intersectionID, startTime, endTime,
+                    pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -603,26 +622,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countSignalStateEvent(
+    public ResponseEntity<Long> countSignalStateEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = signalStateEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = signalStateEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = signalStateEventRepo.getQueryFullCount(query);
-            } else {
-                count = signalStateEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SignalStateEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -657,22 +671,29 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<StopLineStopEvent>> findSignalStateStopEvent(
+    public ResponseEntity<Page<StopLineStopEvent>> findSignalStateStopEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
-
         if (testData) {
             List<StopLineStopEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getStopLineStopEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(signalStateStopEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = signalStateStopEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<StopLineStopEvent> results = signalStateStopEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<StopLineStopEvent> response = signalStateStopEventRepo.find(intersectionID, startTime, endTime,
+                    pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -683,26 +704,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countSignalStateStopEvent(
+    public ResponseEntity<Long> countSignalStateStopEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = signalStateStopEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = signalStateStopEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-            if (fullCount) {
-                count = signalStateStopEventRepo.getQueryFullCount(query);
-            } else {
-                count = signalStateStopEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SignalStateStopEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -737,22 +753,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<TimeChangeDetailsEvent>> findTimeChangeDetailsEvent(
+    public ResponseEntity<Page<TimeChangeDetailsEvent>> findTimeChangeDetailsEvent(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<TimeChangeDetailsEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getTimeChangeDetailsEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(timeChangeDetailsEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = timeChangeDetailsEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<TimeChangeDetailsEvent> results = timeChangeDetailsEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<TimeChangeDetailsEvent> response = timeChangeDetailsEventRepo.find(intersectionID, startTime, endTime,
+                    pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -763,26 +787,21 @@ public class EventController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<Long> countTimeChangeDetailsEvent(
+    public ResponseEntity<Long> countTimeChangeDetailsEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = timeChangeDetailsEventRepo.getQuery(intersectionID, startTime, endTime, false);
-            long count;
+            long count = timeChangeDetailsEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            if (fullCount) {
-                count = timeChangeDetailsEventRepo.getQueryFullCount(query);
-            } else {
-                count = timeChangeDetailsEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} Time Change Detail Events", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -817,21 +836,29 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<SpatMinimumDataEvent>> findSpatMinimumDataEvents(
+    public ResponseEntity<Page<SpatMinimumDataEvent>> findSpatMinimumDataEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             List<SpatMinimumDataEvent> list = new ArrayList<>();
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(spatMinimumDataEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = spatMinimumDataEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<SpatMinimumDataEvent> results = spatMinimumDataEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<SpatMinimumDataEvent> response = spatMinimumDataEventRepo.find(intersectionID,
+                    startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -847,21 +874,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = spatMinimumDataEventRepo.getQuery(intersectionID, startTime, endTime, false);
-            long count;
+            long count = spatMinimumDataEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            if (fullCount) {
-                count = spatMinimumDataEventRepo.getQueryFullCount(query);
-            } else {
-                count = spatMinimumDataEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SpatMinimumDataEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -874,21 +896,29 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<MapMinimumDataEvent>> findMapMinimumDataEvents(
+    public ResponseEntity<Page<MapMinimumDataEvent>> findMapMinimumDataEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             List<MapMinimumDataEvent> list = new ArrayList<>();
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(mapMinimumDataEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = mapMinimumDataEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<MapMinimumDataEvent> results = mapMinimumDataEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<MapMinimumDataEvent> response = mapMinimumDataEventRepo.find(intersectionID,
+                    startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -904,21 +934,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = mapMinimumDataEventRepo.getQuery(intersectionID, startTime, endTime, false);
-            long count;
+            long count = mapMinimumDataEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            if (fullCount) {
-                count = mapMinimumDataEventRepo.getQueryFullCount(query);
-            } else {
-                count = mapMinimumDataEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} MapMinimumDataEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -931,22 +956,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<MapBroadcastRateEvent>> findMapBroadcastRateEvents(
+    public ResponseEntity<Page<MapBroadcastRateEvent>> findMapBroadcastRateEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<MapBroadcastRateEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getMapBroadcastRateEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(mapBroadcastRateEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = mapBroadcastRateEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<MapBroadcastRateEvent> results = mapBroadcastRateEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<MapBroadcastRateEvent> response = mapBroadcastRateEventRepo.find(intersectionID, startTime, endTime,
+                    pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -962,21 +995,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = mapBroadcastRateEventRepo.getQuery(intersectionID, startTime, endTime, false);
-            long count;
+            long count = mapBroadcastRateEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            if (fullCount) {
-                count = mapBroadcastRateEventRepo.getQueryFullCount(query);
-            } else {
-                count = mapBroadcastRateEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} MapBroadcastRates", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -989,22 +1017,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<SpatBroadcastRateEvent>> findSpatBroadcastRateEvents(
+    public ResponseEntity<Page<SpatBroadcastRateEvent>> findSpatBroadcastRateEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SpatBroadcastRateEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getSpatBroadcastRateEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(spatBroadcastRateEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = spatBroadcastRateEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<SpatBroadcastRateEvent> results = spatBroadcastRateEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<SpatBroadcastRateEvent> response = spatBroadcastRateEventRepo.find(intersectionID, startTime, endTime,
+                    pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -1020,22 +1056,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = spatBroadcastRateEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = spatBroadcastRateEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-
-            if (fullCount) {
-                count = spatBroadcastRateEventRepo.getQueryFullCount(query);
-            } else {
-                count = spatBroadcastRateEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SpatBroadcastRateEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -1048,22 +1078,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<SpatMessageCountProgressionEvent>> findSpatMessageCountProgressionEvents(
+    public ResponseEntity<Page<SpatMessageCountProgressionEvent>> findSpatMessageCountProgressionEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SpatMessageCountProgressionEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getSpatMessageCountProgressionEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(spatMessageCountProgressionEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = spatMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<SpatMessageCountProgressionEvent> results = spatMessageCountProgressionEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<SpatMessageCountProgressionEvent> response = spatMessageCountProgressionEventRepo.find(intersectionID,
+                    startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -1079,22 +1117,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = spatMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = spatMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-
-            if (fullCount) {
-                count = spatMessageCountProgressionEventRepo.getQueryFullCount(query);
-            } else {
-                count = spatMessageCountProgressionEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} SpatMessageCountProgressionEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -1107,22 +1139,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<MapMessageCountProgressionEvent>> findMapMessageCountProgressionEvents(
+    public ResponseEntity<Page<MapMessageCountProgressionEvent>> findMapMessageCountProgressionEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<MapMessageCountProgressionEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getMapMessageCountProgressionEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(mapMessageCountProgressionEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = mapMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<MapMessageCountProgressionEvent> results = mapMessageCountProgressionEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<MapMessageCountProgressionEvent> response = mapMessageCountProgressionEventRepo.find(intersectionID,
+                    startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -1138,22 +1178,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = mapMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = mapMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-
-            if (fullCount) {
-                count = mapMessageCountProgressionEventRepo.getQueryFullCount(query);
-            } else {
-                count = mapMessageCountProgressionEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} MapMessageCountProgressionEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -1166,22 +1200,30 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<BsmMessageCountProgressionEvent>> findBsmMessageCountProgressionEvents(
+    public ResponseEntity<Page<BsmMessageCountProgressionEvent>> findBsmMessageCountProgressionEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<BsmMessageCountProgressionEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getBsmMessageCountProgressionEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(bsmMessageCountProgressionEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = bsmMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<BsmMessageCountProgressionEvent> results = bsmMessageCountProgressionEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<BsmMessageCountProgressionEvent> response = bsmMessageCountProgressionEventRepo.find(intersectionID,
+                    startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -1197,22 +1239,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = bsmMessageCountProgressionEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = bsmMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-
-            if (fullCount) {
-                count = bsmMessageCountProgressionEventRepo.getQueryFullCount(query);
-            } else {
-                count = bsmMessageCountProgressionEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} BsmMessageCountProgressionEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -1225,22 +1261,29 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<BsmEvent>> findBsmEvents(
+    public ResponseEntity<Page<BsmEvent>> findBsmEvents(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<BsmEvent> list = new ArrayList<>();
             list.add(MockEventGenerator.getBsmEvent());
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+        }
+
+        if (latest) {
+            return ResponseEntity.ok(bsmEventRepo.findLatest(intersectionID,
+                    startTime, endTime));
         } else {
-            Query query = bsmEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-            List<BsmEvent> results = bsmEventRepo.find(query);
-            return new ResponseEntity<>(results, new HttpHeaders(),
-                    results.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            Page<BsmEvent> response = bsmEventRepo.find(intersectionID, startTime, endTime, pageable);
+            return ResponseEntity.ok(response);
         }
     }
 
@@ -1256,22 +1299,16 @@ public class EventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "full_count", required = false, defaultValue = "true") boolean fullCount,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(1L);
         } else {
-            Query query = bsmEventRepo.getQuery(intersectionID, startTime, endTime, false);
+            long count = bsmEventRepo.count(intersectionID, startTime, endTime,
+                    createNullablePage(page, size));
 
-            long count;
-
-            if (fullCount) {
-                count = bsmEventRepo.getQueryFullCount(query);
-            } else {
-                count = bsmEventRepo.getQueryResultCount(query);
-            }
-
-            log.debug("Found: {} BsmEvents", count);
             return ResponseEntity.ok(count);
         }
     }
@@ -1284,11 +1321,13 @@ public class EventController {
             @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested"),
     })
-    public ResponseEntity<List<MinuteCount>> getBsmActivityByMinuteInRange(
+    public ResponseEntity<Page<MinuteCount>> getBsmActivityByMinuteInRange(
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -1303,50 +1342,57 @@ public class EventController {
                 list.add(count);
             }
 
-            return ResponseEntity.ok(list);
-        } else {
-            Query query = bsmEventRepo.getQuery(intersectionID, startTime, endTime, latest);
-
-            List<BsmEvent> events = bsmEventRepo.find(query);
-
-            Map<Long, Set<String>> bsmEventMap = new HashMap<>();
-
-            for (BsmEvent event : events) {
-                J2735Bsm bsm = ((J2735Bsm) event.getStartingBsm().getPayload().getData());
-                long eventStartMinute = Instant
-                        .from(formatter.parse(event.getStartingBsm().getMetadata().getOdeReceivedAt())).toEpochMilli()
-                        / MILLISECONDS_PER_MINUTE;
-                long eventEndMinute = eventStartMinute;
-
-                if (event.getEndingBsm() != null) {
-                    eventEndMinute = Instant
-                            .from(formatter.parse(event.getEndingBsm().getMetadata().getOdeReceivedAt())).toEpochMilli()
-                            / MILLISECONDS_PER_MINUTE;
-                }
-
-                for (Long i = eventStartMinute; i <= eventEndMinute; i++) {
-                    String bsmID = bsm.getCoreData().getId();
-                    if (bsmEventMap.get(i) != null) {
-                        bsmEventMap.get(i).add(bsmID);
-                    } else {
-                        Set<String> newSet = new HashSet<>();
-                        newSet.add(bsmID);
-                        bsmEventMap.put(i, newSet);
-                    }
-                }
-            }
-
-            List<MinuteCount> outputEvents = new ArrayList<>();
-            for (Long key : bsmEventMap.keySet()) {
-                MinuteCount count = new MinuteCount();
-                count.setMinute(key * MILLISECONDS_PER_MINUTE);
-                count.setCount(bsmEventMap.get(key).size());
-                outputEvents.add(count);
-            }
-
-            return new ResponseEntity<>(outputEvents, new HttpHeaders(),
-                    outputEvents.size() == maximumResponseSize ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK);
+            return ResponseEntity.ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
         }
+
+        Page<BsmEvent> pagedEvents;
+
+        if (latest) {
+            pagedEvents = bsmEventRepo.findLatest(intersectionID, startTime, endTime);
+        } else {
+            // Retrieve a paginated result from the repository
+            PageRequest pageable = PageRequest.of(page, size);
+            pagedEvents = bsmEventRepo.find(intersectionID, startTime, endTime, pageable);
+        }
+
+        List<BsmEvent> events = pagedEvents.getContent();
+
+        Map<Long, Set<String>> bsmEventMap = new HashMap<>();
+
+        for (BsmEvent event : events) {
+            J2735Bsm bsm = ((J2735Bsm) event.getStartingBsm().getPayload().getData());
+            long eventStartMinute = Instant
+                    .from(formatter.parse(event.getStartingBsm().getMetadata().getOdeReceivedAt())).toEpochMilli()
+                    / MILLISECONDS_PER_MINUTE;
+            long eventEndMinute = eventStartMinute;
+
+            if (event.getEndingBsm() != null) {
+                eventEndMinute = Instant
+                        .from(formatter.parse(event.getEndingBsm().getMetadata().getOdeReceivedAt())).toEpochMilli()
+                        / MILLISECONDS_PER_MINUTE;
+            }
+
+            for (Long i = eventStartMinute; i <= eventEndMinute; i++) {
+                String bsmID = bsm.getCoreData().getId();
+                if (bsmEventMap.get(i) != null) {
+                    bsmEventMap.get(i).add(bsmID);
+                } else {
+                    Set<String> newSet = new HashSet<>();
+                    newSet.add(bsmID);
+                    bsmEventMap.put(i, newSet);
+                }
+            }
+        }
+
+        List<MinuteCount> outputEvents = new ArrayList<>();
+        for (Long key : bsmEventMap.keySet()) {
+            MinuteCount count = new MinuteCount();
+            count.setMinute(key * MILLISECONDS_PER_MINUTE);
+            count.setCount(bsmEventMap.get(key).size());
+            outputEvents.add(count);
+        }
+        return ResponseEntity
+                .ok(new PageImpl<>(outputEvents, PageRequest.of(page, size), pagedEvents.getTotalElements()));
     }
 
     @Operation(summary = "Find Spat Minimum Data Event Aggregations", description = "Returns a list of Spat Minimum Data Event Aggregations, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
