@@ -1,6 +1,8 @@
 
 package us.dot.its.jpo.ode.api.accessors.assessments.SignalStateEventAssessment;
 
+import javax.annotation.Nullable;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,7 +45,7 @@ public class SignalStateEventAssessmentRepositoryImpl implements SignalStateEven
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            @Nullable Pageable pageable) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime);

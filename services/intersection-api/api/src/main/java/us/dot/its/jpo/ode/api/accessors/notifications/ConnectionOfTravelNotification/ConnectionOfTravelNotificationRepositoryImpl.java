@@ -1,5 +1,7 @@
 package us.dot.its.jpo.ode.api.accessors.notifications.ConnectionOfTravelNotification;
 
+import javax.annotation.Nullable;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -43,7 +45,7 @@ public class ConnectionOfTravelNotificationRepositoryImpl
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            @Nullable Pageable pageable) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime);

@@ -1,5 +1,7 @@
 package us.dot.its.jpo.ode.api.accessors.events.aggregations.mapmessagecountprogression;
 
+import javax.annotation.Nullable;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -44,12 +46,15 @@ public class MapMessageCountProgressionEventAggregationRepositoryImpl
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            @Nullable Pageable pageable) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime);
-        return mongoTemplate.count(Query
-                .query(criteria).with(pageable), collectionName);
+        Query query = Query.query(criteria);
+        if (pageable != null) {
+            query = query.with(pageable);
+        }
+        return mongoTemplate.count(query, collectionName);
     }
 
     /**
