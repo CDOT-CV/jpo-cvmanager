@@ -84,7 +84,6 @@ class CvizApiHelper {
       signal: abortController?.signal,
     }
 
-    console.debug('MAKING REQUEST TO ' + url + ' WITH OPTIONS', options)
     const resp = await fetch(url, options)
       .then((response) => {
         if (response.ok) {
@@ -106,22 +105,16 @@ class CvizApiHelper {
           return response.blob()
         } else {
           const resp = response.json()
-          resp
-            .then((val) => console.debug('RESPONSE TO', url, val))
-            .catch((err) => {
-              if (err.name === 'AbortError') {
-                console.debug('Request aborted')
-              } else {
-                console.error(err)
-              }
-            })
+          resp.catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error(err)
+            }
+          })
           return resp
         }
       })
       .catch((error: Error) => {
-        if (error.name === 'AbortError') {
-          console.debug('Request aborted')
-        } else {
+        if (error.name !== 'AbortError') {
           const errorMessage = failureMessage ?? 'Fetch request failed'
           toast.error(errorMessage + '. Error: ' + error.message)
           console.error(error.message)

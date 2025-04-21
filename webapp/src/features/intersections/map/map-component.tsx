@@ -8,7 +8,6 @@ import { Paper, Box } from '@mui/material'
 import ControlPanel from './control-panel'
 import { SidePanel } from './side-panel'
 import { CustomPopup } from './popup'
-import { useDispatch, useSelector } from 'react-redux'
 import { selectToken } from '../../../generalSlices/userSlice'
 import {
   selectBsmLayerStyle,
@@ -63,7 +62,7 @@ import {
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
   selectViewState,
-  setLoadInitialdataTimeoutId,
+  setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
   setRawData,
@@ -82,6 +81,7 @@ import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import PcapUploadDialog from '../decoder/pcap-upload-dialog'
 import { useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 
 export const getTimestamp = (dt: any): number => {
   try {
@@ -156,12 +156,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
 
   useEffect(() => {
-    console.debug('SELECTED FEATURE', selectedFeature)
-  }, [selectedFeature])
-
-  useEffect(() => {
     return () => {
-      console.debug('Aborting intersection requests because map page is no longer active')
       dispatch(resetInitialDataAbortControllers())
     }
   }, [location.pathname, dispatch])
@@ -226,7 +221,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       clearTimeout(loadInitialDataTimeoutId)
     }
     const timeoutId = setTimeout(() => dispatch(pullInitialData()), 500)
-    dispatch(setLoadInitialdataTimeoutId(timeoutId))
+    dispatch(setLoadInitialDataTimeoutId(timeoutId))
   }, [queryParams])
 
   useEffect(() => {
@@ -251,8 +246,8 @@ const IntersectionMap = (props: MAP_PROPS) => {
         setRawData({})
       } else {
         console.error(
-          'Did not attempt to update notifications. Access token:',
-          authToken,
+          'Did not attempt to update notifications. Access token missing:',
+          authToken == null || authToken == undefined,
           'Intersection ID:',
           props.intersectionId,
           'Road Regulator ID:',
@@ -314,8 +309,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
             zIndex: 10,
             top: 0,
             left: 0,
-            width: 1200,
-            // width: 'calc(100% - 500px)',
             borderRadius: '4px',
             fontSize: '16px',
             maxHeight: 'calc(100vh - 120px)',

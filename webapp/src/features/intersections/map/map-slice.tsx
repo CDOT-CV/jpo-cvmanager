@@ -295,13 +295,12 @@ export const pullInitialData = createAsyncThunk(
     ) {
       dispatch(resetMapView())
       if (!decoderModeEnabled) {
-        console.log('Intersection ID is -1. Not attempting to pull initial map data.')
+        console.debug('Intersection ID is -1. Not attempting to pull initial map data.')
         return
       }
     }
     dispatch(resetInitialDataAbortControllers())
     dispatch(setAbortAllFutureRequests(false))
-    console.debug('Pulling Initial Data')
     let rawMap: ProcessedMap[] = []
     let rawSpat: ProcessedSpat[] = []
     let rawBsm: OdeBsmData[] = []
@@ -343,7 +342,6 @@ export const pullInitialData = createAsyncThunk(
         }
       }
     } else if (queryParams.isDefault == true) {
-      console.debug('Default query params. Checking latest SPAT data')
       abortController = new AbortController()
       dispatch(addInitialDataAbortController(abortController))
       if (selectAbortAllFutureRequests(getState() as RootState)) {
@@ -417,7 +415,7 @@ export const pullInitialData = createAsyncThunk(
       dispatch(renderEntireMap({ currentMapData: [], currentSpatData: [], currentBsmData: bsmGeojson }))
     }
     if (!rawMap || rawMap.length == 0) {
-      console.info('NO MAP MESSAGES WITHIN TIME')
+      console.info('No map messages found - exiting pullInitialData')
       return
     }
 
@@ -441,7 +439,7 @@ export const pullInitialData = createAsyncThunk(
       // ######################### Retrieve SPAT Data #########################
       abortController = new AbortController()
       dispatch(addInitialDataAbortController(abortController))
-      const rawSpatPromise = MessageMonitorApi.getSpatMessages({
+      const rawSpatPromise = MessageMonitorApi.getSpatMessagesWithLatest({
         token: authToken,
         intersectionId: queryParams.intersectionId!,
         roadRegulatorId: queryParams.roadRegulatorId!,
@@ -681,7 +679,6 @@ export const renderIterative_Map = createAsyncThunk(
     // ######################### SPAT Signal Groups #########################
     const mapSignalGroupsLocal = parseMapSignalGroups(latestMapMessage)
 
-    console.debug('MAP RENDER TIME:', Date.now() - start, 'ms')
     const previousMapMessage: ProcessedMap | undefined = currentMapData.at(-1)
     if (
       latestMapMessage != null &&
@@ -767,7 +764,6 @@ export const renderIterative_Spat = createAsyncThunk(
     const currentProcessedSpatDataLocal = currentProcessedSpatData
       .slice(oldIndex, currentProcessedSpatData.length)
       .concat(newSpatData)
-    console.debug('SPAT RENDER TIME:', Date.now() - start, 'ms')
     return { signalGroups: currentSpatSignalGroupsLocal, raw: currentProcessedSpatDataLocal }
   },
   {
@@ -926,17 +922,14 @@ export const initializeLiveStreaming = createAsyncThunk(
       console.debug('Not initializing live streaming because liveDataActive is false')
       return
     }
+    console.info('Live streaming data from Intersection API STOMP WebSocket endpoint')
 
     let protocols = ['v10.stomp', 'v11.stomp']
     protocols.push(token)
     const url = `${EnvironmentVars.CVIZ_API_WS_URL}/stomp`
-    console.debug('Connecting to STOMP endpoint: ' + url + ' with token: ' + token)
 
     // Stomp Client Documentation: https://stomp-js.github.io/stomp-websocket/codo/extra/docs-src/Usage.md.html
     let client = Stomp.client(url, protocols)
-    client.debug = (e) => {
-      console.debug('STOMP Debug: ' + e)
-    }
 
     // Topics are in the format /live/{roadRegulatorID}/{intersectionID}/{spat,map,bsm}
     let spatTopic = `/live/${roadRegulatorId}/${intersectionId}/spat`
@@ -978,16 +971,7 @@ export const initializeLiveStreaming = createAsyncThunk(
       }
     )
 
-    client.onDisconnect = (frame) => {
-      console.debug(
-        'Live Streaming Disconnected from STOMP endpoint: ' +
-          frame +
-          ' (numRestarts: ' +
-          numRestarts +
-          ', wsClient: ' +
-          wsClient +
-          ')'
-      )
+    function onDisconnect() {
       if (numRestarts < 5 && liveDataActive) {
         let numRestartsLocal = numRestarts
         if (Date.now() - connectionStartTime > 10000) {
@@ -1014,8 +998,26 @@ export const initializeLiveStreaming = createAsyncThunk(
           )
         }
       } else {
+        if (numRestarts >= 5) {
+          console.info('Disconnected from STOMP endpoint - number of retries exceeded')
+        } else {
+          console.info('Disconnected from STOMP endpoint - liveDataActive is no longer active')
+        }
         cleanUpLiveStreaming()
       }
+    }
+
+    client.onDisconnect = (frame) => {
+      console.debug(
+        'Live Streaming Disconnected from STOMP endpoint: ' +
+          frame +
+          ' (numRestarts: ' +
+          numRestarts +
+          ', wsClient: ' +
+          wsClient +
+          ')'
+      )
+      onDisconnect()
     }
 
     client.onStompError = (frame) => {
@@ -1032,34 +1034,7 @@ export const initializeLiveStreaming = createAsyncThunk(
           wsClient +
           ')'
       )
-      if (numRestarts < 5 && liveDataActive) {
-        let numRestartsLocal = numRestarts
-        if (Date.now() - connectionStartTime > 10000) {
-          numRestartsLocal = 0
-        }
-        console.debug('Attempting to reconnect to STOMP endpoint (numRestarts: ' + numRestartsLocal + ')')
-
-        if (numRestartsLocal == 0) {
-          dispatch(
-            initializeLiveStreaming({
-              token,
-              roadRegulatorId,
-              intersectionId,
-              numRestarts: 0,
-            })
-          )
-        } else {
-          dispatch(
-            setLiveDataRestartTimeoutId(
-              setTimeout(() => {
-                dispatch(setLiveDataRestart(numRestartsLocal + 1))
-              }, numRestartsLocal * 2000)
-            )
-          )
-        }
-      } else {
-        dispatch(cleanUpLiveStreaming())
-      }
+      onDisconnect()
     }
 
     client.onWebSocketError = (frame) => {
@@ -1087,19 +1062,18 @@ export const updateRenderedMapState = createAsyncThunk(
       dispatch(setCurrentBsms(bsmData))
     }
     if (!mapSignalGroups || !spatSignalGroups) {
-      console.debug('BSM Loading: No map or SPAT data', mapSignalGroups, spatSignalGroups)
+      let message = 'No map or spat data available'
+      if (mapSignalGroups) message = 'No spat data available'
+      else if (spatSignalGroups) message = 'No map data available'
+      console.debug(`Not rendering BSM data: ${message}`)
       return
     }
-
-    let currentSignalGroups: SpatSignalGroup[] | undefined
-    let signalStateData: SignalStateFeatureCollection | undefined
-    let spatTime: number | undefined
 
     // retrieve filtered SPATs
     let closestSignalGroup: { spat: SpatSignalGroup[]; datetime: number } | null = null
     for (const datetime in spatSignalGroups) {
       const datetimeNum = Number(datetime) / 1000 // milliseconds to seconds
-      if (datetimeNum >= renderTimeInterval[0] && datetimeNum <= renderTimeInterval[1]) {
+      if (datetimeNum <= renderTimeInterval[1]) {
         if (
           closestSignalGroup === null ||
           Math.abs(datetimeNum - renderTimeInterval[1]) < Math.abs(closestSignalGroup.datetime - renderTimeInterval[1])
@@ -1107,11 +1081,6 @@ export const updateRenderedMapState = createAsyncThunk(
           closestSignalGroup = { datetime: datetimeNum, spat: spatSignalGroups[datetime] }
         }
       }
-    }
-    if (closestSignalGroup !== null) {
-      currentSignalGroups = closestSignalGroup.spat
-      signalStateData = generateSignalStateFeatureCollection(mapSignalGroups!, closestSignalGroup.spat)
-      spatTime = closestSignalGroup.datetime
     }
 
     // retrieve filtered BSMs
@@ -1225,7 +1194,6 @@ export const intersectionMapSlice = createSlice({
       let localSrmCount = 0
       let localSsmCount = 0
       let localMsgList = []
-      // console.error('srmSsmList', state.value.srmSsmList)
       for (const elem of action.payload.srmSsmList) {
         if (elem.ip === action.payload.rsuIpv4) {
           localMsgList.push(elem)
@@ -1455,7 +1423,7 @@ export const intersectionMapSlice = createSlice({
     cleanUpLiveStreaming: (state) => {
       if (state.value.wsClient) {
         state.value.wsClient.disconnect(() => {
-          console.debug('Disconnected from STOMP endpoint')
+          console.debug('Successfully disconnected from STOMP endpoint')
         })
         state.value.timeWindowSeconds = 60
       }
@@ -1467,7 +1435,7 @@ export const intersectionMapSlice = createSlice({
       state.value.liveDataRestart = -1
       state.value.wsClient = undefined
     },
-    setLoadInitialdataTimeoutId: (state, action: PayloadAction<NodeJS.Timeout>) => {
+    setLoadInitialDataTimeoutId: (state, action: PayloadAction<NodeJS.Timeout>) => {
       state.value.loadInitialDataTimeoutId = action.payload
     },
     clearSelectedFeature: (state) => {
@@ -1492,7 +1460,7 @@ export const intersectionMapSlice = createSlice({
       state.value.bsmTrailLength = action.payload
     },
     setTimeWindowSeconds: (state, action: PayloadAction<number>) => {
-      state.value.bsmTrailLength = action.payload
+      state.value.timeWindowSeconds = action.payload
     },
     setRawData: (state, action: PayloadAction<RAW_MESSAGE_DATA_EXPORT>) => {
       state.value.rawData.map = action.payload.map ?? state.value.rawData.map
@@ -1565,7 +1533,7 @@ export const intersectionMapSlice = createSlice({
           duration: animationDurationMs ?? 1000,
         })
       } else {
-        console.error('Map ref not set')
+        console.error('Error centering map - map ref not set')
       }
     },
     handleNewMapMessageData: (
@@ -1812,7 +1780,7 @@ export const {
   onMapMouseEnter,
   onMapMouseLeave,
   cleanUpLiveStreaming,
-  setLoadInitialdataTimeoutId,
+  setLoadInitialDataTimeoutId,
   clearSelectedFeature,
   clearHoveredFeature,
   setLaneLabelsVisible,
@@ -1820,6 +1788,7 @@ export const {
   setShowPopupOnHover,
   toggleLiveDataActive,
   setBsmTrailLength,
+  setTimeWindowSeconds,
   setRawData,
   setMapProps,
   togglePlaybackModeActive,
