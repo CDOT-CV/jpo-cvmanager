@@ -30,6 +30,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @Slf4j
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
+@ApiResponses(value = {
+    @ApiResponse(responseCode = "200", description = "Success"),
+    @ApiResponse(responseCode = "401", description = "Unauthorized"),
+    @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+    @ApiResponse(responseCode = "500", description = "Internal Server Error")
+})
 public class PcapController {
 
   private final PcapDecoder decoder;
