@@ -192,9 +192,9 @@ export const onPcapFileUploaded = createAsyncThunk(
 )
 
 
-const submitPcapDecoderRequest = (contents: ArrayBuffer) => {
+const submitPcapDecoderRequest = (authToken: string, contents: ArrayBuffer) => {
   console.log("submitPcapDecoderRequest")  
-  return DecoderApi.submitPcapDecodeRequest({data: contents});
+  return DecoderApi.submitPcapDecodeRequest(authToken, contents);
 }
 
 const finishedDecodingPcap = () => {

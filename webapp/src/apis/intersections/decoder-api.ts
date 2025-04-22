@@ -43,16 +43,15 @@ class DecoderApi {
     return response as DecoderApiResponseGeneric | undefined
   }
 
-  async submitPcapDecodeRequest({
-    data,
-    abortController
-  }: {
+  async submitPcapDecodeRequest(
+    token: string,
     data: ArrayBuffer,
     abortController?: AbortController
-  }) : Promise<any> {
+  ) : Promise<any> {
     console.log("submitPcapDecodeRequest.  posting " + data.byteLength + " bytes")
     const response = await authApiHelper.invokeApi({
       path: '/pcap/uper',
+      token: token,
       method: 'POST',
       headers: { "Content-Type": 'application/octet-stream' },
       body: data,
@@ -62,16 +61,15 @@ class DecoderApi {
     return response
   }
 
-  async submitBatchDecodeRequest({
-    data, 
-    abortController
-  }: {
+  async submitBatchDecodeRequest(
+    token: string,
     data: any[], 
     abortController?: AbortController
-  }) : Promise<any> {
+  ) : Promise<any> {
     console.log("submitBatchDecodeRequest.  posting " + data.length + " chars")
     const response = await authApiHelper.invokeApi({
       path: '/uper/json',
+      token: token,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: data,
