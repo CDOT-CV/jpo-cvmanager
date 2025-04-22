@@ -51,7 +51,7 @@ services:
     image: asn1_codec:latest
     build:
       context: ./services/intersection-api/asn1_codec
-      dockerfile: Dockerfile.server.amazonlinux
+      dockerfile: Dockerfile.amazonlinux
     ports:
       - "${ACM_HTTP_SERVER_PORT}:${ACM_HTTP_SERVER_PORT}"
     environment:
@@ -63,6 +63,7 @@ services:
       ACM_LOG_LEVEL: "${ACM_LOG_LEVEL}"
       ACM_HTTP_SERVER_PORT: ${ACM_HTTP_SERVER_PORT}
       ACM_HTTP_SERVER_CONCURRENCY: ${ACM_HTTP_SERVER_CONCURRENCY}
+      ACM_HTTP_SERVER: true
     restart: on-failure
 
 
