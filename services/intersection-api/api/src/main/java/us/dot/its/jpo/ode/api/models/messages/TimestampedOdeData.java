@@ -8,6 +8,7 @@ import lombok.Data;
  */
 @Data
 public class TimestampedOdeData {
+
   private long timestamp;
   private MessageType type;
   private OdeData odeData;

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Formatter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import lombok.Generated;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 
 /**
@@ -12,12 +11,13 @@ import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
  */
 public class TimestampedMessageFrameList extends ArrayList<TimestampedMessageFrame> {
 
-    public String toLineDelimitedJson() throws JsonProcessingException {
-        var formatter = new Formatter();
-        for (TimestampedMessageFrame hex : this) {
-            formatter.format("%s%n", DateJsonMapper.getInstance().writeValueAsString(hex));
-        }
-        return formatter.toString();
+  public String toLineDelimitedJson() throws JsonProcessingException {
+    try (var formatter = new Formatter()) {
+      for (TimestampedMessageFrame hex : this) {
+        formatter.format("%s%n", DateJsonMapper.getInstance().writeValueAsString(hex));
+      }
+      return formatter.toString();
     }
+  }
 
 }

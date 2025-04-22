@@ -18,226 +18,234 @@ import static java.lang.Byte.toUnsignedInt;
 @Slf4j
 public class TimestampedMessageFrame {
 
-    /**
-     * Timestamp of the data frame, epoch milliseconds
-     */
-    @JsonProperty("timestamp")
-    protected long timestamp;
+  /**
+   * Timestamp of the data frame, epoch milliseconds
+   */
+  @JsonProperty("timestamp")
+  protected long timestamp;
 
-    @JsonProperty("type")
-    protected MessageType messageFrameType;
+  @JsonProperty("type")
+  protected MessageType messageFrameType;
 
-    @ToString.Exclude
-    @JsonIgnore
-    protected byte[] bytes;
+  @ToString.Exclude
+  @JsonIgnore
+  protected byte[] bytes;
 
-    private final static HexFormat hexFormat = HexFormat.of();
+  private final static HexFormat hexFormat = HexFormat.of();
 
-    @JsonProperty("hex")
-    public String getHex() {
-        return hexFormat.formatHex(bytes);
+  @JsonProperty("hex")
+  public String getHex() {
+    return hexFormat.formatHex(bytes);
+  }
+
+  @JsonProperty("hex")
+  public void setHex(String hex) {
+    setBytes(hexFormat.parseHex(hex));
+  }
+
+  @JsonIgnore
+  public void setBytes(byte[] bytes) {
+    this.bytes = bytes;
+    if (!findMessageFrame()) {
+      log.warn("No MessageFrame was found in raw data: {}", getHex());
+    }
+  }
+
+  /**
+   * Search for a J2735 Message Frame.
+   * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
+   * <p>This will only work if the message frame is unencrypted obv.</p>
+   *
+   * @return true if a MessageFrame was detected, false if not
+   */
+  private boolean findMessageFrame() {
+    if (bytes == null) {
+      return false;
     }
 
-    @JsonProperty("hex")
-    public void setHex(String hex) {
-        setBytes(hexFormat.parseHex(hex));
+    if (bytes.length < 7) {
+      log.warn("Less than 7 bytes in message");
+      return false;
     }
 
-    @JsonIgnore
-    public void setBytes(byte[] bytes) {
-        this.bytes = bytes;
-        if (!findMessageFrame()) {
-            log.warn("No MessageFrame was found in raw data: {}", getHex());
-        }
+    final byte[] slice = new byte[7];
+    // Scan for OER length determinant and message frame id
+    for (int idx = 0; idx < bytes.length - 7; idx++) {
+      System.arraycopy(bytes, idx, slice, 0, 7);
+      if (checkIfMessageFrame(idx, slice)) {
+        return true;
+      }
     }
 
-    /**
-     * Search for a J2735 Message Frame.
-     * <p>Side effect: sets the byte array equal to the MessageFrame data.</p>
-     * <p>This will only work if the message frame is unencrypted obv.</p>
-     * @return true if a MessageFrame was detected, false if not
-     */
-    private boolean findMessageFrame() {
-        if (bytes == null) {
-            return false;
-        }
+    // Nothing found with a 1609.2 wrapper.
+    // Scan again to check for a message frame with UPER length determinant anywhere in the byte array, in
+    // case we have some other wrapper such as ASD, or a bare MessageFrame with UDP headers, or something.
+    // This only requires 4 bytes, so may be susceptible to false positives.
+    final byte[] uperSlice = new byte[4];
+    for (int idx = 0; idx < bytes.length - 4; idx++) {
+      System.arraycopy(bytes, idx, uperSlice, 0, 4);
+      if (checkIfBareMessageFrame(idx, uperSlice)) {
+        return true;
+      }
+    }
 
-        if (bytes.length < 7) {
-            log.warn("Less than 7 bytes in message");
-            return false;
-        }
+    messageFrameType = MessageType.UNKNOWN;
+    return false;
+  }
 
-        final byte[] slice = new byte[7];
-        // Scan for OER length determinant and message frame id
-        for (int idx = 0; idx < bytes.length - 7; idx++) {
-            System.arraycopy(bytes, idx, slice, 0, 7);
-            if (checkIfMessageFrame(idx, slice)) {
-                return true;
-            }
-        }
+  /**
+   * Check a 7 item byte array for the pattern:
+   * <ul>
+   *     <li>OER unsecured data tag</li>
+   *     <li>followed by a OER length determinant consistent with the total number of bytes</li>
+   *     <li>followed by a Message Frame ID</li>
+   * </ul>
+   * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
+   *
+   * @param sliceStartIndex The start index of the slice
+   * @param slice           A 7 item byte array
+   * @return True if found
+   */
+  private boolean checkIfMessageFrame(final int sliceStartIndex, final byte[] slice) {
+    final int[] b = new int[7];
+    for (int i = 0; i < 7; i++) {
+      b[i] = toUnsignedInt(slice[i]);
+    }
 
-        // Nothing found with a 1609.2 wrapper.
-        // Scan again to check for a message frame with UPER length determinant anywhere in the byte array, in
-        // case we have some other wrapper such as ASD, or a bare MessageFrame with UDP headers, or something.
-        // This only requires 4 bytes, so may be susceptible to false positives.
-        final byte[] uperSlice = new byte[4];
-        for (int idx = 0; idx < bytes.length - 4; idx++) {
-            System.arraycopy(bytes, idx, uperSlice, 0, 4);
-            if (checkIfBareMessageFrame(idx, uperSlice)) {
-                return true;
-            }
-        }
+    // Check for OER unsecured data tag
+    if (!(b[0] == 0x03 && b[1] == 0x80)) {
+      // OER unsecured tag not there
+      return false;
+    }
 
-        messageFrameType = MessageType.UNKNOWN;
+    // Check for OER length determinant
+    // Ref. ITU-T X.696, 8.6
+    // First byte can be length less than 128, or marker that the next 2 bytes are the length
+    if (b[2] < 0x80) {
+      // It could be a length, check for message frame
+      final var type = MessageType.fromId(b[4]);
+      if (b[3] == 0 && type != null) {
+        return validateIndices(sliceStartIndex + 3, b[2], type);
+      }
+      return false;
+    }
+
+    // Check for one byte length determinant >=128
+    if (b[2] == 0x81) {
+      // b[3] Could be a length if it is >= 128
+      if (!(b[3] >= 0x80)) {
+        return false; // Nope
+      }
+      final var type = MessageType.fromId(b[5]);
+      if (b[4] == 0 && type != null) {
+        return validateIndices(sliceStartIndex + 4, b[3], type);
+      }
+      return false;
+    }
+
+    // Check for two-byte length determinant
+    if (b[2] == 0x82) {
+      // b[3] + b[4] could be a 16 bit length
+      final var type = MessageType.fromId(b[6]);
+      if (b[5] == 0 && type != null) {
+        // Combine b3 and b4 into a 16 bit integer
+        final int length = (b[3] << 8) | b[4];
+        return validateIndices(sliceStartIndex + 5, length, type);
+      }
+      return false;
+    }
+
+    // Don't check for any larger length determinants.
+    // In the unlikely event there is a Message Frame longer than 65535, this won't work
+
+    return false;
+  }
+
+  /**
+   * Check a 4-byte array for the pattern:
+   * <ul>
+   *     <li>A Message Frame ID</li>
+   *     <li>followed by an UPER length determinant for an open type payload consistent with the
+   *     total number of bytes</li>
+   * </ul>
+   * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
+   *
+   * @param sliceStartIndex The start index of the slice
+   * @param slice           A 4-byte array
+   * @return True if found
+   */
+  private boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
+    final int first = toUnsignedInt(slice[0]);
+    final int second = toUnsignedInt(slice[1]);
+    MessageType type = MessageType.fromId(second);
+
+      if (first != 0) {
+          return false;
+      }
+      if (type == null) {
+          return false;
+      }
+
+    // We have a valid massage type.  Is it followed by a plausible UPER length determinant?  Check
+    // everything we know must be true to avoid false positives.
+    // Ref. ITU-T X.691, 11.9
+    final int third = toUnsignedInt(slice[2]);
+    boolean bit8 = (third & 0x80) != 0;
+    boolean bit7 = (third & 0x40) != 0;
+
+    if (!bit8) {
+      // bit 8 = 0: May be a single byte length determinant
+      final int messageFramePayloadLength = third;
+
+      // Not sure what the minimum possible number of bytes in a message payload is, but it definitely can't be 0
+      if (messageFramePayloadLength == 0) {
         return false;
-    }
+      }
 
-    /**
-     * Check a 7 item byte array for the pattern:
-     * <ul>
-     *     <li>OER unsecured data tag</li>
-     *     <li>followed by a OER length determinant consistent with the total number of bytes</li>
-     *     <li>followed by a Message Frame ID</li>
-     * </ul>
-     * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
-     * @param sliceStartIndex The start index of the slice
-     * @param slice A 7 item byte array
-     * @return True if found
-     */
-    private boolean checkIfMessageFrame(final int sliceStartIndex, final byte[] slice) {
-        final int[] b = new int[7];
-        for (int i = 0; i < 7; i++) {
-            b[i] = toUnsignedInt(slice[i]);
-        }
+      final int totalMessageFrameLength = messageFramePayloadLength + 3;
+      return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
+    } else if (!bit7) {
+      // bit 8 = 1 and bit 7 = 0: May be a two byte length determinant
+      final int fourth = toUnsignedInt(slice[3]);
 
-        // Check for OER unsecured data tag
-        if (!(b[0] == 0x03 && b[1] == 0x80)) {
-            // OER unsecured tag not there
-            return false;
-        }
+      // Remove bit 8 and combine b3 and b4 into a 16 bit integer
+      final int messageFramePayloadLength = ((third & 0x7F) << 8) | fourth;
 
-        // Check for OER length determinant
-        // Ref. ITU-T X.696, 8.6
-        // First byte can be length less than 128, or marker that the next 2 bytes are the length
-        if (b[2] < 0x80) {
-            // It could be a length, check for message frame
-            final var type = MessageType.fromId(b[4]);
-            if (b[3] == 0 && type != null) {
-                return validateIndices(sliceStartIndex + 3, b[2], type);
-            }
-            return false;
-        }
-
-        // Check for one byte length determinant >=128
-        if (b[2] == 0x81) {
-            // b[3] Could be a length if it is >= 128
-            if (!(b[3] >= 0x80)) {
-                return false; // Nope
-            }
-            final var type = MessageType.fromId(b[5]);
-            if (b[4] == 0 && type != null) {
-                return validateIndices(sliceStartIndex + 4, b[3], type);
-            }
-            return false;
-        }
-
-        // Check for two-byte length determinant
-        if (b[2] == 0x82) {
-            // b[3] + b[4] could be a 16 bit length
-            final var type = MessageType.fromId(b[6]);
-            if (b[5] == 0 && type != null) {
-                // Combine b3 and b4 into a 16 bit integer
-                final int length = (b[3] << 8) | b[4];
-                return validateIndices(sliceStartIndex + 5, length, type);
-            }
-            return false;
-        }
-
-        // Don't check for any larger length determinants.
-        // In the unlikely event there is a Message Frame longer than 65535, this won't work
-
+      // The length must be >= 128, otherwise there would have been a single byte determinant
+      if (messageFramePayloadLength < 0x80) {
         return false;
+      }
+
+      final int totalMessageFrameLength = messageFramePayloadLength + 4;
+      return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
+    } else {
+      // bit8 = 1 and bit7 = 1: This would be a message frame with length > 16 Kbytes. We don't handle this
+      // case because it is unlikely to happen.
     }
+    return false;
+  }
 
-    /**
-     * Check a 4-byte array for the pattern:
-     * <ul>
-     *     <li>A Message Frame ID</li>
-     *     <li>followed by an UPER length determinant for an open type payload consistent with the
-     *     total number of bytes</li>
-     * </ul>
-     * <p>Side effect: sets the byte array equal to the MessageFrame data if found.</p>
-     * @param sliceStartIndex The start index of the slice
-     * @param slice A 4-byte array
-     * @return True if found
-     */
-    private boolean checkIfBareMessageFrame(final int sliceStartIndex, final byte[] slice) {
-        final int first = toUnsignedInt(slice[0]);
-        final int second = toUnsignedInt(slice[1]);
-        MessageType type = MessageType.fromId(second);
-
-        if (first != 0) return false;
-        if (type == null) return false;
-
-        // We have a valid massage type.  Is it followed by a plausible UPER length determinant?  Check
-        // everything we know must be true to avoid false positives.
-        // Ref. ITU-T X.691, 11.9
-        final int third = toUnsignedInt(slice[2]);
-        boolean bit8 = (third & 0x80) != 0;
-        boolean bit7 = (third & 0x40) != 0;
-
-        if (!bit8) {
-            // bit 8 = 0: May be a single byte length determinant
-            final int messageFramePayloadLength = third;
-
-            // Not sure what the minimum possible number of bytes in a message payload is, but it definitely can't be 0
-            if (messageFramePayloadLength == 0) {
-                return false;
-            }
-
-            final int totalMessageFrameLength = messageFramePayloadLength + 3;
-            return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
-        } else if (!bit7) {
-            // bit 8 = 1 and bit 7 = 0: May be a two byte length determinant
-            final int fourth = toUnsignedInt(slice[3]);
-
-            // Remove bit 8 and combine b3 and b4 into a 16 bit integer
-            final int messageFramePayloadLength = ((third & 0x7F) << 8) | fourth;
-
-            // The length must be >= 128, otherwise there would have been a single byte determinant
-            if (messageFramePayloadLength < 0x80) {
-                return false;
-            }
-
-            final int totalMessageFrameLength = messageFramePayloadLength + 4;
-            return validateIndices(sliceStartIndex, totalMessageFrameLength, type);
-        } else {
-            // bit8 = 1 and bit7 = 1: This would be a message frame with length > 16 Kbytes. We don't handle this
-            // case because it is unlikely to happen.
-        }
-        return false;
+  /**
+   * Validate indices don't overflow and reset the byte array to the extracted message using the
+   * indices.
+   *
+   * @param iStart Start index
+   * @param length End index
+   * @return true if valid, false if overflow
+   */
+  private boolean validateIndices(final int iStart, final int length, final MessageType messageId) {
+    int iEnd = iStart + length;
+    if (iEnd <= bytes.length) {
+      // Resize the byte array
+      bytes = Arrays.copyOfRange(bytes, iStart, iEnd);
+      this.messageFrameType = messageId;
+      return true;
     }
-
-    /**
-     * Validate indices don't overflow and reset the byte array to the extracted message using the indices.
-     * @param iStart Start index
-     * @param length End index
-     * @return true if valid, false if overflow
-     */
-    private boolean validateIndices(final int iStart, final int length, final MessageType messageId) {
-        int iEnd = iStart + length;
-        if (iEnd <= bytes.length) {
-            // Resize the byte array
-            bytes = Arrays.copyOfRange(bytes, iStart, iEnd);
-            this.messageFrameType = messageId;
-            return true;
-        }
-        log.warn("Tried to set invalid end index {}, based on length determinant: {}, " +
-                "greater than {}, the number of bytes in the raw data.  " +
-                "The data may be truncated: {}", iEnd, length, bytes.length, getHex());
-        return false;
-    }
-
+    log.warn("Tried to set invalid end index {}, based on length determinant: {}, " +
+        "greater than {}, the number of bytes in the raw data.  " +
+        "The data may be truncated: {}", iEnd, length, bytes.length, getHex());
+    return false;
+  }
 
 
 }
