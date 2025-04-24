@@ -148,7 +148,7 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
         return new PageImpl<>(processedMaps, pageable, hashMap.getTotalElements());
     }
 
-    public List<IntersectionReferenceData> getIntersectionIDs() {
+    public List<IntersectionReferenceData> getIntersectionSummaries() {
         // Define the aggregation pipeline
         Aggregation aggregation = Aggregation.newAggregation(
                 // Stage 1: Group by intersectionId and get the latest document for each
@@ -176,8 +176,8 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
      *             CVManager, only used externally by a signal-head monitoring
      *             mobile application. This method is replaced by reference points
      *             and bounding boxes present in the IntersectionReferenceData type.
-     *             Use {@link #getIntersectionIDs()} instead.
-     * @see #getIntersectionIDs()
+     *             Use {@link #getIntersectionSummaries()} instead.
+     * @see #getIntersectionSummaries()
      */
     @Deprecated
     public List<IntersectionReferenceData> getIntersectionsContainingPoint(double longitude, double latitude) {

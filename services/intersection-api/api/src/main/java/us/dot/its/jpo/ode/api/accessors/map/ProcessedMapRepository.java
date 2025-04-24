@@ -19,7 +19,7 @@ public interface ProcessedMapRepository extends DataLoader<ProcessedMap<LineStri
     Page<ProcessedMap<LineString>> find(Integer intersectionID, Long startTime, Long endTime, boolean compact,
             Pageable pageable);
 
-    List<IntersectionReferenceData> getIntersectionIDs();
+    List<IntersectionReferenceData> getIntersectionSummaries();
 
     List<IDCount> getMapBroadcastRates(int intersectionID, Long startTime, Long endTime);
 

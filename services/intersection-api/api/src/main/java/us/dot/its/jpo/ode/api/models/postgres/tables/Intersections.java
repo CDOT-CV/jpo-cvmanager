@@ -22,7 +22,7 @@ public class Intersections {
     private int intersection_id;
     private String intersection_number;
     private Geometry ref_pt;
-    private Geometry bbox;
+    // private Geometry bbox;
     private String intersection_name;
     private String origin_ip;
 

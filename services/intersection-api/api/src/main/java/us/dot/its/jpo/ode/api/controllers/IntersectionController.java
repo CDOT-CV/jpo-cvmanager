@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Intersections;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.PostgresService;
 
@@ -43,6 +44,17 @@ public class IntersectionController {
         this.postgresService = postgresService;
     }
 
+    private IntersectionReferenceData createIntersectionReferenceData(Intersections intersection) {
+        IntersectionReferenceData ref = new IntersectionReferenceData();
+        ref.setRsuIP(intersection.getOrigin_ip());
+        ref.setIntersectionID(Integer.parseInt(intersection.getIntersection_number()));
+        ref.setRoadRegulatorID("-1");
+        ref.setIntersectionName(intersection.getIntersection_name());
+        ref.setLatitude(intersection.getRef_pt().getCoordinate().y);
+        ref.setLongitude(intersection.getRef_pt().getCoordinate().x);
+        return ref;
+    }
+
     @Operation(summary = "List Intersections", description = "Returns a list of intersections")
     @RequestMapping(value = "/intersection/list", method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
@@ -51,21 +63,53 @@ public class IntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<List<IntersectionReferenceData>> getIntersections(
-            @RequestHeader(name = "Organization", required = false) String organization,
+            @RequestHeader(name = "Organization", required = true) String organization,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             IntersectionReferenceData ref = new IntersectionReferenceData();
             ref.setRsuIP("1.1.1.1");
             ref.setIntersectionID(12109);
-            ref.setRoadRegulatorID("0");
+            ref.setRoadRegulatorID("-1");
 
             List<IntersectionReferenceData> refList = new ArrayList<>();
             refList.add(ref);
 
             return ResponseEntity.ok(refList);
         } else {
-            List<IntersectionReferenceData> allIntersections = processedMapRepo.getIntersectionIDs();
+            // If organization is non-null, then the PermissionService will ensure that the
+            // user has access to the specified organization
+            List<Intersections> allowedIntersections = postgresService
+                    .getAllowedIntersectionsByOrganization(organization);
+            return ResponseEntity.ok(allowedIntersections.stream()
+                    .map(intersection -> createIntersectionReferenceData(intersection))
+                    .collect(Collectors.toList()));
+        }
+    }
+
+    @Operation(summary = "List Intersections", description = "Returns a list of intersections generated from existing MAP messages, filtered by intersections the user has access to")
+    @RequestMapping(value = "/intersection/list-from-maps", method = RequestMethod.GET, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+    })
+    public ResponseEntity<List<IntersectionReferenceData>> getIntersectionsFromMaps(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+
+        if (testData) {
+            IntersectionReferenceData ref = new IntersectionReferenceData();
+            ref.setRsuIP("1.1.1.1");
+            ref.setIntersectionID(12109);
+            ref.setRoadRegulatorID("-1");
+
+            List<IntersectionReferenceData> refList = new ArrayList<>();
+            refList.add(ref);
+
+            return ResponseEntity.ok(refList);
+        } else {
+            List<IntersectionReferenceData> allIntersections = processedMapRepo.getIntersectionSummaries();
             if (organization == null) {
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String username = PermissionService.getUsername(auth);

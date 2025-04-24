@@ -9,6 +9,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Intersections;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
 @Service
@@ -54,7 +55,16 @@ public class PostgresService {
             "WHERE io.intersection_id = i.intersection_id AND u.email = :email" +
             ")";
 
-    private final String findIntersectionsByOrganizationQuery = "SELECT i.intersection_number " +
+    private final String findIntersectionsIdsByOrganizationQuery = "SELECT i.intersection_number " +
+            "FROM Intersections i " +
+            "WHERE EXISTS (" +
+            "SELECT 1 " +
+            "FROM IntersectionOrganization io " +
+            "JOIN Organizations o ON io.organization_id = o.organization_id " +
+            "WHERE io.intersection_id = i.intersection_id AND o.name = :orgName" +
+            ")";
+
+    private final String findIntersectionsByOrganizationQuery = "SELECT i " +
             "FROM Intersections i " +
             "WHERE EXISTS (" +
             "SELECT 1 " +
@@ -120,9 +130,16 @@ public class PostgresService {
     }
 
     public List<Integer> getAllowedIntersectionIdsByOrganization(String organization) {
-        TypedQuery<String> query = entityManager.createQuery(findIntersectionsByOrganizationQuery, String.class);
+        TypedQuery<String> query = entityManager.createQuery(findIntersectionsIdsByOrganizationQuery, String.class);
         query.setParameter("orgName", organization);
         return query.getResultList().stream().map(Integer::valueOf).collect(Collectors.toList());
+    }
+
+    public List<Intersections> getAllowedIntersectionsByOrganization(String organization) {
+        TypedQuery<Intersections> query = entityManager.createQuery(findIntersectionsByOrganizationQuery,
+                Intersections.class);
+        query.setParameter("orgName", organization);
+        return query.getResultList();
     }
 
     public boolean checkRsuWithOrg(String rsuIp, List<String> organizations) {

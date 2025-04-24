@@ -70,7 +70,7 @@ public class ReportTask {
     }
 
     public void generateReportForTimeRange(long startMillis, long endMillis) {
-        for (IntersectionReferenceData data : processedMapRepo.getIntersectionIDs()) {
+        for (IntersectionReferenceData data : processedMapRepo.getIntersectionSummaries()) {
             log.info("Generating Report for Intersection {} Start Time: {} End Time: {}", data.getIntersectionID(),
                     startMillis, endMillis);
 
