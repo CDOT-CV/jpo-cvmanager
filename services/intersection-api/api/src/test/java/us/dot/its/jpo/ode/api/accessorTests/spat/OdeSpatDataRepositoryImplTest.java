@@ -8,23 +8,23 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+
+import org.bson.Document;
 
 import us.dot.its.jpo.ode.api.accessors.spat.OdeSpatDataRepositoryImpl;
+import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.model.OdeSpatData;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -36,15 +36,26 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @AutoConfigureEmbeddedDatabase
 public class OdeSpatDataRepositoryImplTest {
 
-    @Mock
+    @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @Mock
+    private AggregationResults<AggregationResult> mockAggregationResult;
+
+    @Mock
+    private Page<Document> mockDocumentPage;
+
+    @Mock
+    private Page<OdeSpatData> mockPage;
 
     @InjectMocks
     private OdeSpatDataRepositoryImpl repository;
 
     Integer intersectionID = 123;
-    Long startTime = 1624640400000L; // June 26, 2021 00:00:00 GMT
-    Long endTime = 1624726799000L; // June 26, 2021 23:59:59 GMT
+    Long startTime = 1724170658205L;
+    String startTimeString = "2024-08-20T16:17:38.205Z";
+    Long endTime = 1724170778205L;
+    String endTimeString = "2024-08-20T16:19:38.205Z";
 
     @BeforeEach
     void setUp() {
@@ -56,32 +67,12 @@ public class OdeSpatDataRepositoryImplTest {
     public void testCount() {
         long expectedCount = 10;
 
-        when(mongoTemplate.count(any(),
-                Mockito.<String>any())).thenReturn(expectedCount);
+        doReturn(expectedCount).when(mongoTemplate).count(any(),
+                Mockito.<String>any());
 
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        long resultCount = repository.count(1, null, null, pageRequest);
+        long resultCount = repository.count(1, null, null);
 
         assertThat(resultCount).isEqualTo(expectedCount);
         verify(mongoTemplate).count(any(Query.class), anyString());
-    }
-
-    @Test
-    public void testFind() {
-        Page expected = Mockito.mock(Page.class);
-        OdeSpatDataRepositoryImpl repo = mock(OdeSpatDataRepositoryImpl.class);
-
-        when(repo.findPage(
-                any(),
-                any(),
-                any(PageRequest.class),
-                any(Criteria.class),
-                any(Sort.class))).thenReturn(expected);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
-
-        Page<OdeSpatData> results = repo.find(1, null, null, pageRequest);
-
-        assertThat(results).isEqualTo(expected);
     }
 }

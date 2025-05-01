@@ -47,7 +47,7 @@ public class SpatMinimumDataEventAggregationRepositoryImpl
                         Pageable pageable) {
                 Criteria criteria = new IntersectionCriteria()
                                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
                 return mongoTemplate.count(Query
                                 .query(criteria).with(pageable), collectionName);
         }
@@ -69,7 +69,7 @@ public class SpatMinimumDataEventAggregationRepositoryImpl
                         Long endTime) {
                 Criteria criteria = new IntersectionCriteria()
                                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
                 Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
                 return wrapSingleResultWithPage(
                                 mongoTemplate.findOne(
@@ -95,9 +95,10 @@ public class SpatMinimumDataEventAggregationRepositoryImpl
                         Pageable pageable) {
                 Criteria criteria = new IntersectionCriteria()
                                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
                 Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-                return findPage(mongoTemplate, collectionName, pageable, criteria, sort);
+                return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
+                                SpatMinimumDataEventAggregation.class);
         }
 
         public void add(SpatMinimumDataEventAggregation item) {

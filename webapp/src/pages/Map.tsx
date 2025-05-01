@@ -19,12 +19,10 @@ import {
   selectSelectedRsu,
   selectMsgType,
   selectRsuIpv4,
-  selectDisplayMap,
   selectHeatMapData,
   selectAddGeoMsgPoint,
   selectGeoMsgStart,
   selectGeoMsgEnd,
-  selectGeoMsgDateError,
   selectGeoMsgData,
   selectGeoMsgCoordinates,
   selectGeoMsgFilter,
@@ -71,7 +69,6 @@ import {
   clearConfig,
   clearFirmware,
 } from '../generalSlices/configSlice'
-import { useSelector, useDispatch } from 'react-redux'
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -107,18 +104,19 @@ import 'rc-slider/assets/index.css'
 import './css/MsgMap.css'
 import './css/Map.css'
 import { WZDxFeature, WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
 import {
   intersectionMapLabelsLayer,
   selectIntersections,
   selectSelectedIntersection,
   setSelectedIntersectionId,
 } from '../generalSlices/intersectionSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../store'
+import { headerTabHeight } from '../styles/index'
 import { selectActiveLayers, selectViewState, setMapViewState, toggleLayerActive } from './mapSlice'
 import { selectMenuSelection, toggleMapMenuSelection } from '../features/menu/menuSlice'
 import { MapLayer } from '../models/MapLayer'
-import { headerTabHeight } from '../styles'
 import { toast } from 'react-hot-toast'
 import MooveAiHardBrakingLegend from '../components/MooveAiHardBrakingLegend'
 
@@ -134,7 +132,6 @@ function MapPage() {
   const theme = useTheme()
 
   const mapRef = React.useRef(null)
-
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const rsuCounts = useSelector(selectRsuCounts)
@@ -143,7 +140,6 @@ function MapPage() {
   const issScmsStatusData = useSelector(selectIssScmsStatusData)
   const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
   const rsuIpv4 = useSelector(selectRsuIpv4)
-  const displayMap = useSelector(selectDisplayMap)
   const addConfigPoint = useSelector(selectAddConfigPoint)
   const configCoordinates = useSelector(selectConfigCoordinates)
   const geoMsgType = useSelector(selectGeoMsgType)
@@ -155,7 +151,6 @@ function MapPage() {
   const addGeoMsgPoint = useSelector(selectAddGeoMsgPoint)
   const startGeoMsgDate = useSelector(selectGeoMsgStart)
   const endGeoMsgDate = useSelector(selectGeoMsgEnd)
-  const msgViewerDateError = useSelector(selectGeoMsgDateError)
 
   const filter = useSelector(selectGeoMsgFilter)
   const filterStep = useSelector(selectGeoMsgFilterStep)
@@ -181,41 +176,8 @@ function MapPage() {
   const [selectedRsuCount, setSelectedRsuCount] = useState(null)
   const [displayType, setDisplayType] = useState('none')
 
-  // Menu local state variable
-  const [displayMenu, setDisplayMenu] = useState(false)
-
   // Add these new state variables near the other source states
   const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
-
-  const [configPolygonSource, setConfigPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [],
-    },
-    properties: {},
-  })
-  const [configPointSource, setConfigPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
-    type: 'FeatureCollection',
-    features: [],
-  })
-
-  // BSM layer local state variables
-  const [geoMsgPolygonSource, setGeoMsgPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [],
-    },
-    properties: {},
-  })
-
-  const [geoMsgPolygonPointSource, setGeoMsgPolygonPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(
-    {
-      type: 'FeatureCollection',
-      features: [],
-    }
-  )
 
   const [geoMsgPointSource, setGeoMsgPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
     type: 'FeatureCollection',
@@ -250,6 +212,7 @@ function MapPage() {
   }
 
   // WZDx layer local state variables
+  // The marker index is necessary because the marker callback becomes disconnected from the curernt state
   const [selectedWZDxMarkerIndex, setSelectedWZDxMarkerIndex] = useState(null)
   const [selectedWZDxMarker, setSelectedWZDxMarker] = useState(null)
   const [wzdxMarkers, setWzdxMarkers] = useState([])
@@ -264,6 +227,11 @@ function MapPage() {
     setSelectedVendor(newVal)
   }
 
+  // TODO: Remove??
+  if (!wzdxMarkers) {
+    setSelectedWZDxMarkerIndex(null)
+    setSelectedWZDxMarker(null)
+  }
   const mbStyle = require(`../styles/${theme.palette.custom.mapStyleFilePath}`)
 
   // useEffects for Mapbox
@@ -273,6 +241,7 @@ function MapPage() {
         dispatch(selectRsu(null))
         dispatch(clearFirmware())
         setSelectedWZDxMarkerIndex(null)
+        setSelectedWZDxMarker(null)
       }
     }
     window.addEventListener('keydown', listener)
@@ -280,7 +249,7 @@ function MapPage() {
     return () => {
       window.removeEventListener('keydown', listener)
     }
-  }, [selectedRsu, dispatch, setSelectedWZDxMarkerIndex])
+  }, [selectedRsu, dispatch, setSelectedWZDxMarkerIndex, setSelectedWZDxMarker])
 
   // useEffects for RSU layer
   useEffect(() => {
@@ -306,7 +275,10 @@ function MapPage() {
     if (!endGeoMsgDate) {
       dateChanged(new Date(), 'end')
     }
-  }, [])
+    if (wzdxData?.features?.length === 0) {
+      dispatch(getWzdxData())
+    }
+  }, [dispatch])
 
   const createPointFeature = (point: number[]): GeoJSON.Feature<GeoJSON.Geometry> => {
     return {
@@ -324,13 +296,18 @@ function MapPage() {
   }
 
   // Effect for handling polygon updates msg-viewer-layer
-  useEffect(() => {
-    if (!activeLayers.includes('msg-viewer-layer')) return
 
-    setGeoMsgPolygonPointSource((prevPointSource) => ({
-      ...prevPointSource,
+  const geoMsgPolygonPointSource = useMemo(() => {
+    if (!activeLayers.includes('msg-viewer-layer')) return null
+
+    return {
+      type: 'FeatureCollection',
       features: geoMsgCoordinates.map((point) => createPointFeature(point)),
-    }))
+    } as GeoJSON.FeatureCollection<GeoJSON.Geometry>
+  }, [geoMsgCoordinates, activeLayers])
+
+  const geoMsgPolygonSource = useMemo(() => {
+    if (!activeLayers.includes('msg-viewer-layer')) return null
 
     // Get coordinates including preview point if it exists
     let polygonCoords = [...geoMsgCoordinates]
@@ -355,16 +332,16 @@ function MapPage() {
       polygonCoords.push(polygonCoords[0])
     }
 
-    setGeoMsgPolygonSource(
-      (prevPolygonSource) =>
-        ({
-          ...prevPolygonSource,
-          geometry: {
-            type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
-            coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
-          },
-        } as GeoJSON.Feature<GeoJSON.Geometry>)
-    )
+    const polygonSource = {
+      type: 'Feature',
+      geometry: {
+        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
+      },
+      properties: {},
+    } as GeoJSON.Feature<GeoJSON.Geometry>
+
+    return polygonSource
   }, [geoMsgCoordinates, activeLayers, addGeoMsgPoint, previewPoint])
 
   const mooveAiPolygonPointSource = useMemo(
@@ -410,6 +387,49 @@ function MapPage() {
     } as GeoJSON.Feature<GeoJSON.Geometry>
   }, [mooveAiCoordinates, addMooveAiPoint, previewPoint])
 
+  const configPolygonPointSource = useMemo(
+    () =>
+      ({
+        type: 'FeatureCollection',
+        features: configCoordinates.map(createPointFeature),
+      } as GeoJSON.FeatureCollection<GeoJSON.Geometry>),
+    [configCoordinates]
+  )
+
+  const configPolygonSource = useMemo(() => {
+    // Get coordinates including preview point if it exists
+    let polygonCoords = [...configCoordinates]
+    if (previewPoint && addConfigPoint) {
+      const previewCoords = previewPoint.geometry.coordinates
+
+      if (polygonCoords.length >= 3 && polygonCoords[0] === polygonCoords[polygonCoords.length - 1]) {
+        // For completed polygon: Remove closing point, add preview, then close
+        polygonCoords = polygonCoords.slice(0, -1)
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 2) {
+        // For two points: Draw triangle with preview point
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 1) {
+        // For one point: Draw line to preview point
+        polygonCoords = [[...polygonCoords[0]], [...previewCoords]] // Create a fresh array with both points
+      }
+    } else if (polygonCoords.length >= 3) {
+      // Close the polygon if we have 3+ points and no preview
+      polygonCoords.push(polygonCoords[0])
+    }
+
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
+      },
+    } as GeoJSON.Feature<GeoJSON.Geometry>
+  }, [configCoordinates, addConfigPoint, previewPoint])
+
   // Effect for handling point source updates msg-viewer-layer
   useEffect(() => {
     // if the msg-viewer-layer is not active, exit the effect
@@ -450,35 +470,6 @@ function MapPage() {
   const geoMsgFilterMaxOffset = useMemo(() => {
     return calculateMaxOffset(startGeoMsgDate, endGeoMsgDate, filterStep)
   }, [startGeoMsgDate, endGeoMsgDate, filterStep])
-
-  useEffect(() => {
-    if (activeLayers.includes('rsu-layer')) {
-      setConfigPolygonSource((prevPolygonSource) => {
-        return {
-          ...prevPolygonSource,
-          geometry: {
-            ...prevPolygonSource.geometry,
-            coordinates: [[...configCoordinates]],
-          },
-        } as GeoJSON.Feature<GeoJSON.Geometry>
-      })
-      const pointSourceFeatures = [] as Array<GeoJSON.Feature<GeoJSON.Geometry>>
-      configCoordinates.forEach((point) => {
-        pointSourceFeatures.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [...point],
-          },
-          properties: {},
-        })
-      })
-
-      setConfigPointSource((prevPointSource) => {
-        return { ...prevPointSource, features: pointSourceFeatures }
-      })
-    }
-  }, [configCoordinates, activeLayers])
 
   function dateChanged(e: Date, type: 'start' | 'end') {
     try {
@@ -537,8 +528,8 @@ function MapPage() {
 
   // useEffects for WZDx layers
   useEffect(() => {
+    // This is to handle the fact that the marker callback is disconnected from the current state
     if (selectedWZDxMarkerIndex !== null) setSelectedWZDxMarker(wzdxMarkers[selectedWZDxMarkerIndex])
-    else setSelectedWZDxMarker(null)
   }, [selectedWZDxMarkerIndex, wzdxMarkers])
 
   useEffect(() => {
@@ -664,6 +655,7 @@ function MapPage() {
   }
 
   function closePopup() {
+    setSelectedWZDxMarker(null)
     setSelectedWZDxMarkerIndex(null)
   }
 
@@ -856,6 +848,7 @@ function MapPage() {
             break
           case 'wzdx-layer':
             setSelectedWZDxMarkerIndex(null)
+            setSelectedWZDxMarker(null)
             break
           case 'moove-ai-layer':
             dispatch(clearMooveAiData())
@@ -1115,7 +1108,7 @@ function MapPage() {
                       backgroundColor: alpha(theme.palette.primary.light, 0.5),
                     },
                   }}
-                  disabled={!(configCoordinates.length > 2 && addConfigPoint)}
+                  disabled={!(configCoordinates.length > 2)}
                   onClick={() => {
                     dispatch(geoRsuQuery(selectedVendor))
                   }}
@@ -1190,40 +1183,44 @@ function MapPage() {
           }}
         >
           {/* Add preview sources and layers */}
-          {(activeLayers.includes('msg-viewer-layer') || activeLayers.includes('moove-ai-layer')) && previewPoint && (
-            <Source id="preview-point" type="geojson" data={previewPoint}>
-              <Layer
-                id="preview-point-layer"
-                type="circle"
-                paint={{
-                  'circle-radius': 5,
-                  'circle-color': addGeoMsgPoint
-                    ? 'rgba(255, 164, 0, 0.5)'
-                    : addMooveAiPoint
-                    ? 'rgb(53, 121, 148)'
-                    : 'rgba(255, 0, 0, 0.5)',
-                  'circle-stroke-width': 2,
-                  'circle-stroke-color': addGeoMsgPoint
-                    ? 'rgb(255, 164, 0)'
-                    : addMooveAiPoint
-                    ? 'rgb(94, 206, 250)'
-                    : 'rgb(255, 0, 0)',
-                }}
-              />
-            </Source>
-          )}
+          {activeLayers.includes('msg-viewer-layer') ||
+            activeLayers.includes('moove-ai-layer') ||
+            (activeLayers.includes('rsu-layer') && previewPoint && (
+              <Source id="preview-point" type="geojson" data={previewPoint}>
+                <Layer
+                  id="preview-point-layer"
+                  type="circle"
+                  paint={{
+                    'circle-radius': 5,
+                    'circle-color': addGeoMsgPoint
+                      ? 'rgba(255, 164, 0, 0.5)'
+                      : addMooveAiPoint
+                      ? 'rgb(53, 121, 148)'
+                      : 'rgba(255, 0, 0, 0.5)',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': addGeoMsgPoint
+                      ? 'rgb(255, 164, 0)'
+                      : addMooveAiPoint
+                      ? 'rgb(94, 206, 250)'
+                      : 'rgb(255, 0, 0)',
+                  }}
+                />
+              </Source>
+            ))}
 
           {activeLayers.includes('rsu-layer') && (
             <div>
-              {configCoordinates?.length > 2 ? (
+              {configCoordinates.length >= 1 ? (
                 <Source id={layers[0].id + '-fill'} type="geojson" data={configPolygonSource}>
-                  <Layer {...configOutlineLayer} />
+                  <Layer {...getConfigOutlineLayer(addConfigPoint)} />
                   <Layer {...configFillLayer} />
                 </Source>
               ) : null}
-              <Source id={layers[0].id + '-points'} type="geojson" data={configPointSource}>
-                <Layer {...configPointLayer} />
-              </Source>
+              {addConfigPoint && (
+                <Source id={layers[0].id + '-polygon-points'} type="geojson" data={configPolygonPointSource}>
+                  <Layer {...configPointLayer} />
+                </Source>
+              )}
             </div>
           )}
           {rsuData?.map(
@@ -1238,6 +1235,7 @@ function MapPage() {
                     e.originalEvent.stopPropagation()
                     dispatch(selectRsu(rsu))
                     setSelectedWZDxMarkerIndex(null)
+                    setSelectedWZDxMarker(null)
                     dispatch(clearFirmware()) // TODO: Should remove??
                     dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
                     dispatch(getIssScmsStatus())
@@ -1253,6 +1251,7 @@ function MapPage() {
                       dispatch(selectRsu(rsu))
                       dispatch(clearFirmware()) // TODO: Should remove??
                       setSelectedWZDxMarkerIndex(null)
+                      setSelectedWZDxMarker(null)
                       dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
                       dispatch(getIssScmsStatus())
                       if (rsuCounts.hasOwnProperty(rsu.properties.ipv4_address))
@@ -1305,10 +1304,10 @@ function MapPage() {
           )}
           {activeLayers.includes('wzdx-layer') && (
             <div>
-              {wzdxMarkers}
               <Source id={layers[3].id} type="geojson" data={wzdxData}>
                 <Layer {...layers[3]} />
               </Source>
+              {wzdxMarkers}
             </div>
           )}
           {selectedWZDxMarker ? (
@@ -1658,6 +1657,39 @@ function MapPage() {
   )
 }
 
+const configFillLayer: FillLayer = {
+  id: 'configFill',
+  type: 'fill',
+  source: 'polygonSource',
+  layout: {},
+  paint: {
+    'fill-color': '#0080ff',
+    'fill-opacity': 0.2,
+  },
+}
+
+const getConfigOutlineLayer = (isEditing: boolean): LineLayer => ({
+  id: 'configMsgOutline',
+  type: 'line',
+  source: 'polygonSource',
+  layout: {},
+  paint: {
+    'line-color': '#000',
+    'line-width': 3,
+    'line-dasharray': isEditing ? [2, 2] : undefined,
+  },
+})
+
+const configPointLayer: CircleLayer = {
+  id: 'configPointLayer',
+  type: 'circle',
+  source: 'pointSource',
+  paint: {
+    'circle-radius': 5,
+    'circle-color': 'rgb(255, 0, 0)',
+  },
+}
+
 const geoMsgFillLayer: FillLayer = {
   id: 'geoMsgFill',
   type: 'fill',
@@ -1680,38 +1712,6 @@ const getGeoMsgOutlineLayer = (isEditing: boolean): LineLayer => ({
     'line-dasharray': isEditing ? [2, 2] : undefined,
   },
 })
-
-const configFillLayer: FillLayer = {
-  id: 'configFill',
-  type: 'fill',
-  source: 'polygonSource',
-  layout: {},
-  paint: {
-    'fill-color': '#0080ff',
-    'fill-opacity': 0.2,
-  },
-}
-
-const configOutlineLayer: LineLayer = {
-  id: 'configOutline',
-  type: 'line',
-  source: 'polygonSource',
-  layout: {},
-  paint: {
-    'line-color': '#000',
-    'line-width': 3,
-  },
-}
-
-const configPointLayer: CircleLayer = {
-  id: 'configPointLayer',
-  type: 'circle',
-  source: 'pointSource',
-  paint: {
-    'circle-radius': 5,
-    'circle-color': 'rgb(255, 0, 0)',
-  },
-}
 
 const geoMsgPolygonPointLayer: CircleLayer = {
   id: 'geoMsgPolygonPointLayer',

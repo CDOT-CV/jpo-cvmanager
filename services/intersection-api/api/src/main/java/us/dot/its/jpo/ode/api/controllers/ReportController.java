@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,9 +32,6 @@ public class ReportController {
     private final ReportService reportService;
     private final ReportRepository reportRepo;
 
-    @Value("${maximumResponseSize}")
-    int maximumResponseSize;
-
     @Autowired
     public ReportController(
             ReportService reportService,
@@ -53,18 +49,11 @@ public class ReportController {
     })
     public byte[] generateReport(
             @RequestParam(name = "intersection_id") int intersectionID,
-            @RequestParam(name = "road_regulator_id", required = false) Integer roadRegulatorID,
             @RequestParam(name = "start_time_utc_millis") long startTime,
             @RequestParam(name = "end_time_utc_millis") long endTime) {
         log.debug("Generating Report");
 
-        if (roadRegulatorID == null) {
-            roadRegulatorID = -1;
-        }
-
-        ReportDocument document = reportService.buildReport(intersectionID, roadRegulatorID.toString(),
-                startTime,
-                endTime);
+        ReportDocument document = reportService.buildReport(intersectionID, startTime, endTime);
 
         return document.getReportContents();
     }
@@ -74,7 +63,6 @@ public class ReportController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "206", description = "Partial Content - The requested query may have more results than allowed by server. Please reduce the query bounds and try again."),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<Page<ReportDocument>> listReports(

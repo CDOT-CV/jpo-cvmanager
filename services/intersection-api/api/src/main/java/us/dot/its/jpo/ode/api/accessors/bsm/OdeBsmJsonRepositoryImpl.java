@@ -1,12 +1,13 @@
 package us.dot.its.jpo.ode.api.accessors.bsm;
 
+import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
+import org.bson.Document;
 import org.geotools.referencing.GeodeticCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,6 +15,10 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.model.OdeBsmData;
@@ -22,9 +27,11 @@ import us.dot.its.jpo.ode.model.OdeBsmData;
 public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ObjectMapper mapper = DateJsonMapper.getInstance()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final String collectionName = "OdeBsmJson";
-    private final String DATE_FIELD = "recordGeneratedAt";
+    private final String DATE_FIELD = "metadata.odeReceivedAt";
     private final String ORIGIN_IP_FIELD = "metadata.originIp";
     private final String VEHICLE_ID_FIELD = "payload.data.coreData.id";
 
@@ -94,7 +101,7 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(ORIGIN_IP_FIELD, originIp)
                 .whereOptional(VEHICLE_ID_FIELD, vehicleId)
-                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
 
         if (centerLng != null && centerLat != null && distance != null) {
             double[] latitudes = calculateLatitudes(centerLng, centerLat, distance);
@@ -105,9 +112,15 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
                     .gte(Math.min(longitudes[0], longitudes[1])).lte(Math.max(longitudes[0], longitudes[1]));
         }
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
+        List<String> excludedFields = List.of("recordGeneratedAt");
 
-        // TODO: Consider mapping with jackson ObjectMapper
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort);
+        Page<Document> aggregationResult = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
+                criteria, sort, excludedFields);
+
+        List<OdeBsmData> bsms = aggregationResult.getContent().stream()
+                .map(document -> mapper.convertValue(document, OdeBsmData.class)).toList();
+
+        return new PageImpl<>(bsms, pageable, aggregationResult.getTotalElements());
     }
 
     /**
@@ -130,13 +143,12 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
             Long endTime,
             Double centerLng,
             Double centerLat,
-            Double distance,
-            @Nullable Pageable pageable) {
+            Double distance) {
 
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(ORIGIN_IP_FIELD, originIp)
                 .whereOptional(VEHICLE_ID_FIELD, vehicleId)
-                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
 
         if (centerLng != null && centerLat != null && distance != null) {
             double[] latitudes = calculateLatitudes(centerLng, centerLat, distance);
@@ -147,10 +159,6 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
                     .gte(Math.min(longitudes[0], longitudes[1])).lte(Math.max(longitudes[0], longitudes[1]));
         }
         Query query = Query.query(criteria);
-        if (pageable != null) {
-            query = query.with(pageable);
-        }
-
         return mongoTemplate.count(query, Map.class, collectionName);
     }
 

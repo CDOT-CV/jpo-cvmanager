@@ -20,7 +20,7 @@ import SearchIcon from '@mui/icons-material/Search'
 import NotificationApi from '../../../apis/intersections/notification-api'
 import React, { useEffect, useState, useRef } from 'react'
 import { selectToken } from '../../../generalSlices/userSlice'
-import { selectSelectedIntersectionId, selectSelectedRoadRegulatorId } from '../../../generalSlices/intersectionSlice'
+import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
 import { useSelector } from 'react-redux'
 
 const tabs = [
@@ -78,14 +78,12 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
   })
   const token = useSelector(selectToken)
   const dbIntersectionId = useSelector(selectSelectedIntersectionId)
-  const roadRegulatorId = useSelector(selectSelectedRoadRegulatorId)
 
   const updateNotifications = () => {
     if (dbIntersectionId) {
       NotificationApi.getActiveNotifications({
         token: token,
         intersectionId: dbIntersectionId,
-        roadRegulatorId: roadRegulatorId,
       }).then((notifs) => setNotifications(notifs))
     } else {
       console.error('Did not attempt to update notifications. Intersection ID:', dbIntersectionId)
@@ -192,7 +190,7 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
             </Box>
           </>
         )}
-        <Card>
+        <Card sx={{ overflowY: 'auto' }}>
           {!simple && (
             <>
               <CardHeader title="Notifications" />
@@ -231,13 +229,15 @@ export const NotificationsTable = (props: { simple: Boolean }) => {
                     <TextField
                       defaultValue=""
                       fullWidth
-                      inputProps={{ ref: queryRef }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon fontSize="small" />
-                          </InputAdornment>
-                        ),
+                      slotProps={{
+                        input: {
+                          ref: queryRef,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        },
                       }}
                       placeholder="Search parameters"
                     />

@@ -8,7 +8,6 @@ import { Paper, Box } from '@mui/material'
 import ControlPanel from './control-panel'
 import { SidePanel } from './side-panel'
 import { CustomPopup } from './popup'
-import { useDispatch, useSelector } from 'react-redux'
 import { selectToken } from '../../../generalSlices/userSlice'
 import {
   selectBsmLayerStyle,
@@ -63,7 +62,7 @@ import {
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
   selectViewState,
-  setLoadInitialdataTimeoutId,
+  setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
   setRawData,
@@ -81,6 +80,7 @@ import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import { useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 
 export const getTimestamp = (dt: any): number => {
   try {
@@ -181,32 +181,29 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [playbackModeActive])
 
   useEffect(() => {
-    if (props.intersectionId != queryParams.intersectionId || props.roadRegulatorId != queryParams.roadRegulatorId) {
+    if (props.intersectionId != queryParams.intersectionId) {
       dispatch(
         updateQueryParams({
           intersectionId: props.intersectionId,
-          roadRegulatorId: props.roadRegulatorId,
         })
       )
-      if (liveDataActive && authToken && props.roadRegulatorId && props.intersectionId) {
+      if (liveDataActive && authToken && props.intersectionId) {
         cleanUpLiveStreaming()
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
           })
         )
       }
     }
-  }, [props.intersectionId, props.roadRegulatorId])
+  }, [props.intersectionId])
 
   useEffect(() => {
     dispatch(
       updateQueryParams({
         ...generateQueryParams(props.sourceData, props.sourceDataType, decoderModeEnabled),
         intersectionId: props.intersectionId,
-        roadRegulatorId: props.roadRegulatorId,
         resetTimeWindow: true,
       })
     )
@@ -220,7 +217,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       clearTimeout(loadInitialDataTimeoutId)
     }
     const timeoutId = setTimeout(() => dispatch(pullInitialData()), 500)
-    dispatch(setLoadInitialdataTimeoutId(timeoutId))
+    dispatch(setLoadInitialDataTimeoutId(timeoutId))
   }, [queryParams])
 
   useEffect(() => {
@@ -233,11 +230,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     if (liveDataActive) {
-      if (authToken && props.roadRegulatorId && props.intersectionId) {
+      if (authToken && props.intersectionId) {
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
           })
         )
@@ -248,9 +244,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           'Did not attempt to update notifications. Access token missing:',
           authToken == null || authToken == undefined,
           'Intersection ID:',
-          props.intersectionId,
-          'Road Regulator ID:',
-          props.roadRegulatorId
+          props.intersectionId
         )
       }
     } else {
@@ -261,11 +255,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     if (liveDataRestart != -1 && liveDataRestart < 5 && liveDataActive) {
-      if (authToken && props.roadRegulatorId && props.intersectionId) {
+      if (authToken && props.intersectionId) {
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
             numRestarts: liveDataRestart,
           })
@@ -308,8 +301,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
             zIndex: 10,
             top: 0,
             left: 0,
-            width: 1200,
-            // width: 'calc(100% - 500px)',
             borderRadius: '4px',
             fontSize: '16px',
             maxHeight: 'calc(100vh - 120px)',

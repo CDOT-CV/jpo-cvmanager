@@ -60,8 +60,7 @@ public class ReportService {
     private final SpatBroadcastRateEventRepository spatBroadcastRateEventRepo;
     private final MapBroadcastRateEventRepository mapBroadcastRateEventRepo;
     private final ReportRepository reportRepo;
-
-    int maximumResponseSize;
+    private final int maximumResponseSize;
 
     @Autowired
     public ReportService(ProcessedMapRepository processedMapRepo,
@@ -104,9 +103,9 @@ public class ReportService {
                 .collect(Collectors.toList());
     }
 
-    public ReportDocument buildReport(int intersectionID, String roadRegulatorID, long startTime, long endTime) {
+    public ReportDocument buildReport(int intersectionID, long startTime, long endTime) {
         // ####### 1. Name Report #######
-        String reportName = "CmReport_" + intersectionID + "_" + roadRegulatorID + "_" + startTime + "_" + endTime;
+        String reportName = "CmReport_" + intersectionID + "_" + startTime + "_" + endTime;
 
         // ####### 2. Collect Report Data By Category #######
         // Lane Direction of Travel Info
@@ -126,8 +125,8 @@ public class ReportService {
                 .getConnectionOfTravelEventsByConnection(intersectionID, startTime, endTime);
 
         // Retrieve the most recent ProcessedMap
-        List<ProcessedMap<LineString>> processedMaps = processedMapRepo
-                .findProcessedMaps(processedMapRepo.getQuery(intersectionID, null, null, true, true));
+        List<ProcessedMap<LineString>> processedMaps = processedMapRepo.findLatest(intersectionID, null, null, true)
+                .getContent();
         ProcessedMap<LineString> mostRecentProcessedMap = processedMaps.isEmpty() ? null : processedMaps.getFirst();
 
         // Process connection of travel data
@@ -223,7 +222,6 @@ public class ReportService {
         // ####### 3. Create Report Document #######
         ReportDocument doc = new ReportDocument();
         doc.setIntersectionID(intersectionID);
-        doc.setRoadRegulatorID(roadRegulatorID);
         doc.setReportGeneratedAt(Instant.now().toEpochMilli());
         doc.setReportStartTime(startTime);
         doc.setReportStopTime(endTime);

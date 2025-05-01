@@ -4,8 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.events.LaneDirectionOfTravelEvent;
 import java.util.Date;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import javax.measure.MetricPrefix;
 import javax.measure.Quantity;
 import javax.measure.quantity.Length;
@@ -61,21 +59,16 @@ public class LaneDirectionOfTravelEventRepositoryImpl
      *                       applied
      * @param startTime      the start time to query by, if null will not be applied
      * @param endTime        the end time to query by, if null will not be applied
-     * @param pageable       the pageable object to use for pagination
      * @return the paginated data that matches the given criteria
      */
     public long count(
             Integer intersectionID,
             Long startTime,
-            Long endTime,
-            @Nullable Pageable pageable) {
+            Long endTime) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Query query = Query.query(criteria);
-        if (pageable != null) {
-            query = query.with(pageable);
-        }
         return mongoTemplate.count(query, collectionName);
     }
 
@@ -95,7 +88,7 @@ public class LaneDirectionOfTravelEventRepositoryImpl
             Long endTime) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Query query = Query.query(criteria);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
         return wrapSingleResultWithPage(
@@ -122,9 +115,10 @@ public class LaneDirectionOfTravelEventRepositoryImpl
             Pageable pageable) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-                .withinTimeWindow(DATE_FIELD, startTime, endTime);
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort);
+        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
+                LaneDirectionOfTravelEvent.class);
     }
 
     public List<IDCount> getAggregatedDailyLaneDirectionOfTravelEventCounts(int intersectionID, Long startTime,

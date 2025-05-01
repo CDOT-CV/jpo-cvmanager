@@ -19,20 +19,36 @@ public class IntersectionCriteria extends Criteria {
      *                         since epoch
      * @return the criteria object to use for querying
      */
-    public IntersectionCriteria withinTimeWindow(@Nonnull String fieldName,
+    public IntersectionCriteria withinTimeWindow(
+            @Nonnull String fieldName,
             @Nullable Long startEpochMillis,
-            @Nullable Long endEpochMillis) {
+            @Nullable Long endEpochMillis,
+            boolean formatAsString) {
         if (startEpochMillis != null && endEpochMillis != null) {
             this.and(fieldName)
-                    .gte(Date.from(Instant.ofEpochMilli(startEpochMillis)))
-                    .lte(Date.from(Instant.ofEpochMilli(endEpochMillis)));
+                    .gte(formatDate(startEpochMillis, formatAsString))
+                    .lte(formatDate(endEpochMillis, formatAsString));
             return this;
         } else if (startEpochMillis != null) {
-            this.and(fieldName).gte(new Date(startEpochMillis));
+            this.and(fieldName).gte(formatDate(startEpochMillis, formatAsString));
+            return this;
         } else if (endEpochMillis != null) {
-            this.and(fieldName).lte(new Date(endEpochMillis));
+            this.and(fieldName).lte(formatDate(endEpochMillis, formatAsString));
+            return this;
         }
         return this;
+    }
+
+    /**
+     * Build a query criteria object based on a time window
+     *
+     * @param epochMillis    the time of the window, in milliseconds since epoch
+     * @param formatAsString whether to format the date as a string or not
+     * @return the criteria object to use for querying
+     */
+    private Object formatDate(Long epochMillis, boolean formatAsString) {
+        return formatAsString ? Instant.ofEpochMilli(epochMillis).toString()
+                : Date.from(Instant.ofEpochMilli(epochMillis));
     }
 
     /**
