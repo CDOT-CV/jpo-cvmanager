@@ -1,4 +1,4 @@
-git mv assessments/ConnectionOfTravelAssessment/* assessments/connection_of_travel_assessment
+git mv assessments/ConnectionOfTravelAssessment assessments/connection_of_travel_assessment
 git mv assessments/LaneDirectionOfTravelAssessment assessments/lane_direction_of_travel_assessment
 git mv assessments/SignalStateAssessment assessments/signal_state_assessment
 git mv assessments/SignalStateEventAssessment assessments/signal_state_event_assessment

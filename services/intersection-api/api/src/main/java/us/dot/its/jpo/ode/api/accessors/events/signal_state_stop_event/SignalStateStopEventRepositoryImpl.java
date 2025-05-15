@@ -1,5 +1,5 @@
 
-package us.dot.its.jpo.ode.api.accessors.events.SignalStateStopEvent;
+package us.dot.its.jpo.ode.api.accessors.events.signal_state_stop_event;
 
 import java.util.Date;
 import java.util.List;

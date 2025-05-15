@@ -1,5 +1,5 @@
 
-package us.dot.its.jpo.ode.api.accessors.events.SignalStateEvent;
+package us.dot.its.jpo.ode.api.accessors.events.signal_state_event;
 
 import java.util.List;
 

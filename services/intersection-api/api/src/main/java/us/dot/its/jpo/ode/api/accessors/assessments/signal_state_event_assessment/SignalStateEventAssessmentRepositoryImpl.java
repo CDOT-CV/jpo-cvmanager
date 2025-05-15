@@ -1,5 +1,5 @@
 
-package us.dot.its.jpo.ode.api.accessors.assessments.SignalStateEventAssessment;
+package us.dot.its.jpo.ode.api.accessors.assessments.signal_state_event_assessment;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
