@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.accessors.events.SignalStateStopEvent.SignalStateStopEventRepositoryImpl;
+import us.dot.its.jpo.ode.api.accessors.events.signal_state_stop_event.SignalStateStopEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;

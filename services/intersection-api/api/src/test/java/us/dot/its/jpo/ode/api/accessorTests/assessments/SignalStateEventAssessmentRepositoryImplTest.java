@@ -28,7 +28,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLinePassageAssessment;
-import us.dot.its.jpo.ode.api.accessors.assessments.SignalStateEventAssessment.SignalStateEventAssessmentRepositoryImpl;
+import us.dot.its.jpo.ode.api.accessors.assessments.signal_state_event_assessment.SignalStateEventAssessmentRepositoryImpl;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)

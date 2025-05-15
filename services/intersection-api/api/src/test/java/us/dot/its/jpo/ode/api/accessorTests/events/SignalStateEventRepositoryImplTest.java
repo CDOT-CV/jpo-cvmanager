@@ -39,7 +39,7 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLinePassageEvent;
-import us.dot.its.jpo.ode.api.accessors.events.SignalStateEvent.SignalStateEventRepositoryImpl;
+import us.dot.its.jpo.ode.api.accessors.events.signal_state_event.SignalStateEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 import us.dot.its.jpo.ode.api.models.IDCount;
