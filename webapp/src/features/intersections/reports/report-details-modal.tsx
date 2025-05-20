@@ -258,7 +258,6 @@ const ReportDetailsModal = ({ open, onClose, report }: ReportDetailsModalProps) 
               flex: 1, // Allow the content to take up remaining space
             }}
           >
-            {loading && <LinearProgress variant="determinate" value={progress} sx={{ mb: 2 }} />} {/* Progress bar */}
             {!report ? (
               <Typography>No report found</Typography>
             ) : (
@@ -542,36 +541,59 @@ const ReportDetailsModal = ({ open, onClose, report }: ReportDetailsModalProps) 
       </DialogContent>
 
       {/* Dialog Actions */}
-      <DialogActions sx={{ justifyContent: 'space-between' }}>
-        {/* Left Section: Download and Include Lane-Specific Charts */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Button
-            onClick={handleGeneratePdf}
-            variant="contained"
-            color="primary"
-            disabled={loading || !isWindowWideEnough}
-            sx={{ mr: 2 }}
-            className="capital-case"
-          >
-            {loading ? <CircularProgress size={24} /> : 'Download PDF'}
-          </Button>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={includeLaneSpecificCharts}
-                onChange={(e) => setIncludeLaneSpecificCharts(e.target.checked)}
-                color="primary"
-                disabled={loading} // Disable the checkbox while loading
-              />
-            }
-            label="Include lane-specific charts"
-          />
-        </Box>
+      <DialogActions
+        sx={{
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          p: 2,
+          pt: 1,
+          gap: 1,
+        }}
+      >
+        {/* Always render the progress bar to reserve space */}
+        <LinearProgress
+          variant="determinate"
+          value={loading ? progress : 0}
+          sx={{
+            width: '100%',
+            mb: 2,
+            height: 6,
+            borderRadius: 2,
+            visibility: loading ? 'visible' : 'hidden', // <-- This keeps the space reserved
+          }}
+        />
 
-        {/* Right Section: Close Button */}
-        <Button onClick={handleClose} color="primary" className="capital-case">
-          Close
-        </Button>
+        {/* Button row */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          {/* Left Section: Download and Include Lane-Specific Charts */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              onClick={handleGeneratePdf}
+              variant="contained"
+              color="primary"
+              disabled={loading || !isWindowWideEnough}
+              sx={{ mr: 2, minWidth: 130 }}
+              className="capital-case"
+            >
+              {loading ? <CircularProgress size={24} /> : 'Download PDF'}
+            </Button>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={includeLaneSpecificCharts}
+                  onChange={(e) => setIncludeLaneSpecificCharts(e.target.checked)}
+                  color="primary"
+                  disabled={loading}
+                />
+              }
+              label="Include lane-specific charts"
+            />
+          </Box>
+          {/* Right Section: Close Button */}
+          <Button onClick={handleClose} color="primary" className="capital-case">
+            Close
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   )
