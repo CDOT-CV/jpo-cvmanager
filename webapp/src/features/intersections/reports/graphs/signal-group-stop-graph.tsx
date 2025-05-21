@@ -70,8 +70,8 @@ const SignalGroupStopGraph: React.FC<SignalGroupStopGraphProps> = ({ data }) => 
         </Typography>
         {formattedData.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
-            <Typography variant="h6" align="center" sx={{ mt: 2 }}>
-              No Data Available
+            <Typography variant="subtitle1" align="center" sx={{ mt: 2, color: (theme) => theme.palette.grey[700] }}>
+              - No events for this time period -
             </Typography>
           </Box>
         ) : (

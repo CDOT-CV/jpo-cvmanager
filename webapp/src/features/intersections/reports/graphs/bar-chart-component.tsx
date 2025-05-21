@@ -24,40 +24,52 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
   return null
 }
 
-const BarChartComponent: React.FC<BarChartComponentProps> = ({ title, data, getInterval, barColor }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
-    <Box>
-      <Typography variant="h6" align="center" sx={{ mt: 2 }}>
-        {title}
-      </Typography>
-      <BarChart
-        width={750}
-        height={450}
-        data={data}
-        margin={{
-          top: 20,
-          right: 30,
-          left: 20,
-          bottom: 70,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          dataKey="name"
-          label={{ value: 'Day', position: 'insideBottom', offset: -60 }}
-          angle={-45}
-          textAnchor="end"
-          interval={getInterval(data.length)}
-        />
-        <YAxis
-          label={{ value: 'Event Count', angle: -90, position: 'insideLeft', offset: 0 }}
-          tickFormatter={formatAxisTickNumber}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey="value" fill={barColor} isAnimationActive={false} />
-      </BarChart>
-    </Box>
-  </Box>
-)
+const BarChartComponent: React.FC<BarChartComponentProps> = ({ title, data, getInterval, barColor }) => {
+  // Check if there is any real data (value > 0)
+  const hasRealData = data.some((d) => d.value > 0)
 
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
+      <Box>
+        <Typography variant="h6" align="center" noWrap sx={{ mt: 2, width: 750, maxWidth: '100%' }}>
+          {title}
+        </Typography>
+        {!hasRealData ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
+            <Typography variant="subtitle1" align="center" sx={{ mt: 2, color: (theme) => theme.palette.grey[700] }}>
+              - No events for this time period -
+            </Typography>
+          </Box>
+        ) : (
+          <BarChart
+            width={750}
+            height={450}
+            data={data}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 70,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="name"
+              label={{ value: 'Day', position: 'insideBottom', offset: -60 }}
+              angle={-45}
+              textAnchor="end"
+              interval={getInterval(data.length)}
+            />
+            <YAxis
+              label={{ value: 'Event Count', angle: -90, position: 'insideLeft', offset: 0 }}
+              tickFormatter={formatAxisTickNumber}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="value" fill={barColor} isAnimationActive={false} />
+          </BarChart>
+        )}
+      </Box>
+    </Box>
+  )
+}
 export default BarChartComponent

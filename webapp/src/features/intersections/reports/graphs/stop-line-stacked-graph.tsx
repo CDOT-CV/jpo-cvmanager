@@ -38,16 +38,19 @@ const StopLineStackedGraph: React.FC<StopLineStackedGraphProps> = ({ passageData
     }
   })
 
+  // Check for any real data
+  const hasRealData = combinedData.some((d) => d.stop > 0 || d.noStop > 0)
+
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
       <Box>
         <Typography variant="h6" align="center" sx={{ mt: 2 }}>
           Stop Line Events Per Day
         </Typography>
-        {combinedData.length === 0 ? (
+        {!hasRealData ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', height: 'auto' }}>
-            <Typography variant="h6" align="center" sx={{ mt: 2 }}>
-              No Data Available
+            <Typography variant="subtitle1" align="center" sx={{ mt: 2, color: (theme) => theme.palette.grey[700] }}>
+              - No events for this time period -
             </Typography>
           </Box>
         ) : (

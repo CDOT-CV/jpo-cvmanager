@@ -12,8 +12,8 @@ const DistanceFromCenterlineGraphSet: React.FC<DistanceFromCenterlineGraphSetPro
   return (
     <Box>
       {Object.keys(data).length === 0 ? (
-        <Typography variant="body1" align="center">
-          No Data
+        <Typography variant="subtitle1" align="center" sx={{ mt: 2, color: (theme) => theme.palette.grey[700] }}>
+          - No events for this time period -
         </Typography>
       ) : (
         Object.entries(data).map(([laneID, ldotReportData]) => (
