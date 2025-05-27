@@ -36,8 +36,8 @@ class EnvironmentVars {
   }
 
   static MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN
-  static CVIZ_API_SERVER_URL = process.env.REACT_APP_CVIZ_API_SERVER_URL
-  static CVIZ_API_WS_URL = process.env.REACT_APP_CVIZ_API_WS_URL
+  static INTERSECTION_API_SERVER_URL = process.env.REACT_APP_CVIZ_API_SERVER_URL
+  static INTERSECTION_API_WS_URL = process.env.REACT_APP_CVIZ_API_WS_URL
   static KEYCLOAK_HOST_URL = process.env.REACT_APP_KEYCLOAK_URL
   static KEYCLOAK_REALM = process.env.REACT_APP_KEYCLOAK_REALM
   static KEYCLOAK_CLIENT_ID = process.env.REACT_APP_KEYCLOAK_CLIENT_ID
@@ -50,30 +50,30 @@ class EnvironmentVars {
   static WEBAPP_THEME_DARK = process.env.REACT_APP_WEBAPP_THEME_DARK
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
-  static rsuInfoEndpoint = `${this.getBaseApiUrl()}/rsuinfo`
-  static rsuOnlineEndpoint = `${this.getBaseApiUrl()}/rsu-online-status`
-  static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
-  static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
-  static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
-  static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-geo-query`
-  static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
-  static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
-  static mooveAiDataEndpoint = `${this.getBaseApiUrl()}/moove-ai-data`
-  static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
-  static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
-  static authEndpoint = `${this.getBaseApiUrl()}/user-auth`
-  static adminAddRsu = `${this.getBaseApiUrl()}/admin-new-rsu`
-  static adminRsu = `${this.getBaseApiUrl()}/admin-rsu`
-  static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
-  static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`
-  static adminAddUser = `${this.getBaseApiUrl()}/admin-new-user`
-  static adminUser = `${this.getBaseApiUrl()}/admin-user`
-  static adminNotification = `${this.getBaseApiUrl()}/admin-notification`
-  static adminAddNotification = `${this.getBaseApiUrl()}/admin-new-notification`
-  static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
-  static adminOrg = `${this.getBaseApiUrl()}/admin-org`
-  static contactSupport = `${this.getBaseApiUrl()}/contact-support`
-  static rsuErrorSummary = `${this.getBaseApiUrl()}/rsu-error-summary`
+  static rsuInfoEndpoint = `/rsuinfo`
+  static rsuOnlineEndpoint = `/rsu-online-status`
+  static rsuCountsEndpoint = `/rsucounts`
+  static rsuCommandEndpoint = `/rsu-command`
+  static wzdxEndpoint = `/wzdx-feed`
+  static rsuGeoQueryEndpoint = `/rsu-geo-query`
+  static rsuMsgFwdQueryEndpoint = `/rsu-msgfwd-query`
+  static geoMsgDataEndpoint = `/rsu-geo-msg-data`
+  static mooveAiDataEndpoint = `/moove-ai-data`
+  static issScmsStatusEndpoint = `/iss-scms-status`
+  static ssmSrmEndpoint = `/rsu-ssm-srm-data`
+  static authEndpoint = `/user-auth`
+  static adminAddRsu = `/admin-new-rsu`
+  static adminRsu = `/admin-rsu`
+  static adminAddIntersection = `/admin-new-intersection`
+  static adminIntersection = `/admin-intersection`
+  static adminAddUser = `/admin-new-user`
+  static adminUser = `/admin-user`
+  static adminNotification = `/admin-notification`
+  static adminAddNotification = `/admin-new-notification`
+  static adminAddOrg = `/admin-new-org`
+  static adminOrg = `/admin-org`
+  static contactSupport = `/contact-support`
+  static rsuErrorSummary = `/rsu-error-summary`
 }
 
 export default EnvironmentVars

@@ -68,10 +68,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip: 'all' },
         tag: 'rsu',
       })
@@ -80,10 +80,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip: 'all' },
         tag: 'rsu',
       })
@@ -170,10 +170,10 @@ describe('async thunks', () => {
         apiHelper.invokeApi = jest.fn().mockReturnValue({ body: rsuData })
         await action(dispatch, getState, undefined)
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminRsu,
+          path: EnvironmentVars.adminRsu,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
           token: 'token',
-          returnCodeOnly: true,
+          wrapResponseWithCode: true,
           queryParams: { rsu_ip: rsu.ip },
           tag: 'rsu',
         })
@@ -331,10 +331,10 @@ describe('functions', () => {
     const resp = await getRsuDataByIp(rsu_ip, token)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminRsu,
+      path: EnvironmentVars.adminRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
-      returnCodeOnly: true,
+      wrapResponseWithCode: true,
       queryParams: { rsu_ip },
       tag: 'rsu',
     })

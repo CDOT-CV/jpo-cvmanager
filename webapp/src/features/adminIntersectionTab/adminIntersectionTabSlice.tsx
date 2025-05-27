@@ -31,10 +31,9 @@ export const updateTableData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminIntersection,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminIntersection,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { intersection_id: 'all' },
       headers: { 'Content-Type': 'application/json' },
@@ -68,9 +67,10 @@ export const deleteIntersection = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminIntersection,
+      path: EnvironmentVars.adminIntersection,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       method: 'DELETE',
+      wrapResponseWithCode: true,
       token,
       queryParams: { intersection_id },
       tag: 'intersection',

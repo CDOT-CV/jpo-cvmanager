@@ -231,11 +231,11 @@ describe('functions', () => {
     const resp = await getNotificationData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminNotification,
+      path: EnvironmentVars.adminNotification,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
       queryParams: { user_email },
-      returnCodeOnly: true,
+      wrapResponseWithCode: true,
       headers: { 'Content-Type': 'application/json' },
     })
   })
@@ -247,8 +247,9 @@ describe('functions', () => {
     apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     await deleteNotification(email, email_type, token)
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminNotification,
+      path: EnvironmentVars.adminNotification,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       method: 'DELETE',
       queryParams: { email, email_type },

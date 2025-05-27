@@ -164,8 +164,8 @@ export const getRsuCreationData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = (await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddRsu,
+      path: EnvironmentVars.adminAddRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
       headers: { 'Content-Type': 'application/json' },
       tag: 'rsu',
@@ -183,11 +183,12 @@ export const createRsu = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddRsu,
+      path: EnvironmentVars.adminAddRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       method: 'POST',
-      body: JSON.stringify(json),
+      body: json,
       tag: 'rsu',
     })
     switch (data.status) {

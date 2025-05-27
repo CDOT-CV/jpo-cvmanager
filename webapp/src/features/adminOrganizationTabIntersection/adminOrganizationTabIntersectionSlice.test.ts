@@ -68,10 +68,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id: 'all' },
       })
 
@@ -79,10 +79,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id: 'all' },
       })
     })
@@ -168,10 +168,10 @@ describe('async thunks', () => {
         apiHelper.invokeApi = jest.fn().mockReturnValue({ body: intersectionData })
         await action(dispatch, getState, undefined)
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminIntersection,
+          path: EnvironmentVars.adminIntersection,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
           token: 'token',
-          returnCodeOnly: true,
+          wrapResponseWithCode: true,
           queryParams: { intersection_id: intersection.intersection_id },
         })
         expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
@@ -328,10 +328,10 @@ describe('functions', () => {
     const resp = await getIntersectionDataById(intersection_id, token)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminIntersection,
+      path: EnvironmentVars.adminIntersection,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
-      returnCodeOnly: true,
+      wrapResponseWithCode: true,
       queryParams: { intersection_id },
     })
   })

@@ -14,9 +14,9 @@ const initialState = {
 
 export const getNotificationData = async (user_email: string, token: string) => {
   return await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminNotification,
-    returnCodeOnly: true,
+    path: EnvironmentVars.adminNotification,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
 
     token,
     queryParams: { user_email },
@@ -26,8 +26,9 @@ export const getNotificationData = async (user_email: string, token: string) => 
 
 export const deleteNotification = async (email: string, email_type: string, token: string) => {
   const data = await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminNotification,
+    path: EnvironmentVars.adminNotification,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
     method: 'DELETE',
     token,
     queryParams: { email, email_type },

@@ -909,7 +909,7 @@ export const initializeLiveStreaming = createAsyncThunk(
 
     let protocols = ['v10.stomp', 'v11.stomp']
     protocols.push(token)
-    const url = `${EnvironmentVars.CVIZ_API_WS_URL}/stomp`
+    const url = `${EnvironmentVars.INTERSECTION_API_WS_URL}/stomp`
 
     // Stomp Client Documentation: https://stomp-js.github.io/stomp-websocket/codo/extra/docs-src/Usage.md.html
     let client = Stomp.client(url, protocols)

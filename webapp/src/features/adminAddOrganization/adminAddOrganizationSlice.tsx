@@ -19,11 +19,12 @@ export const addOrg = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddOrg,
+      path: EnvironmentVars.adminAddOrg,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       method: 'POST',
       token,
-      body: JSON.stringify(json),
+      body: json,
     })
     switch (data.status) {
       case 200:

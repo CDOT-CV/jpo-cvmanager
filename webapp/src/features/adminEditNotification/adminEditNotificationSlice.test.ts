@@ -80,9 +80,9 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         queryParams: { user_email },
         headers: { 'Content-Type': 'application/json' },
@@ -94,9 +94,9 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         queryParams: { user_email },
         headers: { 'Content-Type': 'application/json' },
@@ -188,11 +188,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminNotification,
+          path: EnvironmentVars.adminNotification,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
-          body: JSON.stringify(json),
+          body: json,
         })
         expect(setTimeout).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
@@ -209,11 +210,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminNotification,
+          path: EnvironmentVars.adminNotification,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
-          body: JSON.stringify(json),
+          body: json,
         })
         expect(setTimeout).not.toHaveBeenCalled()
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)

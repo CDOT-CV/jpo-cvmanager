@@ -101,8 +101,8 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddRsu,
+        path: EnvironmentVars.adminAddRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
         headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
@@ -165,11 +165,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: '' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminAddRsu,
+          path: EnvironmentVars.adminAddRsu,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'POST',
-          body: JSON.stringify(json),
+          body: json,
           tag: 'rsu',
         })
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
@@ -189,11 +190,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminAddRsu,
+          path: EnvironmentVars.adminAddRsu,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'POST',
-          body: JSON.stringify(json),
+          body: json,
           tag: 'rsu',
         })
         expect(setTimeout).not.toHaveBeenCalled()

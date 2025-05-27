@@ -13,9 +13,9 @@ const initialState = {
 
 export const getUserData = async (user_email: string, token: string) => {
   return await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminUser,
-    returnCodeOnly: true,
+    path: EnvironmentVars.adminUser,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
     token,
     queryParams: { user_email },
     headers: { 'Content-Type': 'application/json' },
@@ -24,8 +24,9 @@ export const getUserData = async (user_email: string, token: string) => {
 
 export const deleteUser = async (user_email: string, token: string) => {
   const data = await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminUser,
+    path: EnvironmentVars.adminUser,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
     method: 'DELETE',
     token,
     queryParams: { user_email },

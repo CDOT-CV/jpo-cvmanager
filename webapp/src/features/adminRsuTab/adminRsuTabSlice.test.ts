@@ -73,10 +73,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('data')
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip: 'all' },
         headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
@@ -87,10 +87,10 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip: 'all' },
         headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
@@ -162,8 +162,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { rsu_ip },
@@ -178,8 +179,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { rsu_ip },

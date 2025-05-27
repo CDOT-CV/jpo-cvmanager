@@ -78,9 +78,9 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -89,9 +89,9 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -164,11 +164,12 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'User Creation is successful.' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(2 + 2)
 
@@ -179,11 +180,12 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })

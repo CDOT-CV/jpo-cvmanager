@@ -48,11 +48,12 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'Organization Creation is successful.' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddOrg,
+        path: EnvironmentVars.adminAddOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
@@ -63,11 +64,12 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddOrg,
+        path: EnvironmentVars.adminAddOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })

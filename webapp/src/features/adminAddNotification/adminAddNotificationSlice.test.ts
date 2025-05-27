@@ -81,10 +81,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { user_email: undefined },
         headers: { 'Content-Type': 'application/json' },
       })
@@ -93,10 +93,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { user_email: undefined },
         headers: { 'Content-Type': 'application/json' },
       })
@@ -176,11 +176,12 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'Email Notification Creation is successful.' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(2 + 2)
 
@@ -191,11 +192,12 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddNotification,
+        path: EnvironmentVars.adminAddNotification,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'POST',
-        body: JSON.stringify(json),
+        body: json,
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })

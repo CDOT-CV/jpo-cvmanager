@@ -82,10 +82,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id },
         headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
@@ -97,10 +97,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id },
         headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
@@ -179,12 +179,13 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminIntersection,
+          path: EnvironmentVars.adminIntersection,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
           queryParams: { intersection_id: json.orig_intersection_id },
-          body: JSON.stringify(json),
+          body: json,
           tag: 'intersection',
         })
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -200,12 +201,13 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminIntersection,
+          path: EnvironmentVars.adminIntersection,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
           queryParams: { intersection_id: json.orig_intersection_id },
-          body: JSON.stringify(json),
+          body: json,
           tag: 'intersection',
         })
         expect(setTimeout).not.toHaveBeenCalled()

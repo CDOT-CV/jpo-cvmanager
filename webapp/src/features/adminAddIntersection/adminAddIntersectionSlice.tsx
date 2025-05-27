@@ -133,8 +133,8 @@ export const getIntersectionCreationData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = (await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddIntersection,
+      path: EnvironmentVars.adminAddIntersection,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
       headers: { 'Content-Type': 'application/json' },
     })) as AdminIntersectionCreationInfo
@@ -170,11 +170,12 @@ export const createIntersection = createAsyncThunk(
     }
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddIntersection,
+      path: EnvironmentVars.adminAddIntersection,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       method: 'POST',
-      body: JSON.stringify(json),
+      body: json,
     })
     switch (data.status) {
       case 200:

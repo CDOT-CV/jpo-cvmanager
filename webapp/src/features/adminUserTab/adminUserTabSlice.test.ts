@@ -215,10 +215,10 @@ describe('functions', () => {
     const resp = await getUserData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminUser,
+      path: EnvironmentVars.adminUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
-      returnCodeOnly: true,
+      wrapResponseWithCode: true,
       queryParams: { user_email },
       headers: { 'Content-Type': 'application/json' },
     })
@@ -230,8 +230,9 @@ describe('functions', () => {
     apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     await deleteUser(user_email, token)
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminUser,
+      path: EnvironmentVars.adminUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       method: 'DELETE',
       queryParams: { user_email },

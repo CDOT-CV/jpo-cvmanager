@@ -72,10 +72,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('data')
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id: 'all' },
         headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
@@ -86,10 +86,10 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { intersection_id: 'all' },
         headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
@@ -162,8 +162,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { intersection_id },
@@ -178,8 +179,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminIntersection,
+        path: EnvironmentVars.adminIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { intersection_id },

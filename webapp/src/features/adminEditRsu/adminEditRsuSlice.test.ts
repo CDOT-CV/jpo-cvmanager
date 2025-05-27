@@ -114,10 +114,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip },
         headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
@@ -129,10 +129,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminRsu,
+        path: EnvironmentVars.adminRsu,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { rsu_ip },
         headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
@@ -211,12 +211,13 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminRsu,
+          path: EnvironmentVars.adminRsu,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
           queryParams: { rsu_ip: json.orig_ip },
-          body: JSON.stringify(json),
+          body: json,
           tag: 'rsu',
         })
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -232,12 +233,13 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminRsu,
+          path: EnvironmentVars.adminRsu,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'PATCH',
           queryParams: { rsu_ip: json.orig_ip },
-          body: JSON.stringify(json),
+          body: json,
           tag: 'rsu',
         })
         expect(setTimeout).not.toHaveBeenCalled()

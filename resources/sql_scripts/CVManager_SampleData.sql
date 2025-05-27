@@ -76,7 +76,7 @@ INSERT INTO public.email_type(
 
 INSERT INTO public.intersections(
 	intersection_number, ref_pt, intersection_name)
-	VALUES (12109, ST_GeomFromText('POINT(-105.0908854 39.5880413)'), 'S Wadsworth & W Columbine Dr');
+	VALUES (12109, ST_GeomFromText('POINT(-105.0908854 39.5880413)'), 'S Wadsworth And W Columbine Dr');
 
 INSERT INTO public.intersection_organization(
 	intersection_id, organization_id)

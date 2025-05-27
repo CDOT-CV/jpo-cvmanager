@@ -73,10 +73,9 @@ export const getUserData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminUser,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { user_email: email },
       headers: { 'Content-Type': 'application/json' },
@@ -101,11 +100,12 @@ export const editUser = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminUser,
+      path: EnvironmentVars.adminUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       method: 'PATCH',
-      body: JSON.stringify(json),
+      body: json,
     })
 
     switch (data.status) {

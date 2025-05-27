@@ -19,9 +19,9 @@ const initialState = {
 
 export const getRsuDataByIp = async (rsu_ip: string, token: string) => {
   const data = await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminRsu,
-    returnCodeOnly: true,
+    path: EnvironmentVars.adminRsu,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
 
     token,
     queryParams: { rsu_ip },

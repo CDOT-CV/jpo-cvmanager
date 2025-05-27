@@ -18,7 +18,7 @@ const getQueryString = (query_params: Record<string, string>) => {
 export const intersectionConfigurationApiSlice = createApi({
   reducerPath: 'intersectionConfigurationApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: EnvironmentVars.CVIZ_API_SERVER_URL + 'intersections/configuration',
+    baseUrl: EnvironmentVars.INTERSECTION_API_SERVER_URL + 'intersections/configuration',
     prepareHeaders: (headers, { getState, endpoint }) => {
       const token = selectToken(getState() as RootState)
 

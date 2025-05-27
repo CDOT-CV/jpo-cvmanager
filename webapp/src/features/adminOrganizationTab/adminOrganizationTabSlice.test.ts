@@ -81,9 +81,9 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', all, specifiedOrg })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         queryParams: { org_name: orgName },
       })
@@ -92,9 +92,9 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
-        returnCodeOnly: true,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         queryParams: { org_name: orgName },
       })
@@ -219,8 +219,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { org_name },
@@ -231,8 +232,9 @@ describe('async thunks', () => {
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'DELETE',
         queryParams: { org_name },
@@ -258,11 +260,12 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'PATCH',
-        body: JSON.stringify({
+        body: {
           orig_name: 'orig_name',
           users_to_add: [],
           users_to_modify: [],
@@ -272,18 +275,19 @@ describe('async thunks', () => {
           intersections_to_add: [],
           intersections_to_remove: [],
           ...json,
-        }),
+        },
       })
 
       apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminOrg,
+        path: EnvironmentVars.adminOrg,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+        wrapResponseWithCode: true,
         token: 'token',
         method: 'PATCH',
-        body: JSON.stringify({
+        body: {
           orig_name: 'orig_name',
           users_to_add: [],
           users_to_modify: [],
@@ -293,7 +297,7 @@ describe('async thunks', () => {
           intersections_to_add: [],
           intersections_to_remove: [],
           ...json,
-        }),
+        },
       })
     })
 

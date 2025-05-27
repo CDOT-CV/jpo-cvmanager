@@ -28,10 +28,9 @@ export const getNotificationData = createAsyncThunk(
     const user_email = selectEmail(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddNotification,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminAddNotification,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { user_email },
       headers: { 'Content-Type': 'application/json' },
@@ -55,11 +54,12 @@ export const editNotification = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminNotification,
+      path: EnvironmentVars.adminNotification,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       method: 'PATCH',
       token,
-      body: JSON.stringify(json),
+      body: json,
     })
 
     switch (data.status) {

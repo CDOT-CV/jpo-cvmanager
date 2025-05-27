@@ -73,10 +73,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         headers: { 'Content-Type': 'application/json' },
       })
 
@@ -84,10 +84,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddUser,
+        path: EnvironmentVars.adminAddUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         headers: { 'Content-Type': 'application/json' },
       })
     })
@@ -157,10 +157,10 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminUser,
+        path: EnvironmentVars.adminUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { user_email: 'all' },
         headers: { 'Content-Type': 'application/json' },
       })
@@ -169,10 +169,10 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminUser,
+        path: EnvironmentVars.adminUser,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
-        returnCodeOnly: true,
+        wrapResponseWithCode: true,
         queryParams: { user_email: 'all' },
         headers: { 'Content-Type': 'application/json' },
       })
@@ -466,11 +466,11 @@ describe('functions', () => {
     const resp = await getUserData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-      path: '',
-      basePath: EnvironmentVars.adminUser,
+      path: EnvironmentVars.adminUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token,
       queryParams: { user_email },
-      returnCodeOnly: true,
+      wrapResponseWithCode: true,
       headers: { 'Content-Type': 'application/json' },
     })
   })

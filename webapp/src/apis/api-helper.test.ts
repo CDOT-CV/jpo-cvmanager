@@ -39,6 +39,7 @@ it('Test post request', async () => {
   let actualResponse = await apiHelper.invokeApi({
     path: 'https://test.com',
     token: 'testToken',
+    wrapResponseWithCode: true,
     body: {},
     method: 'POST',
   })
@@ -48,10 +49,11 @@ it('Test post request', async () => {
   actualResponse = await apiHelper.invokeApi({
     path: 'https://test.com',
     token: 'testToken',
+    wrapResponseWithCode: true,
     body: {},
     method: 'POST',
   })
-  expect(actualResponse.body).toEqual(undefined)
+  expect(actualResponse.body).toEqual(null)
 })
 
 it('Test post request Error', async () => {
@@ -68,12 +70,22 @@ it('Test post request Error', async () => {
 it('Test delete request', async () => {
   const expectedResponse = { data: 'Test JSON' }
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
-  let actualResponse = await apiHelper.invokeApi({ path: 'https://test.com', token: 'testToken', method: 'DELETE' })
+  let actualResponse = await apiHelper.invokeApi({
+    path: 'https://test.com',
+    token: 'testToken',
+    wrapResponseWithCode: true,
+    method: 'DELETE',
+  })
   expect(actualResponse.body).toEqual(expectedResponse)
 
   fetchMock.mockResponseOnce('NOT JSON')
-  actualResponse = await apiHelper.invokeApi({ path: 'https://test.com', token: 'testToken', method: 'DELETE' })
-  expect(actualResponse.body).toEqual(undefined)
+  actualResponse = await apiHelper.invokeApi({
+    path: 'https://test.com',
+    token: 'testToken',
+    wrapResponseWithCode: true,
+    method: 'DELETE',
+  })
+  expect(actualResponse.body).toEqual(null)
 })
 
 it('Test delete request Error', async () => {
@@ -92,6 +104,7 @@ it('Test patch request', async () => {
   let actualResponse = await apiHelper.invokeApi({
     path: 'https://test.com',
     token: 'testToken',
+    wrapResponseWithCode: true,
     body: {},
     method: 'PATCH',
   })
@@ -101,10 +114,11 @@ it('Test patch request', async () => {
   actualResponse = await apiHelper.invokeApi({
     path: 'https://test.com',
     token: 'testToken',
+    wrapResponseWithCode: true,
     body: {},
     method: 'PATCH',
   })
-  expect(actualResponse.body).toEqual(undefined)
+  expect(actualResponse.body).toEqual(null)
 })
 
 it('Test patch request Error', async () => {

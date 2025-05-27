@@ -86,10 +86,9 @@ export const getOrgData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminOrg,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminOrg,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { org_name: orgName },
     })
@@ -111,9 +110,10 @@ export const deleteOrg = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminOrg,
+      path: EnvironmentVars.adminOrg,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       method: 'DELETE',
+      wrapResponseWithCode: true,
       token,
       queryParams: { org_name: org },
     })
@@ -150,11 +150,12 @@ export const editOrg = createAsyncThunk(
     }
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminOrg,
+      path: EnvironmentVars.adminOrg,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       method: 'PATCH',
+      wrapResponseWithCode: true,
       token,
-      body: JSON.stringify(jsonComplete),
+      body: jsonComplete,
     })
 
     switch (data.status) {

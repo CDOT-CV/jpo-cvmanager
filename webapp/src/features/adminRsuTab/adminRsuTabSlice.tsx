@@ -29,15 +29,16 @@ export const updateTableData = createAsyncThunk(
     dispatch(getRsuInfoOnly())
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminRsu,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { rsu_ip: 'all' },
       headers: { 'Content-Type': 'application/json' },
       tag: 'rsu',
     })
+
+    console.log('Admin RSU Table Data: ', data)
 
     switch (data.status) {
       case 200:
@@ -58,9 +59,10 @@ export const deleteRsu = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminRsu,
+      path: EnvironmentVars.adminRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       method: 'DELETE',
+      wrapResponseWithCode: true,
       token,
       queryParams: { rsu_ip },
       tag: 'rsu',

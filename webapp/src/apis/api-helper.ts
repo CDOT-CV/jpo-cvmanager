@@ -3,9 +3,32 @@ import EnvironmentVars from '../EnvironmentVars'
 import { evaluateFeatureFlags } from '../feature-flags'
 
 class ApiHelper {
-  formatQueryParams(query_params?: Record<string, any>): string {
-    if (!query_params || Object.keys(query_params).length === 0) return ''
-    return `?${new URLSearchParams(query_params).toString()}`
+  formatQueryParams(query_params: Record<string, string>) {
+    if (
+      !query_params ||
+      Object.keys(query_params).length === 0 ||
+      Object.getPrototypeOf(query_params) !== Object.prototype
+    )
+      return ''
+    const params = []
+    for (const key in query_params) {
+      if (query_params[key] !== '' && query_params[key] !== null) {
+        params.push(`${key}=${query_params[key]}`)
+      }
+    }
+    return !query_params || params.length === 0 ? '' : '?' + params.join('&')
+  }
+
+  async wrapResponseWithCode(
+    response: Response,
+    responseType: string,
+    message: string | undefined = undefined
+  ): Promise<{ status: number; body: any; message: string | undefined }> {
+    return {
+      status: response.status,
+      body: responseType === 'blob' ? await response.blob() : await response.json(),
+      message: message,
+    }
   }
 
   async invokeApi({
@@ -25,7 +48,7 @@ class ApiHelper {
     successMessage = 'Successfully completed request!',
     failureMessage = 'Request failed to complete',
     tag,
-    returnCodeOnly = false,
+    wrapResponseWithCode = false,
   }: {
     path: string
     basePath?: string
@@ -43,17 +66,19 @@ class ApiHelper {
     successMessage?: string
     failureMessage?: string
     tag?: FEATURE_KEY
-    returnCodeOnly?: boolean
+    wrapResponseWithCode?: boolean
   }): Promise<any> {
     if (!evaluateFeatureFlags(tag)) {
       console.debug(`Returning null because feature is disabled for tag ${tag} and path ${path}`)
       return null
     }
-    const url = (basePath ?? EnvironmentVars.CVIZ_API_SERVER_URL!) + path + this.formatQueryParams(queryParams)
+    const url = (basePath ?? EnvironmentVars.INTERSECTION_API_SERVER_URL!) + path + this.formatQueryParams(queryParams)
 
     const localHeaders: HeadersInit = { ...headers }
-    if (token) localHeaders['Authorization'] = `Bearer ${token}`
-    if (method === 'POST' && body && !('Content-Type' in localHeaders)) {
+    if (token && basePath == EnvironmentVars.cvmanagerBaseEndpoint)
+      localHeaders['Authorization'] = `${token}` // pass token directly to Authorization header for cvmanager API
+    else if (token) localHeaders['Authorization'] = `Bearer ${token}`
+    if (body && !('Content-Type' in localHeaders)) {
       localHeaders['Content-Type'] = 'application/json'
     }
 
@@ -79,11 +104,11 @@ class ApiHelper {
 
     const resp = await fetch(url, options)
       .then((response) => {
-        if (returnCodeOnly) {
-          return response.status
-        }
         if (response.ok) {
           if (toastOnSuccess) toast.success(successMessage)
+          if (wrapResponseWithCode) {
+            return this.wrapResponseWithCode(response, responseType)
+          }
           if (booleanResponse) return true
         } else {
           console.error('Request failed with status code ' + response.status + ': ' + response.statusText)
@@ -94,10 +119,16 @@ class ApiHelper {
             toast.error('You are not authorized to perform this action.')
           } else if (toastOnFailure) toast.error(failureMessage + ', with status code ' + response.status)
 
+          if (wrapResponseWithCode) {
+            return this.wrapResponseWithCode(response, responseType, failureMessage)
+          }
           if (booleanResponse) return false
-          return undefined
+          return null
         }
         if (responseType === 'blob') {
+          if (wrapResponseWithCode) {
+            return this.wrapResponseWithCode(response, responseType)
+          }
           return response.blob()
         } else {
           const resp = response.json()
@@ -106,6 +137,10 @@ class ApiHelper {
               console.error(err)
             }
           })
+
+          if (wrapResponseWithCode) {
+            return this.wrapResponseWithCode(response, responseType)
+          }
           return resp
         }
       })
@@ -117,6 +152,13 @@ class ApiHelper {
         }
       })
     if (id) clearTimeout(id)
+    if (!resp) {
+      if (wrapResponseWithCode) {
+        return { status: undefined, body: null, message: undefined }
+      } else {
+        return null
+      }
+    }
     return resp
   }
 }

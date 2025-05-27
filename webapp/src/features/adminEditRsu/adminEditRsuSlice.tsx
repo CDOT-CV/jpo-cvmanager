@@ -96,10 +96,9 @@ export const getRsuInfo = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminRsu,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       queryParams: { rsu_ip },
       headers: { 'Content-Type': 'application/json' },
@@ -124,12 +123,13 @@ export const editRsu = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminRsu,
+      path: EnvironmentVars.adminRsu,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       method: 'PATCH',
+      wrapResponseWithCode: true,
       token,
       queryParams: { rsu_ip: json.orig_ip },
-      body: JSON.stringify(json),
+      body: json,
       tag: 'rsu',
     })
 

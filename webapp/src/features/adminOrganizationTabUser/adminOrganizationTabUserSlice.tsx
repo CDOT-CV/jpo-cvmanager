@@ -27,9 +27,9 @@ export const getUserData = async (
   token: string
 ): Promise<ApiMsgRespWithCodes<{ user_data: AdminOrgUser | AdminOrgUser[] }>> => {
   return await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminUser,
-    returnCodeOnly: true,
+    path: EnvironmentVars.adminUser,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
 
     token,
     queryParams: { user_email: email },
@@ -44,10 +44,9 @@ export const getAvailableRoles = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddUser,
-      returnCodeOnly: true,
-
+      path: EnvironmentVars.adminAddUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       headers: { 'Content-Type': 'application/json' },
     })

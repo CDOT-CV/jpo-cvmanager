@@ -25,8 +25,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<RsuInfoList> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuInfoEndpoint,
+      path: EnvironmentVars.rsuInfoEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -39,8 +39,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<RsuOnlineStatusRespMultiple | RsuOnlineStatusRespSingle> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuOnlineEndpoint,
+      path: EnvironmentVars.rsuOnlineEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -53,8 +53,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<RsuCounts> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuCountsEndpoint,
+      path: EnvironmentVars.rsuCountsEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -67,8 +67,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<RsuMsgFwdConfigs> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuMsgFwdQueryEndpoint,
+      path: EnvironmentVars.rsuMsgFwdQueryEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -81,8 +81,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<GetRsuUserAuthResp> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.authEndpoint,
+      path: EnvironmentVars.authEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -95,8 +95,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<GetRsuCommandResp> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuCommandEndpoint,
+      path: EnvironmentVars.rsuCommandEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -108,8 +108,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<SsmSrmData> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.ssmSrmEndpoint,
+      path: EnvironmentVars.ssmSrmEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       tag: 'rsu',
@@ -121,8 +121,8 @@ class RsuApi {
     query_params: Record<string, string> = {}
   ): Promise<IssScmsStatus> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.issScmsStatusEndpoint,
+      path: EnvironmentVars.issScmsStatusEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       headers: { Organization: org },
@@ -132,8 +132,8 @@ class RsuApi {
   // WZDx
   getWzdxData = async (token: string, url_ext: string = '', query_params = {}): Promise<WZDxWorkZoneFeed> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.wzdxEndpoint,
+      path: EnvironmentVars.wzdxEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
       token: token,
       queryParams: query_params,
       tag: 'rsu',
@@ -146,8 +146,9 @@ class RsuApi {
     url_ext: string = ''
   ): Promise<ApiMsgRespWithCodes<MooveAiFeature[]>> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.mooveAiDataEndpoint,
+      path: EnvironmentVars.mooveAiDataEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token: token,
       method: 'POST',
       body,
@@ -156,8 +157,9 @@ class RsuApi {
   // POST
   postGeoMsgData = async (token: string, body: Object, url_ext: string = ''): Promise<ApiMsgRespWithCodes<any>> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.geoMsgDataEndpoint,
+      path: EnvironmentVars.geoMsgDataEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token: token,
       method: 'POST',
       body: body,
@@ -172,11 +174,12 @@ class RsuApi {
     url_ext = ''
   ): Promise<ApiMsgRespWithCodes<any>> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuCommandEndpoint,
+      path: EnvironmentVars.rsuCommandEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token: token,
       method: 'POST',
-      body: JSON.stringify(body),
+      body: body,
       headers: { Organization: org },
       tag: 'rsu',
     })
@@ -184,8 +187,9 @@ class RsuApi {
   // POST
   postRsuGeo = async (token: string, org: string, body: Object, url_ext: string): Promise<ApiMsgRespWithCodes<any>> =>
     apiHelper.invokeApi({
-      path: url_ext,
-      basePath: EnvironmentVars.rsuGeoQueryEndpoint,
+      path: EnvironmentVars.rsuGeoQueryEndpoint + url_ext,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token: token,
       method: 'POST',
       body: body,
@@ -196,20 +200,22 @@ class RsuApi {
   // POST
   postContactSupport = async (json: Object): Promise<ApiMsgRespWithCodes<any>> =>
     apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.contactSupport,
+      path: EnvironmentVars.contactSupport,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       method: 'POST',
-      body: JSON.stringify(json),
+      body: json,
       tag: 'rsu',
     })
 
   // POST
   postRsuErrorSummary = async (json: Object): Promise<ApiMsgRespWithCodes<any>> =>
     apiHelper.invokeApi({
-      path: '',
+      path: EnvironmentVars.contactSupport,
       basePath: EnvironmentVars.rsuErrorSummary,
+      wrapResponseWithCode: true,
       method: 'POST',
-      body: JSON.stringify(json),
+      body: json,
       tag: 'rsu',
     })
 }

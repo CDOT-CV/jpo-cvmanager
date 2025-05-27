@@ -31,9 +31,9 @@ export const getUserData = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddUser,
-      returnCodeOnly: true,
+      path: EnvironmentVars.adminAddUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       token,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -56,11 +56,12 @@ export const createUser = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper.invokeApi({
-      path: '',
-      basePath: EnvironmentVars.adminAddUser,
+      path: EnvironmentVars.adminAddUser,
+      basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+      wrapResponseWithCode: true,
       method: 'POST',
       token,
-      body: JSON.stringify(json),
+      body: json,
     })
 
     switch (data.status) {

@@ -78,8 +78,8 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(undefined)
       expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-        path: '',
-        basePath: EnvironmentVars.adminAddIntersection,
+        path: EnvironmentVars.adminAddIntersection,
+        basePath: EnvironmentVars.cvmanagerBaseEndpoint,
         token: 'token',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -141,11 +141,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: '' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminAddIntersection,
+          path: EnvironmentVars.adminAddIntersection,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'POST',
-          body: JSON.stringify(json),
+          body: json,
         })
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(reset).toHaveBeenCalledTimes(1)
@@ -164,11 +165,12 @@ describe('async thunks', () => {
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper.invokeApi).toHaveBeenCalledWith({
-          path: '',
-          basePath: EnvironmentVars.adminAddIntersection,
+          path: EnvironmentVars.adminAddIntersection,
+          basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+          wrapResponseWithCode: true,
           token: 'token',
           method: 'POST',
-          body: JSON.stringify(json),
+          body: json,
         })
         expect(setTimeout).not.toHaveBeenCalled()
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)

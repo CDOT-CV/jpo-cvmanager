@@ -18,9 +18,9 @@ const initialState = {
 
 export const getIntersectionDataById = async (intersection_id: string, token: string) => {
   const data = await apiHelper.invokeApi({
-    path: '',
-    basePath: EnvironmentVars.adminIntersection,
-    returnCodeOnly: true,
+    path: EnvironmentVars.adminIntersection,
+    basePath: EnvironmentVars.cvmanagerBaseEndpoint,
+    wrapResponseWithCode: true,
 
     token,
     queryParams: { intersection_id },
