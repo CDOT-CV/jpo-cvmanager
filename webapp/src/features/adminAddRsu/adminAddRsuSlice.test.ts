@@ -37,7 +37,7 @@ import {
   selectSubmitAttempt,
   selectLoading,
 } from './adminAddRsuSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -97,13 +97,14 @@ describe('async thunks', () => {
       const action = getRsuCreationData()
 
       const apiJson = { data: 'data' }
-      apiHelper._getData = jest.fn().mockReturnValue('_getData_response')
+      apiHelper.invokeApi = jest.fn().mockReturnValue('_getData_response')
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(undefined)
-      expect(apiHelper._getData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddRsu,
         token: 'token',
-        additional_headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
       })
     })
@@ -160,13 +161,16 @@ describe('async thunks', () => {
       let action = createRsu({ json, reset })
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
-        apiHelper._postData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: '' })
-        expect(apiHelper._postData).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminAddRsu,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminAddRsu,
           token: 'token',
+          method: 'POST',
           body: JSON.stringify(json),
+          tag: 'rsu',
         })
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(reset).toHaveBeenCalledTimes(1)
@@ -181,13 +185,16 @@ describe('async thunks', () => {
       action = createRsu({ json, reset })
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
-        apiHelper._postData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
-        expect(apiHelper._postData).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminAddRsu,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminAddRsu,
           token: 'token',
+          method: 'POST',
           body: JSON.stringify(json),
+          tag: 'rsu',
         })
         expect(setTimeout).not.toHaveBeenCalled()
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)

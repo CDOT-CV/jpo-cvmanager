@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { updateTableData as updateRsuTableData } from '../adminRsuTab/adminRsuTabSlice'
 import { RootState } from '../../store'
 import { AdminEditRsuFormType } from './AdminEditRsu'
@@ -95,11 +95,14 @@ export const getRsuInfo = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminRsu,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminRsu,
+      returnCodeOnly: true,
+
       token,
-      query_params: { rsu_ip },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { rsu_ip },
+      headers: { 'Content-Type': 'application/json' },
       tag: 'rsu',
     })
 
@@ -120,10 +123,12 @@ export const editRsu = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminRsu,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminRsu,
+      method: 'PATCH',
       token,
-      query_params: { rsu_ip: json.orig_ip },
+      queryParams: { rsu_ip: json.orig_ip },
       body: JSON.stringify(json),
       tag: 'rsu',
     })

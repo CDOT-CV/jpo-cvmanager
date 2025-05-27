@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { updateTableData as updateRsuTableData } from '../adminRsuTab/adminRsuTabSlice'
 import { RootState } from '../../store'
 import { AdminOrgRsu } from '../adminOrganizationTab/adminOrganizationTabSlice'
@@ -163,10 +163,11 @@ export const getRsuCreationData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = (await apiHelper._getData({
-      url: EnvironmentVars.adminAddRsu,
+    const data = (await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddRsu,
       token,
-      additional_headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       tag: 'rsu',
     })) as AdminRsuCreationInfo
     return updateApiJson(data)
@@ -181,10 +182,13 @@ export const createRsu = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._postData({
-      url: EnvironmentVars.adminAddRsu,
-      body: JSON.stringify(json),
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddRsu,
       token,
+      method: 'POST',
+      body: JSON.stringify(json),
+      tag: 'rsu',
     })
     switch (data.status) {
       case 200:

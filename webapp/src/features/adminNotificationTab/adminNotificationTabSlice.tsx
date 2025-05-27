@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectEmail, selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import { AdminEmailNotification } from '../../models/Notifications'
 
@@ -13,19 +13,24 @@ const initialState = {
 }
 
 export const getNotificationData = async (user_email: string, token: string) => {
-  return await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminNotification,
+  return await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminNotification,
+    returnCodeOnly: true,
+
     token,
-    query_params: { user_email },
-    additional_headers: { 'Content-Type': 'application/json' },
+    queryParams: { user_email },
+    headers: { 'Content-Type': 'application/json' },
   })
 }
 
 export const deleteNotification = async (email: string, email_type: string, token: string) => {
-  const data = await apiHelper._deleteData({
-    url: EnvironmentVars.adminNotification,
+  const data = await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminNotification,
+    method: 'DELETE',
     token,
-    query_params: { email, email_type },
+    queryParams: { email, email_type },
   })
 
   switch (data.status) {

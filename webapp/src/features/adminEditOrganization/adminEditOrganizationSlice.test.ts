@@ -13,7 +13,7 @@ import {
   selectSuccessMsg,
   selectLoading,
 } from './adminEditOrganizationSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 

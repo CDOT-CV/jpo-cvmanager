@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { getRsuInfoOnly } from '../../generalSlices/rsuSlice'
 import { RootState } from '../../store'
 import { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
@@ -28,11 +28,14 @@ export const updateTableData = createAsyncThunk(
 
     dispatch(getRsuInfoOnly())
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminRsu,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminRsu,
+      returnCodeOnly: true,
+
       token,
-      query_params: { rsu_ip: 'all' },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { rsu_ip: 'all' },
+      headers: { 'Content-Type': 'application/json' },
       tag: 'rsu',
     })
 
@@ -54,10 +57,12 @@ export const deleteRsu = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._deleteData({
-      url: EnvironmentVars.adminRsu,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminRsu,
+      method: 'DELETE',
       token,
-      query_params: { rsu_ip },
+      queryParams: { rsu_ip },
       tag: 'rsu',
     })
 

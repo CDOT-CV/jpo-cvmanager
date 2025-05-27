@@ -14,7 +14,7 @@ import {
   selectColumns,
   selectEditRsuRowData,
 } from './adminRsuTabSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -69,26 +69,30 @@ describe('async thunks', () => {
       })
       const action = updateTableData()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('data')
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip: 'all' },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
       dispatch = jest.fn()
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip: 'all' },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -155,12 +159,14 @@ describe('async thunks', () => {
 
       let action = deleteRsu({ rsu_ip, shouldUpdateTableData })
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip },
+        method: 'DELETE',
+        queryParams: { rsu_ip },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -169,12 +175,14 @@ describe('async thunks', () => {
       dispatch = jest.fn()
       action = deleteRsu({ rsu_ip, shouldUpdateTableData })
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip },
+        method: 'DELETE',
+        queryParams: { rsu_ip },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import { AdminIntersection } from '../../models/Intersection'
 import { AdminEditIntersectionFormType } from '../adminEditIntersection/AdminEditIntersection'
@@ -30,11 +30,14 @@ export const updateTableData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminIntersection,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminIntersection,
+      returnCodeOnly: true,
+
       token,
-      query_params: { intersection_id: 'all' },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { intersection_id: 'all' },
+      headers: { 'Content-Type': 'application/json' },
       tag: 'intersection',
     })
 
@@ -64,10 +67,12 @@ export const deleteIntersection = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._deleteData({
-      url: EnvironmentVars.adminIntersection,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminIntersection,
+      method: 'DELETE',
       token,
-      query_params: { intersection_id },
+      queryParams: { intersection_id },
       tag: 'intersection',
     })
 

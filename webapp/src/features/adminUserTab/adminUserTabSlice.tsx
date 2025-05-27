@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 
 const initialState = {
@@ -12,19 +12,23 @@ const initialState = {
 }
 
 export const getUserData = async (user_email: string, token: string) => {
-  return await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminUser,
+  return await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminUser,
+    returnCodeOnly: true,
     token,
-    query_params: { user_email },
-    additional_headers: { 'Content-Type': 'application/json' },
+    queryParams: { user_email },
+    headers: { 'Content-Type': 'application/json' },
   })
 }
 
 export const deleteUser = async (user_email: string, token: string) => {
-  const data = await apiHelper._deleteData({
-    url: EnvironmentVars.adminUser,
+  const data = await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminUser,
+    method: 'DELETE',
     token,
-    query_params: { user_email },
+    queryParams: { user_email },
   })
 
   switch (data.status) {

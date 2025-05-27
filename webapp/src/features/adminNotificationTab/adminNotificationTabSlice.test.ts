@@ -20,7 +20,7 @@ import {
   selectTitle,
   selectEditNotificationRowData,
 } from './adminNotificationTabSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -69,7 +69,7 @@ describe('async thunks', () => {
       })
       const action = getUserNotifications()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('data')
     })
@@ -160,13 +160,13 @@ describe('async thunks', () => {
 
       let action = deleteNotifications(data)
 
-      apiHelper._deleteData = jest
+      apiHelper.invokeApi = jest
         .fn()
         .mockReturnValueOnce({ status: 200 })
         .mockReturnValueOnce({ status: 200 })
         .mockReturnValueOnce({ status: 500 })
       await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledTimes(3)
+      expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
     })
   })
@@ -227,14 +227,16 @@ describe('functions', () => {
   it('getUserNotifications', async () => {
     const user_email = 'test@gmail.com'
     const token = 'token'
-    apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ data: 'data' })
     const resp = await getNotificationData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
-    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminNotification,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminNotification,
       token,
-      query_params: { user_email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { user_email },
+      returnCodeOnly: true,
+      headers: { 'Content-Type': 'application/json' },
     })
   })
 
@@ -242,12 +244,14 @@ describe('functions', () => {
     const email = 'test@gmail.com'
     const token = 'token'
     const email_type = 'email_type'
-    apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     await deleteNotification(email, email_type, token)
-    expect(apiHelper._deleteData).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminNotification,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminNotification,
       token,
-      query_params: { email, email_type },
+      method: 'DELETE',
+      queryParams: { email, email_type },
     })
   })
 })

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { getAvailableUsers } from '../adminUserTab/adminUserTabSlice'
 import { RootState } from '../../store'
 import { AdminOrgUser } from '../adminOrganizationTab/adminOrganizationTabSlice'
@@ -30,10 +30,12 @@ export const getUserData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminAddUser,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddUser,
+      returnCodeOnly: true,
       token,
-      additional_headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     switch (data.status) {
@@ -53,8 +55,10 @@ export const createUser = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._postData({
-      url: EnvironmentVars.adminAddUser,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddUser,
+      method: 'POST',
       token,
       body: JSON.stringify(json),
     })

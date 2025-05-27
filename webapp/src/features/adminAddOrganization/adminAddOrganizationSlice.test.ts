@@ -6,7 +6,7 @@ import {
   // selectors
   selectLoading,
 } from './adminAddOrganizationSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -44,12 +44,14 @@ describe('async thunks', () => {
       const json = { data: 'data' } as any
       let action = addOrg({ json })
 
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'Organization Creation is successful.' })
-      expect(apiHelper._postData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddOrg,
         token: 'token',
+        method: 'POST',
         body: JSON.stringify(json),
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -57,12 +59,14 @@ describe('async thunks', () => {
       // Error Code Other
       dispatch = jest.fn()
       action = addOrg({ json })
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._postData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddOrg,
         token: 'token',
+        method: 'POST',
         body: JSON.stringify(json),
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)

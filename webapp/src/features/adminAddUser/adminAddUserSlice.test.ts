@@ -21,7 +21,7 @@ import {
   selectApiData,
   selectSubmitAttempt,
 } from './adminAddUserSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -74,22 +74,26 @@ describe('async thunks', () => {
       })
       const action = getUserData()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
+        returnCodeOnly: true,
         token: 'token',
-        additional_headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message', body: 'body' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message', body: 'body' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
+        returnCodeOnly: true,
         token: 'token',
-        additional_headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
       })
     })
 
@@ -156,12 +160,14 @@ describe('async thunks', () => {
 
       let reset = jest.fn()
       let action = createUser({ json, reset })
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 200, message: 'User Creation is successful.' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'User Creation is successful.' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'User Creation is successful.' })
-      expect(apiHelper._postData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
         token: 'token',
+        method: 'POST',
         body: JSON.stringify(json),
       })
       expect(dispatch).toHaveBeenCalledTimes(2 + 2)
@@ -169,12 +175,14 @@ describe('async thunks', () => {
       // Error Code Other
       dispatch = jest.fn()
       action = createUser({ json, reset })
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._postData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
         token: 'token',
+        method: 'POST',
         body: JSON.stringify(json),
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)

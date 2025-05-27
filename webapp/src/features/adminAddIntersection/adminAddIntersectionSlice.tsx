@@ -1,7 +1,7 @@
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { updateTableData as updateIntersectionTableData } from '../adminIntersectionTab/adminIntersectionTabSlice'
 import { RootState } from '../../store'
 import { AdminAddIntersectionForm } from './AdminAddIntersection'
@@ -132,10 +132,11 @@ export const getIntersectionCreationData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = (await apiHelper._getData({
-      url: EnvironmentVars.adminAddIntersection,
+    const data = (await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddIntersection,
       token,
-      additional_headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     })) as AdminIntersectionCreationInfo
     return convertApiJsonToKeyedFormat(data)
   },
@@ -168,10 +169,12 @@ export const createIntersection = createAsyncThunk(
       delete json.origin_ip
     }
 
-    const data = await apiHelper._postData({
-      url: EnvironmentVars.adminAddIntersection,
-      body: JSON.stringify(json),
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddIntersection,
       token,
+      method: 'POST',
+      body: JSON.stringify(json),
     })
     switch (data.status) {
       case 200:

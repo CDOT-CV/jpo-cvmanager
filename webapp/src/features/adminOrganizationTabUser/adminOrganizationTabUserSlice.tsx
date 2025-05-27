@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken, setOrganizationList } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import {
   AdminOrgTabUserAddMultiple,
@@ -26,11 +26,14 @@ export const getUserData = async (
   email: string,
   token: string
 ): Promise<ApiMsgRespWithCodes<{ user_data: AdminOrgUser | AdminOrgUser[] }>> => {
-  return await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminUser,
+  return await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminUser,
+    returnCodeOnly: true,
+
     token,
-    query_params: { user_email: email },
-    additional_headers: { 'Content-Type': 'application/json' },
+    queryParams: { user_email: email },
+    headers: { 'Content-Type': 'application/json' },
   })
 }
 
@@ -40,10 +43,13 @@ export const getAvailableRoles = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminAddUser,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddUser,
+      returnCodeOnly: true,
+
       token,
-      additional_headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     switch (data.status) {

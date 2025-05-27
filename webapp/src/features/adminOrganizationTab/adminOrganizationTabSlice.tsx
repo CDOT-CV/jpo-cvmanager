@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 
 export type AdminOrgSummary = {
@@ -85,10 +85,13 @@ export const getOrgData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminOrg,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminOrg,
+      returnCodeOnly: true,
+
       token,
-      query_params: { org_name: orgName },
+      queryParams: { org_name: orgName },
     })
 
     switch (data.status) {
@@ -107,10 +110,12 @@ export const deleteOrg = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._deleteData({
-      url: EnvironmentVars.adminOrg,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminOrg,
+      method: 'DELETE',
       token,
-      query_params: { org_name: org },
+      queryParams: { org_name: org },
     })
 
     switch (data.status) {
@@ -144,8 +149,10 @@ export const editOrg = createAsyncThunk(
       ...json,
     }
 
-    const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminOrg,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminOrg,
+      method: 'PATCH',
       token,
       body: JSON.stringify(jsonComplete),
     })

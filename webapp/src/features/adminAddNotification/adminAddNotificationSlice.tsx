@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectEmail, selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { getUserNotifications } from '../adminNotificationTab/adminNotificationTabSlice'
 import { RootState } from '../../store'
 
@@ -39,11 +39,13 @@ export const getNotificationData = createAsyncThunk(
     const token = selectToken(currentState)
     const user_email = selectEmail(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminAddNotification,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddNotification,
+      returnCodeOnly: true,
       token,
-      query_params: { user_email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { user_email },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     switch (data.status) {
@@ -63,8 +65,10 @@ export const createNotification = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._postData({
-      url: EnvironmentVars.adminAddNotification,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddNotification,
+      method: 'POST',
       token,
       body: JSON.stringify(json),
     })

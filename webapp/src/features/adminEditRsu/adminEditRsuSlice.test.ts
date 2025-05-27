@@ -38,7 +38,7 @@ import {
   selectSelectedOrganizations,
   selectSubmitAttempt,
 } from './adminEditRsuSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -110,27 +110,31 @@ describe('async thunks', () => {
       const rsu_ip = '1.1.1.1'
       const action = getRsuInfo(rsu_ip)
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
       dispatch = jest.fn()
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
@@ -203,13 +207,15 @@ describe('async thunks', () => {
 
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
-        apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
-        expect(apiHelper._patchData).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminRsu,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminRsu,
           token: 'token',
-          query_params: { rsu_ip: json.orig_ip },
+          method: 'PATCH',
+          queryParams: { rsu_ip: json.orig_ip },
           body: JSON.stringify(json),
           tag: 'rsu',
         })
@@ -222,13 +228,15 @@ describe('async thunks', () => {
       dispatch = jest.fn()
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
-        apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
         let resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
-        expect(apiHelper._patchData).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminRsu,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminRsu,
           token: 'token',
-          query_params: { rsu_ip: json.orig_ip },
+          method: 'PATCH',
+          queryParams: { rsu_ip: json.orig_ip },
           body: JSON.stringify(json),
           tag: 'rsu',
         })

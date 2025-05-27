@@ -22,7 +22,7 @@ import {
   selectSelectedUserList,
   selectAvailableRoles,
 } from './adminOrganizationTabUserSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -69,22 +69,26 @@ describe('async thunks', () => {
       })
       const action = getAvailableRoles()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
         token: 'token',
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        headers: { 'Content-Type': 'application/json' },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminAddUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminAddUser,
         token: 'token',
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        headers: { 'Content-Type': 'application/json' },
       })
     })
 
@@ -149,24 +153,28 @@ describe('async thunks', () => {
       const orgName = 'orgName'
       const action = getAvailableUsers(orgName)
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminUser,
         token: 'token',
-        query_params: { user_email: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { user_email: 'all' },
+        headers: { 'Content-Type': 'application/json' },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminUser,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminUser,
         token: 'token',
-        query_params: { user_email: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { user_email: 'all' },
+        headers: { 'Content-Type': 'application/json' },
       })
     })
 
@@ -250,9 +258,9 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ body: userData })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ body: userData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
@@ -263,9 +271,9 @@ describe('async thunks', () => {
         action = userDeleteSingle({ user, selectedOrg, selectedOrgEmail, updateTableData })
 
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ body: userData })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ body: userData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove User test@gmail.com from selectedOrg because they must belong to at least one organization.'
@@ -305,7 +313,7 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: userData })
           .mockReturnValueOnce({ body: userData })
@@ -319,7 +327,7 @@ describe('async thunks', () => {
         action = userDeleteMultiple({ users, selectedOrg, selectedOrgEmail, updateTableData })
 
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: userData })
           .mockReturnValueOnce({ body: invalidUserData })
@@ -454,14 +462,16 @@ describe('functions', () => {
   it('getUserData', async () => {
     const user_email = 'test@gmail.com'
     const token = 'token'
-    apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ data: 'data' })
     const resp = await getUserData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
-    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminUser,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminUser,
       token,
-      query_params: { user_email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { user_email },
+      returnCodeOnly: true,
+      headers: { 'Content-Type': 'application/json' },
     })
   })
 })

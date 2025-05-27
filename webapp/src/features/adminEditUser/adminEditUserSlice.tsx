@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import { getAvailableUsers } from '../adminUserTab/adminUserTabSlice'
 
@@ -72,11 +72,14 @@ export const getUserData = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminUser,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminUser,
+      returnCodeOnly: true,
+
       token,
-      query_params: { user_email: email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { user_email: email },
+      headers: { 'Content-Type': 'application/json' },
     })
 
     switch (data.status) {
@@ -97,9 +100,11 @@ export const editUser = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminUser,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminUser,
       token,
+      method: 'PATCH',
       body: JSON.stringify(json),
     })
 

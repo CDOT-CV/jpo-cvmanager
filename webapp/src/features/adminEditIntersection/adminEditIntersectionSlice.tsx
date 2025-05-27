@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { updateTableData as updateIntersectionTableData } from '../adminIntersectionTab/adminIntersectionTabSlice'
 import { RootState } from '../../store'
 import { AdminEditIntersectionFormType } from './AdminEditIntersection'
@@ -144,11 +144,14 @@ export const getIntersectionInfo = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._getDataWithCodes({
-      url: EnvironmentVars.adminIntersection,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminIntersection,
+      returnCodeOnly: true,
+
       token,
-      query_params: { intersection_id },
-      additional_headers: { 'Content-Type': 'application/json' },
+      queryParams: { intersection_id },
+      headers: { 'Content-Type': 'application/json' },
       tag: 'intersection',
     })
 
@@ -176,10 +179,12 @@ export const editIntersection = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminIntersection,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminIntersection,
+      method: 'PATCH',
       token,
-      query_params: { intersection_id: json.orig_intersection_id },
+      queryParams: { intersection_id: json.orig_intersection_id },
       body: JSON.stringify(json),
       tag: 'intersection',
     })

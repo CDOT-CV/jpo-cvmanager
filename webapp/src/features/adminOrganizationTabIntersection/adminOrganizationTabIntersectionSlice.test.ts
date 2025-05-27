@@ -18,7 +18,7 @@ import {
   selectAvailableIntersectionList,
   selectSelectedIntersectionList,
 } from './adminOrganizationTabIntersectionSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -64,22 +64,26 @@ describe('async thunks', () => {
       const orgName = 'orgName'
       const action = getIntersectionData(orgName)
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
+        returnCodeOnly: true,
+        queryParams: { intersection_id: 'all' },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
+        returnCodeOnly: true,
+        queryParams: { intersection_id: 'all' },
       })
     })
 
@@ -161,14 +165,16 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ body: intersectionData })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ body: intersectionData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminIntersection,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminIntersection,
           token: 'token',
-          query_params: { intersection_id: intersection.intersection_id },
+          returnCodeOnly: true,
+          queryParams: { intersection_id: intersection.intersection_id },
         })
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
@@ -178,10 +184,10 @@ describe('async thunks', () => {
 
         action = intersectionDeleteSingle({ intersection, selectedOrg, selectedOrgEmail, updateTableData })
 
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
         window.alert = jest.fn()
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove Intersection 1 from selectedOrg because it must belong to at least one organization.'
@@ -216,13 +222,13 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: intersectionData })
           .mockReturnValueOnce({ body: intersectionData })
           .mockReturnValueOnce({ body: intersectionData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(3)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
@@ -232,13 +238,13 @@ describe('async thunks', () => {
         action = intersectionDeleteMultiple({ rows, selectedOrg, selectedOrgEmail, updateTableData })
 
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: intersectionData })
           .mockReturnValueOnce({ body: invalidIntersectionData })
           .mockReturnValueOnce({ body: invalidIntersectionData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(3)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove Intersection(s) 2, 3 from selectedOrg because they must belong to at least one organization.'
@@ -318,13 +324,15 @@ describe('functions', () => {
   it('getIntersectionDataById', async () => {
     const intersection_id = '1'
     const token = 'token'
-    apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ data: 'data' })
     const resp = await getIntersectionDataById(intersection_id, token)
     expect(resp).toEqual({ data: 'data' })
-    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminIntersection,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminIntersection,
       token,
-      query_params: { intersection_id },
+      returnCodeOnly: true,
+      queryParams: { intersection_id },
     })
   })
 })

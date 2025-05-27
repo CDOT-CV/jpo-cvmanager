@@ -18,7 +18,7 @@ import {
   selectAvailableRsuList,
   selectSelectedRsuList,
 } from './adminOrganizationTabRsuSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -64,23 +64,27 @@ describe('async thunks', () => {
       const orgName = 'orgName'
       const action = getRsuData(orgName)
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data', orgName })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip: 'all' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip: 'all' },
         tag: 'rsu',
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminRsu,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminRsu,
         token: 'token',
-        query_params: { rsu_ip: 'all' },
+        returnCodeOnly: true,
+        queryParams: { rsu_ip: 'all' },
         tag: 'rsu',
       })
     })
@@ -163,15 +167,17 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ body: rsuData })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ body: rsuData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-          url: EnvironmentVars.adminRsu,
+        expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+          path: '',
+          basePath: EnvironmentVars.adminRsu,
           token: 'token',
-          query_params: { rsu_ip: rsu.ip },
+          returnCodeOnly: true,
+          queryParams: { rsu_ip: rsu.ip },
           tag: 'rsu',
         })
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
@@ -181,10 +187,10 @@ describe('async thunks', () => {
 
         action = rsuDeleteSingle({ rsu, selectedOrg, selectedOrgEmail, updateTableData })
 
-        apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+        apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
         window.alert = jest.fn()
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove RSU 1.1.1.1 from selectedOrg because it must belong to at least one organization.'
@@ -219,13 +225,13 @@ describe('async thunks', () => {
       const jsdomAlert = window.alert
       try {
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: rsuData })
           .mockReturnValueOnce({ body: rsuData })
           .mockReturnValueOnce({ body: rsuData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(3)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
@@ -235,13 +241,13 @@ describe('async thunks', () => {
         action = rsuDeleteMultiple({ rows, selectedOrg, selectedOrgEmail, updateTableData })
 
         window.alert = jest.fn()
-        apiHelper._getDataWithCodes = jest
+        apiHelper.invokeApi = jest
           .fn()
           .mockReturnValueOnce({ body: rsuData })
           .mockReturnValueOnce({ body: invalidRsuData })
           .mockReturnValueOnce({ body: invalidRsuData })
         await action(dispatch, getState, undefined)
-        expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(3)
+        expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove RSU(s) 1.1.1.2, 1.1.1.3 from selectedOrg because they must belong to at least one organization.'
@@ -321,13 +327,15 @@ describe('functions', () => {
   it('getRsuDataByIp', async () => {
     const rsu_ip = '1.1.1.1'
     const token = 'token'
-    apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ data: 'data' })
     const resp = await getRsuDataByIp(rsu_ip, token)
     expect(resp).toEqual({ data: 'data' })
-    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminRsu,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminRsu,
       token,
-      query_params: { rsu_ip },
+      returnCodeOnly: true,
+      queryParams: { rsu_ip },
       tag: 'rsu',
     })
   })

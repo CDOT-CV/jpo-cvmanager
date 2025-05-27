@@ -14,7 +14,7 @@ import {
   selectColumns,
   selectEditIntersectionRowData,
 } from './adminIntersectionTabSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -68,26 +68,30 @@ describe('async thunks', () => {
       })
       const action = updateTableData()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('data')
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { intersection_id: 'all' },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
 
       dispatch = jest.fn()
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
-        additional_headers: { 'Content-Type': 'application/json' },
+        returnCodeOnly: true,
+        queryParams: { intersection_id: 'all' },
+        headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
@@ -155,12 +159,14 @@ describe('async thunks', () => {
 
       let action = deleteIntersection({ intersection_id, shouldUpdateTableData })
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id },
+        method: 'DELETE',
+        queryParams: { intersection_id },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -169,12 +175,14 @@ describe('async thunks', () => {
       dispatch = jest.fn()
       action = deleteIntersection({ intersection_id, shouldUpdateTableData })
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id },
+        method: 'DELETE',
+        queryParams: { intersection_id },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import { getOrgData } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { AdminAddOrgForm } from './AdminAddOrganization'
@@ -18,8 +18,10 @@ export const addOrg = createAsyncThunk(
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
-    const data = await apiHelper._postData({
-      url: EnvironmentVars.adminAddOrg,
+    const data = await apiHelper.invokeApi({
+      path: '',
+      basePath: EnvironmentVars.adminAddOrg,
+      method: 'POST',
       token,
       body: JSON.stringify(json),
     })

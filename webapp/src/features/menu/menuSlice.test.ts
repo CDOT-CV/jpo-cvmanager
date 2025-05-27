@@ -15,7 +15,7 @@ import {
   selectSortedCountList,
   selectDisplayCounts,
 } from './menuSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 const { DateTime } = require('luxon')
 
@@ -102,7 +102,7 @@ describe('functions', () => {
     const expected = { start: '2021-01-01T00:00:00.000-07:00' }
     const type = 'start'
     const requestOut = true
-    apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     const resp = changeDate(e, type, requestOut)(dispatch)
     expect(resp).toEqual(expected)
     expect(dispatch).toHaveBeenCalledTimes(1)
@@ -114,7 +114,7 @@ describe('functions', () => {
     const expected = { end: '2021-01-01T00:00:00.000-07:00' }
     const type = 'end'
     const requestOut = true
-    apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     const resp = changeDate(e, type, requestOut)(dispatch)
     expect(resp).toEqual(expected)
     expect(dispatch).toHaveBeenCalledTimes(1)

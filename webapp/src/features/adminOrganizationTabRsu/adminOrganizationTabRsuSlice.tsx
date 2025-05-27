@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import { AdminRsu } from '../../models/Rsu'
 import {
@@ -18,10 +18,13 @@ const initialState = {
 }
 
 export const getRsuDataByIp = async (rsu_ip: string, token: string) => {
-  const data = await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminRsu,
+  const data = await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminRsu,
+    returnCodeOnly: true,
+
     token,
-    query_params: { rsu_ip },
+    queryParams: { rsu_ip },
     tag: 'rsu',
   })
 

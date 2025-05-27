@@ -19,7 +19,7 @@ import {
   selectRsuTableData,
   selectUserTableData,
 } from './adminOrganizationTabSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -77,22 +77,26 @@ describe('async thunks', () => {
       let all = false
       const action = getOrgData({ orgName, all, specifiedOrg })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', all, specifiedOrg })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
+        returnCodeOnly: true,
         token: 'token',
-        query_params: { org_name: orgName },
+        queryParams: { org_name: orgName },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
+        returnCodeOnly: true,
         token: 'token',
-        query_params: { org_name: orgName },
+        queryParams: { org_name: orgName },
       })
     })
 
@@ -212,22 +216,26 @@ describe('async thunks', () => {
       const org_name = 'orgName'
       const action = deleteOrg(org_name)
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
         token: 'token',
-        query_params: { org_name },
+        method: 'DELETE',
+        queryParams: { org_name },
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
       dispatch = jest.fn()
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
         token: 'token',
-        query_params: { org_name },
+        method: 'DELETE',
+        queryParams: { org_name },
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })
@@ -246,12 +254,14 @@ describe('async thunks', () => {
       const json = { data: 'data', orig_name: 'orig_name' } as any
       const action = editOrg(json)
 
-      apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '' })
-      expect(apiHelper._patchData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
         token: 'token',
+        method: 'PATCH',
         body: JSON.stringify({
           orig_name: 'orig_name',
           users_to_add: [],
@@ -265,12 +275,14 @@ describe('async thunks', () => {
         }),
       })
 
-      apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
-      expect(apiHelper._patchData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminOrg,
+      expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+        path: '',
+        basePath: EnvironmentVars.adminOrg,
         token: 'token',
+        method: 'PATCH',
         body: JSON.stringify({
           orig_name: 'orig_name',
           users_to_add: [],

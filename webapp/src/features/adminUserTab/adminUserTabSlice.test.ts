@@ -20,7 +20,7 @@ import {
   selectTitle,
   selectEditUserRowData,
 } from './adminUserTabSlice'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 
@@ -69,12 +69,12 @@ describe('async thunks', () => {
       })
       const action = getAvailableUsers()
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'data' })
 
       dispatch = jest.fn()
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
     })
@@ -144,13 +144,13 @@ describe('async thunks', () => {
 
       let action = deleteUsers(data)
 
-      apiHelper._deleteData = jest
+      apiHelper.invokeApi = jest
         .fn()
         .mockReturnValueOnce({ status: 200 })
         .mockReturnValueOnce({ status: 200 })
         .mockReturnValueOnce({ status: 500 })
       await action(dispatch, getState, undefined)
-      expect(apiHelper._deleteData).toHaveBeenCalledTimes(3)
+      expect(apiHelper.invokeApi).toHaveBeenCalledTimes(3)
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
     })
   })
@@ -211,26 +211,30 @@ describe('functions', () => {
   it('getUserData', async () => {
     const user_email = 'test@gmail.com'
     const token = 'token'
-    apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ data: 'data' })
     const resp = await getUserData(user_email, token)
     expect(resp).toEqual({ data: 'data' })
-    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminUser,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminUser,
       token,
-      query_params: { user_email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      returnCodeOnly: true,
+      queryParams: { user_email },
+      headers: { 'Content-Type': 'application/json' },
     })
   })
 
   it('deleteUser', async () => {
     const user_email = 'test@gmail.com'
     const token = 'token'
-    apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, data: 'data' })
+    apiHelper.invokeApi = jest.fn().mockReturnValue({ status: 200, data: 'data' })
     await deleteUser(user_email, token)
-    expect(apiHelper._deleteData).toHaveBeenCalledWith({
-      url: EnvironmentVars.adminUser,
+    expect(apiHelper.invokeApi).toHaveBeenCalledWith({
+      path: '',
+      basePath: EnvironmentVars.adminUser,
       token,
-      query_params: { user_email },
+      method: 'DELETE',
+      queryParams: { user_email },
     })
   })
 })

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
+import { apiHelper } from '../../apis/api-helper'
 import { RootState } from '../../store'
 import {
   AdminOrgIntersectionDeleteMultiple,
@@ -17,10 +17,13 @@ const initialState = {
 }
 
 export const getIntersectionDataById = async (intersection_id: string, token: string) => {
-  const data = await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminIntersection,
+  const data = await apiHelper.invokeApi({
+    path: '',
+    basePath: EnvironmentVars.adminIntersection,
+    returnCodeOnly: true,
+
     token,
-    query_params: { intersection_id },
+    queryParams: { intersection_id },
   })
 
   return data
