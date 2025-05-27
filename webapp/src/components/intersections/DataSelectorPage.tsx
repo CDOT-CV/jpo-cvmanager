@@ -1,9 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react'
-import { Box, Container, Typography } from '@mui/material'
-import EventsApi from '../../apis/intersections/events-api'
-import AssessmentsApi from '../../apis/intersections/assessments-api'
-import MessageMonitorApi from '../../apis/intersections/mm-api'
-import GraphsApi from '../../apis/intersections/graphs-api'
+import React from 'react'
+import { Box, Container } from '@mui/material'
+import EventsApi from '../../apis/data/cm-events-api'
+import AssessmentsApi from '../../apis/data/cm-assessments-api'
+import CountsApi from '../../apis/data/counts-api'
 import { DataSelectorEditForm } from '../../features/intersections/data-selector/data-selector-edit-form'
 import { EventDataTable } from '../../features/intersections/data-selector/event-data-table'
 import { AssessmentDataTable } from '../../features/intersections/data-selector/assessment-data-table'
@@ -155,7 +154,7 @@ const DataSelectorPage = () => {
   }) => {
     dispatch(
       setGraphData(
-        await GraphsApi.getGraphData({
+        await CountsApi.getGraphData({
           token: token,
           intersectionId: intersectionId,
           startTime: startDate,

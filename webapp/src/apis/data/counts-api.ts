@@ -1,6 +1,7 @@
 import { apiHelper } from '../api-helper'
+import mapApi from './map-api'
 
-class GraphsApi {
+class CountsApi {
   createGraphDataVal = (id: number, event_type: string, count: number): GraphArrayDataType => {
     const val = {
       id,
@@ -126,6 +127,51 @@ class GraphsApi {
     }
     return Object.values(results)
   }
+
+  async getMessageCount(
+    token: string,
+    messageType: string,
+    intersectionId: number,
+    startTime: Date,
+    endTime: Date,
+    abortController?: AbortController
+  ): Promise<number> {
+    var queryParams: Record<string, string> = {
+      start_time_utc_millis: startTime.getTime().toString(),
+      end_time_utc_millis: endTime.getTime().toString(),
+      test: 'false',
+    }
+
+    if (messageType == 'bsm') {
+      // Call getMapMessages to get the latitude and longitude
+      const mapMessages = await mapApi.getMapMessages({
+        token: token,
+        intersectionId: intersectionId,
+        latest: true,
+      })
+      const latestMapMessage = mapMessages[0]
+      const coordinates = latestMapMessage?.properties.refPoint
+      if (latestMapMessage && coordinates.latitude && coordinates.longitude) {
+        queryParams['latitude'] = coordinates.latitude.toString()
+        queryParams['longitude'] = coordinates.longitude.toString()
+        queryParams['distance'] = '500'
+      }
+    }
+
+    if (intersectionId !== -1) {
+      queryParams['intersection_id'] = intersectionId.toString()
+    }
+
+    const response: PagedResponse<number> = await apiHelper.invokeApi({
+      path: `/data/${messageType}/count`,
+      token: token,
+      queryParams: queryParams,
+      abortController,
+      failureMessage: `Failed to retrieve message count for type ${messageType}`,
+      tag: 'intersection',
+    })
+    return response?.content?.[0]
+  }
 }
 
-export default new GraphsApi()
+export default new CountsApi()

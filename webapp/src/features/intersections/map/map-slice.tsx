@@ -2,9 +2,11 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { CompatClient, IMessage, Stomp } from '@stomp/stompjs'
-import MessageMonitorApi from '../../../apis/intersections/mm-api'
-import EventsApi from '../../../apis/intersections/events-api'
-import NotificationApi from '../../../apis/intersections/notification-api'
+import BsmApi from '../../../apis/data/bsm-api'
+import MapApi from '../../../apis/data/map-api'
+import SpatApi from '../../../apis/data/spat-api'
+import EventsApi from '../../../apis/data/cm-events-api'
+import NotificationApi from '../../../apis/data/cm-notifications-api'
 import toast from 'react-hot-toast'
 import {
   generateSignalStateFeatureCollection,
@@ -342,7 +344,7 @@ export const pullInitialData = createAsyncThunk(
       if (selectAbortAllFutureRequests(getState() as RootState)) {
         return
       }
-      const latestSpats = await MessageMonitorApi.getSpatMessages({
+      const latestSpats = await SpatApi.getSpatMessages({
         token: authToken,
         intersectionId: queryParams.intersectionId,
         latest: true,
@@ -378,7 +380,7 @@ export const pullInitialData = createAsyncThunk(
       // ######################### Retrieve MAP Data #########################
       abortController = new AbortController()
       dispatch(addInitialDataAbortController(abortController))
-      const rawMapPromise = MessageMonitorApi.getMapMessages({
+      const rawMapPromise = MapApi.getMapMessages({
         token: authToken,
         intersectionId: queryParams.intersectionId!,
         endTime: queryParams.endDate,
@@ -430,7 +432,7 @@ export const pullInitialData = createAsyncThunk(
       // ######################### Retrieve SPAT Data #########################
       abortController = new AbortController()
       dispatch(addInitialDataAbortController(abortController))
-      const rawSpatPromise = MessageMonitorApi.getSpatMessagesWithLatest({
+      const rawSpatPromise = SpatApi.getSpatMessagesWithLatest({
         token: authToken,
         intersectionId: queryParams.intersectionId!,
         startTime: queryParams.startDate,
@@ -468,7 +470,7 @@ export const pullInitialData = createAsyncThunk(
     if (!importedMessageData && !decoderModeEnabled) {
       abortController = new AbortController()
       dispatch(addInitialDataAbortController(abortController))
-      const rawBsmPromise = MessageMonitorApi.getBsmMessages({
+      const rawBsmPromise = BsmApi.getBsmMessages({
         token: authToken,
         vehicleId: queryParams.vehicleId,
         startTime: queryParams.startDate,

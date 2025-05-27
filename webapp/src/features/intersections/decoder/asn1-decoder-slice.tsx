@@ -2,7 +2,7 @@ import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { v4 as uuidv4 } from 'uuid'
 import { RootState } from '../../../store'
-import DecoderApi from '../../../apis/intersections/decoder-api'
+import DecoderApi from '../../../apis/asn1/decoder-api'
 import { getTimestamp } from '../map/map-component'
 import {
   pullInitialData,

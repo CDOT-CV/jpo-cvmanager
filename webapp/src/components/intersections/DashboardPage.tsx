@@ -5,7 +5,7 @@ import { LaneDirectionOfTravelAssessmentCard } from '../../features/intersection
 import { StopLineStopAssessmentCard } from '../../features/intersections/assessments/stop-line-stop-assessment'
 import { StopLinePassageAssessmentCard } from '../../features/intersections/assessments/stop-line-passage-assessment'
 import React, { useEffect, useMemo, useState } from 'react'
-import AssessmentsApi from '../../apis/intersections/assessments-api'
+import AssessmentsApi from '../../apis/data/cm-assessments-api'
 import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
 import { selectToken } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'

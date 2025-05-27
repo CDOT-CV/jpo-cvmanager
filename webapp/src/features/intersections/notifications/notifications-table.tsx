@@ -15,7 +15,7 @@ import {
 import { NotificationsTableResults } from './notifications-table-results'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import NotificationApi from '../../../apis/intersections/notification-api'
+import NotificationApi from '../../../apis/data/cm-notifications-api'
 import React, { useEffect, useState, useRef } from 'react'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'

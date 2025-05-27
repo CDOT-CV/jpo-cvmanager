@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
-import MessageMonitorApi from '../apis/intersections/mm-api'
+import IntersectionApi from '../apis/intersections/intersection-api'
 import { selectToken } from './userSlice'
 import { SymbolLayer } from 'react-map-gl'
 
@@ -41,7 +41,7 @@ export const getIntersections = createAsyncThunk(
     const currentState = getState() as RootState
     const authToken = selectToken(currentState)!
 
-    const intersections = await MessageMonitorApi.getIntersections({ token: authToken })
+    const intersections = await IntersectionApi.getIntersections({ token: authToken })
     intersections.push({
       intersectionID: -1,
       rsuIP: '0.0.0.0',
