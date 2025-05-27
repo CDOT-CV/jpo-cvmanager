@@ -3,7 +3,7 @@ import {
   StopLinePassageReportData,
   StopLineStopReportData,
 } from '../../models/ReportData'
-import { authApiHelper } from './api-helper-cviz'
+import { apiHelper } from '../api-helper'
 
 export type ReportMetadata = {
   reportName: string
@@ -74,7 +74,7 @@ class ReportsApi {
       queryParams['end_time_utc_millis'] = endTimeUTC.getTime().toString()
     }
 
-    const pdfReport = await authApiHelper.invokeApi({
+    const pdfReport = await apiHelper.invokeApi({
       path: `/reports/intersection/generate`,
       token: token,
       responseType: 'blob',
@@ -106,7 +106,7 @@ class ReportsApi {
     queryParams['end_time_utc_millis'] = endTime.getTime().toString()
     queryParams['latest'] = 'false'
 
-    const pdfReport = await authApiHelper.invokeApi({
+    const pdfReport = await apiHelper.invokeApi({
       path: `/reports/intersection`,
       token: token,
       queryParams,
@@ -143,7 +143,7 @@ class ReportsApi {
     const queryParams: Record<string, string> = {}
     queryParams['report_name'] = reportName
 
-    const pdfReport = await authApiHelper.invokeApi({
+    const pdfReport = await apiHelper.invokeApi({
       path: `/reports/intersection/download`,
       token: token,
       responseType: 'blob',

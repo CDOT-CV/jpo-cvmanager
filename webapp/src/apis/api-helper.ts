@@ -1,251 +1,124 @@
+import toast from 'react-hot-toast'
+import EnvironmentVars from '../EnvironmentVars'
 import { evaluateFeatureFlags } from '../feature-flags'
 
 class ApiHelper {
-  formatQueryParams(query_params: Record<string, string>) {
-    if (
-      !query_params ||
-      Object.keys(query_params).length === 0 ||
-      Object.getPrototypeOf(query_params) !== Object.prototype
-    )
-      return ''
-    const params = []
-    for (const key in query_params) {
-      if (query_params[key] !== '' && query_params[key] !== null) {
-        params.push(`${key}=${query_params[key]}`)
-      }
-    }
-    return !query_params || params.length === 0 ? '' : '?' + params.join('&')
+  formatQueryParams(query_params?: Record<string, any>): string {
+    if (!query_params || Object.keys(query_params).length === 0) return ''
+    return `?${new URLSearchParams(query_params).toString()}`
   }
 
-  // Helper Functions
-  async _getData({
-    url,
-    token,
-    query_params = {},
-    url_ext = '',
-    additional_headers = {},
-    tag,
-  }: {
-    url: string
-    token: string
-    query_params?: Record<string, string>
-    url_ext?: string
-    additional_headers?: Record<string, string>
-    tag?: FEATURE_KEY
-  }) {
-    if (!evaluateFeatureFlags(tag)) {
-      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
-      return null
-    }
-    try {
-      const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
-        method: 'GET',
-        headers: {
-          ...additional_headers,
-          Authorization: token,
-        },
-      })
-
-      const response = await resp.json()
-      return response
-    } catch (err) {
-      console.error('Error in _getData: ' + err)
-      return null
-    }
-  }
-
-  // Helper Functions
-  async _getDataWithCodes({
-    url,
-    token,
-    query_params = {},
-    url_ext = '',
-    additional_headers = {},
-    tag,
-  }: {
-    url: string
-    token: string
-    query_params?: Record<string, string>
-    url_ext?: string
-    additional_headers?: Record<string, string>
-    tag?: FEATURE_KEY
-  }) {
-    if (!evaluateFeatureFlags(tag)) {
-      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
-      return null
-    }
-    try {
-      const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
-        method: 'GET',
-        headers: {
-          ...additional_headers,
-          Authorization: token,
-        },
-      })
-
-      let respBody = undefined
-      try {
-        respBody = await resp.json()
-      } catch (err) {
-        console.error('Error in _getDataWithCodes: ' + err)
-      }
-      return {
-        body: respBody,
-        status: resp.status,
-        message: respBody?.message,
-      }
-    } catch (err) {
-      console.error('Error in _getDataWithCodes: ' + err)
-      return null
-    }
-  }
-
-  async _postData({
-    url,
+  async invokeApi({
+    path,
+    basePath,
+    method = 'GET',
+    headers = {},
+    queryParams,
     body,
     token,
-    query_params = {},
-    url_ext = '',
-    additional_headers = {},
+    timeout,
+    abortController,
+    responseType = 'json',
+    booleanResponse = false,
+    toastOnFailure = true,
+    toastOnSuccess = false,
+    successMessage = 'Successfully completed request!',
+    failureMessage = 'Request failed to complete',
     tag,
+    returnCodeOnly = false,
   }: {
-    url: string
-    body: Object | string
+    path: string
+    basePath?: string
+    method?: string
+    headers?: Record<string, string>
+    queryParams?: Record<string, string>
+    body?: Object
     token?: string
-    query_params?: Record<string, string>
-    url_ext?: string
-    additional_headers?: Record<string, string>
+    timeout?: number
+    abortController?: AbortController
+    responseType?: string
+    booleanResponse?: boolean
+    toastOnFailure?: boolean
+    toastOnSuccess?: boolean
+    successMessage?: string
+    failureMessage?: string
     tag?: FEATURE_KEY
-  }) {
+    returnCodeOnly?: boolean
+  }): Promise<any> {
     if (!evaluateFeatureFlags(tag)) {
-      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
+      console.debug(`Returning null because feature is disabled for tag ${tag} and path ${path}`)
       return null
     }
-    try {
-      const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
-        method: 'POST',
-        body: body as BodyInit,
-        headers: {
-          ...additional_headers,
-          Authorization: token,
-          'Content-Type': 'application/json',
-        },
+    const url = (basePath ?? EnvironmentVars.CVIZ_API_SERVER_URL!) + path + this.formatQueryParams(queryParams)
+
+    const localHeaders: HeadersInit = { ...headers }
+    if (token) localHeaders['Authorization'] = `Bearer ${token}`
+    if (method === 'POST' && body && !('Content-Type' in localHeaders)) {
+      localHeaders['Content-Type'] = 'application/json'
+    }
+
+    let id: NodeJS.Timeout | undefined = undefined
+    if (timeout) {
+      if (!abortController) {
+        abortController = new AbortController()
+      }
+      id = setTimeout(() => abortController?.abort(), timeout)
+    }
+
+    const options: RequestInit = {
+      method: method,
+      headers: localHeaders,
+      body: body
+        ? localHeaders['Content-Type'] === 'application/x-www-form-urlencoded'
+          ? (body as string)
+          : JSON.stringify(body)
+        : undefined,
+      mode: 'cors',
+      signal: abortController?.signal,
+    }
+
+    const resp = await fetch(url, options)
+      .then((response) => {
+        if (returnCodeOnly) {
+          return response.status
+        }
+        if (response.ok) {
+          if (toastOnSuccess) toast.success(successMessage)
+          if (booleanResponse) return true
+        } else {
+          console.error('Request failed with status code ' + response.status + ': ' + response.statusText)
+          if (response.status === 401) {
+            toast.error('Authentication failed, please sign in again')
+            // signIn();
+          } else if (response.status === 403) {
+            toast.error('You are not authorized to perform this action.')
+          } else if (toastOnFailure) toast.error(failureMessage + ', with status code ' + response.status)
+
+          if (booleanResponse) return false
+          return undefined
+        }
+        if (responseType === 'blob') {
+          return response.blob()
+        } else {
+          const resp = response.json()
+          resp.catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error(err)
+            }
+          })
+          return resp
+        }
       })
-
-      let respBody = undefined
-      try {
-        respBody = await resp.json()
-      } catch (err) {
-        console.error('Error in _postData: ' + err)
-      }
-      return {
-        body: respBody,
-        status: resp.status,
-        message: respBody?.message,
-      }
-    } catch (err) {
-      console.error('Error occurred in _postData', err)
-      return null
-    }
-  }
-
-  // Helper Functions
-  async _deleteData({
-    url,
-    token,
-    query_params = {},
-    url_ext = '',
-    additional_headers = {},
-    tag,
-  }: {
-    url: string
-    token: string
-    query_params?: Record<string, string>
-    url_ext?: string
-    additional_headers?: Record<string, string>
-    tag?: FEATURE_KEY
-  }) {
-    if (!evaluateFeatureFlags(tag)) {
-      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
-      return null
-    }
-    try {
-      const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
-        method: 'DELETE',
-        headers: {
-          ...additional_headers,
-          Authorization: token,
-          'Content-Type': 'application/json',
-        },
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') {
+          const errorMessage = failureMessage ?? 'Fetch request failed'
+          toast.error(errorMessage + '. Error: ' + error.message)
+          console.error(error.message)
+        }
       })
-
-      let respBody = undefined
-      try {
-        respBody = await resp.json()
-      } catch (err) {
-        console.error('Error in _deleteData: ' + err)
-      }
-      return {
-        body: respBody,
-        status: resp.status,
-        message: respBody?.message,
-      }
-    } catch (err) {
-      console.error('Error in _getDataWithCodes: ' + err)
-      return null
-    }
-  }
-
-  // Helper Functions
-  async _patchData({
-    url,
-    token,
-    body,
-    query_params = {},
-    url_ext = '',
-    additional_headers = {},
-    tag,
-  }: {
-    url: string
-    token: string
-    body: Object
-    query_params?: Record<string, string>
-    url_ext?: string
-    additional_headers?: Record<string, string>
-    tag?: FEATURE_KEY
-  }) {
-    if (!evaluateFeatureFlags(tag)) {
-      console.debug(`Returning null because feature is disabled for tag ${tag} and url ${url}`)
-      return null
-    }
-    try {
-      const resp = await fetch(url + this.formatQueryParams(query_params) + url_ext, {
-        method: 'PATCH',
-        body: body as BodyInit,
-        headers: {
-          ...additional_headers,
-          Authorization: token,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      let respBody = undefined
-      try {
-        respBody = await resp.json()
-      } catch (err) {
-        console.error('Error in _patchData: ' + err)
-      }
-      return {
-        body: respBody,
-        status: resp.status,
-        message: respBody?.message,
-      }
-    } catch (err) {
-      console.error('Error in _getDataWithCodes: ' + err)
-      return null
-    }
+    if (id) clearTimeout(id)
+    return resp
   }
 }
 
-const apiHelper = new ApiHelper()
-export default apiHelper
+export const apiHelper = new ApiHelper()

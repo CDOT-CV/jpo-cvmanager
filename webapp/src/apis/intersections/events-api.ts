@@ -1,5 +1,5 @@
 import { number } from 'prop-types'
-import { authApiHelper } from './api-helper-cviz'
+import { apiHelper } from '../api-helper'
 
 interface Item {
   label: string
@@ -37,7 +37,7 @@ class EventsApi {
       latest: latest.toString(),
     }
 
-    const response: PagedResponse<MessageMonitor.Event> = await authApiHelper.invokeApi({
+    const response: PagedResponse<MessageMonitor.Event> = await apiHelper.invokeApi({
       path: `/data/cm-events/${eventType}`,
       token: token,
       queryParams: queryParams,
@@ -65,7 +65,7 @@ class EventsApi {
     for (const eventTypeObj of EVENT_TYPES) {
       const response: MessageMonitor.Event[] =
         (
-          (await authApiHelper.invokeApi({
+          (await apiHelper.invokeApi({
             path: `/data/cm-events/${eventTypeObj.value}`,
             token: token,
             queryParams: queryParams,
@@ -102,7 +102,7 @@ class EventsApi {
       test: test.toString(),
     }
 
-    const response: PagedResponse<MessageMonitor.MinuteCount> = await authApiHelper.invokeApi({
+    const response: PagedResponse<MessageMonitor.MinuteCount> = await apiHelper.invokeApi({
       path: `/data/cm-events/bsm_events_by_minute`,
       token: token,
       queryParams: queryParams,

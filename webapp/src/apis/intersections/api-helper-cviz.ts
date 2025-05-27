@@ -116,4 +116,4 @@ class CvizApiHelper {
   }
 }
 
-export const authApiHelper = new CvizApiHelper()
+export const apiHelper = new CvizApiHelper()

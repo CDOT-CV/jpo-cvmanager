@@ -1,4 +1,4 @@
-import { authApiHelper } from './api-helper-cviz'
+import { apiHelper } from '../api-helper'
 
 class AssessmentsApi {
   async getLatestAssessment(
@@ -17,7 +17,7 @@ class AssessmentsApi {
 
     var response =
       (
-        (await authApiHelper.invokeApi({
+        (await apiHelper.invokeApi({
           path: `/data/cm-assessments/${assessmentType}`,
           token: token,
           queryParams,
@@ -45,7 +45,7 @@ class AssessmentsApi {
 
     return (
       (
-        (await authApiHelper.invokeApi({
+        (await apiHelper.invokeApi({
           path: `/data/cm-assessments/${assessmentType}`,
           token: token,
           queryParams,

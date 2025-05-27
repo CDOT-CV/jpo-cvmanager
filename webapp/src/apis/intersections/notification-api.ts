@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast'
-import { authApiHelper } from './api-helper-cviz'
+import { apiHelper } from '../api-helper'
 
 const NOTIFICATION_TYPES: string[] = [
   'connection_of_travel',
@@ -33,7 +33,7 @@ class NotificationApi {
     if (endTime) queryParams['end_time_utc_millis'] = endTime.getTime().toString()
     if (key) queryParams['key'] = key
 
-    const notifications = await authApiHelper.invokeApi({
+    const notifications = await apiHelper.invokeApi({
       path: `/intersections/active-notifications`,
       token: token,
       queryParams,
@@ -59,7 +59,7 @@ class NotificationApi {
       success =
         success &&
         (
-          await authApiHelper.invokeApi({
+          await apiHelper.invokeApi({
             path: `/intersections/active-notifications`,
             method: 'DELETE',
             abortController,
@@ -100,7 +100,7 @@ class NotificationApi {
     for (const notificationType of NOTIFICATION_TYPES) {
       const resp: MessageMonitor.Notification[] =
         (
-          await authApiHelper.invokeApi({
+          await apiHelper.invokeApi({
             path: `/data/cm-notifications/${notificationType}`,
             token: token,
             abortController,

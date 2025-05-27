@@ -1,4 +1,4 @@
-import { authApiHelper } from './api-helper-cviz'
+import { apiHelper } from '../api-helper'
 
 class DecoderApi {
   async submitDecodeRequest({
@@ -12,7 +12,7 @@ class DecoderApi {
     type?: DECODER_MESSAGE_TYPE
     abortController?: AbortController
   }): Promise<DecoderApiResponseGeneric | undefined> {
-    var response = await authApiHelper.invokeApi({
+    var response = await apiHelper.invokeApi({
       path: 'asn1/decoder/raw',
       token: token,
       method: 'POST',
