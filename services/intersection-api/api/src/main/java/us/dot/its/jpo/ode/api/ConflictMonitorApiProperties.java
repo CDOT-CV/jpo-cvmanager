@@ -96,6 +96,8 @@ public class ConflictMonitorApiProperties {
     private boolean enableEmails;
     private boolean enableReports;
 
+    private String rsuStatusKafkaTopic;
+
     private BuildProperties buildProperties;
 
     @Getter
@@ -215,6 +217,15 @@ public class ConflictMonitorApiProperties {
 
     public boolean isReportsEnabled() {
         return enableReports;
+    }
+
+    @Value("${rsuStatuskafkaTopic}")
+    public void setRsuStatusKafkaTopic(String rsuStatusKafkaTopic) {
+        this.rsuStatusKafkaTopic = rsuStatusKafkaTopic;
+    }
+
+    public String getRsuStatusKafkaTopic() {
+        return rsuStatusKafkaTopic;
     }
 
     public boolean getConfluentCloudEnabled() {

@@ -33,24 +33,4 @@ public class ConflictApiApplication extends SpringBootServletInitializer {
         log.info("Conflict Monitor API docs page found here: http://localhost:8089/swagger-ui/index.html");
         log.info("Startup Complete");
     }
-
-    @Autowired
-    private SNMPService snmpService;
-
-    @Bean
-    public void test() {
-        System.out.println("Querying RSU For Status Information");
-        try {
-            snmpService.setSnmpV3Value("172.250.250.93", "john", "Highlanders#1", snmpService.rsuLocationLatOID,
-                    405672318);
-            // snmpService.getSnmpV3Value("172.250.250.93", "john", "Highlanders#1",
-            // snmpService.rsuLocationLatOID);
-            // snmpService.setSnmpV3Value("172.250.250.93", "john", "Highlanders#1",
-            // snmpService.rsuLocationLatOID,
-            // 405672319);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 }

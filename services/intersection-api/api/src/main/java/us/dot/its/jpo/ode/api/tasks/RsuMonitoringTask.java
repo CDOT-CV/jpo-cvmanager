@@ -1,49 +1,66 @@
 package us.dot.its.jpo.ode.api.tasks;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
-import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
-import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
-import us.dot.its.jpo.ode.api.models.EmailFrequency;
-import us.dot.its.jpo.ode.api.services.ReportService;
+import us.dot.its.jpo.geojsonconverter.partitioner.RsuIntersectionKey;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
+import us.dot.its.jpo.ode.api.models.snmp.OIDMap;
+import us.dot.its.jpo.ode.api.models.snmp.RsuState;
+import us.dot.its.jpo.ode.api.services.KafkaProducerService;
 import us.dot.its.jpo.ode.api.services.SNMPService;
 
 @Component
 @ConditionalOnProperty(name = "enable.monitoring", havingValue = "true", matchIfMissing = false)
 public class RsuMonitoringTask {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailTask.class);
+    private static final Logger log = LoggerFactory.getLogger(RsuMonitoringTask.class);
 
-    @Autowired
     private SNMPService snmpService;
+    private KafkaProducerService kafkaService;
+    private ConflictMonitorApiProperties properties;
 
     @Autowired
-    public RsuMonitoringTask(SNMPService snmpService) {
+    public RsuMonitoringTask(SNMPService snmpService, KafkaProducerService kafkaService,
+            ConflictMonitorApiProperties properties) {
         this.snmpService = snmpService;
+        this.kafkaService = kafkaService;
+        this.properties = properties;
     }
 
     @Scheduled(fixedRate = 1000)
     public void queryRSUStats() {
         try {
-            String result = snmpService.getAsString("172.250.250.93", "public", snmpService.rsuLocationLatOID);
-            log.info("SNMP Result: " + result);
+            String username = "user";
+            String password = "1234";
+            String ip = "1.2.3.4";
+            int uptime = snmpService.getSnmpV3Value(ip, username, password, password,
+                    OIDMap.oids.get("rsuTimeSincePowerOn").getOid()).toInt();
+
+            int temp = snmpService.getSnmpV3Value(ip, username, password, password,
+                    OIDMap.oids.get("rsuIntTemp").getOid()).toInt();
+
+            RsuState state = new RsuState();
+            state.timestamp = Instant.now().toEpochMilli();
+            state.rsuIP = ip;
+            state.intersectionID = 1234;
+            state.uptime = uptime;
+            state.temperature = temp;
+
+            RsuIntersectionKey key = new RsuIntersectionKey();
+            key.setIntersectionId(1234);
+            key.setRsuId(ip);
+            key.setRegion(-1);
+
+            kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
+
+            log.info("Uptime: " + uptime + " Temperature: " + temp);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
