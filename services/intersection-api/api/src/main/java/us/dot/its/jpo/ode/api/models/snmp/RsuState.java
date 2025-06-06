@@ -14,7 +14,7 @@ public class RsuState {
     /**
      * IntersectionID of the intersection corresponding to the RSU
      */
-    public int intersectionID;
+    public String intersectionID;
 
     /**
      * IP Address of the RSU unit

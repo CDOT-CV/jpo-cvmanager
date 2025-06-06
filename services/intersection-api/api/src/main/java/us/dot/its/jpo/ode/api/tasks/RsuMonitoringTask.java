@@ -42,7 +42,7 @@ public class RsuMonitoringTask {
         this.properties = properties;
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 300000) // Check RSU units every 5 minutes
     public void queryRSUStats() {
 
         List<RsuCredentials> credentials = postgresService.getRsusWithCredentials();
@@ -53,6 +53,22 @@ public class RsuMonitoringTask {
                 String password = cred.getPassword();
                 String encPass = cred.getEncrypt_password();
                 String ip = cred.getIpv4_address();
+                String intersectionId = cred.getIntersection_id();
+
+                log.info("Pulling SNMP Status for RSU: " + ip + " IntersectionID" + intersectionId);
+
+                if (username == null || password == null || ip == null) {
+                    log.warn("Cannot pull data from RSU unit. Missing Username, Password, or IP address. RSU ID: " + ip
+                            + " Intersection ID: " + intersectionId);
+                    continue;
+                }
+
+                // enc password is not defined for all RSU units. Try using normal password
+                // instead
+                if (encPass == null) {
+                    encPass = password;
+                }
+
                 int uptime = snmpService.getSnmpV3Value(ip, username, password, encPass,
                         OIDMap.oids.get("rsuTimeSincePowerOn").getOid()).toInt();
 
@@ -62,18 +78,16 @@ public class RsuMonitoringTask {
                 RsuState state = new RsuState();
                 state.timestamp = Instant.now().toEpochMilli();
                 state.rsuIP = ip;
-                state.intersectionID = cred.getIntersection_id();
+                state.intersectionID = intersectionId;
                 state.uptime = uptime;
                 state.temperature = temp;
 
                 RsuIntersectionKey key = new RsuIntersectionKey();
-                key.setIntersectionId(cred.getIntersection_id());
+                key.setIntersectionId(Integer.parseInt(intersectionId));
                 key.setRsuId(ip);
                 key.setRegion(-1);
 
                 kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
-
-                log.info("Uptime: " + uptime + " Temperature: " + temp);
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();

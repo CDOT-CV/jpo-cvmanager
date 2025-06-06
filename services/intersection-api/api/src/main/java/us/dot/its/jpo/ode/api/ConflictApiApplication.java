@@ -1,19 +1,14 @@
 package us.dot.its.jpo.ode.api;
 
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.services.SNMPService;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.context.annotation.Bean;
 
 @EnableWebMvc
 @SpringBootApplication

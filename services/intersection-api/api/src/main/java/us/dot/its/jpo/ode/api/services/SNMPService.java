@@ -6,14 +6,11 @@ import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
-import org.snmp4j.security.AuthMD5;
 import org.snmp4j.security.AuthSHA;
 import org.snmp4j.security.PrivAES128;
-import org.snmp4j.security.PrivDES;
 import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.SecurityProtocols;
-import org.snmp4j.security.TSM;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.*;
@@ -21,18 +18,11 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.Socket;
 
 import javax.annotation.PostConstruct;
 
 @Service
 public class SNMPService {
-
-    // public static String uptimeOID = "1.3.6.1.4.1.1206.4.2.18.12.1.0";
-    // public static String rsuLocationLatOID = "1.3.6.1.4.1.1206.4.2.18.13.5.0";
-    // public static String rsuIDOID = "1.3.6.1.4.1.1206.4.2.18.13.4.0";
-
-    // private Snmp snmp;
 
     private static final Logger logger = LoggerFactory.getLogger(SNMPService.class);
 
@@ -41,7 +31,9 @@ public class SNMPService {
 
     }
 
-    public String getAsString(String ipAddress, String community, String oid) throws Exception {
+    // Some RSUs do not require authentication to retrieve information. They may
+    // respond to SNMP V2 requests.
+    public String getSnmpV2Value(String ipAddress, String community, String oid) throws Exception {
 
         TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();
         Snmp snmp = new Snmp(transport);
@@ -58,7 +50,7 @@ public class SNMPService {
         pdu.add(new VariableBinding(new OID(oid)));
         pdu.setType(PDU.GET);
 
-        ResponseEvent responseEvent = snmp.send(pdu, target);
+        ResponseEvent<UdpAddress> responseEvent = snmp.send(pdu, target);
         snmp.close();
         if (responseEvent != null && responseEvent.getResponse() != null) {
             VariableBinding vb = responseEvent.getResponse().get(0);
@@ -108,7 +100,7 @@ public class SNMPService {
         pdu.setType(PDU.GET);
         pdu.add(new VariableBinding(new OID(oid)));
 
-        ResponseEvent response = snmp.send(pdu, target);
+        ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
         snmp.close();
         if (response != null && response.getResponse() != null) {
             VariableBinding vb = response.getResponse().get(0);
@@ -165,21 +157,17 @@ public class SNMPService {
         pdu.add(new VariableBinding(new OID(oid), new Integer32(intValue)));
 
         // Send and handle response
-        ResponseEvent response = snmp.send(pdu, target);
-
-        System.out.println("Response" + response);
-        System.out.println("Response" + response.getResponse());
-
+        ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
+        snmp.close();
         if (response == null || response.getResponse() == null) {
-
+            logger.warn("Received Null Response from RSU unit" + ipAddress);
             throw new RuntimeException("SNMP SET timed out or failed");
         }
 
         if (response.getResponse().getErrorStatus() != PDU.noError) {
+            logger.warn("Error while setting value on RSU unit" + ipAddress);
             throw new RuntimeException("SNMP SET error: " +
                     response.getResponse().getErrorStatusText());
         }
-
-        snmp.close();
     }
 }

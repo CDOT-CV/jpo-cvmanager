@@ -18,5 +18,5 @@ public class RsuCredentials {
     private String password;
     private String encrypt_password;
     private String protocol_code;
-    private int intersection_id;
+    private String intersection_id;
 }
