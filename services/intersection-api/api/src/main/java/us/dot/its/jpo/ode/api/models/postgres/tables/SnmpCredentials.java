@@ -13,12 +13,13 @@ import lombok.ToString;
 @EqualsAndHashCode
 @Getter
 @Entity
-@Table(name = "rsu_organization")
-public class RsuOrganization {
-
+@Table(name = "snmp_credentials")
+public class SnmpCredentials {
     @Id
-    private int rsu_organization_id;
-    private int rsu_id;
-    private int organization_id;
+    private int snmp_credential_id;
+    private String username;
+    private String password;
+    private String encrypt_password;
+    private String nickname;
 
 }

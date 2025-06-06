@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import us.dot.its.jpo.ode.api.models.postgres.derived.RsuCredentials;
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
@@ -62,6 +63,15 @@ public class PostgresService {
             "JOIN Organizations o ON io.organization_id = o.organization_id " +
             "WHERE io.intersection_id = i.intersection_id AND o.name = :orgName" +
             ")";
+
+    private final String findRsuSnmpCredentials = "SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuCredentials( "
+            +
+            "rsu.rsu_id, rsu.ipv4_address, snmp_creds.username, snmp_creds.password, snmp_creds.encrypt_password, snmp_proto.protocol_code, ri.intersection_id) "
+            +
+            "FROM Rsus rsu " +
+            "JOIN SnmpCredentials snmp_creds ON rsu.snmp_credential_id = snmp_creds.snmp_credential_id " +
+            "JOIN SnmpProtocols snmp_proto ON rsu.snmp_protocol_id = snmp_proto.snmp_protocol_id " +
+            "JOIN RsuIntersection ri ON rsu.rsu_id = ri.rsu_id";
 
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
@@ -185,5 +195,10 @@ public class PostgresService {
                 .filter(entry -> PermissionService.checkRoleAbove(entry.getRole_name(), requiredRole))
                 .map(val -> val.getOrganization_name())
                 .collect(Collectors.toList());
+    }
+
+    public List<RsuCredentials> getRsusWithCredentials() {
+        TypedQuery<RsuCredentials> query = entityManager.createQuery(findRsuSnmpCredentials, RsuCredentials.class);
+        return query.getResultList();
     }
 }
