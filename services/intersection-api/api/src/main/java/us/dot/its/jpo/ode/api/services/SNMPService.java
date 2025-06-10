@@ -52,6 +52,7 @@ public class SNMPService {
 
         ResponseEvent<UdpAddress> responseEvent = snmp.send(pdu, target);
         snmp.close();
+
         if (responseEvent != null && responseEvent.getResponse() != null) {
             VariableBinding vb = responseEvent.getResponse().get(0);
             return vb.getVariable().toString();
@@ -101,14 +102,12 @@ public class SNMPService {
         pdu.add(new VariableBinding(new OID(oid)));
 
         ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
-        snmp.close();
+
         if (response != null && response.getResponse() != null) {
             VariableBinding vb = response.getResponse().get(0);
-
             return vb.getVariable();
-        } else {
-            throw new RuntimeException("SNMP GET timed out or returned null.");
         }
+        return null;
 
     }
 
@@ -161,13 +160,10 @@ public class SNMPService {
         snmp.close();
         if (response == null || response.getResponse() == null) {
             logger.warn("Received Null Response from RSU unit" + ipAddress);
-            throw new RuntimeException("SNMP SET timed out or failed");
         }
 
         if (response.getResponse().getErrorStatus() != PDU.noError) {
             logger.warn("Error while setting value on RSU unit" + ipAddress);
-            throw new RuntimeException("SNMP SET error: " +
-                    response.getResponse().getErrorStatusText());
         }
     }
 }

@@ -30,4 +30,10 @@ public class RsuState {
      * Time in seconds since the RSU unit last rebooted
      */
     public int uptime;
+
+    /**
+     * The Mode of the RSU. There are 3 common modes, Operational(4), Standby (2)
+     * and Off (16)
+     */
+    public int mode;
 }

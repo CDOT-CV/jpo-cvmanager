@@ -1,10 +1,12 @@
 package us.dot.its.jpo.ode.api.tasks;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snmp4j.smi.Variable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -48,50 +50,57 @@ public class RsuMonitoringTask {
         List<RsuCredentials> credentials = postgresService.getRsusWithCredentials();
 
         for (RsuCredentials cred : credentials) {
-            try {
-                String username = cred.getUsername();
-                String password = cred.getPassword();
-                String encPass = cred.getEncrypt_password();
-                String ip = cred.getIpv4_address();
-                String intersectionId = cred.getIntersection_id();
 
-                log.info("Pulling SNMP Status for RSU: " + ip + " IntersectionID" + intersectionId);
+            String username = cred.getUsername();
+            String password = cred.getPassword();
+            String encPass = cred.getEncrypt_password();
+            String ip = cred.getIpv4_address();
+            String intersectionId = cred.getIntersection_id();
 
-                if (username == null || password == null || ip == null) {
-                    log.warn("Cannot pull data from RSU unit. Missing Username, Password, or IP address. RSU ID: " + ip
-                            + " Intersection ID: " + intersectionId);
-                    continue;
-                }
+            log.info("Pulling SNMP Status for RSU: " + ip + " IntersectionID: " + intersectionId);
 
-                // enc password is not defined for all RSU units. Try using normal password
-                // instead
-                if (encPass == null) {
-                    encPass = password;
-                }
-
-                int uptime = snmpService.getSnmpV3Value(ip, username, password, encPass,
-                        OIDMap.oids.get("rsuTimeSincePowerOn").getOid()).toInt();
-
-                int temp = snmpService.getSnmpV3Value(ip, username, password, encPass,
-                        OIDMap.oids.get("rsuIntTemp").getOid()).toInt();
-
-                RsuState state = new RsuState();
-                state.timestamp = Instant.now().toEpochMilli();
-                state.rsuIP = ip;
-                state.intersectionID = intersectionId;
-                state.uptime = uptime;
-                state.temperature = temp;
-
-                RsuIntersectionKey key = new RsuIntersectionKey();
-                key.setIntersectionId(Integer.parseInt(intersectionId));
-                key.setRsuId(ip);
-                key.setRegion(-1);
-
-                kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            if (username == null || password == null || ip == null) {
+                log.warn("Cannot pull data from RSU unit. Missing Username, Password, or IP address. RSU ID: " + ip
+                        + " Intersection ID: " + intersectionId);
+                continue;
             }
+
+            // enc password is not defined for all RSU units. Try using normal password
+            if (encPass == null) {
+                encPass = password;
+            }
+
+            RsuState state = new RsuState();
+            state.timestamp = Instant.now().toEpochMilli();
+            state.rsuIP = ip;
+            state.intersectionID = intersectionId;
+
+            state.uptime = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus").getOid());
+            state.temperature = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuIntTemp").getOid());
+            state.mode = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus").getOid());
+
+            RsuIntersectionKey key = new RsuIntersectionKey();
+            key.setIntersectionId(Integer.parseInt(intersectionId));
+            key.setRsuId(ip);
+            key.setRegion(-1);
+
+            kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
         }
+    }
+
+    public int getIntOID(String ip, String username, String password, String encPass, String oid) {
+        try {
+            Variable var = snmpService.getSnmpV3Value(ip, username, encPass, ip,
+                    OIDMap.oids.get("rsuModeStatus").getOid());
+
+            if (var != null) {
+                return var.toInt();
+            } else {
+                log.warn("Query of OID " + oid + " for Intersection" + ip + " returned no value");
+            }
+        } catch (IOException e) {
+            log.warn("Unable to Retrieve value for OID: " + oid + " for Intersection" + ip);
+        }
+        return -1;
     }
 }
