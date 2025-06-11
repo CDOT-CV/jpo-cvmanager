@@ -261,7 +261,7 @@
 		<dependency>
 			<groupId>org.snmp4j</groupId>
 			<artifactId>snmp4j</artifactId>
-			<version>3.6.6</version> <!-- or the latest available -->
+			<version>3.9.3</version> <!-- or the latest available -->
 		</dependency>
 	</dependencies>
 	<repositories>
