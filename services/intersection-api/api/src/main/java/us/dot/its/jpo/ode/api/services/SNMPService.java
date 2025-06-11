@@ -13,21 +13,23 @@ import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 
 import java.io.IOException;
-
-import javax.annotation.PostConstruct;
 
 @Service
 @Slf4j
 public class SNMPService {
 
-    @PostConstruct
-    public void init() throws Exception {
+    private ConflictMonitorApiProperties properties;
 
+    @Autowired
+    public SNMPService(ConflictMonitorApiProperties properties) {
+        this.properties = properties;
     }
 
     // Some RSUs do not require authentication to retrieve information. They may
@@ -40,9 +42,9 @@ public class SNMPService {
 
         CommunityTarget<UdpAddress> target = new CommunityTarget<>();
         target.setCommunity(new OctetString(community));
-        target.setAddress(new UdpAddress(ipAddress + "/161"));
-        target.setRetries(2);
-        target.setTimeout(1500);
+        target.setAddress(new UdpAddress(ipAddress + "/" + properties.getSnmpPort()));
+        target.setRetries(properties.getSnmpRetries());
+        target.setTimeout(properties.getSnmpTimeout());
         target.setVersion(SnmpConstants.version2c);
 
         PDU pdu = new PDU();
@@ -88,9 +90,9 @@ public class SNMPService {
 
         // Configure the target
         UserTarget<UdpAddress> target = new UserTarget<>();
-        target.setAddress(new UdpAddress(ip + "/161"));
-        target.setRetries(2);
-        target.setTimeout(3000);
+        target.setAddress(new UdpAddress(ip + "/" + properties.getSnmpPort()));
+        target.setRetries(properties.getSnmpRetries());
+        target.setTimeout(properties.getSnmpTimeout());
         target.setVersion(SnmpConstants.version3);
         target.setSecurityLevel(SecurityLevel.AUTH_PRIV);
         target.setSecurityName(new OctetString(username));
@@ -101,6 +103,8 @@ public class SNMPService {
         pdu.add(new VariableBinding(new OID(oid)));
 
         ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
+
+        System.out.println(response.getError());
 
         if (response != null && response.getResponse() != null) {
             VariableBinding vb = response.getResponse().get(0);
@@ -142,9 +146,9 @@ public class SNMPService {
 
         // Configure the target
         UserTarget<UdpAddress> target = new UserTarget<>();
-        target.setAddress(new UdpAddress(ipAddress + "/161"));
-        target.setRetries(2);
-        target.setTimeout(3000);
+        target.setAddress(new UdpAddress(ipAddress + "/" + properties.getSnmpPort()));
+        target.setRetries(properties.getSnmpRetries());
+        target.setTimeout(properties.getSnmpTimeout());
         target.setVersion(SnmpConstants.version3);
         target.setSecurityLevel(SecurityLevel.AUTH_PRIV);
         target.setSecurityName(new OctetString(username));

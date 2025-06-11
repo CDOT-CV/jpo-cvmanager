@@ -98,6 +98,10 @@ public class ConflictMonitorApiProperties {
 
     private String rsuStatusKafkaTopic;
 
+    private int snmpRetries;
+    private int snmpTimeout;
+    private int snmpPort;
+
     private BuildProperties buildProperties;
 
     @Getter
@@ -226,6 +230,33 @@ public class ConflictMonitorApiProperties {
 
     public String getRsuStatusKafkaTopic() {
         return rsuStatusKafkaTopic;
+    }
+
+    @Value("${snmp.retries}")
+    public void setSnmpRetries(int snmpRetries) {
+        this.snmpRetries = snmpRetries;
+    }
+
+    public int getSnmpRetries() {
+        return snmpRetries;
+    }
+
+    @Value("${snmp.timeout}")
+    public void setSnmpTimeout(int snmpTimeout) {
+        this.snmpTimeout = snmpTimeout;
+    }
+
+    public int getSnmpTimeout() {
+        return snmpTimeout;
+    }
+
+    @Value("${snmp.port}")
+    public void setSnmpPort(int snmpPort) {
+        this.snmpPort = snmpPort;
+    }
+
+    public int getSnmpPort() {
+        return snmpPort;
     }
 
     public boolean getConfluentCloudEnabled() {

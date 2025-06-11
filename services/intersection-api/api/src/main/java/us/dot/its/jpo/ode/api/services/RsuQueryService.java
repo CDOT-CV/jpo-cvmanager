@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.geojsonconverter.partitioner.RsuIntersectionKey;
 import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuCredentials;
+import us.dot.its.jpo.ode.api.models.snmp.OID;
 import us.dot.its.jpo.ode.api.models.snmp.OIDMap;
 import us.dot.its.jpo.ode.api.models.snmp.RsuState;
 
@@ -57,9 +58,9 @@ public class RsuQueryService {
         state.rsuIP = ip;
         state.intersectionID = intersectionId;
 
-        state.uptime = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus").getOid());
-        state.temperature = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuIntTemp").getOid());
-        state.mode = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus").getOid());
+        state.uptime = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuTimeSincePowerOn"));
+        state.temperature = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuIntTemp"));
+        state.mode = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus"));
 
         RsuIntersectionKey key = new RsuIntersectionKey();
         key.setIntersectionId(Integer.parseInt(intersectionId));
@@ -69,18 +70,17 @@ public class RsuQueryService {
         kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
     }
 
-    public int getIntOID(String ip, String username, String password, String encPass, String oid) {
+    public int getIntOID(String ip, String username, String password, String encPass, OID oid) {
         try {
-            Variable var = snmpService.getSnmpV3Value(ip, username, encPass, ip,
-                    OIDMap.oids.get("rsuModeStatus").getOid());
+            Variable var = snmpService.getSnmpV3Value(ip, username, encPass, ip, oid.getOid());
 
             if (var != null) {
                 return var.toInt();
             } else {
-                log.warn("Query of OID " + oid + " for Intersection" + ip + " returned no value");
+                log.warn("Query of OID " + oid.getName() + " for Intersection" + ip + " returned no value");
             }
         } catch (IOException e) {
-            log.warn("Unable to Retrieve value for OID: " + oid + " for Intersection" + ip);
+            log.warn("Unable to Retrieve value for OID: " + oid.getName() + " for Intersection" + ip);
         }
         return -1;
     }

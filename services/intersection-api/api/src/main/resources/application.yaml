@@ -86,6 +86,11 @@ enable:
 monitor:
   interval: ${INTERSECTION_API_MONITOR_INTERVAL:300000} # Number of Milliseconds between RSU Status Checks
 
+snmp:
+  retries: ${INTERSECTION_API_SNMP_RETRY:2} # Number of times to retry
+  timeout: ${INTERSECTION_API_SNMP_TIMEOUT_MS:1500} # Number of milliseconds before timeout
+  port: ${INTERSECTION_API_SNMP_PORT:161} # Port to use for SNMP Operations
+
 cmServerURL: ${CM_SERVER_URL:http://localhost:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
