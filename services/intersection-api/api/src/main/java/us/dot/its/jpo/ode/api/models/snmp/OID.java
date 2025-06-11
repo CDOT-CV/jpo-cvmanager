@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.models.snmp;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,17 +10,12 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode
 @Getter
+@AllArgsConstructor
 public class OID {
 
     private String name;
     private OID_TYPE type;
     private String oid;
-
-    public OID(String name, OID_TYPE type, String oid) {
-        this.name = name;
-        this.type = type;
-        this.oid = oid;
-    }
 }
 
 enum OID_TYPE {
