@@ -27,72 +27,72 @@ import us.dot.its.jpo.ode.mockdata.MockDecodedMessageGenerator;
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
 @ApiResponses(value = {
-    @ApiResponse(responseCode = "401", description = "Unauthorized"),
-    @ApiResponse(responseCode = "500", description = "Internal Server Error")
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
 public class DecoderController {
 
-  @Autowired
-  DecoderManager decoderManager;
+    @Autowired
+    DecoderManager decoderManager;
 
-  @Operation(summary = "Decode an Uploaded ASN.1-Encoded Message", description = "Decodes an uploaded ASN.1 encoded message and returns the decoded message")
-  @RequestMapping(value = "/decoder/upload", method = RequestMethod.POST, produces = "application/json")
-  @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Success"),
-      @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
-      @ApiResponse(responseCode = "400", description = "Message type not supported for asn.1 decoding"),
-  })
-  public @ResponseBody CompletableFuture<ResponseEntity<String>> decode_request(
-      @RequestBody final EncodedMessage encodedMessage,
-      @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
-    log.info("EncodedMessage: {}", encodedMessage);
-    if (testData) {
-      return CompletableFuture.completedFuture(
-          switch (encodedMessage.getType()) {
-            case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
-                    .toString());
-            case MAP -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getMapDecodedMessage()
-                    .toString());
-            case SPAT -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
-                    .toString());
-            case SRM -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
-                    .toString());
-            case SSM -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
-                    .toString());
-            case TIM -> ResponseEntity.status(HttpStatus.OK)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(MockDecodedMessageGenerator.getTimDecodedMessage()
-                    .toString());
-            case null -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                String.format("Null message type %s",
-                    encodedMessage));
-          });
-    } else {
-      return decoderManager
-          .decode(encodedMessage)
-          .thenApply(
-              decodedMessage ->
-                  ResponseEntity
-                      .status(HttpStatus.OK)
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .body(decodedMessage.toString())
-          ).exceptionally(e -> {
-            log.warn("Failed to decode data: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                String.format("Exception handling encoded data: %s", e.getMessage()), e);
-          });
+    @Operation(summary = "Decode an Uploaded ASN.1-Encoded Message", description = "Decodes an uploaded ASN.1 encoded message and returns the decoded message")
+    @RequestMapping(value = "/decoder/upload", method = RequestMethod.POST, produces = "application/json")
+    // @PreAuthorize("@PermissionService.isSuperUser() ||
+    // @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+            @ApiResponse(responseCode = "400", description = "Message type not supported for asn.1 decoding"),
+    })
+    public @ResponseBody CompletableFuture<ResponseEntity<String>> decode_request(
+            @RequestBody final EncodedMessage encodedMessage,
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+        log.info("EncodedMessage: {}", encodedMessage);
+        if (testData) {
+            return CompletableFuture.completedFuture(
+                    switch (encodedMessage.getType()) {
+                        case BSM, UNKNOWN -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getBsmDecodedMessage()
+                                        .toString());
+                        case MAP -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getMapDecodedMessage()
+                                        .toString());
+                        case SPAT -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getSpatDecodedMessage()
+                                        .toString());
+                        case SRM -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getSrmDecodedMessage()
+                                        .toString());
+                        case SSM -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getSsmDecodedMessage()
+                                        .toString());
+                        case TIM -> ResponseEntity.status(HttpStatus.OK)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(MockDecodedMessageGenerator.getTimDecodedMessage()
+                                        .toString());
+                        case null -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                String.format("Null message type %s",
+                                        encodedMessage));
+                    });
+        } else {
+            return decoderManager
+                    .decode(encodedMessage)
+                    .thenApply(
+                            decodedMessage -> ResponseEntity
+                                    .status(HttpStatus.OK)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .body(decodedMessage.toString()))
+                    .exceptionally(e -> {
+                        log.warn("Failed to decode data: {}", e.getMessage(), e);
+                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                                String.format("Exception handling encoded data: %s", e.getMessage()), e);
+                    });
+        }
+
     }
-
-  }
 }

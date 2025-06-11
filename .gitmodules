@@ -1,3 +1,0 @@
-[submodule "services/intersection-api/asn1_codec"]
-	path = services/intersection-api/asn1_codec
-	url = https://github.com/CDOT-CV/asn1_codec

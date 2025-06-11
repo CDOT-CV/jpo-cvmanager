@@ -48,10 +48,10 @@ services:
   asn1_codec:
     profiles:
       - intersection
-    image: asn1_codec:latest
-    build:
-      context: ./services/intersection-api/asn1_codec
-      dockerfile: Dockerfile.amazonlinux
+    image: usdotjpoode/asn1_codec:2025-q2
+    # build:
+    #   context: ./services/intersection-api/asn1_codec
+    #   dockerfile: Dockerfile.amazonlinux
     ports:
       - "${ACM_HTTP_SERVER_PORT}:${ACM_HTTP_SERVER_PORT}"
     environment:

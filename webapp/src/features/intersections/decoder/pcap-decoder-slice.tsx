@@ -55,9 +55,8 @@ export const onPcapFileUploaded = createAsyncThunk(
   'pcapDecoder/onPcapFileUploaded',
   async (contents: ArrayBuffer, { getState, dispatch }) => {
     console.log("onPcapFileUploaded")
-    const currentState = getState() as RootState
-    const authToken = selectToken(currentState)!
-    const response = await submitPcapDecoderRequest(authToken, contents)
+    
+    const response = await submitPcapDecoderRequest(contents)
     
     // Start decode all to JSON asynchroously.  Don't await because it is slower.
     // TODO: Grey out the download button until this is done
@@ -70,18 +69,16 @@ export const onPcapFileUploaded = createAsyncThunk(
 )
 
 
-const submitPcapDecoderRequest = (authToken: string, contents: ArrayBuffer) => {
+const submitPcapDecoderRequest = (contents: ArrayBuffer) => {
   console.log("submitPcapDecoderRequest")  
-  return DecoderApi.submitPcapDecodeRequest(authToken, contents);
+  return DecoderApi.submitPcapDecodeRequest({data: contents});
 }
 
 export const decodeAllToJson = createAsyncThunk(
   'pcapDecoder/decodeAllToJson',
   async (hexData: any[], {getState, dispatch}) => {
     console.log("decodeAlltoJson")
-    const currentState = getState() as RootState
-    const authToken = selectToken(currentState)!
-    const response = await DecoderApi.submitBatchDecodeRequest(authToken, hexData)
+    const response = await DecoderApi.submitBatchDecodeRequest({data: hexData})
     return response
   }
 )
@@ -101,9 +98,7 @@ export const decodeUniqueMaps = createAsyncThunk(
       }
     })
     console.log(uniqueMaps)
-    const currentState = getState() as RootState
-    const authToken = selectToken(currentState)!
-    const response = await DecoderApi.submitBatchDecodeRequest(authToken, uniqueMaps)
+    const response = await DecoderApi.submitBatchDecodeRequest({data: uniqueMaps})
     return response
   }
 )
@@ -194,36 +189,32 @@ export const pcapDecoderSlice = createSlice({
     builder.addCase(onPcapFileUploaded.fulfilled, (state, action) => {
       console.debug("onPcapFileUploaded.fulfilled reducer")
       try {
-        if (action.payload) {
-          state.value.pcapData = action.payload
-
-          const pcapDataArr = Object.values(state.value.pcapData)
-          const firstTimestamp = pcapDataArr[0].timestamp
-          const lastTimestamp = pcapDataArr.slice(-1)[0].timestamp
-          const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
-          const mapCount = allMaps.length
-          const uniqueMapHex = new Set(allMaps.map(item => item.hex))
-          const uniqueMapCount = uniqueMapHex.size
-          const spatCount = pcapDataArr.filter(item => item.type === 'SPAT').length
-          const bsmCount = pcapDataArr.filter(item => item.type === 'BSM').length
-          const ssmCount = pcapDataArr.filter(item => item.type === 'SSM').length
-          const srmCount = pcapDataArr.filter(item => item.type === 'SRM').length
-          const unknownCount = pcapDataArr.filter(item => item.type === 'UNKNOWN').length
-          
-          state.value.pcapDataStats = {
-            totalCount: pcapDataArr.length,
-            firstTimestamp: firstTimestamp,
-            lastTimestamp: lastTimestamp,
-            mapCount: mapCount,
-            uniqueMapCount: uniqueMapCount,
-            spatCount: spatCount,
-            bsmCount: bsmCount,
-            ssmCount: ssmCount,
-            srmCount: srmCount,
-            unknownCount: unknownCount
-          }
-        } else {
-          console.error("onPcapFileUploaded.fulfilled: action.payload is undefined")
+        state.value.pcapData = action.payload
+      
+        const pcapDataArr = Object.values(state.value.pcapData)
+        const firstTimestamp = pcapDataArr[0].timestamp
+        const lastTimestamp = pcapDataArr.slice(-1)[0].timestamp
+        const allMaps = pcapDataArr.filter(item => item.type === 'MAP')
+        const mapCount = allMaps.length
+        const uniqueMapHex = new Set(allMaps.map(item => item.hex))
+        const uniqueMapCount = uniqueMapHex.size
+        const spatCount = pcapDataArr.filter(item => item.type === 'SPAT').length
+        const bsmCount = pcapDataArr.filter(item => item.type === 'BSM').length
+        const ssmCount = pcapDataArr.filter(item => item.type === 'SSM').length
+        const srmCount = pcapDataArr.filter(item => item.type === 'SRM').length
+        const unknownCount = pcapDataArr.filter(item => item.type === 'UNKNOWN').length
+        
+        state.value.pcapDataStats = {
+          totalCount: pcapDataArr.length,
+          firstTimestamp: firstTimestamp,
+          lastTimestamp: lastTimestamp,
+          mapCount: mapCount,
+          uniqueMapCount: uniqueMapCount,
+          spatCount: spatCount,
+          bsmCount: bsmCount,
+          ssmCount: ssmCount,
+          srmCount: srmCount,
+          unknownCount: unknownCount
         }
       } catch (e) {
         console.error("onPcapFileUploaded.fulfilled")
