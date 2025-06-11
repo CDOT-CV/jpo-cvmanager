@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snmp4j.*;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.MPv3;
@@ -17,14 +15,15 @@ import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 
 import javax.annotation.PostConstruct;
 
 @Service
+@Slf4j
 public class SNMPService {
-
-    private static final Logger logger = LoggerFactory.getLogger(SNMPService.class);
 
     @PostConstruct
     public void init() throws Exception {
@@ -159,11 +158,11 @@ public class SNMPService {
         ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
         snmp.close();
         if (response == null || response.getResponse() == null) {
-            logger.warn("Received Null Response from RSU unit" + ipAddress);
+            log.warn("Received Null Response from RSU unit" + ipAddress);
         }
 
         if (response.getResponse().getErrorStatus() != PDU.noError) {
-            logger.warn("Error while setting value on RSU unit" + ipAddress);
+            log.warn("Error while setting value on RSU unit" + ipAddress);
         }
     }
 }
