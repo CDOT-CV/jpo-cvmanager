@@ -83,6 +83,9 @@ enable:
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   monitoring: ${INTERSECTION_API_ENABLE_MONITORING:true}
 
+monitor:
+  interval: ${INTERSECTION_API_MONITOR_INTERVAL:300000} # Number of Milliseconds between RSU Status Checks
+
 cmServerURL: ${CM_SERVER_URL:http://localhost:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
