@@ -16,9 +16,10 @@ public class KafkaProducerService {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper;
 
-    public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate) {
+    public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
         this.kafkaTemplate = kafkaTemplate;
     }
 
