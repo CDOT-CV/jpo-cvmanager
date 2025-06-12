@@ -104,8 +104,6 @@ public class SNMPService {
 
         ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
 
-        System.out.println(response.getError());
-
         if (response != null && response.getResponse() != null) {
             VariableBinding vb = response.getResponse().get(0);
             return vb.getVariable();

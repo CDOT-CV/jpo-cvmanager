@@ -72,7 +72,7 @@ public class RsuQueryService {
 
     public int getIntOID(String ip, String username, String password, String encPass, OID oid) {
         try {
-            Variable var = snmpService.getSnmpV3Value(ip, username, encPass, ip, oid.getOid());
+            Variable var = snmpService.getSnmpV3Value(ip, username, password, encPass, oid.getOid());
 
             if (var != null) {
                 return var.toInt();
