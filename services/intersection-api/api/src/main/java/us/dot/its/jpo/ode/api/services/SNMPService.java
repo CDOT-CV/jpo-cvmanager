@@ -103,7 +103,7 @@ public class SNMPService {
         pdu.add(new VariableBinding(new OID(oid)));
 
         ResponseEvent<UdpAddress> response = snmp.send(pdu, target);
-
+        snmp.close();
         if (response != null && response.getResponse() != null) {
             VariableBinding vb = response.getResponse().get(0);
             return vb.getVariable();
