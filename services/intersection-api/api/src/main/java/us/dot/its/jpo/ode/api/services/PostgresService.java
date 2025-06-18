@@ -202,4 +202,11 @@ public class PostgresService {
         TypedQuery<RsuCredentials> query = entityManager.createQuery(findRsuSnmpCredentials, RsuCredentials.class);
         return query.getResultList();
     }
+
+    public RsuCredentials getRsuCredentialsByIp(String rsuIp) {
+        return getRsusWithCredentials().stream()
+                .filter(cred -> cred.getIpv4_address() != null && cred.getIpv4_address().equals(rsuIp))
+                .findFirst()
+                .orElse(null);
+    }
 }

@@ -84,4 +84,32 @@ public class RsuQueryService {
         }
         return -1;
     }
+
+    public RsuState getRsuState(RsuCredentials cred) {
+        String username = cred.getUsername();
+        String password = cred.getPassword();
+        String encPass = cred.getEncrypt_password();
+        String ip = cred.getIpv4_address();
+        String intersectionId = cred.getIntersection_id();
+
+        if (username == null || password == null || ip == null) {
+            log.warn("Cannot pull data from RSU unit. Missing Username, Password, or IP address. RSU ID: " + ip
+                    + " Intersection ID: " + intersectionId);
+            return null;
+        }
+
+        if (encPass == null) {
+            encPass = password;
+        }
+
+        RsuState state = new RsuState();
+        state.timestamp = Instant.now().toEpochMilli();
+        state.rsuIP = ip;
+        state.intersectionID = intersectionId;
+        state.uptime = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuTimeSincePowerOn"));
+        state.temperature = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuIntTemp"));
+        state.mode = getIntOID(ip, username, password, encPass, OIDMap.oids.get("rsuModeStatus"));
+
+        return state;
+    }
 }
