@@ -91,11 +91,11 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
                     }}
                   >
                     {firmwareUpgradeErr ? (
-                      <Typography color={theme.palette.error.main} role="alert" variant="subtitle1">
+                      <Typography color={theme.palette.error.light} role="alert" variant="subtitle1">
                         {firmwareUpgradeMsg}
                       </Typography>
                     ) : (
-                      <Typography color="success" role="status">
+                      <Typography color={theme.palette.success.light} role="status">
                         {firmwareUpgradeMsg}
                       </Typography>
                     )}
@@ -103,7 +103,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
                 )}
               </div>
               <Button
-                className="museo-slab"
+                className="museo-slab capital-case"
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 size="medium"
@@ -130,7 +130,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
             </p>
           </div>
           <Button
-            className="museo-slab"
+            className="museo-slab capital-case"
             variant="outlined"
             startIcon={<RefreshIcon />}
             size="medium"

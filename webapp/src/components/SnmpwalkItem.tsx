@@ -42,7 +42,6 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
         '&:hover': {
           backgroundColor: theme.palette.background.default,
         },
-        height: '150px',
       }}
     >
       <h3 id="snmpitemheader">{props.index}</h3>
@@ -51,6 +50,7 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
       <SnmpWalkRow title="Port:" value={props.content['Port']} />
       <SnmpWalkRow title="Start:" value={props.content['Start DateTime']} />
       <SnmpWalkRow title="End:" value={props.content['End DateTime']} />
+      <SnmpWalkRow title="Security:" value={props.content['Full WSMP']} />
       <SnmpWalkRow title="Active:" value={props.content['Config Active']} />
 
       <Button

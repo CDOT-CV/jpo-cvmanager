@@ -15,6 +15,9 @@ declare module '@mui/material/styles' {
       mapMenuItemHoverSelected: string
       mapMenuItemHoverUnselected: string
       mapMenuBackground: string
+      intersectionMapAccordionExpanded: string
+      intersectionMapButtonHover: string
+      rowActionIcon: string
     }
   }
   interface Palette {
@@ -29,6 +32,9 @@ declare module '@mui/material/styles' {
       mapMenuItemHoverSelected: string
       mapMenuItemHoverUnselected: string
       mapMenuBackground: string
+      intersectionMapAccordionExpanded: string
+      intersectionMapButtonHover: string
+      rowActionIcon: string
     }
   }
 }
@@ -48,6 +54,9 @@ export const testTheme = createTheme({
       mapMenuItemHoverSelected: '#000000',
       mapMenuItemHoverUnselected: '#000000',
       mapMenuBackground: '#000000',
+      intersectionMapAccordionExpanded: '#000000',
+      intersectionMapButtonHover: '#000000',
+      rowActionIcon: '#000000',
     },
   },
 })
@@ -60,6 +69,28 @@ export const testTheme = createTheme({
 // --secondary: #7978d9;
 // --accent: #4431af;
 const themeMainLight = createTheme({
+  cssVariables: true,
+  typography: {
+    fontFamily: '"Trebuchet MS", Arial, Helvetica, sans-serif',
+    h1: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+    h2: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+    h3: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+    h4: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+    h5: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+    h6: {
+      fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
+    },
+  },
   components: {
     MuiTableHead: {
       styleOverrides: {
@@ -84,20 +115,34 @@ const themeMainLight = createTheme({
         },
       },
     },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'unset',
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: {
+          borderColor: '#061731',
+        },
+      },
+    },
   },
   palette: {
     mode: 'light',
     primary: {
-      main: '#5048E5',
-      light: '#a6aef4',
-      dark: '#413bbc',
-      contrastText: '#FFFFFF',
+      main: '#6f69e0',
+      light: '#2e3574',
+      dark: '#a7a3e7',
+      contrastText: '#0b041b',
     },
     secondary: {
       main: '#53aaf1',
-      light: '#91c6f2',
-      dark: '#071f32',
-      contrastText: '#FFFFFF',
+      light: '#114875',
+      dark: '#92bcde',
+      contrastText: '#121212',
     },
     error: {
       main: '#713737',
@@ -126,6 +171,9 @@ const themeMainLight = createTheme({
       mapMenuItemBorderSelected: '1px solid black',
       mapMenuItemHoverSelected: '#a19f9f',
       mapMenuItemHoverUnselected: '#ffffff',
+      intersectionMapAccordionExpanded: '#d7d7d7',
+      intersectionMapButtonHover: '#d7d7d7',
+      rowActionIcon: '#9DBDD3',
     },
   },
 })
@@ -216,7 +264,10 @@ const themeMainDark = createTheme({
     success: {
       light: '#75BD27',
       main: '#A0D36466',
-      dark: '#9e0e0e',
+      dark: '#5B7737',
+    },
+    warning: {
+      main: '#D1A711',
     },
     text: {
       primary: '#FFFFFF',
@@ -237,6 +288,9 @@ const themeMainDark = createTheme({
       mapMenuItemBorderSelected: '1px solid black',
       mapMenuItemHoverSelected: '#333333',
       mapMenuItemHoverUnselected: '#575757',
+      intersectionMapAccordionExpanded: '#2E2F31',
+      intersectionMapButtonHover: '#2D5F7F',
+      rowActionIcon: '#9DBDD3',
     },
     background: {
       paper: '#1b1d1f',

@@ -8,7 +8,6 @@ import { authApiHelper } from './api-helper-cviz'
 export type ReportMetadata = {
   reportName: string
   intersectionID: number
-  roadRegulatorID: string
   reportGeneratedAt: Date
   reportStartTime: Date
   reportStopTime: Date
@@ -19,8 +18,8 @@ export type ReportMetadata = {
   laneDirectionOfTravelReportData: LaneDirectionOfTravelReportData[]
   connectionOfTravelEventCounts: CountWithId[]
   signalStateConflictEventCount: CountWithId[]
-  signalStateEventCounts: CountWithId[]
-  signalStateStopEventCounts: CountWithId[]
+  stopLinePassageEventCounts: CountWithId[]
+  stopLineStopEventCounts: CountWithId[]
   timeChangeDetailsEventCount: CountWithId[]
   intersectionReferenceAlignmentEventCounts: CountWithId[]
   mapBroadcastRateEventCount: CountWithId[]
@@ -51,21 +50,18 @@ class ReportsApi {
   async generateReport({
     token,
     intersectionId,
-    roadRegulatorId,
     startTime,
     endTime,
     abortController,
   }: {
     token: string
     intersectionId: number
-    roadRegulatorId: number
     startTime: Date
     endTime: Date
     abortController?: AbortController
   }): Promise<Blob | undefined> {
     const queryParams: Record<string, string> = {}
     queryParams['intersection_id'] = intersectionId.toString()
-    queryParams['road_regulator_id'] = roadRegulatorId.toString()
 
     if (startTime) {
       const startTimeUTC = new Date(startTime.getTime() - startTime.getTimezoneOffset() * 60000)
@@ -79,7 +75,7 @@ class ReportsApi {
     }
 
     const pdfReport = await authApiHelper.invokeApi({
-      path: `/reports/generate`,
+      path: `/reports/intersection/generate`,
       token: token,
       responseType: 'blob',
       queryParams,
@@ -88,33 +84,30 @@ class ReportsApi {
       tag: 'intersection',
     })
 
-    return pdfReport
+    return pdfReport?.content?.[0]
   }
 
   async listReports({
     token,
     intersectionId,
-    roadRegulatorId,
     startTime,
     endTime,
     abortController,
   }: {
     token: string
     intersectionId: number
-    roadRegulatorId: number
     startTime: Date
     endTime: Date
     abortController?: AbortController
   }): Promise<ReportMetadata[] | undefined> {
     const queryParams: Record<string, string> = {}
     queryParams['intersection_id'] = intersectionId.toString()
-    queryParams['road_regulator_id'] = roadRegulatorId.toString()
     queryParams['start_time_utc_millis'] = startTime.getTime().toString()
     queryParams['end_time_utc_millis'] = endTime.getTime().toString()
     queryParams['latest'] = 'false'
 
     const pdfReport = await authApiHelper.invokeApi({
-      path: `/reports/list`,
+      path: `/reports/intersection`,
       token: token,
       queryParams,
       abortController,
@@ -122,8 +115,10 @@ class ReportsApi {
       tag: 'intersection',
     })
 
-    if (pdfReport) {
-      pdfReport.forEach((report: ReportMetadata) => {
+    const reportList = pdfReport?.content
+
+    if (reportList) {
+      reportList.forEach((report: ReportMetadata) => {
         report.reportStartTime = new Date(
           new Date(report.reportStartTime).getTime() + new Date(report.reportStartTime).getTimezoneOffset() * 60000
         )
@@ -133,7 +128,7 @@ class ReportsApi {
       })
     }
 
-    return pdfReport
+    return reportList
   }
 
   async downloadReport({
@@ -149,7 +144,7 @@ class ReportsApi {
     queryParams['report_name'] = reportName
 
     const pdfReport = await authApiHelper.invokeApi({
-      path: `/reports/download`,
+      path: `/reports/intersection/download`,
       token: token,
       responseType: 'blob',
       queryParams,
@@ -158,7 +153,7 @@ class ReportsApi {
       tag: 'intersection',
     })
 
-    return pdfReport
+    return pdfReport?.content?.[0]
   }
 }
 

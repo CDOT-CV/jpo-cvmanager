@@ -59,11 +59,10 @@ describe('generatePdf', () => {
     mockReport = {
       reportName: 'Test Report',
       intersectionID: 123,
-      roadRegulatorID: '456',
       reportGeneratedAt: new Date('2023-01-01T00:00:00Z'),
       reportStartTime: new Date('2023-01-01T00:00:00Z'),
       reportStopTime: new Date('2023-01-01T01:00:00Z'),
-      reportContents: ['Lane Direction of Travel', 'Signal State Events'],
+      reportContents: ['Lane Direction of Travel', 'Stop Line Passage Events'],
       laneDirectionOfTravelEventCounts: [
         { id: '1', count: 10 },
         { id: '2', count: 15 },
@@ -85,11 +84,11 @@ describe('generatePdf', () => {
         { id: '2', count: 25 },
       ],
       signalStateConflictEventCount: [{ id: '1', count: 5 }],
-      signalStateEventCounts: [
+      stopLinePassageEventCounts: [
         { id: '1', count: 30 },
         { id: '2', count: 35 },
       ],
-      signalStateStopEventCounts: [
+      stopLineStopEventCounts: [
         { id: '1', count: 12 },
         { id: '2', count: 18 },
       ],

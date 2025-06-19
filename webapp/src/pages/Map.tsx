@@ -120,6 +120,7 @@ import { toast } from 'react-hot-toast'
 import { RoomOutlined } from '@mui/icons-material'
 import MooveAiHardBrakingLegend from '../components/MooveAiHardBrakingLegend'
 import { PrimaryButton } from '../styles/components/PrimaryButton'
+import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -179,36 +180,6 @@ function MapPage() {
 
   // Add these new state variables near the other source states
   const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
-
-  const [configPolygonSource, setConfigPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [],
-    },
-    properties: {},
-  })
-  const [configPointSource, setConfigPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
-    type: 'FeatureCollection',
-    features: [],
-  })
-
-  // BSM layer local state variables
-  const [geoMsgPolygonSource, setGeoMsgPolygonSource] = useState<GeoJSON.Feature<GeoJSON.Geometry>>({
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [],
-    },
-    properties: {},
-  })
-
-  const [geoMsgPolygonPointSource, setGeoMsgPolygonPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(
-    {
-      type: 'FeatureCollection',
-      features: [],
-    }
-  )
 
   const [geoMsgPointSource, setGeoMsgPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
     type: 'FeatureCollection',
@@ -327,13 +298,18 @@ function MapPage() {
   }
 
   // Effect for handling polygon updates msg-viewer-layer
-  useEffect(() => {
-    if (!activeLayers.includes('msg-viewer-layer')) return
 
-    setGeoMsgPolygonPointSource((prevPointSource) => ({
-      ...prevPointSource,
+  const geoMsgPolygonPointSource = useMemo(() => {
+    if (!activeLayers.includes('msg-viewer-layer')) return null
+
+    return {
+      type: 'FeatureCollection',
       features: geoMsgCoordinates.map((point) => createPointFeature(point)),
-    }))
+    } as GeoJSON.FeatureCollection<GeoJSON.Geometry>
+  }, [geoMsgCoordinates, activeLayers])
+
+  const geoMsgPolygonSource = useMemo(() => {
+    if (!activeLayers.includes('msg-viewer-layer')) return null
 
     // Get coordinates including preview point if it exists
     let polygonCoords = [...geoMsgCoordinates]
@@ -358,16 +334,16 @@ function MapPage() {
       polygonCoords.push(polygonCoords[0])
     }
 
-    setGeoMsgPolygonSource(
-      (prevPolygonSource) =>
-        ({
-          ...prevPolygonSource,
-          geometry: {
-            type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
-            coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
-          },
-        } as GeoJSON.Feature<GeoJSON.Geometry>)
-    )
+    const polygonSource = {
+      type: 'Feature',
+      geometry: {
+        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
+      },
+      properties: {},
+    } as GeoJSON.Feature<GeoJSON.Geometry>
+
+    return polygonSource
   }, [geoMsgCoordinates, activeLayers, addGeoMsgPoint, previewPoint])
 
   const mooveAiPolygonPointSource = useMemo(
@@ -413,6 +389,49 @@ function MapPage() {
     } as GeoJSON.Feature<GeoJSON.Geometry>
   }, [mooveAiCoordinates, addMooveAiPoint, previewPoint])
 
+  const configPolygonPointSource = useMemo(
+    () =>
+      ({
+        type: 'FeatureCollection',
+        features: configCoordinates.map(createPointFeature),
+      } as GeoJSON.FeatureCollection<GeoJSON.Geometry>),
+    [configCoordinates]
+  )
+
+  const configPolygonSource = useMemo(() => {
+    // Get coordinates including preview point if it exists
+    let polygonCoords = [...configCoordinates]
+    if (previewPoint && addConfigPoint) {
+      const previewCoords = previewPoint.geometry.coordinates
+
+      if (polygonCoords.length >= 3 && polygonCoords[0] === polygonCoords[polygonCoords.length - 1]) {
+        // For completed polygon: Remove closing point, add preview, then close
+        polygonCoords = polygonCoords.slice(0, -1)
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 2) {
+        // For two points: Draw triangle with preview point
+        polygonCoords.push(previewCoords)
+        polygonCoords.push(polygonCoords[0])
+      } else if (polygonCoords.length === 1) {
+        // For one point: Draw line to preview point
+        polygonCoords = [[...polygonCoords[0]], [...previewCoords]] // Create a fresh array with both points
+      }
+    } else if (polygonCoords.length >= 3) {
+      // Close the polygon if we have 3+ points and no preview
+      polygonCoords.push(polygonCoords[0])
+    }
+
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
+        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
+      },
+    } as GeoJSON.Feature<GeoJSON.Geometry>
+  }, [configCoordinates, addConfigPoint, previewPoint])
+
   // Effect for handling point source updates msg-viewer-layer
   useEffect(() => {
     // if the msg-viewer-layer is not active, exit the effect
@@ -453,35 +472,6 @@ function MapPage() {
   const geoMsgFilterMaxOffset = useMemo(() => {
     return calculateMaxOffset(startGeoMsgDate, endGeoMsgDate, filterStep)
   }, [startGeoMsgDate, endGeoMsgDate, filterStep])
-
-  useEffect(() => {
-    if (activeLayers.includes('rsu-layer')) {
-      setConfigPolygonSource((prevPolygonSource) => {
-        return {
-          ...prevPolygonSource,
-          geometry: {
-            ...prevPolygonSource.geometry,
-            coordinates: [[...configCoordinates]],
-          },
-        } as GeoJSON.Feature<GeoJSON.Geometry>
-      })
-      const pointSourceFeatures = [] as Array<GeoJSON.Feature<GeoJSON.Geometry>>
-      configCoordinates.forEach((point) => {
-        pointSourceFeatures.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [...point],
-          },
-          properties: {},
-        })
-      })
-
-      setConfigPointSource((prevPointSource) => {
-        return { ...prevPointSource, features: pointSourceFeatures }
-      })
-    }
-  }, [configCoordinates, activeLayers])
 
   function dateChanged(e: Date, type: 'start' | 'end') {
     try {
@@ -762,6 +752,7 @@ function MapPage() {
       id: 'msg-viewer-layer',
       label: 'V2x Message Viewer',
       type: 'symbol',
+      tag: 'rsu',
     },
     {
       id: 'wzdx-layer',
@@ -853,28 +844,30 @@ function MapPage() {
 
     return (
       <FormGroup>
-        {layers.map((layer) => (
-          <div key={layer.id}>
-            <Typography fontSize="small" display="flex" alignItems="center">
-              {layer.control && (
-                <IconButton
-                  onClick={() => toggleExpandLayer(layer.id)}
-                  size="small"
-                  edge="end"
-                  aria-label={expandedLayers.includes(layer.id) ? 'Collapse' : 'Expand'}
-                >
-                  {expandedLayers.includes(layer.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              )}
-              <FormControlLabel
-                onClick={() => toggleLayer(layer.id)}
-                label={<Typography>{layer.label}</Typography>}
-                control={<Checkbox checked={activeLayers.includes(layer.id)} />}
-              />
-            </Typography>
-            {layer.control && <Collapse in={expandedLayers.includes(layer.id)}>{layer.control}</Collapse>}
-          </div>
-        ))}
+        {layers
+          .filter((layer) => evaluateFeatureFlags(layer.tag))
+          .map((layer) => (
+            <div key={layer.id}>
+              <Typography fontSize="small" display="flex" alignItems="center">
+                {layer.control && (
+                  <IconButton
+                    onClick={() => toggleExpandLayer(layer.id)}
+                    size="small"
+                    edge="end"
+                    aria-label={expandedLayers.includes(layer.id) ? 'Collapse' : 'Expand'}
+                  >
+                    {expandedLayers.includes(layer.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                )}
+                <FormControlLabel
+                  onClick={() => toggleLayer(layer.id)}
+                  label={<Typography>{layer.label}</Typography>}
+                  control={<Checkbox checked={activeLayers.includes(layer.id)} />}
+                />
+              </Typography>
+              {layer.control && <Collapse in={expandedLayers.includes(layer.id)}>{layer.control}</Collapse>}
+            </div>
+          ))}
       </FormGroup>
     )
   }
@@ -883,6 +876,12 @@ function MapPage() {
     event: React.SyntheticEvent<Element, Event>,
     origin: 'config' | 'msgViewer' | 'mooveai'
   ) => {
+    // Deselect any selected RSU when toggling point select tools
+    dispatch(selectRsu(null))
+    dispatch(clearFirmware())
+    setSelectedRsuCount(null)
+
+    // Toggle the corresponding point select tool based on the origin
     if (origin === 'config') {
       dispatch(toggleConfigPointSelect())
       if (addGeoMsgPoint) dispatch(toggleGeoMsgPointSelect())
@@ -924,158 +923,167 @@ function MapPage() {
             <Legend />
           </AccordionDetails>
         </Accordion>
-        <Divider />
-        <Accordion
-          style={{ backgroundColor: theme.palette.background.paper }}
-          disableGutters={true}
-          sx={{ '&.accordion': { marginBottom: 0 } }}
-          defaultExpanded
-          elevation={0}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
-            aria-controls="panel3-content"
-            id="panel3-header"
+        <ConditionalRenderRsu>
+          <Divider />
+          <Accordion
+            style={{ backgroundColor: theme.palette.background.paper }}
+            disableGutters={true}
+            sx={{ '&.accordion': { marginBottom: 0 } }}
+            defaultExpanded
+            elevation={0}
           >
-            <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
-              Filter RSUs
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="vendor">Vendor</InputLabel>
-              <Select
-                id="vendor"
-                label="Vendor"
-                value={selectedVendor}
-                defaultValue={selectedVendor}
-                onChange={(event) => {
-                  const vendor = event.target.value as string
-                  console.log(vendor)
-                  setVendor(vendor)
-                }}
-              >
-                {vendorArray.map((vendor) => (
-                  <MenuItem key={vendor} value={vendor}>
-                    <Typography>{vendor}</Typography>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography sx={{ marginTop: '12px' }}>RSU Status</Typography>
-            <FormControl sx={{ ml: 2, mt: 1 }}>
-              <RadioGroup value={displayType} onChange={handleRsuDisplayTypeChange}>
-                {[
-                  { key: 'online', label: <Typography>Online Status</Typography> },
-                  { key: 'scms', label: <Typography>SCMS Status</Typography> },
-                ].map((val) => (
-                  <FormControlLabel
-                    value={val.key}
-                    sx={{ mt: -1 }}
-                    control={
-                      <Radio
-                        sx={{
-                          color: theme.palette.text.primary,
-                          '&.Mui-checked': {
-                            color: theme.palette.primary.main,
-                          },
-                        }}
-                      />
-                    }
-                    label={val.label}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-          </AccordionDetails>
-        </Accordion>
-        {SecureStorageManager.getUserRole() === 'admin' && (
-          <>
-            <Divider />
-            <Accordion
-              style={{ backgroundColor: theme.palette.background.paper }}
-              disableGutters={true}
-              sx={{ '&.accordion': { marginBottom: 0 } }}
-              defaultExpanded
-              elevation={0}
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+              aria-controls="panel3-content"
+              id="panel3-header"
             >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
-                aria-controls="panel3-content"
-                id="panel3-header"
+              <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
+                Filter RSUs
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="vendor">Vendor</InputLabel>
+                <Select
+                  id="vendor"
+                  label="Vendor"
+                  value={selectedVendor}
+                  defaultValue={selectedVendor}
+                  onChange={(event) => {
+                    const vendor = event.target.value as string
+                    console.log(vendor)
+                    setVendor(vendor)
+                  }}
+                >
+                  {vendorArray.map((vendor) => (
+                    <MenuItem key={vendor} value={vendor}>
+                      <Typography>{vendor}</Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography sx={{ marginTop: '12px' }}>RSU Status</Typography>
+              <FormControl sx={{ ml: 2, mt: 1 }}>
+                <RadioGroup value={displayType} onChange={handleRsuDisplayTypeChange}>
+                  {[
+                    { key: 'online', label: <Typography>Online Status</Typography> },
+                    { key: 'scms', label: <Typography>SCMS Status</Typography> },
+                  ].map((val) => (
+                    <FormControlLabel
+                      value={val.key}
+                      sx={{ mt: -1 }}
+                      control={
+                        <Radio
+                          sx={{
+                            color: theme.palette.text.primary,
+                            '&.Mui-checked': {
+                              color: theme.palette.primary.main,
+                            },
+                          }}
+                        />
+                      }
+                      label={val.label}
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </AccordionDetails>
+          </Accordion>
+        </ConditionalRenderRsu>
+
+        <ConditionalRenderRsu>
+          {SecureStorageManager.getUserRole() === 'admin' && (
+            <>
+              <Divider />
+              <Accordion
+                style={{ backgroundColor: theme.palette.background.paper }}
+                disableGutters={true}
+                sx={{ '&.accordion': { marginBottom: 0 } }}
+                defaultExpanded
+                elevation={0}
               >
-                <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
-                  RSU Configuration
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <FormGroup row className="form-group-row">
-                  <FormControlLabel
-                    control={<Switch checked={addConfigPoint} />}
-                    label={<Typography>Add Points</Typography>}
-                    onChange={(e) => handleButtonToggle(e, 'config')}
-                    sx={{ ml: 1 }}
-                  />
-                  <Tooltip title="Clear Points">
-                    <IconButton
-                      disabled={configCoordinates.length == 0}
-                      onClick={() => {
-                        dispatch(clearConfig())
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon style={{ color: theme.palette.text.primary }} />}
+                  aria-controls="panel3-content"
+                  id="panel3-header"
+                >
+                  <Typography className="accordion-header museo-slab" color={theme.palette.text.primary}>
+                    RSU Configuration
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <FormGroup row className="form-group-row">
+                    <FormControlLabel
+                      control={<Switch checked={addConfigPoint} />}
+                      label={<Typography>Add Points</Typography>}
+                      onChange={(e) => handleButtonToggle(e, 'config')}
+                      sx={{ ml: 1 }}
+                    />
+                    <Tooltip title="Clear Points">
+                      <IconButton
+                        disabled={configCoordinates.length == 0}
+                        onClick={() => {
+                          dispatch(clearConfig())
+                        }}
+                        size="large"
+                      >
+                        <ClearIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </FormGroup>
+                  <FormGroup row sx={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      color="info"
+                      sx={{
+                        '&.Mui-disabled': {
+                          backgroundColor: alpha(theme.palette.primary.light, 0.5),
+                        },
+                        width: '100%',
                       }}
-                      size="large"
+                      disabled={!(configCoordinates.length > 2)}
+                      onClick={() => {
+                        dispatch(geoRsuQuery(selectedVendor))
+                      }}
+                      className="museo-slab capital-case"
                     >
-                      <ClearIcon />
-                    </IconButton>
-                  </Tooltip>
-                </FormGroup>
-                <FormGroup row sx={{ justifyContent: 'center', alignItems: 'center' }}>
-                  <Button
-                    variant="outlined"
-                    color="info"
-                    sx={{
-                      '&.Mui-disabled': {
-                        backgroundColor: alpha(theme.palette.primary.light, 0.5),
-                      },
-                      width: '100%',
-                    }}
-                    disabled={!(configCoordinates.length > 2 && addConfigPoint)}
-                    onClick={() => {
-                      dispatch(geoRsuQuery(selectedVendor))
-                    }}
-                    className="museo-slab"
-                  >
-                    Configure RSUs
-                  </Button>
-                </FormGroup>
-              </AccordionDetails>
-            </Accordion>
-          </>
-        )}
+                      Configure RSUs
+                    </Button>
+                  </FormGroup>
+                </AccordionDetails>
+              </Accordion>
+            </>
+          )}
+        </ConditionalRenderRsu>
       </div>
-      <PrimaryButton
-        sx={{
-          zIndex: 90,
-          position: 'absolute',
-          top: `${headerTabHeight + 25}px`,
-          right: '25px',
-        }}
-        className="museo-slab"
-        onClick={() => dispatch(toggleMapMenuSelection('Display Message Counts'))}
-      >
-        Message Counts
-      </PrimaryButton>
-      <PrimaryButton
-        sx={{
-          zIndex: 90,
-          position: 'absolute',
-          top: `${headerTabHeight + 25}px`,
-          right: '215px',
-        }}
-        className="museo-slab"
-        onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))}
-      >
-        Display RSU Status
-      </PrimaryButton>
+      <ConditionalRenderRsu>
+        <PrimaryButton
+          sx={{
+            zIndex: 90,
+            position: 'absolute',
+            top: `${headerTabHeight + 25}px`,
+            right: '25px',
+          }}
+          className="museo-slab capital-case"
+          onClick={() => dispatch(toggleMapMenuSelection('Display Message Counts'))}
+        >
+          Message Counts
+        </PrimaryButton>
+      </ConditionalRenderRsu>
+      <ConditionalRenderRsu>
+        <PrimaryButton
+          sx={{
+            zIndex: 90,
+            position: 'absolute',
+            top: `${headerTabHeight + 25}px`,
+            right: '200px',
+          }}
+          className="museo-slab capital-case"
+          onClick={() => dispatch(toggleMapMenuSelection('Display RSU Status'))}
+        >
+          Display RSU Status
+        </PrimaryButton>
+      </ConditionalRenderRsu>
       <Container
         fluid={true}
         style={{
@@ -1139,40 +1147,44 @@ function MapPage() {
           }}
         >
           {/* Add preview sources and layers */}
-          {(activeLayers.includes('msg-viewer-layer') || activeLayers.includes('moove-ai-layer')) && previewPoint && (
-            <Source id="preview-point" type="geojson" data={previewPoint}>
-              <Layer
-                id="preview-point-layer"
-                type="circle"
-                paint={{
-                  'circle-radius': 5,
-                  'circle-color': addGeoMsgPoint
-                    ? 'rgba(255, 164, 0, 0.5)'
-                    : addMooveAiPoint
-                    ? 'rgb(53, 121, 148)'
-                    : 'rgba(255, 0, 0, 0.5)',
-                  'circle-stroke-width': 2,
-                  'circle-stroke-color': addGeoMsgPoint
-                    ? 'rgb(255, 164, 0)'
-                    : addMooveAiPoint
-                    ? 'rgb(94, 206, 250)'
-                    : 'rgb(255, 0, 0)',
-                }}
-              />
-            </Source>
-          )}
+          {activeLayers.includes('msg-viewer-layer') ||
+            activeLayers.includes('moove-ai-layer') ||
+            (activeLayers.includes('rsu-layer') && previewPoint && (
+              <Source id="preview-point" type="geojson" data={previewPoint}>
+                <Layer
+                  id="preview-point-layer"
+                  type="circle"
+                  paint={{
+                    'circle-radius': 5,
+                    'circle-color': addGeoMsgPoint
+                      ? 'rgba(255, 164, 0, 0.5)'
+                      : addMooveAiPoint
+                      ? 'rgb(53, 121, 148)'
+                      : 'rgba(255, 0, 0, 0.5)',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': addGeoMsgPoint
+                      ? 'rgb(255, 164, 0)'
+                      : addMooveAiPoint
+                      ? 'rgb(94, 206, 250)'
+                      : 'rgb(255, 0, 0)',
+                  }}
+                />
+              </Source>
+            ))}
 
           {activeLayers.includes('rsu-layer') && (
             <div>
-              {configCoordinates?.length > 2 ? (
+              {configCoordinates.length >= 1 ? (
                 <Source id={layers[0].id + '-fill'} type="geojson" data={configPolygonSource}>
-                  <Layer {...configOutlineLayer} />
+                  <Layer {...getConfigOutlineLayer(addConfigPoint)} />
                   <Layer {...configFillLayer} />
                 </Source>
               ) : null}
-              <Source id={layers[0].id + '-points'} type="geojson" data={configPointSource}>
-                <Layer {...configPointLayer} />
-              </Source>
+              {addConfigPoint && (
+                <Source id={layers[0].id + '-polygon-points'} type="geojson" data={configPolygonPointSource}>
+                  <Layer {...configPointLayer} />
+                </Source>
+              )}
             </div>
           )}
           {rsuData?.map(
@@ -1184,6 +1196,8 @@ function MapPage() {
                   latitude={rsu.geometry.coordinates[1]}
                   longitude={rsu.geometry.coordinates[0]}
                   onClick={(e) => {
+                    // Prevent RSU selection if adding points to geospatial polygon selection
+                    if (addConfigPoint || addGeoMsgPoint || addMooveAiPoint) return
                     e.originalEvent.stopPropagation()
                     dispatch(selectRsu(rsu))
                     setSelectedWZDxMarkerIndex(null)
@@ -1199,6 +1213,8 @@ function MapPage() {
                   <button
                     className="marker-btn"
                     onClick={(e) => {
+                      // Prevent RSU selection if adding points to geospatial polygon selection
+                      if (addConfigPoint || addGeoMsgPoint || addMooveAiPoint) return
                       e.stopPropagation()
                       dispatch(selectRsu(rsu))
                       dispatch(clearFirmware()) // TODO: Should remove??
@@ -1357,7 +1373,7 @@ function MapPage() {
             >
               <Stack
                 sx={{
-                  height: '230px',
+                  height: '240px',
                   width: '350px',
                 }}
               >
@@ -1383,7 +1399,11 @@ function MapPage() {
                       style={{
                         color: theme.palette.text.primary,
                         backgroundColor:
-                          getStatus() === 'Offline' ? theme.palette.error.dark : theme.palette.success.dark,
+                          getStatus().toLowerCase() === 'online'
+                            ? theme.palette.success.dark
+                            : getStatus().toLowerCase() === 'unstable'
+                            ? theme.palette.warning.main
+                            : theme.palette.error.dark,
                         width: '4rem',
                         height: '1.5rem',
                         display: 'flex',
@@ -1568,7 +1588,7 @@ function MapPage() {
                   top: '10px',
                   left: '10px',
                 }}
-                className="museo-slab"
+                className="museo-slab capital-case"
               >
                 Add Point
               </Button>
@@ -1584,7 +1604,7 @@ function MapPage() {
                 onClick={(e) => {
                   dispatch(clearGeoMsg())
                 }}
-                className="museo-slab"
+                className="museo-slab capital-case"
               >
                 Clear
               </Button>
@@ -1653,7 +1673,7 @@ function MapPage() {
                     toast.error('Please complete the polygon (double click to close) before submitting')
                   }
                 }}
-                className="museo-slab"
+                className="museo-slab capital-case"
               >
                 Submit
               </Button>
@@ -1693,7 +1713,7 @@ function MapPage() {
           >
             <div className="buttonContainer" style={{ marginBottom: 15 }}>
               <Button
-                className="museo-slab"
+                className="museo-slab capital-case"
                 variant="contained"
                 size="small"
                 onClick={(e) => handleButtonToggle(e, 'mooveai')}
@@ -1701,7 +1721,7 @@ function MapPage() {
                 Add Point
               </Button>
               <Button
-                className="museo-slab"
+                className="museo-slab capital-case"
                 variant="contained"
                 size="small"
                 onClick={(e) => {
@@ -1718,7 +1738,7 @@ function MapPage() {
             </div>
             <div style={{ marginBottom: 5 }} className="submitContainer">
               <Button
-                className="museo-slab"
+                className="museo-slab capital-case"
                 variant="contained"
                 size="small"
                 onClick={(e) => {
@@ -1736,6 +1756,39 @@ function MapPage() {
         ))}
     </div>
   )
+}
+
+const configFillLayer: FillLayer = {
+  id: 'configFill',
+  type: 'fill',
+  source: 'polygonSource',
+  layout: {},
+  paint: {
+    'fill-color': '#0080ff',
+    'fill-opacity': 0.2,
+  },
+}
+
+const getConfigOutlineLayer = (isEditing: boolean): LineLayer => ({
+  id: 'configMsgOutline',
+  type: 'line',
+  source: 'polygonSource',
+  layout: {},
+  paint: {
+    'line-color': '#000',
+    'line-width': 3,
+    'line-dasharray': isEditing ? [2, 2] : undefined,
+  },
+})
+
+const configPointLayer: CircleLayer = {
+  id: 'configPointLayer',
+  type: 'circle',
+  source: 'pointSource',
+  paint: {
+    'circle-radius': 5,
+    'circle-color': 'rgb(255, 0, 0)',
+  },
 }
 
 const geoMsgFillLayer: FillLayer = {
@@ -1760,38 +1813,6 @@ const getGeoMsgOutlineLayer = (isEditing: boolean): LineLayer => ({
     'line-dasharray': isEditing ? [2, 2] : undefined,
   },
 })
-
-const configFillLayer: FillLayer = {
-  id: 'configFill',
-  type: 'fill',
-  source: 'polygonSource',
-  layout: {},
-  paint: {
-    'fill-color': '#0080ff',
-    'fill-opacity': 0.2,
-  },
-}
-
-const configOutlineLayer: LineLayer = {
-  id: 'configOutline',
-  type: 'line',
-  source: 'polygonSource',
-  layout: {},
-  paint: {
-    'line-color': '#000',
-    'line-width': 3,
-  },
-}
-
-const configPointLayer: CircleLayer = {
-  id: 'configPointLayer',
-  type: 'circle',
-  source: 'pointSource',
-  paint: {
-    'circle-radius': 5,
-    'circle-color': 'rgb(255, 0, 0)',
-  },
-}
 
 const geoMsgPolygonPointLayer: CircleLayer = {
   id: 'geoMsgPolygonPointLayer',
