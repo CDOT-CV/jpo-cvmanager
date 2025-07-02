@@ -68,6 +68,9 @@ public class RsuQueryService {
         key.setRegion(-1);
 
         kafkaService.sendRsuStatus(properties.getRsuStatusKafkaTopic(), key, state);
+
+        log.info("Retrieved RSU Information for RSU: " + ip + " IntersectionID: " + intersectionId
+                + " Uptime: " + state.uptime + " Temperature: " + state.temperature + " Mode: " + state.mode);
     }
 
     public int getIntOID(String ip, String username, String password, String encPass, OID oid) {

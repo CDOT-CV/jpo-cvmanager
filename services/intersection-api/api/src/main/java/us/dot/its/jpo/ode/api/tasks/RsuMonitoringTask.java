@@ -30,18 +30,14 @@ public class RsuMonitoringTask {
 
     }
 
-    // @Scheduled(fixedRateString = "${monitor.interval}")
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRateString = "${monitor.interval}")
+    // @Scheduled(fixedRate = 5000)
     public void queryRSUStats() {
-        System.out.println("Running Monitor Task" + Instant.now());
-
         List<RsuCredentials> credentials = postgresService.getRsusWithCredentials();
-
         for (RsuCredentials cred : credentials) {
             rsuQueryService.getRsuInformation(cred);
 
         }
-        System.out.println("Running Monitor Task Finished" + Instant.now());
     }
 
 }
