@@ -190,10 +190,12 @@ docker compose up --build -d
 7.  To access keycloak go to:
 
 ```
-  http://host.docker.internal:8084/
+  http://localhost:8084/
   Default Username: admin
   Default Password: admin
 ```
+
+This should redirect to http://host.docker.internal:8084/ automatically. If not, use the above URL to access Keycloak.
 
 - If you are looking to deploy in Kubernetes or on separate VMs, refer to the Kubernetes YAML deployment files to deploy the four components to your cluster. ([Kubernetes YAML](resources/kubernetes))
 
@@ -303,11 +305,13 @@ docker compose up -d cvmanager_api cvmanager_webapp cvmanager_postgres cvmanager
 
 3.  To access keycloak go to:
 
-    ```
-      http://host.docker.internal:8084/
-      Default Username: admin
-      Default Password: admin
-    ```
+        ```
+          http://localhost:8084/
+          Default Username: admin
+          Default Password: admin
+        ```
+
+    This should redirect to http://host.docker.internal:8084/ automatically. If not, use the above URL to access Keycloak.
 
 ### Environment Variables
 
