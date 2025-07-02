@@ -190,7 +190,7 @@ docker compose up --build -d
 7.  To access keycloak go to:
 
 ```
-  http://docker.host.internal:8084/
+  http://host.docker.internal:8084/
   Default Username: admin
   Default Password: admin
 ```
@@ -304,7 +304,7 @@ docker compose up -d cvmanager_api cvmanager_webapp cvmanager_postgres cvmanager
 3.  To access keycloak go to:
 
     ```
-      http://docker.host.internal:8084/
+      http://host.docker.internal:8084/
       Default Username: admin
       Default Password: admin
     ```

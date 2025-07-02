@@ -62,7 +62,9 @@ This custom user provider is configured as a user federation provider in Keycloa
         "providerId": "custom-user-provider",
         "subComponents": {},
         "config": {
-        "JDBC_URL": ["${KC_DB_URL}"],
+        "JDBC_URL": [
+            "jdbc:postgresql://${KC_DB_URL_HOST}:${KC_DB_URL_PORT}/${KC_DB_URL_DATABASE}?currentSchema=${KC_DB_SCHEMA}"
+        ],
         "VALIDATION_QUERY": ["select 1"],
         "cachePolicy": ["NO_CACHE"],
         "DB_USERNAME": ["${KC_DB_USERNAME}"],
