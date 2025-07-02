@@ -324,6 +324,7 @@ docker compose up -d cvmanager_api cvmanager_webapp cvmanager_postgres cvmanager
 <b>Webapp Variables</b>
 
 - MAPBOX_TOKEN: A token from Mapbox used to render the map in the Webapp. The free version of Mapbox works great in most cases.
+- WEBAPP_DOMAIN: The domain that the webapp will run on. This is required for Keycloak CORS authentication.
 - API_URI: The endpoint for the CV manager API, must be on a Keycloak Authorized domain.
 - COUNT_MESSAGE_TYPES: List of CV message types to query for counts.
 - VIEWER_MSG_TYPES: List of CV message types to query geospatially.
