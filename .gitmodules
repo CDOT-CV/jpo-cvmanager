@@ -4,5 +4,5 @@
 	branch = master
 [submodule "jpo-utils"]
 	path = jpo-utils
-	url = https://github.com/CDOT_CV/jpo-utils
+	url = https://github.com/CDOT-CV/jpo-utils
 	branch = master
