@@ -39,6 +39,8 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
     public List<RsuState> findByRsuIPOrderByTimestampDesc(String rsuIP) {
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP);
         Query query = Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "timestamp"));
-        return mongoTemplate.find(query, RsuState.class, collectionName);
+
+        List<RsuState> results = mongoTemplate.find(query, RsuState.class, collectionName);
+        return results;
     }
 }

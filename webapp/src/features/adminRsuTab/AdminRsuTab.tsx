@@ -16,7 +16,9 @@ import {
 } from './adminRsuTabSlice'
 import { clear, getRsuInfo } from '../adminEditRsu/adminEditRsuSlice'
 import RsuStatusDialog from './RsuStatusDialog'
+import RsuApi, { RsuState } from '../../apis/intersections/rsu-api'
 import { useSelector, useDispatch } from 'react-redux'
+import { selectToken } from '../../generalSlices/userSlice'
 
 import './Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -36,6 +38,9 @@ const AdminRsuTab = () => {
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [selectedRsuIp, setSelectedRsuIp] = useState<string | null>(null)
+  const [latestRsuState, setLatestRsuState] = useState<RsuState | null>(null)
+
+  const token = useSelector(selectToken)
 
   const tableData = useSelector(selectTableData)
   const [columns] = useState([
@@ -56,6 +61,21 @@ const AdminRsuTab = () => {
   }
 
   const loading = useSelector(selectLoading)
+
+  React.useEffect(() => {
+    if (statusDialogOpen && selectedRsuIp) {
+      RsuApi.getLatestRsuStatus({ token, rsuIp: selectedRsuIp })
+        .then((data) => {
+          setLatestRsuState(data ?? null)
+        })
+        .catch((err) => {
+          setLatestRsuState(null)
+          console.error('Failed to fetch RSU state:', err)
+        })
+    } else {
+      setLatestRsuState(null)
+    }
+  }, [statusDialogOpen, selectedRsuIp, token])
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
     {
@@ -174,7 +194,12 @@ const AdminRsuTab = () => {
             loading === false && (
               <div className="scroll-div-tab">
                 <AdminTable title={''} data={tableData} columns={columns} actions={tableActions} />
-                <RsuStatusDialog open={statusDialogOpen} onClose={handleStatusDialogClose} rsuIp={selectedRsuIp} />
+                <RsuStatusDialog
+                  open={statusDialogOpen}
+                  onClose={handleStatusDialogClose}
+                  rsuIp={selectedRsuIp}
+                  rsuState={latestRsuState}
+                />
               </div>
             )
           }

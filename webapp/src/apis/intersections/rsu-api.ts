@@ -40,7 +40,7 @@ class RsuApi {
       tag: 'rsu',
     })
 
-    return response?.content
+    return response
   }
 
   // Fetch the latest RSU state for a given RSU IP
@@ -64,7 +64,7 @@ class RsuApi {
       tag: 'rsu',
     })
 
-    return response?.content
+    return response
   }
 }
 

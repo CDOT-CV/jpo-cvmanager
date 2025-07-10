@@ -59,9 +59,11 @@ public class RsuController {
     })
     public ResponseEntity<RsuState> getLatestRsuStatus(@RequestParam String rsuIp) {
         List<RsuState> results = rsuStateRepository.findByRsuIPOrderByTimestampDesc(rsuIp);
-        if (results.isEmpty()) {
+        if (!results.isEmpty()) {
+            RsuState latest = results.get(0);
+            return ResponseEntity.ok(latest);
+        } else {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(results.get(0));
     }
 }
