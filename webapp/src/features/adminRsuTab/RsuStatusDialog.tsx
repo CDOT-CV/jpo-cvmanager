@@ -8,7 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
+  ReferenceArea,
 } from 'recharts'
 import { Close } from '@mui/icons-material'
 import RsuApi, { type RsuState } from '../../apis/intersections/rsu-api'
@@ -107,13 +107,24 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     return acc
   }, [])
 
+  // Calculate reboot zones (from local max to subsequent local min)
+  const rebootZones = uptimeData.reduce((zones, curr, index, arr) => {
+    if (index > 0 && arr[index - 1].value > curr.value) {
+      zones.push({
+        start: arr[index - 1].time,
+        end: curr.time,
+      })
+    }
+    return zones
+  }, [])
+
   // Formats uptime in days and hours
   const formatUptime = (seconds: number, forTooltip = false) => {
     const days = Math.floor(seconds / 86400)
     const hours = Math.floor((seconds % 86400) / 3600)
 
     if (days > 0 && hours > 0) {
-      return forTooltip ? `${days} days ${hours} ${hours === 1 ? 'hour' : 'hours'}` : `${days}d ${hours}hr`
+      return forTooltip ? `${days} days, ${hours} ${hours === 1 ? 'hour' : 'hours'}` : `${days}d ${hours}hr`
     }
 
     if (days > 0 && hours === 0) {
@@ -147,6 +158,32 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     }
     return [value, name]
   }
+
+  // Clear and recalculate reboot points and zones whenever the historical data changes
+  useEffect(() => {
+    // Clear reboot points and zones when historical data changes
+    rebootPoints.splice(0, rebootPoints.length)
+    rebootZones.splice(0, rebootZones.length)
+
+    // Recalculate reboot points
+    uptimeData.reduce((acc, curr, index, arr) => {
+      if (index > 0 && arr[index - 1].value > curr.value) {
+        acc.push(curr.time)
+      }
+      return acc
+    }, rebootPoints)
+
+    // Recalculate reboot zones
+    uptimeData.reduce((zones, curr, index, arr) => {
+      if (index > 0 && arr[index - 1].value > curr.value) {
+        zones.push({
+          start: arr[index - 1].time,
+          end: curr.time,
+        })
+      }
+      return zones
+    }, rebootZones)
+  }, [historicalData])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -243,30 +280,33 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
               width={80}
             />
             <Tooltip isAnimationActive={false} formatter={formatTooltip} />
+            {/* Render shaded areas for reboot zones with labels starting at the right end */}
+            {rebootZones.map((zone, index) => (
+              <ReferenceArea
+                key={index}
+                x1={zone.start}
+                x2={zone.end}
+                stroke="red"
+                strokeOpacity={0.3}
+                fill="red"
+                fillOpacity={0.1}
+                label={{
+                  value: 'Offline',
+                  position: 'insideTopRight',
+                  fill: 'red',
+                  fontSize: 14,
+                  angle: 90,
+                  dy: 35,
+                  dx: 20,
+                }}
+              />
+            ))}
             <Scatter
               data={uptimeData}
               line={{ stroke: 'url(#uptimeGradient)', strokeWidth: 3 }}
               fill="rgba(0, 0, 0, 0)"
               lineJointType="monotoneX"
             />
-            {/* Render vertical lines for reboot points */}
-            {rebootPoints.map((time, index) => (
-              <ReferenceLine
-                key={index}
-                x={time}
-                stroke="red"
-                strokeDasharray="3 3"
-                label={{
-                  value: 'Reboot',
-                  position: 'insideTopLeft',
-                  fill: 'red',
-                  fontSize: 14,
-                  angle: 90,
-                  dy: 0,
-                  dx: 10,
-                }}
-              />
-            ))}
           </ScatterChart>
         </ResponsiveContainer>
       </DialogContent>
