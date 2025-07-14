@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
+import java.util.Date;
 
 import us.dot.its.jpo.ode.api.models.snmp.RsuState;
 
@@ -30,7 +31,7 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
     @Override
     public List<RsuState> findByRsuIPAndTimestampBetween(String rsuIP, long start, long end) {
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP)
-                .and("timestamp").gte(start).lte(end);
+                .and("timestamp").gte(new Date(start)).lte(new Date(end));
         Query query = Query.query(criteria).with(Sort.by(Sort.Direction.ASC, "timestamp"));
         return mongoTemplate.find(query, RsuState.class, collectionName);
     }

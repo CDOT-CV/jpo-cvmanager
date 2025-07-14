@@ -19,6 +19,7 @@ import RsuStatusDialog from './RsuStatusDialog'
 import RsuApi, { RsuState } from '../../apis/intersections/rsu-api'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectToken } from '../../generalSlices/userSlice'
+import { debounce } from 'lodash'
 
 import './Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -39,6 +40,7 @@ const AdminRsuTab = () => {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [selectedRsuIp, setSelectedRsuIp] = useState<string | null>(null)
   const [latestRsuState, setLatestRsuState] = useState<RsuState | null>(null)
+  const [historicalRsuData, setHistoricalRsuData] = useState<RsuState[] | null>(null)
 
   const token = useSelector(selectToken)
 
@@ -59,6 +61,26 @@ const AdminRsuTab = () => {
     setStatusDialogOpen(false)
     setSelectedRsuIp(null)
   }
+
+  const debouncedQueryHistoricalData = debounce((selectedDate: string) => {
+    if (selectedRsuIp && selectedDate) {
+      const startTime = new Date(selectedDate).setHours(0, 0, 0, 0)
+      const endTime = new Date(selectedDate).setHours(23, 59, 59, 999)
+
+      RsuApi.getHistoricalRsuStatus({
+        token,
+        rsuIp: selectedRsuIp,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+      })
+        .then((data) => {
+          setHistoricalRsuData(data ?? null)
+        })
+        .catch((err) => {
+          setHistoricalRsuData(null)
+        })
+    }
+  }, 300) // Debounce with 300ms delay
 
   const loading = useSelector(selectLoading)
 
@@ -199,6 +221,8 @@ const AdminRsuTab = () => {
                   onClose={handleStatusDialogClose}
                   rsuIp={selectedRsuIp}
                   rsuState={latestRsuState}
+                  onDateChange={debouncedQueryHistoricalData}
+                  historicalData={historicalRsuData}
                 />
               </div>
             )
