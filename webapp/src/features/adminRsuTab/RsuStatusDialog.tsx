@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogTitle, DialogContent, Button, Typography, TextField, IconButton } from '@mui/material'
+import { Dialog, DialogTitle, DialogContent, Typography, TextField, IconButton } from '@mui/material'
 import {
   ScatterChart,
   Scatter,
@@ -11,30 +11,39 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { Close } from '@mui/icons-material'
-import type { RsuState } from '../../apis/intersections/rsu-api'
+import RsuApi, { type RsuState } from '../../apis/intersections/rsu-api'
 
 type RsuStatusDialogProps = {
   open: boolean
   onClose: () => void
   rsuIp: string | null
-  rsuState?: RsuState | null
-  onDateChange: (date: string) => void
-  historicalData?: RsuState[] | null
+  token: string
 }
 
-const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({
-  open,
-  onClose,
-  rsuIp,
-  rsuState,
-  onDateChange,
-  historicalData,
-}) => {
+const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp, token }) => {
+  const [latestRsuState, setLatestRsuState] = useState<RsuState | null>(null)
+  const [historicalData, setHistoricalData] = useState<RsuState[] | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+
+  useEffect(() => {
+    if (open && rsuIp) {
+      // Query latest RSU status
+      RsuApi.getLatestRsuStatus({ token, rsuIp })
+        .then((data) => setLatestRsuState(data ?? null))
+        .catch(() => setLatestRsuState(null))
+
+      // Query historical RSU data
+      const startTime = new Date(selectedDate).setHours(0, 0, 0, 0)
+      const endTime = new Date(selectedDate).setHours(23, 59, 59, 999)
+
+      RsuApi.getHistoricalRsuStatus({ token, rsuIp, startTime: new Date(startTime), endTime: new Date(endTime) })
+        .then((data) => setHistoricalData(data ?? null))
+        .catch(() => setHistoricalData(null))
+    }
+  }, [open, rsuIp, token, selectedDate])
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(event.target.value)
-    onDateChange(event.target.value) // Trigger the debounced function directly
   }
 
   const temperatureData =
@@ -149,17 +158,19 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({
       </DialogTitle>
       <DialogContent>
         <Typography variant="subtitle2">
-          {rsuState
-            ? `Last status update: ${new Date(rsuState.timestamp).toLocaleString()} (${formatUptime(
-                Math.floor((Date.now() - rsuState.timestamp) / 1000),
+          {latestRsuState
+            ? `Last status update: ${new Date(latestRsuState.timestamp).toLocaleString()} (${formatUptime(
+                Math.floor((Date.now() - latestRsuState.timestamp) / 1000),
                 true
               )} ago)`
             : 'No RSU status data.'}
         </Typography>
         <Typography variant="subtitle2">
-          {rsuState
-            ? `Last reboot: ${new Date(rsuState.timestamp - rsuState.uptime * 1000).toLocaleString()} (${formatUptime(
-                Math.floor((Date.now() - (rsuState.timestamp - rsuState.uptime * 1000)) / 1000),
+          {latestRsuState
+            ? `Last reboot: ${new Date(
+                latestRsuState.timestamp - latestRsuState.uptime * 1000
+              ).toLocaleString()} (${formatUptime(
+                Math.floor((Date.now() - (latestRsuState.timestamp - latestRsuState.uptime * 1000)) / 1000),
                 true
               )} ago)`
             : 'No RSU reboot data.'}

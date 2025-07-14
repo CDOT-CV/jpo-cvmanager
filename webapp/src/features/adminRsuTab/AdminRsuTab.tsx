@@ -220,9 +220,7 @@ const AdminRsuTab = () => {
                   open={statusDialogOpen}
                   onClose={handleStatusDialogClose}
                   rsuIp={selectedRsuIp}
-                  rsuState={latestRsuState}
-                  onDateChange={debouncedQueryHistoricalData}
-                  historicalData={historicalRsuData}
+                  token={token}
                 />
               </div>
             )

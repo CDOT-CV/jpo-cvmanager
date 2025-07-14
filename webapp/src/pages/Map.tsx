@@ -121,6 +121,8 @@ import { RoomOutlined } from '@mui/icons-material'
 import MooveAiHardBrakingLegend from '../components/MooveAiHardBrakingLegend'
 import { PrimaryButton } from '../styles/components/PrimaryButton'
 import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
+import RsuStatusDialog from '../features/adminRsuTab/RsuStatusDialog'
+import { selectToken } from '../generalSlices/userSlice'
 
 // @ts-ignore: workerClass does not exist in typed mapboxgl
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -900,6 +902,17 @@ function MapPage() {
     return { value: type, label: type }
   })
 
+  // Added logic to open RsuStatusDialog from Map popup
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
+  const [selectedRsuIp, setSelectedRsuIp] = useState<string | null>(null)
+
+  const token = useSelector(selectToken)
+
+  const handlePopupClick = (rsuIp: string) => {
+    setSelectedRsuIp(rsuIp)
+    setStatusDialogOpen(true)
+  }
+
   return (
     <div className="container">
       <div className="menu-container map-control-container">
@@ -1505,6 +1518,9 @@ function MapPage() {
                     {selectedRsu.properties.serial_number ? selectedRsu.properties.serial_number : 'Unknown'}
                   </Typography>
                 </Box>
+                <Button onClick={() => handlePopupClick(selectedRsu.properties.ipv4_address)}>
+                  View RSU Status Charts
+                </Button>
               </Stack>
             </Popup>
           ) : null}
@@ -1754,6 +1770,12 @@ function MapPage() {
             </div>
           </Paper>
         ))}
+      <RsuStatusDialog
+        open={statusDialogOpen}
+        onClose={() => setStatusDialogOpen(false)}
+        rsuIp={selectedRsuIp}
+        token={token}
+      />
     </div>
   )
 }
