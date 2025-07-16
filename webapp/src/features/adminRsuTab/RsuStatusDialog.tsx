@@ -33,8 +33,8 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
         .catch(() => setLatestRsuState(null))
 
       // Query historical RSU data
-      const startTime = new Date(selectedDate).setHours(0, 0, 0, 0)
-      const endTime = new Date(selectedDate).setHours(23, 59, 59, 999)
+      const startTime = new Date(selectedDate).setUTCHours(0, 0, 0, 0)
+      const endTime = new Date(selectedDate).setUTCHours(23, 59, 59, 999)
 
       RsuApi.getAggregatedRsuStatus({
         token,
@@ -79,10 +79,10 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
   // Updated formatTimestamp to include hours and minutes for X-axis
   const formatTimestamp = (unixTime: number) => {
     const date = new Date(unixTime)
-    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date
-      .getMinutes()
+    return `${date.getUTCMonth() + 1}/${date.getUTCDate()} ${date.getUTCHours()}:${date
+      .getUTCMinutes()
       .toString()
-      .padStart(2, '0')}` // Format as MM/DD HH:mm
+      .padStart(2, '0')}` // Format as MM/DD HH:mm in UTC
   }
 
   // Define color gradients for charts
@@ -116,9 +116,29 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
   // Calculate reboot zones (from local max to subsequent local min)
   const rebootZones = uptimeData.reduce((zones, curr, index, arr) => {
     if (index > 0 && arr[index - 1].value > curr.value) {
+      const start = arr[index - 1].time
+      const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
+      const durationMs = end - start
+
+      // Format duration into a human-readable string
+      const durationSec = Math.floor(durationMs / 1000)
+      const days = Math.floor(durationSec / 86400)
+      const hours = Math.floor((durationSec % 86400) / 3600)
+      const minutes = Math.floor((durationSec % 3600) / 60)
+
+      let durationLabel = ''
+      if (days > 0) {
+        durationLabel = `${days} day${days > 1 ? 's' : ''}`
+      } else if (hours > 0) {
+        durationLabel = `${hours} hr ${minutes} min`
+      } else {
+        durationLabel = `${minutes} min`
+      }
+
       zones.push({
-        start: arr[index - 1].time,
-        end: curr.time,
+        start,
+        end,
+        label: `Offline ${durationLabel}`,
       })
     }
     return zones
@@ -149,10 +169,10 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     if (name === 'Time') {
       const date = new Date(value)
       return [
-        `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()} ${date.getHours()}:${date
-          .getMinutes()
+        `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${date.getUTCHours()}:${date
+          .getUTCMinutes()
           .toString()
-          .padStart(2, '0')}`, // Format as MM/DD/YYYY HH:mm
+          .padStart(2, '0')}`, // Format as MM/DD/YYYY HH:mm in UTC
         name,
       ]
     }
@@ -182,14 +202,66 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     // Recalculate reboot zones
     uptimeData.reduce((zones, curr, index, arr) => {
       if (index > 0 && arr[index - 1].value > curr.value) {
+        const start = arr[index - 1].time
+        const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
+        const durationMs = end - start
+
+        // Format duration into a human-readable string
+        const durationSec = Math.floor(durationMs / 1000)
+        const days = Math.floor(durationSec / 86400)
+        const hours = Math.floor((durationSec % 86400) / 3600)
+        const minutes = Math.floor((durationSec % 3600) / 60)
+
+        let durationLabel = ''
+        if (days > 0) {
+          durationLabel = `${days} day${days > 1 ? 's' : ''}`
+        } else if (hours > 0) {
+          durationLabel = `${hours} hr ${minutes} min`
+        } else {
+          durationLabel = `${minutes} min`
+        }
+
         zones.push({
-          start: arr[index - 1].time,
-          end: curr.time,
+          start,
+          end,
+          label: `Offline ${durationLabel}`,
         })
       }
       return zones
     }, rebootZones)
   }, [historicalData])
+
+  // Calculate whether to position the box in the top right corner
+  const isEarlyReboot = rebootPoints.some((time) => time < timeDomain[0] + (timeDomain[1] - timeDomain[0]) * 0.4)
+
+  // Set the warning box position dynamically to one of the top corners of the chart
+  const warningBoxWidth = 160 // Width of the warning box in pixels
+  const warningBoxHeight = 80 // Height of the warning box in pixels
+  const warningBoxX = isEarlyReboot ? `calc(98% - ${warningBoxWidth}px)` : 100
+  const warningBoxY = 20 // Keep the Y position constant
+
+  // Adjust the position to align the top-right corner of the box
+
+  // Calculate ticks at 6-hour intervals and include start and end of the time domain
+  const sixHoursInMs = 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+  const startOfFirstInterval = Math.ceil(timeDomain[0] / sixHoursInMs) * sixHoursInMs // Align to the next 6-hour mark
+  const xAxisTicks = []
+
+  // Add 6-hour interval ticks
+  for (let tick = startOfFirstInterval; tick <= timeDomain[1]; tick += sixHoursInMs) {
+    xAxisTicks.push(tick)
+  }
+
+  // Ensure start and end of the time domain are included
+  if (!xAxisTicks.includes(timeDomain[0])) {
+    xAxisTicks.unshift(timeDomain[0])
+  }
+  if (!xAxisTicks.includes(timeDomain[1])) {
+    xAxisTicks.push(timeDomain[1])
+  }
+
+  // Sort ticks to maintain order
+  xAxisTicks.sort((a, b) => a - b)
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
@@ -202,7 +274,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
       <DialogContent>
         <Typography variant="subtitle2">
           {latestRsuState
-            ? `Last status update: ${new Date(latestRsuState.timestamp).toLocaleString()} (${formatUptime(
+            ? `Last status update: ${new Date(latestRsuState.timestamp).toUTCString()} (${formatUptime(
                 Math.floor((Date.now() - latestRsuState.timestamp) / 1000),
                 true
               )} ago)`
@@ -212,7 +284,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
           {latestRsuState
             ? `Last reboot: ${new Date(
                 latestRsuState.timestamp - latestRsuState.uptime * 1000
-              ).toLocaleString()} (${formatUptime(
+              ).toUTCString()} (${formatUptime(
                 Math.floor((Date.now() - (latestRsuState.timestamp - latestRsuState.uptime * 1000)) / 1000),
                 true
               )} ago)`
@@ -231,7 +303,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
           Temperature for {`${selectedDate.split('-')[1]}/${selectedDate.split('-')[2]}/${selectedDate.split('-')[0]}`}
         </Typography>
         <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
             <defs>
               <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
                 {yellowTempTarget < temperatureDomain[1] && <stop offset={`${redOffset}`} stopColor="#ca8282" />}
@@ -240,7 +312,15 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" domain={timeDomain} name="Time" tickFormatter={formatTimestamp} type="number" />
+            <XAxis
+              dataKey="time"
+              domain={timeDomain}
+              name="Time"
+              tickFormatter={formatTimestamp}
+              type="number"
+              label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
+              ticks={xAxisTicks} // Use calculated ticks including start and end
+            />
             <YAxis
               dataKey="value"
               domain={temperatureDomain}
@@ -264,15 +344,24 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
           Uptime for {`${selectedDate.split('-')[1]}/${selectedDate.split('-')[2]}/${selectedDate.split('-')[0]}`}
         </Typography>
         <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
+          <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
             <defs>
               <linearGradient id="uptimeGradient" x1="0" y1="0" x2="0" y2="1">
                 {yellowUptimeTarget <= uptimeDomain[1] && <stop offset={`${yellowUptimeOffset}`} stopColor="#f0e68c" />}
+                {yellowUptimeTarget >= uptimeDomain[0] && <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />}
                 <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="time" domain={timeDomain} name="Time" tickFormatter={formatTimestamp} type="number" />
+            <XAxis
+              dataKey="time"
+              domain={timeDomain}
+              name="Time"
+              tickFormatter={formatTimestamp}
+              type="number"
+              label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
+              ticks={xAxisTicks} // Use calculated ticks including start and end
+            />
             <YAxis
               dataKey="value"
               domain={uptimeDomain}
@@ -297,12 +386,12 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
                 fill="red"
                 fillOpacity={0.1}
                 label={{
-                  value: 'Offline',
-                  position: 'insideTopRight',
+                  value: zone.label,
+                  position: 'insideRight',
                   fill: 'red',
                   fontSize: 14,
                   angle: 90,
-                  dy: 35,
+                  dy: 0,
                   dx: 20,
                 }}
               />
@@ -313,6 +402,28 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
               fill="rgba(0, 0, 0, 0)"
               lineJointType="monotoneX"
             />
+            {/* Conditional textbox for warning */}
+            {yellowUptimeTarget < uptimeDomain[1] && (
+              <foreignObject x={warningBoxX} y={warningBoxY} width={warningBoxWidth} height={warningBoxHeight}>
+                <div
+                  style={{
+                    border: '2px solid black',
+                    backgroundColor: 'white',
+                    padding: '5px',
+                    borderRadius: '5px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  Yellow indicates more
+                  <br />
+                  than 90 days since
+                  <br />
+                  previous reboot.
+                </div>
+              </foreignObject>
+            )}
           </ScatterChart>
         </ResponsiveContainer>
       </DialogContent>
