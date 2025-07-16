@@ -36,7 +36,13 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
       const startTime = new Date(selectedDate).setHours(0, 0, 0, 0)
       const endTime = new Date(selectedDate).setHours(23, 59, 59, 999)
 
-      RsuApi.getHistoricalRsuStatus({ token, rsuIp, startTime: new Date(startTime), endTime: new Date(endTime) })
+      RsuApi.getAggregatedRsuStatus({
+        token,
+        rsuIp,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        intervalMinutes: 5,
+      })
         .then((data) => setHistoricalData(data ?? null))
         .catch(() => setHistoricalData(null))
     }

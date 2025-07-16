@@ -45,7 +45,7 @@ public class RsuController {
         if (startTime > endTime) {
             return ResponseEntity.badRequest().build();
         }
-        List<RsuState> results = rsuStateRepository.findByRsuIPAndTimestampBetween(rsuIp, startTime, endTime);
+        List<RsuState> results = rsuStateRepository.retrieveRsuStateWithinTimeInterval(rsuIp, startTime, endTime);
         return ResponseEntity.ok(results);
     }
 
@@ -65,5 +65,26 @@ public class RsuController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Get aggregated RSU Status", description = "Returns aggregated RSU status records for the given RSU IP and time range (UTC ms)")
+    @GetMapping(value = "/aggregated", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<List<RsuState>> getAggregatedRsuStatus(
+            @RequestParam String rsuIp,
+            @RequestParam long startTime,
+            @RequestParam long endTime,
+            @RequestParam int intervalMinutes) {
+        if (startTime > endTime || intervalMinutes <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<RsuState> results = rsuStateRepository.retrieveRsuStateWithinTimeInterval(rsuIp, startTime,
+                endTime, intervalMinutes);
+        return ResponseEntity.ok(results);
     }
 }
