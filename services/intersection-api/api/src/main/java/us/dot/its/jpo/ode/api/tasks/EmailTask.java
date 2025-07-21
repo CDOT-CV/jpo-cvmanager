@@ -9,25 +9,29 @@ import java.util.Date;
 import java.util.List;
 
 import org.keycloak.representations.idm.UserRepresentation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
 import us.dot.its.jpo.ode.api.models.EmailFrequency;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
+@Slf4j
 @Component
 @ConditionalOnProperty(name = "enable.email", havingValue = "true", matchIfMissing = false)
 public class EmailTask {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailTask.class);
+    @Autowired
+    private TemplateEngine templateEngine;
 
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private static final int NOTIFICATION_EMAIL_RATE_MILLISECONDS = 10 * 1000; // 10 seconds
@@ -200,6 +204,29 @@ public class EmailTask {
         }
 
         return messageBody;
+    }
+
+    public String getTemplatedEmailString(List<Notification> notifications) {
+
+        Context context = new Context();
+        context.setVariable("head_title", "CV Manager - New Notifications");
+        context.setVariable("preview_text", "New Notifications in CV Manager");
+        context.setVariable("greeting", "Hello,");
+        context.setVariable("content_1", getEmailText(notifications));
+        context.setVariable("action_button_text", "View Notifications in the CV-Manager");
+        context.setVariable("action_button_href", "https://cvmanager.example.com/notifications");
+        context.setVariable("content_2",
+                "Any notifications marked with CBR are Critical and should be reviewed immediately.");
+        context.setVariable("signature",
+                "This was an automated email from the CV Manager. Please do not reply to this email.");
+        context.setVariable("footer_address", "CV-Manager Automated Notifications");
+        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
+        context.setVariable("unsubscribe_link_text", "Unsubscribe");
+        context.setVariable("unsubscribe_href", "https://cvmanager.example.com/unsubscribe");
+
+        String htmlContent = templateEngine.process("emails/announcement", context);
+
+        return htmlContent;
     }
 
 }
