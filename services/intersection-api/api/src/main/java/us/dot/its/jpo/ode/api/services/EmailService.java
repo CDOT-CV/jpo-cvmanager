@@ -2,13 +2,9 @@ package us.dot.its.jpo.ode.api.services;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import java.io.IOException;
 import java.util.*;
 
-import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,58 +13,74 @@ import com.postmarkapp.postmark.client.data.model.message.Message;
 import com.postmarkapp.postmark.client.exception.PostmarkException;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
+import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
-import us.dot.its.jpo.ode.api.models.EmailFrequency;
+import us.dot.its.jpo.ode.api.emails.EmailProperties;
+import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
+import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
+import us.dot.its.jpo.ode.api.models.emails.EmailWrapper;
 
 @Slf4j
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
     private final SendGrid sendGrid;
     private final ApiClient postmark;
-    private final ConflictMonitorApiProperties props;
+    private final EmailProperties emailProperties;
+    private final PostgresService postgresService;
 
     @Autowired
-    public EmailService(JavaMailSender mailSender, SendGrid sendGrid, ApiClient postmark,
-            ConflictMonitorApiProperties props) {
-        this.mailSender = mailSender;
+    public EmailService(SendGrid sendGrid, ApiClient postmark,
+            EmailProperties emailProperties, PostgresService postgresService) {
         this.sendGrid = sendGrid;
         this.postmark = postmark;
-        this.props = props;
+        this.emailProperties = emailProperties;
+        this.postgresService = postgresService;
     }
 
-    public void sendEmailViaSendGrid(String to, String subject, String text) {
-        Email fromEmail = new Email(props.getEmailFromAddress());
+    public void sendEmailViaSendGrid(String to, String subject, String text, String unsubscribeUrl) {
+        Email fromEmail = new Email(emailProperties.getSenderAddress());
         Email toEmail = new Email(to);
-        Content content = new Content("text/plain", text);
+        Content content = new Content("text/html", text);
         Mail mail = new Mail(fromEmail, subject, toEmail, content);
+
+        // Add the List-Unsubscribe header
+        mail.personalization.get(0).addHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
 
         Request request = new Request();
         try {
             request.setMethod(Method.POST);
             request.setEndpoint("mail/send");
             request.setBody(mail.build());
-            this.sendGrid.api(request);
+            Response response = this.sendGrid.api(request);
+            if (response.getStatusCode() >= 400) {
+                log.error("Failed to send email via SendGrid with code {}: {}", response.getStatusCode(),
+                        response.getBody());
+            } else {
+                log.info("Email sent successfully via SendGrid to {}", to);
+            }
         } catch (IOException e) {
             log.error("Exception sending sendgrid email", e);
         }
     }
 
-    public void sendEmailViaPostmark(String to, String subject, String text) {
+    public void sendEmailViaPostmark(String to, String subject, String text, String unsubscribeUrl) {
 
         String htmlText = text.replaceAll("\n", "<br>");
 
         Message message = new Message(
-                props.getEmailFromAddress(),
+                emailProperties.getSenderAddress(),
                 to,
                 subject,
                 htmlText);
+
+        // Add the List-Unsubscribe header
+        message.addHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
+
         try {
             postmark.deliverMessage(message);
         } catch (PostmarkException | IOException e) {
@@ -76,40 +88,53 @@ public class EmailService {
         }
     }
 
-    public void sendEmailViaSpringMail(String to, String subject, String text) {
+    public void sendEmailViaSpringMail(String to, String subject, String text, String unsubscribeUrl) {
+        Email fromEmail = new Email("your-email@example.com"); // Replace with your sender email
+        Email toEmail = new Email(to);
+        Content content = new Content("text/plain", text);
+        Mail mail = new Mail(fromEmail, subject, toEmail, content);
+
+        // Add the List-Unsubscribe header
+        mail.personalization.get(0).addHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
+
+        Request request = new Request();
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            mailSender.send(message);
-        } catch (MailException e) {
-            log.error("Exception sending spring mail email", e);
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            sendGrid.api(request);
+        } catch (IOException e) {
+            log.error("Exception sending SendGrid email", e);
         }
     }
 
-    public void sendSimpleMessage(String to, String subject, String text) {
-        if (props.getEmailBroker().equals("sendgrid")) {
-            sendEmailViaSendGrid(to, subject, text);
-        } else if (props.getEmailBroker().equals("postmark")) {
-            sendEmailViaPostmark(to, subject, text);
-        } else {
-            sendEmailViaSpringMail(to, subject, text);
+    public void sendSimpleMessage(String to, String subject, String text, String unsubscribeUrl) {
+        switch (emailProperties.getBroker()) {
+            case POSTMARK:
+                sendEmailViaPostmark(to, subject, text, unsubscribeUrl);
+                break;
+            case SENDGRID:
+                sendEmailViaSendGrid(to, subject, text, unsubscribeUrl);
+                break;
+            case SMTP:
+            default:
+                sendEmailViaSpringMail(to, subject, text, unsubscribeUrl);
+                break;
         }
     }
 
-    public void emailList(List<UserRepresentation> users, String subject, String text) {
-        for (UserRepresentation user : users) {
-            if (user.getEmail() != null) {
-                sendSimpleMessage(user.getEmail(), subject, text);
-            }
-
-        }
+    public void sendEmails(List<EmailWrapper> wrappers) {
+        wrappers.stream()
+                .forEach(wrapper -> sendEmail(wrapper));
     }
 
-    // Gets Users based upon a Notification Frequency Only
-    public List<UserRepresentation> getNotificationEmailList(EmailFrequency frequency) {
-        // TODO: Pull email list from Postgres
-        return new ArrayList<>();
+    public void sendEmail(EmailWrapper wrapper) {
+        sendSimpleMessage(wrapper.getRecipientEmail(), wrapper.getSubject(), wrapper.getBody(),
+                wrapper.getUnsubscribeUrl());
+    }
+
+    public List<String> getUsersForNotificationType(EmailCategory category, EmailFrequency frequency) {
+        // TODO: Filter by email frequency
+        return postgresService.getUsersByNotificationType(category.getCategoryKey());
     }
 }

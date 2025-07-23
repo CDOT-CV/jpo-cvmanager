@@ -89,15 +89,14 @@ maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
 spring.main.allow-circular-references: true
 
 ### General Email Settings
+email:
+  # Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
+  broker: ${INTERSECTION_EMAIL_BROKER:smtp}
+  sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
+  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:}
+  cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost}
 
-# Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
-emailBroker: ${INTERSECTION_EMAIL_BROKER:""}
-emailFromAddress: ${INTERSECTION_SENDER_EMAIL:""}
-
-### SendGrid Email Settings
-sendgrid:
-  username: ${SENDGRID_USERNAME:""}
-  password: ${SENDGRID_PASSWORD:""}
-
-### Postmark Email Settings
-postmark.api.secretKey: ${CM_POSTMARK_SECRET_KEY:""}
+  sendgrid:
+    api-key: ${SENDGRID_API_KEY:}
+  postmark:
+    api-key: ${POSTMARK_API_KEY:}

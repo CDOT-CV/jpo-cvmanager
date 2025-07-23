@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.models;
+package us.dot.its.jpo.ode.api.models.emails;
 
 public enum EmailFrequency {
     ALWAYS,
