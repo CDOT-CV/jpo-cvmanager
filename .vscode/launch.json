@@ -48,7 +48,11 @@
       "mainClass": "us.dot.its.jpo.ode.api.ConflictApiApplication",
       "projectName": "intersection-api",
       "envFile": "${workspaceFolder}/.env",
-      "preLaunchTask": "run-docker-compose-intersection-no-api"
+      "preLaunchTask": "run-docker-compose-intersection-no-api",
+      //   "vmArgs": "-Dspring.profiles.active=dev",
+      "args": "",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
     }
   ],
   "compounds": [

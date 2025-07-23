@@ -108,6 +108,7 @@
     "SASL",
     "secretmanager",
     "Scms",
+    "Sendgrid",
     "SNMP",
     "snmpcredential",
     "snmperrorcheck",

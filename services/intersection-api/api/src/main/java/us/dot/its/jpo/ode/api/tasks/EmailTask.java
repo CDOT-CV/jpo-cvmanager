@@ -1,37 +1,32 @@
 package us.dot.its.jpo.ode.api.tasks;
 
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
-import us.dot.its.jpo.ode.api.models.EmailFrequency;
+import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
+import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
+import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
+import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "enable.email", havingValue = "true", matchIfMissing = false)
 public class EmailTask {
-
-    @Autowired
-    private TemplateEngine templateEngine;
 
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private static final int NOTIFICATION_EMAIL_RATE_MILLISECONDS = 10 * 1000; // 10 seconds
@@ -42,6 +37,7 @@ public class EmailTask {
 
     private final EmailService email;
     private final ActiveNotificationRepository activeNotificationRepo;
+    private final IntersectionNotificationSummaryEmailGenerator emailGenerator;
 
     private List<Notification> lastAlwaysList;
     private List<Notification> lastHourList;
@@ -51,11 +47,14 @@ public class EmailTask {
 
     private final int maximumResponseSize;
 
-    public EmailTask(EmailService email, ActiveNotificationRepository activeNotificationRepo,
-            @Value("${maximumResponseSize}") int maximumResponseSize) {
+    public EmailTask(EmailService email,
+            ActiveNotificationRepository activeNotificationRepo,
+            @Value("${maximumResponseSize}") int maximumResponseSize,
+            IntersectionNotificationSummaryEmailGenerator emailGenerator) {
         this.email = email;
         this.activeNotificationRepo = activeNotificationRepo;
         this.maximumResponseSize = maximumResponseSize;
+        this.emailGenerator = emailGenerator;
     }
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -76,8 +75,10 @@ public class EmailTask {
         lastAlwaysList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<UserRepresentation> recipients = email.getNotificationEmailList(EmailFrequency.ALWAYS);
-            email.emailList(recipients, getEmailHeading(), getEmailText(newNotifications));
+            List<String> recipients = email.getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
+                    EmailFrequency.ALWAYS);
+            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
+                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
         }
     }
 
@@ -96,8 +97,10 @@ public class EmailTask {
         lastHourList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<UserRepresentation> recipients = email.getNotificationEmailList(EmailFrequency.ALWAYS);
-            email.emailList(recipients, getEmailHeading(), getEmailText(newNotifications));
+            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                    EmailFrequency.ONCE_PER_HOUR);
+            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
+                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
         }
     }
 
@@ -116,8 +119,10 @@ public class EmailTask {
         lastDayList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<UserRepresentation> recipients = email.getNotificationEmailList(EmailFrequency.ALWAYS);
-            email.emailList(recipients, getEmailHeading(), getEmailText(newNotifications));
+            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                    EmailFrequency.ONCE_PER_DAY);
+            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
+                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
         }
     }
 
@@ -136,8 +141,10 @@ public class EmailTask {
         lastWeekList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<UserRepresentation> recipients = email.getNotificationEmailList(EmailFrequency.ALWAYS);
-            email.emailList(recipients, getEmailHeading(), getEmailText(newNotifications));
+            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                    EmailFrequency.ONCE_PER_WEEK);
+            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
+                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
         }
     }
 
@@ -156,8 +163,10 @@ public class EmailTask {
         lastMonthList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<UserRepresentation> recipients = email.getNotificationEmailList(EmailFrequency.ALWAYS);
-            email.emailList(recipients, getEmailHeading(), getEmailText(newNotifications));
+            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                    EmailFrequency.ONCE_PER_MONTH);
+            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
+                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
         }
 
     }
@@ -186,47 +195,4 @@ public class EmailTask {
         }
         return newNotifications;
     }
-
-    public String getEmailHeading() {
-        return "New Conflict Monitor Notifications: " + formatter.format(Instant.now());
-    }
-
-    public String getEmailText(List<Notification> notifications) {
-
-        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the Conflict Visualizer to Analyze these notifications";
-
-        for (Notification notification : notifications) {
-            messageBody += "\n\nNotification : " + notification.getNotificationHeading() + "\n";
-            messageBody += "\t" + notification.getNotificationText() + "\n";
-            messageBody += "\tIntersection ID: " + notification.getIntersectionID() + "\n";
-            messageBody += "\tGenerated At: "
-                    + formatter.format(Instant.ofEpochMilli(notification.getNotificationGeneratedAt())) + "\n";
-        }
-
-        return messageBody;
-    }
-
-    public String getTemplatedEmailString(List<Notification> notifications) {
-
-        Context context = new Context();
-        context.setVariable("head_title", "CV Manager - New Notifications");
-        context.setVariable("preview_text", "New Notifications in CV Manager");
-        context.setVariable("greeting", "Hello,");
-        context.setVariable("content_1", getEmailText(notifications));
-        context.setVariable("action_button_text", "View Notifications in the CV-Manager");
-        context.setVariable("action_button_href", "https://cvmanager.example.com/notifications");
-        context.setVariable("content_2",
-                "Any notifications marked with CBR are Critical and should be reviewed immediately.");
-        context.setVariable("signature",
-                "This was an automated email from the CV Manager. Please do not reply to this email.");
-        context.setVariable("footer_address", "CV-Manager Automated Notifications");
-        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-        context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", "https://cvmanager.example.com/unsubscribe");
-
-        String htmlContent = templateEngine.process("emails/announcement", context);
-
-        return htmlContent;
-    }
-
 }
