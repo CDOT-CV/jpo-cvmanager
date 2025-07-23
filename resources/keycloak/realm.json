@@ -436,10 +436,10 @@
     "users": [
       {
         "id": "fc3d8729-8526-4aaa-805b-d64bf3b93860",
-        "username": "test@gmail.com",
+        "username": "jfrye@neaeraconsulting.com",
         "firstName": "Test",
         "lastName": "User",
-        "email": "test@gmail.com",
+        "email": "jfrye@neaeraconsulting.com",
         "emailVerified": false,
         "attributes": {
           "organizations": ["[{\"org\":\"Test Org\",\"role\":\"admin\"},{\"org\":\"Test Org 2\",\"role\":\"user\"}]"],

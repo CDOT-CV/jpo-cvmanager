@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>${head_title}</title>
+    <title th:text="${head_title}">head_title</title>
     <style media="all" type="text/css">
       @media all {
         .btn-primary table td:hover {
@@ -152,7 +152,8 @@
                 visibility: hidden;
                 width: 0;
               "
-              >${preview_text}</span
+              th:text="${preview_text}"
+              >preview_text</span
             >
             <table
               role="presentation"
@@ -192,9 +193,8 @@
                       margin: 0;
                       margin-bottom: 16px;
                     "
-                  >
-                    ${greeting},
-                  </p>
+                    th:text="${greeting}"
+                  ></p>
                   <p
                     style="
                       font-family: Helvetica, sans-serif;
@@ -203,9 +203,8 @@
                       margin: 0;
                       margin-bottom: 16px;
                     "
-                  >
-                    ${content_1}
-                  </p>
+                    th:text="${content_1}"
+                  ></p>
                   <table
                     role="presentation"
                     border="0"
@@ -257,7 +256,7 @@
                                   bgcolor="#0867ec"
                                 >
                                   <a
-                                    href="${action_button_href}"
+                                    th:href="${action_button_href}"
                                     target="_blank"
                                     style="
                                       border: solid 2px #0867ec;
@@ -275,8 +274,8 @@
                                       border-color: #0867ec;
                                       color: #ffffff;
                                     "
-                                    >${action_button_text}</a
-                                  >
+                                    th:text="${action_button_text}"
+                                  ></a>
                                 </td>
                               </tr>
                             </tbody>
@@ -293,8 +292,9 @@
                       margin: 0;
                       margin-bottom: 16px;
                     "
+                    th:text="${content_2}"
                   >
-                    ${content_2}
+                    content_2
                   </p>
                   <p
                     style="
@@ -304,8 +304,9 @@
                       margin: 0;
                       margin-bottom: 16px;
                     "
+                    th:text="${signature}"
                   >
-                    ${signature}
+                    signature
                   </p>
                 </td>
               </tr>
@@ -336,16 +337,18 @@
                     valign="top"
                     align="center"
                   >
-                    <span class="apple-link" style="color: #9a9ea6; font-size: 16px; text-align: center"
-                      >${footer_address}</span
-                    >
+                    <span
+                      class="apple-link"
+                      style="color: #9a9ea6; font-size: 16px; text-align: center"
+                      th:text="${footer_address}"
+                    ></span>
                     <br />
-                    ${unsubscribe_pre_text}
+                    <p th:text="${unsubscribe_pre_text}"></p>
                     <a
-                      href="${unsubscribe_href}"
+                      th:href="${unsubscribe_href}"
                       style="text-decoration: underline; color: #9a9ea6; font-size: 16px; text-align: center"
                     >
-                      ${unsubscribe_link_text}</a
+                      <p th:text="${unsubscribe_link_text}"></p></a
                     >.
                   </td>
                 </tr>
