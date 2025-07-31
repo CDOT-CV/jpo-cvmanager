@@ -1,8 +1,8 @@
 import { AnyAction, createAsyncThunk, createSlice, PayloadAction, ThunkDispatch } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
+import countsApi from '../apis/intersections/counts-api'
 import {
   IssScmsStatus,
-  RsuCounts,
   RsuInfo,
   RsuMapInfo,
   RsuMapInfoIpList,
@@ -15,8 +15,10 @@ import { selectToken, selectOrganizationName } from './userSlice'
 import { SelectedSrm } from '../models/Srm'
 import { CountsListElement } from '../models/Rsu'
 import { MessageType } from '../models/MessageTypes'
+import { MessageCount } from '../models/MessageCount'
 import { toast } from 'react-hot-toast'
 import { DateTime } from 'luxon'
+import EnvironmentVars from '../EnvironmentVars'
 
 const currentDate = DateTime.local()
 
@@ -24,13 +26,12 @@ const initialState = {
   selectedRsu: null as RsuInfo,
   rsuData: [] as RsuInfo[],
   rsuOnlineStatus: {} as RsuOnlineStatusRespMultiple,
-  rsuCounts: {} as RsuCounts,
+  rsuCounts: [] as MessageCount[],
   countList: [] as CountsListElement[],
   currentSort: '',
   startDate: currentDate.minus({ days: 1 }).toString(),
   endDate: currentDate.toString(),
   messageLoading: false,
-  warningMessage: false,
   countsMsgType: 'BSM',
   geoMsgType: 'BSM',
   rsuMapData: {} as RsuMapInfo['geojson'],
@@ -127,21 +128,17 @@ export const _getRsuCounts = createAsyncThunk('rsu/_getRsuCounts', async (_, { g
 
   const query_params = {
     message: currentState.rsu.value.countsMsgType,
-    start: currentState.rsu.value.startDate,
-    end: currentState.rsu.value.endDate,
+    start_time_utc_millis: new Date(currentState.rsu.value.startDate).getTime().toString(),
+    end_time_utc_millis: new Date(currentState.rsu.value.endDate).getTime().toString(),
   }
-  const rsuCounts =
-    (await RsuApi.getRsuCounts(token, organization, '', query_params)) ?? currentState.rsu.value.rsuCounts
-  const countList = Object.entries(rsuCounts).map(([key, value]) => {
-    return {
-      key: key,
-      rsu: key,
-      road: value.road,
-      count: value.count,
-    }
+
+  const messageCounts = await countsApi.getOrganizationCounts({
+    token,
+    organization,
+    query_params,
   })
 
-  return { rsuCounts, countList }
+  return { messageCounts }
 })
 
 export const getSsmSrmData = createAsyncThunk('rsu/getSsmSrmData', async (_, { getState }) => {
@@ -186,30 +183,32 @@ export const updateRowData = createAsyncThunk(
       : currentState.rsu.value.startDate
     const endDate = Object.prototype.hasOwnProperty.call(data, 'end') ? data['end'] : currentState.rsu.value.endDate
 
-    const warningMessage = new Date(endDate).getTime() - new Date(startDate).getTime() > 86400000
+    const queryDurationMs = new Date(endDate).getTime() - new Date(startDate).getTime()
+    const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
 
-    const rsuCountsData = await RsuApi.getRsuCounts(token, organization, '', {
+    if (queryDurationMs > maxDurationMs) {
+      const errorMessage = `Query duration exceeds maximum allowed period of ${EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a shorter time range.`
+      toast.error(errorMessage)
+      throw new Error(errorMessage)
+    }
+
+    const query_params = {
       message: countsMsgType,
-      start: startDate,
-      end: endDate,
-    })
+      start_time_utc_millis: new Date(startDate).getTime().toString(),
+      end_time_utc_millis: new Date(endDate).getTime().toString(),
+    }
 
-    const countList = Object.entries(rsuCountsData).map(([key, value]) => {
-      return {
-        key: key,
-        rsu: key,
-        road: value.road,
-        count: value.count,
-      }
+    const messageCounts = await countsApi.getOrganizationCounts({
+      token,
+      organization,
+      query_params,
     })
 
     return {
       countsMsgType,
       startDate,
       endDate,
-      warningMessage,
-      rsuCounts: rsuCountsData,
-      countList,
+      messageCounts,
     }
   },
   {
@@ -228,6 +227,16 @@ export const updateGeoMsgData = createAsyncThunk(
       start: currentState.rsu.value.geoMsgStart,
       end: currentState.rsu.value.geoMsgEnd,
       geometry: currentState.rsu.value.geoMsgCoordinates,
+    }
+
+    // Check query duration
+    const queryDurationMs = new Date(requestBody.end).getTime() - new Date(requestBody.start).getTime()
+    const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
+
+    if (queryDurationMs > maxDurationMs) {
+      const errorMessage = `Query duration exceeds maximum allowed period of ${EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a shorter time range.`
+      toast.error(errorMessage)
+      throw new Error(errorMessage)
     }
 
     try {
@@ -356,7 +365,7 @@ export const rsuSlice = createSlice({
         state.loading = true
         state.value.rsuData = []
         state.value.rsuOnlineStatus = {}
-        state.value.rsuCounts = {}
+        state.value.rsuCounts = []
         state.value.countList = []
         state.value.heatMapData = {
           type: 'FeatureCollection',
@@ -376,7 +385,7 @@ export const rsuSlice = createSlice({
               ipv4_address: rsu.properties.ipv4_address,
               count:
                 rsu.properties.ipv4_address in state.value.rsuCounts
-                  ? state.value.rsuCounts[rsu.properties.ipv4_address].count
+                  ? state.value.rsuCounts[rsu.properties.ipv4_address].ode_input_count
                   : 0,
             },
           })
@@ -403,7 +412,7 @@ export const rsuSlice = createSlice({
         state.loading = false
         const payload = action.payload as RsuOnlineStatusRespSingle
         if (Object.prototype.hasOwnProperty.call(state.value.rsuOnlineStatus, payload.ip)) {
-          (state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
+          ;(state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
         }
       })
       .addCase(getRsuLastOnline.rejected, (state) => {
@@ -416,8 +425,7 @@ export const rsuSlice = createSlice({
         state.value.rsuOnlineStatus = action.payload as RsuOnlineStatusRespMultiple
       })
       .addCase(_getRsuCounts.fulfilled, (state, action) => {
-        state.value.rsuCounts = action.payload.rsuCounts
-        state.value.countList = action.payload.countList
+        state.value.rsuCounts = action.payload.messageCounts
       })
       .addCase(getSsmSrmData.pending, (state) => {
         state.loading = true
@@ -437,14 +445,12 @@ export const rsuSlice = createSlice({
       })
       .addCase(updateRowData.fulfilled, (state, action) => {
         if (action.payload === null) return
-        state.value.rsuCounts = action.payload.rsuCounts
-        state.value.countList = action.payload.countList
+        state.value.rsuCounts = action.payload.messageCounts
         state.value.heatMapData.features.forEach((feat, index) => {
           const ip = feat.properties.ipv4_address as string
-          state.value.heatMapData.features[index].properties.count =
-            ip in action.payload.rsuCounts ? action.payload.rsuCounts[ip].count : 0
+          const rsuCount = action.payload.messageCounts.find((msgCount: any) => msgCount.rsu_ip === ip)
+          state.value.heatMapData.features[index].properties.count = rsuCount ? rsuCount.ode_input_count : 0
         })
-        state.value.warningMessage = action.payload.warningMessage
         state.requestOut = false
         state.value.messageLoading = false
         state.value.countsMsgType = action.payload.countsMsgType
@@ -487,7 +493,6 @@ export const selectCurrentSort = (state: RootState) => state.rsu.value.currentSo
 export const selectStartDate = (state: RootState) => state.rsu.value.startDate
 export const selectEndDate = (state: RootState) => state.rsu.value.endDate
 export const selectMessageLoading = (state: RootState) => state.rsu.value.messageLoading
-export const selectWarningMessage = (state: RootState) => state.rsu.value.warningMessage
 export const selectMsgType = (state: RootState) => state.rsu.value.countsMsgType
 export const selectGeoMsgType = (state: RootState) => state.rsu.value.geoMsgType
 export const selectRsuMapData = (state: RootState) => state.rsu.value.rsuMapData

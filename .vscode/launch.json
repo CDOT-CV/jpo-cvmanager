@@ -49,6 +49,14 @@
       "projectName": "intersection-api",
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "run-docker-compose-intersection-no-api"
+    },
+    {
+      "type": "java",
+      "name": "Launch Intersection API standalone",
+      "request": "launch",
+      "mainClass": "us.dot.its.jpo.ode.api.ConflictApiApplication",
+      "projectName": "intersection-api",
+      "envFile": "${workspaceFolder}/.env"
     }
   ],
   "compounds": [

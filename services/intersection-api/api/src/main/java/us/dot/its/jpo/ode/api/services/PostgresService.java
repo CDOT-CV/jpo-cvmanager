@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -185,5 +187,53 @@ public class PostgresService {
                 .filter(entry -> PermissionService.checkRoleAbove(entry.getRole_name(), requiredRole))
                 .map(val -> val.getOrganization_name())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all RSU IPs and their primary routes for a given organization
+     * 
+     * @param organization the organization name
+     * @return map of RSU IP to primary route
+     */
+    public Map<String, String> getOrganizationRsuIps(String organization) {
+        String queryString = "SELECT r.ipv4_address, r.primary_route " +
+                "FROM Rsus r " +
+                "JOIN RsuOrganization ro ON ro.rsu_id = r.rsu_id " +
+                "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+                "WHERE o.name = :organization " +
+                "ORDER BY r.primary_route ASC, r.milepost ASC";
+
+        TypedQuery<Object[]> query = entityManager.createQuery(queryString, Object[].class);
+        query.setParameter("organization", organization);
+
+        List<Object[]> results = query.getResultList();
+        Map<String, String> rsuIpToRoadMap = new HashMap<>();
+
+        for (Object[] result : results) {
+            String ipv4Address = (String) result[0];
+            String primaryRoute = (String) result[1];
+            rsuIpToRoadMap.put(ipv4Address, primaryRoute);
+        }
+
+        return rsuIpToRoadMap;
+    }
+
+    /**
+     * Get the primary route for a specific RSU
+     * 
+     * @param rsuIp the RSU IP address
+     * @return the primary route name, or null if not found
+     */
+    public String getRsuPrimaryRoute(String rsuIp) {
+        String queryString = "SELECT r.primary_route " +
+                "FROM Rsus r " +
+                "WHERE r.ipv4_address = :rsuIp";
+
+        TypedQuery<String> query = entityManager.createQuery(queryString, String.class);
+        query.setParameter("rsuIp", rsuIp);
+        query.setMaxResults(1);
+
+        List<String> results = query.getResultList();
+        return results.isEmpty() ? null : results.get(0);
     }
 }

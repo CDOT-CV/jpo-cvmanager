@@ -49,6 +49,7 @@ class EnvironmentVars {
   static ENABLE_HAAS_FEATURES = process.env.REACT_APP_ENABLE_HAAS_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.REACT_APP_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.REACT_APP_WEBAPP_THEME_DARK
+  static MAX_QUERY_DURATION_DAYS = Number(process.env.REACT_APP_MAX_QUERY_DURATION_DAYS) || 90
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoEndpoint = `${this.getBaseApiUrl()}/rsuinfo`

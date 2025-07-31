@@ -8,22 +8,14 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import EnvironmentVars from '../../EnvironmentVars'
 import BounceLoader from 'react-spinners/BounceLoader'
 import {
-  selectRequestOut,
   selectMsgType,
-  selectCountList,
+  selectRsuCounts,
   selectStartDate,
   selectEndDate,
-  selectWarningMessage,
   selectMessageLoading,
   updateMessageType,
 } from '../../generalSlices/rsuSlice'
-import {
-  selectCurrentSort,
-  selectSortedCountList,
-  sortCountList,
-  changeDate,
-  toggleMapMenuSelection,
-} from './menuSlice'
+import { selectCurrentSort, sortCountList, changeDate, toggleMapMenuSelection } from './menuSlice'
 
 import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -43,29 +35,41 @@ const DisplayCounts = () => {
   const countsMsgType = useSelector(selectMsgType)
   const startDate = useSelector(selectStartDate)
   const endDate = useSelector(selectEndDate)
-  const requestOut = useSelector(selectRequestOut)
-  const warning = useSelector(selectWarningMessage)
   const messageLoading = useSelector(selectMessageLoading)
-  const countList = useSelector(selectCountList)
+  const messageCounts = useSelector(selectRsuCounts)
   const currentSort = useSelector(selectCurrentSort)
-  const sortedCountList = useSelector(selectSortedCountList)
+
+  // Transform to CountsListElement format for display with both input and output counts
+  const countList: CountsListElement[] = messageCounts.map((msgCount: any) => ({
+    key: msgCount.rsu_ip,
+    rsu: msgCount.rsu_ip,
+    road: msgCount.road || '',
+    odeInputCount: msgCount.ode_input_count,
+    odeOutputCount: msgCount.ode_output_count,
+  }))
+
+  // Sort the count list locally
+  const sortedCountList = [...countList].sort((a, b) => {
+    if (!currentSort) return 0
+
+    const key = currentSort.replace('desc', '')
+    const isDescending = currentSort.includes('desc')
+
+    let comparison = 0
+    if (key === 'rsu') {
+      comparison = a.rsu.localeCompare(b.rsu)
+    } else if (key === 'road') {
+      comparison = a.road.localeCompare(b.road)
+    }
+
+    return isDescending ? -comparison : comparison
+  })
 
   const dateChanged = (e: Date, type: 'start' | 'end') => {
     if (!Number.isNaN(Date.parse(e.toString()))) {
-      dispatch(changeDate(e, type, requestOut))
+      dispatch(changeDate(e, type))
     }
   }
-
-  const getWarningMessage = (warning: boolean) =>
-    warning ? (
-      <Typography
-        component="span"
-        role="alert"
-        sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center' }}
-      >
-        Warning: time ranges greater than 24 hours may have longer load times.
-      </Typography>
-    ) : null
 
   const sortBy = (key: string) => {
     dispatch(sortCountList(key, currentSort, countList))
@@ -78,7 +82,8 @@ const DisplayCounts = () => {
           <div className="header">
             <div>RSU</div>
             <div>Road</div>
-            <div>Count</div>
+            <div>Input</div>
+            <div>Processed</div>
           </div>
         </div>
         <span className="bounceLoader">
@@ -94,9 +99,8 @@ const DisplayCounts = () => {
           <div onClick={() => sortBy('road')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
             Road
           </div>
-          <div onClick={() => sortBy('count')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
-            Count
-          </div>
+          <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>Input</div>
+          <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>Processed</div>
         </div>
         <div className="body">{formatRows(sortedCountList)}</div>
       </div>
@@ -107,7 +111,7 @@ const DisplayCounts = () => {
         <div className="row">
           <div
             style={{
-              gridColumn: '1 / span 3',
+              gridColumn: '1 / span 5',
               textAlign: 'center',
             }}
           >
@@ -176,19 +180,29 @@ const DisplayCounts = () => {
             </Select>
           </FormControl>
         </Box>
-        {getWarningMessage(warning)}
         {getTable(messageLoading, sortedCountList)}
       </Stack>
     </Paper>
   )
 }
-const Row = ({ rsu, road, count }: { rsu: string; road: string; count: number }) => {
+const Row = ({
+  rsu,
+  road,
+  odeInputCount,
+  odeOutputCount,
+}: {
+  rsu: string
+  road: string
+  odeInputCount: number
+  odeOutputCount: number
+}) => {
   const theme = useTheme()
   return (
     <div className="row">
       <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{rsu}</div>
       <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{road}</div>
-      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{count}</div>
+      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{odeInputCount}</div>
+      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{odeOutputCount}</div>
     </div>
   )
 }

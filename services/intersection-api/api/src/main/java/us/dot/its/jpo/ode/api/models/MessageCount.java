@@ -14,22 +14,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MessageCount {
 
-    @JsonProperty("messageType")
+    @JsonProperty("message_type")
     private String messageType;
 
-    @JsonProperty("rsuIp")
+    @JsonProperty("rsu_ip")
     private String rsuIp;
 
-    @JsonProperty("timestamp")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime timestamp;
+    @JsonProperty("ode_input_count")
+    private Long odeInputCount;
 
-    @JsonProperty("count")
-    private Long count;
+    @JsonProperty("ode_output_count")
+    private Long odeOutputCount;
 
-    @JsonProperty("source")
-    private String source;
-
-    @JsonProperty("countType")
-    private String countType;
+    @JsonProperty("road")
+    private String road;
 }

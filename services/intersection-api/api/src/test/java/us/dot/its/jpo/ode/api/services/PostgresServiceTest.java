@@ -12,11 +12,13 @@ import jakarta.persistence.TypedQuery;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PostgresServiceTest {
 
@@ -32,12 +34,24 @@ class PostgresServiceTest {
     @Mock
     private TypedQuery<String> stringQuery;
 
+    @Mock
+    private TypedQuery<Object[]> typedQuery;
+
     @InjectMocks
     private PostgresService postgresService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        postgresService = new PostgresService();
+        // Use reflection to set the entityManager field
+        try {
+            java.lang.reflect.Field field = PostgresService.class.getDeclaredField("entityManager");
+            field.setAccessible(true);
+            field.set(postgresService, entityManager);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -256,5 +270,44 @@ class PostgresServiceTest {
             assertEquals(Collections.singletonList("Org1"), result);
             verify(entityManager, times(1)).createQuery(anyString(), eq(UserOrgRole.class));
         }
+    }
+
+    @Test
+    void testGetOrganizationRsuIps() {
+        // Arrange
+        String organization = "TestOrg";
+        Object[] result1 = { "10.11.81.13", "I-25" };
+        Object[] result2 = { "10.11.81.14", "I-70" };
+        List<Object[]> queryResults = Arrays.asList(result1, result2);
+
+        when(entityManager.createQuery(anyString(), eq(Object[].class))).thenReturn(typedQuery);
+        when(typedQuery.setParameter("organization", organization)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(queryResults);
+
+        // Act
+        Map<String, String> result = postgresService.getOrganizationRsuIps(organization);
+
+        // Assert
+        assertThat(result).isNotEmpty();
+        assertThat(result).hasSize(2);
+        assertThat(result.get("10.11.81.13")).isEqualTo("I-25");
+        assertThat(result.get("10.11.81.14")).isEqualTo("I-70");
+    }
+
+    @Test
+    void testGetOrganizationRsuIpsEmptyResult() {
+        // Arrange
+        String organization = "TestOrg";
+        List<Object[]> queryResults = Arrays.asList();
+
+        when(entityManager.createQuery(anyString(), eq(Object[].class))).thenReturn(typedQuery);
+        when(typedQuery.setParameter("organization", organization)).thenReturn(typedQuery);
+        when(typedQuery.getResultList()).thenReturn(queryResults);
+
+        // Act
+        Map<String, String> result = postgresService.getOrganizationRsuIps(organization);
+
+        // Assert
+        assertThat(result).isEmpty();
     }
 }

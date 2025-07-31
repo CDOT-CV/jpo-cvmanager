@@ -1,4 +1,10 @@
-export type CountsListElement = { key: string; rsu: string; road: string; count: number }
+export type CountsListElement = {
+  key: string
+  rsu: string
+  road: string
+  odeInputCount: number
+  odeOutputCount: number
+}
 
 export type AdminRsu = {
   orig_ip: string

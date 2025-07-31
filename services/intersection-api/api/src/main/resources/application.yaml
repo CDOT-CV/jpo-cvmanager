@@ -29,6 +29,14 @@ schema.psm: classpath:schemas/psm.schema.json
 # Amount of time to wait to try and increase batching
 kafka.linger_ms: 50
 
+# Prometheus Configuration
+prometheus:
+  url: ${PROMETHEUS_URL:http://localhost:9090}
+  rsu:
+    counts:
+      metric:
+        name: ${PROMETHEUS_RSU_COUNTS_METRIC_NAME:kafka_produced_rsu_messages_total}
+
 kafka.topics:
   autoCreateTopics: false
   numPartitions: 1
