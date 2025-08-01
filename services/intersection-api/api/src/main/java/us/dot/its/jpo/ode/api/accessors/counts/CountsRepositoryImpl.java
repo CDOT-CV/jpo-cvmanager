@@ -23,7 +23,7 @@ import java.util.HashMap;
 
 @Slf4j
 @Component
-public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
+public class CountsRepositoryImpl implements CountsRepository {
 
     private final PrometheusService prometheusService;
     private final PostgresService postgresService;
@@ -33,32 +33,48 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     private static final String TOPIC_PREFIX = "topic.Ode";
     private static final String RAW_ENCODED_INDICATOR = "RawEncoded";
 
+    /**
+     * Constructs a new CountsRepositoryImpl with the required services.
+     * 
+     * @param prometheusService service for querying Prometheus metrics
+     * @param postgresService   service for querying PostgreSQL database
+     */
     public CountsRepositoryImpl(PrometheusService prometheusService,
             PostgresService postgresService) {
         this.prometheusService = prometheusService;
         this.postgresService = postgresService;
     }
 
+    /**
+     * Retrieves message counts for a specific RSU within the given time range.
+     * 
+     * @param rsuIp     the IP address of the RSU
+     * @param startTime start time in UTC milliseconds
+     * @param endTime   end time in UTC milliseconds
+     * @return list of consolidated message counts by message type
+     */
     @Override
     public List<MessageCount> getRsuMessageCounts(String rsuIp, Long startTime, Long endTime) {
         return getMessageCountsFromPrometheus(rsuIp, startTime, endTime);
     }
 
     /**
-     * Get message counts from Prometheus using the
-     * kafka_produced_rsu_messages_total metric with 5-minute grouping
+     * Retrieves message counts from Prometheus using the
+     * kafka_produced_rsu_messages_total
+     * metric with optimized instant queries.
+     * 
+     * @param rsuIp     the IP address of the RSU
+     * @param startTime start time in UTC milliseconds
+     * @param endTime   end time in UTC milliseconds
+     * @return list of consolidated message counts
      */
     private List<MessageCount> getMessageCountsFromPrometheus(String rsuIp, Long startTime, Long endTime) {
         List<MessageCount> counts = new ArrayList<>();
 
         try {
-            LocalDateTime startDateTime = timestampToLocalDateTime(startTime);
-            LocalDateTime endDateTime = timestampToLocalDateTime(endTime);
-
-            // Use optimized instant query instead of range query
             String response = prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime);
             log.debug("Prometheus response: {}", response);
-            processPrometheusResponse(response, rsuIp, startDateTime, counts);
+            processPrometheusResponse(response, rsuIp, counts);
 
             log.debug("Retrieved {} message counts from Prometheus for RSU {}", counts.size(), rsuIp);
         } catch (Exception e) {
@@ -69,12 +85,15 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     }
 
     /**
-     * Process optimized Prometheus response (instant query with proper time range)
-     * This eliminates the need for client-side time filtering
-     * Returns consolidated message counts with both "in" and "out" counts in a
-     * single object
+     * Processes the Prometheus response and consolidates message counts by message
+     * type.
+     * Creates consolidated MessageCount objects with both "in" and "out" counts.
+     * 
+     * @param response the raw Prometheus response JSON
+     * @param rsuIp    the IP address of the RSU
+     * @param counts   the list to populate with consolidated counts
      */
-    private void processPrometheusResponse(String response, String rsuIp, LocalDateTime timestamp,
+    private void processPrometheusResponse(String response, String rsuIp,
             List<MessageCount> counts) {
         try {
             JsonNode root = jsonMapper.readTree(response);
@@ -82,29 +101,23 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
             if (root.path("status").asText().equals("success")) {
                 JsonNode results = root.path("data").path("result");
 
-                // Get road information for this RSU
                 String road = postgresService.getRsuPrimaryRoute(rsuIp);
-
-                // Map to consolidate counts by message type
                 Map<String, MessageCount> rsuCountsMaps = new HashMap<>();
 
                 for (JsonNode result : results) {
                     String topic = result.path("metric").path("topic").asText();
                     double value = result.path("value").path(1).asDouble();
 
-                    // Extract message type from topic
                     String messageType = extractMessageTypeFromTopic(topic);
                     if (messageType != null && value > 0) {
                         CountType countType = determineCountType(topic);
 
-                        // Get or create consolidated count object for this message type
                         MessageCount rsuCountsMap = rsuCountsMaps.get(messageType);
                         if (rsuCountsMap == null) {
                             rsuCountsMap = new MessageCount(messageType, rsuIp, 0L, 0L, road);
                             rsuCountsMaps.put(messageType, rsuCountsMap);
                         }
 
-                        // Add the count to the appropriate field
                         if (countType == CountType.ODE_INPUT) {
                             rsuCountsMap.setOdeInputCount(rsuCountsMap.getOdeInputCount() + (long) value);
                         } else if (countType == CountType.ODE_OUTPUT) {
@@ -113,7 +126,6 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                     }
                 }
 
-                // Add all consolidated counts to the result list
                 counts.addAll(rsuCountsMaps.values());
             }
         } catch (Exception e) {
@@ -122,22 +134,27 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     }
 
     /**
-     * Extract message type from topic name
-     * Handles formats like:
-     * - topic.OdeBsmJson (out count)
-     * - topic.OdeBsmRawEncodedJson (in count)
+     * Extracts the message type from a Kafka topic name.
+     * 
+     * <p>
+     * Handles topic formats such as:
+     * <ul>
+     * <li>topic.OdeBsmJson (output count)</li>
+     * <li>topic.OdeBsmRawEncodedJson (input count)</li>
+     * </ul>
+     * 
+     * @param topic the Kafka topic name
+     * @return the extracted message type (e.g., "BSM", "MAP", "SPAT") or null if
+     *         not found
      */
     private String extractMessageTypeFromTopic(String topic) {
         if (topic.startsWith(TOPIC_PREFIX)) {
-            // Remove "topic.Ode" prefix
             String messagePart = topic.substring(TOPIC_PREFIX.length());
 
-            // Remove "Json" suffix and any "RawEncoded" indicator
             String messageType = messagePart
                     .replace("RawEncoded", "")
                     .replace("Json", "");
 
-            // Return the extracted message type (e.g., "Bsm", "Map", "Spat", etc.)
             return messageType.isEmpty() ? null : messageType.toUpperCase();
         }
 
@@ -145,21 +162,18 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     }
 
     /**
-     * Convert milliseconds timestamp to LocalDateTime
-     */
-    private LocalDateTime timestampToLocalDateTime(Long timestamp) {
-        return LocalDateTime.ofEpochSecond(timestamp / 1000, 0, ZoneOffset.UTC);
-    }
-
-    /**
-     * Determine count type based on topic name
+     * Determines the count type based on the topic name.
+     * 
+     * @param topic the Kafka topic name
+     * @return ODE_INPUT for RawEncoded topics, ODE_OUTPUT for regular topics
      */
     private CountType determineCountType(String topic) {
         return topic.contains(RAW_ENCODED_INDICATOR) ? CountType.ODE_INPUT : CountType.ODE_OUTPUT;
     }
 
     /**
-     * Determine topic name from message type by querying available topics
+     * Determines the topic name for a given message type by querying available
+     * topics.
      * 
      * @param messageType  the message type (e.g., "BSM", "MAP")
      * @param startTime    start time in UTC milliseconds
@@ -172,14 +186,12 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     private String determineTopicFromMessageType(String messageType, Long startTime, Long endTime,
             boolean isRawEncoded) {
         try {
-            // Query Prometheus to get all available topics for the sample RSU
             String response = prometheusService.getAvailableTopicCounts(startTime, endTime);
 
             JsonNode root = jsonMapper.readTree(response);
             if (root.path("status").asText().equals("success")) {
                 JsonNode results = root.path("data").path("result");
 
-                // Look for topics that match the message type and RawEncoded filter
                 for (JsonNode result : results) {
                     String topic = result.path("metric").path("topic").asText();
                     String extractedMessageType = extractMessageTypeFromTopic(topic);
@@ -203,9 +215,14 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
     }
 
     /**
-     * Process optimized organization Prometheus response by topic (instant query)
-     * This eliminates the need for client-side time filtering
-     * Returns consolidated MessageCount objects for the specified topic
+     * Processes organization-wide Prometheus response for a specific topic.
+     * Updates consolidated MessageCount objects for all RSUs in the organization.
+     * 
+     * @param response       the raw Prometheus response JSON
+     * @param topic          the Kafka topic being processed
+     * @param rsuCountsMaps  map of consolidated counts by RSU and message type
+     * @param rsuIpToRoadMap mapping of RSU IPs to their primary roads
+     * @param countType      the type of count being processed (input or output)
      */
     private void processOrganizationResponseByTopic(String response, String topic,
             Map<String, MessageCount> rsuCountsMaps, Map<String, String> rsuIpToRoadMap, CountType countType) {
@@ -221,14 +238,12 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                     String resultTopic = result.path("metric").path("topic").asText();
                     double value = result.path("value").path(1).asDouble();
 
-                    // Only process results for the specified topic
                     if (topic.equals(resultTopic)) {
                         rsuCounts.put(rsuIp, (long) value);
                     }
                 }
             }
 
-            // Update consolidated MessageCount objects for all RSUs in the organization
             String messageType = extractMessageTypeFromTopic(topic);
 
             for (Map.Entry<String, String> entry : rsuIpToRoadMap.entrySet()) {
@@ -236,7 +251,6 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                 String road = entry.getValue();
                 Long count = rsuCounts.getOrDefault(rsuIp, 0L);
 
-                // Get or create consolidated count object for this RSU and message type
                 String key = rsuIp + "_" + messageType;
                 MessageCount rsuCountsMap = rsuCountsMaps.get(key);
                 if (rsuCountsMap == null) {
@@ -244,7 +258,6 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                     rsuCountsMaps.put(key, rsuCountsMap);
                 }
 
-                // Add the count to the appropriate field
                 if (countType == CountType.ODE_INPUT) {
                     rsuCountsMap.setOdeInputCount(rsuCountsMap.getOdeInputCount() + count);
                 } else if (countType == CountType.ODE_OUTPUT) {
@@ -256,13 +269,29 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
         }
     }
 
+    /**
+     * Retrieves message counts for all RSUs in an organization for a specific
+     * message type.
+     * 
+     * <p>
+     * This method queries both input (RawEncoded) and output topics for the
+     * specified
+     * message type across all RSUs in the organization and consolidates the
+     * results.
+     * </p>
+     * 
+     * @param organization the organization name
+     * @param messageType  the message type to query (e.g., "BSM", "MAP")
+     * @param startTime    start time in UTC milliseconds
+     * @param endTime      end time in UTC milliseconds
+     * @return list of consolidated message counts for all RSUs in the organization
+     */
     @Override
     public List<MessageCount> getRsuOrganizationMessageCounts(String organization, String messageType, Long startTime,
             Long endTime) {
         List<MessageCount> allCounts = new ArrayList<>();
 
         try {
-            // Get RSUs for the organization
             Map<String, String> rsuIpToRoadMap = postgresService.getOrganizationRsuIps(organization);
 
             if (rsuIpToRoadMap.isEmpty()) {
@@ -270,19 +299,12 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                 return allCounts;
             }
 
-            // Step 1: Query Prometheus to get available topics and determine both "in" and
-            // "out" topic names
-            String inTopic = determineTopicFromMessageType(messageType, startTime, endTime, true); // RawEncoded
-            String outTopic = determineTopicFromMessageType(messageType, startTime, endTime, false); // Regular
+            String inTopic = determineTopicFromMessageType(messageType, startTime, endTime, true);
+            String outTopic = determineTopicFromMessageType(messageType, startTime, endTime, false);
 
-            // Step 2: Query for both "in" and "out" topics across all RSUs in the
-            // organization
             String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
-
-            // Map to consolidate counts by RSU and message type
             Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
-            // Query for "in" counts (RawEncoded)
             if (inTopic != null) {
                 String inResponse = prometheusService.getOrganizationRsuCountsByTopic(rsuIps, inTopic, startTime,
                         endTime);
@@ -290,7 +312,6 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                         CountType.ODE_INPUT);
             }
 
-            // Query for "out" counts (Regular)
             if (outTopic != null) {
                 String outResponse = prometheusService.getOrganizationRsuCountsByTopic(rsuIps, outTopic, startTime,
                         endTime);
@@ -298,7 +319,6 @@ public class CountsRepositoryImpl implements CountsRepository, PageableQuery {
                         CountType.ODE_OUTPUT);
             }
 
-            // Add all consolidated counts to the result list
             allCounts.addAll(rsuCountsMap.values());
 
             log.debug(
