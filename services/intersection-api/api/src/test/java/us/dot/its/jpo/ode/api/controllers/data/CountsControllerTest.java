@@ -46,22 +46,24 @@ public class CountsControllerTest {
         String rsuIp = "10.11.81.13";
         Long startTime = 1640995200000L; // 2022-01-01T00:00:00Z
         Long endTime = 1641081600000L; // 2022-01-02T00:00:00Z
+        String message = "BSM";
 
         List<MessageCount> expectedCounts = new ArrayList<>();
         MessageCount count1 = new MessageCount();
         count1.setRsuIp(rsuIp);
-        count1.setMessageType("BSM");
+        count1.setMessageType(message);
         count1.setOdeInputCount(50L);
         count1.setOdeOutputCount(150L);
         count1.setRoad("I-25");
         expectedCounts.add(count1);
 
         when(permissionService.isSuperUser()).thenReturn(true);
-        when(countsRepository.getRsuMessageCounts(rsuIp, startTime, endTime))
+        when(countsRepository.getRsuMessageCounts(rsuIp, message, startTime, endTime))
                 .thenReturn(expectedCounts);
 
         // When
-        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, startTime, endTime);
+        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, message, startTime,
+                endTime);
 
         // Then
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);

@@ -47,14 +47,16 @@ public class CountsController {
     })
     public ResponseEntity<List<MessageCount>> getRsuMessageCounts(
             @PathVariable(name = "rsu_ip") String rsuIp,
+            @RequestParam(name = "message", required = false) String message,
             @RequestParam(name = "start_time_utc_millis", required = true) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = true) Long endTime) {
 
-        log.debug("Getting message counts for RSU {} from {} to {}", rsuIp, startTime, endTime);
+        log.debug("Getting message counts for RSU {} message type {} from {} to {}", rsuIp, message, startTime,
+                endTime);
 
-        List<MessageCount> counts = countsRepository.getRsuMessageCounts(rsuIp, startTime, endTime);
+        List<MessageCount> counts = countsRepository.getRsuMessageCounts(rsuIp, message, startTime, endTime);
 
-        log.debug("Found {} message counts for RSU {}", counts.size(), rsuIp);
+        log.debug("Found {} message counts for RSU {} message type {}", counts.size(), rsuIp, message);
         return ResponseEntity.ok(counts);
     }
 
@@ -67,7 +69,7 @@ public class CountsController {
     })
     public ResponseEntity<List<MessageCount>> getOrganizationRsuMessageCounts(
             @PathVariable(name = "organization") String organization,
-            @RequestParam(name = "message", required = false, defaultValue = "BSM") String message,
+            @RequestParam(name = "message", required = true) String message,
             @RequestParam(name = "start_time_utc_millis", required = true) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = true) Long endTime) {
 

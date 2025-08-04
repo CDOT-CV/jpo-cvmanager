@@ -62,13 +62,35 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime))
+        String mockTopicsResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmJson"
+                                }
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(mockPrometheusResponse);
+        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(postgresService.getRsuPrimaryRoute(rsuIp))
                 .thenReturn("I-25");
 
         // When
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
 
         // Then
         assertNotNull(result);
@@ -104,13 +126,35 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime))
+        String mockTopicsResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmRawEncodedJson"
+                                }
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(mockPrometheusResponse);
+        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(postgresService.getRsuPrimaryRoute(rsuIp))
                 .thenReturn("I-70");
 
         // When
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
 
         // Then
         assertNotNull(result);
@@ -153,13 +197,43 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime))
+        String mockTopicsResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmJson"
+                                }
+                            },
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmRawEncodedJson"
+                                }
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(mockPrometheusResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(mockPrometheusResponse);
+        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(postgresService.getRsuPrimaryRoute(rsuIp))
                 .thenReturn("I-25");
 
         // When
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
 
         // Then
         assertNotNull(result);
@@ -253,13 +327,20 @@ public class CountsRepositoryImplTest {
 
         when(postgresService.getOrganizationRsuIps(organization))
                 .thenReturn(rsuIpToRoadMap);
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmRawEncodedJson"),
+        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getOrganizationRsuCountsByTopicAccurate(anyString(), eq("topic.OdeBsmRawEncodedJson"),
                 eq(startTime), eq(endTime)))
                 .thenReturn(mockInResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmJson"), eq(startTime),
+        when(prometheusService.getOrganizationRsuCountsByTopicAccurate(anyString(), eq("topic.OdeBsmJson"),
+                eq(startTime),
                 eq(endTime)))
+                .thenReturn(mockOutResponse);
+        when(prometheusService.aggregateRangeResponse(mockInResponse, startTime, endTime))
+                .thenReturn(mockInResponse);
+        when(prometheusService.aggregateRangeResponse(mockOutResponse, startTime, endTime))
                 .thenReturn(mockOutResponse);
 
         // When
@@ -318,15 +399,42 @@ public class CountsRepositoryImplTest {
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        when(prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime))
+        String mockTopicsResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmJson"
+                                }
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
+                endTime.longValue()))
                 .thenThrow(new RuntimeException("Prometheus error"));
+        when(postgresService.getRsuPrimaryRoute(rsuIp))
+                .thenReturn("I-25");
 
         // When
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
 
         // Then
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(1, result.size());
+        assertEquals(0L, result.get(0).getOdeInputCount());
+        assertEquals(0L, result.get(0).getOdeOutputCount());
+        assertEquals("BSM", result.get(0).getMessageType());
+        assertEquals(rsuIp, result.get(0).getRsuIp());
+        assertEquals("I-25", result.get(0).getRoad());
     }
 
     @Test
@@ -343,7 +451,7 @@ public class CountsRepositoryImplTest {
 
         when(postgresService.getOrganizationRsuIps(organization))
                 .thenReturn(rsuIpToRoadMap);
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
+        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
                 .thenThrow(new RuntimeException("Prometheus error"));
 
         // When
@@ -352,6 +460,7 @@ public class CountsRepositoryImplTest {
 
         // Then
         assertNotNull(result);
-        assertTrue(result.isEmpty());
+        assertEquals(2, result.size()); // Should return entries with 0 counts for both RSUs
+        assertTrue(result.stream().allMatch(mc -> mc.getOdeInputCount() == 0 && mc.getOdeOutputCount() == 0));
     }
 }

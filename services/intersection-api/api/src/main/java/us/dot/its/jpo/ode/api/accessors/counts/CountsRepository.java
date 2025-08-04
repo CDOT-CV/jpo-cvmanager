@@ -9,11 +9,12 @@ public interface CountsRepository {
      * Get message counts for an RSU over a specified timespan
      * 
      * @param rsuIp     the RSU IP address
+     * @param message   the message type to query for (e.g., "BSM", "MAP")
      * @param startTime start time in UTC milliseconds
      * @param endTime   end time in UTC milliseconds
      * @return list of message counts
      */
-    List<MessageCount> getRsuMessageCounts(String rsuIp, Long startTime, Long endTime);
+    List<MessageCount> getRsuMessageCounts(String rsuIp, String message, Long startTime, Long endTime);
 
     /**
      * Get message counts for all RSUs in an organization over a specified timespan

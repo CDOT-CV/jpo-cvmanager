@@ -227,10 +227,9 @@ public class PostgresService {
     public String getRsuPrimaryRoute(String rsuIp) {
         String queryString = "SELECT r.primary_route " +
                 "FROM Rsus r " +
-                "WHERE r.ipv4_address = :rsuIp";
+                "WHERE r.ipv4_address = '" + rsuIp + "'";
 
         TypedQuery<String> query = entityManager.createQuery(queryString, String.class);
-        query.setParameter("rsuIp", rsuIp);
         query.setMaxResults(1);
 
         List<String> results = query.getResultList();
