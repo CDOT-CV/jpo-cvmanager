@@ -42,7 +42,7 @@
       "organizations": [{ "name": "CDOT CV", "role": "admin" }]
     },
     {
-      "email": "jfrye@neaeraconsulting.com",
+      "email": "test@gmail.com",
       "first_name": "Jacob",
       "last_name": "Frye",
       "super_user": true,
