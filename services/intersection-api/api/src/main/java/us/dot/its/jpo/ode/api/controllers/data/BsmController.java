@@ -55,7 +55,7 @@ public class BsmController {
             @RequestParam(name = "latitude", required = false) Double latitude,
             @RequestParam(name = "longitude", required = false) Double longitude,
             @RequestParam(name = "distance", required = false) Double distanceInMeters,
-            @Parameter(description = "Page number (0-based). If not set, no paging will be applied and all matching results will be returned (up to the 'size' limit).") @RequestParam(name = "page", required = false) Integer page,
+            @Parameter(description = "Page number (0-based). If not set, no paging will be applied, but the results will still be limited by size.") @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 

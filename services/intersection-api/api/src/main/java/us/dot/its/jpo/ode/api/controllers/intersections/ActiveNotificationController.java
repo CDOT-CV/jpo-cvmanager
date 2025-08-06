@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
@@ -61,7 +62,7 @@ public class ActiveNotificationController {
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "notification_type", required = false) String notificationType,
             @RequestParam(name = "key", required = false) String key,
-            @RequestParam(name = "page", required = false) Integer page,
+            @Parameter(description = "Page number (0-based). If not set, no paging will be applied, but the results will still be limited by size.") @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {

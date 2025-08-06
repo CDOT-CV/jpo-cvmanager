@@ -78,6 +78,7 @@ public interface PageableQuery {
             @Nonnull Class<T> outputType) {
         List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
         Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        logger.error("findGeneric query {}: {}", collectionName, mongoQuery.getQueryObject());
         if (!fieldsToExclude.isEmpty()) {
             for (String field : fieldsToExclude) {
                 mongoQuery.fields().exclude(field);
@@ -132,6 +133,7 @@ public interface PageableQuery {
             @Nullable List<String> excludedFields) {
         List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
         Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        logger.error("findDocuments query {}: {}", collectionName, mongoQuery.getQueryObject());
         if (!fieldsToExclude.isEmpty()) {
             for (String field : fieldsToExclude) {
                 mongoQuery.fields().exclude(field);
