@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -30,14 +31,17 @@ public class SignalGroupAlignmentEventRepositoryImpl
         implements SignalGroupAlignmentEventRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmSignalGroupAlignmentEvents";
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public SignalGroupAlignmentEventRepositoryImpl(MongoTemplate mongoTemplate) {
+    public SignalGroupAlignmentEventRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -106,7 +110,15 @@ public class SignalGroupAlignmentEventRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null, SignalGroupAlignmentEvent.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    SignalGroupAlignmentEvent.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    SignalGroupAlignmentEvent.class);
+        }
     }
 
     public List<IDCount> getAggregatedDailySignalGroupAlignmentEventCounts(int intersectionID, Long startTime,
@@ -125,10 +137,12 @@ public class SignalGroupAlignmentEventRepositoryImpl
                 Aggregation.project()
                         .and(ConvertOperators.ToDate.toDate("$timestamp")).as("date"),
                 Aggregation.project()
-                        .and(DateOperators.DateToString.dateOf("date").toString("}%Y-%m-%d")).as("dateStr"),
+                        .and(DateOperators.DateToString.dateOf("date").toString("}%Y-%m-%d"))
+                        .as("dateStr"),
                 Aggregation.group("dateStr").count().as("count"));
 
-        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, "CmLaneDirectionOfTravelEvent",
+        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation,
+                "CmLaneDirectionOfTravelEvent",
                 IDCount.class);
 
         return result.getMappedResults();

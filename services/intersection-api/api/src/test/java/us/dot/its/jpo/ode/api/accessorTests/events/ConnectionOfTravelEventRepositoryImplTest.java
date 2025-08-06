@@ -39,6 +39,7 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.ConnectionOfTravelEvent;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.connection_of_travel_event.ConnectionOfTravelEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -62,6 +63,9 @@ public class ConnectionOfTravelEventRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -84,7 +88,7 @@ public class ConnectionOfTravelEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ConnectionOfTravelEventRepositoryImpl(mongoTemplate);
+        repository = new ConnectionOfTravelEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

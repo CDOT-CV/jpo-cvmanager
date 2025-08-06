@@ -45,6 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.connection_of_travel_assessment.ConnectionOfTravelAssessmentRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -57,6 +58,9 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -80,7 +84,7 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ConnectionOfTravelAssessmentRepositoryImpl(mongoTemplate);
+        repository = new ConnectionOfTravelAssessmentRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -20,14 +21,17 @@ public class SpatMessageCountProgressionRepositoryImpl
         implements SpatMessageCountProgressionEventRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmSpatMessageCountProgressionEvents";
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public SpatMessageCountProgressionRepositoryImpl(MongoTemplate mongoTemplate) {
+    public SpatMessageCountProgressionRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -96,8 +100,15 @@ public class SpatMessageCountProgressionRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                SpatMessageCountProgressionEvent.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    SpatMessageCountProgressionEvent.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    SpatMessageCountProgressionEvent.class);
+        }
     }
 
     @Override

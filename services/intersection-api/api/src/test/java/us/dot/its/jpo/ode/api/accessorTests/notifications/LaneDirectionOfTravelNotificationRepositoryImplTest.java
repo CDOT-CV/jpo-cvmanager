@@ -23,9 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.LaneDirectionOfTravelNotification;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.lane_direction_of_travel_notification.LaneDirectionOfTravelNotificationRepositoryImpl;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -39,6 +41,9 @@ public class LaneDirectionOfTravelNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<LaneDirectionOfTravelNotification> mockPage;
@@ -54,7 +59,7 @@ public class LaneDirectionOfTravelNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new LaneDirectionOfTravelNotificationRepositoryImpl(mongoTemplate);
+        repository = new LaneDirectionOfTravelNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

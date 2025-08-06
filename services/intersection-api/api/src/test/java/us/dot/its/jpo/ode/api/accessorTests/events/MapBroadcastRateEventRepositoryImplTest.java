@@ -51,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.broadcast_rate.MapBroadcastRateEvent;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.map_broadcast_rate_event.MapBroadcastRateEventRepositoryImpl;
 
 @SpringBootTest
@@ -61,6 +62,9 @@ public class MapBroadcastRateEventRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +88,7 @@ public class MapBroadcastRateEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new MapBroadcastRateEventRepositoryImpl(mongoTemplate);
+        repository = new MapBroadcastRateEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

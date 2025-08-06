@@ -38,6 +38,7 @@ import java.util.List;
 
 import org.bson.Document;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.signal_state_conflict_event.SignalStateConflictEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -62,6 +63,9 @@ public class SignalStateConflictEventRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -84,7 +88,7 @@ public class SignalStateConflictEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SignalStateConflictEventRepositoryImpl(mongoTemplate);
+        repository = new SignalStateConflictEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

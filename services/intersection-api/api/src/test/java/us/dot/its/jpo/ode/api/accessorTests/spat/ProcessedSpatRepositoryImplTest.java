@@ -38,6 +38,7 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.spat.ProcessedSpatRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -60,6 +61,9 @@ public class ProcessedSpatRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -81,7 +85,7 @@ public class ProcessedSpatRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ProcessedSpatRepositoryImpl(mongoTemplate);
+        repository = new ProcessedSpatRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.map.OdeMapDataRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.model.OdeMapData;
@@ -44,6 +45,9 @@ public class OdeMapDataRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -66,7 +70,7 @@ public class OdeMapDataRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new OdeMapDataRepositoryImpl(mongoTemplate);
+        repository = new OdeMapDataRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

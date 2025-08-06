@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.model.OdeMapData;
@@ -17,14 +19,17 @@ import us.dot.its.jpo.ode.model.OdeMapData;
 public class OdeMapDataRepositoryImpl implements OdeMapDataRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "OdeMapJson";
     private final String DATE_FIELD = "properties.timeStamp";
     private final String INTERSECTION_ID_FIELD = "properties.intersectionId";
 
     @Autowired
-    public OdeMapDataRepositoryImpl(MongoTemplate mongoTemplate) {
+    public OdeMapDataRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -93,9 +98,15 @@ public class OdeMapDataRepositoryImpl implements OdeMapDataRepository, PageableQ
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria,
-                sort,
-                null, OdeMapData.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    OdeMapData.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    OdeMapData.class);
+        }
     }
 
     @Override

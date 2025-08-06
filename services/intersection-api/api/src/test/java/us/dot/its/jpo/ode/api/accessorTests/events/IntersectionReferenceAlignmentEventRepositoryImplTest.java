@@ -30,10 +30,12 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.IntersectionReferenceAlignmentEvent;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.intersection_reference_alignment_event.IntersectionReferenceAlignmentEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -47,6 +49,9 @@ public class IntersectionReferenceAlignmentEventRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<IntersectionReferenceAlignmentEvent> mockPage;
@@ -62,7 +67,7 @@ public class IntersectionReferenceAlignmentEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new IntersectionReferenceAlignmentEventRepositoryImpl(mongoTemplate);
+        repository = new IntersectionReferenceAlignmentEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

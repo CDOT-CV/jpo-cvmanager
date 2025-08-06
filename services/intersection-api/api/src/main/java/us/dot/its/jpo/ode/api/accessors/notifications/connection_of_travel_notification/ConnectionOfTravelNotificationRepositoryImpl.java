@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.data.domain.Pageable;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -18,14 +19,17 @@ public class ConnectionOfTravelNotificationRepositoryImpl
         implements ConnectionOfTravelNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmConnectionOfTravelNotification";
     private final String DATE_FIELD = "notificationGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public ConnectionOfTravelNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
+    public ConnectionOfTravelNotificationRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -94,8 +98,15 @@ public class ConnectionOfTravelNotificationRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                ConnectionOfTravelNotification.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    ConnectionOfTravelNotification.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    ConnectionOfTravelNotification.class);
+        }
     }
 
     public void add(ConnectionOfTravelNotification item) {

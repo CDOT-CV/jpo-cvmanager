@@ -51,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.MapMinimumDataEvent;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.map_minimum_data_event.MapMinimumDataEventRepositoryImpl;
 
 @SpringBootTest
@@ -61,6 +62,9 @@ public class MapMinimumDataEventRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +88,7 @@ public class MapMinimumDataEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new MapMinimumDataEventRepositoryImpl(mongoTemplate);
+        repository = new MapMinimumDataEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

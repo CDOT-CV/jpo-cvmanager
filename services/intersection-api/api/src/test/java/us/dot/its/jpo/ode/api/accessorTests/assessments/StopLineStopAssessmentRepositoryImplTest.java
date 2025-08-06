@@ -23,11 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLineStopAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment.StopLineStopAssessmentRepositoryImpl;
 
 @SpringBootTest
@@ -38,6 +40,9 @@ public class StopLineStopAssessmentRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<StopLineStopAssessment> mockPage;
@@ -53,7 +58,7 @@ public class StopLineStopAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLineStopAssessmentRepositoryImpl(mongoTemplate);
+        repository = new StopLineStopAssessmentRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

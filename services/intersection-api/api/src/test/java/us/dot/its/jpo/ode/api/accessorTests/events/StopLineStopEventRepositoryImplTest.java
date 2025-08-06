@@ -29,10 +29,12 @@ import java.util.List;
 
 import org.bson.Document;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.stop_line_stop_event.StopLineStopEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -45,89 +47,92 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLineStopEvent;
 @AutoConfigureEmbeddedDatabase
 public class StopLineStopEventRepositoryImplTest {
 
-        @Mock
-        private MongoTemplate mongoTemplate;
+    @Mock
+    private MongoTemplate mongoTemplate;
 
-        @Mock
-        private Page<StopLineStopEvent> mockPage;
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
-        @InjectMocks
-        private StopLineStopEventRepositoryImpl repository;
+    @Mock
+    private Page<StopLineStopEvent> mockPage;
 
-        Integer intersectionID = 123;
-        Long startTime = 1624640400000L; // June 26, 2021 00:00:00 GMT
-        Long endTime = 1624726799000L; // June 26, 2021 23:59:59 GMT
-        boolean latest = true;
+    @InjectMocks
+    private StopLineStopEventRepositoryImpl repository;
 
-        @BeforeEach
-        void setUp() {
-                MockitoAnnotations.openMocks(this);
-                repository = new StopLineStopEventRepositoryImpl(mongoTemplate);
-        }
+    Integer intersectionID = 123;
+    Long startTime = 1624640400000L; // June 26, 2021 00:00:00 GMT
+    Long endTime = 1624726799000L; // June 26, 2021 23:59:59 GMT
+    boolean latest = true;
 
-        @Test
-        public void testCount() {
-                long expectedCount = 10;
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        repository = new StopLineStopEventRepositoryImpl(mongoTemplate, props);
+    }
 
-                when(mongoTemplate.count(any(),
-                                Mockito.<String>any())).thenReturn(expectedCount);
+    @Test
+    public void testCount() {
+        long expectedCount = 10;
 
-                long resultCount = repository.count(1, null, null);
+        when(mongoTemplate.count(any(),
+                Mockito.<String>any())).thenReturn(expectedCount);
 
-                assertThat(resultCount).isEqualTo(expectedCount);
-                verify(mongoTemplate).count(any(Query.class), anyString());
-        }
+        long resultCount = repository.count(1, null, null);
 
-        @Test
+        assertThat(resultCount).isEqualTo(expectedCount);
+        verify(mongoTemplate).count(any(Query.class), anyString());
+    }
 
-        public void testFind() {
-                StopLineStopEventRepositoryImpl repo = mock(StopLineStopEventRepositoryImpl.class);
+    @Test
 
-                when(repo.findPage(
-                                any(),
-                                any(),
-                                any(PageRequest.class),
-                                any(Criteria.class),
-                                any(Sort.class),
-                                any(),
-                                eq(StopLineStopEvent.class))).thenReturn(mockPage);
-                PageRequest pageRequest = PageRequest.of(0, 1);
-                doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+    public void testFind() {
+        StopLineStopEventRepositoryImpl repo = mock(StopLineStopEventRepositoryImpl.class);
 
-                Page<StopLineStopEvent> results = repo.find(1, null, null, pageRequest);
+        when(repo.findPage(
+                any(),
+                any(),
+                any(PageRequest.class),
+                any(Criteria.class),
+                any(Sort.class),
+                any(),
+                eq(StopLineStopEvent.class))).thenReturn(mockPage);
+        PageRequest pageRequest = PageRequest.of(0, 1);
+        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
 
-                assertThat(results).isEqualTo(mockPage);
-        }
+        Page<StopLineStopEvent> results = repo.find(1, null, null, pageRequest);
 
-        @Test
-        public void testGetStopLineStopEventEventsByDay() {
+        assertThat(results).isEqualTo(mockPage);
+    }
 
-                List<IDCount> aggregatedResults = new ArrayList<>();
-                IDCount result1 = new IDCount();
-                result1.setId("2023-06-26");
-                result1.setCount(3600);
-                IDCount result2 = new IDCount();
-                result2.setId("2023-06-26");
-                result2.setCount(7200);
-                aggregatedResults.add(result1);
-                aggregatedResults.add(result2);
+    @Test
+    public void testGetStopLineStopEventEventsByDay() {
 
-                AggregationResults<IDCount> aggregationResults = new AggregationResults<>(aggregatedResults,
-                                new Document());
-                Mockito.when(
-                                mongoTemplate.aggregate(Mockito.any(Aggregation.class), Mockito.anyString(),
-                                                Mockito.eq(IDCount.class)))
-                                .thenReturn(aggregationResults);
+        List<IDCount> aggregatedResults = new ArrayList<>();
+        IDCount result1 = new IDCount();
+        result1.setId("2023-06-26");
+        result1.setCount(3600);
+        IDCount result2 = new IDCount();
+        result2.setId("2023-06-26");
+        result2.setCount(7200);
+        aggregatedResults.add(result1);
+        aggregatedResults.add(result2);
 
-                List<IDCount> actualResults = repository.getAggregatedDailyStopLineStopEventCounts(intersectionID,
-                                startTime,
-                                endTime);
+        AggregationResults<IDCount> aggregationResults = new AggregationResults<>(aggregatedResults,
+                new Document());
+        Mockito.when(
+                mongoTemplate.aggregate(Mockito.any(Aggregation.class), Mockito.anyString(),
+                        Mockito.eq(IDCount.class)))
+                .thenReturn(aggregationResults);
 
-                assertThat(actualResults.size()).isEqualTo(2);
-                assertThat(actualResults.get(0).getId()).isEqualTo("2023-06-26");
-                assertThat(actualResults.get(0).getCount()).isEqualTo(3600);
-                assertThat(actualResults.get(1).getId()).isEqualTo("2023-06-26");
-                assertThat(actualResults.get(1).getCount()).isEqualTo(7200);
-        }
+        List<IDCount> actualResults = repository.getAggregatedDailyStopLineStopEventCounts(intersectionID,
+                startTime,
+                endTime);
+
+        assertThat(actualResults.size()).isEqualTo(2);
+        assertThat(actualResults.get(0).getId()).isEqualTo("2023-06-26");
+        assertThat(actualResults.get(0).getCount()).isEqualTo(3600);
+        assertThat(actualResults.get(1).getId()).isEqualTo("2023-06-26");
+        assertThat(actualResults.get(1).getCount()).isEqualTo(7200);
+    }
 
 }

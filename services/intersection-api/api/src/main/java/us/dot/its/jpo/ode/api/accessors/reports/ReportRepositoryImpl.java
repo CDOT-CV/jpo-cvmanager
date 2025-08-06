@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,7 @@ public class ReportRepositoryImpl
         implements ReportRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmReport";
     private final String DATE_FIELD = "reportGeneratedAt";
@@ -29,8 +32,10 @@ public class ReportRepositoryImpl
     private final String REPORT_NAME_FIELD = "reportName";
 
     @Autowired
-    public ReportRepositoryImpl(MongoTemplate mongoTemplate) {
+    public ReportRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     private Criteria applyDateCriteria(Criteria criteria, Long startDate, Long endDate) {
@@ -122,7 +127,15 @@ public class ReportRepositoryImpl
         if (!includeReportContents) {
             excludedFields.add("reportContents");
         }
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, excludedFields, ReportDocument.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    excludedFields,
+                    ReportDocument.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, excludedFields,
+                    ReportDocument.class);
+        }
     }
 
     @Override

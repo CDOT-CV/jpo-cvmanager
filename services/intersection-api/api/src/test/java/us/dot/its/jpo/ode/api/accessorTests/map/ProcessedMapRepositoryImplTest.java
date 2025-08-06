@@ -35,6 +35,7 @@ import org.bson.Document;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -59,6 +60,9 @@ public class ProcessedMapRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -77,7 +81,7 @@ public class ProcessedMapRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ProcessedMapRepositoryImpl(mongoTemplate);
+        repository = new ProcessedMapRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

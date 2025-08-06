@@ -45,6 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.StopLinePassageNotification;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.stop_line_passage_notification.StopLinePassageNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -57,6 +58,9 @@ public class StopLinePassageNotificationRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -80,7 +84,7 @@ public class StopLinePassageNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLinePassageNotificationRepositoryImpl(mongoTemplate);
+        repository = new StopLinePassageNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

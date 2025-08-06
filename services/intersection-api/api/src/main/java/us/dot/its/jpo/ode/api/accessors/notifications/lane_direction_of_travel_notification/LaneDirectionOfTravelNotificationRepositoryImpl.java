@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,14 +20,17 @@ public class LaneDirectionOfTravelNotificationRepositoryImpl
         implements LaneDirectionOfTravelNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmLaneDirectionOfTravelNotification";
     private final String DATE_FIELD = "notificationGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public LaneDirectionOfTravelNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
+    public LaneDirectionOfTravelNotificationRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -95,8 +99,15 @@ public class LaneDirectionOfTravelNotificationRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                LaneDirectionOfTravelNotification.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    LaneDirectionOfTravelNotification.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    LaneDirectionOfTravelNotification.class);
+        }
     }
 
     @Override

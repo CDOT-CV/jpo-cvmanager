@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,14 +19,17 @@ public class StopLinePassageNotificationRepositoryImpl
         implements StopLinePassageNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmStopLinePassageNotification";
     private final String DATE_FIELD = "notificationGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public StopLinePassageNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
+    public StopLinePassageNotificationRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -94,8 +98,15 @@ public class StopLinePassageNotificationRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                StopLinePassageNotification.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    StopLinePassageNotification.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    StopLinePassageNotification.class);
+        }
     }
 
     @Override

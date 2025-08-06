@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -16,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
 import us.dot.its.jpo.conflictmonitor.monitor.models.bsm.BsmEvent;
 
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -30,14 +32,17 @@ public class BsmEventRepositoryImpl
         implements BsmEventRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmBsmEvents";
     private final String DATE_FIELD = "startingBsmTimestamp";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public BsmEventRepositoryImpl(MongoTemplate mongoTemplate) {
+    public BsmEventRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -108,7 +113,16 @@ public class BsmEventRepositoryImpl
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
 
         List<String> excludedFields = List.of("recordGeneratedAt");
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, excludedFields, BsmEvent.class);
+
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    excludedFields,
+                    BsmEvent.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, excludedFields,
+                    BsmEvent.class);
+        }
     }
 
     @Override
@@ -130,12 +144,15 @@ public class BsmEventRepositoryImpl
                 Aggregation.match(Criteria.where("").gte(startTime).lte(endTime)),
                 Aggregation.project("startingBsmTimestamp"),
                 Aggregation.project()
-                        .and(ConvertOperators.ToDate.toDate("$startingBsmTimestamp")).as("date"),
+                        .and(ConvertOperators.ToDate.toDate("$startingBsmTimestamp"))
+                        .as("date"),
                 Aggregation.project()
-                        .and(DateOperators.DateToString.dateOf("date").toString("%Y-%m-%d")).as("dateStr"),
+                        .and(DateOperators.DateToString.dateOf("date").toString("%Y-%m-%d"))
+                        .as("dateStr"),
                 Aggregation.group("dateStr").count().as("count"));
 
-        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, collectionName, IDCount.class);
+        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, collectionName,
+                IDCount.class);
         List<IDCount> results = result.getMappedResults();
 
         return results;

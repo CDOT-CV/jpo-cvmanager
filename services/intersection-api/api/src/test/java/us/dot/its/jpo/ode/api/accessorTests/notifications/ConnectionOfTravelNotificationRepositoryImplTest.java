@@ -38,6 +38,7 @@ import java.util.List;
 
 import org.bson.Document;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.connection_of_travel_notification.ConnectionOfTravelNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -61,6 +62,9 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -83,7 +87,7 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        repository = new ConnectionOfTravelNotificationRepositoryImpl(mongoTemplate);
+        repository = new ConnectionOfTravelNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

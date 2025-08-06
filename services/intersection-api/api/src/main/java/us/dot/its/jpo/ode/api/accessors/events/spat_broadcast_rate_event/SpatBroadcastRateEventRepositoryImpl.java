@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -28,14 +29,17 @@ public class SpatBroadcastRateEventRepositoryImpl
         implements SpatBroadcastRateEventRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmSpatBroadcastRateEvents";
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public SpatBroadcastRateEventRepositoryImpl(MongoTemplate mongoTemplate) {
+    public SpatBroadcastRateEventRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -104,7 +108,15 @@ public class SpatBroadcastRateEventRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null, SpatBroadcastRateEvent.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    SpatBroadcastRateEvent.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    SpatBroadcastRateEvent.class);
+        }
     }
 
     public List<IDCount> getAggregatedDailySpatBroadcastRateEventCounts(int intersectionID, Long startTime,
@@ -121,12 +133,16 @@ public class SpatBroadcastRateEventRepositoryImpl
 
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("intersectionID").is(intersectionID)),
-                Aggregation.match(Criteria.where("eventGeneratedAt").gte(startTimeDate).lte(endTimeDate)),
+                Aggregation.match(
+                        Criteria.where("eventGeneratedAt").gte(startTimeDate).lte(endTimeDate)),
                 Aggregation.project()
-                        .and(DateOperators.DateToString.dateOf("eventGeneratedAt").toString("%Y-%m-%d")).as("dateStr"),
+                        .and(DateOperators.DateToString.dateOf("eventGeneratedAt")
+                                .toString("%Y-%m-%d"))
+                        .as("dateStr"),
                 Aggregation.group("dateStr").count().as("count"));
 
-        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, collectionName, IDCount.class);
+        AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, collectionName,
+                IDCount.class);
 
         return result.getMappedResults();
     }

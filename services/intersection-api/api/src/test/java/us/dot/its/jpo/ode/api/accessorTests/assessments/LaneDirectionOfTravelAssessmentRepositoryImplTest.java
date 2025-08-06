@@ -45,6 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_assessment.LaneDirectionOfTravelAssessmentRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -57,6 +58,9 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -80,7 +84,7 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new LaneDirectionOfTravelAssessmentRepositoryImpl(mongoTemplate);
+        repository = new LaneDirectionOfTravelAssessmentRepositoryImpl(mongoTemplate, props);
     }
 
     @Test
@@ -98,7 +102,8 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
 
     @Test
     public void testFind() {
-        LaneDirectionOfTravelAssessmentRepositoryImpl repo = mock(LaneDirectionOfTravelAssessmentRepositoryImpl.class);
+        LaneDirectionOfTravelAssessmentRepositoryImpl repo = mock(
+                LaneDirectionOfTravelAssessmentRepositoryImpl.class);
 
         when(repo.findPage(
                 any(),

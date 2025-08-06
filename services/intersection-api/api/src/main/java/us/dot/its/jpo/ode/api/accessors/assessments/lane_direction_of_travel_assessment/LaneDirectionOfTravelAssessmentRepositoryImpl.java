@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -24,14 +25,17 @@ public class LaneDirectionOfTravelAssessmentRepositoryImpl
         implements LaneDirectionOfTravelAssessmentRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmLaneDirectionOfTravelAssessment";
     private final String DATE_FIELD = "assessmentGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public LaneDirectionOfTravelAssessmentRepositoryImpl(MongoTemplate mongoTemplate) {
+    public LaneDirectionOfTravelAssessmentRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -100,12 +104,18 @@ public class LaneDirectionOfTravelAssessmentRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                LaneDirectionOfTravelAssessment.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
+                    LaneDirectionOfTravelAssessment.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null, LaneDirectionOfTravelAssessment.class);
+        }
     }
 
     // TODO: Consider making pageable
-    public List<LaneDirectionOfTravelAssessment> getLaneDirectionOfTravelOverTime(int intersectionID, long startTime,
+    public List<LaneDirectionOfTravelAssessment> getLaneDirectionOfTravelOverTime(int intersectionID,
+            long startTime,
             long endTime) {
 
         Aggregation aggregation = Aggregation.newAggregation(

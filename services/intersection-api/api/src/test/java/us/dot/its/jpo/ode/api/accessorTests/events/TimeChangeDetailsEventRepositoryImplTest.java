@@ -29,10 +29,12 @@ import java.util.List;
 
 import org.bson.Document;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.time_change_details_event.TimeChangeDetailsEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -48,6 +50,9 @@ public class TimeChangeDetailsEventRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @Mock
     private Page<TimeChangeDetailsEvent> mockPage;
 
@@ -62,7 +67,7 @@ public class TimeChangeDetailsEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new TimeChangeDetailsEventRepositoryImpl(mongoTemplate);
+        repository = new TimeChangeDetailsEventRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

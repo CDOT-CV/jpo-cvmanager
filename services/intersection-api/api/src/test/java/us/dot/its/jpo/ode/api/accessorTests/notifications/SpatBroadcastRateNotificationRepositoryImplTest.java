@@ -23,11 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.broadcast_rate.SpatBroadcastRateNotification;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.spat_broadcast_rate_notification.SpatBroadcastRateNotificationRepositoryImpl;
 
 @SpringBootTest
@@ -38,6 +40,9 @@ public class SpatBroadcastRateNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<SpatBroadcastRateNotification> mockPage;
@@ -53,7 +58,7 @@ public class SpatBroadcastRateNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SpatBroadcastRateNotificationRepositoryImpl(mongoTemplate);
+        repository = new SpatBroadcastRateNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

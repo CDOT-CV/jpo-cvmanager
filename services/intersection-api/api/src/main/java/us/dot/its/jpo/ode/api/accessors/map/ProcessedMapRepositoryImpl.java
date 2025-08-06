@@ -32,6 +32,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.api.models.IDCount;
@@ -45,6 +46,7 @@ import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "ProcessedMap";
     private final String DATE_FIELD = "properties.timeStamp";
@@ -58,8 +60,10 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Autowired
-    public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate) {
+    public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -141,8 +145,14 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
             excludedFields.add(VALIDATION_MESSAGES_FIELD);
         }
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        Page<Document> hashMap = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
-                criteria, sort, excludedFields);
+        Page<Document> hashMap;
+        if (pageable != null) {
+            hashMap = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
+                    criteria, sort, excludedFields);
+        } else {
+            hashMap = findDocuments(mongoTemplate, collectionName, props.getMaximumResponseSize(),
+                    criteria, sort, excludedFields);
+        }
         List<ProcessedMap<LineString>> processedMaps = hashMap.getContent().stream()
                 .map(document -> mapper.convertValue(document, processedMapTypeReference)).toList();
         return new PageImpl<>(processedMaps, pageable, hashMap.getTotalElements());

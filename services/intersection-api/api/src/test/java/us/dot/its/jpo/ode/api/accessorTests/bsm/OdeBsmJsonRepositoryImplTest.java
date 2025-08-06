@@ -37,6 +37,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.bsm.OdeBsmJsonRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -59,6 +60,9 @@ public class OdeBsmJsonRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +88,7 @@ public class OdeBsmJsonRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate);
+        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate, props);
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()); // Register
                                                                                                  // JavaTimeModule
     }
@@ -279,7 +283,8 @@ public class OdeBsmJsonRepositoryImplTest {
         assertThat(capturedCriteria.getCriteriaObject().toJson())
                 .isEqualTo(String.format(
                         "{\"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}}",
-                        startTimeString, endTimeString)); // Verify the Criteria passed to findPage
+                        startTimeString, endTimeString)); // Verify the Criteria passed to
+                                                          // findPage
         Mockito.verify(repo).findDocumentsWithPagination(
                 any(),
                 any(),

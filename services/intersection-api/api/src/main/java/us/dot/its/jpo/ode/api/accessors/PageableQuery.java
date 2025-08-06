@@ -5,11 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 
@@ -66,6 +68,25 @@ public interface PageableQuery {
         return new PageImpl<>(results, pageable, aggregationResult.getMetadata().getFirst().getCount());
     }
 
+    default <T> Page<T> findGeneric(
+            @Nonnull MongoTemplate mongoTemplate,
+            @Nonnull String collectionName,
+            @Nonnull int limit,
+            @Nonnull Criteria criteria,
+            @Nonnull Sort sort,
+            @Nullable List<String> excludedFields,
+            @Nonnull Class<T> outputType) {
+        List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
+        Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        if (!fieldsToExclude.isEmpty()) {
+            for (String field : fieldsToExclude) {
+                mongoQuery.fields().exclude(field);
+            }
+        }
+        List<T> results = mongoTemplate.find(mongoQuery, outputType, collectionName);
+        return new PageImpl<>(results, PageRequest.of(0, results.size()), results.size());
+    }
+
     /**
      * Find paginated data based on the given criteria and pageable object
      *
@@ -85,6 +106,11 @@ public interface PageableQuery {
             @Nullable List<String> excludedFields) {
         List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
 
+        // If pageable is null, short-circuit the aggregation and just return the normal
+        // find results
+        if (pageable.getPageNumber() == -1) {
+        }
+
         AggregationResult result = getAggregationResult(mongoTemplate, collectionName, pageable, criteria, sort,
                 fieldsToExclude);
         if (result == null || result.getMetadata().isEmpty()) {
@@ -95,6 +121,24 @@ public interface PageableQuery {
         long totalElements = result.getMetadata().getFirst().getCount();
 
         return new PageImpl<>(data, pageable, totalElements);
+    }
+
+    default Page<Document> findDocuments(
+            @Nonnull MongoTemplate mongoTemplate,
+            @Nonnull String collectionName,
+            @Nonnull int limit,
+            @Nonnull Criteria criteria,
+            @Nonnull Sort sort,
+            @Nullable List<String> excludedFields) {
+        List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
+        Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        if (!fieldsToExclude.isEmpty()) {
+            for (String field : fieldsToExclude) {
+                mongoQuery.fields().exclude(field);
+            }
+        }
+        List<Document> results = mongoTemplate.find(mongoQuery, Document.class, collectionName);
+        return new PageImpl<>(results, PageRequest.of(0, results.size()), results.size());
     }
 
     /**
@@ -150,6 +194,8 @@ public interface PageableQuery {
 
         // Execute the aggregation
         Aggregation aggregation = Aggregation.newAggregation(operations);
+        Document pipeline = aggregation.toDocument(collectionName, Aggregation.DEFAULT_CONTEXT);
+        logger.error("Aggregation Pipeline for {}: {}", collectionName, pipeline.toJson());
         AggregationResults<AggregationResult> results = mongoTemplate
                 .aggregate(aggregation, collectionName, AggregationResult.class);
 

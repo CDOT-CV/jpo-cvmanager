@@ -25,10 +25,12 @@ import static org.mockito.Mockito.when;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.broadcast_rate.MapBroadcastRateNotification;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.map_broadcast_rate_notification.MapBroadcastRateNotificationRepositoryImpl;
 
 @SpringBootTest
@@ -39,6 +41,9 @@ public class MapBroadcastRateNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+
+    @SpyBean
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<MapBroadcastRateNotification> mockPage;
@@ -54,7 +59,7 @@ public class MapBroadcastRateNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new MapBroadcastRateNotificationRepositoryImpl(mongoTemplate);
+        repository = new MapBroadcastRateNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test

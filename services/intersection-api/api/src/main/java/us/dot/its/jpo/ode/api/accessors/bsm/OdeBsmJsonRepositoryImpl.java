@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.model.OdeBsmData;
@@ -27,6 +28,7 @@ import us.dot.its.jpo.ode.model.OdeBsmData;
 public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
     private final ObjectMapper mapper = DateJsonMapper.getInstance()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -36,8 +38,10 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
     private final String VEHICLE_ID_FIELD = "payload.data.coreData.id";
 
     @Autowired
-    public OdeBsmJsonRepositoryImpl(MongoTemplate mongoTemplate) {
+    public OdeBsmJsonRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -114,8 +118,14 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
         List<String> excludedFields = List.of("recordGeneratedAt");
 
-        Page<Document> aggregationResult = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
-                criteria, sort, excludedFields);
+        Page<Document> aggregationResult;
+        if (pageable != null) {
+            aggregationResult = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
+                    criteria, sort, excludedFields);
+        } else {
+            aggregationResult = findDocuments(mongoTemplate, collectionName, props.getMaximumResponseSize(),
+                    criteria, sort, excludedFields);
+        }
 
         List<OdeBsmData> bsms = aggregationResult.getContent().stream()
                 .map(document -> mapper.convertValue(document, OdeBsmData.class)).toList();

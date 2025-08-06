@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -39,6 +40,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalGroupAl
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalStateConflictNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.TimeChangeDetailsNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.app_health.KafkaStreamsAnomalyNotification;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepositoryImpl;
 
 @SpringBootTest
@@ -50,6 +52,9 @@ public class ActiveNotificationRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
+    @SpyBean
+    private ConflictMonitorApiProperties props;
+
     @InjectMocks
     private ActiveNotificationRepositoryImpl repository;
 
@@ -60,7 +65,7 @@ public class ActiveNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ActiveNotificationRepositoryImpl(mongoTemplate);
+        repository = new ActiveNotificationRepositoryImpl(mongoTemplate, props);
     }
 
     @Test
@@ -79,7 +84,7 @@ public class ActiveNotificationRepositoryImplTest {
     @Test
     public void testFindWithAllNotificationTypes() {
         MongoTemplate mockMongoTemplate = mock(MongoTemplate.class);
-        ActiveNotificationRepositoryImpl repo = spy(new ActiveNotificationRepositoryImpl(mockMongoTemplate));
+        ActiveNotificationRepositoryImpl repo = spy(new ActiveNotificationRepositoryImpl(mockMongoTemplate, props));
 
         // Arrange
         PageRequest pageable = PageRequest.of(0, 10);

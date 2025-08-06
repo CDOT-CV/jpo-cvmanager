@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,14 +20,17 @@ public class IntersectionReferenceAlignmentNotificationRepositoryImpl
         implements IntersectionReferenceAlignmentNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
+    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmIntersectionReferenceAlignmentNotification";
     private final String DATE_FIELD = "notificationGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public IntersectionReferenceAlignmentNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
+    public IntersectionReferenceAlignmentNotificationRepositoryImpl(MongoTemplate mongoTemplate,
+            ConflictMonitorApiProperties props) {
         this.mongoTemplate = mongoTemplate;
+        this.props = props;
     }
 
     /**
@@ -95,8 +99,15 @@ public class IntersectionReferenceAlignmentNotificationRepositoryImpl
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        return findPage(mongoTemplate, collectionName, pageable, criteria, sort, null,
-                IntersectionReferenceAlignmentNotification.class);
+        if (pageable != null) {
+            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+                    null,
+                    IntersectionReferenceAlignmentNotification.class);
+        } else {
+            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+                    sort, null,
+                    IntersectionReferenceAlignmentNotification.class);
+        }
     }
 
     @Override
