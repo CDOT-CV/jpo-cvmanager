@@ -65,6 +65,18 @@ public class PostgresService {
             "WHERE io.intersection_id = i.intersection_id AND o.name = :orgName" +
             ")";
 
+    private final String findNotificationSettingsByEmailQuery = "SELECT et.email_type " +
+            "FROM public.user_email_notification uen " +
+            "JOIN public.users u ON uen.user_id = u.user_id " +
+            "JOIN public.email_type et ON uen.email_type_id = et.email_type_id " +
+            "WHERE u.email = :email";
+
+    private final String findUsersByNotificationTypeQuery = "SELECT u.email " +
+            "FROM UserEmailNotification uen " +
+            "JOIN Users u ON uen.user_id = u.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "WHERE et.email_type = :notification_type";
+
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
         query.setParameter("email", email);
@@ -234,5 +246,17 @@ public class PostgresService {
 
         List<String> results = query.getResultList();
         return results.isEmpty() ? null : results.get(0);
+    }
+
+    public List<String> getNotificationSettingsByEmail(String email) {
+        TypedQuery<String> query = entityManager.createQuery(findNotificationSettingsByEmailQuery, String.class);
+        query.setParameter("email", email);
+        return query.getResultList();
+    }
+
+    public List<String> getUsersByNotificationType(String notificationType) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeQuery, String.class);
+        query.setParameter("notification_type", notificationType);
+        return query.getResultList();
     }
 }
