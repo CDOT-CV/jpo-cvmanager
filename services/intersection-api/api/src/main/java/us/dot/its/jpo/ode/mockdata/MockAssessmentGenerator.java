@@ -12,7 +12,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLinePassageEvent
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLineStopEvent;
 
 public class MockAssessmentGenerator {
-    public static ConnectionOfTravelAssessment getConnectionOfTravelAssessment(){
+    public static ConnectionOfTravelAssessment getConnectionOfTravelAssessment() {
         ConnectionOfTravelAggregator aggregator = new ConnectionOfTravelAggregator();
         aggregator.add(MockEventGenerator.getConnectionOfTravelEvent());
         aggregator.add(MockEventGenerator.getConnectionOfTravelEvent());
@@ -20,14 +20,14 @@ public class MockAssessmentGenerator {
         return assessment;
     }
 
-    public static LaneDirectionOfTravelAssessment getLaneDirectionOfTravelAssessment(){
+    public static LaneDirectionOfTravelAssessment getLaneDirectionOfTravelAssessment() {
         LaneDirectionOfTravelAggregator aggregator = new LaneDirectionOfTravelAggregator();
         aggregator.add(MockEventGenerator.getLaneDirectionOfTravelEvent());
         LaneDirectionOfTravelAssessment assessment = aggregator.getLaneDirectionOfTravelAssessment(20, 100, 1);
         return assessment;
     }
 
-    public static StopLineStopAssessment getStopLineStopAssessment(){
+    public static StopLineStopAssessment getStopLineStopAssessment() {
         StopLineStopAggregator aggregator = new StopLineStopAggregator();
         StopLineStopEvent event = MockEventGenerator.getStopLineStopEvent();
         aggregator.add(event);
@@ -36,7 +36,7 @@ public class MockAssessmentGenerator {
         return assessment;
     }
 
-    public static StopLinePassageAssessment getStopLinePassageAssessment(){
+    public static StopLinePassageAssessment getStopLinePassageAssessment() {
         StopLinePassageAggregator aggregator = new StopLinePassageAggregator();
         StopLinePassageEvent event = MockEventGenerator.getStopLinePassageEvent();
         aggregator.add(event);

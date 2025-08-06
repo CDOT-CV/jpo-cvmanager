@@ -30,10 +30,10 @@ public class TimDecoder implements Decoder {
 
     @Override
     public DecodedMessage decode(EncodedMessage message) {
-        
+
         // Convert to Ode Data type and Add Metadata
         OdeData data = getAsOdeData(message.getAsn1Message());
-        
+
         try {
             // Convert to XML for ASN.1 Decoder
             String xml = xmlUtils.toXml(data);
@@ -41,12 +41,12 @@ public class TimDecoder implements Decoder {
             // Send String through ASN.1 Decoder to get Decoded XML Data
             String decodedXml = DecoderManager.decodeXmlWithAcm(xml);
 
-            // Convert to Ode Json 
+            // Convert to Ode Json
             ObjectNode tim = XmlUtils.toObjectNode(decodedXml);
 
             // build output data structure
             return new TimDecodedMessage(tim, message.getAsn1Message(), "");
-            
+
         } catch (JsonProcessingException e) {
             log.error("JSON Processing Exception: {}", e.getMessage(), e);
             return new TimDecodedMessage(null, message.getAsn1Message(), e.getMessage());
@@ -66,17 +66,18 @@ public class TimDecoder implements Decoder {
         metadata.setOriginIp("user-upload");
         metadata.setRecordType(RecordType.timMsg);
         metadata.setRecordGeneratedBy(GeneratedBy.RSU);
-        
-        Asn1Encoding unsecuredDataEncoding = new Asn1Encoding("unsecuredData", "MessageFrame",EncodingRule.UPER);
+
+        Asn1Encoding unsecuredDataEncoding = new Asn1Encoding("unsecuredData", "MessageFrame", EncodingRule.UPER);
         metadata.addEncoding(unsecuredDataEncoding);
-        
-        //construct odeData
+
+        // construct odeData
         return new OdeAsn1Data(metadata, payload);
     }
 
     @Override
     public OdeTimData getAsOdeJson(String consumedData) throws XmlUtilsException {
-        // There is no proper deserializer for TIM data into the ODE tim format. This function is not used here.
+        // There is no proper deserializer for TIM data into the ODE tim format. This
+        // function is not used here.
         return null;
     }
 }

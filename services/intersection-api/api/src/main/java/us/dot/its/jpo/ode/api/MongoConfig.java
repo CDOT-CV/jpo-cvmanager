@@ -64,7 +64,6 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
                     + authenticationDatabase;
         }
 
-        
         logger.info("MongoDB Connection String: {}", uri);
         builder.applyConnectionString(new ConnectionString(uri));
     }

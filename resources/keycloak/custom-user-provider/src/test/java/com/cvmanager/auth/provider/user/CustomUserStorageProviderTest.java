@@ -40,7 +40,8 @@ class CustomUserStorageProviderTest {
         when(resultSet.getString(Constants.LAST_NAME_KEY)).thenReturn("last_name");
         when(resultSet.getLong(Constants.CREATED_TIMESTAMP_KEY)).thenReturn(1730828047000L);
         when(resultSet.getInt(Constants.SUPER_USER_KEY)).thenReturn(1);
-        when(resultSet.getString(Constants.ORGANIZATIONS_KEY)).thenReturn("[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
+        when(resultSet.getString(Constants.ORGANIZATIONS_KEY)).thenReturn(
+                "[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
         when(resultSet.next()).thenReturn(true);
         return resultSet;
     }
@@ -60,66 +61,66 @@ class CustomUserStorageProviderTest {
         assertThat(userAdapter.getOrganizations().get(1).getRole(), is("test role 2"));
     }
 
-    @Test 
+    @Test
     void getUserById() throws SQLException {
         String userId = "user_id";
 
         StorageId storageId = mock(StorageId.class);
         when(storageId.getExternalId()).thenReturn(userId);
-        
+
         KeycloakSession keycloakSession = mock(KeycloakSession.class);
         RealmModel realmModel = mock(RealmModel.class);
         ComponentModel model = mock(ComponentModel.class);
 
-
         String expectedQuery = """
-SELECT
-    keycloak_id,
-    user_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user,
-    COALESCE(
-        jsonb_agg(
-            jsonb_build_object('org', org_name, 'role', role)
-        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
-        '[]'::jsonb
-    ) AS organizations
-FROM (
-    SELECT
-        users.keycloak_id,
-        users.user_id,
-        users.email,
-        users.first_name,
-        users.last_name,
-        users.created_timestamp,
-        users.super_user,
-        org.name AS org_name,
-        roles.name AS role
-    FROM
-        public.users
-    LEFT JOIN
-        public.user_organization AS uo ON uo.user_id = users.user_id
-    LEFT JOIN
-        public.organizations AS org ON org.organization_id = uo.organization_id
-    LEFT JOIN
-        public.roles ON roles.role_id = uo.role_id
-) AS subquery
- WHERE keycloak_id = 'user_id'::UUID
-GROUP BY
-    user_id,
-    keycloak_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user
+                SELECT
+                    keycloak_id,
+                    user_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user,
+                    COALESCE(
+                        jsonb_agg(
+                            jsonb_build_object('org', org_name, 'role', role)
+                        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS organizations
+                FROM (
+                    SELECT
+                        users.keycloak_id,
+                        users.user_id,
+                        users.email,
+                        users.first_name,
+                        users.last_name,
+                        users.created_timestamp,
+                        users.super_user,
+                        org.name AS org_name,
+                        roles.name AS role
+                    FROM
+                        public.users
+                    LEFT JOIN
+                        public.user_organization AS uo ON uo.user_id = users.user_id
+                    LEFT JOIN
+                        public.organizations AS org ON org.organization_id = uo.organization_id
+                    LEFT JOIN
+                        public.roles ON roles.role_id = uo.role_id
+                ) AS subquery
+                 WHERE keycloak_id = 'user_id'::UUID
+                GROUP BY
+                    user_id,
+                    keycloak_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user
 
-;""";
+                ;""";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -140,59 +141,60 @@ GROUP BY
     @Test
     void getUserByUsername() throws SQLException {
         String username = "email";
-        
+
         KeycloakSession keycloakSession = mock(KeycloakSession.class);
         RealmModel realmModel = mock(RealmModel.class);
         ComponentModel model = mock(ComponentModel.class);
 
         String expectedQuery = """
-SELECT
-    keycloak_id,
-    user_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user,
-    COALESCE(
-        jsonb_agg(
-            jsonb_build_object('org', org_name, 'role', role)
-        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
-        '[]'::jsonb
-    ) AS organizations
-FROM (
-    SELECT
-        users.keycloak_id,
-        users.user_id,
-        users.email,
-        users.first_name,
-        users.last_name,
-        users.created_timestamp,
-        users.super_user,
-        org.name AS org_name,
-        roles.name AS role
-    FROM
-        public.users
-    LEFT JOIN
-        public.user_organization AS uo ON uo.user_id = users.user_id
-    LEFT JOIN
-        public.organizations AS org ON org.organization_id = uo.organization_id
-    LEFT JOIN
-        public.roles ON roles.role_id = uo.role_id
-) AS subquery
- WHERE email = 'email'
-GROUP BY
-    user_id,
-    keycloak_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user
+                SELECT
+                    keycloak_id,
+                    user_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user,
+                    COALESCE(
+                        jsonb_agg(
+                            jsonb_build_object('org', org_name, 'role', role)
+                        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS organizations
+                FROM (
+                    SELECT
+                        users.keycloak_id,
+                        users.user_id,
+                        users.email,
+                        users.first_name,
+                        users.last_name,
+                        users.created_timestamp,
+                        users.super_user,
+                        org.name AS org_name,
+                        roles.name AS role
+                    FROM
+                        public.users
+                    LEFT JOIN
+                        public.user_organization AS uo ON uo.user_id = users.user_id
+                    LEFT JOIN
+                        public.organizations AS org ON org.organization_id = uo.organization_id
+                    LEFT JOIN
+                        public.roles ON roles.role_id = uo.role_id
+                ) AS subquery
+                 WHERE email = 'email'
+                GROUP BY
+                    user_id,
+                    keycloak_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user
 
-;""";
+                ;""";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -213,59 +215,60 @@ GROUP BY
     @Test
     void getUserByEmail() throws SQLException {
         String email = "email";
-        
+
         KeycloakSession keycloakSession = mock(KeycloakSession.class);
         RealmModel realmModel = mock(RealmModel.class);
         ComponentModel model = mock(ComponentModel.class);
 
         String expectedQuery = """
-SELECT
-    keycloak_id,
-    user_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user,
-    COALESCE(
-        jsonb_agg(
-            jsonb_build_object('org', org_name, 'role', role)
-        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
-        '[]'::jsonb
-    ) AS organizations
-FROM (
-    SELECT
-        users.keycloak_id,
-        users.user_id,
-        users.email,
-        users.first_name,
-        users.last_name,
-        users.created_timestamp,
-        users.super_user,
-        org.name AS org_name,
-        roles.name AS role
-    FROM
-        public.users
-    LEFT JOIN
-        public.user_organization AS uo ON uo.user_id = users.user_id
-    LEFT JOIN
-        public.organizations AS org ON org.organization_id = uo.organization_id
-    LEFT JOIN
-        public.roles ON roles.role_id = uo.role_id
-) AS subquery
- WHERE email = 'email'
-GROUP BY
-    user_id,
-    keycloak_id,
-    email,
-    first_name,
-    last_name,
-    created_timestamp,
-    super_user
+                SELECT
+                    keycloak_id,
+                    user_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user,
+                    COALESCE(
+                        jsonb_agg(
+                            jsonb_build_object('org', org_name, 'role', role)
+                        ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS organizations
+                FROM (
+                    SELECT
+                        users.keycloak_id,
+                        users.user_id,
+                        users.email,
+                        users.first_name,
+                        users.last_name,
+                        users.created_timestamp,
+                        users.super_user,
+                        org.name AS org_name,
+                        roles.name AS role
+                    FROM
+                        public.users
+                    LEFT JOIN
+                        public.user_organization AS uo ON uo.user_id = users.user_id
+                    LEFT JOIN
+                        public.organizations AS org ON org.organization_id = uo.organization_id
+                    LEFT JOIN
+                        public.roles ON roles.role_id = uo.role_id
+                ) AS subquery
+                 WHERE email = 'email'
+                GROUP BY
+                    user_id,
+                    keycloak_id,
+                    email,
+                    first_name,
+                    last_name,
+                    created_timestamp,
+                    super_user
 
-;""";
+                ;""";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -291,7 +294,8 @@ GROUP BY
 
         String expectedQuery = "select count(*) from public.users";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -322,7 +326,8 @@ GROUP BY
 
         String expectedQuery = "insert into public.users (email, keycloak_id, created_timestamp) values (?, ?::UUID, ?)";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -367,10 +372,11 @@ GROUP BY
 
         String expectedQuery = "update public.users set email = ?, first_name = ?, last_name = ?, created_timestamp = ?, super_user = ?::bit where keycloak_id = ?::UUID";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
-            
+
             ComponentModel model = mock(ComponentModel.class);
             UserObject user = mock(UserObject.class);
             when(user.getId()).thenReturn("keycloak_id");
@@ -423,7 +429,8 @@ GROUP BY
 
         String expectedQuery = "delete from public.users where keycloak_id = ?::UUID";
 
-        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito.mockStatic(CustomUserStorageProvider.class)) {
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
             Connection connection = mock(Connection.class);
             mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
 
@@ -443,5 +450,5 @@ GROUP BY
             assertThat(response, is(true));
         }
     }
-        
+
 }

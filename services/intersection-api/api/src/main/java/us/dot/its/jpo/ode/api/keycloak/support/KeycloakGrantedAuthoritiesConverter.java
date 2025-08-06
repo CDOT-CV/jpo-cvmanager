@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 
 /**
  * Allows to extract granted authorities from a given JWT. The authorities
- * are determined by combining the realm (overarching) and client (application-specific)
+ * are determined by combining the realm (overarching) and client
+ * (application-specific)
  * roles, and normalizing them (configure them to the default format).
  */
 public class KeycloakGrantedAuthoritiesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
@@ -39,18 +40,18 @@ public class KeycloakGrantedAuthoritiesConverter implements Converter<Jwt, Colle
 
         Collection<GrantedAuthority> authorities = mapKeycloakRolesToAuthorities(
                 getRealmRolesFrom(jwt),
-                getClientRolesFrom(jwt, clientId)
-        );
+                getClientRolesFrom(jwt, clientId));
 
         Collection<GrantedAuthority> scopeAuthorities = JWT_SCOPE_GRANTED_AUTHORITIES_CONVERTER.convert(jwt);
-        if(!CollectionUtils.isEmpty(scopeAuthorities)) {
+        if (!CollectionUtils.isEmpty(scopeAuthorities)) {
             authorities.addAll(scopeAuthorities);
         }
 
         return authorities;
     }
 
-    protected Collection<GrantedAuthority> mapKeycloakRolesToAuthorities(Set<String> realmRoles, Set<String> clientRoles) {
+    protected Collection<GrantedAuthority> mapKeycloakRolesToAuthorities(Set<String> realmRoles,
+            Set<String> clientRoles) {
 
         List<GrantedAuthority> combinedAuthorities = new ArrayList<>();
 

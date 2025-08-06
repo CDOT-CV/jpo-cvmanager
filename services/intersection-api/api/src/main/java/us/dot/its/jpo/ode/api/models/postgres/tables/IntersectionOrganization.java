@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-
 @ToString
 @Setter
 @EqualsAndHashCode
@@ -21,5 +20,5 @@ public class IntersectionOrganization {
     private int intersection_organization_id;
     private int intersection_id;
     private int organization_id;
-    
+
 }

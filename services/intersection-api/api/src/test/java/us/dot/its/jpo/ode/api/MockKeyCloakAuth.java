@@ -18,7 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import static org.mockito.Mockito.*;
 
 public class MockKeyCloakAuth {
-    public static void setSecurityContextHolder(String user, Set<String> roles){
+    public static void setSecurityContextHolder(String user, Set<String> roles) {
         Principal principal = mock(Principal.class);
         when(principal.getName()).thenReturn(user);
 
@@ -30,7 +30,6 @@ public class MockKeyCloakAuth {
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("preferred_username", user);
-
 
         Jwt token = new Jwt(user, Instant.now(), Instant.now().plusSeconds(10), headers, claims);
 

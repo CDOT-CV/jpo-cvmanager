@@ -9,23 +9,20 @@ import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 
 /**
  * Service to start and stop Kafka Listeners.
- * See <a href="https://www.baeldung.com/kafka-spring-boot-dynamically-manage-listeners">
- *     Dynamically Managing Kafka Listeners in Spring Boot</a>
+ * See <a href=
+ * "https://www.baeldung.com/kafka-spring-boot-dynamically-manage-listeners">
+ * Dynamically Managing Kafka Listeners in Spring Boot</a>
  */
 @Service
 @Slf4j
-@ConditionalOnProperty(
-    name = "enable.api",
-    havingValue = "true",
-    matchIfMissing = false
-)
+@ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
 public class KafkaListenerControlService {
 
     private final KafkaListenerEndpointRegistry registry;
     private final ConflictMonitorApiProperties properties;
 
     public KafkaListenerControlService(KafkaListenerEndpointRegistry registry,
-                                       ConflictMonitorApiProperties properties) {
+            ConflictMonitorApiProperties properties) {
         this.registry = registry;
         this.properties = properties;
     }
@@ -67,7 +64,5 @@ public class KafkaListenerControlService {
                     "But if they weren't, listener {} would be turned off now.", listenerId);
         }
     }
-
-
 
 }

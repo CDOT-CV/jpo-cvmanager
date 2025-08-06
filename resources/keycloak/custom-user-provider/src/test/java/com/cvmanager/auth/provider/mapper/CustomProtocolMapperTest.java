@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 class CustomProtocolMapperTest {
-    @Test 
+    @Test
     void transformAccessToken() {
         AccessToken accessToken = mock(AccessToken.class);
         ProtocolMapperModel mappingModel = mock(ProtocolMapperModel.class);
@@ -47,20 +47,22 @@ class CustomProtocolMapperTest {
         when(session.getContext()).thenReturn(keycloakContext);
         when(keycloakContext.getRealm()).thenReturn(realm);
 
-        // mock session.users().getUserById(realm, "user_session_id") to return a UserModel object
+        // mock session.users().getUserById(realm, "user_session_id") to return a
+        // UserModel object
         UserModel user = mock(UserModel.class);
         when(user.getCreatedTimestamp()).thenReturn(createdTimestamp);
         when(user.getFirstAttribute(Constants.SUPER_USER_KEY)).thenReturn(superUser);
         when(user.getFirstAttribute(Constants.ORGANIZATIONS_KEY)).thenReturn(organizationsString);
 
-        // Mock 
+        // Mock
         UserProvider userProvider = mock(UserProvider.class);
         when(session.users()).thenReturn(userProvider);
         when(userProvider.getUserById(realm, "user_session_id")).thenReturn(user);
 
         CustomProtocolMapper customProtocolMapper = mock(CustomProtocolMapper.class);
-        doCallRealMethod().when(customProtocolMapper).transformAccessToken(accessToken, mappingModel, session, userSession, clientSessionCtx);
-        
+        doCallRealMethod().when(customProtocolMapper).transformAccessToken(accessToken, mappingModel, session,
+                userSession, clientSessionCtx);
+
         @SuppressWarnings("unchecked")
         Map<String, Object> otherClaims = mock(Map.class);
         when(accessToken.getOtherClaims()).thenReturn(otherClaims);

@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,8 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
-* OrganizationObject represents a user's organization and role association object from the user_organization postgresql table
-*/
+ * OrganizationObject represents a user's organization and role association
+ * object from the user_organization postgresql table
+ */
 @JsonSerialize
 public class OrganizationObject {
 

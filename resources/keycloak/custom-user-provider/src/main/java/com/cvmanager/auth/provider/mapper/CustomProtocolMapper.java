@@ -61,13 +61,13 @@ public class CustomProtocolMapper extends AbstractOIDCProtocolMapper implements 
             UserModel user = session.users().getUserById(session.getContext().getRealm(),
                     userSession.getUser().getId());
 
-
-            // Add custom fields to the access token, under cvmanager_data. This only includes fields which are not already present in the access token:
+            // Add custom fields to the access token, under cvmanager_data. This only
+            // includes fields which are not already present in the access token:
             // - user_created_timestamp
             // - super_user
             // - organizations
-            //     - org
-            //     - role
+            // - org
+            // - role
             transformAccessToken.getOtherClaims().put("cvmanager_data", UserObject.toTokenMap(user));
         } catch (Exception e) {
             log.error("Error transforming access token: ", e);

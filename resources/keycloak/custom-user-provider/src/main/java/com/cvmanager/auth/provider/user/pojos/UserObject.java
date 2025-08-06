@@ -69,16 +69,18 @@ public class UserObject {
     }
 
     public static Map<String, Object> toTokenMap(UserModel user) {
-        // Generate Map from user object, for use in custom token mapper. This only includes fields which are not already present in the token data.
+        // Generate Map from user object, for use in custom token mapper. This only
+        // includes fields which are not already present in the token data.
         // - user_created_timestamp
         // - super_user
         // - organizations
-        //     - org
-        //     - role
+        // - org
+        // - role
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(Constants.CREATED_TIMESTAMP_TOKEN_KEY, user.getCreatedTimestamp());
         map.put(Constants.SUPER_USER_KEY, user.getFirstAttribute(Constants.SUPER_USER_KEY));
-        map.put(Constants.ORGANIZATIONS_KEY, OrganizationObject.mapListFromString(user.getFirstAttribute(Constants.ORGANIZATIONS_KEY)));
+        map.put(Constants.ORGANIZATIONS_KEY,
+                OrganizationObject.mapListFromString(user.getFirstAttribute(Constants.ORGANIZATIONS_KEY)));
         return map;
     }
 

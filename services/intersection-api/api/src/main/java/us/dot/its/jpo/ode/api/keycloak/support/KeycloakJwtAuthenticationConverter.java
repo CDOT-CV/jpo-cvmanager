@@ -19,7 +19,8 @@ public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, Abstra
 
     private Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter;
 
-    public KeycloakJwtAuthenticationConverter(Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter) {
+    public KeycloakJwtAuthenticationConverter(
+            Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter) {
         this.grantedAuthoritiesConverter = grantedAuthoritiesConverter;
     }
 

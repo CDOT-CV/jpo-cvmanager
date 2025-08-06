@@ -117,7 +117,8 @@ public class UserAdapter extends AbstractUserAdapterFederatedStorage {
             case UserModel.USERNAME, UserModel.EMAIL -> entity.setEmail(value);
             case UserModel.FIRST_NAME -> entity.setFirstName(value);
             case UserModel.LAST_NAME -> entity.setLastName(value);
-            case Constants.CREATED_TIMESTAMP_KEY -> entity.setCreatedTimestamp(value == null ? null : Long.valueOf(value));
+            case Constants.CREATED_TIMESTAMP_KEY ->
+                entity.setCreatedTimestamp(value == null ? null : Long.valueOf(value));
             case Constants.SUPER_USER_KEY -> entity.setSuperUser(value == null ? null : Integer.valueOf(value));
             case Constants.ORGANIZATIONS_KEY -> entity.setOrganizations(OrganizationObject.listFromString(value));
             default -> super.setSingleAttribute(name, value);
@@ -190,13 +191,15 @@ public class UserAdapter extends AbstractUserAdapterFederatedStorage {
             case UserModel.LAST_NAME -> Stream.ofNullable(entity.getLastName());
             case Constants.CREATED_TIMESTAMP_KEY -> Stream.ofNullable(String.valueOf(entity.getCreatedTimestamp()));
             case Constants.SUPER_USER_KEY -> Stream.ofNullable(String.valueOf(entity.getSuperUser()));
-            case Constants.ORGANIZATIONS_KEY ->  Stream.ofNullable(OrganizationObject.toStringList(entity.getOrganizations()));
+            case Constants.ORGANIZATIONS_KEY ->
+                Stream.ofNullable(OrganizationObject.toStringList(entity.getOrganizations()));
             default -> super.getAttributeStream(name);
         };
     }
 
     /**
-     * Save the updated user object to the database, relying on the saved provider (CustomUserStorageProvider) and super.realm
+     * Save the updated user object to the database, relying on the saved provider
+     * (CustomUserStorageProvider) and super.realm
      */
     private void saveUpdatedUserAttributes(UserObject entity) {
         provider.updateUser(super.realm, entity);

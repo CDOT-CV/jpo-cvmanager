@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class BsmDecodedMessage extends DecodedMessage{
+public class BsmDecodedMessage extends DecodedMessage {
     private OdeBsmData bsm;
 
     public BsmDecodedMessage(OdeBsmData bsm, String asn1Text, String decodeErrors) {

@@ -12,7 +12,8 @@ class OrganizationObjectTest {
 
     @Test
     void listFromString() {
-        List<OrganizationObject> orgs = OrganizationObject.listFromString("[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
+        List<OrganizationObject> orgs = OrganizationObject.listFromString(
+                "[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
 
         assertThat(orgs.size(), is(2));
         assertThat(orgs.get(0).getOrg(), is("test org 1"));
@@ -59,11 +60,13 @@ class OrganizationObjectTest {
 
     @Test
     void toStringList() {
-        List<OrganizationObject> orgs = List.of(new OrganizationObject("test org 1", "test role 1"), new OrganizationObject("test org 2", "test role 2"));
+        List<OrganizationObject> orgs = List.of(new OrganizationObject("test org 1", "test role 1"),
+                new OrganizationObject("test org 2", "test role 2"));
 
         String json = OrganizationObject.toStringList(orgs);
 
-        assertThat(json, is("[{\"org\":\"test org 1\",\"role\":\"test role 1\"},{\"org\":\"test org 2\",\"role\":\"test role 2\"}]"));
+        assertThat(json, is(
+                "[{\"org\":\"test org 1\",\"role\":\"test role 1\"},{\"org\":\"test org 2\",\"role\":\"test role 2\"}]"));
     }
 
     @Test
@@ -101,7 +104,8 @@ class OrganizationObjectTest {
 
     @Test
     void mapListFromString() {
-        List<Map<String, String>> maps = OrganizationObject.mapListFromString("[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
+        List<Map<String, String>> maps = OrganizationObject.mapListFromString(
+                "[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
 
         assertThat(maps.size(), is(2));
         assertThat(maps.get(0).get("org"), is("test org 1"));

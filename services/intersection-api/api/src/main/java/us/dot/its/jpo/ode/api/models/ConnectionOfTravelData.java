@@ -27,19 +27,22 @@ public class ConnectionOfTravelData {
         return invalidConnections;
     }
 
-    public static ConnectionOfTravelData processConnectionOfTravelData(List<LaneConnectionCount> connectionCounts, ProcessedMap<LineString> mostRecentProcessedMap) {
+    public static ConnectionOfTravelData processConnectionOfTravelData(List<LaneConnectionCount> connectionCounts,
+            ProcessedMap<LineString> mostRecentProcessedMap) {
         // Get the valid connections from the most recent processed map
-        ConnectingLanesFeatureCollection<LineString> connectingLanesFeatureCollection = mostRecentProcessedMap.getConnectingLanesFeatureCollection();
+        ConnectingLanesFeatureCollection<LineString> connectingLanesFeatureCollection = mostRecentProcessedMap
+                .getConnectingLanesFeatureCollection();
         Set<String> validConnectionIDs = Arrays.stream(connectingLanesFeatureCollection.getFeatures())
-            .map(feature -> feature.getId())
-            .collect(Collectors.toSet());
+                .map(feature -> feature.getId())
+                .collect(Collectors.toSet());
 
         List<ConnectionData> validConnections = new ArrayList<>();
         List<ConnectionData> invalidConnections = new ArrayList<>();
 
         for (LaneConnectionCount count : connectionCounts) {
             String key = count.getIngressLaneID() + "-" + count.getEgressLaneID();
-            ConnectionData connectionData = new ConnectionData(key, count.getIngressLaneID(), count.getEgressLaneID(), count.getCount());
+            ConnectionData connectionData = new ConnectionData(key, count.getIngressLaneID(), count.getEgressLaneID(),
+                    count.getCount());
 
             if (validConnectionIDs.contains(key)) {
                 validConnections.add(connectionData);

@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class SpatDecodedMessage extends DecodedMessage{
+public class SpatDecodedMessage extends DecodedMessage {
     private OdeSpatData spat;
     private ProcessedSpat processedSpat;
 
@@ -16,7 +16,7 @@ public class SpatDecodedMessage extends DecodedMessage{
         super(asn1Text, MessageType.SPAT, decodeErrors);
         this.processedSpat = processedSpat;
         this.spat = spat;
-        
+
     }
 
 }

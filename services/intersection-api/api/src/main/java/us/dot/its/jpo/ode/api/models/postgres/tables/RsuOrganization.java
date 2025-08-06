@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-
 @ToString
 @Setter
 @EqualsAndHashCode
@@ -23,5 +22,5 @@ public class RsuOrganization {
     private int rsu_organization_id;
     private UUID rsu_id;
     private int organization_id;
-    
+
 }

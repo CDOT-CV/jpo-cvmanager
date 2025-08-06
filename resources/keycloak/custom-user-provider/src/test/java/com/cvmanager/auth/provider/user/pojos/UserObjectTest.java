@@ -28,7 +28,8 @@ class UserObjectTest {
         when(resultSet.getString(Constants.LAST_NAME_KEY)).thenReturn("last_name");
         when(resultSet.getLong(Constants.CREATED_TIMESTAMP_KEY)).thenReturn(1730828047000L);
         when(resultSet.getInt(Constants.SUPER_USER_KEY)).thenReturn(1);
-        when(resultSet.getString(Constants.ORGANIZATIONS_KEY)).thenReturn("[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
+        when(resultSet.getString(Constants.ORGANIZATIONS_KEY)).thenReturn(
+                "[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
         when(resultSet.next()).thenReturn(true);
 
         UserObject userObject = UserObject.fromJoinedResultSet(resultSet);
@@ -46,7 +47,7 @@ class UserObjectTest {
         assertThat(userObject.getOrganizations().get(1).getRole(), is("test role 2"));
     }
 
-    @Test 
+    @Test
     void fromResultSet() throws SQLException {
         ResultSet resultSet = mock(ResultSet.class);
         when(resultSet.getString(Constants.KEYCLOAK_ID_KEY)).thenReturn("keycloak_id");
@@ -73,7 +74,8 @@ class UserObjectTest {
         UserModel userModel = mock(UserModel.class);
         when(userModel.getCreatedTimestamp()).thenReturn(1730828047000L);
         when(userModel.getFirstAttribute(Constants.SUPER_USER_KEY)).thenReturn("1");
-        when(userModel.getFirstAttribute(Constants.ORGANIZATIONS_KEY)).thenReturn("[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
+        when(userModel.getFirstAttribute(Constants.ORGANIZATIONS_KEY)).thenReturn(
+                "[{\"org\": \"test org 1\", \"role\": \"test role 1\"}, {\"org\": \"test org 2\", \"role\": \"test role 2\"}]");
 
         Map<String, Object> tokenMap = UserObject.toTokenMap(userModel);
 
@@ -84,9 +86,13 @@ class UserObjectTest {
         assertThat(((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).size(), is(2));
         assertThat(((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(0), isA(Map.class));
         assertThat(((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1), isA(Map.class));
-        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(0)).get("org"), is("test org 1"));
-        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(0)).get("role"), is("test role 1"));
-        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1)).get("org"), is("test org 2"));
-        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1)).get("role"), is("test role 2"));
+        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(0)).get("org"),
+                is("test org 1"));
+        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(0)).get("role"),
+                is("test role 1"));
+        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1)).get("org"),
+                is("test org 2"));
+        assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1)).get("role"),
+                is("test role 2"));
     }
 }
