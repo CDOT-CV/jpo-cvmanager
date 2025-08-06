@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_as
 import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
 import us.dot.its.jpo.ode.api.models.DataLoader;
 
@@ -13,7 +12,8 @@ public interface LaneDirectionOfTravelAssessmentRepository extends DataLoader<La
 
     Page<LaneDirectionOfTravelAssessment> findLatest(Integer intersectionID, Long startTime, Long endTime);
 
-    Page<LaneDirectionOfTravelAssessment> find(Integer intersectionID, Long startTime, Long endTime, Pageable pageable);
+    Page<LaneDirectionOfTravelAssessment> find(Integer intersectionID, Long startTime, Long endTime, Integer pageNumber,
+            int limit);
 
     List<LaneDirectionOfTravelAssessment> getLaneDirectionOfTravelOverTime(int intersectionID, long startTime,
             long endTime);

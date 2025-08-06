@@ -37,7 +37,6 @@ import java.util.List;
 
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -45,7 +44,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalStateConflictNotification;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.signal_state_conflict_notification.SignalStateConflictNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -58,9 +56,6 @@ public class SignalStateConflictNotificationRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +79,7 @@ public class SignalStateConflictNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SignalStateConflictNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new SignalStateConflictNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -112,10 +107,9 @@ public class SignalStateConflictNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(SignalStateConflictNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<SignalStateConflictNotification> results = repo.find(1, null, null, pageRequest);
+        Page<SignalStateConflictNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -150,9 +144,7 @@ public class SignalStateConflictNotificationRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<SignalStateConflictNotification> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<SignalStateConflictNotification> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

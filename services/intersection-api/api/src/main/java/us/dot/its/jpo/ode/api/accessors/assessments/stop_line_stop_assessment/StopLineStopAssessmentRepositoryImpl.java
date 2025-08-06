@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -11,7 +11,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLineStopAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -19,17 +18,14 @@ import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 public class StopLineStopAssessmentRepositoryImpl implements StopLineStopAssessmentRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmStopLineStopAssessment";
     private final String DATE_FIELD = "assessmentGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public StopLineStopAssessmentRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public StopLineStopAssessmentRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -93,17 +89,17 @@ public class StopLineStopAssessmentRepositoryImpl implements StopLineStopAssessm
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        if (pageable != null) {
-            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+        if (pageNumber != null) {
+            return findPage(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit), criteria, sort,
                     null,
                     StopLineStopAssessment.class);
         } else {
-            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+            return findGeneric(mongoTemplate, collectionName, limit, criteria,
                     sort, null,
                     StopLineStopAssessment.class);
         }

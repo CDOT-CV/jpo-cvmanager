@@ -37,7 +37,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.bsm.OdeBsmJsonRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -60,9 +59,6 @@ public class OdeBsmJsonRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -88,7 +84,7 @@ public class OdeBsmJsonRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate, props);
+        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate);
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()); // Register
                                                                                                  // JavaTimeModule
     }
@@ -98,8 +94,6 @@ public class OdeBsmJsonRepositoryImplTest {
         OdeBsmJsonRepositoryImpl repo = mock(OdeBsmJsonRepositoryImpl.class);
         ArgumentCaptor<Criteria> criteriaCaptor = ArgumentCaptor.forClass(Criteria.class);
 
-        PageRequest pageRequest = PageRequest.of(0, 1);
-
         when(repo.findDocumentsWithPagination(
                 any(),
                 any(),
@@ -108,10 +102,10 @@ public class OdeBsmJsonRepositoryImplTest {
                 any(Sort.class),
                 any())).thenReturn(mockDocumentPage);
         doCallRealMethod().when(repo).find(originIp, vehicleId, startTime, endTime, longitude, latitude,
-                distance, pageRequest);
+                distance, 0, 1);
 
         repo.find(originIp, vehicleId, startTime, endTime, longitude, latitude,
-                distance, pageRequest);
+                distance, 0, 1);
 
         // Extract the captured Aggregation
         Criteria capturedCriteria = criteriaCaptor.getValue();
@@ -138,10 +132,10 @@ public class OdeBsmJsonRepositoryImplTest {
                 any())).thenReturn(mockDocumentPage);
 
         doCallRealMethod().when(repo).find(originIp, vehicleId, startTime, endTime, longitude, latitude,
-                distance, pageRequest);
+                distance, 0, 1);
 
         repo.find(originIp, vehicleId, startTime, endTime, longitude, latitude,
-                distance, pageRequest);
+                distance, 0, 1);
 
         // Extract the captured Aggregation
         Criteria capturedCriteria = criteriaCaptor.getValue();
@@ -208,10 +202,10 @@ public class OdeBsmJsonRepositoryImplTest {
                 any())).thenReturn(mockDocumentPage);
 
         doCallRealMethod().when(repo).find(originIp, vehicleId, startTime, endTime, null, null, null,
-                pageRequest);
+                0, 1);
 
         repo.find(originIp, vehicleId, startTime, endTime, null, null, null,
-                pageRequest);
+                0, 1);
 
         // Extract the captured Aggregation
         Criteria capturedCriteria = criteriaCaptor.getValue();
@@ -272,9 +266,9 @@ public class OdeBsmJsonRepositoryImplTest {
                 any(Sort.class),
                 any())).thenReturn(mockDocumentPage);
 
-        doCallRealMethod().when(repo).find(null, null, startTime, endTime, null, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(null, null, startTime, endTime, null, null, null, 0, 1);
 
-        repo.find(null, null, startTime, endTime, null, null, null, pageRequest);
+        repo.find(null, null, startTime, endTime, null, null, null, 0, 1);
 
         // Extract the captured Aggregation
         Criteria capturedCriteria = criteriaCaptor.getValue();
@@ -346,10 +340,8 @@ public class OdeBsmJsonRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
         Page<OdeBsmData> findResponse = repository.find(originIp, vehicleId, startTime, endTime, -104.1, 36.8,
-                50.0,
-                pageRequest);
+                50.0, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

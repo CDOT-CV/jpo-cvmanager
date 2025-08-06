@@ -29,12 +29,10 @@ import java.util.List;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.signal_group_alignment_event.SignalGroupAlignmentEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -50,9 +48,6 @@ public class SignalGroupAlignmentEventRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private Page<SignalGroupAlignmentEvent> mockPage;
 
@@ -67,7 +62,7 @@ public class SignalGroupAlignmentEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SignalGroupAlignmentEventRepositoryImpl(mongoTemplate, props);
+        repository = new SignalGroupAlignmentEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -95,10 +90,9 @@ public class SignalGroupAlignmentEventRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(SignalGroupAlignmentEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<SignalGroupAlignmentEvent> results = repo.find(1, null, null, pageRequest);
+        Page<SignalGroupAlignmentEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

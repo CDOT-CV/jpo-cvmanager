@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.accessors.notifications.time_change_details_notification;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.TimeChangeDetailsNotification;
 import us.dot.its.jpo.ode.api.models.DataLoader;
 
@@ -10,5 +9,6 @@ public interface TimeChangeDetailsNotificationRepository extends DataLoader<Time
 
     Page<TimeChangeDetailsNotification> findLatest(Integer intersectionID, Long startTime, Long endTime);
 
-    Page<TimeChangeDetailsNotification> find(Integer intersectionID, Long startTime, Long endTime, Pageable pageable);
+    Page<TimeChangeDetailsNotification> find(Integer intersectionID, Long startTime, Long endTime, Integer pageNumber,
+            int limit);
 }

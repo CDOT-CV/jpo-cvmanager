@@ -18,12 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.haas.HaasLocationDataRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.haas.HaasLocation;
 import us.dot.its.jpo.ode.api.models.haas.HaasLocationResult;
@@ -35,14 +33,11 @@ public class HaasLocationDataRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     private HaasLocationDataRepositoryImpl repository;
 
     @BeforeEach
     void setUp() {
-        repository = new HaasLocationDataRepositoryImpl(mongoTemplate, props);
+        repository = new HaasLocationDataRepositoryImpl(mongoTemplate);
     }
 
     @Test

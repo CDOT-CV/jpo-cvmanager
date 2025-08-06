@@ -13,7 +13,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.comparator.CustomComparator;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Query;
@@ -35,7 +34,6 @@ import org.bson.Document;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -60,9 +58,6 @@ public class ProcessedMapRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -81,7 +76,7 @@ public class ProcessedMapRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ProcessedMapRepositoryImpl(mongoTemplate, props);
+        repository = new ProcessedMapRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -127,9 +122,7 @@ public class ProcessedMapRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<ProcessedMap<LineString>> findResponse = repository.find(intersectionID, startTime, endTime,
-                false, pageRequest);
+        Page<ProcessedMap<LineString>> findResponse = repository.find(intersectionID, startTime, endTime, false, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

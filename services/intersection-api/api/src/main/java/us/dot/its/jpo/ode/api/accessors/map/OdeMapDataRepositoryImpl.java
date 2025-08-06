@@ -2,15 +2,13 @@ package us.dot.its.jpo.ode.api.accessors.map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.model.OdeMapData;
@@ -19,17 +17,14 @@ import us.dot.its.jpo.ode.model.OdeMapData;
 public class OdeMapDataRepositoryImpl implements OdeMapDataRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "OdeMapJson";
     private final String DATE_FIELD = "properties.timeStamp";
     private final String INTERSECTION_ID_FIELD = "properties.intersectionId";
 
     @Autowired
-    public OdeMapDataRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public OdeMapDataRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -93,17 +88,17 @@ public class OdeMapDataRepositoryImpl implements OdeMapDataRepository, PageableQ
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        if (pageable != null) {
-            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+        if (pageNumber != null) {
+            return findPage(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit), criteria, sort,
                     null,
                     OdeMapData.class);
         } else {
-            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+            return findGeneric(mongoTemplate, collectionName, limit, criteria,
                     sort, null,
                     OdeMapData.class);
         }

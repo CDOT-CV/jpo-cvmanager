@@ -1,10 +1,9 @@
 package us.dot.its.jpo.ode.api.accessors.notifications.map_broadcast_rate_notification;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -21,17 +20,14 @@ public class MapBroadcastRateNotificationRepositoryImpl
         implements MapBroadcastRateNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmMapBroadcastRateNotification";
     private final String DATE_FIELD = "notificationGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public MapBroadcastRateNotificationRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public MapBroadcastRateNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -95,17 +91,17 @@ public class MapBroadcastRateNotificationRepositoryImpl
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        if (pageable != null) {
-            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+        if (pageNumber != null) {
+            return findPage(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit), criteria, sort,
                     null,
                     MapBroadcastRateNotification.class);
         } else {
-            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+            return findGeneric(mongoTemplate, collectionName, limit, criteria,
                     sort, null,
                     MapBroadcastRateNotification.class);
         }

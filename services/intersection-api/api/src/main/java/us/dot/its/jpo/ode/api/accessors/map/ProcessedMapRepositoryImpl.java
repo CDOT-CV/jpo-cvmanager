@@ -10,8 +10,10 @@ import org.bson.Document;
 import org.locationtech.jts.geom.CoordinateXY;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -32,7 +34,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.api.models.IDCount;
@@ -46,7 +47,6 @@ import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "ProcessedMap";
     private final String DATE_FIELD = "properties.timeStamp";
@@ -60,10 +60,8 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Autowired
-    public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -135,7 +133,7 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
             Long startTime,
             Long endTime,
             boolean compact,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
@@ -145,17 +143,16 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
             excludedFields.add(VALIDATION_MESSAGES_FIELD);
         }
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        Page<Document> hashMap;
-        if (pageable != null) {
-            hashMap = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
-                    criteria, sort, excludedFields);
-        } else {
-            hashMap = findDocuments(mongoTemplate, collectionName, props.getMaximumResponseSize(),
-                    criteria, sort, excludedFields);
-        }
+
+        Page<Document> hashMap = (pageNumber != null)
+                ? findDocumentsWithPagination(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit),
+                        criteria, sort, excludedFields)
+                : findDocuments(mongoTemplate, collectionName, limit, criteria, sort, excludedFields);
         List<ProcessedMap<LineString>> processedMaps = hashMap.getContent().stream()
                 .map(document -> mapper.convertValue(document, processedMapTypeReference)).toList();
-        return new PageImpl<>(processedMaps, pageable, hashMap.getTotalElements());
+
+        int page = pageNumber != null ? pageNumber : 0;
+        return new PageImpl<>(processedMaps, PageRequest.of(page, limit), hashMap.getTotalElements());
     }
 
     public List<IntersectionReferenceData> getIntersectionIDs() {

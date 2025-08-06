@@ -45,7 +45,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_assessment.LaneDirectionOfTravelAssessmentRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -58,9 +57,6 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +80,7 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new LaneDirectionOfTravelAssessmentRepositoryImpl(mongoTemplate, props);
+        repository = new LaneDirectionOfTravelAssessmentRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -113,10 +109,9 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(LaneDirectionOfTravelAssessment.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<LaneDirectionOfTravelAssessment> results = repo.find(1, null, null, pageRequest);
+        Page<LaneDirectionOfTravelAssessment> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -151,9 +146,7 @@ public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<LaneDirectionOfTravelAssessment> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<LaneDirectionOfTravelAssessment> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

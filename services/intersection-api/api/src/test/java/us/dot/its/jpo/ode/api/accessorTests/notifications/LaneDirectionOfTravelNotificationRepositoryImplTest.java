@@ -23,11 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.LaneDirectionOfTravelNotification;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.lane_direction_of_travel_notification.LaneDirectionOfTravelNotificationRepositoryImpl;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -41,9 +39,6 @@ public class LaneDirectionOfTravelNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<LaneDirectionOfTravelNotification> mockPage;
@@ -59,7 +54,7 @@ public class LaneDirectionOfTravelNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new LaneDirectionOfTravelNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new LaneDirectionOfTravelNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -88,10 +83,9 @@ public class LaneDirectionOfTravelNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(LaneDirectionOfTravelNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<LaneDirectionOfTravelNotification> results = repo.find(1, null, null, pageRequest);
+        Page<LaneDirectionOfTravelNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

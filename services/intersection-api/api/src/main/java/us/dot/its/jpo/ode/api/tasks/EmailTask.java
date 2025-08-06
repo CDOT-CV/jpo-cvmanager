@@ -160,7 +160,7 @@ public class EmailTask {
 
     public List<Notification> getActiveNotifications() {
         Page<Notification> notifications = activeNotificationRepo
-                .find(null, null, null, PageRequest.of(0, maximumResponseSize));
+                .find(null, null, null, null, maximumResponseSize);
         return notifications.getContent();
     }
 

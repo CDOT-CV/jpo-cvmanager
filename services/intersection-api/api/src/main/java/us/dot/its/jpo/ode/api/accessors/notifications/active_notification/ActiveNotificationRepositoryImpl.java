@@ -1,17 +1,17 @@
 package us.dot.its.jpo.ode.api.accessors.notifications.active_notification;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.bson.Document;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -40,7 +40,6 @@ public class ActiveNotificationRepositoryImpl
         implements ActiveNotificationRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmNotification";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
@@ -48,10 +47,8 @@ public class ActiveNotificationRepositoryImpl
     private final String KEY_FIELD = "key";
 
     @Autowired
-    public ActiveNotificationRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public ActiveNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -113,20 +110,17 @@ public class ActiveNotificationRepositoryImpl
             Integer intersectionID,
             String notificationType,
             String key,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .whereOptional(NOTIFICATION_TYPE_FIELD, notificationType)
                 .whereOptional(KEY_FIELD, key);
         Sort sort = Sort.by(Sort.Direction.DESC, NOTIFICATION_TYPE_FIELD);
-        Page<Document> dbObjects;
-        if (pageable != null) {
-            dbObjects = findDocumentsWithPagination(mongoTemplate, collectionName, pageable,
-                    criteria, sort, Collections.emptyList());
-        } else {
-            dbObjects = findDocuments(mongoTemplate, collectionName, props.getMaximumResponseSize(),
-                    criteria, sort, Collections.emptyList());
-        }
+
+        Page<Document> dbObjects = (pageNumber != null)
+                ? findDocumentsWithPagination(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit),
+                        criteria, sort, null)
+                : findDocuments(mongoTemplate, collectionName, limit, criteria, sort, null);
 
         List<Notification> notifications = new ArrayList<>();
         for (Document dbObject : dbObjects.getContent()) {
@@ -169,7 +163,8 @@ public class ActiveNotificationRepositoryImpl
                     log.warn("Attempted to find unknown notificationType: {}", type);
             }
         }
-        return new PageImpl<>(notifications, pageable, dbObjects.getTotalElements());
+        int page = pageNumber != null ? pageNumber : 0;
+        return new PageImpl<>(notifications, PageRequest.of(page, limit), dbObjects.getTotalElements());
     }
 
     public long delete(String key) {

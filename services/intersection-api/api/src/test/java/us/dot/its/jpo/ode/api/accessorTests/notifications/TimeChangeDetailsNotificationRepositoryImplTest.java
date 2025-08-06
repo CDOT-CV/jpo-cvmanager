@@ -23,13 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.TimeChangeDetailsNotification;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.time_change_details_notification.TimeChangeDetailsNotificationRepositoryImpl;
 
 @SpringBootTest
@@ -40,9 +38,6 @@ public class TimeChangeDetailsNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<TimeChangeDetailsNotification> mockPage;
@@ -58,7 +53,7 @@ public class TimeChangeDetailsNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new TimeChangeDetailsNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new TimeChangeDetailsNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -86,10 +81,9 @@ public class TimeChangeDetailsNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(TimeChangeDetailsNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<TimeChangeDetailsNotification> results = repo.find(1, null, null, pageRequest);
+        Page<TimeChangeDetailsNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

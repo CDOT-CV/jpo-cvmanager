@@ -103,7 +103,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             // Mock response for test data
@@ -115,9 +115,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ConnectionOfTravelNotification> response = connectionOfTravelNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -157,7 +156,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<IntersectionReferenceAlignmentNotification> list = new ArrayList<>();
@@ -170,9 +169,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<IntersectionReferenceAlignmentNotification> response = intersectionReferenceAlignmentNotificationRepo
-                    .find(intersectionID, startTime, endTime, pageable);
+                    .find(intersectionID, startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -212,7 +210,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<LaneDirectionOfTravelNotification> list = new ArrayList<>();
@@ -225,9 +223,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<LaneDirectionOfTravelNotification> response = laneDirectionOfTravelNotificationRepo
-                    .find(intersectionID, startTime, endTime, pageable);
+                    .find(intersectionID, startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -267,7 +264,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<MapBroadcastRateNotification> list = new ArrayList<>();
@@ -280,9 +277,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<MapBroadcastRateNotification> response = mapBroadcastRateNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -322,7 +318,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SignalGroupAlignmentNotification> list = new ArrayList<>();
@@ -335,9 +331,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalGroupAlignmentNotification> response = signalGroupAlignmentNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -377,7 +372,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SignalStateConflictNotification> list = new ArrayList<>();
@@ -390,9 +385,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalStateConflictNotification> response = signalStateConflictNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -432,7 +426,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<SpatBroadcastRateNotification> list = new ArrayList<>();
@@ -445,9 +439,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SpatBroadcastRateNotification> response = spatBroadcastRateNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -487,7 +480,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<StopLineStopNotification> list = new ArrayList<>();
@@ -500,9 +493,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLineStopNotification> response = stopLineStopNotificationRepo.find(intersectionID, startTime,
-                    endTime, pageable);
+                    endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -542,7 +534,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<StopLinePassageNotification> list = new ArrayList<>();
@@ -555,9 +547,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLinePassageNotification> response = stopLinePassageNotificationRepo.find(intersectionID, startTime,
-                    endTime, pageable);
+                    endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -597,7 +588,7 @@ public class CmNotificationController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
             List<TimeChangeDetailsNotification> list = new ArrayList<>();
@@ -610,9 +601,8 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<TimeChangeDetailsNotification> response = timeChangeDetailsNotificationRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }

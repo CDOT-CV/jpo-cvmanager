@@ -55,7 +55,7 @@ public class MapController {
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "compact", required = false, defaultValue = "false") boolean compact,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -67,9 +67,8 @@ public class MapController {
             return ResponseEntity.ok(processedMapRepo.findLatest(intersectionID, startTime, endTime, compact));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ProcessedMap<LineString>> response = processedMapRepo.find(intersectionID, startTime, endTime, compact,
-                    pageable);
+                    page, size);
             return ResponseEntity.ok(response);
         }
     }

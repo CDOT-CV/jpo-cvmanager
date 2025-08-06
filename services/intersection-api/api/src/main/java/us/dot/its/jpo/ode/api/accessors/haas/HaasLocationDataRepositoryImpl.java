@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.accessors.haas;
 
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.models.haas.HaasLocation;
 import us.dot.its.jpo.ode.api.models.haas.HaasLocationResult;
@@ -24,7 +23,6 @@ public class HaasLocationDataRepositoryImpl
         implements HaasLocationDataRepository {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "HaasAlertLocation";
     private final String DATE_FIELD = "start_time";
@@ -32,10 +30,8 @@ public class HaasLocationDataRepositoryImpl
     private final String ID_FIELD = "id";
 
     @Autowired
-    public HaasLocationDataRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public HaasLocationDataRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**

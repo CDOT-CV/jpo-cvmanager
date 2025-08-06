@@ -10,10 +10,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -29,17 +28,14 @@ public class MapMinimumDataEventRepositoryImpl
         implements MapMinimumDataEventRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmMapMinimumDataEvents";
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
     @Autowired
-    public MapMinimumDataEventRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public MapMinimumDataEventRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**
@@ -103,17 +99,17 @@ public class MapMinimumDataEventRepositoryImpl
             Integer intersectionID,
             Long startTime,
             Long endTime,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, false);
         Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
-        if (pageable != null) {
-            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+        if (pageNumber != null) {
+            return findPage(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit), criteria, sort,
                     null,
                     MapMinimumDataEvent.class);
         } else {
-            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+            return findGeneric(mongoTemplate, collectionName, limit, criteria,
                     sort, null,
                     MapMinimumDataEvent.class);
         }

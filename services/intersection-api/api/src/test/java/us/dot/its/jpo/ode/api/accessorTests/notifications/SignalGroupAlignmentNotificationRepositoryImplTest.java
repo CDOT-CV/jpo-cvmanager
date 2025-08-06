@@ -23,13 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalGroupAlignmentNotification;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.signal_group_alignment_notification.SignalGroupAlignmentNotificationRepositoryImpl;
 
 @SpringBootTest
@@ -40,9 +38,6 @@ public class SignalGroupAlignmentNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<SignalGroupAlignmentNotification> mockPage;
@@ -58,7 +53,7 @@ public class SignalGroupAlignmentNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SignalGroupAlignmentNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new SignalGroupAlignmentNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -87,10 +82,9 @@ public class SignalGroupAlignmentNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(SignalGroupAlignmentNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<SignalGroupAlignmentNotification> results = repo.find(1, null, null, pageRequest);
+        Page<SignalGroupAlignmentNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

@@ -58,7 +58,7 @@ public class MapControllerTest {
         PageRequest page = PageRequest.of(1, 1);
         when(processedMapRepo.find(map.getProperties().getIntersectionId(),
                 map.getProperties().getTimeStamp().toEpochSecond() - 1,
-                map.getProperties().getTimeStamp().toEpochSecond() + 1, false, PageRequest.of(1, 1)))
+                map.getProperties().getTimeStamp().toEpochSecond() + 1, false, 1, 1))
                 .thenReturn(new PageImpl<>(maps, page, 1L));
 
         ResponseEntity<Page<ProcessedMap<LineString>>> result = controller

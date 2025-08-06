@@ -57,7 +57,7 @@ public class SpatControllerTest {
         PageRequest page = PageRequest.of(1, 1);
         when(processedSpatRepo.find(spat.getIntersectionId(),
                 spat.getUtcTimeStamp().toEpochSecond() - 1,
-                spat.getUtcTimeStamp().toEpochSecond() + 1, false, PageRequest.of(1, 1)))
+                spat.getUtcTimeStamp().toEpochSecond() + 1, false, 1, 1))
                 .thenReturn(new PageImpl<>(spats, page, 1L));
 
         ResponseEntity<Page<ProcessedSpat>> result = controller

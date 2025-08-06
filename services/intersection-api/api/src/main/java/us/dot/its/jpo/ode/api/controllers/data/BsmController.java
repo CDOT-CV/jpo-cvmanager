@@ -56,7 +56,7 @@ public class BsmController {
             @RequestParam(name = "longitude", required = false) Double longitude,
             @RequestParam(name = "distance", required = false) Double distanceInMeters,
             @Parameter(description = "Page number (0-based). If not set, no paging will be applied and all matching results will be returned (up to the 'size' limit).") @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -64,9 +64,8 @@ public class BsmController {
             return ResponseEntity
                     .ok(new PageImpl<>(list, PageRequest.of(page != null ? page : 0, size), list.size()));
         } else {
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<OdeBsmData> response = odeBsmJsonRepo.find(originIp, vehicleId, startTime, endTime,
-                    longitude, latitude, distanceInMeters, pageable);
+                    longitude, latitude, distanceInMeters, page, size);
             return ResponseEntity.ok(response);
         }
     }

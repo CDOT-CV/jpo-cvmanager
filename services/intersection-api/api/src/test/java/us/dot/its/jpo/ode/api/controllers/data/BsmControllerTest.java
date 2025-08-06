@@ -55,10 +55,9 @@ public class BsmControllerTest {
 
         List<OdeBsmData> list = new ArrayList<>();
 
-        PageRequest page = PageRequest.of(0, 1);
         when(odeBsmJsonRepo.find(null, null, null, null, null, null, null,
-                PageRequest.of(0, 1)))
-                .thenReturn(new PageImpl<>(list, page, 1L));
+                0, 1))
+                .thenReturn(new PageImpl<>(list, PageRequest.of(0, 1), 1L));
 
         ResponseEntity<Page<OdeBsmData>> result = controller.findBSMs(null, null, null, null, null, null, null, 0, 1,
                 false);
@@ -88,7 +87,7 @@ public class BsmControllerTest {
 
         Page<OdeBsmData> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
         when(odeBsmJsonRepo.find(any(), any(), any(), any(), any(), any(), any(),
-                any(PageRequest.class)))
+                any(), any()))
                 .thenReturn(mockPage);
 
         ResponseEntity<Page<OdeBsmData>> response = controller
@@ -99,7 +98,7 @@ public class BsmControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getContent()).isEqualTo(events);
         verify(odeBsmJsonRepo, times(1))
-                .find(any(), any(), any(), any(), any(), any(), any(), any(PageRequest.class));
+                .find(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

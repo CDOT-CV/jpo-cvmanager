@@ -38,7 +38,6 @@ import java.util.List;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.connection_of_travel_notification.ConnectionOfTravelNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -62,9 +61,6 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -87,7 +83,7 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        repository = new ConnectionOfTravelNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new ConnectionOfTravelNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -115,10 +111,9 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(ConnectionOfTravelNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<ConnectionOfTravelNotification> results = repo.find(1, null, null, pageRequest);
+        Page<ConnectionOfTravelNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -153,9 +148,7 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<ConnectionOfTravelNotification> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<ConnectionOfTravelNotification> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

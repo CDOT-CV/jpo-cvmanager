@@ -72,16 +72,15 @@ public class ReportsController {
             @RequestParam(name = "start_time_utc_millis") long startTime,
             @RequestParam(name = "end_time_utc_millis") long endTime,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "latest") boolean latest) {
 
         if (latest) {
             return ResponseEntity.ok(reportRepo.findLatest(reportName, intersectionID, startTime, endTime, false));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ReportDocument> response = reportRepo.find(reportName, intersectionID, startTime, endTime,
-                    false, pageable);
+                    false, page, size);
             return ResponseEntity.ok(response);
         }
     }

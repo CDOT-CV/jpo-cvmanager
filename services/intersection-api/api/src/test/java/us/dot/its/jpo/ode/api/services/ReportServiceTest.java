@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessmentGroup;
@@ -164,12 +163,12 @@ class ReportServiceTest {
 
         // Mock StopLineStopEventRepository
         Page<StopLineStopEvent> stopLineStopEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(PageRequest.class)))
+        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
                 .thenReturn(stopLineStopEventsPage);
 
         // Mock StopLinePassageEventRepository
         Page<StopLinePassageEvent> stopLinePassageEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(PageRequest.class)))
+        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
                 .thenReturn(stopLinePassageEventsPage);
 
         // Mock ReportRepository
@@ -238,12 +237,12 @@ class ReportServiceTest {
 
         // Mock StopLineStopEventRepository
         Page<StopLineStopEvent> stopLineStopEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(PageRequest.class)))
+        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
                 .thenReturn(stopLineStopEventsPage);
 
         // Mock StopLinePassageEventRepository
         Page<StopLinePassageEvent> stopLinePassageEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(PageRequest.class)))
+        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
                 .thenReturn(stopLinePassageEventsPage);
 
         // Act

@@ -45,7 +45,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.connection_of_travel_assessment.ConnectionOfTravelAssessmentRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -58,9 +57,6 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +80,7 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new ConnectionOfTravelAssessmentRepositoryImpl(mongoTemplate, props);
+        repository = new ConnectionOfTravelAssessmentRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -113,10 +109,9 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(ConnectionOfTravelAssessment.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<ConnectionOfTravelAssessment> results = repo.find(1, null, null, pageRequest);
+        Page<ConnectionOfTravelAssessment> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -151,9 +146,7 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<ConnectionOfTravelAssessment> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<ConnectionOfTravelAssessment> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         verify(mongoTemplate).aggregate(any(Aggregation.class), anyString(),
                 eq(AggregationResult.class));

@@ -29,12 +29,10 @@ import java.util.List;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.stop_line_stop_event.StopLineStopEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -50,9 +48,6 @@ public class StopLineStopEventRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private Page<StopLineStopEvent> mockPage;
 
@@ -67,7 +62,7 @@ public class StopLineStopEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLineStopEventRepositoryImpl(mongoTemplate, props);
+        repository = new StopLineStopEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -96,10 +91,9 @@ public class StopLineStopEventRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(StopLineStopEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<StopLineStopEvent> results = repo.find(1, null, null, pageRequest);
+        Page<StopLineStopEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

@@ -19,7 +19,6 @@ import static org.mockito.Mockito.verify;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.spat.OdeSpatDataRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.model.OdeSpatData;
@@ -39,9 +38,6 @@ public class OdeSpatDataRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -64,7 +60,7 @@ public class OdeSpatDataRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new OdeSpatDataRepositoryImpl(mongoTemplate, props);
+        repository = new OdeSpatDataRepositoryImpl(mongoTemplate);
     }
 
     @Test

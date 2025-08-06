@@ -4,11 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +23,6 @@ public class ReportRepositoryImpl
         implements ReportRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "CmReport";
     private final String DATE_FIELD = "reportGeneratedAt";
@@ -32,10 +30,8 @@ public class ReportRepositoryImpl
     private final String REPORT_NAME_FIELD = "reportName";
 
     @Autowired
-    public ReportRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public ReportRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     private Criteria applyDateCriteria(Criteria criteria, Long startDate, Long endDate) {
@@ -117,7 +113,7 @@ public class ReportRepositoryImpl
             Long startTime,
             Long endTime,
             boolean includeReportContents,
-            Pageable pageable) {
+            Integer pageNumber, int limit) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(REPORT_NAME_FIELD, reportName)
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID);
@@ -127,12 +123,12 @@ public class ReportRepositoryImpl
         if (!includeReportContents) {
             excludedFields.add("reportContents");
         }
-        if (pageable != null) {
-            return findPage(mongoTemplate, collectionName, pageable, criteria, sort,
+        if (pageNumber != null) {
+            return findPage(mongoTemplate, collectionName, PageRequest.of(pageNumber, limit), criteria, sort,
                     excludedFields,
                     ReportDocument.class);
         } else {
-            return findGeneric(mongoTemplate, collectionName, props.getMaximumResponseSize(), criteria,
+            return findGeneric(mongoTemplate, collectionName, limit, criteria,
                     sort, excludedFields,
                     ReportDocument.class);
         }

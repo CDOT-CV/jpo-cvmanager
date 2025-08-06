@@ -23,13 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLineStopAssessment;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment.StopLineStopAssessmentRepositoryImpl;
 
 @SpringBootTest
@@ -40,9 +38,6 @@ public class StopLineStopAssessmentRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<StopLineStopAssessment> mockPage;
@@ -58,7 +53,7 @@ public class StopLineStopAssessmentRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLineStopAssessmentRepositoryImpl(mongoTemplate, props);
+        repository = new StopLineStopAssessmentRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -87,10 +82,9 @@ public class StopLineStopAssessmentRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(StopLineStopAssessment.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<StopLineStopAssessment> results = repo.find(1, null, null, pageRequest);
+        Page<StopLineStopAssessment> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

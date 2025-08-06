@@ -22,12 +22,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.intersection_reference_alignment_notification.IntersectionReferenceAlignmentNotificationRepositoryImpl;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.IntersectionReferenceAlignmentNotification;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -41,9 +39,6 @@ public class IntersectionReferenceAlignmentNotificationRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private Page<IntersectionReferenceAlignmentNotification> mockPage;
@@ -59,7 +54,7 @@ public class IntersectionReferenceAlignmentNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new IntersectionReferenceAlignmentNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new IntersectionReferenceAlignmentNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -88,10 +83,9 @@ public class IntersectionReferenceAlignmentNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(IntersectionReferenceAlignmentNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<IntersectionReferenceAlignmentNotification> results = repo.find(1, null, null, pageRequest);
+        Page<IntersectionReferenceAlignmentNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

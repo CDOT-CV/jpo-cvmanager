@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.accessors.events.spat_minimum_data_event;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEvent;
 import us.dot.its.jpo.ode.api.models.IDCount;
 import us.dot.its.jpo.ode.api.models.DataLoader;
@@ -13,7 +12,8 @@ public interface SpatMinimumDataEventRepository extends DataLoader<SpatMinimumDa
 
     Page<SpatMinimumDataEvent> findLatest(Integer intersectionID, Long startTime, Long endTime);
 
-    Page<SpatMinimumDataEvent> find(Integer intersectionID, Long startTime, Long endTime, Pageable pageable);
+    Page<SpatMinimumDataEvent> find(Integer intersectionID, Long startTime, Long endTime, Integer pageNumber,
+            int limit);
 
     List<IDCount> getAggregatedDailySpatMinimumDataEventCounts(int intersectionID, Long startTime, Long endTime);
 }

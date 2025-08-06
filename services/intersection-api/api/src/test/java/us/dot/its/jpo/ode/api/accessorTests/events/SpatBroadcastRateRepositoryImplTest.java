@@ -39,7 +39,6 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.broadcast_rate.SpatBroadcastRateEvent;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.spat_broadcast_rate_event.SpatBroadcastRateEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -63,9 +62,6 @@ public class SpatBroadcastRateRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -88,7 +84,7 @@ public class SpatBroadcastRateRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SpatBroadcastRateEventRepositoryImpl(mongoTemplate, props);
+        repository = new SpatBroadcastRateEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -116,10 +112,9 @@ public class SpatBroadcastRateRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(SpatBroadcastRateEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<SpatBroadcastRateEvent> results = repo.find(1, null, null, pageRequest);
+        Page<SpatBroadcastRateEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -182,9 +177,7 @@ public class SpatBroadcastRateRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<SpatBroadcastRateEvent> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<SpatBroadcastRateEvent> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

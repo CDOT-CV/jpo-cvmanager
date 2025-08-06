@@ -45,7 +45,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.StopLinePassageNotification;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.notifications.stop_line_passage_notification.StopLinePassageNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -58,9 +57,6 @@ public class StopLinePassageNotificationRepositoryImplTest {
 
     @SpyBean
     private MongoTemplate mongoTemplate;
-
-    @SpyBean
-    private ConflictMonitorApiProperties props;
 
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
@@ -84,7 +80,7 @@ public class StopLinePassageNotificationRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLinePassageNotificationRepositoryImpl(mongoTemplate, props);
+        repository = new StopLinePassageNotificationRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -112,10 +108,9 @@ public class StopLinePassageNotificationRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(StopLinePassageNotification.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<StopLinePassageNotification> results = repo.find(1, null, null, pageRequest);
+        Page<StopLinePassageNotification> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -150,9 +145,7 @@ public class StopLinePassageNotificationRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<StopLinePassageNotification> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<StopLinePassageNotification> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

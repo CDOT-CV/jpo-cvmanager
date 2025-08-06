@@ -39,7 +39,6 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLinePassageEvent;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.stop_line_passage_event.StopLinePassageEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -63,9 +62,6 @@ public class StopLinePassageEventRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -88,7 +84,7 @@ public class StopLinePassageEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new StopLinePassageEventRepositoryImpl(mongoTemplate, props);
+        repository = new StopLinePassageEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -117,10 +113,9 @@ public class StopLinePassageEventRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(StopLinePassageEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<StopLinePassageEvent> results = repo.find(1, null, null, pageRequest);
+        Page<StopLinePassageEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -186,10 +181,7 @@ public class StopLinePassageEventRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<StopLinePassageEvent> findResponse = repository.find(intersectionID,
-                startTime, endTime,
-                pageRequest);
+        Page<StopLinePassageEvent> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

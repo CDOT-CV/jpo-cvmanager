@@ -1,9 +1,9 @@
 package us.dot.its.jpo.ode.api.accessors.spat;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
@@ -20,17 +20,14 @@ public class OdeSpatDataRepositoryImpl
         implements OdeSpatDataRepository, PageableQuery {
 
     private final MongoTemplate mongoTemplate;
-    private final ConflictMonitorApiProperties props;
 
     private final String collectionName = "OdeSpatJson";
     private final String DATE_FIELD = "properties.timeStamp";
     private final String INTERSECTION_ID_FIELD = "properties.intersectionId";
 
     @Autowired
-    public OdeSpatDataRepositoryImpl(MongoTemplate mongoTemplate,
-            ConflictMonitorApiProperties props) {
+    public OdeSpatDataRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
-        this.props = props;
     }
 
     /**

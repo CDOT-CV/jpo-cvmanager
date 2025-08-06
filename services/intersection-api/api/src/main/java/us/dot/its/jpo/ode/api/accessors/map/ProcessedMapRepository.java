@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.accessors.map;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
@@ -17,7 +16,7 @@ public interface ProcessedMapRepository extends DataLoader<ProcessedMap<LineStri
     Page<ProcessedMap<LineString>> findLatest(Integer intersectionID, Long startTime, Long endTime, boolean compact);
 
     Page<ProcessedMap<LineString>> find(Integer intersectionID, Long startTime, Long endTime, boolean compact,
-            Pageable pageable);
+            Integer pageNumber, int limit);
 
     List<IntersectionReferenceData> getIntersectionIDs();
 

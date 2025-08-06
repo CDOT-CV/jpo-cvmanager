@@ -39,7 +39,6 @@ import java.util.List;
 import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEvent;
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.spat_minimum_data_event.SpatMinimumDataEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
@@ -63,9 +62,6 @@ public class SpatMinimumDataEventRepositoryImplTest {
     @SpyBean
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private AggregationResults<AggregationResult> mockAggregationResult;
 
@@ -88,7 +84,7 @@ public class SpatMinimumDataEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new SpatMinimumDataEventRepositoryImpl(mongoTemplate, props);
+        repository = new SpatMinimumDataEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -116,10 +112,9 @@ public class SpatMinimumDataEventRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(SpatMinimumDataEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<SpatMinimumDataEvent> results = repo.find(1, null, null, pageRequest);
+        Page<SpatMinimumDataEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }
@@ -182,9 +177,7 @@ public class SpatMinimumDataEventRepositoryImplTest {
                 eq(AggregationResult.class));
 
         // Call the repository find method
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        Page<SpatMinimumDataEvent> findResponse = repository.find(intersectionID, startTime, endTime,
-                pageRequest);
+        Page<SpatMinimumDataEvent> findResponse = repository.find(intersectionID, startTime, endTime, 0, 1);
 
         // Extract the captured Aggregation
         Aggregation capturedAggregation = aggregationCaptor.getValue();

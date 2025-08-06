@@ -29,12 +29,10 @@ import java.util.List;
 
 import org.bson.Document;
 
-import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.events.time_change_details_event.TimeChangeDetailsEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -50,9 +48,6 @@ public class TimeChangeDetailsEventRepositoryImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @SpyBean
-    private ConflictMonitorApiProperties props;
-
     @Mock
     private Page<TimeChangeDetailsEvent> mockPage;
 
@@ -67,7 +62,7 @@ public class TimeChangeDetailsEventRepositoryImplTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        repository = new TimeChangeDetailsEventRepositoryImpl(mongoTemplate, props);
+        repository = new TimeChangeDetailsEventRepositoryImpl(mongoTemplate);
     }
 
     @Test
@@ -95,10 +90,9 @@ public class TimeChangeDetailsEventRepositoryImplTest {
                 any(Sort.class),
                 any(),
                 eq(TimeChangeDetailsEvent.class))).thenReturn(mockPage);
-        PageRequest pageRequest = PageRequest.of(0, 1);
-        doCallRealMethod().when(repo).find(1, null, null, pageRequest);
+        doCallRealMethod().when(repo).find(1, null, null, 0, 1);
 
-        Page<TimeChangeDetailsEvent> results = repo.find(1, null, null, pageRequest);
+        Page<TimeChangeDetailsEvent> results = repo.find(1, null, null, 0, 1);
 
         assertThat(results).isEqualTo(mockPage);
     }

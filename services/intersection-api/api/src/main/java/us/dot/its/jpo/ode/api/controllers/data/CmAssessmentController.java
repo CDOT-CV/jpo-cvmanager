@@ -69,7 +69,7 @@ public class CmAssessmentController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -83,9 +83,8 @@ public class CmAssessmentController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ConnectionOfTravelAssessment> response = connectionOfTravelAssessmentRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -125,7 +124,7 @@ public class CmAssessmentController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -139,9 +138,8 @@ public class CmAssessmentController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<LaneDirectionOfTravelAssessment> response = laneDirectionOfTravelAssessmentRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
 
@@ -183,7 +181,7 @@ public class CmAssessmentController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -197,9 +195,8 @@ public class CmAssessmentController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLineStopAssessment> response = stopLineStopAssessmentRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
@@ -240,7 +237,7 @@ public class CmAssessmentController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
+            @RequestParam(name = "size", required = false, defaultValue = "1000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -254,9 +251,8 @@ public class CmAssessmentController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLinePassageAssessment> response = stopLinePassageAssessmentRepo.find(intersectionID,
-                    startTime, endTime, pageable);
+                    startTime, endTime, page, size);
             return ResponseEntity.ok(response);
         }
     }
