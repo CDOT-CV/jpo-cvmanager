@@ -110,9 +110,7 @@ public class PrometheusService {
                     .build(false)
                     .toUri();
 
-            log.debug("Querying Prometheus: {}", promQL);
             String response = restTemplate.getForObject(uri, String.class);
-            log.debug("Prometheus response received");
             return response;
         } catch (Exception e) {
             log.error("Error querying Prometheus: {}", e.getMessage());
@@ -173,9 +171,7 @@ public class PrometheusService {
                     .build(false)
                     .toUri();
 
-            log.debug("Prometheus range query: {} from {} to {} step {}", promQL, start, end, step);
             String response = restTemplate.getForObject(uri, String.class);
-            log.debug("Prometheus range response received");
             return response;
         } catch (Exception e) {
             log.error("Error querying Prometheus range: {}", e.getMessage(), e);
@@ -202,9 +198,7 @@ public class PrometheusService {
                     .build(false)
                     .toUri();
 
-            log.debug("Querying Prometheus instant: {} at time {}", promQL, end);
             String response = restTemplate.getForObject(uri, String.class);
-            log.debug("Prometheus instant response received");
             return response;
         } catch (Exception e) {
             log.error("Error querying Prometheus instant: {}", e.getMessage());
@@ -406,12 +400,6 @@ public class PrometheusService {
 
                     // Get the sum of all valid values within the time frame
                     double totalValue = stats.getSum();
-
-                    // Log statistical information for debugging
-                    if (stats.getN() > 0) {
-                        log.debug("Aggregated {} values within time frame {} to {}: sum={}",
-                                stats.getN(), startTime, endTime, totalValue);
-                    }
 
                     // Create aggregated result in the same format as instant queries
                     // Use endTime as the timestamp

@@ -72,63 +72,69 @@ public class CountsRepositoryImpl implements CountsRepository {
         List<MessageCount> counts = new ArrayList<>();
 
         try {
-            // Determine topics for both raw encoded (input) and regular (output) message
-            // types
             String inTopic = determineTopicFromMessageType(message, startTime, endTime, true);
             String outTopic = determineTopicFromMessageType(message, startTime, endTime, false);
-
             String road = postgresService.getRsuPrimaryRoute(rsuIp);
             Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
-            // Query for input (raw encoded) topic if it exists
+            // Query and process input topic
             if (inTopic != null) {
-                String inResponse = prometheusService.getRsuMessageCounts(rsuIp, inTopic, startTime, endTime);
-                log.debug("Prometheus range response received for RSU {} input topic {}", rsuIp, inTopic);
-
-                // Aggregate the range response to get accurate counts
-                String aggregatedInResponse = prometheusService.aggregateRangeResponse(inResponse, startTime, endTime);
-                processPrometheusResponseByTopic(aggregatedInResponse, inTopic, rsuCountsMap, rsuIp, road,
-                        CountType.ODE_INPUT);
+                queryAndProcessTopic(rsuIp, inTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_INPUT);
             }
 
-            // Query for output topic if it exists
+            // Query and process output topic
             if (outTopic != null) {
-                String outResponse = prometheusService.getRsuMessageCounts(rsuIp, outTopic, startTime, endTime);
-                log.debug("Prometheus range response received for RSU {} output topic {}", rsuIp, outTopic);
-
-                // Aggregate the range response to get accurate counts
-                String aggregatedOutResponse = prometheusService.aggregateRangeResponse(outResponse, startTime,
-                        endTime);
-                processPrometheusResponseByTopic(aggregatedOutResponse, outTopic, rsuCountsMap, rsuIp, road,
-                        CountType.ODE_OUTPUT);
+                queryAndProcessTopic(rsuIp, outTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_OUTPUT);
             }
 
             counts.addAll(rsuCountsMap.values());
 
-            // If no counts were found for the specific message type, create a single entry
-            // with 0 counts
+            // Create default entry if no counts found
             if (counts.isEmpty()) {
                 counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, road));
-                log.debug("No metrics found for RSU {} message type {}, created entry with 0 counts", rsuIp, message);
             }
-
-            log.debug("Retrieved {} message counts from Prometheus for RSU {} message type {}", counts.size(), rsuIp,
-                    message);
         } catch (Exception e) {
             log.error("Error retrieving message counts from Prometheus for RSU {}: {}", rsuIp, e.getMessage());
-            // Create a result with 0 counts when there's an error
-            if (counts.isEmpty()) {
-                try {
-                    String road = postgresService.getRsuPrimaryRoute(rsuIp);
-                    counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, road));
-                } catch (Exception roadException) {
-                    log.error("Error getting road for RSU {}: {}", rsuIp, roadException.getMessage());
-                    counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, "Unknown"));
-                }
-            }
+            createDefaultEntry(counts, rsuIp, message);
         }
 
         return counts;
+    }
+
+    /**
+     * Queries Prometheus for a specific topic and processes the response.
+     */
+    private void queryAndProcessTopic(String rsuIp, String topic, Long startTime, Long endTime,
+            Map<String, MessageCount> rsuCountsMap, String road, CountType countType) {
+        String response = prometheusService.getRsuMessageCounts(rsuIp, topic, startTime, endTime);
+        String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
+        processPrometheusResponseByTopic(aggregatedResponse, topic, rsuCountsMap, rsuIp, road, countType);
+    }
+
+    /**
+     * Creates a default entry with 0 counts when no data is available.
+     */
+    private void createDefaultEntry(List<MessageCount> counts, String rsuIp, String message) {
+        if (counts.isEmpty()) {
+            try {
+                String road = postgresService.getRsuPrimaryRoute(rsuIp);
+                counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, road));
+            } catch (Exception roadException) {
+                log.error("Error getting road for RSU {}: {}", rsuIp, roadException.getMessage());
+                counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, "Unknown"));
+            }
+        }
+    }
+
+    /**
+     * Queries Prometheus for a specific organization topic and processes the
+     * response.
+     */
+    private void queryAndProcessOrganizationTopic(String rsuIps, String topic, Long startTime, Long endTime,
+            Map<String, MessageCount> rsuCountsMap, Map<String, String> rsuIpToRoadMap, CountType countType) {
+        String response = prometheusService.getOrganizationRsuCountsByTopicAccurate(rsuIps, topic, startTime, endTime);
+        String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
+        processOrganizationResponseByTopic(aggregatedResponse, topic, rsuCountsMap, rsuIpToRoadMap, countType);
     }
 
     /**
@@ -175,9 +181,6 @@ public class CountsRepositoryImpl implements CountsRepository {
             boolean isRawEncoded) {
         try {
             String response = prometheusService.getAvailableTopicCountsAccurate(startTime, endTime);
-            log.debug("Prometheus range response received for available topics");
-
-            // Aggregate the range response to get accurate counts
             String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
 
             JsonNode root = jsonMapper.readTree(aggregatedResponse);
@@ -190,14 +193,11 @@ public class CountsRepositoryImpl implements CountsRepository {
                     boolean topicHasRawEncoded = topic.contains(RAW_ENCODED_INDICATOR);
 
                     if (messageType.equalsIgnoreCase(extractedMessageType) && topicHasRawEncoded == isRawEncoded) {
-                        log.debug("Found topic {} for message type {} (RawEncoded: {})", topic, messageType,
-                                isRawEncoded);
                         return topic;
                     }
                 }
             }
 
-            log.warn("No topic found for message type {} (RawEncoded: {})", messageType, isRawEncoded);
             return null;
         } catch (Exception e) {
             log.error("Error determining topic for message type {} (RawEncoded: {}): {}", messageType, isRawEncoded,
@@ -337,7 +337,6 @@ public class CountsRepositoryImpl implements CountsRepository {
             rsuIpToRoadMap = postgresService.getOrganizationRsuIps(organization);
 
             if (rsuIpToRoadMap.isEmpty()) {
-                log.warn("No RSUs found for organization {}", organization);
                 return allCounts;
             }
 
@@ -348,29 +347,12 @@ public class CountsRepositoryImpl implements CountsRepository {
             Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
             if (inTopic != null) {
-                String inResponse = prometheusService.getOrganizationRsuCountsByTopicAccurate(rsuIps, inTopic,
-                        startTime,
-                        endTime);
-                log.debug("Prometheus range response received for organization {} input topic {}", organization,
-                        inTopic);
-
-                // Aggregate the range response to get accurate counts
-                String aggregatedInResponse = prometheusService.aggregateRangeResponse(inResponse, startTime, endTime);
-                processOrganizationResponseByTopic(aggregatedInResponse, inTopic, rsuCountsMap, rsuIpToRoadMap,
+                queryAndProcessOrganizationTopic(rsuIps, inTopic, startTime, endTime, rsuCountsMap, rsuIpToRoadMap,
                         CountType.ODE_INPUT);
             }
 
             if (outTopic != null) {
-                String outResponse = prometheusService.getOrganizationRsuCountsByTopicAccurate(rsuIps, outTopic,
-                        startTime,
-                        endTime);
-                log.debug("Prometheus range response received for organization {} output topic {}", organization,
-                        outTopic);
-
-                // Aggregate the range response to get accurate counts
-                String aggregatedOutResponse = prometheusService.aggregateRangeResponse(outResponse, startTime,
-                        endTime);
-                processOrganizationResponseByTopic(aggregatedOutResponse, outTopic, rsuCountsMap, rsuIpToRoadMap,
+                queryAndProcessOrganizationTopic(rsuIps, outTopic, startTime, endTime, rsuCountsMap, rsuIpToRoadMap,
                         CountType.ODE_OUTPUT);
             }
 
@@ -384,14 +366,7 @@ public class CountsRepositoryImpl implements CountsRepository {
                     String road = entry.getValue();
                     allCounts.add(new MessageCount(messageType.toUpperCase(), rsuIp, 0L, 0L, road));
                 }
-                log.debug(
-                        "No metrics found for organization {} message type {}, created entries with 0 counts for all RSUs",
-                        organization, messageType);
             }
-
-            log.debug(
-                    "Retrieved {} message counts for organization {} across {} RSUs for message type {} (in: {}, out: {})",
-                    allCounts.size(), organization, rsuIpToRoadMap.size(), messageType, inTopic, outTopic);
         } catch (Exception e) {
             log.error("Error retrieving organization message counts for {}: {}", organization, e.getMessage());
         }
