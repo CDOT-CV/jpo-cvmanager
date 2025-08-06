@@ -106,11 +106,6 @@ public interface PageableQuery {
             @Nullable List<String> excludedFields) {
         List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
 
-        // If pageable is null, short-circuit the aggregation and just return the normal
-        // find results
-        if (pageable.getPageNumber() == -1) {
-        }
-
         AggregationResult result = getAggregationResult(mongoTemplate, collectionName, pageable, criteria, sort,
                 fieldsToExclude);
         if (result == null || result.getMetadata().isEmpty()) {
