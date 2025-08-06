@@ -150,7 +150,7 @@ public class OdeBsmJsonRepositoryImplTest {
         Mockito.verify(repo).findDocumentsWithPagination(
                 any(),
                 any(),
-                eq(pageRequest),
+                any(PageRequest.class),
                 Mockito.argThat(criteria -> {
                     // Verify ORIGIN_IP_FIELD
                     assertThat(criteria.getCriteriaObject().get("metadata.originIp"))
@@ -220,7 +220,7 @@ public class OdeBsmJsonRepositoryImplTest {
         Mockito.verify(repo).findDocumentsWithPagination(
                 any(),
                 any(),
-                eq(pageRequest),
+                any(PageRequest.class),
                 Mockito.argThat(criteria -> {
                     // Verify ORIGIN_IP_FIELD
                     assertThat(criteria.getCriteriaObject().get("metadata.originIp"))
@@ -282,7 +282,7 @@ public class OdeBsmJsonRepositoryImplTest {
         Mockito.verify(repo).findDocumentsWithPagination(
                 any(),
                 any(),
-                eq(pageRequest),
+                any(PageRequest.class),
                 Mockito.argThat(criteria -> {
                     // Verify ORIGIN_IP_FIELD
                     assertThat(criteria.getCriteriaObject().get("metadata.originIp")).isNull();

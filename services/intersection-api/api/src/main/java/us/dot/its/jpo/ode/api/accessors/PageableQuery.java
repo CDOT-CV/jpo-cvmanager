@@ -84,7 +84,7 @@ public interface PageableQuery {
             }
         }
         List<T> results = mongoTemplate.find(mongoQuery, outputType, collectionName);
-        return new PageImpl<>(results, PageRequest.of(0, results.size()), results.size());
+        return new PageImpl<>(results, PageRequest.of(0, limit), results.size());
     }
 
     /**
@@ -138,7 +138,7 @@ public interface PageableQuery {
             }
         }
         List<Document> results = mongoTemplate.find(mongoQuery, Document.class, collectionName);
-        return new PageImpl<>(results, PageRequest.of(0, results.size()), results.size());
+        return new PageImpl<>(results, PageRequest.of(0, limit), results.size());
     }
 
     /**

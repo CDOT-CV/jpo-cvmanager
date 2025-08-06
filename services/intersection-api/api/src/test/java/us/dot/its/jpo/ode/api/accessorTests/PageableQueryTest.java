@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -125,6 +126,60 @@ public class PageableQueryTest {
     }
 
     @Test
+    void testFindGenericReturnsExpectedResults() {
+        int limit = 5;
+        Criteria criteria = new Criteria();
+        Sort sort = Sort.by(Sort.Direction.ASC, "someField");
+        List<String> excludedFields = List.of("excludedField");
+
+        List<ConnectionOfTravelNotification> expectedData = Arrays.asList(
+                new ConnectionOfTravelNotification(),
+                new ConnectionOfTravelNotification());
+
+        Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        for (String field : excludedFields) {
+            mongoQuery.fields().exclude(field);
+        }
+
+        when(mongoTemplate.find(any(Query.class), eq(ConnectionOfTravelNotification.class), eq("collectionName")))
+                .thenReturn(expectedData);
+
+        Page<ConnectionOfTravelNotification> result = paginatedQueryInterface.findGeneric(
+                mongoTemplate,
+                "collectionName",
+                limit,
+                criteria,
+                sort,
+                excludedFields,
+                ConnectionOfTravelNotification.class);
+
+        assertThat(result.getContent()).isEqualTo(expectedData);
+        assertThat(result.getTotalElements()).isEqualTo(expectedData.size());
+    }
+
+    @Test
+    void testFindGenericReturnsEmptyResults() {
+        int limit = 5;
+        Criteria criteria = new Criteria();
+        Sort sort = Sort.by(Sort.Direction.ASC, "someField");
+
+        when(mongoTemplate.find(any(Query.class), eq(ConnectionOfTravelNotification.class), eq("collectionName")))
+                .thenReturn(Collections.emptyList());
+
+        Page<ConnectionOfTravelNotification> result = paginatedQueryInterface.findGeneric(
+                mongoTemplate,
+                "collectionName",
+                limit,
+                criteria,
+                sort,
+                Collections.emptyList(),
+                ConnectionOfTravelNotification.class);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
     void testWrapSingleResultWithPage() {
         String latest = "latestData";
         Page<String> page = paginatedQueryInterface.wrapSingleResultWithPage(latest);
@@ -139,5 +194,57 @@ public class PageableQueryTest {
 
         assertThat(page.getContent()).isEmpty();
         assertThat(page.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    void testFindDocumentsReturnsExpectedResults() {
+        int limit = 3;
+        Criteria criteria = new Criteria();
+        Sort sort = Sort.by(Sort.Direction.ASC, "anotherField");
+        List<String> excludedFields = List.of("excludedField");
+
+        List<Document> expectedDocs = Arrays.asList(
+                new Document("field1", "value1"),
+                new Document("field2", "value2"));
+
+        Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
+        for (String field : excludedFields) {
+            mongoQuery.fields().exclude(field);
+        }
+
+        when(mongoTemplate.find(any(Query.class), eq(Document.class), eq("collectionName")))
+                .thenReturn(expectedDocs);
+
+        Page<Document> result = paginatedQueryInterface.findDocuments(
+                mongoTemplate,
+                "collectionName",
+                limit,
+                criteria,
+                sort,
+                excludedFields);
+
+        assertThat(result.getContent()).isEqualTo(expectedDocs);
+        assertThat(result.getTotalElements()).isEqualTo(expectedDocs.size());
+    }
+
+    @Test
+    void testFindDocumentsReturnsEmptyResults() {
+        int limit = 3;
+        Criteria criteria = new Criteria();
+        Sort sort = Sort.by(Sort.Direction.ASC, "anotherField");
+
+        when(mongoTemplate.find(any(Query.class), eq(Document.class), eq("collectionName")))
+                .thenReturn(Collections.emptyList());
+
+        Page<Document> result = paginatedQueryInterface.findDocuments(
+                mongoTemplate,
+                "collectionName",
+                limit,
+                criteria,
+                sort,
+                Collections.emptyList());
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
     }
 }

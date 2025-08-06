@@ -13,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.query.Query;
@@ -151,7 +152,8 @@ public class ActiveNotificationRepositoryImplTest {
                 any(Document.class)))
                 .thenReturn(new KafkaStreamsAnomalyNotification());
 
-        doReturn(dbObjects).when(repo).findDocumentsWithPagination(eq(mockMongoTemplate), anyString(), eq(pageable),
+        doReturn(dbObjects).when(repo).findDocumentsWithPagination(eq(mockMongoTemplate), anyString(),
+                any(Pageable.class),
                 any(), any(), any());
 
         // Act
@@ -167,6 +169,6 @@ public class ActiveNotificationRepositoryImplTest {
         assertThat(result.getContent().get(5)).isInstanceOf(TimeChangeDetailsNotification.class);
         assertThat(result.getContent().get(6)).isInstanceOf(KafkaStreamsAnomalyNotification.class);
 
-        verify(repo).findDocumentsWithPagination(any(), any(), eq(pageable), any(), any(), any());
+        verify(repo).findDocumentsWithPagination(any(), any(), any(Pageable.class), any(), any(), any());
     }
 }

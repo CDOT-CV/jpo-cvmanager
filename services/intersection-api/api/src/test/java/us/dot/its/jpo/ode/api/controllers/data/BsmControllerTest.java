@@ -3,6 +3,9 @@ package us.dot.its.jpo.ode.api.controllers.data;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,7 +90,7 @@ public class BsmControllerTest {
 
         Page<OdeBsmData> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
         when(odeBsmJsonRepo.find(any(), any(), any(), any(), any(), any(), any(),
-                any(), any()))
+                eq(0), eq(10)))
                 .thenReturn(mockPage);
 
         ResponseEntity<Page<OdeBsmData>> response = controller
@@ -98,7 +101,7 @@ public class BsmControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getContent()).isEqualTo(events);
         verify(odeBsmJsonRepo, times(1))
-                .find(any(), any(), any(), any(), any(), any(), any(), any(), any());
+                .find(any(), any(), any(), any(), any(), any(), any(), eq(0), eq(10));
     }
 
     @Test

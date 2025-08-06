@@ -14,6 +14,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.MapMini
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEvent;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
+import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_assessment.LaneDirectionOfTravelAssessmentRepository;
 import us.dot.its.jpo.ode.api.accessors.events.connection_of_travel_event.ConnectionOfTravelEventRepository;
 import us.dot.its.jpo.ode.api.accessors.events.intersection_reference_alignment_event.IntersectionReferenceAlignmentEventRepository;
@@ -41,9 +42,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class ReportServiceTest {
+
+    @Mock
+    private ConflictMonitorApiProperties props;
 
     @Mock
     private ProcessedMapRepository processedMapRepo;
@@ -93,6 +98,8 @@ class ReportServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
+        when(props.getMaximumResponseSize()).thenReturn(1000);
+
         // Manually instantiate ReportService with mocked dependencies
         reportService = new ReportService(
                 processedMapRepo,
@@ -109,8 +116,7 @@ class ReportServiceTest {
                 spatBroadcastRateEventRepo,
                 mapBroadcastRateEventRepo,
                 reportRepo,
-                1000 // Example value for maximumResponseSize
-        );
+                props);
     }
 
     @Test
@@ -163,12 +169,12 @@ class ReportServiceTest {
 
         // Mock StopLineStopEventRepository
         Page<StopLineStopEvent> stopLineStopEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
+        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), isNull(), eq(1000)))
                 .thenReturn(stopLineStopEventsPage);
 
         // Mock StopLinePassageEventRepository
         Page<StopLinePassageEvent> stopLinePassageEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
+        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), isNull(), eq(1000)))
                 .thenReturn(stopLinePassageEventsPage);
 
         // Mock ReportRepository
@@ -237,12 +243,12 @@ class ReportServiceTest {
 
         // Mock StopLineStopEventRepository
         Page<StopLineStopEvent> stopLineStopEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
+        when(stopLineStopEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), isNull(), eq(1000)))
                 .thenReturn(stopLineStopEventsPage);
 
         // Mock StopLinePassageEventRepository
         Page<StopLinePassageEvent> stopLinePassageEventsPage = new PageImpl<>(Collections.emptyList());
-        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), any(), any()))
+        when(stopLinePassageEventRepo.find(eq(intersectionID), eq(startTime), eq(endTime), isNull(), eq(1000)))
                 .thenReturn(stopLinePassageEventsPage);
 
         // Act
