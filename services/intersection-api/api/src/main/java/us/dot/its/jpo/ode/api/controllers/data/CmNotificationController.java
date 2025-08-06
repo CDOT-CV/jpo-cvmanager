@@ -102,7 +102,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -115,7 +115,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ConnectionOfTravelNotification> response = connectionOfTravelNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -156,7 +156,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -170,7 +170,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<IntersectionReferenceAlignmentNotification> response = intersectionReferenceAlignmentNotificationRepo
                     .find(intersectionID, startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -211,7 +211,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -225,7 +225,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<LaneDirectionOfTravelNotification> response = laneDirectionOfTravelNotificationRepo
                     .find(intersectionID, startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -266,7 +266,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -280,7 +280,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<MapBroadcastRateNotification> response = mapBroadcastRateNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -321,7 +321,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -335,7 +335,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalGroupAlignmentNotification> response = signalGroupAlignmentNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -376,7 +376,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -390,7 +390,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalStateConflictNotification> response = signalStateConflictNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -431,7 +431,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -445,7 +445,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SpatBroadcastRateNotification> response = spatBroadcastRateNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -486,7 +486,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -500,7 +500,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLineStopNotification> response = stopLineStopNotificationRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -541,7 +541,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -555,7 +555,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLinePassageNotification> response = stopLinePassageNotificationRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -596,7 +596,7 @@ public class CmNotificationController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -610,7 +610,7 @@ public class CmNotificationController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<TimeChangeDetailsNotification> response = timeChangeDetailsNotificationRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);

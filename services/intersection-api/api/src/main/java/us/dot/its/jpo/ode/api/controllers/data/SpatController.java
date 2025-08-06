@@ -52,7 +52,7 @@ public class SpatController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
             @RequestParam(name = "compact", required = false, defaultValue = "false") boolean compact,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -65,7 +65,7 @@ public class SpatController {
             return ResponseEntity.ok(processedSpatRepo.findLatest(intersectionID, startTime, endTime, compact));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ProcessedSpat> response = processedSpatRepo.find(intersectionID, startTime, endTime, compact,
                     pageable);
 

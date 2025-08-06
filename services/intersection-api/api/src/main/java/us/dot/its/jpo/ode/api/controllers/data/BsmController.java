@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.accessors.bsm.OdeBsmJsonRepository;
@@ -54,16 +55,16 @@ public class BsmController {
             @RequestParam(name = "latitude", required = false) Double latitude,
             @RequestParam(name = "longitude", required = false) Double longitude,
             @RequestParam(name = "distance", required = false) Double distanceInMeters,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @Parameter(description = "Page number (0-based). If not set, no paging will be applied and all matching results will be returned (up to the 'size' limit).") @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             List<OdeBsmData> list = MockBsmGenerator.getJsonBsms();
             return ResponseEntity
-                    .ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
+                    .ok(new PageImpl<>(list, PageRequest.of(page != null ? page : 0, size), list.size()));
         } else {
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<OdeBsmData> response = odeBsmJsonRepo.find(originIp, vehicleId, startTime, endTime,
                     longitude, latitude, distanceInMeters, pageable);
             return ResponseEntity.ok(response);

@@ -144,7 +144,7 @@ public class CmEventController {
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
 
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -158,7 +158,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<IntersectionReferenceAlignmentEvent> response = intersectionReferenceAlignmentEventRepo
                     .find(intersectionID, startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -199,7 +199,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -213,7 +213,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<ConnectionOfTravelEvent> response = connectionOfTravelEventRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -276,7 +276,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -290,7 +290,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<LaneDirectionOfTravelEvent> response = laneDirectionOfTravelEventRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -353,7 +353,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -367,7 +367,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalGroupAlignmentEvent> response = signalGroupAlignmentEventRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -430,7 +430,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -444,7 +444,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SignalStateConflictEvent> response = signalStateConflictEventRepo.find(intersectionID, startTime,
                     endTime, pageable);
             return ResponseEntity.ok(response);
@@ -507,7 +507,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -521,7 +521,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLinePassageEvent> response = stopLinePassageEventRepo.find(intersectionID, startTime, endTime,
                     pageable);
             return ResponseEntity.ok(response);
@@ -586,7 +586,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -600,7 +600,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<StopLineStopEvent> response = stopLineStopEventRepo.find(intersectionID, startTime, endTime,
                     pageable);
             return ResponseEntity.ok(response);
@@ -664,7 +664,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -678,7 +678,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<TimeChangeDetailsEvent> response = timeChangeDetailsEventRepo.find(intersectionID, startTime, endTime,
                     pageable);
             return ResponseEntity.ok(response);
@@ -741,7 +741,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -755,7 +755,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SpatMinimumDataEvent> response = spatMinimumDataEventRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -796,7 +796,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -810,7 +810,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<MapMinimumDataEvent> response = mapMinimumDataEventRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -851,7 +851,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -865,7 +865,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<MapBroadcastRateEvent> response = mapBroadcastRateEventRepo.find(intersectionID, startTime, endTime,
                     pageable);
             return ResponseEntity.ok(response);
@@ -906,7 +906,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -920,7 +920,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SpatBroadcastRateEvent> response = spatBroadcastRateEventRepo.find(intersectionID, startTime, endTime,
                     pageable);
             return ResponseEntity.ok(response);
@@ -961,7 +961,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -975,7 +975,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<SpatMessageCountProgressionEvent> response = spatMessageCountProgressionEventRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -1016,7 +1016,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -1030,7 +1030,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<MapMessageCountProgressionEvent> response = mapMessageCountProgressionEventRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -1071,7 +1071,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -1085,7 +1085,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<BsmMessageCountProgressionEvent> response = bsmMessageCountProgressionEventRepo.find(intersectionID,
                     startTime, endTime, pageable);
             return ResponseEntity.ok(response);
@@ -1126,7 +1126,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -1140,7 +1140,7 @@ public class CmEventController {
                     startTime, endTime));
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             Page<BsmEvent> response = bsmEventRepo.find(intersectionID, startTime, endTime, pageable);
             return ResponseEntity.ok(response);
         }
@@ -1180,7 +1180,7 @@ public class CmEventController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -1205,7 +1205,7 @@ public class CmEventController {
             pagedEvents = bsmEventRepo.findLatest(intersectionID, startTime, endTime);
         } else {
             // Retrieve a paginated result from the repository
-            PageRequest pageable = PageRequest.of(page, size);
+            PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
             pagedEvents = bsmEventRepo.find(intersectionID, startTime, endTime, pageable);
         }
 

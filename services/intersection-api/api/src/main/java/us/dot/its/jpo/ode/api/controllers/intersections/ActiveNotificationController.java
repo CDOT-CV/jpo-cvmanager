@@ -61,7 +61,7 @@ public class ActiveNotificationController {
             @RequestParam(name = "intersection_id") Integer intersectionID,
             @RequestParam(name = "notification_type", required = false) String notificationType,
             @RequestParam(name = "key", required = false) String key,
-            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
         if (testData) {
@@ -71,7 +71,7 @@ public class ActiveNotificationController {
         }
 
         // Retrieve a paginated result from the repository
-        PageRequest pageable = PageRequest.of(page, size);
+        PageRequest pageable = page != null ? PageRequest.of(page, size) : null;
         Page<Notification> response = activeNotificationRepo.find(intersectionID, notificationType, key, pageable);
         return ResponseEntity.ok(response);
     }
