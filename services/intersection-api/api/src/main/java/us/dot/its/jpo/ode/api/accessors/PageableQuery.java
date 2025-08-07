@@ -125,15 +125,7 @@ public interface PageableQuery {
             @Nonnull Criteria criteria,
             @Nonnull Sort sort,
             @Nullable List<String> excludedFields) {
-        List<String> fieldsToExclude = excludedFields != null ? excludedFields : Collections.emptyList();
-        Query mongoQuery = Query.query(criteria).with(sort).limit(limit);
-        if (!fieldsToExclude.isEmpty()) {
-            for (String field : fieldsToExclude) {
-                mongoQuery.fields().exclude(field);
-            }
-        }
-        List<Document> results = mongoTemplate.find(mongoQuery, Document.class, collectionName);
-        return new PageImpl<>(results, PageRequest.of(0, limit), results.size());
+       return findGeneric(mongoTemplate, collectionName, limit, criteria, sort, excludedFields, Document.class);
     }
 
     /**
