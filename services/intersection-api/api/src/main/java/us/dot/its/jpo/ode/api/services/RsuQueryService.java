@@ -15,6 +15,8 @@ import us.dot.its.jpo.ode.api.models.postgres.derived.RsuCredentials;
 import us.dot.its.jpo.ode.api.models.snmp.OID;
 import us.dot.its.jpo.ode.api.models.snmp.OIDMap;
 import us.dot.its.jpo.ode.api.models.snmp.RsuState;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 @Slf4j
@@ -23,13 +25,15 @@ public class RsuQueryService {
     private SNMPService snmpService;
     private KafkaProducerService kafkaService;
     private ConflictMonitorApiProperties properties;
+    private MeterRegistry meterRegistry;
 
     @Autowired
     public RsuQueryService(SNMPService snmpService, KafkaProducerService kafkaService,
-            ConflictMonitorApiProperties properties) {
+            ConflictMonitorApiProperties properties, MeterRegistry meterRegistry) {
         this.snmpService = snmpService;
         this.kafkaService = kafkaService;
         this.properties = properties;
+        this.meterRegistry = meterRegistry;
     }
 
     @Async
@@ -42,9 +46,21 @@ public class RsuQueryService {
 
         log.info("Pulling SNMP Status for RSU: " + ip + " IntersectionID: " + intersectionId);
 
+        Counter.builder("rsu.snmp.status")
+                .description("Number of snmp status queries by RSU")
+                .tags("rsu_ip", ip)
+                .register(meterRegistry)
+                .increment();
+
         if (username == null || password == null || ip == null) {
             log.warn("Cannot pull data from RSU unit. Missing Username, Password, or IP address. RSU ID: " + ip
                     + " Intersection ID: " + intersectionId);
+
+            Counter.builder("rsu.snmp.status.error")
+                    .description("Number of snmp status errors queries by RSU")
+                    .tags("rsu_ip", ip, "error", "credential-error")
+                    .register(meterRegistry)
+                    .increment();
             return;
         }
 
@@ -81,9 +97,19 @@ public class RsuQueryService {
                 return var.toInt();
             } else {
                 log.warn("Query of OID " + oid.getName() + " for Intersection" + ip + " returned no value");
+                Counter.builder("rsu.snmp.status.error")
+                        .description("Number of snmp status errors queries by RSU")
+                        .tags("rsu_ip", ip, "error", "no-value", "oid", oid.getName())
+                        .register(meterRegistry)
+                        .increment();
             }
         } catch (IOException e) {
             log.warn("Unable to Retrieve value for OID: " + oid.getName() + " for Intersection" + ip);
+            Counter.builder("rsu.snmp.status.error")
+                    .description("Number of snmp status errors queries by RSU")
+                    .tags("rsu_ip", ip, "error", "IO Exception", "oid", oid.getName())
+                    .register(meterRegistry)
+                    .increment();
         }
         return -1;
     }

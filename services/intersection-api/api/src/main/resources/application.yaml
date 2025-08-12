@@ -115,3 +115,15 @@ sendgrid:
 postmark.api.secretKey: ${CM_POSTMARK_SECRET_KEY:""}
 
 rsuStatuskafkaTopic: ${INTERSECTION_RSU_STATUS_TOPIC_NAME:topic.IntersectionApiRsuStatus}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      enabled: true

@@ -263,6 +263,10 @@
 			<artifactId>snmp4j</artifactId>
 			<version>3.9.3</version> <!-- or the latest available -->
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
