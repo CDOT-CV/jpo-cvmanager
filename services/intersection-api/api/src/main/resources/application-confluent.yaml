@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: 'confluent'
+  kafka.properties.ssl.endpoint.identification.algorithm: https
+  kafka.properties.security.protocol: SASL_SSL
+  kafka.properties.sasl.mechanism: PLAIN
+  kafka.properties.sasl.jaas.config: >
+    org.apache.kafka.common.security.plain.PlainLoginModule required
+    username="${CONFLUENT_KEY:user}" password="${CONFLUENT_SECRET:pass}";

@@ -17,7 +17,7 @@ spring.security.oauth2.resourceserver.jwt:
   issuer-uri: ${AUTH_SERVER_URL}/realms/cvmanager
   jwk-set-uri: ${AUTH_SERVER_URL}/realms/cvmanager/protocol/openid-connect/certs
 
-spring.kafka.bootstrap-servers: ${KAFKA_BROKER_IP:localhost}:${KAFKA_BROKER_PORT:9092}
+spring.kafka.bootstrap-servers:
 logging.level.org.apache.kafka: INFO
 logging.level: INFO
 
@@ -76,6 +76,14 @@ spring:
           auth: false
           starttls:
             enable: true
+  profiles:
+    default: 'none'
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKER_IP:localhost}:${KAFKA_BROKER_PORT:9092}
+  config:
+    import:
+      - classpath:application-confluent.yaml
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
