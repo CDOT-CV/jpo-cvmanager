@@ -291,7 +291,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
     }
 
     public UserAdapter updateUser(RealmModel realm, UserObject user) {
-        log.debug("updateUser: realm={}, id={}", realm.getName(), user.getId());
+        log.debug("updateUser: realm={}, id={}", realm.getName(), getKeycloakId(user.getId()));
         try (Connection c = getConnection(this.model)) {
             // insert new user with ID into db
             PreparedStatement st = c.prepareStatement(
@@ -302,7 +302,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
             st.setString(3, user.getLastName());
             st.setLong(4, user.getCreatedTimestamp());
             st.setInt(5, user.getSuperUser());
-            st.setString(6, user.getId());
+            st.setString(6, getKeycloakId(user.getId()));
             log.debug("updateUser: st={}", st);
             st.executeUpdate();
             ResultSet rs = st.getGeneratedKeys();
@@ -321,15 +321,27 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         // Delete user as well as user organization associations
         log.debug("removeUser: realm={}", realm.getName());
         try (Connection c = getConnection(this.model)) {
+
+            PreparedStatement st_org = c.prepareStatement(
+                    "DELETE FROM public.user_organization WHERE " +
+                            "user_id = (SELECT user_id FROM public.users WHERE keycloak_id = ?::UUID)");
+            st_org.setString(1, getKeycloakId(user.getId()));
+            log.debug("removeUser from organization: st={}", st_org);
+            st_org.executeUpdate();
+
             // remove user with ID from db
-            PreparedStatement st = c.prepareStatement(
-                    "delete from public.users where keycloak_id = ?::UUID");
-            st.setString(1, user.getId());
-            log.debug("removeUser: st={}", st);
-            int rowsAffected = st.executeUpdate();
+            PreparedStatement st_user = c.prepareStatement(
+                    "DELETE FROM public.users WHERE keycloak_id = ?::UUID");
+            st_user.setString(1, getKeycloakId(user.getId()));
+            log.debug("removeUser from users: st={}", st_user);
+            int rowsAffected = st_user.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException ex) {
             throw new RuntimeStorageException(ex);
         }
+    }
+
+    private String getKeycloakId(String id) {
+        return id.contains(":") ? id.split(":")[2] : id;
     }
 }
