@@ -259,4 +259,15 @@ public class PostgresService {
         query.setParameter("notification_type", notificationType);
         return query.getResultList();
     }
+
+    /**
+     * Get all organization names
+     * 
+     * @return list of organization names
+     */
+    public List<String> getAllOrganizations() {
+        String queryString = "SELECT o.name FROM Organizations o ORDER BY o.name";
+        TypedQuery<String> query = entityManager.createQuery(queryString, String.class);
+        return query.getResultList();
+    }
 }

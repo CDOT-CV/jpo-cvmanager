@@ -95,6 +95,8 @@ cmServerURL: ${CM_SERVER_URL:http://localhost:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
+deployment:
+  environment: ${DEPLOYMENT_ENVIRONMENT:UNKNOWN}
 
 spring.main.allow-circular-references: true
 
