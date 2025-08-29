@@ -17,52 +17,68 @@ exports[`should take a snapshot 1`] = `
         This application shows the physical location and message counts for each RSU installed by the Colorado Department of Transportation at various road sites throughout Colorado.
       </p>
       <p>
-        The map on this website will represent the location of each RSU with a red, green, or yellow dot (shown below). A green dot represents an RSU that is online. A yellow dot represents an RSU that is offline but was recently active. A red dot represents an RSU that is not currently online.
+        On the map interface, RSUs are represented by colored dots to indicate their current status. A green dot means the RSU is online and actively reporting data. A yellow dot indicates the RSU is currently offline but was recently active. A red dot shows the RSU is offline and has not reported in some time.
       </p>
       <img
-        alt="RSU Statuses Shown on Map"
+        alt="RSU Status Indicators on Map"
         class="css-2ttpiu"
-        src="rsu_status.PNG"
+        src="rsu_status.png"
       />
       <p>
-        Clicking on the RSU will give the following information: IP address, online status, time last online, milepost number, serial number, and number of message counts (shown below).
+        Selecting an RSU on the map will open a popup window along with a side configuration menu. The popup displays detailed information including the RSU’s IP address, online status, last online time, milepost number, serial number, and the number of messages it has reported. The configuration menu allows users, depending on their access level, to perform actions such as retrieving the current message forwarding settings, modifying configurations, checking firmware updates, applying firmware updates, or rebooting the RSU.
       </p>
       <img
-        alt="RSU Popup with Data"
+        alt="RSU Popup and Configuration Panel"
         class="css-2ttpiu"
-        src="rsu_popup.PNG"
+        src="rsu_popup_and_config_menu.png"
       />
       <p>
-        The menu on the right side of the webpage will allow users to select the time range and message type to be displayed for the RSUs. The menu will toggle between being hidden and visible each time the red X is clicked. The time frame can be changed by adjusting the date and time values in the date-time pickers. The top date-time picker represents the start time while the bottom represents the end time. Below the date-time pickers is a dropdown menu where the RSU message type can be selected. Each time a value is updated in either the date-time pickers or message selection dropdown the webpage will update accordingly. These elements are shown in the image below:
+        On the right side of the interface, there are two menu toggles that open menus with more detailed information about the RSUs. The first is the RSU Status Menu, which shows a full list of all RSUs and their current status. This menu can be toggled on or off by clicking the red X in the corner or by selecting the "Display RSU Status" toggle again. From this menu, users also have the option to print a complete report or an error-specific report for further analysis or record-keeping.
       </p>
       <img
-        alt="RSU Menu"
+        alt="RSU Status Menu Display"
         class="css-2ttpiu"
-        src="rsu_menu.PNG"
+        src="rsu_status_menu.png"
       />
       <p>
-        The table included in the menu will show the number of message counts for each RSU in the given time frame regardless of online status (shown below). The table can be sorted by RSU, road, or count by clicking on the desired column header. Each time a column header is clicked, it will toggle between sorting the data in an ascending/descending fashion.
+        The second menu is the Message Count Menu, which allows users to filter RSU message counts by selecting a specific time range and message type. The top date-time picker sets the start of the range, while the bottom one sets the end. Below these pickers, a dropdown allows users to choose the type of message they want to track. Any change made to the date, time, or message type will automatically update the map and table view to reflect the selected parameters.
+      </p>
+      <img
+        alt="RSU Count Menu"
+        class="css-2ttpiu"
+        src="rsu_count_menu.png"
+      />
+      <p>
+        A table below the filter menu displays the number of messages received from each RSU within the specified time range, regardless of whether the RSU is currently online. The table can be sorted by RSU name, road, or message count by clicking on the appropriate column header. Each click toggles between ascending and descending order.
       </p>
       <img
         alt="RSU Message Count Table"
         class="css-2ttpiu"
-        src="rsu_count.PNG"
+        src="rsu_count.png"
       />
       <p>
-        Selecting 'Heat Map' on the navigation bar will show a heat map representing RSU message counts for the time range and message type selected in the menu (shown below). Any update to time range or message type in the menu will carry over between the heat map and RSU map.
+        The menu on the left side of the screen contains three main sections: Map Layers, RSU Filters, and RSU Configuration. The Map Layers section allows users to change how data is visualized. When "RSU Viewer" is selected, all RSUs are displayed on the map. Choosing "Heat Map" shows a heatmap based on message counts using the filters from the Message Count Menu. The "V2X Message Viewer" and "Moove AI Viewer" options let users query specific areas of the map to view corresponding messages or traffic data. Selecting "WZDx Viewer" shows all WZDx messages, and the "Intersections" option displays known intersections on the map.
       </p>
       <img
-        alt="CV Manager Heat Map"
+        alt="Map Layer Selection Options"
         class="css-2ttpiu"
-        src="rsu_heatmap.PNG"
+        src="rsu_layers.png"
       />
       <p>
-        Selecting 'Configure' on the navigation bar will allow users to perform certain actions to the RSU based on their role. An RSU must first be selected on the RSU Map before any options become available. Users will be able to perform one or more of the following: pull current message forwarding configuration, add/delete message forwarding configurations, and perform an RSU reboot.
+        The RSU Filters section allows users to narrow down the visible RSUs based on vendor and operational status. This helps users focus on specific types of hardware or troubleshoot particular categories of RSUs.
       </p>
       <img
-        alt="CV Manager Configuration Page"
+        alt="RSU Filtering Options"
         class="css-2ttpiu"
-        src="rsu_configure.PNG"
+        src="rsu_filters.png"
+      />
+      <p>
+        The RSU Configuration section enables users to apply configuration changes to multiple RSUs within a selected geographic area. This feature streamlines mass updates and management tasks across a network of RSUs.
+      </p>
+      <img
+        alt="Bulk RSU Configuration Menu"
+        class="css-2ttpiu"
+        src="rsu_configure.png"
       />
     </div>
     <div
