@@ -9,6 +9,7 @@ import { RootState } from '../store'
 import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganizationTab'
 import AdminRsuTab from '../features/adminRsuTab/AdminRsuTab'
 import AdminUserTab from '../features/adminUserTab/AdminUserTab'
+import AdminFirmwareTab from '../features/adminFirmwareTab/AdminFirmwareTab'
 import { NotFound } from './404'
 import { SecureStorageManager } from '../managers'
 import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
@@ -67,6 +68,11 @@ function Admin() {
                 path: 'organizations',
                 title: 'Organizations',
                 child: <AdminOrganizationTab />,
+              },
+              {
+                path: 'firmware',
+                title: 'Firmware',
+                child: <AdminFirmwareTab />,
               },
             ]}
           />

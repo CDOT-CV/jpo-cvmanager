@@ -68,6 +68,7 @@ import {
   clearConfig,
   clearFirmware,
 } from '../generalSlices/configSlice'
+import { selectFirmwareStatuses, useGetRsuFirmwareStatusesQuery } from '../features/api/firmwareApiSlice'
 import ClearIcon from '@mui/icons-material/Clear'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -181,6 +182,10 @@ function MapPage() {
   const intersectionsList = useSelector(selectIntersections)
   const selectedIntersection = useSelector(selectSelectedIntersection)
 
+  // Firmware status selector - ensure RSU data is loaded
+  useGetRsuFirmwareStatusesQuery(undefined)
+  const firmwareStatuses = useSelector(selectFirmwareStatuses)
+
   // Mapbox local state variables
   const viewState = useSelector(selectViewState)
   const [lastClickTime, setLastClickTime] = useState<number>(0)
@@ -272,6 +277,7 @@ function MapPage() {
     dispatch(getRsuData())
     dispatch(selectRsu(null))
     dispatch(clearFirmware())
+    // Firmware statuses are automatically loaded by RTK Query
   }, [organization, dispatch])
 
   // useEffects for BSM layer
@@ -721,6 +727,12 @@ function MapPage() {
       Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'current_status')
       ? rsuOnlineStatus[rsuIpv4].current_status
       : 'Offline'
+  }
+
+  const getFirmwareVersion = () => {
+    if (!rsuIpv4 || !firmwareStatuses) return 'Unknown'
+    const firmwareStatus = firmwareStatuses.find((status) => status.rsu_ip === rsuIpv4)
+    return firmwareStatus ? firmwareStatus.current_version : 'Unknown'
   }
 
   const handleScmsStatus = () => {
@@ -1517,6 +1529,14 @@ function MapPage() {
                         <Typography fontSize="medium">RSU is not enrolled with ISS SCMS</Typography>
                       </>
                     )}
+                  </Grid2>
+                  <Grid2 size={5} justifyContent="flex-start">
+                    <Typography fontSize="medium" sx={{ ml: '16px' }}>
+                      Firmware Version:
+                    </Typography>
+                  </Grid2>
+                  <Grid2 size={6} justifyContent="flex-start">
+                    <Typography fontSize="medium">{getFirmwareVersion()}</Typography>
                   </Grid2>
                 </Grid2>
                 <Box
