@@ -50,14 +50,22 @@ CREATE TABLE IF NOT EXISTS public.firmware_images
    firmware_id integer NOT NULL DEFAULT nextval('firmware_images_firmware_id_seq'::regclass),
    name character varying(128) COLLATE pg_catalog.default NOT NULL,
    model integer NOT NULL,
+   manufacturer_id integer NOT NULL,
    install_package character varying(128) COLLATE pg_catalog.default NOT NULL,
    version character varying(128) COLLATE pg_catalog.default NOT NULL,
+   device_type character varying(10) COLLATE pg_catalog.default NOT NULL DEFAULT 'RSU',
+   file_hash character varying(128) COLLATE pg_catalog.default,
    CONSTRAINT firmware_images_pkey PRIMARY KEY (firmware_id),
    CONSTRAINT firmware_images_name UNIQUE (name),
    CONSTRAINT firmware_images_install_package UNIQUE (install_package),
    CONSTRAINT firmware_images_version UNIQUE (version),
+   CONSTRAINT firmware_images_device_type_check CHECK (device_type IN ('RSU', 'OBU')),
    CONSTRAINT fk_model FOREIGN KEY (model)
       REFERENCES public.rsu_models (rsu_model_id) MATCH SIMPLE
+      ON UPDATE NO ACTION
+      ON DELETE NO ACTION,
+   CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer_id)
+      REFERENCES public.manufacturers (manufacturer_id) MATCH SIMPLE
       ON UPDATE NO ACTION
       ON DELETE NO ACTION
 );

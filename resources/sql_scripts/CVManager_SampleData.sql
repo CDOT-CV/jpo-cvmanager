@@ -8,8 +8,9 @@ INSERT INTO public.rsu_models(
 	VALUES ('ITS-RS4-M', 'DSRC,C-V2X', 1), ('RSU2X US', 'DSRC,C-V2X', 2);
 
 INSERT INTO public.firmware_images(
-	name, model, install_package, version)
-	VALUES ('y20.0.0', 1, 'install_y20_0_0.tar', 'y20.0.0'), ('y20.1.0', 1, 'install_y20_1_0.tar', 'y20.1.0');
+	name, model, manufacturer_id, install_package, version, device_type, file_hash)
+	VALUES ('y20.0.0', 1, 1, 'install_y20_0_0.tar', 'y20.0.0', 'RSU', 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890'), 
+	       ('y20.1.0', 2, 2, 'install_y20_1_0.tar', 'y20.1.0', 'OBU', 'd4e5f6789012345678901234567890abcdef1234567890abcdef1234567890abcdef');
 
 INSERT INTO public.firmware_upgrade_rules(
 	from_id, to_id)

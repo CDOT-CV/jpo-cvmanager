@@ -101,3 +101,64 @@ sendgrid:
 
 ### Postmark Email Settings
 postmark.api.secretKey: ${CM_POSTMARK_SECRET_KEY:""}
+
+# Firmware Management Configuration
+firmware:
+  # Storage configuration - set via FIRMWARE_STORAGE_TYPE environment variable
+  storage:
+    type: ${FIRMWARE_STORAGE_TYPE:local} # local, gcp, aws, azure
+
+    # Local file system storage (for local deployments)
+    local:
+      base-path: ${FIRMWARE_LOCAL_BASE_PATH:/tmp/firmware}
+      max-file-size: ${FIRMWARE_LOCAL_MAX_FILE_SIZE:100MB}
+      allowed-extensions: ${FIRMWARE_LOCAL_ALLOWED_EXTENSIONS:.bin,.img,.tar,.gz,.zip}
+
+    # GCP Cloud Storage configuration
+    gcp:
+      bucket-name: ${FIRMWARE_GCP_BUCKET:cv-manager-firmware}
+      project-id: ${FIRMWARE_GCP_PROJECT_ID:}
+      service-account-key: ${FIRMWARE_GCP_SERVICE_ACCOUNT_KEY:}
+      base-path: ${FIRMWARE_GCP_BASE_PATH:firmware/}
+
+    # AWS S3 configuration
+    aws:
+      bucket-name: ${FIRMWARE_AWS_BUCKET:cv-manager-firmware}
+      region: ${FIRMWARE_AWS_REGION:us-east-1}
+      access-key: ${FIRMWARE_AWS_ACCESS_KEY:}
+      secret-key: ${FIRMWARE_AWS_SECRET_KEY:}
+      base-path: ${FIRMWARE_AWS_BASE_PATH:firmware/}
+
+    # Azure Blob Storage configuration
+    azure:
+      account-name: ${FIRMWARE_AZURE_ACCOUNT_NAME:}
+      account-key: ${FIRMWARE_AZURE_ACCOUNT_KEY:}
+      container-name: ${FIRMWARE_AZURE_CONTAINER:firmware}
+      base-path: ${FIRMWARE_AZURE_BASE_PATH:firmware/}
+
+  # Firmware Scheduler integration
+  scheduler:
+    base-url: ${FIRMWARE_SCHEDULER_URL:http://localhost:8080}
+    timeout: ${FIRMWARE_SCHEDULER_TIMEOUT:30000}
+    health-check-interval: ${FIRMWARE_SCHEDULER_HEALTH_CHECK_INTERVAL:60000}
+    retry-attempts: ${FIRMWARE_SCHEDULER_RETRY_ATTEMPTS:3}
+    retry-delay: ${FIRMWARE_SCHEDULER_RETRY_DELAY:5000}
+
+  # File validation
+  validation:
+    max-file-size: ${FIRMWARE_VALIDATION_MAX_FILE_SIZE:100MB}
+    allowed-extensions: ${FIRMWARE_VALIDATION_ALLOWED_EXTENSIONS:.bin,.img,.tar,.gz,.zip}
+    checksum-algorithm: ${FIRMWARE_VALIDATION_CHECKSUM_ALGORITHM:SHA-256}
+    virus-scan: ${FIRMWARE_VALIDATION_VIRUS_SCAN:false}
+
+  # Security
+  security:
+    require-authentication: ${FIRMWARE_SECURITY_REQUIRE_AUTH:true}
+    allowed-roles: ${FIRMWARE_SECURITY_ALLOWED_ROLES:admin,firmware-manager}
+    audit-logging: ${FIRMWARE_SECURITY_AUDIT_LOGGING:true}
+
+  # Performance
+  performance:
+    cache-duration: ${FIRMWARE_PERFORMANCE_CACHE_DURATION:300000} # 5 minutes
+    batch-size: ${FIRMWARE_PERFORMANCE_BATCH_SIZE:100}
+    async-processing: ${FIRMWARE_PERFORMANCE_ASYNC_PROCESSING:true}

@@ -28,7 +28,8 @@ const AdminFirmwareTab = () => {
   const theme = useTheme()
 
   // Use RTK Query hooks
-  const { isLoading: firmwareFilesLoading } = useGetFirmwareFilesQuery(undefined)
+  const { isLoading: rsuFilesLoading } = useGetFirmwareFilesQuery('RSU')
+  const { isLoading: obuFilesLoading } = useGetFirmwareFilesQuery('OBU')
   const { isLoading: rsuStatusesLoading, refetch: refetchRsuStatuses } = useGetRsuFirmwareStatusesQuery(undefined)
   const { isLoading: obuStatusesLoading, refetch: refetchObuStatuses } = useGetObuFirmwareStatusesQuery(undefined)
 
@@ -40,7 +41,7 @@ const AdminFirmwareTab = () => {
   const rsuFirmwareStatuses = useSelector(selectRsuFirmwareStatuses)
   const obuFirmwareStatuses = useSelector(selectObuFirmwareStatuses)
 
-  const loading = firmwareFilesLoading || rsuStatusesLoading || obuStatusesLoading
+  const loading = rsuFilesLoading || obuFilesLoading || rsuStatusesLoading || obuStatusesLoading
 
   const [rsuFirmwareColumns] = useState<Column<FirmwareFile>[]>([
     { title: 'Filename', field: 'filename', id: 0, width: '20%' },
@@ -264,7 +265,11 @@ const AdminFirmwareTab = () => {
 
   const handleDeleteFirmwareFile = async (firmwareFile: FirmwareFile) => {
     try {
-      const result = await deleteFirmwareFile({ firmwareId: firmwareFile.id }).unwrap()
+      const result = await deleteFirmwareFile({
+        firmwareId: firmwareFile.id,
+        deviceType: firmwareFile.device_type,
+        removedBy: 'admin', // TODO: Get actual user from auth context
+      }).unwrap()
       if (result.success) {
         toast.success('Firmware file deleted successfully')
       } else {
@@ -277,7 +282,13 @@ const AdminFirmwareTab = () => {
 
   const handleMultiDeleteFirmwareFiles = async (firmwareFiles: FirmwareFile[]) => {
     try {
-      const promises = firmwareFiles.map((file) => deleteFirmwareFile({ firmwareId: file.id }).unwrap())
+      const promises = firmwareFiles.map((file) =>
+        deleteFirmwareFile({
+          firmwareId: file.id,
+          deviceType: file.device_type,
+          removedBy: 'admin', // TODO: Get actual user from auth context
+        }).unwrap()
+      )
       await Promise.all(promises)
       toast.success('Firmware files deleted successfully')
     } catch (error: any) {

@@ -24,6 +24,11 @@ export type FirmwareFile = {
   device_type: 'RSU' | 'OBU'
   description?: string
   checksum: string
+  manufacturer_id?: number
+  manufacturer?: {
+    manufacturer_id: number
+    name: string
+  }
   rules?: FirmwareRule[]
 }
 
@@ -69,6 +74,12 @@ export type FirmwareUploadRequest = {
   file: File
   device_type: 'RSU' | 'OBU'
   description?: string
+  manufacturer_id: number
+}
+
+export type Manufacturer = {
+  manufacturer_id: number
+  name: string
 }
 
 export type FirmwareRuleCreateRequest = {
@@ -97,11 +108,17 @@ export const firmwareApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: ['FirmwareFiles', 'FirmwareRules', 'FirmwareStatuses'],
+  tagTypes: ['FirmwareFiles', 'FirmwareRules', 'FirmwareStatuses', 'Manufacturers'],
   endpoints: (builder) => ({
-    getFirmwareFiles: builder.query<FirmwareFilesResponse, undefined>({
+    getManufacturers: builder.query<{ success: boolean; manufacturers: Manufacturer[] }, undefined>({
       query: () => {
-        return `/files`
+        return `/manufacturers`
+      },
+      providesTags: ['Manufacturers'],
+    }),
+    getFirmwareFiles: builder.query<FirmwareFilesResponse, string>({
+      query: (deviceType) => {
+        return `/files?device_type=${deviceType}`
       },
       providesTags: ['FirmwareFiles'],
     }),
@@ -111,29 +128,30 @@ export const firmwareApiSlice = createApi({
       },
       providesTags: ['FirmwareRules'],
     }),
-    getFirmwareStatuses: builder.query<FirmwareStatusesResponse, undefined>({
-      query: () => {
-        return `/statuses`
+    getFirmwareStatuses: builder.query<FirmwareStatusesResponse, string>({
+      query: (deviceType) => {
+        return `/statuses?device_type=${deviceType}`
       },
       providesTags: ['FirmwareStatuses'],
     }),
     getRsuFirmwareStatuses: builder.query<FirmwareStatusesResponse, undefined>({
       query: () => {
-        return `/statuses/rsu`
+        return `/statuses?device_type=RSU`
       },
       providesTags: ['FirmwareStatuses'],
     }),
     getObuFirmwareStatuses: builder.query<FirmwareStatusesResponse, undefined>({
       query: () => {
-        return `/statuses/obu`
+        return `/statuses?device_type=OBU`
       },
       providesTags: ['FirmwareStatuses'],
     }),
     uploadFirmwareFile: builder.mutation<{ success: boolean; message: string }, FirmwareUploadRequest>({
-      query: ({ file, device_type, description }) => {
+      query: ({ file, device_type, description, manufacturer_id }) => {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('device_type', device_type)
+        formData.append('manufacturer_id', manufacturer_id.toString())
         if (description) {
           formData.append('description', description)
         }
@@ -147,9 +165,12 @@ export const firmwareApiSlice = createApi({
       },
       invalidatesTags: ['FirmwareFiles'],
     }),
-    deleteFirmwareFile: builder.mutation<{ success: boolean; message: string }, { firmwareId: string }>({
-      query: ({ firmwareId }) => ({
-        url: `/files${getQueryString({ firmware_id: firmwareId })}`,
+    deleteFirmwareFile: builder.mutation<
+      { success: boolean; message: string },
+      { firmwareId: string; deviceType: string; removedBy: string }
+    >({
+      query: ({ firmwareId, deviceType, removedBy }) => ({
+        url: `/files${getQueryString({ firmware_id: firmwareId, device_type: deviceType, removed_by: removedBy })}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['FirmwareFiles'],
@@ -176,6 +197,7 @@ export const firmwareApiSlice = createApi({
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
+  useGetManufacturersQuery,
   useGetFirmwareFilesQuery,
   useGetFirmwareRulesQuery,
   useGetFirmwareStatusesQuery,
@@ -185,6 +207,7 @@ export const {
   useDeleteFirmwareFileMutation,
   useCreateFirmwareRuleMutation,
   useDeleteFirmwareRuleMutation,
+  useLazyGetManufacturersQuery,
   useLazyGetFirmwareFilesQuery,
   useLazyGetFirmwareRulesQuery,
   useLazyGetFirmwareStatusesQuery,
@@ -193,33 +216,25 @@ export const {
 } = firmwareApiSlice
 
 // Selectors
-const selectFirmwareFilesResult = firmwareApiSlice.endpoints.getFirmwareFiles.select(undefined)
+const selectRsuFirmwareFilesResult = firmwareApiSlice.endpoints.getFirmwareFiles.select('RSU')
+const selectObuFirmwareFilesResult = firmwareApiSlice.endpoints.getFirmwareFiles.select('OBU')
 const selectFirmwareRulesResult = firmwareApiSlice.endpoints.getFirmwareRules.select(undefined)
-const selectFirmwareStatusesResult = firmwareApiSlice.endpoints.getFirmwareStatuses.select(undefined)
 const selectRsuFirmwareStatusesResult = firmwareApiSlice.endpoints.getRsuFirmwareStatuses.select(undefined)
 const selectObuFirmwareStatusesResult = firmwareApiSlice.endpoints.getObuFirmwareStatuses.select(undefined)
 
-export const selectFirmwareFiles = createSelector(
-  selectFirmwareFilesResult,
+export const selectRsuFirmwareFiles = createSelector(
+  selectRsuFirmwareFilesResult,
+  (result) => result.data?.firmware_files ?? []
+)
+
+export const selectObuFirmwareFiles = createSelector(
+  selectObuFirmwareFilesResult,
   (result) => result.data?.firmware_files ?? []
 )
 
 export const selectFirmwareRules = createSelector(
   selectFirmwareRulesResult,
   (result) => result.data?.firmware_rules ?? []
-)
-
-export const selectFirmwareStatuses = createSelector(
-  selectFirmwareStatusesResult,
-  (result) => result.data?.firmware_statuses ?? []
-)
-
-export const selectRsuFirmwareFiles = createSelector(selectFirmwareFiles, (firmwareFiles) =>
-  firmwareFiles.filter((file) => file.device_type === 'RSU')
-)
-
-export const selectObuFirmwareFiles = createSelector(selectFirmwareFiles, (firmwareFiles) =>
-  firmwareFiles.filter((file) => file.device_type === 'OBU')
 )
 
 export const selectRsuFirmwareStatuses = createSelector(
@@ -233,6 +248,6 @@ export const selectObuFirmwareStatuses = createSelector(
 )
 
 export const selectFirmwareStatusByRsuIp = (rsuIp: string) =>
-  createSelector(selectFirmwareStatuses, (firmwareStatuses) =>
+  createSelector(selectRsuFirmwareStatuses, (firmwareStatuses) =>
     firmwareStatuses.find((status) => status.rsu_ip === rsuIp)
   )
