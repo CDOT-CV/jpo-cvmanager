@@ -31,7 +31,6 @@ public abstract class AbstractEmailGenerator<T> {
             T data) {
         return recipients.stream().map((emailAddress) -> generateEmailBody(emailAddress, data))
                 .filter(wrapper -> wrapper != null).toList();
-
     }
 
     /**
