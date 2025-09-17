@@ -7,5 +7,5 @@ import lombok.Data;
 @Data
 public class NewUserAccessRequestEmailContents {
     private String email;
-    private List<OrganizationAccess> accessRequest;
+    private List<OrganizationAccess> accessRequests;
 }
