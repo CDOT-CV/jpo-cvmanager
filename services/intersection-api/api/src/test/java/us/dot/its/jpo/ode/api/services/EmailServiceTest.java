@@ -1,43 +1,39 @@
 package us.dot.its.jpo.ode.api.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-import com.postmarkapp.postmark.client.ApiClient;
-import com.postmarkapp.postmark.client.data.model.message.Message;
-import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
-import com.postmarkapp.postmark.client.exception.PostmarkException;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import us.dot.its.jpo.ode.api.emails.EmailProperties;
-import us.dot.its.jpo.ode.api.models.emails.EmailBrokerType;
+import us.dot.its.jpo.ode.api.emails.generators.*;
+import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
+import us.dot.its.jpo.ode.api.models.emails.*;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.access_requests.AccessRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
 
     @Mock
-    private JavaMailSender mailSender;
-
+    private EmailProvider emailProvider;
     @Mock
-    private SendGrid sendGrid;
-
+    private PostgresService postgresService;
     @Mock
-    private ApiClient postmark;
-
+    private SupportRequestEmailGenerator supportRequestEmailGenerator;
     @Mock
-    private EmailProperties props;
+    private AccessRequestEmailGenerator accessRequestEmailGenerator;
+    @Mock
+    private MessageCountEmailGenerator messageCountEmailGenerator;
+    @Mock
+    private FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
+    @Mock
+    private RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
     @InjectMocks
     private EmailService emailService;
@@ -45,206 +41,129 @@ class EmailServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        when(props.getSenderAddress()).thenReturn("test@example.com");
     }
 
     @Test
-    void testSendEmailViaSendGrid() throws IOException {
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendEmails() {
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        EmailContent content = new EmailContent("subject", "body");
+        doNothing().when(emailProvider).sendBatchedEmails(recipients, content);
 
-        when(sendGrid.api(any(Request.class))).thenReturn(new Response());
+        emailService.sendEmails(recipients, content);
 
-        emailService.sendEmailViaSendGrid(to, subject, text, unsubUrl);
-
-        verify(sendGrid, times(1)).api(any(Request.class));
+        verify(emailProvider, times(1)).sendBatchedEmails(recipients, content);
     }
 
     @Test
-    void testSendEmailViaSendGridThrowsException() throws IOException {
-        // Arrange
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testGetUsersForNotificationType() {
+        when(postgresService.getUsersByNotificationType("SUPPORT_REQUEST"))
+                .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
-        // Mock SendGrid to throw an IOException
-        doThrow(new IOException("SendGrid API error")).when(sendGrid).api(any(Request.class));
+        List<EmailRecipient> recipients = emailService.getUsersForNotificationType(
+                EmailCategory.SUPPORT_REQUEST, EmailFrequency.ALWAYS);
 
-        // Act
-        emailService.sendEmailViaSendGrid(to, subject, text, unsubUrl);
-
-        // Assert
-        ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
-        verify(sendGrid, times(1)).api(captor.capture());
-        Request capturedRequest = captor.getValue();
-
-        assertEquals("mail/send", capturedRequest.getEndpoint());
-        assertEquals(Method.POST, capturedRequest.getMethod());
-        assertNotNull(capturedRequest.getBody());
+        assertEquals(2, recipients.size());
+        assertEquals("user1@example.com", recipients.get(0).getEmail());
+        assertEquals("user2@example.com", recipients.get(1).getEmail());
     }
 
     @Test
-    void testSendEmailViaPostmark() throws IOException, PostmarkException {
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
-
-        when(postmark.deliverMessage(any(Message.class))).thenReturn(null);
-
-        emailService.sendEmailViaPostmark(to, subject, text, unsubUrl);
-
-        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(postmark, times(1)).deliverMessage(captor.capture());
-        Message sentMessage = captor.getValue();
-        assertEquals(to, sentMessage.getTo());
-        assertEquals(subject, sentMessage.getSubject());
+    void testGetSupportRequestEmailList_WithOrg() {
+        when(postgresService.getOrganizationEmailListByRole("org", "ADMIN"))
+                .thenReturn(List.of("admin1@example.com"));
+        List<String> result = emailService.getSupportRequestEmailList("org");
+        assertEquals(1, result.size());
+        assertEquals("admin1@example.com", result.get(0));
     }
 
     @Test
-    void testSendEmailViaPostmarkThrowsException() throws PostmarkException, IOException {
-        // Arrange
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
-
-        // Mock Postmark to throw an exception
-        doThrow(new PostmarkException("Postmark API error", 500))
-                .when(postmark).deliverMessage(any(Message.class));
-
-        // Act
-        emailService.sendEmailViaPostmark(to, subject, text, unsubUrl);
-
-        // Assert
-        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
-        verify(postmark, times(1)).deliverMessage(captor.capture());
-        Message capturedMessage = captor.getValue();
-
-        assertEquals("test@example.com", capturedMessage.getFrom());
-        assertEquals(to, capturedMessage.getTo());
-        assertEquals(subject, capturedMessage.getSubject());
-        assertTrue(capturedMessage.getHtmlBody().contains("Test Body"));
+    void testGetSupportRequestEmailList_FallbackToSuperUser() {
+        when(postgresService.getOrganizationEmailListByRole("org", "ADMIN"))
+                .thenReturn(new ArrayList<>());
+        when(postgresService.getSuperUserEmailList())
+                .thenReturn(List.of("superuser@example.com"));
+        List<String> result = emailService.getSupportRequestEmailList("org");
+        assertEquals(1, result.size());
+        assertEquals("superuser@example.com", result.get(0));
     }
 
     @Test
-    void testSendEmailViaSpringMail() {
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendSupportRequest() {
+        SupportRequestEmailContents data = new SupportRequestEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        emailService.sendEmailViaSpringMail(to, subject, text, unsubUrl);
+        when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(mailSender, times(1)).send(captor.capture());
-        SimpleMailMessage sentMessage = captor.getValue();
-        assertEquals(to, sentMessage.getTo()[0]);
-        assertEquals(subject, sentMessage.getSubject());
-        assertEquals(text, sentMessage.getText());
+        List<EmailSendResponse> result = emailService.sendSupportRequest(data);
+
+        assertEquals(responses, result);
     }
 
     @Test
-    void testSendEmailViaSpringMailThrowsException() {
-        // Arrange
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendAccessRequest() {
+        AccessRequestEmailContents data = new AccessRequestEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        // Mock JavaMailSender to throw an exception
-        doThrow(new MailException("Spring Mail error") {
-        }).when(mailSender).send(any(SimpleMailMessage.class));
+        when(accessRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        // Act
-        emailService.sendEmailViaSpringMail(to, subject, text, unsubUrl);
+        List<EmailSendResponse> result = emailService.sendAccessRequest(data);
 
-        // Assert
-        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-        verify(mailSender, times(1)).send(captor.capture());
-        SimpleMailMessage capturedMessage = captor.getValue();
-
-        assertEquals(to, capturedMessage.getTo()[0]);
-        assertEquals(subject, capturedMessage.getSubject());
-        assertEquals(text, capturedMessage.getText());
+        assertEquals(responses, result);
     }
 
     @Test
-    void testSendSimpleMessageWithSendGrid() throws IOException {
-        when(props.getBroker()).thenReturn(EmailBrokerType.SENDGRID);
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendMessageCounts() {
+        MessageCountEmailContents data = new MessageCountEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        when(sendGrid.api(any(Request.class))).thenReturn(new Response());
+        when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        emailService.sendSimpleMessage(to, subject, text, unsubUrl);
+        List<EmailSendResponse> result = emailService.sendMessageCounts(data);
 
-        verify(sendGrid, times(1)).api(any(Request.class));
+        assertEquals(responses, result);
     }
 
     @Test
-    void testSendSimpleMessageWithPostmark() throws IOException, PostmarkException {
-        when(props.getBroker()).thenReturn(EmailBrokerType.POSTMARK);
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendFirmwareUpgradeFailure() {
+        FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        when(postmark.deliverMessage(any(Message.class))).thenReturn(new MessageResponse());
+        when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        emailService.sendSimpleMessage(to, subject, text, unsubUrl);
+        List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
 
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
+        assertEquals(responses, result);
     }
 
     @Test
-    void testSendSimpleMessageWithSpringMail() {
-        when(props.getBroker()).thenReturn(EmailBrokerType.SMTP);
-        String to = "recipient@example.com";
-        String subject = "Test Subject";
-        String text = "Test Body";
-        String unsubUrl = "http://localhost/unsubscribe";
+    void testSendRsuErrorSummary() {
+        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        emailService.sendSimpleMessage(to, subject, text, unsubUrl);
+        when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
+        List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
+
+        assertEquals(responses, result);
     }
-
-    // TODO: Re-work unit test
-    // @Test
-    // void testEmailList() {
-    // List<UserRepresentation> users = new ArrayList<>();
-    // UserRepresentation user1 = new UserRepresentation();
-    // user1.setEmail("user1@example.com");
-    // users.add(user1);
-
-    // UserRepresentation user2 = new UserRepresentation();
-    // user2.setEmail("user2@example.com");
-    // users.add(user2);
-
-    // String subject = "Test Subject";
-    // String text = "Test Body";
-    // String unsubUrl = "http://localhost/unsubscribe";
-
-    // when(props.getEmailBroker()).thenReturn("other");
-
-    // emailService.sendEmails(users, subject, text, unsubUrl);
-
-    // verify(mailSender, times(2)).send(any(SimpleMailMessage.class));
-    // }
-
-    // TODO: Method was removed
-    // @Test
-    // void testGetNotificationEmailList() {
-    // List<UserRepresentation> result =
-    // emailService.getNotificationEmailList(EmailFrequency.ONCE_PER_DAY);
-
-    // // TODO: Test underlying logic when method is further implemented
-    // assertTrue(result.isEmpty());
-    // }
 }
