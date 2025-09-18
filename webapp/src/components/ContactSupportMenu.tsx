@@ -3,7 +3,7 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import 'react-widgets/styles.css'
-import RsuApi from '../apis/rsu-api'
+import UserNotificationApi from '../apis/intersections/user-notification-api'
 
 import './css/ContactSupportMenu.css'
 import toast from 'react-hot-toast'
@@ -21,15 +21,11 @@ const ContactSupportMenu = () => {
     formState: { errors },
   } = useForm()
 
-  const onSubmit = async (data: object) => {
+  const onSubmit = async (data: SupportRequestEmailContents) => {
     try {
-      const res = await RsuApi.postContactSupport(data)
-      const status = res.status
-      if (status === 200) {
-        toast.success('Successfully sent email')
+      const success = await UserNotificationApi.sendSupportRequest(data)
+      if (success) {
         reset()
-      } else {
-        toast.error('Something went wrong: ' + status)
       }
     } catch (exception_var) {
       console.error('Error in ContactSupportMenu onSubmit', exception_var)

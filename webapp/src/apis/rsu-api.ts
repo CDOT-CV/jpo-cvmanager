@@ -165,15 +165,6 @@ class RsuApi {
       tag: 'rsu',
     })
   }
-
-  // POST
-  postContactSupport = async (json: object): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.contactSupport,
-      body: JSON.stringify(json),
-      tag: 'rsu',
-    })
-  }
 }
 
 const rsuApiObject = new RsuApi()
