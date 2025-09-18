@@ -13,9 +13,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.access_requests.AccessRequestEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class NotificationController {
     private final EmailService emailService;
 
+    // TODO: Remove all authentication for send-support-request-email
     @Operation(summary = "Send Support Request Email", description = "Send a support request email")
     @RequestMapping(value = "/send-support-request-email", method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
@@ -42,5 +42,17 @@ public class NotificationController {
             @RequestBody SupportRequestEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendSupportRequest(body));
+    }
+
+    @Operation(summary = "Request Organization Access", description = "Request access to an organization")
+    @RequestMapping(value = "/request-organization-access", method = RequestMethod.POST, produces = "application/json")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> decode_request(
+            @RequestBody AccessRequestEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendAccessRequest(body));
     }
 }
