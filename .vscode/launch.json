@@ -43,14 +43,12 @@
     },
     {
       "type": "java",
-      "name": "Intersection API",
+      "name": "Launch Intersection API",
       "request": "launch",
       "mainClass": "us.dot.its.jpo.ode.api.ConflictApiApplication",
       "projectName": "intersection-api",
-      "vmArgs": "-Dspring.profiles.active=dev",
-      "args": "",
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal"
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "run-docker-compose-intersection-no-api"
     }
   ],
   "compounds": [
