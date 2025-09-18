@@ -28,7 +28,7 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
         context.setVariable("preview_text", "New Support Request in CV Manager");
         context.setVariable("greeting", "Hello,");
         context.setVariable("content_1",
-                String.format("New support request from %s:\n\n%s", data.getUserEmail(), data.getMessage()));
+                String.format("New support request from %s:\n\n%s", data.getEmail(), data.getMessage()));
         context.setVariable("action_button_text", "Navigate to the CV-Manager");
         context.setVariable("action_button_href",
                 String.format("%s", emailProperties.getCvmgrFrontEndUri()));
@@ -44,7 +44,7 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
         String htmlContent = templateEngine.process("emails/announcement", context);
 
         return new EmailContent(
-                "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
+                data.getSubject(),
                 htmlContent);
     }
 }
