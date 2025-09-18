@@ -97,7 +97,7 @@ server.servlet.context-path: ${BASE_ROUTE_PREFIX:/}
 ### General Email Settings
 email:
   # Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
-  broker: ${INTERSECTION_EMAIL_BROKER:smtp}
+  broker: ${INTERSECTION_EMAIL_BROKER:SMTP}
   sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
   unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:}
   cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost}

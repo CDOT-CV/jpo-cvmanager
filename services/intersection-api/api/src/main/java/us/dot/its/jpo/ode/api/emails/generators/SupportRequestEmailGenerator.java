@@ -8,46 +8,43 @@ import org.thymeleaf.context.Context;
 
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
-import us.dot.its.jpo.ode.api.models.emails.EmailWrapper;
+import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 
 @Component
 public class SupportRequestEmailGenerator extends AbstractEmailGenerator<SupportRequestEmailContents> {
 
-        public SupportRequestEmailGenerator(TemplateEngine templateEngine,
-                        UnsubscribeTokenGenerator unsubscribeTokenGenerator,
-                        EmailProperties emailProperties) {
-                super(templateEngine, unsubscribeTokenGenerator, emailProperties);
-        }
+    public SupportRequestEmailGenerator(TemplateEngine templateEngine,
+            UnsubscribeTokenGenerator unsubscribeTokenGenerator,
+            EmailProperties emailProperties) {
+        super(templateEngine, unsubscribeTokenGenerator, emailProperties);
+    }
 
-        @Override
-        public EmailWrapper generateEmailBody(String emailAddress, SupportRequestEmailContents data) {
-                String unsubscribeUrl = unsubscribeTokenGenerator.generateUnsubscribeUrl(emailAddress);
+    @Override
+    public EmailContent generateEmailBody(SupportRequestEmailContents data) {
 
-                Context context = new Context();
-                context.setVariable("head_title", "CV Manager - Support Request");
-                context.setVariable("preview_text", "New Support Request in CV Manager");
-                context.setVariable("greeting", "Hello,");
-                context.setVariable("content_1",
-                                String.format("New support request from %s:\n\n%s", emailAddress, data.getMessage()));
-                context.setVariable("action_button_text", "Navigate to the CV-Manager");
-                context.setVariable("action_button_href",
-                                String.format("%s", emailProperties.getCvmgrFrontEndUri()));
-                context.setVariable("content_2",
-                                "If not actionable, please forward this request on to the relevant party.");
-                context.setVariable("signature",
-                                "This was an automated email from the CV Manager. Please do not reply to this email.");
-                context.setVariable("footer_address", "CV-Manager User-Submitted Support Request");
-                context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-                context.setVariable("unsubscribe_link_text", "Unsubscribe");
-                context.setVariable("unsubscribe_href", unsubscribeUrl);
+        Context context = new Context();
+        context.setVariable("head_title", "CV Manager - Support Request");
+        context.setVariable("preview_text", "New Support Request in CV Manager");
+        context.setVariable("greeting", "Hello,");
+        context.setVariable("content_1",
+                String.format("New support request from %s:\n\n%s", data.getUserEmail(), data.getMessage()));
+        context.setVariable("action_button_text", "Navigate to the CV-Manager");
+        context.setVariable("action_button_href",
+                String.format("%s", emailProperties.getCvmgrFrontEndUri()));
+        context.setVariable("content_2",
+                "If not actionable, please forward this request on to the relevant party.");
+        context.setVariable("signature",
+                "This was an automated email from the CV Manager. Please do not reply to this email.");
+        context.setVariable("footer_address", "CV-Manager User-Submitted Support Request");
+        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
+        context.setVariable("unsubscribe_link_text", "Unsubscribe");
+        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
 
-                String htmlContent = templateEngine.process("emails/announcement", context);
+        String htmlContent = templateEngine.process("emails/announcement", context);
 
-                return new EmailWrapper(
-                                emailAddress,
-                                "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
-                                htmlContent,
-                                unsubscribeUrl);
-        }
+        return new EmailContent(
+                "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
+                htmlContent);
+    }
 }

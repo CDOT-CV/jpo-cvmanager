@@ -57,7 +57,7 @@ public class EmailProperties {
             return;
         }
         try {
-            this.broker = EmailBrokerType.valueOf(broker.trim().toUpperCase());
+            this.broker = EmailBrokerType.valueOf(broker); // Matching @Qualifier from EmailProvider classes
             log.info("Email broker set to : {}", this.broker);
         } catch (IllegalArgumentException e) {
             // If the value doesn't match any EmailBrokerType, default to SMTP

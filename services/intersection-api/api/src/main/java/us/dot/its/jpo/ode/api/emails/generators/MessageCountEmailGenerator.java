@@ -10,7 +10,7 @@ import org.thymeleaf.context.Context;
 
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
-import us.dot.its.jpo.ode.api.models.emails.EmailWrapper;
+import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountCountsItem;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
@@ -25,8 +25,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
     }
 
     @Override
-    public EmailWrapper generateEmailBody(String emailAddress, MessageCountEmailContents data) {
-        String unsubscribeUrl = unsubscribeTokenGenerator.generateUnsubscribeUrl(emailAddress);
+    public EmailContent generateEmailBody(MessageCountEmailContents data) {
 
         Context context = new Context();
         context.setVariable("head_title", "CV Manager - Message Counts");
@@ -43,15 +42,13 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
         context.setVariable("footer_address", "CV-Manager Firmware Upgrade Failure");
         context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
         context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", unsubscribeUrl);
+        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 
-        return new EmailWrapper(
-                emailAddress,
+        return new EmailContent(
                 "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
-                htmlContent,
-                unsubscribeUrl);
+                htmlContent);
     }
 
     String getContent(MessageCountEmailContents data) {
