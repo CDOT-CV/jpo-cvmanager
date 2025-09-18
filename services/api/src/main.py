@@ -29,7 +29,6 @@ from admin_user import AdminUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg
 from contact_support import ContactSupportResource
-from rsu_error_summary import RSUErrorSummaryResource
 import smtp_error_handler
 
 log_level = os.environ.get("LOGGING_LEVEL", "INFO")
@@ -72,7 +71,6 @@ if ENABLE_RSU_FEATURES:
     api.add_resource(RsuSsmSrmData, "/rsu-ssm-srm-data")
     api.add_resource(AdminNewRsu, "/admin-new-rsu")
     api.add_resource(AdminRsu, "/admin-rsu")
-    api.add_resource(RSUErrorSummaryResource, "/rsu-error-summary")
 if ENABLE_WZDX_FEATURES:
     api.add_resource(WzdxFeed, "/wzdx-feed")
 if ENABLE_INTERSECTION_FEATURES:

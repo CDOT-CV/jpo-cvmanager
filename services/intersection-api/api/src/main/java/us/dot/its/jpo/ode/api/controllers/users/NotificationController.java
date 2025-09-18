@@ -33,7 +33,7 @@ public class NotificationController {
 
     // TODO: Remove all authentication for send-support-request-email
     @Operation(summary = "Send Support Request Email", description = "Send a support request email")
-    @RequestMapping(value = "/send-support-request-email", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/submit-support-request", method = RequestMethod.POST, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),

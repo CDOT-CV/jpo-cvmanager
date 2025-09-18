@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.controllers.services;
+package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,14 +28,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
-@RequestMapping("/services/emails")
+@RequestMapping("/emails")
 @RequiredArgsConstructor
 public class EmailController {
     private final EmailService emailService;
 
     // TODO: Authenticate these services for non-user access
     @Operation(summary = "Send Message Counts Emails", description = "Send message counts emails")
-    @RequestMapping(value = "/send-message-counts-emails", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/send-message-counts", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -48,7 +48,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Request Organization Access", description = "Request access to an organization")
-    @RequestMapping(value = "/send-firmware-upgrade-failure-emails", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/send-firmware-upgrade-failure", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -61,7 +61,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")
-    @RequestMapping(value = "/send-rsu-error-summary-emails", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/send-rsu-error-summary", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
