@@ -1,5 +1,12 @@
 import toast from 'react-hot-toast'
 import EnvironmentVars from '../../EnvironmentVars'
+import { evaluateFeatureFlags } from '../../feature-flags'
+
+export const combineUrlPaths = (base: string, path: string): string => {
+  if (!base?.endsWith('/')) base += '/'
+  if (path?.startsWith('/')) path = path.substring(1)
+  return base + path
+}
 
 class CvizApiHelper {
   formatQueryParams(query_params?: Record<string, any>): string {
@@ -23,13 +30,14 @@ class CvizApiHelper {
     toastOnSuccess = false,
     successMessage = 'Successfully completed request!',
     failureMessage = 'Request failed to complete',
+    tag,
   }: {
     path: string
     basePath?: string
     method?: string
     headers?: Record<string, string>
     queryParams?: Record<string, string>
-    body?: Object
+    body?: object
     token?: string
     timeout?: number
     abortController?: AbortController
@@ -39,8 +47,14 @@ class CvizApiHelper {
     toastOnSuccess?: boolean
     successMessage?: string
     failureMessage?: string
+    tag?: FEATURE_KEY
   }): Promise<any> {
-    const url = (basePath ?? EnvironmentVars.CVIZ_API_SERVER_URL!) + path + this.formatQueryParams(queryParams)
+    if (!evaluateFeatureFlags(tag)) {
+      console.debug(`Returning null because feature is disabled for tag ${tag} and path ${path}`)
+      return null
+    }
+    const url =
+      combineUrlPaths(basePath ?? EnvironmentVars.CVIZ_API_SERVER_URL!, path) + this.formatQueryParams(queryParams)
 
     const localHeaders: HeadersInit = { ...headers }
     if (token) localHeaders['Authorization'] = `Bearer ${token}`
@@ -68,7 +82,6 @@ class CvizApiHelper {
       signal: abortController?.signal,
     }
 
-    console.debug('MAKING REQUEST TO ' + url + ' WITH OPTIONS', options)
     const resp = await fetch(url, options)
       .then((response) => {
         if (response.ok) {
@@ -90,22 +103,16 @@ class CvizApiHelper {
           return response.blob()
         } else {
           const resp = response.json()
-          resp
-            .then((val) => console.debug('RESPONSE TO', url, val))
-            .catch((err) => {
-              if (err.name === 'AbortError') {
-                console.debug('Request aborted')
-              } else {
-                console.error(err)
-              }
-            })
+          resp.catch((err) => {
+            if (err.name !== 'AbortError') {
+              console.error(err)
+            }
+          })
           return resp
         }
       })
       .catch((error: Error) => {
-        if (error.name === 'AbortError') {
-          console.debug('Request aborted')
-        } else {
+        if (error.name !== 'AbortError') {
           const errorMessage = failureMessage ?? 'Fetch request failed'
           toast.error(errorMessage + '. Error: ' + error.message)
           console.error(error.message)

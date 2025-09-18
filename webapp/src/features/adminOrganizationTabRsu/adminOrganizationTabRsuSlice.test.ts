@@ -53,7 +53,7 @@ describe('async thunks', () => {
 
   describe('getRsuData', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
+      const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
           value: {
@@ -71,6 +71,7 @@ describe('async thunks', () => {
         url: EnvironmentVars.adminRsu,
         token: 'token',
         query_params: { rsu_ip: 'all' },
+        tag: 'rsu',
       })
 
       apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
@@ -80,6 +81,7 @@ describe('async thunks', () => {
         url: EnvironmentVars.adminRsu,
         token: 'token',
         query_params: { rsu_ip: 'all' },
+        tag: 'rsu',
       })
     })
 
@@ -97,7 +99,7 @@ describe('async thunks', () => {
 
     it('Updates the state correctly fulfilled', async () => {
       const loading = false
-      let orgName = 'org2'
+      const orgName = 'org2'
       const data = {
         rsu_data: [
           {
@@ -167,6 +169,7 @@ describe('async thunks', () => {
           url: EnvironmentVars.adminRsu,
           token: 'token',
           query_params: { rsu_ip: rsu.ip },
+          tag: 'rsu',
         })
         expect(apiHelper._getDataWithCodes).toHaveBeenCalledTimes(1)
         expect(dispatch).toHaveBeenCalledTimes(2 + 2)
@@ -252,7 +255,7 @@ describe('async thunks', () => {
 
   describe('rsuAddMultiple', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
+      const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
           value: {
@@ -263,10 +266,9 @@ describe('async thunks', () => {
       const rsuList = [{ ip: '1.1.1.1' }, { ip: '1.1.1.2' }, { ip: '1.1.1.3' }] as any
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const fetchPatchOrganization = jest.fn()
       const updateTableData = jest.fn()
 
-      let action = rsuAddMultiple({ rsuList, selectedOrg, selectedOrgEmail, updateTableData })
+      const action = rsuAddMultiple({ rsuList, selectedOrg, selectedOrgEmail, updateTableData })
 
       await action(dispatch, getState, undefined)
       expect(dispatch).toHaveBeenCalledTimes(2 + 2)
@@ -275,7 +277,7 @@ describe('async thunks', () => {
 
   describe('refresh', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
+      const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
           value: {
@@ -286,7 +288,7 @@ describe('async thunks', () => {
       const selectedOrg = 'selectedOrg'
       const updateTableData = jest.fn()
 
-      let action = refresh({ selectedOrg, updateTableData })
+      const action = refresh({ selectedOrg, updateTableData })
 
       await action(dispatch, getState, undefined)
       expect(updateTableData).toHaveBeenCalledTimes(1)
@@ -325,6 +327,7 @@ describe('functions', () => {
       url: EnvironmentVars.adminRsu,
       token,
       query_params: { rsu_ip },
+      tag: 'rsu',
     })
   })
 })

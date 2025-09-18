@@ -17,13 +17,14 @@
   },
   "python.envFile": "${workspaceFolder}/.env",
   "terminal.integrated.env.windows": {
-    "PYTHONPATH": "${workspaceFolder}/services;${workspaceFolder}/services/addons/images/geo_msg_query;${workspaceFolder}/services/addons/images/count_metric;${workspaceFolder}/services/addons/images/firmware_manager;${workspaceFolder}/services/addons/images/iss_health_check;${workspaceFolder}/services/addons/images/rsu_status_check;${workspaceFolder}/services/api/src;${workspaceFolder}/services/common"
+    "PYTHONPATH": "${workspaceFolder}/services;${workspaceFolder}/services/addons/images/count_metric;${workspaceFolder}/services/addons/images/firmware_manager;${workspaceFolder}/services/addons/images/iss_health_check;${workspaceFolder}/services/addons/images/rsu_status_check;${workspaceFolder}/services/api/src;${workspaceFolder}/services/common"
   },
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true
   },
   "cSpell.words": [
+    "assertj",
     "bbox",
     "BOOTSTRAPSERVERS",
     "Bsms",
@@ -35,8 +36,13 @@
     "customdb",
     "cviz",
     "cvmanager",
+    "cvmgr",
     "CVPEP",
+    "deadletterqueue",
+    "decisecond",
+    "dockerized",
     "dont",
+    "Dsrc",
     "formik",
     "geojsonconverter",
     "hamcrest",
@@ -48,11 +54,16 @@
     "JDBC",
     "keyfile",
     "ksession",
+    "ldot",
+    "loadercss",
     "LOGLEVEL",
     "luxon",
+    "masterdiv",
     "MESSAGETYPE",
     "millis",
     "mongosh",
+    "moove",
+    "mooveai",
     "multidict",
     "Multivalued",
     "OIDC",
@@ -60,9 +71,12 @@
     "pgdb",
     "postgis",
     "pytz",
+    "rawtypes",
     "reduxjs",
+    "rsufwdsnmpset",
     "rsus",
     "SASL",
+    "Scms",
     "SNMP",
     "Snmpset",
     "Snmpwalk",
@@ -70,10 +84,30 @@
     "subquery",
     "svcs",
     "TABLENAME",
+    "timefield",
+    "usdot",
     "usdotjpoode",
     "utctimestamp",
     "wydot",
+    "wzdx",
     "Zabbix"
   ],
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "files.eol": "\n",
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always"
+  },
+  "eslint.validate": [
+    "typescript",
+    "typescriptreact",
+    "javascript",
+    "javascriptreact",
+    "html",
+    "json",
+    "jsonc",
+    "markdown"
+  ]
 }

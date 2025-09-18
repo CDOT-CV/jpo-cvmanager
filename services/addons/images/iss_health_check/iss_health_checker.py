@@ -123,9 +123,7 @@ def insert_scms_data(data):
 
     schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
 
-    query = (
-        f'INSERT INTO {schema_name}.scms_health("timestamp", health, expiration, rsu_id) VALUES'
-    )
+    query = f'INSERT INTO {schema_name}.scms_health("timestamp", health, expiration, rsu_id) VALUES'
     for value in data.values():
         if validate_scms_data(value) is False:
             continue

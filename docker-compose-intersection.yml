@@ -1,0 +1,72 @@
+include:
+  - ./jpo-utils/docker-compose-kafka.yml
+  - ./jpo-utils/docker-compose-mongo.yml
+
+services:
+  intersection_api:
+    profiles:
+      - intersection
+      - intersection_api
+    image: intersection-api:latest
+    build:
+      context: ./services/intersection-api
+      args:
+        MAVEN_GITHUB_TOKEN: ${MAVEN_GITHUB_TOKEN:?error}
+        MAVEN_GITHUB_ORG: ${MAVEN_GITHUB_ORG:?error}
+    ports:
+      - '8089:8089'
+    restart: always
+    extra_hosts:
+      ${WEBAPP_DOMAIN}: ${WEBAPP_HOST_IP}
+      ${KEYCLOAK_DOMAIN}: ${KC_HOST_IP}
+    environment:
+      AUTH_SERVER_URL: ${KEYCLOAK_ENDPOINT}
+      DB_HOST_IP: ${DB_HOST_IP}
+      DB_HOST_PORT: ${DB_HOST_PORT}
+      SPRING_KAFKA_BOOTSTRAPSERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      CM_SERVER_URL: ${CM_SERVER_URL}
+      load: 'false'
+      KAFKA_TYPE: 'ON-PREM'
+      ACM_CONFIG_FILE: adm.properties
+      ACM_LOG_TO_CONSOLE: true
+      ACM_LOG_TO_FILE: false
+      ACM_LOG_LEVEL: DEBUG
+      MONGO_READ_WRITE_USER: ${MONGO_READ_WRITE_USER}
+      MONGO_READ_WRITE_PASS: ${MONGO_READ_WRITE_PASS}
+      CM_MAXIMUM_RESPONSE_SIZE: ${CM_MAXIMUM_RESPONSE_SIZE}
+      SPRING_DATA_MONGODB_DATABASE: ${CM_DATABASE_NAME}
+
+      KEYCLOAK_CLIENT_API_ID: ${KEYCLOAK_API_CLIENT_ID}
+      KEYCLOAK_CLIENT_API_SECRET: ${KEYCLOAK_API_CLIENT_SECRET_KEY}
+
+      KAFKA_BROKER_IP: ${KAFKA_BROKER_IP}
+      KAFKA_BROKER_PORT: ${KAFKA_BROKER_PORT}
+
+      PG_DB_USER: ${PG_DB_USER}
+      PG_DB_PASS: ${PG_DB_PASS}
+      POSTGRES_SERVER_URL: jdbc:postgresql://${PG_DB_HOST}
+
+      INTERSECTION_API_ENABLE_API: ${INTERSECTION_API_ENABLE_API}
+      INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER}
+      INTERSECTION_API_ENABLE_REPORTS: ${INTERSECTION_API_ENABLE_REPORTS}
+
+      BASE_ROUTE_PREFIX: ${INTERSECTION_API_ROUTE_PREFIX:-/}
+    entrypoint:
+      - sh
+      - -c
+      - |
+        java -Djava.rmi.server.hostname=$DOCKER_HOST_IP -Dcom.sun.management.jmxremote.port=9090 -Dcom.sun.management.jmxremote.rmi.port=9090 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dlogback.configurationFile=/home/logback.xml -jar /home/intersection-api.jar
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '5'
+    depends_on:
+      cvmanager_keycloak:
+        condition: service_healthy
+        required: false
+      mongo:
+        condition: service_healthy
+        required: false
+      kafka-setup:
+        condition: service_started
+        required: false

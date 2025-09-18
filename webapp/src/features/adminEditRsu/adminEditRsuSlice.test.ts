@@ -10,6 +10,7 @@ import {
   updateJson,
 
   // reducers
+  clear,
   updateSelectedRoute,
   setSelectedRoute,
   setSelectedModel,
@@ -46,7 +47,7 @@ describe('admin edit RSU reducer', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual({
       loading: false,
       value: {
-        apiData: {},
+        apiData: undefined,
         primaryRoutes: [],
         selectedRoute: '',
         otherRouteDisabled: true,
@@ -117,6 +118,7 @@ describe('async thunks', () => {
         token: 'token',
         query_params: { rsu_ip },
         additional_headers: { 'Content-Type': 'application/json' },
+        tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
@@ -129,6 +131,7 @@ describe('async thunks', () => {
         token: 'token',
         query_params: { rsu_ip },
         additional_headers: { 'Content-Type': 'application/json' },
+        tag: 'rsu',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })
@@ -201,13 +204,14 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminRsu,
           token: 'token',
           query_params: { rsu_ip: json.orig_ip },
           body: JSON.stringify(json),
+          tag: 'rsu',
         })
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
       } catch (e) {
@@ -219,13 +223,14 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminRsu,
           token: 'token',
           query_params: { rsu_ip: json.orig_ip },
           body: JSON.stringify(json),
+          tag: 'rsu',
         })
         expect(setTimeout).not.toHaveBeenCalled()
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)
@@ -534,23 +539,37 @@ describe('reducers', () => {
   const initialState: RootState['adminEditRsu'] = {
     loading: null,
     value: {
-      apiData: null,
-      primaryRoutes: null,
-      selectedRoute: null,
-      otherRouteDisabled: null,
-      rsuModels: null,
-      selectedModel: null,
-      sshCredentialGroups: null,
-      selectedSshGroup: null,
-      snmpCredentialGroups: null,
-      selectedSnmpGroup: null,
-      snmpVersions: null,
-      selectedSnmpVersion: null,
-      organizations: null,
-      selectedOrganizations: null,
-      submitAttempt: null,
+      apiData: undefined,
+      primaryRoutes: [] as { name: string }[],
+      selectedRoute: '',
+      otherRouteDisabled: true,
+      rsuModels: [] as { name: string }[],
+      selectedModel: '',
+      sshCredentialGroups: [] as { name: string }[],
+      selectedSshGroup: '',
+      snmpCredentialGroups: [] as { name: string }[],
+      selectedSnmpGroup: '',
+      snmpVersions: [] as { name: string }[],
+      selectedSnmpVersion: '',
+      organizations: [] as { name: string }[],
+      selectedOrganizations: [] as { name: string }[],
+      submitAttempt: false,
     },
   }
+
+  it('clear reducer updates state correctly', async () => {
+    const selectedRoute = 'selectedRoute'
+    const otherRouteDisabled = false
+
+    expect(
+      reducer({ ...initialState, value: { ...initialState.value, selectedRoute, otherRouteDisabled } }, clear())
+    ).toEqual({
+      ...initialState,
+      value: {
+        ...initialState.value,
+      },
+    })
+  })
 
   it('updateSelectedRoute reducer updates state correctly', async () => {
     let selectedRoute = 'selectedRoute'

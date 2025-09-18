@@ -41,7 +41,6 @@ def get_upgrade_limit() -> int:
         )
 
 
-
 # Function to query the CV Manager PostgreSQL database for RSUs that have:
 # - A different target version than their current version
 # - A target firmware that complies with an existing upgrade rule relative to the RSU's current version
@@ -82,19 +81,27 @@ def start_tasks_from_queue():
             del upgrade_queue_info[rsu_to_upgrade]
 
             # Begin the firmware upgrade using the Upgrade Runner API
-            upgrade_runner_endpoint = os.environ.get("UPGRADE_RUNNER_ENDPOINT", "UNDEFINED")
+            upgrade_runner_endpoint = os.environ.get(
+                "UPGRADE_RUNNER_ENDPOINT", "UNDEFINED"
+            )
 
             if upgrade_runner_endpoint == "UNDEFINED":
-                raise Exception("The UPGRADE_RUNNER_ENDPOINT environment variable is undefined!")
+                raise Exception(
+                    "The UPGRADE_RUNNER_ENDPOINT environment variable is undefined!"
+                )
 
-            response = requests.post(f"{upgrade_runner_endpoint}/run_firmware_upgrade", json=rsu_upgrade_info)
+            response = requests.post(
+                f"{upgrade_runner_endpoint}/run_firmware_upgrade", json=rsu_upgrade_info
+            )
 
             # Remove redundant ipv4_address from rsu since it is the key for active_upgrades
             del rsu_upgrade_info["ipv4_address"]
 
             # If the POST response includes a 201 code, add it to the active upgrades
             if response.status_code == 201:
-                logging.info(f"Firmware upgrade runner successfully requested to begin the upgrade for {rsu_to_upgrade}")
+                logging.info(
+                    f"Firmware upgrade runner successfully requested to begin the upgrade for {rsu_to_upgrade}"
+                )
                 active_upgrades[rsu_to_upgrade] = rsu_upgrade_info
             else:
                 logging.error(
@@ -375,7 +382,9 @@ def serve_rest_api():
 
 
 def init_background_task():
-    logging.info("Initiating the Firmware Manager Upgrade Scheduler background checker...")
+    logging.info(
+        "Initiating the Firmware Manager Upgrade Scheduler background checker..."
+    )
     # Run scheduler for async RSU firmware upgrade checks
     scheduler = BackgroundScheduler({"apscheduler.timezone": "UTC"})
     scheduler.add_job(check_for_upgrades, "cron", minute="0")

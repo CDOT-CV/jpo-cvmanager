@@ -1,6 +1,6 @@
 class EnvironmentVars {
   static getBaseApiUrl() {
-    return process.env.REACT_APP_GATEWAY_BASE_URL
+    return process.env.REACT_APP_GATEWAY_BASE_URL?.replace(/\/$/, '') // remove trailing slash
   }
 
   static getMessageTypes() {
@@ -36,14 +36,21 @@ class EnvironmentVars {
   }
 
   static MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN
-  static CVIZ_API_SERVER_URL = process.env.REACT_APP_CVIZ_API_SERVER_URL
-  static CVIZ_API_WS_URL = process.env.REACT_APP_CVIZ_API_WS_URL
+  static CVIZ_API_SERVER_URL = process.env.REACT_APP_CVIZ_API_SERVER_URL?.replace(/\/$/, '') // remove trailing slash
+  static CVIZ_API_WS_URL = process.env.REACT_APP_CVIZ_API_WS_URL?.replace(/\/$/, '') // remove trailing slash
   static KEYCLOAK_HOST_URL = process.env.REACT_APP_KEYCLOAK_URL
   static KEYCLOAK_REALM = process.env.REACT_APP_KEYCLOAK_REALM
+  static KEYCLOAK_CLIENT_ID = process.env.REACT_APP_KEYCLOAK_CLIENT_ID
   static DOT_NAME = process.env.REACT_APP_DOT_NAME
+  static ENABLE_RSU_FEATURES = process.env.REACT_APP_ENABLE_RSU_FEATURES !== 'false'
+  static ENABLE_INTERSECTION_FEATURES = process.env.REACT_APP_ENABLE_INTERSECTION_FEATURES !== 'false'
+  static ENABLE_WZDX_FEATURES = process.env.REACT_APP_ENABLE_WZDX_FEATURES !== 'false'
+  static ENABLE_MOOVE_AI_FEATURES = process.env.REACT_APP_ENABLE_MOOVE_AI_FEATURES !== 'false'
+  static ENABLE_HAAS_FEATURES = process.env.REACT_APP_ENABLE_HAAS_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.REACT_APP_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.REACT_APP_WEBAPP_THEME_DARK
 
+  static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoEndpoint = `${this.getBaseApiUrl()}/rsuinfo`
   static rsuOnlineEndpoint = `${this.getBaseApiUrl()}/rsu-online-status`
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
@@ -52,6 +59,7 @@ class EnvironmentVars {
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-geo-query`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
+  static mooveAiDataEndpoint = `${this.getBaseApiUrl()}/moove-ai-data`
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static authEndpoint = `${this.getBaseApiUrl()}/user-auth`

@@ -14,11 +14,10 @@ import {
   selectCurrentSort,
   selectSortedCountList,
   selectDisplayCounts,
-  selectView,
 } from './menuSlice'
 import apiHelper from '../../apis/api-helper'
 import { RootState } from '../../store'
-const { DateTime } = require('luxon')
+import { DateTime } from 'luxon'
 
 describe('menu reducer', () => {
   it('should handle initial state', () => {
@@ -29,7 +28,7 @@ describe('menu reducer', () => {
         sortedCountList: [],
         displayCounts: false,
         displayRsuErrors: false,
-        view: 'buttons',
+        menuSelection: [],
       },
     })
   })
@@ -43,7 +42,7 @@ describe('reducers', () => {
       sortedCountList: null,
       displayCounts: false,
       displayRsuErrors: false,
-      view: null,
+      menuSelection: [],
     },
   }
 
@@ -64,23 +63,21 @@ describe('reducers', () => {
   })
 
   it('setDisplay reducer updates state correctly', async () => {
-    let view = 'tab'
-    expect(reducer(initialState, setDisplay({ view: 'tab', display: 'displayCounts' }))).toEqual({
+    expect(reducer(initialState, setDisplay('displayCounts'))).toEqual({
       ...initialState,
-      value: { ...initialState.value, view, displayCounts: true },
+      value: { ...initialState.value, displayCounts: true },
     })
 
-    view = 'not tab'
-    expect(reducer(initialState, setDisplay({ view: 'not tab', display: 'somethingElse' }))).toEqual({
+    expect(reducer(initialState, setDisplay('somethingElse'))).toEqual({
       ...initialState,
-      value: { ...initialState.value, view, displayCounts: false },
+      value: { ...initialState.value, displayCounts: false },
     })
   })
 })
 
 describe('functions', () => {
   it('sortCountList ascending', async () => {
-    let dispatch = jest.fn()
+    const dispatch = jest.fn()
     const key = 'key'
     const currentSort = 'keydesc'
     const countList = [{ key: 1 }, { key: 2 }] as any
@@ -90,7 +87,7 @@ describe('functions', () => {
   })
 
   it('sortCountList descending', async () => {
-    let dispatch = jest.fn()
+    const dispatch = jest.fn()
     const key = 'key'
     const currentSort = 'key'
     const countList = [{ key: 1 }, { key: 2 }] as any
@@ -100,7 +97,7 @@ describe('functions', () => {
   })
 
   it('changeDate start', async () => {
-    let dispatch = jest.fn()
+    const dispatch = jest.fn()
     const e = DateTime.fromISO('2021-01-01T07:00:00.000Z').toJSDate()
     const expected = { start: '2021-01-01T00:00:00.000-07:00' }
     const type = 'start'
@@ -112,7 +109,7 @@ describe('functions', () => {
   })
 
   it('changeDate end', async () => {
-    let dispatch = jest.fn()
+    const dispatch = jest.fn()
     const e = DateTime.fromISO('2021-01-01T07:00:00.000Z').toJSDate()
     const expected = { end: '2021-01-01T00:00:00.000-07:00' }
     const type = 'end'
@@ -132,7 +129,6 @@ describe('selectors', () => {
       currentSort: 'currentSort',
       sortedCountList: 'sortedCountList',
       displayCounts: 'displayCounts',
-      view: 'view',
     },
   }
   const state = { menu: initialState } as any
@@ -142,6 +138,5 @@ describe('selectors', () => {
     expect(selectCurrentSort(state)).toEqual('currentSort')
     expect(selectSortedCountList(state)).toEqual('sortedCountList')
     expect(selectDisplayCounts(state)).toEqual('displayCounts')
-    expect(selectView(state)).toEqual('view')
   })
 })

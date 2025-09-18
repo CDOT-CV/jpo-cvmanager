@@ -19,7 +19,7 @@ export type adminEditRsuData = {
 }
 
 const initialState = {
-  apiData: {} as adminEditRsuData,
+  apiData: undefined as adminEditRsuData | undefined,
   primaryRoutes: [] as { name: string }[],
   selectedRoute: '',
   otherRouteDisabled: true,
@@ -55,7 +55,7 @@ export const checkForm = (state: RootState['adminEditRsu']) => {
 }
 
 export const updateJson = (data: AdminEditRsuFormType, state: RootState['adminEditRsu']) => {
-  let json = data
+  const json = data
 
   if (state.value.selectedRoute !== 'Other') {
     json.primary_route = state.value.selectedRoute
@@ -66,8 +66,8 @@ export const updateJson = (data: AdminEditRsuFormType, state: RootState['adminEd
   json.snmp_credential_group = state.value.selectedSnmpGroup
   json.snmp_version_group = state.value.selectedSnmpVersion
 
-  let organizationsToAdd = []
-  let organizationsToRemove = []
+  const organizationsToAdd = []
+  const organizationsToRemove = []
   for (const org of state.value.apiData.allowed_selections.organizations) {
     if (
       state.value.selectedOrganizations.some((e) => e.name === org) &&
@@ -100,6 +100,7 @@ export const getRsuInfo = createAsyncThunk(
       token,
       query_params: { rsu_ip },
       additional_headers: { 'Content-Type': 'application/json' },
+      tag: 'rsu',
     })
 
     switch (data.status) {
@@ -124,6 +125,7 @@ export const editRsu = createAsyncThunk(
       token,
       query_params: { rsu_ip: json.orig_ip },
       body: JSON.stringify(json),
+      tag: 'rsu',
     })
 
     switch (data.status) {
@@ -142,8 +144,8 @@ export const submitForm = createAsyncThunk(
   async (data: AdminEditRsuFormType, { getState, dispatch }) => {
     const currentState = getState() as RootState
     if (checkForm(currentState.adminEditRsu)) {
-      let json = updateJson(data, currentState.adminEditRsu)
-      let res = await dispatch(editRsu(json))
+      const json = updateJson(data, currentState.adminEditRsu)
+      const res = await dispatch(editRsu(json))
       if ((res.payload as any).success) {
         return { submitAttempt: false, success: true, message: 'RSU Updated Successfully' }
       } else {
@@ -162,6 +164,9 @@ export const adminEditRsuSlice = createSlice({
     value: initialState,
   },
   reducers: {
+    clear: (state) => {
+      state.value = initialState
+    },
     updateSelectedRoute: (state, action) => {
       state.value.selectedRoute = action.payload
       state.value.otherRouteDisabled = action.payload === 'Other'
@@ -237,7 +242,7 @@ export const adminEditRsuSlice = createSlice({
       .addCase(editRsu.pending, (state) => {
         state.loading = true
       })
-      .addCase(editRsu.fulfilled, (state, action) => {
+      .addCase(editRsu.fulfilled, (state) => {
         state.loading = false
       })
       .addCase(editRsu.rejected, (state) => {
@@ -250,6 +255,7 @@ export const adminEditRsuSlice = createSlice({
 })
 
 export const {
+  clear,
   updateSelectedRoute,
   setSelectedRoute,
   setSelectedModel,

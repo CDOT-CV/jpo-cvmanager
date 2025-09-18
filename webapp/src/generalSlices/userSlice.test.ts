@@ -40,7 +40,6 @@ describe('user reducer', () => {
         authLoginData: null,
         organization: undefined,
         loginFailure: false,
-        kcFailure: false,
         loginMessage: '',
         routeNotFound: false,
       },
@@ -55,7 +54,6 @@ describe('async thunks', () => {
       authLoginData: null,
       organization: null,
       loginFailure: undefined,
-      kcFailure: null,
       loginMessage: '',
       routeNotFound: false,
     },
@@ -82,7 +80,7 @@ describe('async thunks', () => {
       AuthApi.logIn = jest.fn().mockReturnValue(data)
       Date.now = jest.fn(() => new Date(Date.UTC(2022, 1, 1)).valueOf())
       try {
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({
           data: JSON.parse(data.json),
           token: kcToken,
@@ -90,7 +88,7 @@ describe('async thunks', () => {
         })
         expect(AuthApi.logIn).toHaveBeenCalledWith('token')
       } catch (e) {
-        ;(Date.now as any).mockClear()
+        (Date.now as any).mockClear()
         throw e
       }
     })
@@ -151,7 +149,6 @@ describe('reducers', () => {
       organization: null,
       loginFailure: null,
       loginMessage: '',
-      kcFailure: null,
       routeNotFound: false,
     },
   }

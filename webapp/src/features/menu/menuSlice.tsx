@@ -1,20 +1,21 @@
-import { AnyAction, ThunkDispatch, createSlice } from '@reduxjs/toolkit'
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { AnyAction, PayloadAction, ThunkDispatch, createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { updateRowData } from '../../generalSlices/rsuSlice'
 import { RootState } from '../../store'
 import { CountsListElement } from '../../models/Rsu'
-const { DateTime } = require('luxon')
+import { DateTime } from 'luxon'
 
 const initialState = {
   currentSort: null as null | string,
   sortedCountList: [] as CountsListElement[],
   displayCounts: false,
   displayRsuErrors: false,
-  view: 'buttons',
+  menuSelection: [],
 }
 
 export const sortCountList =
   (key: string, currentSort: string, countList: CountsListElement[]) =>
-  (dispatch: ThunkDispatch<RootState, any, AnyAction>) => {
+  (dispatch: ThunkDispatch<RootState, unknown, AnyAction>) => {
     let sortFn = (
       a: { [key: string]: string | number | void },
       b: { [key: string]: string | number | void }
@@ -40,24 +41,57 @@ export const sortCountList =
       }
     }
 
-    let arrayCopy = [...countList]
+    const arrayCopy = [...countList]
     arrayCopy.sort(sortFn)
     dispatch(setSortedCountList(arrayCopy))
     return arrayCopy
   }
 
-export const changeDate =
-  (e: Date, type: 'start' | 'end', requestOut: boolean) => (dispatch: ThunkDispatch<RootState, any, AnyAction>) => {
-    let mst = DateTime.fromJSDate(e).setZone('America/Denver')
-    let data
-    if (type === 'start') {
-      data = { start: mst.toString() }
-    } else {
-      data = { end: mst.toString() }
-    }
-    dispatch(updateRowData(data))
-    return data
+export const changeDate = (e: Date, type: 'start' | 'end') => (dispatch: ThunkDispatch<RootState, any, AnyAction>) => {
+  const mst = DateTime.fromJSDate(e).setZone('America/Denver')
+  let data
+  if (type === 'start') {
+    data = { start: mst.toString() }
+  } else {
+    data = { end: mst.toString() }
   }
+  dispatch(updateRowData(data))
+  return data
+}
+
+export const toggleMapMenuSelection = createAsyncThunk(
+  'menu/toggleMapMenuSelection',
+  async (label: string, { getState, dispatch }) => {
+    const currentState = getState() as RootState
+    let menuSelection = [...selectMenuSelection(currentState)]
+    if (menuSelection.includes(label)) {
+      menuSelection = menuSelection.filter((item) => item !== label)
+      switch (label) {
+        case 'Display Message Counts':
+          dispatch(setDisplay(null))
+          break
+        case 'Display RSU Status':
+          dispatch(setDisplay(null))
+      }
+    } else {
+      menuSelection = [...menuSelection, label]
+      switch (label) {
+        case 'Display Message Counts':
+          if (menuSelection.includes('Display RSU Status')) {
+            menuSelection = [...menuSelection.filter((item) => item !== 'Display RSU Status'), 'Display Message Counts']
+          }
+          dispatch(setDisplay('displayCounts'))
+          break
+        case 'Display RSU Status':
+          if (menuSelection.includes('Display Message Counts')) {
+            menuSelection = [...menuSelection.filter((item) => item !== 'Display Message Counts'), 'Display RSU Status']
+          }
+          dispatch(setDisplay('displayRsuErrors'))
+      }
+    }
+    return menuSelection
+  }
+)
 
 export const menuSlice = createSlice({
   name: 'menu',
@@ -72,11 +106,15 @@ export const menuSlice = createSlice({
     setSortedCountList: (state, action) => {
       state.value.sortedCountList = action.payload
     },
-    setDisplay: (state, action) => {
-      state.value.view = action.payload.view
-      state.value.displayCounts = action.payload.display == 'displayCounts'
-      state.value.displayRsuErrors = action.payload.display == 'displayRsuErrors'
+    setDisplay: (state, action: PayloadAction<string>) => {
+      state.value.displayCounts = action.payload == 'displayCounts'
+      state.value.displayRsuErrors = action.payload == 'displayRsuErrors'
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(toggleMapMenuSelection.fulfilled, (state, action) => {
+      state.value.menuSelection = action.payload
+    })
   },
 })
 
@@ -87,6 +125,6 @@ export const selectCurrentSort = (state: RootState) => state.menu.value.currentS
 export const selectSortedCountList = (state: RootState) => state.menu.value.sortedCountList
 export const selectDisplayCounts = (state: RootState) => state.menu.value.displayCounts
 export const selectDisplayRsuErrors = (state: RootState) => state.menu.value.displayRsuErrors
-export const selectView = (state: RootState) => state.menu.value.view
+export const selectMenuSelection = (state: RootState) => state.menu.value.menuSelection
 
 export default menuSlice.reducer

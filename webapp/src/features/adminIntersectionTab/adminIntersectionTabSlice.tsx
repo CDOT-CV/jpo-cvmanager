@@ -26,7 +26,7 @@ const initialState = {
  */
 export const updateTableData = createAsyncThunk(
   'adminIntersectionTab/updateTableData',
-  async (_, { getState, dispatch }) => {
+  async (_, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -35,6 +35,7 @@ export const updateTableData = createAsyncThunk(
       token,
       query_params: { intersection_id: 'all' },
       additional_headers: { 'Content-Type': 'application/json' },
+      tag: 'intersection',
     })
 
     switch (data.status) {
@@ -67,9 +68,10 @@ export const deleteIntersection = createAsyncThunk(
       url: EnvironmentVars.adminIntersection,
       token,
       query_params: { intersection_id },
+      tag: 'intersection',
     })
 
-    var return_val = {}
+    let return_val = {}
 
     switch (data.status) {
       case 200:
@@ -98,13 +100,13 @@ export const deleteIntersection = createAsyncThunk(
 export const deleteMultipleIntersections = createAsyncThunk(
   'adminIntersectionTabSlice/deleteMultipleIntersections',
   async (rows: AdminEditIntersectionFormType[], { dispatch }) => {
-    let promises = []
+    const promises = []
     for (const row of rows) {
       promises.push(
         dispatch(deleteIntersection({ intersection_id: row.intersection_id, shouldUpdateTableData: false }))
       )
     }
-    var res = await Promise.all(promises)
+    const res = await Promise.all(promises)
     dispatch(updateTableData())
     for (const r of res) {
       if (!r.payload.success) {
@@ -123,7 +125,7 @@ export const adminIntersectionTabSlice = createSlice({
     value: initialState,
   },
   reducers: {
-    setTitle: (state) => {},
+    setTitle: () => {},
     setEditIntersectionRowData: (state, action) => {
       state.value.editIntersectionRowData = action.payload
     },
@@ -146,7 +148,7 @@ export const adminIntersectionTabSlice = createSlice({
       .addCase(deleteIntersection.pending, (state) => {
         state.loading = true
       })
-      .addCase(deleteIntersection.fulfilled, (state, action) => {
+      .addCase(deleteIntersection.fulfilled, (state) => {
         state.loading = false
       })
       .addCase(deleteIntersection.rejected, (state) => {

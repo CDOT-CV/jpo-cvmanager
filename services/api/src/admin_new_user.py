@@ -2,6 +2,7 @@ import logging
 import common.pgquery as pgquery
 import sqlalchemy
 import os
+import time
 
 
 def query_and_return_list(query):
@@ -16,7 +17,9 @@ def get_allowed_selections():
     allowed = {}
 
     schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
-    organizations_query = f"SELECT name FROM {schema_name}.organizations ORDER BY name ASC"
+    organizations_query = (
+        f"SELECT name FROM {schema_name}.organizations ORDER BY name ASC"
+    )
     roles_query = f"SELECT name FROM {schema_name}.roles ORDER BY name"
 
     allowed["organizations"] = query_and_return_list(organizations_query)
@@ -90,10 +93,11 @@ def add_user(user_spec):
         }, 500
 
     try:
+        current_timestamp = int(time.time() * 1000)
         schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         user_insert_query = (
-            f"INSERT INTO {schema_name}.users(email, first_name, last_name, super_user) "
-            f"VALUES ('{user_spec['email']}', '{user_spec['first_name']}', '{user_spec['last_name']}', '{'1' if user_spec['super_user'] else '0'}')"
+            f"INSERT INTO {schema_name}.users(email, first_name, last_name, super_user, created_timestamp) "
+            f"VALUES ('{user_spec['email']}', '{user_spec['first_name']}', '{user_spec['last_name']}', '{'1' if user_spec['super_user'] else '0'}', {current_timestamp})"
         )
         pgquery.write_db(user_insert_query)
 

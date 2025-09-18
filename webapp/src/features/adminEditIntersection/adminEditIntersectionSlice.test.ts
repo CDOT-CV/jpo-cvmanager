@@ -10,6 +10,7 @@ import {
   mapFormToRequestJson,
 
   // reducers
+  clear,
   setSelectedOrganizations,
   setSelectedRsus,
   updateStates,
@@ -32,7 +33,7 @@ describe('admin edit Intersection reducer', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual({
       loading: false,
       value: {
-        apiData: {},
+        apiData: undefined,
         organizations: [],
         selectedOrganizations: [],
         rsus: [],
@@ -85,6 +86,7 @@ describe('async thunks', () => {
         token: 'token',
         query_params: { intersection_id },
         additional_headers: { 'Content-Type': 'application/json' },
+        tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
@@ -97,6 +99,7 @@ describe('async thunks', () => {
         token: 'token',
         query_params: { intersection_id },
         additional_headers: { 'Content-Type': 'application/json' },
+        tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
     })
@@ -169,13 +172,14 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'body' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminIntersection,
           token: 'token',
           query_params: { intersection_id: json.orig_intersection_id },
           body: JSON.stringify(json),
+          tag: 'intersection',
         })
         expect(dispatch).toHaveBeenCalledTimes(1 + 2)
       } catch (e) {
@@ -187,13 +191,14 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminIntersection,
           token: 'token',
           query_params: { intersection_id: json.orig_intersection_id },
           body: JSON.stringify(json),
+          tag: 'intersection',
         })
         expect(setTimeout).not.toHaveBeenCalled()
         expect(dispatch).toHaveBeenCalledTimes(0 + 2)
@@ -430,14 +435,25 @@ describe('reducers', () => {
   const initialState: RootState['adminEditIntersection'] = {
     loading: null,
     value: {
-      apiData: null,
-      organizations: null,
-      selectedOrganizations: null,
-      rsus: null,
-      selectedRsus: null,
-      submitAttempt: null,
+      apiData: undefined,
+      organizations: [] as { name: string }[],
+      selectedOrganizations: [] as { name: string }[],
+      rsus: [] as { name: string }[],
+      selectedRsus: [] as { name: string }[],
+      submitAttempt: false,
     },
   }
+
+  it('clear reducer updates state correctly', async () => {
+    const selectedOrganizations = [{ name: 'selectedOrganizations' }]
+
+    expect(reducer({ ...initialState, value: { ...initialState.value, selectedOrganizations } }, clear())).toEqual({
+      ...initialState,
+      value: {
+        ...initialState.value,
+      },
+    })
+  })
 
   it('setSelectedOrganizations reducer updates state correctly', async () => {
     const selectedOrganizations = 'selectedOrganizations'

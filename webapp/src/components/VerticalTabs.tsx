@@ -8,6 +8,18 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import { alpha, Box, Tab, Tabs, useTheme } from '@mui/material'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { evaluateFeatureFlags } from '../feature-flags'
+import {
+  ArticleOutlined,
+  CellTowerOutlined,
+  GroupOutlined,
+  HighlightAlt,
+  HomeOutlined,
+  NotificationsNoneOutlined,
+  TrafficOutlined,
+  TuneOutlined,
+  WorkspacesOutlined,
+} from '@mui/icons-material'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -34,6 +46,8 @@ interface VerticalTabItem {
   title: string
   adminRequired?: boolean
   child: React.ReactNode
+  tag?: FEATURE_KEY
+  icon?: React.ReactNode
 }
 
 interface VerticalTabProps {
@@ -48,7 +62,31 @@ function VerticalTabs(props: VerticalTabProps) {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
   const location = useLocation()
-  const defaultTabKey = tabs[defaultTabIndex ?? 0]?.path
+  const filteredTabs = tabs.filter((tab) => evaluateFeatureFlags(tab.tag))
+  const defaultTabKey = filteredTabs[defaultTabIndex ?? 0]?.path
+
+  const getIcon = (tabName: string) => {
+    switch (tabName) {
+      case 'RSUs':
+        return <CellTowerOutlined />
+      case 'Intersections':
+        return <TrafficOutlined />
+      case 'Users':
+        return <GroupOutlined />
+      case 'Organizations':
+        return <WorkspacesOutlined />
+      case 'Dashboard':
+        return <HomeOutlined />
+      case 'Notifications':
+        return <NotificationsNoneOutlined />
+      case 'Data Selector':
+        return <HighlightAlt />
+      case 'Reports':
+        return <ArticleOutlined />
+      case 'Configuration':
+        return <TuneOutlined />
+    }
+  }
 
   const getSelectedTab = () => location.pathname.split('/').at(-1) || defaultTabKey
 
@@ -71,7 +109,7 @@ function VerticalTabs(props: VerticalTabProps) {
     <Box
       sx={{
         flexGrow: 1,
-        bgcolor: 'background.default',
+        bgcolor: theme.palette.background.default,
         display: 'flex',
         width: '100%',
         ...(props.height !== undefined && { height: props.height }),
@@ -79,7 +117,7 @@ function VerticalTabs(props: VerticalTabProps) {
     >
       <Box
         sx={{
-          bgcolor: 'background.paper',
+          bgcolor: theme.palette.background.paper,
         }}
       >
         <Tabs
@@ -89,17 +127,10 @@ function VerticalTabs(props: VerticalTabProps) {
           indicatorColor="secondary"
           textColor="inherit"
           orientation="vertical"
-          sx={{ width: 170 }}
-          TabIndicatorProps={{
-            style: {
-              right: 'auto', // remove the default right positioning
-              left: 0, // add left positioning
-              width: 5, // width of the indicator
-            },
-          }}
+          sx={{ width: 250, '& .MuiTabs-indicator': { display: 'none' } }}
         >
-          {tabs.map((tab) => {
-            const index = tabs.indexOf(tab)
+          {filteredTabs.map((tab) => {
+            const index = filteredTabs.indexOf(tab)
             return (
               <Tab
                 label={tab.title}
@@ -107,22 +138,22 @@ function VerticalTabs(props: VerticalTabProps) {
                 value={tab.path}
                 component={Link}
                 to={tab.path}
+                icon={getIcon(tab.title)}
+                iconPosition="start"
+                className="capital-case"
                 sx={{
-                  backgroundColor: value === tab.path || value === index ? theme.palette.primary.main : 'transparent',
-                  fontSize: 20,
-                  height: '80px',
-                  alignItems: 'flex-start',
-                  textTransform: 'none',
-                  borderRadius: 1,
-                  '&&': {
-                    color:
-                      value === tab.path || value === index
-                        ? theme.palette.primary.contrastText
-                        : theme.palette.text.primary,
-                    border:
-                      value === tab.path || value === index
-                        ? 'none'
-                        : `0.5px solid ${alpha(theme.palette.divider, 0.2)}`,
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  fontSize: '16px',
+                  minHeight: '48px',
+                  fontWeight: value === tab.path || value === index ? 'bold' : 'normal',
+                  color:
+                    value === tab.path || value === index ? theme.palette.text.primary : theme.palette.text.secondary,
+                  padding: '8px 16px',
+                  '&:hover': {
+                    backgroundColor: alpha(theme.palette.text.primary, 0.1),
                   },
                 }}
               />
@@ -132,8 +163,8 @@ function VerticalTabs(props: VerticalTabProps) {
       </Box>
       <TabPanel>
         <Routes>
-          <Route index element={<Navigate to={tabs[defaultTabIndex ?? 0]?.path} replace />} />
-          {tabs.map((tab) => (
+          <Route index element={<Navigate to={filteredTabs[defaultTabIndex ?? 0]?.path} replace />} />
+          {filteredTabs.map((tab) => (
             <Route key={tab.path} path={`${tab.path}/*`} element={tab.child} />
           ))}
           <Route path="*" element={notFoundRoute} />
