@@ -2,14 +2,13 @@ package us.dot.its.jpo.ode.api.emails.generators;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
-import us.dot.its.jpo.ode.api.models.emails.EmailWrapper;
+import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 
 @Component
 public abstract class AbstractEmailGenerator<T> {
@@ -27,10 +26,8 @@ public abstract class AbstractEmailGenerator<T> {
         this.emailProperties = emailProperties;
     }
 
-    public List<EmailWrapper> generateEmailBodies(List<String> recipients,
-            T data) {
-        return recipients.stream().map((emailAddress) -> generateEmailBody(emailAddress, data))
-                .filter(wrapper -> wrapper != null).toList();
+    public EmailContent generateEmailContent(T data) {
+        return generateEmailBody(data);
     }
 
     /**
@@ -41,5 +38,5 @@ public abstract class AbstractEmailGenerator<T> {
      * @param data         The data required to generate the email body.
      * @return The generated email body as a String.
      */
-    public abstract EmailWrapper generateEmailBody(String emailAddress, T data);
+    public abstract EmailContent generateEmailBody(T data);
 }

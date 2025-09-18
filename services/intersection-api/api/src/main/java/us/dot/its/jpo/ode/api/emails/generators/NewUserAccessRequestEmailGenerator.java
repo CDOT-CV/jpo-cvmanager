@@ -9,7 +9,7 @@ import org.thymeleaf.context.Context;
 
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
-import us.dot.its.jpo.ode.api.models.emails.EmailWrapper;
+import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.contents.new_user_access_requests.NewUserAccessRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.new_user_access_requests.OrganizationAccess;
 
@@ -23,8 +23,7 @@ public class NewUserAccessRequestEmailGenerator extends AbstractEmailGenerator<N
     }
 
     @Override
-    public EmailWrapper generateEmailBody(String emailAddress, NewUserAccessRequestEmailContents data) {
-        String unsubscribeUrl = unsubscribeTokenGenerator.generateUnsubscribeUrl(emailAddress);
+    public EmailContent generateEmailBody(NewUserAccessRequestEmailContents data) {
 
         Context context = new Context();
         context.setVariable("head_title", "CV Manager - New User Access Request");
@@ -41,15 +40,13 @@ public class NewUserAccessRequestEmailGenerator extends AbstractEmailGenerator<N
         context.setVariable("footer_address", "CV-Manager New User Access Request");
         context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
         context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", unsubscribeUrl);
+        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 
-        return new EmailWrapper(
-                emailAddress,
+        return new EmailContent(
                 "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
-                htmlContent,
-                unsubscribeUrl);
+                htmlContent);
     }
 
     private String getContent(NewUserAccessRequestEmailContents data) {

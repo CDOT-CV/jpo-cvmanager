@@ -19,7 +19,9 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
+import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
+import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
@@ -75,10 +77,12 @@ public class EmailTask {
         lastAlwaysList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<String> recipients = email.getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
+            List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                     EmailFrequency.ALWAYS);
-            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
-                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+            email.sendEmails(recipients, content);
         }
     }
 
@@ -97,10 +101,12 @@ public class EmailTask {
         lastHourList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+            List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                     EmailFrequency.ONCE_PER_HOUR);
-            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
-                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+            email.sendEmails(recipients, content);
         }
     }
 
@@ -119,10 +125,12 @@ public class EmailTask {
         lastDayList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+            List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                     EmailFrequency.ONCE_PER_DAY);
-            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
-                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+            email.sendEmails(recipients, content);
         }
     }
 
@@ -141,10 +149,12 @@ public class EmailTask {
         lastWeekList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+            List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                     EmailFrequency.ONCE_PER_WEEK);
-            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
-                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+            email.sendEmails(recipients, content);
         }
     }
 
@@ -163,10 +173,12 @@ public class EmailTask {
         lastMonthList = currentNotifications;
 
         if (!newNotifications.isEmpty()) {
-            List<String> recipients = email.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+            List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                     EmailFrequency.ONCE_PER_MONTH);
-            email.sendEmails(emailGenerator.generateEmailBodies(recipients,
-                    new IntersectionNotificationSummaryEmailContents(newNotifications)));
+            EmailContent content = emailGenerator
+                    .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+            email.sendEmails(recipients, content);
         }
 
     }
