@@ -92,7 +92,7 @@ def prepare_org_rsu_dict():
         "SELECT o.name org_name, r.ipv4_address, r.primary_route "
         f"FROM {schema_name}.rsu_organization ro "
         f"JOIN {schema_name}.organizations o ON ro.organization_id = o.organization_id "
-        "JOIN {schema_name}.rsus r ON ro.rsu_id = r.rsu_id "
+        f"JOIN {schema_name}.rsus r ON ro.rsu_id = r.rsu_id "
         "ORDER BY o.name, r.primary_route ASC, r.milepost ASC"
         ") as row"
     )
