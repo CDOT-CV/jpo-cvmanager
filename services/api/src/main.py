@@ -28,7 +28,6 @@ from admin_new_user import AdminNewUser
 from admin_user import AdminUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg
-from contact_support import ContactSupportResource
 import smtp_error_handler
 
 log_level = os.environ.get("LOGGING_LEVEL", "INFO")
@@ -57,7 +56,6 @@ api.add_resource(AdminNewOrg, "/admin-new-org")
 api.add_resource(AdminOrg, "/admin-org")
 api.add_resource(AdminNotification, "/admin-notification")
 api.add_resource(AdminNewNotification, "/admin-new-notification")
-api.add_resource(ContactSupportResource, "/contact-support")
 
 if ENABLE_RSU_FEATURES:
     api.add_resource(RsuInfo, "/rsuinfo")

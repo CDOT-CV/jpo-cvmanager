@@ -84,7 +84,6 @@ organization_required = {
     "/moove-ai-data": False,
     "/admin-new-notification": False,
     "/admin-notification": False,
-    "/rsu-error-summary": False,
 }
 
 # Tag endpoints with the feature they require. The tagged endpoints will automatically be disabled if the feature is disabled
@@ -116,7 +115,6 @@ feature_tags = {
     "/moove-ai-data": "moove_ai",
     "/admin-new-notification": None,
     "/admin-notification": None,
-    "/rsu-error-summary": "rsu",
 }
 
 
@@ -125,7 +123,7 @@ def check_auth_exempt(method, path):
     if method == "OPTIONS":
         return True
 
-    exempt_paths = ["/", "/contact-support", "/rsu-error-summary"]
+    exempt_paths = ["/"]
     if path in exempt_paths:
         return True
 

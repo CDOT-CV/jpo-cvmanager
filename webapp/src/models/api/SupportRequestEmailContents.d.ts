@@ -1,5 +1,5 @@
 type SupportRequestEmailContents = {
-  userEmail: string
-  organization: string
+  email: string
+  subject: string
   message: string
 }
