@@ -25,7 +25,7 @@ public class RsuErrorSummaryEmailGenerator extends AbstractEmailGenerator<RsuErr
         context.setVariable("head_title", "CV Manager - RSU Error Summary");
         context.setVariable("preview_text", "RSU Error Summary from CV Manager");
         context.setVariable("greeting", "Hello,");
-        context.setVariable("content_1", getContent(data));
+        context.setVariable("content_1", data.getMessage());
         context.setVariable("action_button_text", "Navigate to the CV-Manager");
         context.setVariable("action_button_href",
                 String.format("%s", emailProperties.getCvmgrFrontEndUri()));
@@ -41,31 +41,7 @@ public class RsuErrorSummaryEmailGenerator extends AbstractEmailGenerator<RsuErr
         String htmlContent = templateEngine.process("emails/announcement", context);
 
         return new EmailContent(
-                "CV-Manager RSU Error Summary for " + data.getRsuIp(),
+                data.getSubject(),
                 htmlContent);
-    }
-
-    private String getContent(RsuErrorSummaryEmailContents data) {
-        String content = String.format("<h2>RSU Error Summary Email</h2>" +
-                "<br />" +
-                "<p>Hello,</p>" +
-                "<p>Below is the status summary for RSU %s at %s UTC:</p>" +
-                "<table>" +
-                "<tr>" +
-                "<th>Online Status</th>" +
-                "<th>SCMS Status</th>" +
-                "<th>Certificate Status</th>" +
-                "</tr>" +
-                "<tr>" +
-                "<td>RSU %s</td>" +
-                "<td>%s</td>" +
-                "</tr>" +
-                "</table>",
-                data.getRsuIp(),
-                dateTimeFormatter.format(data.getTimestamp()),
-                data.getOnlineStatus(),
-                data.getScmsStatus(),
-                data.getCertificateStatus());
-        return content;
     }
 }
