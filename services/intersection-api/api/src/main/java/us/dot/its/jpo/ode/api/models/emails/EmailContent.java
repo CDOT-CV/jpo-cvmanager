@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class EmailWrapper {
-    private String recipientEmail;
+public class EmailContent {
     private String subject;
     private String body;
-    private String unsubscribeUrl;
 }

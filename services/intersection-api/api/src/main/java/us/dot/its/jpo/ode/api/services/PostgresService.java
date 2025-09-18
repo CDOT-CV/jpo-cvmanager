@@ -75,6 +75,17 @@ public class PostgresService {
             "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
             "WHERE et.email_type = :notification_type";
 
+    private final String findUserEmailsByRoleAndOrganizationQuery = "SELECT u.email " +
+            "FROM Users u " +
+            "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
+            "JOIN Organizations o ON uo.organization_id = o.organization_id " +
+            "JOIN Roles r ON uo.role_id = r.role_id " +
+            "WHERE o.name = :orgName AND r.name = :roleName";
+
+    private final String findSuperUserEmailsQuery = "SELECT u.email " +
+            "FROM Users u " +
+            "WHERE u.super_user = true";
+
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
         query.setParameter("email", email);
@@ -208,6 +219,18 @@ public class PostgresService {
     public List<String> getUsersByNotificationType(String notificationType) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeQuery, String.class);
         query.setParameter("notification_type", notificationType);
+        return query.getResultList();
+    }
+
+    public List<String> getOrganizationEmailListByRole(String organization, String roleName) {
+        TypedQuery<String> query = entityManager.createQuery(findUserEmailsByRoleAndOrganizationQuery, String.class);
+        query.setParameter("orgName", organization);
+        query.setParameter("roleName", roleName);
+        return query.getResultList();
+    }
+
+    public List<String> getSuperUserEmailList() {
+        TypedQuery<String> query = entityManager.createQuery(findSuperUserEmailsQuery, String.class);
         return query.getResultList();
     }
 }
