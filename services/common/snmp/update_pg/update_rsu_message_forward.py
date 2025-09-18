@@ -1,4 +1,5 @@
 import logging
+import os
 import common.pgquery as pgquery
 import common.snmp.ntcip1218.rsu_message_forward as ntcip1218_rsumf
 import common.snmp.rsu41.rsu_message_forward as rsu41_rsumf
@@ -17,11 +18,12 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
         """
         Retrieves the mapping of SNMP message forwarding types from the PostgreSQL database.
         """
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
             "SELECT to_jsonb(row) "
             "FROM ("
             "SELECT snmp_msgfwd_type_id, name "
-            "FROM public.snmp_msgfwd_type"
+            "FROM {schema_name}.snmp_msgfwd_type"
             ") as row"
         )
 
@@ -39,8 +41,9 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
         """
         Inserts a list of SNMP message forwarding configurations into the PostgreSQL database.
         """
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
-            "INSERT INTO public.snmp_msgfwd_config("
+            "INSERT INTO {schema_name}.snmp_msgfwd_config("
             "rsu_id, msgfwd_type, snmp_index, message_type, dest_ipv4, dest_port, start_datetime, end_datetime, active, security) "
             "VALUES"
         )
@@ -59,9 +62,10 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
         """
         Deletes a list of SNMP message forwarding configurations from the PostgreSQL database.
         """
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         for snmp_config in snmp_config_list:
             query = (
-                "DELETE FROM public.snmp_msgfwd_config "
+                "DELETE FROM {schema_name}.snmp_msgfwd_config "
                 f"WHERE rsu_id={snmp_config['rsu_id']} AND msgfwd_type={snmp_config['msgfwd_type']} AND snmp_index={snmp_config['snmp_index']}"
             )
 
@@ -72,12 +76,13 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
         Retrieves the list of SNMP message forwarding configurations from the PostgreSQL database.
         Optionally filters the configurations by a subset of RSUs.
         """
+        schema_name = os.getenv("POSTGRES_SCHEMA_NAME", "public")
         query = (
             "SELECT to_jsonb(row) "
             "FROM ("
             "SELECT rsu_id, smt.name msgfwd_type, snmp_index, message_type, dest_ipv4, dest_port, start_datetime, end_datetime, active, security "
-            "FROM public.snmp_msgfwd_config smc "
-            "JOIN public.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id"
+            "FROM {schema_name}.snmp_msgfwd_config smc "
+            "JOIN {schema_name}.snmp_msgfwd_type smt ON smc.msgfwd_type = smt.snmp_msgfwd_type_id"
         )
 
         # If an rsu_obj was provided, only return the RSU information for the subset
