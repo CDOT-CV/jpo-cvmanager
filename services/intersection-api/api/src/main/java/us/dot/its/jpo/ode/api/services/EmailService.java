@@ -84,6 +84,7 @@ public class EmailService {
 
     public List<EmailSendResponse> sendFirmwareUpgradeFailure(FirmwareUpgradeFailureEmailContents data) {
         EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
+        // TODO: Use email addresses from RSU org only
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
                 EmailFrequency.ALWAYS);
         return emailProvider.sendBatchedEmails(recipients, content);
@@ -91,6 +92,7 @@ public class EmailService {
 
     public List<EmailSendResponse> sendRsuErrorSummary(RsuErrorSummaryEmailContents data) {
         EmailContent content = rsuErrorSummaryEmailGenerator.generateEmailBody(data);
+        // TODO: Use email addresses from RSU org only
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.RSU_ERROR_SUMMARY,
                 EmailFrequency.ALWAYS);
         return emailProvider.sendBatchedEmails(recipients, content);

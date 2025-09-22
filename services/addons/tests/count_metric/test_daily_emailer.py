@@ -202,29 +202,28 @@ def test_prepare_org_rsu_dict(mock_query_db):
     os.environ,
     {
         "DEPLOYMENT_TITLE": "Test",
-        "SMTP_SERVER_IP": "10.0.0.1",
-        "SMTP_USERNAME": "username",
-        "SMTP_PASSWORD": "password",
-        "SMTP_EMAIL": "test@gmail.com",
+        "IAPI_ENDPOINT": "localhost:8089",
+        "KC_USERNAME": "username",
+        "KC_PASSWORD": "password",
     },
 )
-@patch("addons.images.count_metric.daily_emailer.EmailSender")
-@patch("addons.images.count_metric.daily_emailer.get_email_list")
-def test_email_daily_counts(mock_email_list, mock_emailsender):
-    mock_email_list.return_value = ["bob@gmail.com"]
-    emailsender_obj = mock_emailsender.return_value
+@patch("addons.images.count_metric.daily_emailer.EmailApi")
+def test_email_daily_counts(mock_email_api):
+    email_api_obj = mock_email_api.return_value
 
-    daily_emailer.email_daily_counts("Test Org", "test")
+    start_date = datetime.now()
+    end_date = datetime.now()
+    daily_emailer.email_daily_counts(
+        "Test Org", "test", start_date, end_date, ["BSM"], []
+    )
 
-    emailsender_obj.send.assert_called_once_with(
-        sender="test@gmail.com",
-        recipient="bob@gmail.com",
-        subject="Test Org Test Counts",
-        message="test",
-        replyEmail="",
-        username="username",
-        password="password",
-        pretty=True,
+    email_api_obj.send_message_counts.assert_called_once_with(
+        "Test Org",
+        "test",
+        start_date,
+        end_date,
+        ["BSM"],
+        [],
     )
 
 
@@ -233,10 +232,10 @@ def test_email_daily_counts(mock_email_list, mock_emailsender):
     {
         "MONGO_DB_URI": "mongo-uri",
         "MONGO_DB_NAME": "test_db",
+        "DEPLOYMENT_TITLE": "Test",
     },
 )
 @patch("addons.images.count_metric.daily_emailer.MongoClient", MagicMock())
-@patch("addons.images.count_metric.daily_emailer.gen_email.generate_email_body")
 @patch("addons.images.count_metric.daily_emailer.email_daily_counts")
 @patch("addons.images.count_metric.daily_emailer.query_mongo_out_counts")
 @patch("addons.images.count_metric.daily_emailer.query_mongo_in_counts")
@@ -246,7 +245,6 @@ def test_run_daily_emailer(
     mock_query_mongo_in_counts,
     mock_query_mongo_out_counts,
     mock_email_daily_counts,
-    mock_gen_email,
 ):
     mock_prepare_org_rsu_dict.return_value = {"Test Org": {}}
     daily_emailer.run_daily_emailer()
@@ -255,4 +253,3 @@ def test_run_daily_emailer(
     mock_query_mongo_in_counts.assert_called_once()
     mock_query_mongo_out_counts.assert_called_once()
     mock_email_daily_counts.assert_called_once()
-    mock_gen_email.assert_called_once()
