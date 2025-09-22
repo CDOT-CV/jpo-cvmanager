@@ -7,8 +7,7 @@ import logging
 import os
 import requests
 import shutil
-from common.emailSender import EmailSender
-from common.email_util import get_email_list_from_rsu
+from common.email_api import EmailApi
 import download_blob
 
 
@@ -118,33 +117,20 @@ class UpgraderAbstractClass(abc.ABC):
         # 5 seconds pass with no response
         return False
 
-    def send_error_email(self, type="Firmware Upgrader", err=""):
+    def send_error_email(self, err: Exception, stack_trace: str, type: str):
         try:
-            email_addresses = get_email_list_from_rsu(
-                "Firmware Upgrade Failures", self.rsu_ip
+            email_api = EmailApi(
+                os.environ["IAPI_ENDPOINT"],
+                os.environ["KC_USERNAME"],
+                os.environ["KC_PASSWORD"],
             )
 
-            subject = (
-                f"{self.rsu_ip} Firmware Upgrader Failure"
-                if type == "Firmware Upgrader"
-                else f"{self.rsu_ip} Firmware Upgrader Post Upgrade Script Failure"
+            email_api.send_firmware_upgrade_failure(
+                rsu_ip=self.rsu_ip,
+                error_message=f"{type}: Failed to perform update on RSU {self.rsu_ip} due to the following error: {err}",
+                failure_type=type,
+                stack_trace=stack_trace,
             )
-
-            for email_address in email_addresses:
-                emailSender = EmailSender(
-                    os.environ["SMTP_SERVER_IP"],
-                    587,
-                )
-                emailSender.send(
-                    sender=os.environ["SMTP_EMAIL"],
-                    recipient=email_address,
-                    subject=subject,
-                    message=f"{type}: Failed to perform update on RSU {self.rsu_ip} due to the following error: {err}",
-                    replyEmail="",
-                    username=os.environ["SMTP_USERNAME"],
-                    password=os.environ["SMTP_PASSWORD"],
-                    pretty=True,
-                )
         except Exception as e:
             logging.error(e)
 

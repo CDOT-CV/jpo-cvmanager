@@ -1,9 +1,7 @@
 import os
 import logging
-import gen_email
-from common.emailSender import EmailSender
+from common.email_api import EmailApi
 import common.pgquery as pgquery
-from common.email_util import get_email_list
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 
@@ -122,26 +120,29 @@ def prepare_org_rsu_dict():
     return rsu_dict
 
 
-def email_daily_counts(org_name, email_body):
+def email_daily_counts(
+    org_name: str,
+    deployment_title: str,
+    start_date: datetime,
+    end_date: datetime,
+    message_type_list: list[str],
+    counts: list[dict],
+):
     logging.info("Attempting to send the count emails...")
     try:
-        email_addresses = get_email_list("Daily Message Counts", org_name)
-
-        for email_address in email_addresses:
-            emailSender = EmailSender(
-                os.environ["SMTP_SERVER_IP"],
-                587,
-            )
-            emailSender.send(
-                sender=os.environ["SMTP_EMAIL"],
-                recipient=email_address,
-                subject=f"{org_name} {str(os.environ['DEPLOYMENT_TITLE'])} Counts",
-                message=email_body,
-                replyEmail="",
-                username=os.environ["SMTP_USERNAME"],
-                password=os.environ["SMTP_PASSWORD"],
-                pretty=True,
-            )
+        email_api = EmailApi(
+            os.environ["IAPI_ENDPOINT"],
+            os.environ["KC_USERNAME"],
+            os.environ["KC_PASSWORD"],
+        )
+        email_api.send_message_counts(
+            org_name,
+            deployment_title,
+            start_date,
+            end_date,
+            message_type_list,
+            counts,
+        )
     except Exception as e:
         logging.error(e)
 
@@ -164,11 +165,24 @@ def run_daily_emailer():
         query_mongo_in_counts(rsu_dict, start_dt, end_dt, mongo_db)
         query_mongo_out_counts(rsu_dict, start_dt, end_dt, mongo_db)
 
-        # Generate the email content with the populated rsu_dict
-        email_body = gen_email.generate_email_body(
-            org_name, rsu_dict, start_dt, end_dt, message_types
+        rsu_counts = [
+            {
+                "rsu_ip": rsu_ip,
+                "counts": data["counts"],
+                "primary_route": data["primary_route"],
+            }
+            for rsu_ip, data in rsu_dict.items()
+        ]
+
+        # Send emails through the Intersection API
+        email_daily_counts(
+            org_name=org_name,
+            deployment_title=str(os.environ["DEPLOYMENT_TITLE"]),
+            start_date=start_dt,
+            end_date=end_dt,
+            message_type_list=message_types,
+            counts=rsu_counts,
         )
-        email_daily_counts(org_name, email_body)
 
 
 if __name__ == "__main__":

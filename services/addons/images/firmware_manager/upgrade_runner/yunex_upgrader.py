@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import traceback
 
 
 class YunexUpgrader(upgrader.UpgraderAbstractClass):
@@ -16,7 +17,7 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
         xfer_command = [
             "java",
             "-jar",
-            f"/home/tools/xfer_yunex.jar",
+            "/home/tools/xfer_yunex.jar",
             "-upload",
             file_name,
             f"{self.rsu_ip}:3600",
@@ -111,7 +112,9 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
             self.cleanup()
             self.notify_firmware_manager(success=False)
             # send email to support team with the rsu and error
-            self.send_error_email("Firmware Upgrader", err)
+            self.send_error_email(
+                err=err, stack_trace=traceback.format_exc(), type="Firmware Upgrader"
+            )
 
 
 # sys.argv[1] - JSON string with the following key-values:

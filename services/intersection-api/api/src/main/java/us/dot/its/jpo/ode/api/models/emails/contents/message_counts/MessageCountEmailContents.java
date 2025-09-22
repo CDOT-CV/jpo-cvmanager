@@ -11,7 +11,6 @@ import lombok.Data;
 public class MessageCountEmailContents {
     private String organizationName;
     private String deploymentTitle;
-    private String primaryRoute;
     private Instant startDate;
     private Instant endDate;
 

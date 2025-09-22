@@ -60,14 +60,12 @@ The firmware_manager microservice expects the following environment variables to
 - PG_DB_HOST - PostgreSQL hostname, make sure to include port number.
 - LOGGING_LEVEL (optional, defaults to 'info')
 
-The Firmware Manager is capable of sending an email to the support team in the event that an online RSU experiences a firmware upgrade failure.
-This functionality relies on the user_email_notification PostgreSQL table to pull in the list of users that are subscribed to receive these emails.
-To do so the following environment variables must be set:
+The Firmware Manager is capable of directing the Intersection API to send an email to the support team in the event that an online RSU experiences a firmware upgrade failure. The Intersection API is authenticated by Keycloak, and the firmware manager uses a saved credential, and generates tokens through the intersection API auth endpoints.
+This functionality relies on the following environment variables:
 
-- SMTP_EMAIL - Email to send from.
-- SMTP_USERNAME - SMTP username for SMTP_EMAIL.
-- SMTP_PASSWORD - SMTP password for SMTP_EMAIL.
-- SMTP_SERVER_IP - Address of the SMTP server.
+- IAPI_ENDPOINT - Base endpoint of Intersection API (no email/auth route)
+- KC_USERNAME - Keycloak service account username
+- KC_PASSWORD - Keycloak service account password
 
 GCP Required environment variables:
 
