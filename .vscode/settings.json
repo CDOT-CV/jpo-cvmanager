@@ -60,6 +60,7 @@
     "hamcrest",
     "healthcheck",
     "hookform",
+    "iapi",
     "inet",
     "INITDB",
     "inprog",

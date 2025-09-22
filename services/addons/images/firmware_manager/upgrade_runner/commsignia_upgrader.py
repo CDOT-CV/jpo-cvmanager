@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 
 
 class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
@@ -74,7 +75,9 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
             self.cleanup()
             self.notify_firmware_manager(success=False)
             # send email to support team with the rsu and error
-            self.send_error_email("Firmware Upgrader", err)
+            self.send_error_email(
+                err=err, stack_trace=traceback.format_exc(), type="Firmware Upgrader"
+            )
 
     def post_upgrade(self):
         if self.wait_until_online() == -1:
@@ -103,8 +106,8 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
 
             # Change permissions and execute post upgrade script
             logging.info("Running post upgrade script for " + self.rsu_ip + "...")
-            ssh.exec_command(f"chmod +x /tmp/post_upgrade.sh")
-            _stdin, _stdout, _stderr = ssh.exec_command(f"/tmp/post_upgrade.sh")
+            ssh.exec_command("chmod +x /tmp/post_upgrade.sh")
+            _stdin, _stdout, _stderr = ssh.exec_command("/tmp/post_upgrade.sh")
             decoded_stdout = _stdout.read().decode()
             logging.info(decoded_stdout)
             if "ALL OK" not in decoded_stdout:
@@ -122,7 +125,9 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
                 f"Failed to execute post upgrade script for rsu {self.rsu_ip}: {err}"
             )
             # send email to support team with the rsu and error
-            self.send_error_email("Post-Upgrade Script", err)
+            self.send_error_email(
+                err=err, stack_trace=traceback.format_exc(), type="Post-Upgrade Script"
+            )
 
 
 # sys.argv[1] - JSON string with the following key-values:
