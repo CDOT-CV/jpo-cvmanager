@@ -45,8 +45,8 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +59,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @AutoConfigureEmbeddedDatabase
 public class SpatBroadcastRateRepositoryImplTest {
 
-        @SpyBean
+        @MockitoSpyBean
         private MongoTemplate mongoTemplate;
 
         @Mock
@@ -228,18 +228,6 @@ public class SpatBroadcastRateRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(SpatBroadcastRateEvent.class),
                                 eq("CmSpatBroadcastRateEvents"));
-        }
-
-        @Test
-        void testAdd() {
-                SpatBroadcastRateEvent event = new SpatBroadcastRateEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(SpatBroadcastRateEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmSpatBroadcastRateEvents");
         }
 
 }

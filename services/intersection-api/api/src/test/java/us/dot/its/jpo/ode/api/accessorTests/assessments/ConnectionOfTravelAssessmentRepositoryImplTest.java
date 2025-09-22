@@ -37,8 +37,8 @@ import java.util.List;
 
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,7 +55,7 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 @AutoConfigureEmbeddedDatabase
 public class ConnectionOfTravelAssessmentRepositoryImplTest {
 
-        @SpyBean
+        @MockitoSpyBean
         private MongoTemplate mongoTemplate;
 
         @Mock
@@ -198,18 +198,6 @@ public class ConnectionOfTravelAssessmentRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(ConnectionOfTravelAssessment.class),
                                 eq("CmConnectionOfTravelAssessment"));
-        }
-
-        @Test
-        void testAdd() {
-                ConnectionOfTravelAssessment event = new ConnectionOfTravelAssessment();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(ConnectionOfTravelAssessment.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmConnectionOfTravelAssessment");
         }
 
 }

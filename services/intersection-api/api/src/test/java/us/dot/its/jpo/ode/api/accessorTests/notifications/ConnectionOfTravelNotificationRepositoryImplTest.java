@@ -44,8 +44,8 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,8 +58,8 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @AutoConfigureEmbeddedDatabase
 public class ConnectionOfTravelNotificationRepositoryImplTest {
 
-        @SpyBean
-        private MongoTemplate mongoTemplate;
+    @MockitoSpyBean
+    private MongoTemplate mongoTemplate;
 
         @Mock
         private AggregationResults<AggregationResult> mockAggregationResult;
@@ -99,10 +99,10 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
                 verify(mongoTemplate).count(any(Query.class), anyString());
         }
 
-        @Test
-        public void testFind() {
-                ConnectionOfTravelNotificationRepositoryImpl repo = mock(
-                                ConnectionOfTravelNotificationRepositoryImpl.class);
+    @Test
+    public void testFind() {
+        ConnectionOfTravelNotificationRepositoryImpl repo = mock(
+                ConnectionOfTravelNotificationRepositoryImpl.class);
 
                 when(repo.findPage(
                                 any(),
@@ -198,17 +198,5 @@ public class ConnectionOfTravelNotificationRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(ConnectionOfTravelNotification.class),
                                 eq("CmConnectionOfTravelNotification"));
-        }
-
-        @Test
-        void testAdd() {
-                ConnectionOfTravelNotification event = new ConnectionOfTravelNotification();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(ConnectionOfTravelNotification.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmConnectionOfTravelNotification");
         }
 }

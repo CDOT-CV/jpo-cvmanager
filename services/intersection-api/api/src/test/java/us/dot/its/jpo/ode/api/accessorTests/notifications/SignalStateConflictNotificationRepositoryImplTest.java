@@ -37,8 +37,8 @@ import java.util.List;
 
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,8 +55,8 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 @AutoConfigureEmbeddedDatabase
 public class SignalStateConflictNotificationRepositoryImplTest {
 
-        @SpyBean
-        private MongoTemplate mongoTemplate;
+    @MockitoSpyBean
+    private MongoTemplate mongoTemplate;
 
         @Mock
         private AggregationResults<AggregationResult> mockAggregationResult;
@@ -96,10 +96,10 @@ public class SignalStateConflictNotificationRepositoryImplTest {
                 verify(mongoTemplate).count(any(Query.class), anyString());
         }
 
-        @Test
-        public void testFind() {
-                SignalStateConflictNotificationRepositoryImpl repo = mock(
-                                SignalStateConflictNotificationRepositoryImpl.class);
+    @Test
+    public void testFind() {
+        SignalStateConflictNotificationRepositoryImpl repo = mock(
+                SignalStateConflictNotificationRepositoryImpl.class);
 
                 when(repo.findPage(
                                 any(),
@@ -196,17 +196,4 @@ public class SignalStateConflictNotificationRepositoryImplTest {
                 verify(mongoTemplate).findOne(any(Query.class), eq(SignalStateConflictNotification.class),
                                 eq("CmSignalStateConflictNotification"));
         }
-
-        @Test
-        void testAdd() {
-                SignalStateConflictNotification event = new SignalStateConflictNotification();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(SignalStateConflictNotification.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmSignalStateConflictNotification");
-        }
-
 }

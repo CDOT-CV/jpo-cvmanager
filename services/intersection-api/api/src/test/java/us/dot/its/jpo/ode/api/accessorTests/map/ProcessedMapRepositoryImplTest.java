@@ -40,6 +40,7 @@ import org.bson.Document;
 import us.dot.its.jpo.conflictmonitor.monitor.models.map.MapBoundingBox;
 import us.dot.its.jpo.conflictmonitor.monitor.models.map.MapIndex;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
+import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.MapRefPoint;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.MapSharedProperties;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepositoryImpl;
@@ -52,8 +53,8 @@ import us.dot.its.jpo.ode.plugin.j2735.OdePosition3D;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,8 +70,8 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @AutoConfigureEmbeddedDatabase
 public class ProcessedMapRepositoryImplTest {
 
-        @SpyBean
-        private MongoTemplate mongoTemplate;
+    @MockitoSpyBean
+    private MongoTemplate mongoTemplate;
 
         @Mock
         private AggregationResults<AggregationResult> mockAggregationResult;
@@ -198,10 +199,10 @@ public class ProcessedMapRepositoryImplTest {
                 when(props1.getIntersectionId()).thenReturn(1);
                 when(props1.getOriginIp()).thenReturn("1.1.1.1");
                 when(props1.getIntersectionName()).thenReturn("Intersection1");
-                OdePosition3D refPoint1 = mock(OdePosition3D.class);
+                MapRefPoint refPoint1 = mock(MapRefPoint.class);
                 when(props1.getRefPoint()).thenReturn(refPoint1);
-                when(refPoint1.getLatitude()).thenReturn(new java.math.BigDecimal("10.0"));
-                when(refPoint1.getLongitude()).thenReturn(new java.math.BigDecimal("20.0"));
+                when(refPoint1.getLatitude()).thenReturn(10.0);
+                when(refPoint1.getLongitude()).thenReturn(20.0);
 
                 // Mock properties for map2
                 MapSharedProperties props2 = mock(MapSharedProperties.class);
@@ -209,10 +210,10 @@ public class ProcessedMapRepositoryImplTest {
                 when(props2.getIntersectionId()).thenReturn(2);
                 when(props2.getOriginIp()).thenReturn("2.2.2.2");
                 when(props2.getIntersectionName()).thenReturn("Intersection2");
-                OdePosition3D refPoint2 = mock(OdePosition3D.class);
+                MapRefPoint refPoint2 = mock(MapRefPoint.class);
                 when(props2.getRefPoint()).thenReturn(refPoint2);
-                when(refPoint2.getLatitude()).thenReturn(new java.math.BigDecimal("30.0"));
-                when(refPoint2.getLongitude()).thenReturn(new java.math.BigDecimal("40.0"));
+                when(refPoint2.getLatitude()).thenReturn(30.0);
+                when(refPoint2.getLongitude()).thenReturn(40.0);
 
                 // Return a page with the map for each intersection
                 Page<ProcessedMap<LineString>> page1 = new PageImpl<>(List.of(map1));
