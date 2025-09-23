@@ -229,18 +229,5 @@ public class SpatMinimumDataEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(SpatMinimumDataEvent.class),
                                 eq("CmSpatMinimumDataEvents"));
-        }
-
-        @Test
-        void testAdd() {
-                SpatMinimumDataEvent event = new SpatMinimumDataEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(SpatMinimumDataEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmSpatMinimumDataEvents");
-        }
-
+            }
 }

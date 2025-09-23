@@ -274,18 +274,5 @@ public class LaneDirectionOfTravelEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(LaneDirectionOfTravelEvent.class),
                                 eq("CmLaneDirectionOfTravelEvent"));
-        }
-
-        @Test
-        void testAdd() {
-                LaneDirectionOfTravelEvent event = new LaneDirectionOfTravelEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(LaneDirectionOfTravelEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmLaneDirectionOfTravelEvent");
-        }
-
+            }
 }

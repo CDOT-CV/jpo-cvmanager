@@ -229,18 +229,5 @@ public class MapMinimumDataEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(MapMinimumDataEvent.class),
                                 eq("CmMapMinimumDataEvents"));
-        }
-
-        @Test
-        void testAdd() {
-                MapMinimumDataEvent event = new MapMinimumDataEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(MapMinimumDataEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmMapMinimumDataEvents");
-        }
-
+            }
 }

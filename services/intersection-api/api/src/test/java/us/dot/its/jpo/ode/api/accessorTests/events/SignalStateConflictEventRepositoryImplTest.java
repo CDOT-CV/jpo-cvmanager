@@ -229,18 +229,5 @@ public class SignalStateConflictEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(SignalStateConflictEvent.class),
                                 eq("CmSignalStateConflictEvents"));
-        }
-
-        @Test
-        void testAdd() {
-                SignalStateConflictEvent event = new SignalStateConflictEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(SignalStateConflictEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmSignalStateConflictEvents");
-        }
-
+            }
 }

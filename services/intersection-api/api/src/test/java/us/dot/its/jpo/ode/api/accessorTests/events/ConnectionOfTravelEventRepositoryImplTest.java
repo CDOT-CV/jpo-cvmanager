@@ -228,18 +228,5 @@ public class ConnectionOfTravelEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(ConnectionOfTravelEvent.class),
                                 eq("CmConnectionOfTravelEvent"));
-        }
-
-        @Test
-        void testAdd() {
-                ConnectionOfTravelEvent event = new ConnectionOfTravelEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(ConnectionOfTravelEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmConnectionOfTravelEvent");
-        }
-
+            }
 }

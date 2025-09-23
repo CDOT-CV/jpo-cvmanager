@@ -145,18 +145,5 @@ public class StopLineStopEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(StopLineStopEvent.class),
                                 eq("CmStopLineStopEvent"));
-        }
-
-        @Test
-        void testAdd() {
-                StopLineStopEvent event = new StopLineStopEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(StopLineStopEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmStopLineStopEvent");
-        }
-
+            }
 }

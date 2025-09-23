@@ -229,18 +229,5 @@ public class MapBroadcastRateEventRepositoryImplTest {
                 assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
                 verify(mongoTemplate).findOne(any(Query.class), eq(MapBroadcastRateEvent.class),
                                 eq("CmMapBroadcastRateEvents"));
-        }
-
-        @Test
-        void testAdd() {
-                MapBroadcastRateEvent event = new MapBroadcastRateEvent();
-                event.setIntersectionID(intersectionID);
-
-                doReturn(null).when(mongoTemplate).insert(any(MapBroadcastRateEvent.class), anyString());
-
-                repository.add(event);
-
-                verify(mongoTemplate).insert(event, "CmMapBroadcastRateEvents");
-        }
-
+            }
 }

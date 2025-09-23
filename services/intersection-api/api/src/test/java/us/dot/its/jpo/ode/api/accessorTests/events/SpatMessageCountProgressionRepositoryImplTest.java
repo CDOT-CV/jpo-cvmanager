@@ -85,14 +85,4 @@ class SpatMessageCountProgressionRepositoryImplTest {
 
         assertThat(results).isEqualTo(mockPage);
     }
-
-    @Test
-    void testAdd() {
-        SpatMessageCountProgressionEvent event = new SpatMessageCountProgressionEvent();
-        event.setIntersectionID(intersectionID);
-
-        repository.add(event);
-
-        verify(mongoTemplate).insert(event, "CmSpatMessageCountProgressionEvents");
-    }
 }

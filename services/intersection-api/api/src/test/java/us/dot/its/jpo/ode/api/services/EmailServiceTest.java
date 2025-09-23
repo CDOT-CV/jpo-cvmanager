@@ -47,7 +47,7 @@ class EmailServiceTest {
     void testSendEmails() {
         List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
         EmailContent content = new EmailContent("subject", "body");
-        doNothing().when(emailProvider).sendBatchedEmails(recipients, content);
+        doReturn(List.of()).when(emailProvider).sendBatchedEmails(recipients, content);
 
         emailService.sendEmails(recipients, content);
 
