@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -56,7 +57,7 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationType() {
-        when(postgresService.getUsersByNotificationType("SUPPORT_REQUEST"))
+        when(postgresService.getUsersByNotificationType("Support Requests"))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationType(
