@@ -73,7 +73,7 @@ public class EmailProviderPostmark implements EmailProvider {
     }
 
     private String replacePlaceholders(String htmlContents, String unsubscribeUrl) {
-        return htmlContents.replaceAll("{{unsubscribe_url}}", unsubscribeUrl).replaceAll("\n", "<br>");
+        return htmlContents.replaceAll("\\{\\{unsubscribe_url\\}\\}", unsubscribeUrl).replaceAll("\n", "<br>");
     }
 
     private String getUnsubscribeUrl(String email) {
