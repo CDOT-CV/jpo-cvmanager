@@ -77,7 +77,7 @@ public class EmailProviderSmtp implements EmailProvider {
     }
 
     private String replacePlaceholders(String htmlContents, String unsubscribeUrl) {
-        return htmlContents.replaceAll("{{unsubscribe_url}}", unsubscribeUrl);
+        return htmlContents.replaceAll("\\{\\{unsubscribe_url\\}\\}", unsubscribeUrl);
     }
 
     private String getUnsubscribeUrl(String email) {
