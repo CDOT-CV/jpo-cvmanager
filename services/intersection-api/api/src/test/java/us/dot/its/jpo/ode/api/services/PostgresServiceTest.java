@@ -257,4 +257,116 @@ class PostgresServiceTest {
             verify(entityManager, times(1)).createQuery(anyString(), eq(UserOrgRole.class));
         }
     }
+
+    @Test
+    void testGetNotificationSettingsByEmail() {
+        // Arrange
+        String email = "test@example.com";
+        List<String> expectedSettings = List.of("NOTIFICATION_TYPE_1", "NOTIFICATION_TYPE_2");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.setParameter("email", email)).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedSettings);
+
+        // Act
+        List<String> result = postgresService.getNotificationSettingsByEmail(email);
+
+        // Assert
+        assertEquals(expectedSettings, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
+
+    @Test
+    void testGetUsersByNotificationType() {
+        // Arrange
+        String notificationType = "NOTIFICATION_TYPE";
+        List<String> expectedUsers = List.of("user1@example.com", "user2@example.com");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.setParameter("notification_type", notificationType)).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedUsers);
+
+        // Act
+        List<String> result = postgresService.getUsersByNotificationType(notificationType);
+
+        // Assert
+        assertEquals(expectedUsers, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
+
+    @Test
+    void testGetUsersByNotificationTypeAndRsu() {
+        // Arrange
+        String notificationType = "NOTIFICATION_TYPE";
+        String rsuIp = "192.168.1.1";
+        List<String> expectedUsers = List.of("user1@example.com", "user2@example.com");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.setParameter("notification_type", notificationType)).thenReturn(stringQuery);
+        when(stringQuery.setParameter("rsu_ip", rsuIp)).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedUsers);
+
+        // Act
+        List<String> result = postgresService.getUsersByNotificationTypeAndRsu(notificationType, rsuIp);
+
+        // Assert
+        assertEquals(expectedUsers, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
+
+    @Test
+    void testGetUsersByNotificationTypeAndOrganization() {
+        // Arrange
+        String notificationType = "NOTIFICATION_TYPE";
+        String orgName = "TestOrg";
+        List<String> expectedUsers = List.of("user1@example.com", "user2@example.com");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.setParameter("notification_type", notificationType)).thenReturn(stringQuery);
+        when(stringQuery.setParameter("organization_name", orgName)).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedUsers);
+
+        // Act
+        List<String> result = postgresService.getUsersByNotificationTypeAndOrganization(notificationType, orgName);
+
+        // Assert
+        assertEquals(expectedUsers, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
+
+    @Test
+    void testGetOrganizationEmailListByRole() {
+        // Arrange
+        String organization = "TestOrg";
+        String roleName = "ADMIN";
+        List<String> expectedEmails = List.of("admin1@example.com", "admin2@example.com");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.setParameter("orgName", organization)).thenReturn(stringQuery);
+        when(stringQuery.setParameter("roleName", roleName)).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedEmails);
+
+        // Act
+        List<String> result = postgresService.getOrganizationEmailListByRole(organization, roleName);
+
+        // Assert
+        assertEquals(expectedEmails, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
+
+    @Test
+    void testGetSuperUserEmailList() {
+        // Arrange
+        List<String> expectedEmails = List.of("superuser1@example.com", "superuser2@example.com");
+
+        when(entityManager.createQuery(anyString(), eq(String.class))).thenReturn(stringQuery);
+        when(stringQuery.getResultList()).thenReturn(expectedEmails);
+
+        // Act
+        List<String> result = postgresService.getSuperUserEmailList();
+
+        // Assert
+        assertEquals(expectedEmails, result);
+        verify(entityManager, times(1)).createQuery(anyString(), eq(String.class));
+    }
 }

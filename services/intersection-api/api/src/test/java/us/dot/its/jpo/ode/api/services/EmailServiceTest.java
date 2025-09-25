@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -70,7 +73,7 @@ class EmailServiceTest {
 
     @Test
     void testGetSupportRequestEmailList_WithOrg() {
-        when(postgresService.getOrganizationEmailListByRole("org", "ADMIN"))
+        when(postgresService.getUsersByNotificationTypeAndOrganization("Support Requests", "org"))
                 .thenReturn(List.of("admin1@example.com"));
         List<String> result = emailService.getSupportRequestEmailList("org");
         assertEquals(1, result.size());
@@ -79,11 +82,17 @@ class EmailServiceTest {
 
     @Test
     void testGetSupportRequestEmailList_FallbackToSuperUser() {
+        when(postgresService.getSuperUserEmailList())
+                .thenReturn(List.of("superuser@example.com"));
+        List<String> result = emailService.getSupportRequestEmailList(null);
+        assertEquals(1, result.size());
+        assertEquals("superuser@example.com", result.get(0));
+
         when(postgresService.getOrganizationEmailListByRole("org", "ADMIN"))
                 .thenReturn(new ArrayList<>());
         when(postgresService.getSuperUserEmailList())
                 .thenReturn(List.of("superuser@example.com"));
-        List<String> result = emailService.getSupportRequestEmailList("org");
+        result = emailService.getSupportRequestEmailList("org");
         assertEquals(1, result.size());
         assertEquals("superuser@example.com", result.get(0));
     }
@@ -139,15 +148,21 @@ class EmailServiceTest {
     @Test
     void testSendFirmwareUpgradeFailure() {
         FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        data.setRsuIp("1.1.1.1");
         EmailContent content = new EmailContent("subject", "body");
         List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(postgresService.getUsersByNotificationTypeAndRsu("Firmware Upgrade Failures", "1.1.1.1"))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
+        // assert emailProvider.sendBatchedEmails arguments
+        verify(emailProvider).sendBatchedEmails(
+                argThat(list -> list.size() == 1 && list.getFirst().getEmail().equals("test@example.com")),
+                eq(content));
 
         assertEquals(responses, result);
     }
