@@ -75,6 +75,25 @@ public class PostgresService {
             "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
             "WHERE et.email_type = :notification_type";
 
+    private final String findUsersByNotificationTypeAndRsuQuery = "SELECT DISTINCT u.email " +
+            "FROM Users u " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
+            "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
+            "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
+            "WHERE et.email_type = :notification_type " +
+            "AND r.ipv4_address = :rsu_ip";
+
+    private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
+            "FROM Users u " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
+            "JOIN Organizations o ON uo.organization_id = o.organization_id " +
+            "WHERE et.email_type = :notification_type " +
+            "AND o.name = :organization_name";
+
     private final String findUserEmailsByRoleAndOrganizationQuery = "SELECT u.email " +
             "FROM Users u " +
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
@@ -219,6 +238,21 @@ public class PostgresService {
     public List<String> getUsersByNotificationType(String notificationType) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeQuery, String.class);
         query.setParameter("notification_type", notificationType);
+        return query.getResultList();
+    }
+
+    public List<String> getUsersByNotificationTypeAndRsu(String notificationType, String rsuIp) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndRsuQuery, String.class);
+        query.setParameter("notification_type", notificationType);
+        query.setParameter("rsu_ip", rsuIp);
+        return query.getResultList();
+    }
+
+    public List<String> getUsersByNotificationTypeAndOrganization(String notificationType, String orgName) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndOrganizationQuery,
+                String.class);
+        query.setParameter("notification_type", notificationType);
+        query.setParameter("organization_name", orgName);
         return query.getResultList();
     }
 
