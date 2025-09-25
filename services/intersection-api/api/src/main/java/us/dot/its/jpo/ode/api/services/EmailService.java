@@ -50,10 +50,26 @@ public class EmailService {
                 .toList();
     }
 
+    public List<EmailRecipient> getUsersForNotificationTypeByRsu(EmailCategory category, String rsuIp) {
+        // TODO: Filter by email frequency
+        return postgresService.getUsersByNotificationTypeAndRsu(category.getCategoryKey(), rsuIp).stream()
+                .map(email -> new EmailRecipient(email, null))
+                .toList();
+    }
+
+    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String rsuIp) {
+        // TODO: Filter by email frequency
+        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), rsuIp).stream()
+                .map(email -> new EmailRecipient(email, null))
+                .toList();
+    }
+
     public List<String> getSupportRequestEmailList(String organization) {
         List<String> recipients = new ArrayList<>();
         if (organization != null) {
-            recipients.addAll(postgresService.getOrganizationEmailListByRole(organization, "ADMIN"));
+            recipients.addAll(postgresService.getUsersByNotificationTypeAndOrganization(
+                    EmailCategory.SUPPORT_REQUEST.getCategoryKey(),
+                    organization));
         }
         if (recipients.isEmpty()) {
             recipients.addAll(postgresService.getSuperUserEmailList());
@@ -85,8 +101,8 @@ public class EmailService {
     public List<EmailSendResponse> sendFirmwareUpgradeFailure(FirmwareUpgradeFailureEmailContents data) {
         EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
         // TODO: Use email addresses from RSU org only
-        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
-                EmailFrequency.ALWAYS);
+        List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
+                data.getRsuIp());
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
