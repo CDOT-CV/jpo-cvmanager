@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.asn1;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.ZonedDateTime;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
@@ -69,6 +71,10 @@ public class SrmDecoder implements Decoder {
         try {
             OdeMessageFrameData odeMessageFrameData = convertXERToMessageFrame(xer);
             ProcessedSrm processedSrm = convertMessageFrameToProcessedSrm(odeMessageFrameData);
+            processedSrm.getProperties().setAsn1(message.getAsn1Message());
+            processedSrm.getProperties().setOriginIp(odeMessageFrameData.getMetadata().getOriginIp());
+            processedSrm.getProperties()
+                    .setOdeReceivedAt(ZonedDateTime.parse(odeMessageFrameData.getMetadata().getOdeReceivedAt()));
             return new SrmDecodedMessage(
                     processedSrm,
                     message.getAsn1Message(), "");

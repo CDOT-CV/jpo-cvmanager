@@ -94,13 +94,17 @@ public class SsmDecoderTests {
             OdeMessageFrameData ssmMessageFrame = objectMapper.readValue(odeSsmDecodedJsonReference,
                     OdeMessageFrameData.class);
 
+            ObjectMapper objectMapper = DateJsonMapper.getInstance();
+
             ssmMessageFrame.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
 
             ProcessedSsm ssm = ssmDecoder.convertMessageFrameToProcessedSsm(ssmMessageFrame);
 
             ssm.setOdeReceivedAt(ZonedDateTime.parse("2025-08-29T16:09:34.416Z"));
 
-            assertEquals(ssm.toString().replaceAll("\n", "").replaceAll(" ", ""), processedSsmReference);
+            String convertedString = objectMapper.writeValueAsString(ssm).replaceAll("\n", "").replaceAll(" ", "");
+
+            assertEquals(convertedString, processedSsmReference.replaceAll("\n", "").replaceAll(" ", ""));
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }
