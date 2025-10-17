@@ -25,6 +25,12 @@ import us.dot.its.jpo.ode.util.DateTimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.asn.j2735.r2024.MessageFrame.MessageFrame;
 import us.dot.its.jpo.asn.j2735.r2024.SignalStatusMessage.SignalStatusMessageMessageFrame;
+import us.dot.its.jpo.geojsonconverter.converter.ssm.SsmConverter;
+import us.dot.its.jpo.geojsonconverter.pojos.common.DeserializedRawMessageFrame;
+import us.dot.its.jpo.geojsonconverter.pojos.ssm.ProcessedSsm;
+import us.dot.its.jpo.geojsonconverter.utils.ProcessedSchemaVersions;
+import us.dot.its.jpo.geojsonconverter.validator.JsonValidatorResult;
+import us.dot.its.jpo.geojsonconverter.validator.SrmJsonValidator;
 
 /**
  * Decoder implementation for Basic Safety Message (SSM) messages.
@@ -35,6 +41,8 @@ import us.dot.its.jpo.asn.j2735.r2024.SignalStatusMessage.SignalStatusMessageMes
 public class SsmDecoder implements Decoder {
 
     MessageFrameCodec codec;
+    SrmJsonValidator ssmJsonValidator;
+    public static final SsmConverter converter = new SsmConverter();
     public static final XmlMapper xmlMapper = new XmlMapper();
 
     /**
@@ -60,9 +68,8 @@ public class SsmDecoder implements Decoder {
 
         try {
             OdeMessageFrameData odeMessageFrameData = convertXERToMessageFrame(xer);
-            return new SsmDecodedMessage(
-                    ((SignalStatusMessageMessageFrame) odeMessageFrameData.getPayload().getData()).getValue(),
-                    message.getAsn1Message(), "");
+            ProcessedSsm processedSsm = convertMessageFrameToProcessedSsm(odeMessageFrameData);
+            return new SsmDecodedMessage(processedSsm, message.getAsn1Message(), "");
 
         } catch (JsonProcessingException e) {
             return new SsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
@@ -108,6 +115,43 @@ public class SsmDecoder implements Decoder {
         OdeMessageFramePayload payload = new OdeMessageFramePayload(messageFrame);
 
         return new OdeMessageFrameData(metadata, payload);
+
+    }
+
+    /**
+     * Converts OdeMessageFrameData to a processed SSM object.
+     * Validates the message and returns either a processed or failure SSM.
+     *
+     * @param odeMessageFrameData OdeMessageFrameData to process
+     * @return ProcessedSsm object containing SSM data or validation failure
+     */
+    public ProcessedSsm convertMessageFrameToProcessedSsm(OdeMessageFrameData odeMessageFrameData) {
+        DeserializedRawMessageFrame deserializedSsm = new DeserializedRawMessageFrame();
+        try {
+            JsonValidatorResult validationResults = ssmJsonValidator.validate(odeMessageFrameData.toJson());
+            deserializedSsm.setOdeMessageFrameData(odeMessageFrameData);
+            deserializedSsm.setValidationResults(validationResults);
+        } catch (Exception e) {
+            JsonValidatorResult validatorResult = new JsonValidatorResult();
+
+            validatorResult.addException(e);
+            deserializedSsm.setValidationFailure(true);
+            deserializedSsm.setValidationResults(validatorResult);
+            deserializedSsm.setFailedMessage(e.getMessage());
+        }
+
+        OdeMessageFrameData rawValue = new OdeMessageFrameData();
+        rawValue.setMetadata(odeMessageFrameData.getMetadata());
+        rawValue.setPayload(odeMessageFrameData.getPayload());
+
+        SignalStatusMessageMessageFrame ssmMessageFrame = (SignalStatusMessageMessageFrame) rawValue.getPayload()
+                .getData();
+
+        ProcessedSsm processedSsm = converter.processSsm(ssmMessageFrame);
+
+        // Set the schema version
+        processedSsm.setSchemaVersion(ProcessedSchemaVersions.PROCESSED_SSM_SCHEMA_VERSION);
+        return processedSsm;
 
     }
 }

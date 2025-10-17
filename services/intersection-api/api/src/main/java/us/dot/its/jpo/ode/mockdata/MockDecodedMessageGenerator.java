@@ -39,13 +39,13 @@ public class MockDecodedMessageGenerator {
     }
 
     public static SrmDecodedMessage getSrmDecodedMessage() {
-        SrmDecodedMessage message = new SrmDecodedMessage(MockSrmGenerator.getJsonSrms().get(0),
+        SrmDecodedMessage message = new SrmDecodedMessage(MockSrmGenerator.getProcessedSrms().get(0),
                 "001d2130000010090bd341080d00855c6c0c6899853000a534f7c24cb29897694759b7c0", "");
         return message;
     }
 
     public static SsmDecodedMessage getSsmDecodedMessage() {
-        SsmDecodedMessage message = new SsmDecodedMessage(MockSsmGenerator.getJsonSsms().get(0),
+        SsmDecodedMessage message = new SsmDecodedMessage(MockSsmGenerator.getProcessedSsms().get(0),
                 "001e120000000005e9c04071a26614c06000040ba0", "");
         return message;
     }

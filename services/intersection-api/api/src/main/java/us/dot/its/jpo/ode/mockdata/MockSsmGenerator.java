@@ -13,6 +13,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.asn.j2735.r2024.SignalStatusMessage.SignalStatusMessage;
+import us.dot.its.jpo.geojsonconverter.pojos.ssm.ProcessedSsm;
 
 @Slf4j
 public class MockSsmGenerator {
@@ -27,6 +28,28 @@ public class MockSsmGenerator {
             String ssmString = new String(Files.readAllBytes(Paths.get("src/main/resources/mockdata/ssm.json")));
             SignalStatusMessage ssm = objectMapper.readValue(ssmString,
                     SignalStatusMessage.class);
+            ssms.add(ssm);
+        } catch (JsonMappingException e) {
+            log.error("JsonMappingException", e);
+        } catch (JsonProcessingException e) {
+            log.error("JsonProcessingException", e);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return ssms;
+    }
+
+    public static List<ProcessedSsm> getProcessedSsms() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+
+        ArrayList<ProcessedSsm> ssms = new ArrayList<>();
+
+        try {
+            String processedSsmString = new String(
+                    Files.readAllBytes(Paths.get("src/main/resources/mockdata/processed_ssm.json")));
+            ProcessedSsm ssm = objectMapper.readValue(processedSsmString, ProcessedSsm.class);
             ssms.add(ssm);
         } catch (JsonMappingException e) {
             log.error("JsonMappingException", e);
