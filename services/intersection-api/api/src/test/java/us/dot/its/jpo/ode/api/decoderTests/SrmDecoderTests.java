@@ -100,8 +100,6 @@ public class SrmDecoderTests {
 
             srm.getProperties().setOdeReceivedAt(ZonedDateTime.parse("2025-08-29T16:09:34.416Z"));
 
-            System.out.println(srm.toString().replaceAll("\n", "").replaceAll(" ", ""));
-
             assertEquals(srm.toString().replaceAll("\n", "").replaceAll(" ", ""), processedSrmReference);
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
