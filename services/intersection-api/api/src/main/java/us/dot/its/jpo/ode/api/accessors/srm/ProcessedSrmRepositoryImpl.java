@@ -30,7 +30,7 @@ public class ProcessedSrmRepositoryImpl implements ProcessedSrmRepository, Pagea
     private final MongoTemplate mongoTemplate;
 
     private final String collectionName = "ProcessedSrm";
-    private final String DATE_FIELD = "properties.odeReceivedAt";
+    private final String DATE_FIELD = "properties.timeStamp";
     private final String ORIGIN_IP_FIELD = "properties.originIp";
     private final String VEHICLE_ID_FIELD = "properties.vehicleID";
     private final String LONGITUDE_FIELD = "geometry.coordinates.0";
