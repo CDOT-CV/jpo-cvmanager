@@ -47,7 +47,7 @@ public class ProcessedSsmController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role with access to the intersection requested"),
     })
     public ResponseEntity<Page<ProcessedSsm>> findSsms(
-            @RequestParam(name = "intersection_id", required = false) Integer intersectionID,
+            @RequestParam(name = "intersection_id", required = true) Integer intersectionID,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "latest", required = false, defaultValue = "false") boolean latest,
