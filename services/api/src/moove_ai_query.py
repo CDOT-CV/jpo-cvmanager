@@ -1,8 +1,14 @@
+from flask import abort, request
+from flask_restful import Resource
+from marshmallow import Schema, fields
 from google.cloud import bigquery
-import os
+import api_environment
 import logging
 import pandas as pd
 from shapely import wkt
+from werkzeug.exceptions import InternalServerError
+
+from common.auth_tools import ORG_ROLE_LITERAL, require_permission
 
 
 def query_moove_ai(pointList):
@@ -12,9 +18,9 @@ def query_moove_ai(pointList):
         + "))"
     )
 
-    client = bigquery.Client(location="US", project=os.getenv("GCP_PROJECT_ID"))
-    segment_agg_stats_table = os.getenv("MOOVE_AI_SEGMENT_AGG_STATS_TABLE")
-    segment_event_stats_table = os.getenv("MOOVE_AI_SEGMENT_EVENT_STATS_TABLE")
+    client = bigquery.Client(location="US", project=api_environment.GCP_PROJECT_ID)
+    segment_agg_stats_table = api_environment.MOOVE_AI_SEGMENT_AGG_STATS_TABLE
+    segment_event_stats_table = api_environment.MOOVE_AI_SEGMENT_EVENT_STATS_TABLE
     query = f"""
         SELECT 
             sas.segment_id, 
@@ -56,32 +62,29 @@ def query_moove_ai(pointList):
             segment_data.append(segment_geojson)
 
         logging.info(f"Total Moove AI segments processed: {len(segment_data)}")
-        return segment_data, 200
+        return segment_data
     except Exception as e:
         logging.error(f"Moove AI query failed: {e}")
-        return [], 500
+        raise InternalServerError(
+            f"Encountered unknown issue querying Moove AI data: {e}"
+        ) from e
 
 
-# REST endpoint resource class and schema
-from flask import request
-from flask_restful import Resource
-from marshmallow import Schema, fields
-
-
+# REST endpoint resource class
 class MooveAiDataSchema(Schema):
     geometry = fields.List(fields.List(fields.Float))
 
 
 class MooveAiData(Resource):
     options_headers = {
-        "Access-Control-Allow-Origin": os.environ["CORS_DOMAIN"],
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
         "Access-Control-Allow-Methods": "POST",
         "Access-Control-Max-Age": "3600",
     }
 
     headers = {
-        "Access-Control-Allow-Origin": os.environ["CORS_DOMAIN"],
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
         "Content-Type": "application/json",
     }
 
@@ -89,6 +92,7 @@ class MooveAiData(Resource):
         # CORS support
         return ("", 204, self.options_headers)
 
+    @require_permission(required_role=ORG_ROLE_LITERAL.USER)
     def post(self):
         logging.debug("MooveAiData POST requested")
 
@@ -97,13 +101,6 @@ class MooveAiData(Resource):
         errors = schema.validate(request.json)
         if errors:
             logging.error(str(errors))
-            return (
-                'Body format: {"geometry": coordinate list}',
-                400,
-                self.headers,
-            )
+            abort(400, str(errors))
 
-        pointList = request.json["geometry"]
-        data, code = query_moove_ai(pointList)
-
-        return (data, code, self.headers)
+        return (query_moove_ai(request.json["geometry"]), 200, self.headers)

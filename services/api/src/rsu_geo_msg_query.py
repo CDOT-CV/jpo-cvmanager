@@ -1,12 +1,13 @@
+from flask import request
+from flask_restful import Resource
+from marshmallow import Schema, fields
 import common.util as util
-import os
+import api_environment
 import logging
 from datetime import datetime
 from pymongo import MongoClient, ASCENDING, GEOSPHERE
-import math
-from bson.json_util import dumps
-from bson.json_util import loads
-import json
+from werkzeug.exceptions import InternalServerError
+from common.auth_tools import ORG_ROLE_LITERAL, require_permission
 
 coord_resolution = 0.0001  # lats more than this are considered different
 time_resolution = 10  # time deltas bigger than this are considered different
@@ -30,13 +31,13 @@ def geo_hash(id, timestamp, long, lat):
 
 def get_collection(msg_type):
     """Get MongoDB collection based on message type"""
-    mongo_uri = os.getenv("MONGO_DB_URI")
-    db_name = os.getenv("MONGO_DB_NAME")
+    mongo_uri = api_environment.MONGO_DB_URI
+    db_name = api_environment.MONGO_DB_NAME
 
     if msg_type.lower() == "bsm":
-        coll_name = os.getenv("MONGO_PROCESSED_BSM_COLLECTION_NAME", "ProcessedBsm")
+        coll_name = api_environment.MONGO_PROCESSED_BSM_COLLECTION_NAME
     elif msg_type.lower() == "psm":
-        coll_name = os.getenv("MONGO_PROCESSED_PSM_COLLECTION_NAME", "ProcessedPsm")
+        coll_name = api_environment.MONGO_PROCESSED_PSM_COLLECTION_NAME
     else:
         return None, None, 400
 
@@ -87,10 +88,6 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
     hashmap = {}
     count = 0
     total_count = 0
-    # If MAX_GEO_QUERY_RECORDS is not set or is an empty string, use 10000 as default
-    max_records = os.getenv("MAX_GEO_QUERY_RECORDS", 10000) or 10000
-    # Convert to int in a separate step to avoid errors
-    max_records = int(max_records)
 
     try:
         logging.debug(f"Running filter: {filter} on mongo collection {coll_name}")
@@ -115,7 +112,10 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
                 doc["geometry"]["coordinates"][1],
             )
 
-            if message_hash not in hashmap and count < max_records:
+            if (
+                message_hash not in hashmap
+                and count < api_environment.MAX_GEO_QUERY_RECORDS
+            ):
                 doc.pop("_id")
                 doc.pop("recordGeneratedAt")
 
@@ -130,16 +130,12 @@ def query_geo_data_mongo(pointList, start, end, msg_type):
         logging.info(
             f"Filter successful. Records returned: {count}, Total records: {total_count}"
         )
-        return result, 200
+        return result
     except Exception as e:
         logging.error(f"Filter failed: {e}")
-        return [], 500
-
-
-# REST endpoint resource class and schema
-from flask import request
-from flask_restful import Resource
-from marshmallow import Schema, fields
+        raise InternalServerError(
+            f"Encountered unknown issue querying MongoDB: {e}"
+        ) from e
 
 
 class RsuGeoDataSchema(Schema):
@@ -151,14 +147,14 @@ class RsuGeoDataSchema(Schema):
 
 class RsuGeoData(Resource):
     options_headers = {
-        "Access-Control-Allow-Origin": os.environ["CORS_DOMAIN"],
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
         "Access-Control-Allow-Methods": "POST",
         "Access-Control-Max-Age": "3600",
     }
 
     headers = {
-        "Access-Control-Allow-Origin": os.environ["CORS_DOMAIN"],
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
         "Content-Type": "application/json",
     }
 
@@ -166,6 +162,7 @@ class RsuGeoData(Resource):
         # CORS support
         return ("", 204, self.options_headers)
 
+    @require_permission(required_role=ORG_ROLE_LITERAL.USER)
     def post(self):
         logging.debug("RsuGeoData POST requested")
 
@@ -176,13 +173,15 @@ class RsuGeoData(Resource):
             pointList = data["geometry"]
             start = data["start"]
             end = data["end"]
-        except:
+        except KeyError:
             return (
                 'Body format: {"start": string, "end": string, "geometry": coordinate list}',
                 400,
                 self.headers,
             )
 
-        data, code = query_geo_data_mongo(pointList, start, end, msg_type.capitalize())
-
-        return (data, code, self.headers)
+        return (
+            query_geo_data_mongo(pointList, start, end, msg_type.capitalize()),
+            200,
+            self.headers,
+        )
