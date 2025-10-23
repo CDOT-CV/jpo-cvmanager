@@ -36,6 +36,7 @@ public class ProcessedSrmRepositoryImpl implements ProcessedSrmRepository, Pagea
     private final String LONGITUDE_FIELD = "geometry.coordinates.0";
     private final String LATITUDE_FIELD = "geometry.coordinates.1";
     private final String RECORD_GENERATED_AT_FIELD = "recordGeneratedAt";
+    private final String INTERSECTION_ID_FIELD = "properties.requests.intersectionId";
 
     public static final ObjectMapper mapper = DateJsonMapper.getInstance()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -48,22 +49,29 @@ public class ProcessedSrmRepositoryImpl implements ProcessedSrmRepository, Pagea
      * Filter OdeSrmData by originIp, vehicleId, startTime, endTime, and a bounding
      * box
      * 
-     * @param originIp  the origin IP
-     * @param vehicleId the vehicle ID
-     * @param startTime the start time
-     * @param endTime   the end time
-     * @param centerLng the longitude (in degrees) of the center of the bounding box
-     * @param centerLat the latitude (in degrees) of the center of the bounding box
-     * @param distance  the "radius" of the bounding box, in meters (total width is
-     *                  2x distance)
+     * @param intersectionID the intersectionID the message was sent to, matches any
+     *                       message where the provided intersection is included
+     * @param originIp       the origin IP
+     * @param vehicleId      the vehicle ID
+     * @param startTime      the start time
+     * @param endTime        the end time
+     * @param centerLng      the longitude (in degrees) of the center of the
+     *                       bounding box
+     * @param centerLat      the latitude (in degrees) of the center of the bounding
+     *                       box
+     * @param distance       the "radius" of the bounding box, in meters (total
+     *                       width is
+     *                       2x distance)
      */
-    public Page<ProcessedSrm> find(String originIp, String vehicleId, Long startTime, Long endTime,
+    public Page<ProcessedSrm> find(Integer intersectionID, String originIp, String vehicleId, Long startTime,
+            Long endTime,
             Double centerLng, Double centerLat, Double distance, Pageable pageable) {
 
         System.out.println(originIp + " " + vehicleId + " " + startTime + " " + endTime + " " + centerLng + " "
                 + centerLat + " " + distance);
 
         Criteria criteria = new IntersectionCriteria()
+                .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .whereOptional(ORIGIN_IP_FIELD, originIp)
                 .whereOptional(VEHICLE_ID_FIELD, vehicleId)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
@@ -104,6 +112,7 @@ public class ProcessedSrmRepositoryImpl implements ProcessedSrmRepository, Pagea
      *                  2x distance)
      */
     public long count(
+            Integer intersectionID,
             String originIp,
             String vehicleId,
             Long startTime,
@@ -113,6 +122,7 @@ public class ProcessedSrmRepositoryImpl implements ProcessedSrmRepository, Pagea
             Double distance) {
 
         Criteria criteria = new IntersectionCriteria()
+                .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
                 .whereOptional(ORIGIN_IP_FIELD, originIp)
                 .whereOptional(VEHICLE_ID_FIELD, vehicleId)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);

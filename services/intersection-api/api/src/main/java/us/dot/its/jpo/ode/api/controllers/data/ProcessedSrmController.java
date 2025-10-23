@@ -41,12 +41,13 @@ public class ProcessedSrmController {
 
     @Operation(summary = "Find Processed SRMs", description = "Returns a list of Processed SRMs based on the provided parameters. Use latitude, longitude, and distance to find Processed SRMs within a certain \"radius\" of a point (rectangle)")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser()  || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<Page<ProcessedSrm>> findProcessedSRMs(
+            @RequestParam(name = "intersection_id", required = true) Integer intersectionID,
             @RequestParam(name = "origin_ip", required = false) String originIp,
             @RequestParam(name = "vehicle_id", required = false) String vehicleId,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
@@ -65,7 +66,8 @@ public class ProcessedSrmController {
                     .ok(new PageImpl<>(list, PageRequest.of(page, size), list.size()));
         } else {
             PageRequest pageable = PageRequest.of(page, size);
-            Page<ProcessedSrm> response = processedSrmJsonRepo.find(originIp, vehicleId, startTime, endTime,
+            Page<ProcessedSrm> response = processedSrmJsonRepo.find(intersectionID, originIp, vehicleId, startTime,
+                    endTime,
                     longitude, latitude, distanceInMeters, pageable);
             return ResponseEntity.ok(response);
         }
@@ -73,13 +75,14 @@ public class ProcessedSrmController {
 
     @Operation(summary = "Count Processed SRMs", description = "Returns the count of SRMs based on the provided parameters. Use latitude, longitude, and distance to find SRMs within a certain \"radius\" of a point (rectangle)")
     @RequestMapping(value = "/count", method = RequestMethod.GET, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser()  || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<Long> countProcessedSRMs(
             @RequestParam(name = "origin_ip", required = false) String originIp,
+            @RequestParam(name = "intersection_id", required = true) Integer intersectionID,
             @RequestParam(name = "vehicle_id", required = false) String vehicleId,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
@@ -91,7 +94,7 @@ public class ProcessedSrmController {
         if (testData) {
             return ResponseEntity.ok(10L);
         } else {
-            long counts = processedSrmJsonRepo.count(originIp, vehicleId, startTime, endTime, longitude,
+            long counts = processedSrmJsonRepo.count(intersectionID, originIp, vehicleId, startTime, endTime, longitude,
                     latitude, distanceInMeters);
             log.debug("Found {} SRM counts", counts);
             return ResponseEntity.ok(counts);

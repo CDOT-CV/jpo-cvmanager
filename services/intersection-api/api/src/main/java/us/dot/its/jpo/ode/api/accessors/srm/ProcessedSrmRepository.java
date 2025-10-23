@@ -6,9 +6,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ProcessedSrmRepository {
-    Page<ProcessedSrm> find(String originIp, String vehicleId, Long startTime, Long endTime,
-            Double longitude, Double latitude, Double distance, Pageable pageable);
+        Page<ProcessedSrm> find(Integer intersectionID, String originIp, String vehicleId, Long startTime, Long endTime,
+                        Double longitude, Double latitude, Double distance, Pageable pageable);
 
-    long count(String originIp, String vehicleId, Long startTime, Long endTime, Double longitude,
-            Double latitude, Double distance);
+        long count(Integer intersectionID, String originIp, String vehicleId, Long startTime, Long endTime,
+                        Double longitude,
+                        Double latitude, Double distance);
 }
