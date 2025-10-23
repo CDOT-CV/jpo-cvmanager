@@ -28,7 +28,7 @@ import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slic
 import intersectionMapReducer from './features/intersections/map/map-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
-import { intersectionApiSlice } from './features/api/intersectionApiSlice'
+import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
 import mapSliceReducer from './pages/mapSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
 
@@ -66,7 +66,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       map: mapSliceReducer,
       asn1Decoder: asn1DecoderSlice,
       haas: haasSliceReducer,
-      [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
+      [intersectionConfigSlice.reducerPath]: intersectionConfigSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -74,7 +74,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         thunk: true,
         serializableCheck: false,
         immutableCheck: false,
-      }).concat(intersectionApiSlice.middleware),
+      }).concat(intersectionConfigSlice.middleware),
     devTools: true,
   })
 }
