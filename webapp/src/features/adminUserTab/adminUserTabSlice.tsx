@@ -39,7 +39,7 @@ export const deleteUser = async (user_email: string, token: string) => {
 
 export const getAvailableUsers = createAsyncThunk(
   'adminUserTab/getAvailableUsers',
-  async (_, { getState }) => {
+  async (organizationName: string, { getState, dispatch }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -47,7 +47,7 @@ export const getAvailableUsers = createAsyncThunk(
 
     switch (data.status) {
       case 200:
-        return { success: true, message: '', data: data.body }
+        return { success: true, message: '', data: data.body, organization: organizationName }
       default:
         return { success: false, message: data.message }
     }
@@ -57,7 +57,8 @@ export const getAvailableUsers = createAsyncThunk(
 
 export const deleteUsers = createAsyncThunk(
   'adminUserTab/deleteUser',
-  async (data: Array<{ email: string }>, { getState, dispatch }) => {
+  async (payload: { data: Array<{ email: string }>, organizationName: string }, { getState, dispatch }) => {
+    const { data, organizationName } = payload
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -66,7 +67,7 @@ export const deleteUsers = createAsyncThunk(
       promises.push(deleteUser(user.email, token))
     }
     const res = await Promise.all(promises)
-    dispatch(getAvailableUsers())
+    dispatch(getAvailableUsers(organizationName))
     for (const r of res) {
       if (!r.success) {
         return { success: false, message: 'Failed to delete one or more User(s)' }
@@ -108,7 +109,16 @@ export const adminUserTabSlice = createSlice({
       .addCase(getAvailableUsers.fulfilled, (state, action) => {
         state.loading = false
         if (action.payload.success) {
-          state.value.tableData = (action.payload.data?.user_data ?? []).map((user: AdminUser, index: number) => ({
+          const userData = action.payload?.data?.user_data || []
+          const orgName = action.meta.arg as string
+
+          state.value.tableData = orgName ? userData.filter((user: { organizations?: { name: string; role: string }[] }) =>
+            Array.isArray(user.organizations) &&
+            user.organizations.some((org) => org.name === orgName)
+          )
+          : userData
+
+          state.value.tableData = state.value.tableData.map((user: AdminUser, index: number) => ({
             ...user,
             id: index,
           }))

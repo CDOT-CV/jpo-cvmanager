@@ -15,6 +15,7 @@ import {
   setActiveDiv,
   setEditUserRowData,
 } from './adminUserTabSlice'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
 import { clear, getUserData } from './../adminEditUser/adminEditUserSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -33,6 +34,10 @@ const AdminUserTab = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const theme = useTheme()
+  const organization = useSelector(selectOrganizationName)
+  useEffect(() =>{
+    dispatch(getAvailableUsers(organization))
+  }, [organization, dispatch])
 
   const activeTab = location.pathname.split('/')[4]
 
@@ -69,7 +74,7 @@ const AdminUserTab = () => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => handleDelete([rowData]),
+            onClick: () => handleDelete([rowData], organization),
           },
           {
             label: 'No',
@@ -91,7 +96,7 @@ const AdminUserTab = () => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => handleDelete(rowData),
+            onClick: () => handleDelete(rowData, organization),
           },
           {
             label: 'No',
@@ -115,7 +120,7 @@ const AdminUserTab = () => {
         itemType: 'outlined',
       },
       onClick: () => {
-        updateTableData()
+        dispatch(getAvailableUsers(organization))
       },
     },
     {
@@ -132,18 +137,14 @@ const AdminUserTab = () => {
     },
   ]
 
-  const handleDelete = (rowData: AdminUserWithId[]) => {
-    dispatch(deleteUsers(rowData)).then((data: any) => {
+  const handleDelete = (rowData: AdminUserWithId[], organization: string) => {
+    dispatch(deleteUsers({rowData, organization})).then((data: any) => {
       if (data.payload.success) {
         toast.success('User(s) Deleted Successfully')
       } else {
         toast.error(data.message.payload)
       }
     })
-  }
-
-  const updateTableData = async () => {
-    dispatch(getAvailableUsers())
   }
 
   useEffect(() => {
