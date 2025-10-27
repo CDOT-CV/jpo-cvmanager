@@ -105,7 +105,7 @@ const AdminRsuTab = () => {
       },
       position: 'toolbar',
       onClick: () => {
-          dispatch(updateTableData(organization))
+        dispatch(updateTableData(organization))
       },
     },
     {
