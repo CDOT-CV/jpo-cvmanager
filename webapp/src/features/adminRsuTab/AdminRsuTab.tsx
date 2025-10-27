@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import AdminTable from '../../components/AdminTable'
@@ -14,6 +14,7 @@ import {
   deleteRsu,
   setEditRsuRowData,
 } from './adminRsuTabSlice'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
 import { clear, getRsuInfo } from '../adminEditRsu/adminEditRsuSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -31,6 +32,10 @@ const AdminRsuTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
+  const organization = useSelector(selectOrganizationName)
+  useEffect(() =>{
+    dispatch(updateTableData(organization))
+  }, [organization, dispatch])
 
   const tableData = useSelector(selectTableData)
   const [columns] = useState([
@@ -67,7 +72,7 @@ const AdminRsuTab = () => {
           { label: 'Yes', onClick: () => onDelete(rowData) },
           { label: 'No', onClick: () => {} },
         ]
-        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '"?', buttons)
+        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '" from ' + organization + '?', buttons)
         confirmAlert(alertOptions)
       },
     },
@@ -85,7 +90,7 @@ const AdminRsuTab = () => {
         ]
         const alertOptions = Options(
           'Delete Selected RSUs',
-          'Are you sure you want to delete ' + rowData.length + ' RSUs?',
+          'Are you sure you want to delete ' + rowData.length + ' RSUs from ' + organization + '?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -100,7 +105,7 @@ const AdminRsuTab = () => {
       },
       position: 'toolbar',
       onClick: () => {
-        updateTableData()
+          dispatch(updateTableData(organization))
       },
     },
     {
@@ -137,7 +142,7 @@ const AdminRsuTab = () => {
   }
 
   const multiDelete = (rows: AdminEditRsuFormType[]) => {
-    dispatch(deleteMultipleRsus(rows)).then((data: any) => {
+    dispatch(deleteMultipleRsus({rows, organization})).then((data: any) => {
       if (data.payload.success) {
         toast.success('RSUs Deleted Successfully')
       } else {

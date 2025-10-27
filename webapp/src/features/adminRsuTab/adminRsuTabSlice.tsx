@@ -1,10 +1,10 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { selectToken } from '../../generalSlices/userSlice'
+import {createAsyncThunk, createSlice} from '@reduxjs/toolkit'
+import {selectToken} from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
-import { getRsuInfoOnly } from '../../generalSlices/rsuSlice'
-import { RootState } from '../../store'
-import { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
+import {getRsuInfoOnly} from '../../generalSlices/rsuSlice'
+import {RootState} from '../../store'
+import {AdminEditRsuFormType} from '../adminEditRsu/AdminEditRsu'
 
 const initialState = {
   tableData: [] as AdminEditRsuFormType[],
@@ -21,7 +21,7 @@ const initialState = {
 
 export const updateTableData = createAsyncThunk(
   'adminRsuTab/updateTableData',
-  async (_, { getState, dispatch }) => {
+  async (organizationName: string, { getState, dispatch }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -37,19 +37,18 @@ export const updateTableData = createAsyncThunk(
 
     switch (data.status) {
       case 200:
-        return data.body
+        return { ...data.body, organizationName }
       default:
         console.error(data.message)
         return
     }
-  },
-  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
+  }
 )
 
 export const deleteRsu = createAsyncThunk(
   'adminRsuTab/deleteRsu',
-  async (payload: { rsu_ip: string; shouldUpdateTableData: boolean }, { getState, dispatch }) => {
-    const { rsu_ip, shouldUpdateTableData } = payload
+  async (payload: { rsu_ip: string; shouldUpdateTableData: boolean; organization?: string }, { getState, dispatch }) => {
+    const { rsu_ip, shouldUpdateTableData, organization } = payload
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -72,7 +71,7 @@ export const deleteRsu = createAsyncThunk(
         break
     }
     if (shouldUpdateTableData) {
-      dispatch(updateTableData())
+      dispatch(updateTableData(organization))
     }
     return return_val
   },
@@ -81,13 +80,13 @@ export const deleteRsu = createAsyncThunk(
 
 export const deleteMultipleRsus = createAsyncThunk(
   'adminRsuTabSlice/deleteMultipleRsus',
-  async (rows: AdminEditRsuFormType[], { dispatch }) => {
+  async ({ rows, organization }: { rows: AdminEditRsuFormType[]; organization: string }, { dispatch }) => {
     const promises = []
     for (const row of rows) {
       promises.push(dispatch(deleteRsu({ rsu_ip: row.ip, shouldUpdateTableData: false })))
     }
     const res = await Promise.all(promises)
-    dispatch(updateTableData())
+    dispatch(updateTableData(organization))
     for (const r of res) {
       if (!r.payload.success) {
         return { success: false, message: 'Failed to delete one or more RSU(s)' }
@@ -117,7 +116,15 @@ export const adminRsuTabSlice = createSlice({
       })
       .addCase(updateTableData.fulfilled, (state, action) => {
         state.loading = false
-        state.value.tableData = action.payload?.rsu_data
+        const rsuData = action.payload?.rsu_data || []
+        const orgName = action.meta.arg as string
+
+        state.value.tableData = orgName && orgName.trim() !== '' ? rsuData.filter(
+          (rsu: { organizations?: string[] }) =>
+              Array.isArray(rsu.organizations) &&
+              rsu.organizations.some((org) => org === orgName)
+          )
+          : rsuData;
       })
       .addCase(updateTableData.rejected, (state) => {
         state.loading = false
