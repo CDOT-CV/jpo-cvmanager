@@ -107,65 +107,65 @@ describe('async thunks', () => {
       })
     })
 
-      it('Updates the state correctly on fulfilled', async () => {
-          const loading = false
+    it('Updates the state correctly on fulfilled', async () => {
+      const loading = false
 
-          // --- Case 1: intersection_data present, no orgName filter
-          let intersection_data = [
-              { rsus: ['1.1.1.1', '1.1.1.2'], organizations: ['OrgA', 'OrgB'] },
-          ]
-          const intersection_data_expected = [
-              { rsus: '1.1.1.1, 1.1.1.2', organizations: ['OrgA', 'OrgB'] },
-          ]
+      // --- Case 1: intersection_data present, no orgName filter
+      let intersection_data = [
+        { rsus: ['1.1.1.1', '1.1.1.2'], organizations: ['OrgA', 'OrgB'] },
+      ]
+      const intersection_data_expected = [
+        { rsus: '1.1.1.1, 1.1.1.2', organizations: ['OrgA', 'OrgB'] },
+      ]
 
-          let state = reducer(initialState, {
-              type: 'adminIntersectionTab/updateTableData/fulfilled',
-              payload: { intersection_data },
-              meta: { arg: '' }, // no org filter
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value, tableData: intersection_data_expected },
-          })
-
-          // --- Case 2: orgName filter applied (filters to matching org only)
-          intersection_data = [
-              { rsus: ['1.1.1.1'], organizations: ['OrgA'] },
-              { rsus: ['1.1.1.2'], organizations: ['OrgB'] },
-          ]
-          const filtered_expected = [
-              { rsus: '1.1.1.2', organizations: ['OrgB'] },
-          ]
-
-          state = reducer(initialState, {
-              type: 'adminIntersectionTab/updateTableData/fulfilled',
-              payload: { intersection_data },
-              meta: { arg: 'OrgB' }, // filter by OrgB
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value, tableData: filtered_expected },
-          })
-
-          // --- Case 3: intersection_data undefined (should fallback to empty array)
-          state = reducer(initialState, {
-              type: 'adminIntersectionTab/updateTableData/fulfilled',
-              payload: { intersection_data: undefined },
-              meta: { arg: '' },
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value, tableData: [] },
-          })
+      let state = reducer(initialState, {
+        type: 'adminIntersectionTab/updateTableData/fulfilled',
+        payload: { intersection_data },
+        meta: { arg: '' }, // no org filter
       })
 
-      it('Updates the state correctly rejected', async () => {
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: intersection_data_expected },
+      })
+
+      // --- Case 2: orgName filter applied (filters to matching org only)
+      intersection_data = [
+        { rsus: ['1.1.1.1'], organizations: ['OrgA'] },
+        { rsus: ['1.1.1.2'], organizations: ['OrgB'] },
+      ]
+      const filtered_expected = [
+        { rsus: '1.1.1.2', organizations: ['OrgB'] },
+      ]
+
+      state = reducer(initialState, {
+        type: 'adminIntersectionTab/updateTableData/fulfilled',
+        payload: { intersection_data },
+        meta: { arg: 'OrgB' }, // filter by OrgB
+      })
+
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: filtered_expected },
+      })
+
+      // --- Case 3: intersection_data undefined (should fallback to empty array)
+      state = reducer(initialState, {
+        type: 'adminIntersectionTab/updateTableData/fulfilled',
+        payload: { intersection_data: undefined },
+        meta: { arg: '' },
+      })
+
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: [] },
+      })
+    })
+
+    it('Updates the state correctly rejected', async () => {
       const loading = false
       const state = reducer(initialState, {
         type: 'adminIntersectionTab/updateTableData/rejected',

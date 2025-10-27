@@ -69,7 +69,7 @@ describe('async thunks', () => {
         },
       })
       const action = updateTableData()
-        const mockRsu = { data: 'data'}
+      const mockRsu = { data: 'data'}
 
       apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: mockRsu })
       let resp = await action(dispatch, getState, undefined)
@@ -111,71 +111,71 @@ describe('async thunks', () => {
     it('Updates the state correctly fulfilled with organization filtering', () => {
       const loading = false
 
-        const rsu_data = [
-          { id: 1, organizations: ['OrgA', 'OrgB'] },
-          { id: 2, organizations: ['OrgB'] },
-          { id: 3, organizations: [] },
-                { id: 4 }, // no organizations
-            ]
+      const rsu_data = [
+        { id: 1, organizations: ['OrgA', 'OrgB'] },
+        { id: 2, organizations: ['OrgB'] },
+        { id: 3, organizations: [] },
+        { id: 4 }, // no organizations
+      ]
 
-            // Case 1: filtering for OrgB RSUs
-            let state = reducer(initialState, {
-                type: 'adminRsuTab/updateTableData/fulfilled',
-                payload: { rsu_data },
-                meta: { arg: 'OrgB' },
-            })
+      // Case 1: filtering for OrgB RSUs
+      let state = reducer(initialState, {
+        type: 'adminRsuTab/updateTableData/fulfilled',
+        payload: { rsu_data },
+        meta: { arg: 'OrgB' },
+      })
 
-            expect(state).toEqual({
-                ...initialState,
-                loading,
-                value: {
-                    ...initialState.value,
-                    tableData: [
-                        { id: 1, organizations: ['OrgA', 'OrgB'] },
-                        { id: 2, organizations: ['OrgB'] },
-                    ],
-                },
-            })
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: {
+          ...initialState.value,
+          tableData: [
+            { id: 1, organizations: ['OrgA', 'OrgB'] },
+            { id: 2, organizations: ['OrgB'] },
+          ],
+        },
+      })
 
-            // Case 2: filtering for an org that doesn't have RSUs
-            state = reducer(initialState, {
-                type: 'adminRsuTab/updateTableData/fulfilled',
-                payload: { rsu_data },
-                meta: { arg: 'OrgC' },
-            })
+      // Case 2: filtering for an org that doesn't have RSUs
+      state = reducer(initialState, {
+        type: 'adminRsuTab/updateTableData/fulfilled',
+        payload: { rsu_data },
+        meta: { arg: 'OrgC' },
+      })
 
-            expect(state.value.tableData).toEqual([])
+      expect(state.value.tableData).toEqual([])
 
-            // Case 3: no organization filtering
-            state = reducer(initialState, {
-                type: 'adminRsuTab/updateTableData/fulfilled',
-                payload: { rsu_data },
-                meta: { arg: '' },
-            })
+      // Case 3: no organization filtering
+      state = reducer(initialState, {
+        type: 'adminRsuTab/updateTableData/fulfilled',
+        payload: { rsu_data },
+        meta: { arg: '' },
+      })
 
-            expect(state.value.tableData).toEqual(rsu_data)
+      expect(state.value.tableData).toEqual(rsu_data)
 
-            // Case 4: rsu_data undefined returns empty list to not break UI
-            state = reducer(initialState, {
-                type: 'adminRsuTab/updateTableData/fulfilled',
-                payload: { rsu_data: undefined },
-                meta: { arg: 'OrgA' },
-            })
+      // Case 4: rsu_data undefined returns empty list to not break UI
+      state = reducer(initialState, {
+        type: 'adminRsuTab/updateTableData/fulfilled',
+        payload: { rsu_data: undefined },
+        meta: { arg: 'OrgA' },
+      })
 
-            expect(state.value.tableData).toEqual([])
-        })
-
-        it('Updates the state correctly rejected', () => {
-            const loading = false
-            const state = reducer(initialState, {
-                type: 'adminRsuTab/updateTableData/rejected',
-            })
-            expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
-        })
+      expect(state.value.tableData).toEqual([])
     })
 
+    it('Updates the state correctly rejected', () => {
+      const loading = false
+      const state = reducer(initialState, {
+        type: 'adminRsuTab/updateTableData/rejected',
+      })
+      expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
+    })
+  })
 
-    describe('deleteRsu', () => {
+
+  describe('deleteRsu', () => {
     it('returns and calls the api correctly', async () => {
       let dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({

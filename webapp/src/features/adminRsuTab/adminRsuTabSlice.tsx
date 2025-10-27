@@ -120,7 +120,7 @@ export const adminRsuTabSlice = createSlice({
         const orgName = action.meta.arg as string
 
         state.value.tableData = orgName && orgName.trim() !== '' ? rsuData.filter(
-          (rsu: { organizations?: string[] }) =>
+            (rsu: { organizations?: string[] }) =>
               Array.isArray(rsu.organizations) &&
               rsu.organizations.some((org) => org === orgName)
           )

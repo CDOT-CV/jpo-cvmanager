@@ -113,10 +113,10 @@ export const adminUserTabSlice = createSlice({
           const orgName = action.meta.arg as string
 
           state.value.tableData = orgName ? userData.filter((user: { organizations?: { name: string; role: string }[] }) =>
-            Array.isArray(user.organizations) &&
-            user.organizations.some((org) => org.name === orgName)
-          )
-          : userData
+              Array.isArray(user.organizations) &&
+              user.organizations.some((org) => org.name === orgName)
+            )
+            : userData
 
           state.value.tableData = state.value.tableData.map((user: AdminUser, index: number) => ({
             ...user,

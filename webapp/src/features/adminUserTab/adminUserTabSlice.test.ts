@@ -91,67 +91,67 @@ describe('async thunks', () => {
       })
     })
 
-      it('Updates the state correctly on fulfilled', async () => {
-          const loading = false
-          let success = true
+    it('Updates the state correctly on fulfilled', async () => {
+      const loading = false
+      let success = true
 
-          // --- Case 1: success = true, no orgName filter
-          const data = {
-              user_data: [
-                  { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }] },
-                  { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }] },
-              ],
-          }
-          const expectedTableData = [
-              { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }], id: 0 },
-              { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 1 },
-          ]
+      // --- Case 1: success = true, no orgName filter
+      const data = {
+        user_data: [
+          { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }] },
+          { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }] },
+        ],
+      }
+      const expectedTableData = [
+        { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }], id: 0 },
+        { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 1 },
+      ]
 
-          let state = reducer(initialState, {
-              type: 'adminUserTab/getAvailableUsers/fulfilled',
-              payload: { data, success },
-              meta: { arg: '' }, // no orgName filter
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value, tableData: expectedTableData },
-          })
-
-          // --- Case 2: success = true, with orgName filter applied
-          const filteredExpected = [
-              { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 0 },
-          ]
-
-          state = reducer(initialState, {
-              type: 'adminUserTab/getAvailableUsers/fulfilled',
-              payload: { data, success },
-              meta: { arg: 'OrgB' }, // filter by OrgB
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value, tableData: filteredExpected },
-          })
-
-          // --- Case 3: success = false
-          success = false
-          state = reducer(initialState, {
-              type: 'adminUserTab/getAvailableUsers/fulfilled',
-              payload: { success },
-              meta: { arg: '' },
-          })
-
-          expect(state).toEqual({
-              ...initialState,
-              loading,
-              value: { ...initialState.value }, // tableData should remain unchanged
-          })
+      let state = reducer(initialState, {
+        type: 'adminUserTab/getAvailableUsers/fulfilled',
+        payload: { data, success },
+        meta: { arg: '' }, // no orgName filter
       })
 
-      it('Updates the state correctly rejected', async () => {
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: expectedTableData },
+      })
+
+      // --- Case 2: success = true, with orgName filter applied
+      const filteredExpected = [
+        { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 0 },
+      ]
+
+      state = reducer(initialState, {
+        type: 'adminUserTab/getAvailableUsers/fulfilled',
+        payload: { data, success },
+        meta: { arg: 'OrgB' }, // filter by OrgB
+      })
+
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: filteredExpected },
+      })
+
+      // --- Case 3: success = false
+      success = false
+      state = reducer(initialState, {
+        type: 'adminUserTab/getAvailableUsers/fulfilled',
+        payload: { success },
+        meta: { arg: '' },
+      })
+
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value }, // tableData should remain unchanged
+      })
+    })
+
+    it('Updates the state correctly rejected', async () => {
       const loading = false
       const state = reducer(initialState, {
         type: 'adminUserTab/getAvailableUsers/rejected',
