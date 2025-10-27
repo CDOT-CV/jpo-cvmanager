@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect} from 'react'
 import AdminAddIntersection from '../adminAddIntersection/AdminAddIntersection'
 import AdminEditIntersection, { AdminEditIntersectionFormType } from '../adminEditIntersection/AdminEditIntersection'
 import AdminTable from '../../components/AdminTable'
@@ -15,6 +15,7 @@ import {
   setEditIntersectionRowData,
   selectColumns,
 } from './adminIntersectionTabSlice'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
 import { clear, getIntersectionInfo } from '../adminEditIntersection/adminEditIntersectionSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -31,6 +32,11 @@ const AdminIntersectionTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
+
+  const organization = useSelector(selectOrganizationName)
+  useEffect(() =>{
+    dispatch(updateTableData(organization))
+  }, [organization, dispatch])
 
   const tableData = useSelector(selectTableData)
   const columns = useSelector(selectColumns)
@@ -94,7 +100,7 @@ const AdminIntersectionTab = () => {
         itemType: 'outlined',
       },
       onClick: () => {
-        updateTableData()
+        dispatch(updateTableData(organization))
       },
     },
     {
@@ -121,7 +127,7 @@ const AdminIntersectionTab = () => {
   }
 
   const onDelete = (row: AdminEditIntersectionFormType) => {
-    dispatch(deleteIntersection({ intersection_id: row.intersection_id, shouldUpdateTableData: true })).then(
+    dispatch(deleteIntersection({ intersection_id: row.intersection_id, shouldUpdateTableData: true, organization: organization })).then(
       (data: any) => {
         if (data.payload.success) {
           toast.success('Intersection Deleted Successfully')
@@ -133,7 +139,7 @@ const AdminIntersectionTab = () => {
   }
 
   const multiDelete = (rows: AdminEditIntersectionFormType[]) => {
-    dispatch(deleteMultipleIntersections(rows)).then((data: any) => {
+    dispatch(deleteMultipleIntersections({rows, organization})).then((data: any) => {
       if (data.payload.success) {
         toast.success('Intersections Deleted Successfully')
       } else {
