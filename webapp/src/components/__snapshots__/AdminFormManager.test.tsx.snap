@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AdminFormManager snapshots snapshot organization 1`] = `
+exports[`snapshot organization 1`] = `
 <div>
   <div
     class="scroll-div"
@@ -396,7 +396,7 @@ exports[`AdminFormManager snapshots snapshot organization 1`] = `
 </div>
 `;
 
-exports[`AdminFormManager snapshots snapshot rsu 1`] = `
+exports[`snapshot rsu 1`] = `
 <div>
   <div
     class="scroll-div"
@@ -1040,7 +1040,7 @@ exports[`AdminFormManager snapshots snapshot rsu 1`] = `
 </div>
 `;
 
-exports[`AdminFormManager snapshots snapshot user 1`] = `
+exports[`snapshot user 1`] = `
 <div>
   <div
     class="scroll-div"

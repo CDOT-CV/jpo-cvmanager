@@ -2,7 +2,6 @@ import {createAsyncThunk, createSlice} from '@reduxjs/toolkit'
 import {selectToken} from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
-import {getRsuInfoOnly} from '../../generalSlices/rsuSlice'
 import {RootState} from '../../store'
 import {AdminEditRsuFormType} from '../adminEditRsu/AdminEditRsu'
 
@@ -21,11 +20,9 @@ const initialState = {
 
 export const updateTableData = createAsyncThunk(
   'adminRsuTab/updateTableData',
-  async (organizationName: string, { getState, dispatch }) => {
+  async (organizationName: string, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-
-    dispatch(getRsuInfoOnly())
 
     const data = await apiHelper._getDataWithCodes({
       url: EnvironmentVars.adminRsu,

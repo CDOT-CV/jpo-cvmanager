@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
-import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 
 import '../features/adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -99,11 +97,6 @@ function VerticalTabs(props: VerticalTabProps) {
   const handleChange = (_e, newValue) => {
     setValue(newValue)
   }
-
-  useEffect(() => {
-    dispatch(updateRsuTableData())
-    dispatch(getAvailableUsers())
-  }, [dispatch])
 
   return (
     <Box
