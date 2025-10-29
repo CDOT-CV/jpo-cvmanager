@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
 
 import '../features/adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { AnyAction } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import { alpha, Box, Tab, Tabs, useTheme } from '@mui/material'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
@@ -57,7 +56,6 @@ interface VerticalTabProps {
 
 function VerticalTabs(props: VerticalTabProps) {
   const { notFoundRoute, defaultTabIndex, tabs } = props
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
   const location = useLocation()
   const filteredTabs = tabs.filter((tab) => evaluateFeatureFlags(tab.tag))
