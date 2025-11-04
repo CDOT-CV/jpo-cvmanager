@@ -15,15 +15,16 @@ type ProcessedSrmProperties = {
   originIp: string
   asn1: string
   timeStamp: string
+  timeStampEpochSeconds: number
   sequenceNumber?: number
-  vehicleID?: string
-  role?: ProcessedBasicVehicleRole
+  vehicleID: string
+  role: ProcessedBasicVehicleRole
   subrole?: ProcessedRequestSubRole
   importanceLevel?: ProcessedRequestImportanceLevel
   iso3833VehicleType?: number
   hpmsType?: ProcessedVehicleType
-  latitude?: number
-  longitude?: number
+  latitude: number
+  longitude: number
   elevation?: number
   heading?: number
   transmission?: ProcessedTransmissionState
@@ -39,17 +40,46 @@ type ProcessedSrmProperties = {
 
 type ProcessedSignalRequest = {
   region?: number
-  intersectionId?: number
-  requestID?: number
-  priorityRequestType?: ProcessedPriorityRequestType
+  intersectionId: number
+  requestID: number
+  priorityRequestType: ProcessedPriorityRequestType
   inboundLaneID?: number
-  inboundApproachID?: number
+  inboundApproachID?: number // Will not be used in CV Manager
   inboundLaneConnectionID?: number
   outboundLaneID?: number
-  outboundApproachID?: number
+  outboundApproachID?: number // Will not be used in CV Manager
   outboundLaneConnectionID?: number
   estimatedTimeOfArrival?: string
   estimatedTimeOfArrivalDurationSeconds?: number // Duration in seconds
+}
+
+type ProcessedSrmFeatureWithStatus = ProcessedSrmFeature & {
+  properties: ProcessedSrmProperties & {
+    ssms: ProcessedSsm[]
+  }
+}
+
+type SrmInfo = {
+  vehicleInfo: SrmVehicleInfo
+  timeStampEpochSeconds: number
+  sequenceNumber?: number
+  requestID: number
+  priorityRequestType: ProcessedPriorityRequestType
+  inboundLaneID?: number
+  inboundLaneConnectionID?: number
+  outboundLaneID?: number
+  outboundLaneConnectionID?: number
+  estimatedTimeOfArrival?: string
+  estimatedTimeOfArrivalDurationSeconds?: number // Duration in seconds
+}
+
+type SrmVehicleInfo = {
+  vehicleID: string
+  role: ProcessedBasicVehicleRole
+  subrole?: ProcessedRequestSubRole
+  importanceLevel?: ProcessedRequestImportanceLevel
+  iso3833VehicleType?: number
+  hpmsType?: ProcessedVehicleType
 }
 
 // Enum-like types
