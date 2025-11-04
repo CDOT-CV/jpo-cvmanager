@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
-import { Container, Col } from 'reactstrap'
+import { Container, Col, Row } from 'reactstrap'
 
 import { Paper, Box, Fab, useTheme } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
@@ -12,8 +12,10 @@ import { CustomPopup } from './popup'
 import { selectToken } from '../../../generalSlices/userSlice'
 import {
   selectBsmLayerStyle,
+  selectConnectingLanesHighlightLayerStyle,
   selectConnectingLanesLabelsLayerStyle,
   selectConnectingLanesLayerStyle,
+  selectMapMessageHighlightLayerStyle,
   selectMapMessageLabelsLayerStyle,
   selectMapMessageLayerStyle,
   selectMarkerLayerStyle,
@@ -59,6 +61,7 @@ import {
   selectSignalStateData,
   selectSliderValue,
   selectSpatSignalGroups,
+  selectSsmSrmDataByTimestamp,
   selectTimeWindowSeconds,
   selectViewState,
   setLoadInitialDataTimeoutId,
@@ -79,9 +82,10 @@ import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import { useLocation } from 'react-router-dom'
-import { Remove } from '@mui/icons-material'
+import { Key, Remove } from '@mui/icons-material'
 import VisualSettings from './visual-settings'
 import { useDispatch, useSelector } from 'react-redux'
+import LayerMenu from './layer-menu'
 
 /**
  * Returns a milliseconds since epoch timestamp for the input object
@@ -114,8 +118,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const authToken = useSelector(selectToken)
 
   const mapMessageLayerStyle = useSelector(selectMapMessageLayerStyle)
+  const mapMessageHighlightLayerStyle = useSelector(selectMapMessageHighlightLayerStyle)
   const mapMessageLabelsLayerStyle = useSelector(selectMapMessageLabelsLayerStyle)
   const connectingLanesLayerStyle = useSelector(selectConnectingLanesLayerStyle)
+  const connectingLanesHighlightLayerStyle = useSelector(selectConnectingLanesHighlightLayerStyle)
   const connectingLanesLabelsLayerStyle = useSelector(selectConnectingLanesLabelsLayerStyle)
   const markerLayerStyle = useSelector(selectMarkerLayerStyle)
   const srmLayerStyle = useSelector(selectSrmLayerStyle)
@@ -151,6 +157,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const playbackModeActive = useSelector(selectPlaybackModeActive)
   const liveDataRestart = useSelector(selectLiveDataRestart)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
+  const ssmSrmDataByTimestamp = useSelector(selectSsmSrmDataByTimestamp)
 
   const mapRef = React.useRef<MapRef>(null)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
@@ -292,6 +299,17 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
 
+  useMemo(() => {
+    const ssmSrmWithinInterval = Object.entries(ssmSrmDataByTimestamp)
+      .filter((value: [key: string, value: any]) => {
+        const ts: number = Number(value[0])
+        return ts >= (renderTimeInterval?.[0] ?? 0) && ts <= (renderTimeInterval?.[1] ?? 0)
+      })
+      .map((value: [key: string, value: any]) => {
+        value[1] as { ssm: ProcessedSsm; srm: ProcessedSrmFeature }
+      })
+  }, [renderTimeInterval])
+
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
       <Col className="mapContainer" style={{ overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}>
@@ -307,11 +325,18 @@ const IntersectionMap = (props: MAP_PROPS) => {
             scrollBehavior: 'auto',
           }}
         >
-          <Box style={{ position: 'relative' }}>
-            <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
-              <ControlPanel />
-            </Paper>
-          </Box>
+          <Row>
+            <Box style={{ position: 'relative' }}>
+              <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
+                <ControlPanel />
+              </Paper>
+            </Box>
+            <Box style={{ position: 'relative' }}>
+              <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
+                <LayerMenu />
+              </Paper>
+            </Box>
+          </Row>
         </div>
         <Fab
           color="primary"
@@ -394,6 +419,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
+          <Source type="geojson" data={mapData?.mapFeatureCollection ?? { type: 'FeatureCollection', features: [] }}>
+            <Layer {...mapMessageLayerStyle} />
+          </Source>
           <Source type="geojson" data={mapData?.mapFeatureCollection ?? { type: 'FeatureCollection', features: [] }}>
             <Layer {...mapMessageLayerStyle} />
           </Source>

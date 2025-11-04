@@ -46,6 +46,8 @@ export type IMPORTED_MAP_MESSAGE_DATA = {
   mapData: ProcessedMap[]
   bsmData: BsmFeatureCollection
   spatData: ProcessedSpat[]
+  srmData: ProcessedSrmFeature[]
+  ssmData: ProcessedSsm[]
   notificationData: any
 }
 
@@ -63,6 +65,8 @@ export type MAP_PROPS = {
         map: ProcessedMap[]
         spat: ProcessedSpat[]
         bsm: BsmFeatureCollection
+        srm: ProcessedSrmFeature[]
+        ssm: ProcessedSsm[]
       }
     | undefined
   sourceDataType: 'notification' | 'event' | 'assessment' | 'timestamp' | undefined
@@ -74,6 +78,8 @@ export type RAW_MESSAGE_DATA_EXPORT = {
   map?: ProcessedMap[]
   spat?: ProcessedSpat[]
   bsm?: BsmFeatureCollection
+  srm?: ProcessedSrmFeature[]
+  ssm?: ProcessedSsm[]
   notification?: MessageMonitor.Notification
   event?: MessageMonitor.Event
   assessment?: Assessment
@@ -146,6 +152,7 @@ const initialState = {
     type: 'FeatureCollection' as const,
     features: [],
   } as BsmFeatureCollection,
+  ssmSrmDataByTimestamp: {} as { [millis: number]: { ssm: ProcessedSsm; srm: ProcessedSrmFeature } },
   surroundingEvents: [] as MessageMonitor.Event[],
   filteredSurroundingEvents: [] as MessageMonitor.Event[],
   surroundingNotifications: [] as MessageMonitor.Notification[],
@@ -341,6 +348,8 @@ export const pullInitialData = createAsyncThunk(
                     type: 'FeatureCollection',
                     features: [],
                   },
+                  ssm: [],
+                  srm: [],
                 },
                 null,
                 decoderModeEnabled
@@ -1278,14 +1287,16 @@ export const intersectionMapSlice = createSlice({
         mapData: ProcessedMap[]
         bsmData: BsmFeatureCollection
         spatData: ProcessedSpat[]
+        srmData: ProcessedSrmFeature[]
+        ssmData: ProcessedSsm[]
         notificationData: any
       }>
     ) => {
-      const { mapData, bsmData, spatData, notificationData } = action.payload
+      const { mapData, bsmData, spatData, srmData, ssmData, notificationData } = action.payload
       const sortedSpatData = spatData.sort((x, y) => x.utcTimeStamp - y.utcTimeStamp)
       const startTime = new Date(sortedSpatData[0].utcTimeStamp)
       const endTime = new Date(sortedSpatData[sortedSpatData.length - 1].utcTimeStamp)
-      state.value.importedMessageData = { mapData, bsmData, spatData, notificationData }
+      state.value.importedMessageData = { mapData, bsmData, spatData, srmData, ssmData, notificationData }
       state.value.queryParams = {
         startDate: startTime,
         endDate: endTime,
@@ -1585,6 +1596,15 @@ export const intersectionMapSlice = createSlice({
     setAbortAllFutureRequests: (state, action: PayloadAction<boolean>) => {
       state.value.abortAllFutureRequests = action.payload
     },
+    setLayerVisibility: (state, action: PayloadAction<{ key: MAP_LAYERS; visible: boolean }>) => {
+      state.value.layersVisible = {
+        ...state.value.layersVisible,
+        [action.payload.key]: action.payload.visible,
+      }
+    },
+    setLayersVisible: (state, action: PayloadAction<Record<MAP_LAYERS, boolean>>) => {
+      state.value.layersVisible = action.payload
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -1728,6 +1748,7 @@ export const selectSpatSignalGroups = (state: RootState) => state.intersectionMa
 export const selectCurrentSignalGroups = (state: RootState) => state.intersectionMap.value.currentSignalGroups
 export const selectCurrentBsms = (state: RootState) => state.intersectionMap.value.currentBsms
 export const selectConnectingLanes = (state: RootState) => state.intersectionMap.value.connectingLanes
+export const selectSsmSrmDataByTimestamp = (state: RootState) => state.intersectionMap.value.ssmSrmDataByTimestamp
 export const selectSurroundingEvents = (state: RootState) => state.intersectionMap.value.surroundingEvents
 export const selectFilteredSurroundingEvents = (state: RootState) =>
   state.intersectionMap.value.filteredSurroundingEvents
@@ -1807,6 +1828,8 @@ export const {
   setMapRef,
   setDecoderModeEnabled,
   setAbortAllFutureRequests,
+  setLayerVisibility,
+  setLayersVisible,
 } = intersectionMapSlice.actions
 
 export default intersectionMapSlice.reducer

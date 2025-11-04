@@ -11,6 +11,15 @@ const mapMessageLayer: LineLayer = {
   },
 }
 
+const mapMessageHighlightLayer: LineLayer = {
+  id: 'map-message-highlight',
+  type: 'line',
+  paint: {
+    'line-width': 10,
+    'line-color': '#fff000',
+  },
+}
+
 const mapMessageLabelsLayer: SymbolLayer = {
   id: 'map-message-labels',
   type: 'symbol',
@@ -108,6 +117,15 @@ const connectingLanesLayer: LineLayer = {
       ['literal', [1, 4]],
       ['literal', [2, 1]],
     ],
+  },
+}
+
+const connectingLanesHighlightLayer: LineLayer = {
+  id: 'connecting-lanes-highlight',
+  type: 'line',
+  paint: {
+    'line-width': 10,
+    'line-color': '#fff000',
   },
 }
 
@@ -238,8 +256,10 @@ const mapLegendColors: MAP_LEGEND_COLORS = {
 
 export const initialState = {
   mapMessageLayerStyle: { ...mapMessageLayer, source: 'string' },
+  mapMessageHighlightLayerStyle: { ...mapMessageHighlightLayer, source: 'string' },
   mapMessageLabelsLayerStyle: { ...mapMessageLabelsLayer, source: 'string' },
   connectingLanesLayerStyle: { ...connectingLanesLayer, source: 'string' },
+  connectingLanesHighlightLayerStyle: { ...connectingLanesHighlightLayer, source: 'string' },
   connectingLanesLabelsLayerStyle: { ...connectingLanesLabelsLayer, source: 'string' },
   srmLayerStyle: { ...srmLayer, source: 'string' },
   markerLayerStyle: { ...markerLayer, source: 'string' },
@@ -272,10 +292,14 @@ export const intersectionMapLayerStyleSlice = createSlice({
 
 export const selectMapMessageLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.mapMessageLayerStyle
+export const selectMapMessageHighlightLayerStyle = (state: RootState) =>
+  state.intersectionMapLayerStyle.value.mapMessageHighlightLayerStyle
 export const selectMapMessageLabelsLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.mapMessageLabelsLayerStyle
 export const selectConnectingLanesLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.connectingLanesLayerStyle
+export const selectConnectingLanesHighlightLayerStyle = (state: RootState) =>
+  state.intersectionMapLayerStyle.value.connectingLanesHighlightLayerStyle
 export const selectConnectingLanesLabelsLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.connectingLanesLabelsLayerStyle
 export const selectSrmLayerStyle = (state: RootState) => state.intersectionMapLayerStyle.value.srmLayerStyle

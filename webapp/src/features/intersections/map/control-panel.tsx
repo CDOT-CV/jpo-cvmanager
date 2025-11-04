@@ -225,11 +225,15 @@ function ControlPanel() {
       mapData: ProcessedMap[]
       bsmData: BsmFeatureCollection
       spatData: ProcessedSpat[]
+      srmData: ProcessedSrmFeature[]
+      ssmData: ProcessedSsm[]
       notificationData: any
     } = {
       mapData: [],
       bsmData: { type: 'FeatureCollection', features: [] },
       spatData: [],
+      srmData: [],
+      ssmData: [],
       notificationData: undefined,
     }
     jsZip
@@ -249,6 +253,12 @@ function ControlPanel() {
           } else if (relativePath.endsWith('_SPAT_data.json')) {
             const data = await zipEntry.async('string')
             messageData.spatData = JSON.parse(data)
+          } else if (relativePath.endsWith('_SRM_data.json')) {
+            const data = await zipEntry.async('string')
+            messageData.srmData = JSON.parse(data)
+          } else if (relativePath.endsWith('_SSM_data.json')) {
+            const data = await zipEntry.async('string')
+            messageData.ssmData = JSON.parse(data)
           }
         }
         dispatch(handleImportedMapMessageData(messageData))
