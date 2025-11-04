@@ -73,6 +73,11 @@ type ConnectingLanesFeatureCollectionWithSignalState = {
   features: ConnectingLanesFeatureWithSignalState[]
 }
 
+type ConnectingLanesFeatureCollectionWithSsmSrm = {
+  type: 'FeatureCollection'
+  features: ConnectingLanesFeatureWithSsmSrm[]
+}
+
 type ConnectingLanesFeature = {
   type: 'Feature'
   id: number | string
@@ -86,6 +91,17 @@ type ConnectingLanesFeatureWithSignalState = {
   geometry: GeoJSON.LineString
   properties: ConnectingLanesProperties & {
     signalState?: SignalState
+  }
+}
+
+type ConnectingLanesFeatureWithSsmSrm = {
+  type: 'Feature'
+  id: number | string
+  geometry: GeoJSON.LineString
+  properties: ConnectingLanesProperties & {
+    signalRequests: SrmInfo[]
+    signalStatuses: SsmInfo[]
+    highlightColor: string | null
   }
 }
 

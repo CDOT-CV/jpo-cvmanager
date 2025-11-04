@@ -41,6 +41,8 @@ import {
   selectConnectingLanes,
   selectCurrentBsms,
   selectCurrentSignalGroups,
+  selectCurrentSrmData,
+  selectCurrentSsmData,
   selectCursor,
   selectDecoderModeEnabled,
   selectFilteredSurroundingEvents,
@@ -61,7 +63,6 @@ import {
   selectSignalStateData,
   selectSliderValue,
   selectSpatSignalGroups,
-  selectSsmSrmDataByTimestamp,
   selectTimeWindowSeconds,
   selectViewState,
   setLoadInitialDataTimeoutId,
@@ -74,7 +75,12 @@ import {
   updateRenderedMapState,
 } from './map-slice'
 import EnvironmentVars from '../../../EnvironmentVars'
-import { addConnections, createMarkerForNotification } from './utilities/message-utils'
+import {
+  addConnections,
+  getSsmSrmConnections,
+  createMarkerForNotification,
+  addSsmStatus,
+} from './utilities/message-utils'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { MapLegend } from './map-legend'
@@ -109,6 +115,8 @@ export const getTimestamp = (dt: any): number => {
   }
 }
 
+const EMPTY_FEATURE_COLLECTION = { type: 'FeatureCollection' as 'FeatureCollection', features: [] }
+
 const IntersectionMap = (props: MAP_PROPS) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const location = useLocation()
@@ -127,6 +135,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const srmLayerStyle = useSelector(selectSrmLayerStyle)
   const bsmLayerStyle = useSelector(selectBsmLayerStyle)
   const signalStateLayerStyle = useSelector(selectSignalStateLayerStyle)
+
+  const currentSsmData = useSelector(selectCurrentSsmData)
+  const currentSrmData = useSelector(selectCurrentSrmData)
 
   const selectedSrm = useSelector(selectSelectedSrm)
 
@@ -157,7 +168,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const playbackModeActive = useSelector(selectPlaybackModeActive)
   const liveDataRestart = useSelector(selectLiveDataRestart)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
-  const ssmSrmDataByTimestamp = useSelector(selectSsmSrmDataByTimestamp)
 
   const mapRef = React.useRef<MapRef>(null)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
@@ -299,16 +309,69 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
 
-  useMemo(() => {
-    const ssmSrmWithinInterval = Object.entries(ssmSrmDataByTimestamp)
-      .filter((value: [key: string, value: any]) => {
-        const ts: number = Number(value[0])
+  const ssmDataByTimestamp = useMemo(() => {
+    const ssmDataByTimestamp: Record<number, ProcessedSsm> = {}
+    currentSsmData.forEach((item) => {
+      const timestamp = item.timeStampEpochSeconds
+      if (!isNaN(timestamp)) {
+        ssmDataByTimestamp[timestamp] = item
+      }
+    })
+    return ssmDataByTimestamp
+  }, [currentSsmData])
+
+  const srmDataByTimestamp = useMemo(() => {
+    const srmDataByTimestamp: Record<number, ProcessedSrmFeature> = {}
+    currentSrmData.forEach((item) => {
+      const timestamp = item.properties.timeStampEpochSeconds
+      if (!isNaN(timestamp)) {
+        srmDataByTimestamp[timestamp] = item
+      }
+    })
+    return srmDataByTimestamp
+  }, [currentSrmData])
+
+  const activeSsmData = useMemo(() => {
+    return Object.entries(ssmDataByTimestamp)
+      .filter(([timestamp, data]) => {
+        const ts = Number(timestamp)
         return ts >= (renderTimeInterval?.[0] ?? 0) && ts <= (renderTimeInterval?.[1] ?? 0)
       })
-      .map((value: [key: string, value: any]) => {
-        value[1] as { ssm: ProcessedSsm; srm: ProcessedSrmFeature }
+      .map(([timestamp, data]) => {
+        return data
       })
-  }, [renderTimeInterval])
+  }, [ssmDataByTimestamp, renderTimeInterval])
+
+  const activeSrmData = useMemo(() => {
+    return Object.entries(srmDataByTimestamp)
+      .filter(([timestamp, data]) => {
+        const ts = Number(timestamp)
+        return ts >= (renderTimeInterval?.[0] ?? 0) && ts <= (renderTimeInterval?.[1] ?? 0)
+      })
+      .map(([timestamp, data]) => {
+        return data
+      })
+  }, [srmDataByTimestamp, renderTimeInterval])
+
+  const activeSrmFeatureCollection = useMemo(() => {
+    return {
+      type: 'FeatureCollection' as 'FeatureCollection',
+      features: addSsmStatus(activeSrmData, activeSsmData),
+    }
+  }, [activeSrmData, activeSsmData])
+
+  const [connectingLanesWithSignalStateFeatureCollection, connectingLanesWithSsmSrmFeatureCollection] = useMemo(() => {
+    let connections: ConnectingLanesFeatureCollectionWithSignalState = EMPTY_FEATURE_COLLECTION
+    if (connectingLanes && currentSignalGroups && mapData?.mapFeatureCollection) {
+      connections = addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)
+    }
+    let srmSsmConnections: ConnectingLanesFeatureCollectionWithSsmSrm = EMPTY_FEATURE_COLLECTION
+    if (connectingLanes && activeSsmData) {
+      // Does not require SRM data, that is optional
+      srmSsmConnections = getSsmSrmConnections(connectingLanes, activeSsmData, activeSrmData)
+    }
+    return [connections, srmSsmConnections]
+  }, [connectingLanes, currentSignalGroups, mapData])
 
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
@@ -419,50 +482,19 @@ const IntersectionMap = (props: MAP_PROPS) => {
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
-          <Source type="geojson" data={mapData?.mapFeatureCollection ?? { type: 'FeatureCollection', features: [] }}>
+          <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
             <Layer {...mapMessageLayerStyle} />
           </Source>
-          <Source type="geojson" data={mapData?.mapFeatureCollection ?? { type: 'FeatureCollection', features: [] }}>
-            <Layer {...mapMessageLayerStyle} />
+          <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
+            <Layer {...mapMessageHighlightLayerStyle} />
           </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes &&
-                currentSignalGroups &&
-                mapData?.mapFeatureCollection &&
-                addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)) ?? {
-                type: 'FeatureCollection',
-                features: [],
-              }
-            }
-          >
+          <Source type="geojson" data={connectingLanesWithSsmSrmFeatureCollection}>
+            <Layer {...connectingLanesHighlightLayerStyle} />
+          </Source>
+          <Source type="geojson" data={connectingLanesWithSignalStateFeatureCollection}>
             <Layer {...connectingLanesLayerStyle} />
           </Source>
-          <Source
-            type="geojson"
-            data={
-              {
-                type: 'FeatureCollection',
-                features: selectedSrm?.map((srm) => {
-                  return {
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: [srm.long, srm.lat],
-                    },
-                    properties: {
-                      requestId: srm.requestId,
-                      requestedId: srm.requestedId,
-                      status: srm.status,
-                      time: srm.time,
-                      role: srm.role,
-                    },
-                  }
-                }),
-              } as GeoJSON.FeatureCollection<GeoJSON.Point>
-            }
-          >
+          <Source type="geojson" data={activeSrmFeatureCollection}>
             <Layer {...srmLayerStyle} />
           </Source>
           <Source

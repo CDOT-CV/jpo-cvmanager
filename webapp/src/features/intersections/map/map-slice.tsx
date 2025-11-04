@@ -152,7 +152,8 @@ const initialState = {
     type: 'FeatureCollection' as const,
     features: [],
   } as BsmFeatureCollection,
-  ssmSrmDataByTimestamp: {} as { [millis: number]: { ssm: ProcessedSsm; srm: ProcessedSrmFeature } },
+  currentSsmData: [] as ProcessedSsm[],
+  currentSrmData: [] as ProcessedSrmFeature[],
   surroundingEvents: [] as MessageMonitor.Event[],
   filteredSurroundingEvents: [] as MessageMonitor.Event[],
   surroundingNotifications: [] as MessageMonitor.Notification[],
@@ -1748,7 +1749,8 @@ export const selectSpatSignalGroups = (state: RootState) => state.intersectionMa
 export const selectCurrentSignalGroups = (state: RootState) => state.intersectionMap.value.currentSignalGroups
 export const selectCurrentBsms = (state: RootState) => state.intersectionMap.value.currentBsms
 export const selectConnectingLanes = (state: RootState) => state.intersectionMap.value.connectingLanes
-export const selectSsmSrmDataByTimestamp = (state: RootState) => state.intersectionMap.value.ssmSrmDataByTimestamp
+export const selectCurrentSsmData = (state: RootState) => state.intersectionMap.value.currentSsmData
+export const selectCurrentSrmData = (state: RootState) => state.intersectionMap.value.currentSrmData
 export const selectSurroundingEvents = (state: RootState) => state.intersectionMap.value.surroundingEvents
 export const selectFilteredSurroundingEvents = (state: RootState) =>
   state.intersectionMap.value.filteredSurroundingEvents

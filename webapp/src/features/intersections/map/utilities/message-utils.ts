@@ -290,3 +290,117 @@ export const addConnections = (
     })),
   }
 }
+
+export const getSsmSrmConnections = (
+  connectingLanes: ConnectingLanesFeatureCollection,
+  ssms: ProcessedSsm[],
+  srms: ProcessedSrmFeature[]
+): ConnectingLanesFeatureCollectionWithSsmSrm => {
+  return {
+    ...connectingLanes,
+    features: connectingLanes.features
+      .map((feature) => {
+        const ssmInfo: SsmInfo[] = ssms.map(getSsmInfoList).flat()
+        const srmInfo: SrmInfo[] = srms.map(getSrmInfoList).flat()
+        const signalStatuses = ssmInfo.filter(
+          (status) =>
+            status.inboundLaneID &&
+            status.inboundLaneID === feature.properties.ingressLaneId &&
+            (!status.outboundLaneID || status.outboundLaneID == feature.properties.egressLaneId)
+          // TODO: Support linking by connection ID  || (status.inboundLaneConnectionID && status.inboundLaneConnectionID === feature.properties.)
+        )
+        const signalRequests = srmInfo.filter(
+          (request) =>
+            request.inboundLaneID &&
+            request.inboundLaneID === feature.properties.ingressLaneId &&
+            (!request.outboundLaneID || request.outboundLaneID == feature.properties.egressLaneId)
+          // TODO: Support linking by connection ID  || (request.inboundLaneConnectionID && request.inboundLaneConnectionID === feature.properties.)
+        )
+        return {
+          ...feature,
+          properties: {
+            ...feature.properties,
+            signalRequests: signalRequests,
+            signalStatuses: signalStatuses,
+            highlightColor: signalRequests.length > 0 ? '#ffff00' : null,
+          },
+        } as ConnectingLanesFeatureWithSsmSrm
+      })
+      .filter((feature) => feature.properties.signalStatuses.length > 0),
+  }
+}
+
+export const addSsmStatus = (
+  srmData: ProcessedSrmFeature[],
+  ssmData: ProcessedSsm[]
+): ProcessedSrmFeatureWithStatus[] =>
+  srmData.map((srm) => {
+    // Find matching SSM by vehicle ID
+    let matchingSsms: ProcessedSsm[] = []
+    ssmData.forEach((ssm) => {
+      const matchingStatuses = []
+      ssm.statusList?.forEach((status) => {
+        srm.properties.requests?.forEach((request) => {
+          if (request.requestID == status.requestID) {
+            matchingStatuses.push(status)
+          }
+        })
+      })
+      if (matchingStatuses) {
+        matchingSsms.push({ ...ssm, statusList: matchingStatuses } as ProcessedSsm)
+      }
+    })
+
+    return {
+      ...srm,
+      properties: {
+        ...srm.properties,
+        ssms: matchingSsms,
+      },
+    } as ProcessedSrmFeatureWithStatus
+  })
+
+export const getSsmInfoList = (ssm: ProcessedSsm): SsmInfo[] =>
+  ssm.statusList?.map((status) => ({
+    requestInfo: {
+      vehicleID: status.vehicleID,
+      role: status.requesterRole,
+      subrole: status.requesterSubrole,
+      importanceLevel: status.requestImportanceLevel,
+      iso3833VehicleType: status.requesterIso3833VehicleType,
+      hpmsType: status.requesterHpmsType,
+    },
+    timeStampEpochSeconds: ssm.timeStampEpochSeconds,
+    status: status.status,
+    sequenceNumber: ssm.sequenceNumber,
+    statusSequenceNumber: ssm.statusSequenceNumber,
+    requestID: status.requestID,
+    inboundLaneID: status.inboundOnLaneID,
+    inboundLaneConnectionID: status.inboundOnLaneConnectionID,
+    outboundLaneID: status.outboundOnLaneID,
+    outboundLaneConnectionID: status.outboundOnLaneConnectionID,
+    estimatedTimeOfArrival: status.estimatedTimeOfArrival,
+    estimatedTimeOfArrivalDurationSeconds: status.estimatedTimeOfArrivalDurationSeconds,
+  })) || []
+
+export const getSrmInfoList = (srm: ProcessedSrmFeature): SrmInfo[] =>
+  srm.properties.requests?.map((request) => ({
+    vehicleInfo: {
+      vehicleID: srm.properties.vehicleID,
+      role: srm.properties.role,
+      subrole: srm.properties.subrole,
+      importanceLevel: srm.properties.importanceLevel,
+      iso3833VehicleType: srm.properties.iso3833VehicleType,
+      hpmsType: srm.properties.hpmsType,
+    },
+    timeStampEpochSeconds: srm.properties.timeStampEpochSeconds,
+    sequenceNumber: srm.properties.sequenceNumber,
+    requestID: request.requestID,
+    priorityRequestType: request.priorityRequestType,
+    inboundLaneID: request.inboundLaneID,
+    inboundLaneConnectionID: request.inboundLaneConnectionID,
+    outboundLaneID: request.outboundLaneID,
+    outboundLaneConnectionID: request.outboundLaneConnectionID,
+    estimatedTimeOfArrival: request.estimatedTimeOfArrival,
+    estimatedTimeOfArrivalDurationSeconds: request.estimatedTimeOfArrivalDurationSeconds,
+  })) || []
