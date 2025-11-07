@@ -11,8 +11,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.SpatMessageCountProgressionEvent;
 import us.dot.its.jpo.ode.api.accessors.events.spat_message_count_progression_event.SpatMessageCountProgressionRepositoryImpl;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -59,7 +57,7 @@ class SpatMessageCountProgressionRepositoryImplTest {
         Page<SpatMessageCountProgressionEvent> page = repository.findLatest(intersectionID, startTime, endTime);
 
         assertThat(page.getContent()).hasSize(1);
-        assertThat(page.getContent().get(0).getIntersectionID()).isEqualTo(intersectionID);
+        assertThat(page.getContent().getFirst().getIntersectionID()).isEqualTo(intersectionID);
         verify(mongoTemplate).findOne(any(Query.class), eq(SpatMessageCountProgressionEvent.class),
                 eq("CmSpatMessageCountProgressionEvents"));
     }
