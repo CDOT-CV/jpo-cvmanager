@@ -3,10 +3,10 @@ type ProcessedSsm = {
   messageType: 'SSM'
   asn1: string
   odeReceivedAt: string
-  odeReceivedAtEpochSeconds: number
+  odeReceivedAtEpochMillis: number
   originIp: string
   timeStamp: string
-  timeStampEpochSeconds: number
+  timeStampEpochMillis: number
   sequenceNumber?: number
   statusSequenceNumber?: number
   region?: number
@@ -37,7 +37,7 @@ type ProcessedSignalStatus = {
 
 type SsmInfo = {
   requestInfo: SsmRequesterInfo
-  timeStampEpochSeconds: number
+  timeStampEpochMillis: number
   status: ProcessedPrioritizationResponseStatus
   sequenceNumber?: number
   statusSequenceNumber?: number

@@ -316,7 +316,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const ssmDataByTimestamp = useMemo(() => {
     const ssmDataByTimestamp: Record<number, ProcessedSsm> = {}
     currentSsmData.forEach((item) => {
-      const timestamp = item.timeStampEpochSeconds
+      const timestamp = item.timeStampEpochMillis
       if (!isNaN(timestamp)) {
         ssmDataByTimestamp[timestamp] = item
       }
@@ -327,7 +327,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const srmDataByTimestamp = useMemo(() => {
     const srmDataByTimestamp: Record<number, ProcessedSrmFeature> = {}
     currentSrmData.forEach((item) => {
-      const timestamp = item.properties.timeStampEpochSeconds
+      const timestamp = item.properties.timeStampEpochMillis
       if (!isNaN(timestamp)) {
         srmDataByTimestamp[timestamp] = item
       }

@@ -174,20 +174,68 @@ export const parseSpatSignalGroups = (spats: ProcessedSpat[]): SpatSignalGroups 
   return timedSignalGroups
 }
 
-export const addBsmTimestamps = (bsmFeatureCollection: BsmFeatureCollection): BsmFeatureCollection => {
+// Additionally sort ascending, earliest first
+export const addMapTimestampsAndSortAscending = (maps: ProcessedMap[]): ProcessedMap[] =>
+  maps
+    .map((map) => ({
+      ...map,
+      properties: {
+        ...map.properties,
+        timeStamp: getTimestamp(map.properties.timeStamp),
+        odeReceivedAt: getTimestamp(map.properties.odeReceivedAt),
+      },
+    }))
+    .sort((a, b) => a.properties.timeStamp - b.properties.timeStamp)
+
+// Additionally sort ascending, earliest first
+export const addSpatTimestampsAndSortAscending = (spats: ProcessedSpat[]): ProcessedSpat[] =>
+  spats
+    .map((spat) => ({
+      ...spat,
+      utcTimeStamp: getTimestamp(spat.utcTimeStamp),
+    }))
+    .sort((a, b) => a.utcTimeStamp - b.utcTimeStamp)
+
+// Additionally sort ascending, earliest first
+export const addBsmTimestampsAndSortAscending = (bsmFeatureCollection: BsmFeatureCollection): BsmFeatureCollection => {
   return {
     type: 'FeatureCollection' as const,
-    features: bsmFeatureCollection.features.map((bsm) => {
-      return {
-        ...bsm,
-        properties: {
-          ...bsm.properties,
-          odeReceivedAtEpochSeconds: new Date(bsm.properties.odeReceivedAt).getTime() / 1000,
-        },
-      }
-    }),
+    features: bsmFeatureCollection.features
+      .map((bsm) => {
+        return {
+          ...bsm,
+          properties: {
+            ...bsm.properties,
+            odeReceivedAtEpochSeconds: new Date(bsm.properties.odeReceivedAt).getTime() / 1000,
+          },
+        }
+      })
+      .sort((a, b) => a.properties.odeReceivedAtEpochSeconds - b.properties.odeReceivedAtEpochSeconds),
   }
 }
+
+// Additionally sort ascending, earliest first
+export const addSsmTimestampsAndSortAscending = (ssms: ProcessedSsm[]): ProcessedSsm[] =>
+  ssms
+    .map((ssm) => ({
+      ...ssm,
+      odeReceivedAtEpochMillis: getTimestamp(ssm.odeReceivedAt),
+      timeStampEpochMillis: getTimestamp(ssm.timeStamp),
+    }))
+    .sort((a, b) => a.timeStampEpochMillis - b.timeStampEpochMillis)
+
+// Additionally sort ascending, earliest first
+export const addSrmTimestampsAndSortAscending = (srms: ProcessedSrmFeature[]): ProcessedSrmFeature[] =>
+  srms
+    .map((srm) => ({
+      ...srm,
+      properties: {
+        ...srm.properties,
+        odeReceivedAtEpochMillis: getTimestamp(srm.properties.odeReceivedAt),
+        timeStampEpochMillis: getTimestamp(srm.properties.timeStamp),
+      },
+    }))
+    .sort((a, b) => a.properties.timeStampEpochMillis - b.properties.timeStampEpochMillis)
 
 export const isValidDate = (d: Date) => {
   if (d == null) return false
@@ -370,7 +418,7 @@ export const getSsmInfoList = (ssm: ProcessedSsm): SsmInfo[] =>
       iso3833VehicleType: status.requesterIso3833VehicleType,
       hpmsType: status.requesterHpmsType,
     },
-    timeStampEpochSeconds: ssm.timeStampEpochSeconds,
+    timeStampEpochMillis: ssm.timeStampEpochMillis,
     status: status.status,
     sequenceNumber: ssm.sequenceNumber,
     statusSequenceNumber: ssm.statusSequenceNumber,
@@ -393,7 +441,7 @@ export const getSrmInfoList = (srm: ProcessedSrmFeature): SrmInfo[] =>
       iso3833VehicleType: srm.properties.iso3833VehicleType,
       hpmsType: srm.properties.hpmsType,
     },
-    timeStampEpochSeconds: srm.properties.timeStampEpochSeconds,
+    timeStampEpochMillis: srm.properties.timeStampEpochMillis,
     sequenceNumber: srm.properties.sequenceNumber,
     requestID: request.requestID,
     priorityRequestType: request.priorityRequestType,

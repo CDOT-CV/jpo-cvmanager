@@ -11,11 +11,11 @@ type ProcessedSrmProperties = {
   schemaVersion: number
   messageType: 'SRM'
   odeReceivedAt: string
-  odeReceivedAtEpochSeconds: number
+  odeReceivedAtEpochMillis: number
   originIp: string
   asn1: string
   timeStamp: string
-  timeStampEpochSeconds: number
+  timeStampEpochMillis: number
   sequenceNumber?: number
   vehicleID: string
   role: ProcessedBasicVehicleRole
@@ -61,7 +61,7 @@ type ProcessedSrmFeatureWithStatus = ProcessedSrmFeature & {
 
 type SrmInfo = {
   vehicleInfo: SrmVehicleInfo
-  timeStampEpochSeconds: number
+  timeStampEpochMillis: number
   sequenceNumber?: number
   requestID: number
   priorityRequestType: ProcessedPriorityRequestType
