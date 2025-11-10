@@ -8,6 +8,7 @@ import {
   addSrmTimestampsAndSortAscending,
   addSsmTimestampsAndSortAscending,
 } from '../intersections/map/utilities/message-utils'
+import { MAP_QUERY_PARAMS } from '../intersections/map/map-slice'
 
 export type LocationParams = {
   longitude: number
@@ -48,15 +49,6 @@ export const intersectionMapApiSlice = createApi({
   }),
   tagTypes: ['defaultConfigs', 'intersectionConfigs'],
   endpoints: (builder) => ({
-    getSsmLatest: builder.query<ProcessedSsm[], number>({
-      query: (intersectionId: number) => {
-        return `/processed-srm${getQueryString({
-          intersection_id: intersectionId.toString(),
-          latest: 'true',
-        })}`
-      },
-      transformResponse: (response: { content: ProcessedSsm[] }) => addSsmTimestampsAndSortAscending(response.content),
-    }),
     getSsmWithinTimeWindow: builder.query<ProcessedSsm[], { intersectionId: number; timeWindow: TimeWindow }>({
       query: ({ intersectionId, timeWindow }) => {
         return `/processed-srm${getQueryString({
@@ -66,18 +58,6 @@ export const intersectionMapApiSlice = createApi({
         })}`
       },
       transformResponse: (response: { content: ProcessedSsm[] }) => addSsmTimestampsAndSortAscending(response.content),
-    }),
-    getSrmLatest: builder.query<ProcessedSrmFeature[], LocationParams>({
-      query: (loc: LocationParams) => {
-        return `/processed-ssm${getQueryString({
-          longitude: loc.longitude.toString(),
-          latitude: loc.latitude.toString(),
-          distance: loc.distance.toString(),
-          latest: 'true',
-        })}`
-      },
-      transformResponse: (response: { content: ProcessedSrmFeature[] }) =>
-        addSrmTimestampsAndSortAscending(response.content),
     }),
     getSrmWithinTimeWindow: builder.query<ProcessedSrmFeature[], { loc: LocationParams; timeWindow: TimeWindow }>({
       query: ({ loc, timeWindow }) => {
@@ -98,11 +78,43 @@ export const intersectionMapApiSlice = createApi({
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
 export const {
-  useGetSsmLatestQuery,
   useGetSsmWithinTimeWindowQuery,
-  useGetSrmLatestQuery,
   useGetSrmWithinTimeWindowQuery,
+  endpoints: { getSsmWithinTimeWindow, getSrmWithinTimeWindow },
+  util: intersectionMapApiUtil,
 } = intersectionMapApiSlice
+
+// Helper function to manually fetch SSM data
+export const fetchSsmWithinTimeWindow = (queryParams: MAP_QUERY_PARAMS, dispatch: any) => {
+  const intersectionId = queryParams.intersectionId
+  const timeWindow = getTimeWindowFromQueryParams(queryParams)
+  return dispatch(
+    intersectionMapApiSlice.endpoints.getSsmWithinTimeWindow.initiate({
+      intersectionId,
+      timeWindow,
+    })
+  )
+}
+
+// Helper function to manually fetch SSM data
+export const fetchSrmWithinTimeWindow = (
+  queryParams: MAP_QUERY_PARAMS,
+  mapCoordinates: OdePosition3D,
+  dispatch: any
+) => {
+  const timeWindow = getTimeWindowFromQueryParams(queryParams)
+  const loc = {
+    longitude: mapCoordinates.longitude,
+    latitude: mapCoordinates.latitude,
+    distance: 500,
+  }
+  return dispatch(
+    intersectionMapApiSlice.endpoints.getSrmWithinTimeWindow.initiate({
+      loc,
+      timeWindow,
+    })
+  )
+}
 
 function upperBound<T>(messages: T[], target: number, getValue: (message: T) => number) {
   if (messages.length == 0) return 0
@@ -128,13 +140,23 @@ function lowerBound<T>(messages: T[], target: number, getValue: (message: T) => 
   return lo
 }
 
-const filterSsms = (ssms: ProcessedSsm[], timeWindow: TimeWindow) => {
+export const getTimeWindowFromQueryParams = (queryParams: MAP_QUERY_PARAMS): TimeWindow => ({
+  startMillis: queryParams.startDate.getTime(),
+  endMillis: queryParams.endDate.getTime(),
+})
+
+export const getTimeWindowFromRenderInterval = (renderTimeInterval: number[]): TimeWindow => ({
+  startMillis: renderTimeInterval[0] * 1000,
+  endMillis: renderTimeInterval[1] * 1000,
+})
+
+export const filterSsms = (ssms: ProcessedSsm[], timeWindow: TimeWindow) => {
   const upper = upperBound(ssms, timeWindow.endMillis, (ssm) => ssm.timeStampEpochMillis)
   const lower = lowerBound(ssms, timeWindow.startMillis, (ssm) => ssm.timeStampEpochMillis, upper)
   return ssms.slice(lower, upper)
 }
 
-const filterSrms = (srms: ProcessedSrmFeature[], timeWindow: TimeWindow) => {
+export const filterSrms = (srms: ProcessedSrmFeature[], timeWindow: TimeWindow) => {
   const upper = upperBound(srms, timeWindow.endMillis, (srm) => srm.properties.timeStampEpochMillis)
   const lower = lowerBound(srms, timeWindow.startMillis, (srm) => srm.properties.timeStampEpochMillis, upper)
   return srms.slice(lower, upper)

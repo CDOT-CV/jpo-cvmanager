@@ -31,6 +31,13 @@ import { getTimestamp } from './map-component'
 import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
 import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
 import { ThunkAbortController } from './utilities/thunk-abort-contoller'
+import {
+  fetchSrmWithinTimeWindow,
+  fetchSsmWithinTimeWindow,
+  filterSrms,
+  filterSsms,
+  getTimeWindowFromRenderInterval,
+} from '../../api/intersectionMapApiSlice'
 
 export type MAP_LAYERS =
   | 'map-message'
@@ -491,7 +498,8 @@ export const pullInitialData = createAsyncThunk(
       dispatch(getBsmDailyCounts())
       dispatch(getSurroundingEvents())
       dispatch(getSurroundingNotifications())
-      dispatch(getSsmSrmData(mapCoordinates))
+      fetchSsmWithinTimeWindow(queryParams, dispatch)
+      fetchSrmWithinTimeWindow(queryParams, mapCoordinates, dispatch)
 
       // ######################### Retrieve SPAT Data #########################
       abortController = new AbortController()
@@ -1944,6 +1952,16 @@ export const selectDecoderModeEnabled = (state: RootState) => state.intersection
 export const selectTimeFilterBsms = (state: RootState) => !state.intersectionMap.value.decoderModeEnabled
 export const selectAbortAllFutureRequests = (state: RootState) => state.intersectionMap.value.abortAllFutureRequests
 export const selectLiveSpatLatestLatencyMs = (state: RootState) => state.intersectionMap.value.liveSpatLatestLatencyMs
+
+export const selectActiveSsmData = (state: RootState) => {
+  const timeWindow = getTimeWindowFromRenderInterval(state.intersectionMap.value.renderTimeInterval)
+  return filterSsms(state.intersectionMap.value.currentSsmData, timeWindow)
+}
+
+export const selectActiveSrmData = (state: RootState) => {
+  const timeWindow = getTimeWindowFromRenderInterval(state.intersectionMap.value.renderTimeInterval)
+  return filterSrms(state.intersectionMap.value.currentSrmData, timeWindow)
+}
 
 export const {
   setSurroundingEvents,

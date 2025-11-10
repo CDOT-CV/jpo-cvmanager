@@ -38,6 +38,8 @@ import {
   pullInitialData,
   resetInitialDataAbortControllers,
   resetMapView,
+  selectActiveSrmData,
+  selectActiveSsmData,
   selectAllInteractiveLayerIds,
   selectBsmData,
   selectConnectingLanes,
@@ -140,8 +142,8 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const bsmLayerStyle = useSelector(selectBsmLayerStyle)
   const signalStateLayerStyle = useSelector(selectSignalStateLayerStyle)
 
-  const currentSsmData = useSelector(selectCurrentSsmData)
-  const currentSrmData = useSelector(selectCurrentSrmData)
+  const activeSsmData = useSelector(selectActiveSsmData)
+  const activeSrmData = useSelector(selectActiveSrmData)
 
   const selectedSrm = useSelector(selectSelectedSrm)
 
@@ -315,50 +317,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
 
-  const ssmDataByTimestamp = useMemo(() => {
-    const ssmDataByTimestamp: Record<number, ProcessedSsm> = {}
-    currentSsmData.forEach((item) => {
-      const timestamp = item.timeStampEpochMillis
-      if (!isNaN(timestamp)) {
-        ssmDataByTimestamp[timestamp] = item
-      }
-    })
-    return ssmDataByTimestamp
-  }, [currentSsmData])
-
-  const srmDataByTimestamp = useMemo(() => {
-    const srmDataByTimestamp: Record<number, ProcessedSrmFeature> = {}
-    currentSrmData.forEach((item) => {
-      const timestamp = item.properties.timeStampEpochMillis
-      if (!isNaN(timestamp)) {
-        srmDataByTimestamp[timestamp] = item
-      }
-    })
-    return srmDataByTimestamp
-  }, [currentSrmData])
-
-  const activeSsmData = useMemo(() => {
-    return Object.entries(ssmDataByTimestamp)
-      .filter(([timestamp, data]) => {
-        const ts = Number(timestamp)
-        return ts >= (renderTimeInterval?.[0] ?? 0) && ts <= (renderTimeInterval?.[1] ?? 0)
-      })
-      .map(([timestamp, data]) => {
-        return data
-      })
-  }, [ssmDataByTimestamp, renderTimeInterval])
-
-  const activeSrmData = useMemo(() => {
-    return Object.entries(srmDataByTimestamp)
-      .filter(([timestamp, data]) => {
-        const ts = Number(timestamp)
-        return ts >= (renderTimeInterval?.[0] ?? 0) && ts <= (renderTimeInterval?.[1] ?? 0)
-      })
-      .map(([timestamp, data]) => {
-        return data
-      })
-  }, [srmDataByTimestamp, renderTimeInterval])
-
   const activeSrmFeatureCollection = useMemo(() => {
     return {
       type: 'FeatureCollection' as 'FeatureCollection',
@@ -394,18 +352,11 @@ const IntersectionMap = (props: MAP_PROPS) => {
             scrollBehavior: 'auto',
           }}
         >
-          <Row>
-            <Box style={{ position: 'relative' }}>
-              <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
-                <ControlPanel />
-              </Paper>
-            </Box>
-            <Box style={{ position: 'relative' }}>
-              <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
-                <LayerMenu />
-              </Paper>
-            </Box>
-          </Row>
+          <Box style={{ position: 'relative' }}>
+            <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
+              <ControlPanel />
+            </Paper>
+          </Box>
         </div>
         <Fab
           color="primary"
@@ -572,6 +523,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
         />
         <MapLegend openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
         <VisualSettings openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
+        <LayerMenu openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
       </Col>
       <DecoderEntryDialog />
     </Container>
