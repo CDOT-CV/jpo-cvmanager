@@ -15,8 +15,8 @@ const mapMessageHighlightLayer: LineLayer = {
   id: 'map-message-highlight',
   type: 'line',
   paint: {
-    'line-width': 10,
-    'line-color': '#fff000',
+    'line-width': 12,
+    'line-color': '#ccff33',
   },
 }
 
@@ -124,8 +124,8 @@ const connectingLanesHighlightLayer: LineLayer = {
   id: 'connecting-lanes-highlight',
   type: 'line',
   paint: {
-    'line-width': 10,
-    'line-color': '#fff000',
+    'line-width': 12,
+    'line-color': '#ccff33',
   },
 }
 
@@ -149,14 +149,21 @@ const connectingLanesLabelsLayer: SymbolLayer = {
   },
 }
 
-const srmLayer: CircleLayer = {
+const srmLayer: SymbolLayer = {
   id: 'srmMarker',
-  type: 'circle',
+  type: 'symbol',
   source: 'srmData',
-  minzoom: 12,
+  layout: {
+    'icon-image': 'srm_square',
+    'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 0.6, 20, 1],
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
+    'icon-rotation-alignment': 'map',
+    'icon-rotate': ['*', ['get', 'heading']],
+  },
   paint: {
-    'circle-radius': 8,
-    'circle-color': 'rgb(14, 32, 82)',
+    'icon-color': '#0004ff',
+    'icon-opacity': 1,
   },
 }
 

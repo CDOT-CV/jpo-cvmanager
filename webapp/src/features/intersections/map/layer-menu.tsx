@@ -11,6 +11,19 @@ type LayerMenuProps = {
   setOpenPanel: (panel: string) => void
 }
 
+const layerTitleMap: { [key in MAP_LAYERS]: string } = {
+  'map-message': 'Map Lanes',
+  'map-message-labels': 'Map Lane Labels',
+  'connecting-lanes': 'Connecting Lanes',
+  'connecting-lanes-labels': 'Connecting Lane Labels',
+  'invalid-lane-collection': 'Invalid Lane Collections',
+  bsm: 'BSMs',
+  'signal-states': 'Signal States',
+  srm: 'SRMs',
+  'srm-requested-lanes': 'SRM Requested Lanes',
+  'ssm-connection-status': 'SSM Connection Status',
+}
+
 function LayerMenu(props: LayerMenuProps) {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
@@ -28,15 +41,23 @@ function LayerMenu(props: LayerMenuProps) {
 
   const layerRow = (id: MAP_LAYERS) => {
     return (
-      <div>
+      <Box
+        key={id}
+        sx={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 1,
+        }}
+      >
         <Checkbox
           onChange={(event) => {
             dispatch(setLayerVisibility({ key: id, visible: event.target.checked }))
           }}
           checked={layersVisible[id]}
         />
-        <Typography fontSize="16px">Map Lanes</Typography>
-      </div>
+        <Typography fontSize="16px">{layerTitleMap[id]}</Typography>
+      </Box>
     )
   }
 
@@ -51,7 +72,7 @@ function LayerMenu(props: LayerMenuProps) {
           position: 'absolute',
           zIndex: 10,
           top: theme.spacing(3),
-          right: theme.spacing(17),
+          right: theme.spacing(24),
           backgroundColor: theme.palette.background.paper,
           '&:hover': {
             backgroundColor: theme.palette.custom.intersectionMapButtonHover,
@@ -67,7 +88,7 @@ function LayerMenu(props: LayerMenuProps) {
           bottom: theme.spacing(3),
           maxHeight: 'calc(100vh - 240px)',
           right: 0,
-          width: props.openPanel === 'visual-settings' ? 600 : 0,
+          width: props.openPanel === 'layer-menu' ? 600 : 0,
           fontSize: '16px',
           overflow: 'auto',
           scrollBehavior: 'auto',
@@ -77,7 +98,7 @@ function LayerMenu(props: LayerMenuProps) {
         <Box style={{ position: 'relative', height: '100%', width: '100%' }}>
           <Paper sx={{ height: '100%', width: '100%', px: 2, pb: 2 }} square>
             <Box>
-              {props.openPanel !== 'visual-settings' ? null : (
+              {props.openPanel !== 'layer-menu' ? null : (
                 <>
                   <Box
                     sx={{
@@ -87,7 +108,7 @@ function LayerMenu(props: LayerMenuProps) {
                       padding: '8px 16px',
                     }}
                   >
-                    <Typography fontSize="16px">Visual Settings</Typography>
+                    <Typography fontSize="16px">Map Layers</Typography>
                     <IconButton
                       onClick={() => {
                         toggleOpen()
@@ -96,7 +117,7 @@ function LayerMenu(props: LayerMenuProps) {
                       <Close color="info" />
                     </IconButton>
                   </Box>
-                  <div>{Object.keys(layersVisible).map((key: MAP_LAYERS) => layerRow(key))}</div>
+                  <Box>{Object.keys(layersVisible).map((key: MAP_LAYERS) => layerRow(key))}</Box>
                 </>
               )}
             </Box>

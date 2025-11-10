@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
-import { Container, Col, Row } from 'reactstrap'
+import { Container, Col } from 'reactstrap'
 
 import { Paper, Box, Fab, useTheme } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
@@ -31,7 +31,6 @@ import {
   initializeLiveStreaming,
   pullInitialData,
   resetInitialDataAbortControllers,
-  resetMapView,
   selectActiveSrmData,
   selectActiveSsmData,
   selectAllInteractiveLayerIds,
@@ -39,8 +38,6 @@ import {
   selectConnectingLanes,
   selectCurrentBsms,
   selectCurrentSignalGroups,
-  selectCurrentSrmData,
-  selectCurrentSsmData,
   selectDecoderModeEnabled,
   selectFilteredSurroundingEvents,
   selectFilteredSurroundingNotifications,
@@ -59,13 +56,9 @@ import {
   selectSliderValueDeciseconds,
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
-  selectViewState,
-  setDecoderModeEnabled,
   setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
-  setRawData,
-  setViewState,
   updateQueryParams,
   updateRenderTimeInterval,
   updateRenderedMapState,
@@ -81,11 +74,10 @@ import {
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { MapLegend } from './map-legend'
-import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import { useLocation } from 'react-router-dom'
-import { Key, Remove } from '@mui/icons-material'
+import { Remove } from '@mui/icons-material'
 import VisualSettings from './visual-settings'
 import { useDispatch, useSelector } from 'react-redux'
 import LayerMenu from './layer-menu'
@@ -137,8 +129,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const activeSsmData = useSelector(selectActiveSsmData)
   const activeSrmData = useSelector(selectActiveSrmData)
 
-  const selectedSrm = useSelector(selectSelectedSrm)
-
   const allInteractiveLayerIds = useSelector(selectAllInteractiveLayerIds)
   const queryParams = useSelector(selectQueryParams)
   const mapData = useSelector(selectMapData)
@@ -151,7 +141,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const connectingLanes = useSelector(selectConnectingLanes)
   const filteredSurroundingEvents = useSelector(selectFilteredSurroundingEvents)
   const filteredSurroundingNotifications = useSelector(selectFilteredSurroundingNotifications)
-  const viewState = useSelector(selectViewState)
   const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
   const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
@@ -165,6 +154,11 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const mapRef = React.useRef<MapRef>(null)
+  const [viewState, setViewState] = useState({
+    latitude: 39.587905,
+    longitude: -105.0907089,
+    zoom: 11,
+  })
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
   const [openPanel, setOpenPanel] = useState<string>('')
   const [cursor, setCursor] = useState<string>('default')
@@ -257,7 +251,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
           })
         )
         if (bsmTrailLength > 15) setBsmTrailLength(5)
-        setRawData({})
       } else {
         console.error(
           'Did not attempt to update notifications. Access token missing:',
@@ -292,17 +285,18 @@ const IntersectionMap = (props: MAP_PROPS) => {
     const map = mapRef.current?.getMap()
     if (!map) return
     const images = [
-      'traffic-light-icon-unknown',
-      'traffic-light-icon-red-flashing',
-      'traffic-light-icon-red-1',
-      'traffic-light-icon-yellow-red-1',
-      'traffic-light-icon-green-1',
-      'traffic-light-icon-yellow-1',
+      { name: 'traffic-light-icon-unknown', sdf: false },
+      { name: 'traffic-light-icon-red-flashing', sdf: false },
+      { name: 'traffic-light-icon-red-1', sdf: false },
+      { name: 'traffic-light-icon-yellow-red-1', sdf: false },
+      { name: 'traffic-light-icon-green-1', sdf: false },
+      { name: 'traffic-light-icon-yellow-1', sdf: false },
+      { name: 'srm_square', sdf: true },
     ]
-    for (const image_name of images) {
-      map.loadImage(`/icons/${image_name}.png`, (error, image) => {
+    for (const img of images) {
+      map.loadImage(`/icons/${img.name}.png`, (error, image) => {
         if (error) throw error
-        if (!map.hasImage(image_name)) map.addImage(image_name, image, { sdf: true })
+        if (!map.hasImage(img.name)) map.addImage(img.name, image, { sdf: img.sdf })
       })
     }
     if (mapRef.current) dispatch(setMapRef(mapRef))
@@ -437,7 +431,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           customAttribution={['<a href="https://www.cotrip.com/" target="_blank">© CDOT</a>']}
           styleDiffing
           style={{ width: '100%', height: '100%' }}
-          onMove={(evt) => dispatch(setViewState(evt.viewState))}
+          onMove={(evt) => setViewState(evt.viewState)}
           onClick={(e) => onMapClick(e.point, e.lngLat)}
           interactiveLayerIds={allInteractiveLayerIds}
           cursor={cursor}
@@ -448,27 +442,28 @@ const IntersectionMap = (props: MAP_PROPS) => {
             const map = e.target
             if (!map) return
             const images = [
-              'traffic-light-icon-unknown',
-              'traffic-light-icon-red-flashing',
-              'traffic-light-icon-red-1',
-              'traffic-light-icon-yellow-red-1',
-              'traffic-light-icon-green-1',
-              'traffic-light-icon-yellow-1',
+              { name: 'traffic-light-icon-unknown', sdf: false },
+              { name: 'traffic-light-icon-red-flashing', sdf: false },
+              { name: 'traffic-light-icon-red-1', sdf: false },
+              { name: 'traffic-light-icon-yellow-red-1', sdf: false },
+              { name: 'traffic-light-icon-green-1', sdf: false },
+              { name: 'traffic-light-icon-yellow-1', sdf: false },
+              { name: 'srm_square', sdf: true },
             ]
-            for (const image_name of images) {
-              map.loadImage(`/icons/${image_name}.png`, (error, image) => {
+            for (const img of images) {
+              map.loadImage(`/icons/${img.name}.png`, (error, image) => {
                 if (error) throw error
-                if (!map.hasImage(image_name)) map.addImage(image_name, image)
+                if (!map.hasImage(img.name)) map.addImage(img.name, image, { sdf: img.sdf })
               })
             }
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
           <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
-            <Layer {...mapMessageLayerStyle} />
+            <Layer {...mapMessageHighlightLayerStyle} />
           </Source>
           <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
-            <Layer {...mapMessageHighlightLayerStyle} />
+            <Layer {...mapMessageLayerStyle} />
           </Source>
           <Source type="geojson" data={connectingLanesWithSsmSrmFeatureCollection}>
             <Layer {...connectingLanesHighlightLayerStyle} />

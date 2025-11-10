@@ -51,7 +51,7 @@ export const intersectionMapApiSlice = createApi({
   endpoints: (builder) => ({
     getSsmWithinTimeWindow: builder.query<ProcessedSsm[], { intersectionId: number; timeWindow: TimeWindow }>({
       query: ({ intersectionId, timeWindow }) => {
-        return `/processed-srm${getQueryString({
+        return `/processed-ssm${getQueryString({
           intersection_id: intersectionId.toString(),
           start_time_utc_millis: timeWindow.startMillis.toString(),
           end_time_utc_millis: timeWindow.endMillis.toString(),
@@ -61,7 +61,7 @@ export const intersectionMapApiSlice = createApi({
     }),
     getSrmWithinTimeWindow: builder.query<ProcessedSrmFeature[], { loc: LocationParams; timeWindow: TimeWindow }>({
       query: ({ loc, timeWindow }) => {
-        return `/processed-ssm${getQueryString({
+        return `/processed-srm${getQueryString({
           longitude: loc.longitude.toString(),
           latitude: loc.latitude.toString(),
           distance: loc.distance.toString(),
@@ -106,7 +106,7 @@ export const fetchSrmWithinTimeWindow = (
   const loc = {
     longitude: mapCoordinates.longitude,
     latitude: mapCoordinates.latitude,
-    distance: 500,
+    distance: 10000,
   }
   return dispatch(
     intersectionMapApiSlice.endpoints.getSrmWithinTimeWindow.initiate({

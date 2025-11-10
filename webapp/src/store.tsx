@@ -29,6 +29,8 @@ import intersectionMapReducer from './features/intersections/map/map-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
 import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
+import { intersectionMapApiSlice } from './features/api/intersectionMapApiSlice'
+import { intersectionMapApiMiddleware } from './features/api/intersection-map-api-middleware'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -69,6 +71,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       timeSync: timeSyncReducer,
       haas: haasSliceReducer,
       [intersectionConfigSlice.reducerPath]: intersectionConfigSlice.reducer,
+      [intersectionMapApiSlice.reducerPath]: intersectionMapApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -76,7 +79,10 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         thunk: true,
         serializableCheck: false,
         immutableCheck: false,
-      }).concat(intersectionConfigSlice.middleware),
+      })
+        .concat(intersectionConfigSlice.middleware)
+        .concat(intersectionMapApiSlice.middleware)
+        .concat(intersectionMapApiMiddleware.middleware),
     devTools: true,
   })
 }
