@@ -1,6 +1,5 @@
 from unittest.mock import patch, Mock
 from api.src import middleware
-
 from api.tests.data import auth_data
 from werkzeug.exceptions import Unauthorized
 
@@ -131,9 +130,7 @@ def test_middleware_class_call_exception(
     middleware_instance = middleware.Middleware(app)
 
     response = middleware_instance(environ, start_response)
-    print(type(response))
     response_body = b"".join(response).decode("utf-8")
-    print(response_body)
     assert str(response_body) == '{"error": "Unauthorized", "message": "test"}'
     app.assert_not_called()
     mock_request.assert_called_once_with(environ)
@@ -166,7 +163,10 @@ def test_middleware_class_call_contact_support(mock_request, mock_get_user_role)
 @patch("api_environment.ENABLE_WZDX_FEATURES", True)
 def test_evaluate_tag_all_enabled():
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.RSU) is False
-    assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION) is False
+    assert (
+        middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION)
+        is False
+    )
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.WZDX) is False
 
 
@@ -177,7 +177,9 @@ def test_evaluate_tag_all_disabled():
     from api.src import middleware as middleware
 
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.RSU) is True
-    assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION) is True
+    assert (
+        middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION) is True
+    )
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.WZDX) is True
 
 
@@ -188,7 +190,10 @@ def test_evaluate_tag_different():
     from api.src import middleware as middleware
 
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.RSU) is True
-    assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION) is False
+    assert (
+        middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.INTERSECTION)
+        is False
+    )
     assert middleware.is_tag_disabled(middleware.FEATURE_KEYS_LITERAL.WZDX) is True
 
 

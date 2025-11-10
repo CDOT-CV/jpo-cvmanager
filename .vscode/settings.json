@@ -110,7 +110,6 @@
     "rxtxfwd",
     "SASL",
     "Scms",
-    "secretmanager",
     "SNMP",
     "snmpcredential",
     "snmperrorcheck",
