@@ -26,15 +26,9 @@ import {
   MAP_PROPS,
   addInitialDataAbortPromise,
   cleanUpLiveStreaming,
-  clearHoveredFeature,
-  clearSelectedFeature,
   generateQueryParams,
   incrementSliderValue,
   initializeLiveStreaming,
-  onMapClick,
-  onMapMouseEnter,
-  onMapMouseLeave,
-  onMapMouseMove,
   pullInitialData,
   resetInitialDataAbortControllers,
   resetMapView,
@@ -47,11 +41,9 @@ import {
   selectCurrentSignalGroups,
   selectCurrentSrmData,
   selectCurrentSsmData,
-  selectCursor,
   selectDecoderModeEnabled,
   selectFilteredSurroundingEvents,
   selectFilteredSurroundingNotifications,
-  selectHoveredFeature,
   selectLaneLabelsVisible,
   selectLiveDataActive,
   selectLiveDataRestart,
@@ -61,7 +53,6 @@ import {
   selectPlaybackModeActive,
   selectQueryParams,
   selectRenderTimeInterval,
-  selectSelectedFeature,
   selectShowPopupOnHover,
   selectSigGroupLabelsVisible,
   selectSignalStateData,
@@ -78,6 +69,7 @@ import {
   updateQueryParams,
   updateRenderTimeInterval,
   updateRenderedMapState,
+  MAP_LAYERS,
 } from './map-slice'
 import EnvironmentVars from '../../../EnvironmentVars'
 import {
@@ -163,12 +155,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
   const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
-  const hoveredFeature = useSelector(selectHoveredFeature)
-  const selectedFeature = useSelector(selectSelectedFeature)
   const sigGroupLabelsVisible = useSelector(selectSigGroupLabelsVisible)
   const laneLabelsVisible = useSelector(selectLaneLabelsVisible)
   const showPopupOnHover = useSelector(selectShowPopupOnHover)
-  const cursor = useSelector(selectCursor)
   const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
   const liveDataActive = useSelector(selectLiveDataActive)
   const playbackModeActive = useSelector(selectPlaybackModeActive)
@@ -177,8 +166,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   const mapRef = React.useRef<MapRef>(null)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
-
   const [openPanel, setOpenPanel] = useState<string>('')
+  const [cursor, setCursor] = useState<string>('default')
+  const [hoveredFeature, setHoveredFeature] = useState<any>(undefined)
+  const [selectedFeature, setSelectedFeature] = useState<any>(undefined)
 
   useEffect(() => {
     return () => {
@@ -337,6 +328,40 @@ const IntersectionMap = (props: MAP_PROPS) => {
     return [connections, srmSsmConnections]
   }, [connectingLanes, currentSignalGroups, mapData])
 
+  const onMapClick = (point: mapboxgl.Point, lngLat: mapboxgl.LngLat) => {
+    const features = mapRef.current.queryRenderedFeatures(point, {
+      // layers: state.value.allInteractiveLayerIds,
+    })
+    const feature = features?.[0]
+    if (feature && allInteractiveLayerIds.includes(feature.layer.id as MAP_LAYERS)) {
+      setSelectedFeature({ clickedLocation: lngLat, feature })
+    } else {
+      setSelectedFeature(undefined)
+    }
+  }
+
+  const onMapMouseMove = (features: mapboxgl.MapboxGeoJSONFeature[] | undefined, lngLat: mapboxgl.LngLat) => {
+    const feature = features?.[0]
+    if (feature && allInteractiveLayerIds.includes(feature.layer.id as MAP_LAYERS)) {
+      setHoveredFeature({ clickedLocation: lngLat, feature })
+    }
+  }
+
+  const onMapMouseEnter = (features: mapboxgl.MapboxGeoJSONFeature[] | undefined, lngLat: mapboxgl.LngLat) => {
+    setCursor('pointer')
+    const feature = features?.[0]
+    if (feature && allInteractiveLayerIds.includes(feature.layer.id as MAP_LAYERS)) {
+      setHoveredFeature({ clickedLocation: lngLat, feature })
+    } else {
+      setHoveredFeature(undefined)
+    }
+  }
+
+  const onMapMouseLeave = () => {
+    setCursor('default')
+    setHoveredFeature(undefined)
+  }
+
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
       <Col className="mapContainer" style={{ overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}>
@@ -413,12 +438,12 @@ const IntersectionMap = (props: MAP_PROPS) => {
           styleDiffing
           style={{ width: '100%', height: '100%' }}
           onMove={(evt) => dispatch(setViewState(evt.viewState))}
-          onClick={(e) => dispatch(onMapClick({ event: { point: e.point, lngLat: e.lngLat }, mapRef }))}
+          onClick={(e) => onMapClick(e.point, e.lngLat)}
           interactiveLayerIds={allInteractiveLayerIds}
           cursor={cursor}
-          onMouseMove={(e) => dispatch(onMapMouseMove({ features: e.features, lngLat: e.lngLat }))}
-          onMouseEnter={(e) => dispatch(onMapMouseEnter({ features: e.features, lngLat: e.lngLat }))}
-          onMouseLeave={() => dispatch(onMapMouseLeave())}
+          onMouseMove={(e) => onMapMouseMove(e.features, e.lngLat)}
+          onMouseEnter={(e) => onMapMouseEnter(e.features, e.lngLat)}
+          onMouseLeave={() => onMapMouseLeave()}
           onLoad={(e: mapboxgl.MapboxEvent<undefined>) => {
             const map = e.target
             if (!map) return
@@ -504,10 +529,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
             <Layer {...connectingLanesLabelsLayerStyle} />
           </Source>
           {selectedFeature && (
-            <CustomPopup selectedFeature={selectedFeature} onClose={() => dispatch(clearSelectedFeature())} />
+            <CustomPopup selectedFeature={selectedFeature} onClose={() => setSelectedFeature(undefined)} />
           )}
           {showPopupOnHover && hoveredFeature && !selectedFeature && (
-            <CustomPopup selectedFeature={hoveredFeature} onClose={() => dispatch(clearHoveredFeature())} />
+            <CustomPopup selectedFeature={hoveredFeature} onClose={() => setHoveredFeature(undefined)} />
           )}
         </Map>
         <SidePanel

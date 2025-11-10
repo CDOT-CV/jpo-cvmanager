@@ -170,15 +170,12 @@ const initialState = {
   },
   lastSliderUpdate: undefined as number | undefined,
   renderTimeInterval: [0, 0],
-  hoveredFeature: undefined as any,
-  selectedFeature: undefined as any,
   rawData: {} as RAW_MESSAGE_DATA_EXPORT,
   mapSpatTimes: { mapTime: 0, spatTime: 0 },
   sigGroupLabelsVisible: false,
   laneLabelsVisible: false,
   showPopupOnHover: false,
   importedMessageData: undefined as IMPORTED_MAP_MESSAGE_DATA | undefined,
-  cursor: 'default',
   loadInitialDataTimeoutId: undefined as NodeJS.Timeout | undefined,
   wsClient: undefined as Client | undefined,
   wsSessionId: undefined as number | undefined,
@@ -1528,48 +1525,6 @@ export const intersectionMapSlice = createSlice({
         state.value.timeWindowSeconds
       )
     },
-    onMapClick: (
-      state,
-      action: PayloadAction<{
-        event: { point: mapboxgl.Point; lngLat: mapboxgl.LngLat }
-        mapRef: React.MutableRefObject<any>
-      }>
-    ) => {
-      const features = action.payload.mapRef.current.queryRenderedFeatures(action.payload.event.point, {
-        // layers: state.value.allInteractiveLayerIds,
-      })
-      const feature = features?.[0]
-      if (feature && state.value.allInteractiveLayerIds.includes(feature.layer.id)) {
-        state.value.selectedFeature = { clickedLocation: action.payload.event.lngLat, feature }
-      } else {
-        state.value.selectedFeature = undefined
-      }
-    },
-    onMapMouseMove: (
-      state,
-      action: PayloadAction<{ features: mapboxgl.MapboxGeoJSONFeature[] | undefined; lngLat: mapboxgl.LngLat }>
-    ) => {
-      const feature = action.payload.features?.[0]
-      if (feature && state.value.allInteractiveLayerIds.includes(feature.layer.id as MAP_LAYERS)) {
-        state.value.hoveredFeature = { clickedLocation: action.payload.lngLat, feature }
-      }
-    },
-    onMapMouseEnter: (
-      state,
-      action: PayloadAction<{ features: mapboxgl.MapboxGeoJSONFeature[] | undefined; lngLat: mapboxgl.LngLat }>
-    ) => {
-      state.value.cursor = 'pointer'
-      const feature = action.payload.features?.[0]
-      if (feature && state.value.allInteractiveLayerIds.includes(feature.layer.id as MAP_LAYERS)) {
-        state.value.hoveredFeature = { clickedLocation: action.payload.lngLat, feature }
-      } else {
-        state.value.hoveredFeature = undefined
-      }
-    },
-    onMapMouseLeave: (state) => {
-      state.value.cursor = ''
-      state.value.hoveredFeature = undefined
-    },
     cleanUpLiveStreaming: (state, action: PayloadAction<boolean>) => {
       const isRestart = action.payload ?? false
       if (state.value.wsClient) {
@@ -1592,12 +1547,6 @@ export const intersectionMapSlice = createSlice({
     },
     setLoadInitialDataTimeoutId: (state, action: PayloadAction<NodeJS.Timeout>) => {
       state.value.loadInitialDataTimeoutId = action.payload
-    },
-    clearSelectedFeature: (state) => {
-      state.value.selectedFeature = undefined
-    },
-    clearHoveredFeature: (state) => {
-      state.value.hoveredFeature = undefined
     },
     setLaneLabelsVisible: (state, action: PayloadAction<boolean>) => {
       state.value.laneLabelsVisible = action.payload
@@ -1923,15 +1872,12 @@ export const selectViewState = (state: RootState) => state.intersectionMap.value
 export const selectTimeWindowSeconds = (state: RootState) => state.intersectionMap.value.timeWindowSeconds
 export const selectSliderValueDeciseconds = (state: RootState) => state.intersectionMap.value.sliderValueDeciseconds
 export const selectRenderTimeInterval = (state: RootState) => state.intersectionMap.value.renderTimeInterval
-export const selectHoveredFeature = (state: RootState) => state.intersectionMap.value.hoveredFeature
-export const selectSelectedFeature = (state: RootState) => state.intersectionMap.value.selectedFeature
 export const selectRawData = (state: RootState) => state.intersectionMap.value.rawData
 export const selectMapSpatTimes = (state: RootState) => state.intersectionMap.value.mapSpatTimes
 export const selectSigGroupLabelsVisible = (state: RootState) => state.intersectionMap.value.sigGroupLabelsVisible
 export const selectLaneLabelsVisible = (state: RootState) => state.intersectionMap.value.laneLabelsVisible
 export const selectShowPopupOnHover = (state: RootState) => state.intersectionMap.value.showPopupOnHover
 export const selectImportedMessageData = (state: RootState) => state.intersectionMap.value.importedMessageData
-export const selectCursor = (state: RootState) => state.intersectionMap.value.cursor
 export const selectLoadInitialDataTimeoutId = (state: RootState) => state.intersectionMap.value.loadInitialDataTimeoutId
 export const selectWsClient = (state: RootState) => state.intersectionMap.value.wsClient
 export const selectWsSessionId = (state: RootState) => state.intersectionMap.value.wsSessionId
@@ -1973,14 +1919,8 @@ export const {
   setSliderValueDeciseconds,
   incrementSliderValue,
   updateRenderTimeInterval,
-  onMapClick,
-  onMapMouseMove,
-  onMapMouseEnter,
-  onMapMouseLeave,
   cleanUpLiveStreaming,
   setLoadInitialDataTimeoutId,
-  clearSelectedFeature,
-  clearHoveredFeature,
   setLaneLabelsVisible,
   setSigGroupLabelsVisible,
   setShowPopupOnHover,
