@@ -339,42 +339,72 @@ export const addConnections = (
   }
 }
 
-export const getSsmSrmConnections = (
-  connectingLanes: ConnectingLanesFeatureCollection,
+export const addSsmSrmToConnections = (
+  connectingLanes: ConnectingLanesFeatureCollectionWithSignalState,
   ssms: ProcessedSsm[],
   srms: ProcessedSrmFeature[]
 ): ConnectingLanesFeatureCollectionWithSsmSrm => {
   return {
     ...connectingLanes,
-    features: connectingLanes.features
-      .map((feature) => {
-        const ssmInfo: SsmInfo[] = ssms.map(getSsmInfoList).flat()
-        const srmInfo: SrmInfo[] = srms.map(getSrmInfoList).flat()
-        const signalStatuses = ssmInfo.filter(
-          (status) =>
-            status.inboundLaneID &&
-            status.inboundLaneID === feature.properties.ingressLaneId &&
-            (!status.outboundLaneID || status.outboundLaneID == feature.properties.egressLaneId)
-          // TODO: Support linking by connection ID  || (status.inboundLaneConnectionID && status.inboundLaneConnectionID === feature.properties.)
-        )
-        const signalRequests = srmInfo.filter(
-          (request) =>
-            request.inboundLaneID &&
-            request.inboundLaneID === feature.properties.ingressLaneId &&
-            (!request.outboundLaneID || request.outboundLaneID == feature.properties.egressLaneId)
-          // TODO: Support linking by connection ID  || (request.inboundLaneConnectionID && request.inboundLaneConnectionID === feature.properties.)
-        )
-        return {
-          ...feature,
-          properties: {
-            ...feature.properties,
-            signalRequests: signalRequests,
-            signalStatuses: signalStatuses,
-            highlightColor: signalRequests.length > 0 ? '#ffff00' : null,
-          },
-        } as ConnectingLanesFeatureWithSsmSrm
-      })
-      .filter((feature) => feature.properties.signalStatuses.length > 0),
+    features: connectingLanes.features.map((feature) => {
+      const ssmInfo: SsmInfo[] = ssms.map(getSsmInfoList).flat()
+      const srmInfo: SrmInfo[] = srms.map(getSrmInfoList).flat()
+      const signalStatuses = ssmInfo.filter(
+        (status) =>
+          status.inboundLaneID &&
+          status.inboundLaneID === feature.properties.ingressLaneId &&
+          (!status.outboundLaneID || status.outboundLaneID == feature.properties.egressLaneId)
+        // TODO: Support linking by connection ID  || (status.inboundLaneConnectionID && status.inboundLaneConnectionID === feature.properties.)
+      )
+      const signalRequests = srmInfo.filter(
+        (request) =>
+          request.inboundLaneID &&
+          request.inboundLaneID === feature.properties.ingressLaneId &&
+          (!request.outboundLaneID || request.outboundLaneID == feature.properties.egressLaneId)
+        // TODO: Support linking by connection ID  || (request.inboundLaneConnectionID && request.inboundLaneConnectionID === feature.properties.)
+      )
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          signalRequests: signalRequests,
+          signalStatuses: signalStatuses,
+          highlightColor: signalRequests.length > 0 ? '#ffff00' : null,
+        },
+      } as ConnectingLanesFeatureWithSsmSrm
+    }),
+  }
+}
+
+export const addSsmSrmToMapFeatures = (
+  mapFeatures: MapFeatureCollection,
+  ssms: ProcessedSsm[],
+  srms: ProcessedSrmFeature[]
+): MapFeatureCollectionWithSsmSrm => {
+  return {
+    ...mapFeatures,
+    features: mapFeatures.features.map((feature) => {
+      const ssmInfo: SsmInfo[] = ssms.map(getSsmInfoList).flat()
+      const srmInfo: SrmInfo[] = srms.map(getSrmInfoList).flat()
+      const signalStatuses = ssmInfo.filter(
+        (status) =>
+          (status.inboundLaneID && status.inboundLaneID === feature.properties.laneId) ||
+          (status.outboundLaneID && status.outboundLaneID === feature.properties.laneId)
+      )
+      const signalRequests = srmInfo.filter(
+        (request) =>
+          (request.inboundLaneID && request.inboundLaneID === feature.properties.laneId) ||
+          (request.outboundLaneID && request.outboundLaneID === feature.properties.laneId)
+      )
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          signalRequests: signalRequests,
+          signalStatuses: signalStatuses,
+        },
+      } as MapFeatureWithSsmSrm
+    }),
   }
 }
 

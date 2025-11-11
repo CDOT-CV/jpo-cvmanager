@@ -5,6 +5,7 @@ import { Box, Typography } from '@mui/material'
 import { CustomTable } from './custom-table'
 
 export const getSelectedLayerPopupContent = (feature: any) => {
+  // Feature object has top level structure, but each sub-object is JSON serialized to a string
   switch (feature?.layer?.id) {
     case 'bsm': {
       const bsm = feature.properties
@@ -32,6 +33,21 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         connectedObjs.push(['Signal Group', connectsTo.signalGroup])
         connectedObjs.push(['Connection ID', connectsTo.connectionID])
       })
+      JSON.parse(map?.signalRequests ?? '[]').forEach((srm: SrmInfo) => {
+        connectedObjs.push(['SRM', srm.requestID])
+        connectedObjs.push(['  Sequence Number', srm.sequenceNumber])
+        connectedObjs.push(['  Vehicle ID', srm.vehicleInfo?.vehicleID])
+        connectedObjs.push(['  Importance Level', srm.vehicleInfo?.importanceLevel])
+        connectedObjs.push(['  Importance Level', srm.vehicleInfo?.role])
+      })
+      JSON.parse(map?.signalStatuses ?? '[]').forEach((ssm: SrmInfo) => {
+        connectedObjs.push(['SSM', ssm.requestID])
+        connectedObjs.push(['  Sequence Number', ssm.sequenceNumber])
+        connectedObjs.push(['  Priority Request Type', ssm.priorityRequestType])
+        connectedObjs.push(['  Vehicle ID', ssm.vehicleInfo?.vehicleID])
+        connectedObjs.push(['  Importance Level', ssm.vehicleInfo?.importanceLevel])
+        connectedObjs.push(['  Importance Level', ssm.vehicleInfo?.role])
+      })
       return (
         <Box>
           <Typography>MAP Lane</Typography>
@@ -39,21 +55,36 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         </Box>
       )
     }
-    case 'connecting-lanes':
+    case 'connecting-lanes': {
+      const map = feature.properties
+      const connectedObjs: any[] = [
+        ['State', feature.properties.signalState],
+        ['Ingress Lane', feature.properties.ingressLaneId],
+        ['Egress Lane', feature.properties.egressLaneId],
+        ['Signal Group', feature.properties.signalGroupId],
+      ]
+      JSON.parse(map?.signalRequests ?? '[]').forEach((srm: SrmInfo) => {
+        connectedObjs.push(['SRM', srm.requestID])
+        connectedObjs.push(['  Sequence Number', srm.sequenceNumber])
+        connectedObjs.push(['  Vehicle ID', srm.vehicleInfo?.vehicleID])
+        connectedObjs.push(['  Importance Level', srm.vehicleInfo?.importanceLevel])
+        connectedObjs.push(['  Importance Level', srm.vehicleInfo?.role])
+      })
+      JSON.parse(map?.signalStatuses ?? '[]').forEach((ssm: SrmInfo) => {
+        connectedObjs.push(['SSM', ssm.requestID])
+        connectedObjs.push(['  Sequence Number', ssm.sequenceNumber])
+        connectedObjs.push(['  Priority Request Type', ssm.priorityRequestType])
+        connectedObjs.push(['  Vehicle ID', ssm.vehicleInfo?.vehicleID])
+        connectedObjs.push(['  Importance Level', ssm.vehicleInfo?.importanceLevel])
+        connectedObjs.push(['  Importance Level', ssm.vehicleInfo?.role])
+      })
       return (
         <Box>
           <Typography>Connecting Lane</Typography>
-          <CustomTable
-            headers={['Field', 'Value']}
-            data={[
-              ['State', feature.properties.signalState],
-              ['Ingress Lane', feature.properties.ingressLaneId],
-              ['Egress Lane', feature.properties.egressLaneId],
-              ['Signal Group', feature.properties.signalGroupId],
-            ]}
-          />
+          <CustomTable headers={['Field', 'Value']} data={connectedObjs} />
         </Box>
       )
+    }
 
     case 'signal-states':
       return (

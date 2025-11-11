@@ -30,11 +30,23 @@ type MapFeatureCollection = {
   features: MapFeature[]
 }
 
+type MapFeatureCollectionWithSsmSrm = {
+  type: 'FeatureCollection'
+  features: MapFeatureWithSsmSrm[]
+}
+
 type MapFeature = {
   type: 'Feature'
   id: number
   geometry: GeoJSON.LineString
   properties: MapProperties
+}
+
+type MapFeatureWithSsmSrm = {
+  type: 'Feature'
+  id: number
+  geometry: GeoJSON.LineString
+  properties: MapPropertiesWithSsmSrm
 }
 
 type Geometry = {
@@ -54,6 +66,11 @@ type MapProperties = {
   egressPath: boolean
   maneuvers?: J2735AllowedManeuvers
   connectsTo?: J2735Connection[]
+}
+
+type MapPropertiesWithSsmSrm = MapProperties & {
+  signalRequests: SrmInfo[]
+  signalStatuses: SsmInfo[]
 }
 
 type MapNode = {
@@ -99,6 +116,7 @@ type ConnectingLanesFeatureWithSsmSrm = {
   id: number | string
   geometry: GeoJSON.LineString
   properties: ConnectingLanesProperties & {
+    signalState?: SignalState
     signalRequests: SrmInfo[]
     signalStatuses: SsmInfo[]
     highlightColor: string | null

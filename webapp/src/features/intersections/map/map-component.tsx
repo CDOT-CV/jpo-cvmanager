@@ -67,9 +67,10 @@ import {
 import EnvironmentVars from '../../../EnvironmentVars'
 import {
   addConnections,
-  getSsmSrmConnections,
   createMarkerForNotification,
   addSsmStatus,
+  addSsmSrmToConnections,
+  addSsmSrmToMapFeatures,
 } from './utilities/message-utils'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
@@ -309,18 +310,32 @@ const IntersectionMap = (props: MAP_PROPS) => {
     }
   }, [activeSrmData, activeSsmData])
 
-  const [connectingLanesWithSignalStateFeatureCollection, connectingLanesWithSsmSrmFeatureCollection] = useMemo(() => {
+  const [connectingLanesFeatureCollection, connectingLanesOnlyWithSsmSrmFeatureCollection] = useMemo(() => {
     let connections: ConnectingLanesFeatureCollectionWithSignalState = EMPTY_FEATURE_COLLECTION
     if (connectingLanes && currentSignalGroups && mapData?.mapFeatureCollection) {
       connections = addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)
     }
     let srmSsmConnections: ConnectingLanesFeatureCollectionWithSsmSrm = EMPTY_FEATURE_COLLECTION
-    if (connectingLanes && activeSsmData) {
-      // Does not require SRM data, that is optional
-      srmSsmConnections = getSsmSrmConnections(connectingLanes, activeSsmData, activeSrmData)
+    srmSsmConnections = addSsmSrmToConnections(connections, activeSsmData, activeSrmData)
+    const srmSsmOnlyConnections = {
+      ...srmSsmConnections,
+      features: srmSsmConnections.features.filter((feature) => feature.properties.signalStatuses.length > 0),
     }
-    return [connections, srmSsmConnections]
+    return [srmSsmConnections, srmSsmOnlyConnections]
   }, [connectingLanes, currentSignalGroups, mapData])
+
+  const [mapLanesFeatureCollection, mapLanesFeatureCollectionOnlyWithSsmSrm] = useMemo(() => {
+    let mapFeatures: MapFeatureCollectionWithSsmSrm = EMPTY_FEATURE_COLLECTION
+    if (mapData?.mapFeatureCollection) {
+      // Does not require SRM data, that is optional
+      mapFeatures = addSsmSrmToMapFeatures(mapData?.mapFeatureCollection, activeSsmData, activeSrmData)
+    }
+    const srmSsmOnlyMapFeatures = {
+      ...mapFeatures,
+      features: mapFeatures.features.filter((feature) => feature.properties.signalRequests.length > 0),
+    }
+    return [mapFeatures, srmSsmOnlyMapFeatures]
+  }, [mapData])
 
   const onMapClick = (point: mapboxgl.Point, lngLat: mapboxgl.LngLat) => {
     const features = mapRef.current.queryRenderedFeatures(point, {
@@ -459,16 +474,16 @@ const IntersectionMap = (props: MAP_PROPS) => {
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
-          <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
+          <Source type="geojson" data={mapLanesFeatureCollectionOnlyWithSsmSrm}>
             <Layer {...mapMessageHighlightLayerStyle} />
           </Source>
-          <Source type="geojson" data={mapData?.mapFeatureCollection ?? EMPTY_FEATURE_COLLECTION}>
+          <Source type="geojson" data={mapLanesFeatureCollection}>
             <Layer {...mapMessageLayerStyle} />
           </Source>
-          <Source type="geojson" data={connectingLanesWithSsmSrmFeatureCollection}>
+          <Source type="geojson" data={connectingLanesOnlyWithSsmSrmFeatureCollection}>
             <Layer {...connectingLanesHighlightLayerStyle} />
           </Source>
-          <Source type="geojson" data={connectingLanesWithSignalStateFeatureCollection}>
+          <Source type="geojson" data={connectingLanesFeatureCollection}>
             <Layer {...connectingLanesLayerStyle} />
           </Source>
           <Source type="geojson" data={activeSrmFeatureCollection}>

@@ -48,7 +48,7 @@ export const CustomTable = (props: CustomTableProps) => {
           {data.map((row) => (
             <TableRow hover key={++rowKey}>
               {row.map((cell) => (
-                <TableCell component="th" scope="row" key={++cellKey} sx={{ minWidth: 0 }}>
+                <TableCell component="th" scope="row" key={++cellKey} sx={{ minWidth: 0, whiteSpace: 'pre' }}>
                   <>{cell}</>
                 </TableCell>
               ))}
