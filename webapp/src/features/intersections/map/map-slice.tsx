@@ -1,4 +1,4 @@
-import { createAction, createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createAction, createAsyncThunk, createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { IMessage, Client } from '@stomp/stompjs'
@@ -165,7 +165,7 @@ const initialState = {
   filteredSurroundingNotifications: [] as MessageMonitor.Notification[],
   bsmEventsByMinute: [] as BSM_COUNTS_CHART_DATA[],
   playbackModeActive: false,
-  timeWindowSeconds: 60,
+  timeWindowSeconds: 10,
   sliderValueDeciseconds: 0,
   sliderTimeValue: {
     start: new Date(),
@@ -478,6 +478,7 @@ export const pullInitialData = createAsyncThunk(
     dispatch(
       handleNewMapMessageData({
         mapData: latestMapMessage,
+        allMapData: rawMap,
         connectingLanes: latestMapMessage.connectingLanesFeatureCollection,
         mapSignalGroups: mapSignalGroupsLocal,
         mapTime: latestMapMessage.properties.odeReceivedAt as unknown as number,
@@ -615,6 +616,7 @@ export const renderEntireMap = createAsyncThunk(
     dispatch(
       handleNewMapMessageData({
         mapData: latestMapMessage,
+        allMapData: currentMapData,
         connectingLanes: latestMapMessage.connectingLanesFeatureCollection,
         mapSignalGroups: mapSignalGroupsLocal,
         mapTime: latestMapMessage.properties.odeReceivedAt as unknown as number,
@@ -1300,7 +1302,7 @@ export const downloadMapData = createAsyncThunk(
     const sourceDataType = selectSourceDataType(currentState)
 
     const spatData = selectCurrentSpatData(currentState)
-    const mapData = selectMapData(currentState)
+    const mapData = selectCurrentMapData(currentState)
     const bsmData = selectBsmData(currentState) // not current, that is something else
     const ssmData = selectCurrentSsmData(currentState)
     const srmData = selectCurrentSrmData(currentState)
@@ -1442,7 +1444,7 @@ export const intersectionMapSlice = createSlice({
         state.value.sliderValueDeciseconds,
         state.value.timeWindowSeconds
       )
-      state.value.timeWindowSeconds = 60
+      state.value.timeWindowSeconds = 10
     },
     updateQueryParams: (
       state,
@@ -1472,7 +1474,7 @@ export const intersectionMapSlice = createSlice({
           state.value.sliderValueDeciseconds,
           state.value.timeWindowSeconds
         )
-        if (action.payload.resetTimeWindow) state.value.timeWindowSeconds = 60
+        if (action.payload.resetTimeWindow) state.value.timeWindowSeconds = 10
         if (action.payload.updateSlider)
           state.value.sliderValueDeciseconds = getTimeRangeDeciseconds(newQueryParams.startDate, newQueryParams.endDate)
       }
@@ -1543,7 +1545,7 @@ export const intersectionMapSlice = createSlice({
             clearTimeout(state.value.liveDataRestartTimeoutId)
             state.value.liveDataRestartTimeoutId = undefined
           }
-        state.value.timeWindowSeconds = 60
+        state.value.timeWindowSeconds = 10
         state.value.liveDataActive = false
         state.value.liveDataRestart = -1
         state.value.liveSpatLatestLatencyMs = undefined
@@ -1640,6 +1642,7 @@ export const intersectionMapSlice = createSlice({
       state,
       action: PayloadAction<{
         mapData: ProcessedMap
+        allMapData: ProcessedMap[]
         connectingLanes: ConnectingLanesFeatureCollection
         mapSignalGroups: SignalStateFeatureCollection
         mapTime: number
@@ -1647,6 +1650,7 @@ export const intersectionMapSlice = createSlice({
     ) => {
       if (!action.payload) return
       state.value.mapData = action.payload.mapData
+      state.value.currentMapData = action.payload.allMapData
       if (action.payload.mapData != null)
         state.value.mapRef.current.flyTo({
           center: [
@@ -1898,15 +1902,27 @@ export const selectTimeFilterBsms = (state: RootState) => !state.intersectionMap
 export const selectAbortAllFutureRequests = (state: RootState) => state.intersectionMap.value.abortAllFutureRequests
 export const selectLiveSpatLatestLatencyMs = (state: RootState) => state.intersectionMap.value.liveSpatLatestLatencyMs
 
-export const selectActiveSsmData = (state: RootState) => {
-  const timeWindow = getTimeWindowFromRenderInterval(state.intersectionMap.value.renderTimeInterval)
-  return filterSsms(state.intersectionMap.value.currentSsmData, timeWindow)
-}
+export const selectActiveSsmData = createSelector(
+  [
+    (state: RootState) => state.intersectionMap.value.currentSsmData,
+    (state: RootState) => state.intersectionMap.value.renderTimeInterval,
+  ],
+  (currentSsmData, renderTimeInterval) => {
+    const timeWindow = getTimeWindowFromRenderInterval(renderTimeInterval)
+    return filterSsms(currentSsmData, timeWindow)
+  }
+)
 
-export const selectActiveSrmData = (state: RootState) => {
-  const timeWindow = getTimeWindowFromRenderInterval(state.intersectionMap.value.renderTimeInterval)
-  return filterSrms(state.intersectionMap.value.currentSrmData, timeWindow)
-}
+export const selectActiveSrmData = createSelector(
+  [
+    (state: RootState) => state.intersectionMap.value.currentSrmData,
+    (state: RootState) => state.intersectionMap.value.renderTimeInterval,
+  ],
+  (currentSrmData, renderTimeInterval) => {
+    const timeWindow = getTimeWindowFromRenderInterval(renderTimeInterval)
+    return filterSrms(currentSrmData, timeWindow)
+  }
+)
 
 export const {
   setSurroundingEvents,

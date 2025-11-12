@@ -367,9 +367,8 @@ export const addSsmSrmToConnections = (
         ...feature,
         properties: {
           ...feature.properties,
-          signalRequests: signalRequests,
-          signalStatuses: signalStatuses,
-          highlightColor: signalRequests.length > 0 ? '#ffff00' : null,
+          signalRequests: sortSrmInfo(signalRequests),
+          signalStatuses: sortSsmInfo(signalStatuses),
         },
       } as ConnectingLanesFeatureWithSsmSrm
     }),
@@ -400,12 +399,34 @@ export const addSsmSrmToMapFeatures = (
         ...feature,
         properties: {
           ...feature.properties,
-          signalRequests: signalRequests,
-          signalStatuses: signalStatuses,
+          signalRequests: sortSrmInfo(signalRequests),
+          signalStatuses: sortSsmInfo(signalStatuses),
         },
       } as MapFeatureWithSsmSrm
     }),
   }
+}
+
+export const sortSsmInfo = (ssms: SsmInfo[]): SsmInfo[] => {
+  // Sort descending by timestamp for separate request IDs
+  // if same request ID, place higher sequence number before
+  return [...ssms].sort((a, b) => {
+    if (a.requestID === b.requestID) {
+      return (b.sequenceNumber ?? 0) - (a.sequenceNumber ?? 0)
+    }
+    return (b.timeStampEpochMillis ?? 0) - (a.timeStampEpochMillis ?? 0)
+  })
+}
+
+export const sortSrmInfo = (srms: SrmInfo[]): SrmInfo[] => {
+  // Sort by timestamp for separate request IDs
+  // if same request ID, place after by sequence number
+  return [...srms].sort((a, b) => {
+    if (a.requestID === b.requestID) {
+      return (b.sequenceNumber ?? 0) - (a.sequenceNumber ?? 0)
+    }
+    return (b.timeStampEpochMillis ?? 0) - (a.timeStampEpochMillis ?? 0)
+  })
 }
 
 export const addSsmStatus = (

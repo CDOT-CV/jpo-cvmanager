@@ -119,7 +119,6 @@ type ConnectingLanesFeatureWithSsmSrm = {
     signalState?: SignalState
     signalRequests: SrmInfo[]
     signalStatuses: SsmInfo[]
-    highlightColor: string | null
   }
 }
 

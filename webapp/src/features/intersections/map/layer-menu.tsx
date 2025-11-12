@@ -11,18 +11,17 @@ type LayerMenuProps = {
   setOpenPanel: (panel: string) => void
 }
 
-const layerTitleMap: { [key in MAP_LAYERS]: string } = {
-  'map-message': 'Map Lanes',
-  'map-message-labels': 'Map Lane Labels',
-  'connecting-lanes': 'Connecting Lanes',
-  'connecting-lanes-labels': 'Connecting Lane Labels',
-  'invalid-lane-collection': 'Invalid Lane Collections',
-  bsm: 'BSMs',
-  'signal-states': 'Signal States',
-  srm: 'SRMs',
-  'srm-requested-lanes': 'SRM Requested Lanes',
-  'ssm-connection-status': 'SSM Connection Status',
-  'ssm-connection-highlight': 'SSM Connection Highlight',
+const layerTitleMap: { [label: string]: MAP_LAYERS[] } = {
+  'Map Lanes': ['map-message'],
+  'Map Lane Labels': ['map-message-labels'],
+  'Connecting Lanes': ['connecting-lanes'],
+  'Connecting Lane Labels': ['connecting-lanes-labels'],
+  'Invalid Lane Collections': ['invalid-lane-collection'],
+  'Signal States': ['signal-states'],
+  BSMs: ['bsm'],
+  SRMs: ['srm'],
+  'SSM Connection Status': ['ssm-connection-status'],
+  'SSM Highlighted Lanes': ['ssm-connection-highlight', 'srm-requested-lanes'],
 }
 
 function LayerMenu(props: LayerMenuProps) {
@@ -40,10 +39,10 @@ function LayerMenu(props: LayerMenuProps) {
     }
   }
 
-  const layerRow = (id: MAP_LAYERS) => {
+  const layerRow = (label: string, ids: MAP_LAYERS[]) => {
     return (
       <Box
-        key={id}
+        key={label}
         sx={{
           display: 'flex',
           flexDirection: 'row',
@@ -53,11 +52,13 @@ function LayerMenu(props: LayerMenuProps) {
       >
         <Checkbox
           onChange={(event) => {
-            dispatch(setLayerVisibility({ key: id, visible: event.target.checked }))
+            ids.forEach((id) => {
+              dispatch(setLayerVisibility({ key: id, visible: event.target.checked }))
+            })
           }}
-          checked={layersVisible[id]}
+          checked={ids.every((id) => layersVisible[id])}
         />
-        <Typography fontSize="16px">{layerTitleMap[id]}</Typography>
+        <Typography fontSize="16px">{label}</Typography>
       </Box>
     )
   }
@@ -89,7 +90,7 @@ function LayerMenu(props: LayerMenuProps) {
           bottom: theme.spacing(3),
           maxHeight: 'calc(100vh - 240px)',
           right: 0,
-          width: props.openPanel === 'layer-menu' ? 600 : 0,
+          width: props.openPanel === 'layer-menu' ? 300 : 0,
           fontSize: '16px',
           overflow: 'auto',
           scrollBehavior: 'auto',
@@ -118,7 +119,7 @@ function LayerMenu(props: LayerMenuProps) {
                       <Close color="info" />
                     </IconButton>
                   </Box>
-                  <Box>{Object.keys(layersVisible).map((key: MAP_LAYERS) => layerRow(key))}</Box>
+                  <Box>{Object.entries(layerTitleMap).map(([label, ids]) => layerRow(label, ids))}</Box>
                 </>
               )}
             </Box>

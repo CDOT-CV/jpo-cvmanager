@@ -22,6 +22,9 @@ import {
   selectMarkerLayerStyle,
   selectSignalStateLayerStyle,
   selectSrmLayerStyle,
+  setBsmLegendColors,
+  setSrmCircleColor,
+  setSrmLegendColors,
 } from './map-layer-style-slice'
 import {
   MAP_PROPS,
@@ -84,6 +87,7 @@ import { Remove } from '@mui/icons-material'
 import VisualSettings from './visual-settings'
 import { useDispatch, useSelector } from 'react-redux'
 import LayerMenu from './layer-menu'
+import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
 
 /**
  *  Converts a date string or timestamp to a timestamp in milliseconds since epoch.
@@ -167,7 +171,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const [cursor, setCursor] = useState<string>('default')
   const [hoveredFeature, setHoveredFeature] = useState<any>(undefined)
   const [selectedFeature, setSelectedFeature] = useState<any>(undefined)
-  const [ssmStatus, setSsmStatus] = useState<ProcessedPrioritizationResponseStatus>('UNKNOWN')
 
   useEffect(() => {
     return () => {
@@ -286,30 +289,23 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [liveDataRestart])
 
   useEffect(() => {
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    const images = [
-      { name: 'traffic-light-icon-unknown', sdf: false },
-      { name: 'traffic-light-icon-red-flashing', sdf: false },
-      { name: 'traffic-light-icon-red-1', sdf: false },
-      { name: 'traffic-light-icon-yellow-red-1', sdf: false },
-      { name: 'traffic-light-icon-green-1', sdf: false },
-      { name: 'traffic-light-icon-yellow-1', sdf: false },
-      { name: 'srm_square', sdf: true },
-    ]
-    for (const img of images) {
-      map.loadImage(`/icons/${img.name}.png`, (error, image) => {
-        if (error) throw error
-        if (!map.hasImage(img.name)) map.addImage(img.name, image, { sdf: img.sdf })
-      })
-    }
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef])
 
   const activeSrmFeatureCollection = useMemo(() => {
+    const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
+
+    // Generate and set SRM colors and layer style
+    const uniqueIds = new Set(srmFeatures.map((bsm) => bsm.properties?.vehicleID))
+    // generate equally spaced unique colors for each uniqueId
+    const colors = generateColorDictionary(uniqueIds)
+    dispatch(setSrmLegendColors(colors))
+    // add color to each feature
+    const srmLayerStyle = generateMapboxStyleExpression(colors, 'vehicleID')
+    dispatch(setSrmCircleColor(srmLayerStyle))
     return {
       type: 'FeatureCollection' as 'FeatureCollection',
-      features: addSsmStatus(activeSrmData, activeSsmData),
+      features: srmFeatures,
     }
   }, [activeSrmData, activeSsmData])
 
@@ -325,17 +321,18 @@ const IntersectionMap = (props: MAP_PROPS) => {
       features: srmSsmConnections.features
         .filter((feature) => feature.properties.signalStatuses.length > 0)
         .map((feature) => {
+          const ssmInfo = feature.properties.signalStatuses[0] // already sorted with most relevant first
           return {
             ...feature,
             properties: {
               ...feature.properties,
-              ssmStatus: ssmStatus,
+              ssmStatus: ssmInfo ? ssmInfo.status : 'UNKNOWN',
             },
           }
         }),
     }
     return [srmSsmConnections, srmSsmOnlyConnections]
-  }, [connectingLanes, currentSignalGroups, mapData, activeSsmData, activeSrmData, ssmStatus])
+  }, [connectingLanes, currentSignalGroups, mapData, activeSsmData, activeSrmData])
 
   const [mapLanesFeatureCollection, mapLanesFeatureCollectionOnlyWithSsmSrm] = useMemo(() => {
     let mapFeatures: MapFeatureCollectionWithSsmSrm = EMPTY_FEATURE_COLLECTION
@@ -460,56 +457,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
         >
           <Remove />
         </Fab>
-        <FormControl
-          fullWidth
-          margin="normal"
-          sx={{
-            position: 'absolute',
-            zIndex: 10,
-            top: theme.spacing(24),
-            right: theme.spacing(3),
-            width: 120,
-            '&:hover': {
-              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
-            },
-          }}
-        >
-          <InputLabel htmlFor="msg-type-select">Message Type</InputLabel>
-          <Select
-            label="Message Type"
-            id="msg-type-select"
-            value={ssmStatus}
-            onChange={(event) => {
-              setSsmStatus(event.target.value as ProcessedPrioritizationResponseStatus)
-            }}
-          >
-            <MenuItem key={'UNKNOWN'} value={'UNKNOWN'}>
-              UNKNOWN
-            </MenuItem>
-            <MenuItem key={'REQUESTED'} value={'REQUESTED'}>
-              REQUESTED
-            </MenuItem>
-            <MenuItem key={'PROCESSING'} value={'PROCESSING'}>
-              PROCESSING
-            </MenuItem>
-            <MenuItem key={'WATCH_OTHER_TRAFFIC'} value={'WATCH_OTHER_TRAFFIC'}>
-              WATCH_OTHER_TRAFFIC
-            </MenuItem>
-            <MenuItem key={'GRANTED'} value={'GRANTED'}>
-              GRANTED
-            </MenuItem>
-            <MenuItem key={'REJECTED'} value={'REJECTED'}>
-              REJECTED
-            </MenuItem>
-            <MenuItem key={'MAX_PRESENCE'} value={'MAX_PRESENCE'}>
-              MAX_PRESENCE
-            </MenuItem>
-            <MenuItem key={'RESERVICE_LOCKED'} value={'RESERVICE_LOCKED'}>
-              RESERVICE_LOCKED
-            </MenuItem>
-          </Select>
-        </FormControl>
-
         <Map
           {...viewState}
           ref={mapRef}

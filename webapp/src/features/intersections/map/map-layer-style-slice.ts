@@ -24,17 +24,17 @@ const mapMessageLabelsLayer: SymbolLayer = {
   id: 'map-message-labels',
   type: 'symbol',
   layout: {
-    'text-field': ['concat', 'lane: ', ['to-string', ['get', 'laneId']]],
+    'text-field': ['concat', '#', ['to-string', ['get', 'laneId']]],
     'text-size': 20,
-    // "text-offset": [0, 1],
-    'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
+    'text-font': ['literal', ['Open Sans Bold', 'Arial Unicode MS Bold']],
+    // 'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
     'text-allow-overlap': true,
     'icon-allow-overlap': true,
   },
   paint: {
-    'text-color': '#000000',
-    'text-halo-color': '#ffffff',
-    'text-halo-width': 5,
+    'text-color': '#ffffff',
+    'text-halo-color': '#000000',
+    'text-halo-width': 2,
   },
 }
 
@@ -207,19 +207,20 @@ const connectingLanesLabelsLayer: SymbolLayer = {
   id: 'connecting-lanes-labels',
   type: 'symbol',
   layout: {
-    'text-field': ['concat', 'sig-group: ', ['to-string', ['get', 'signalGroupId']]],
+    'text-field': ['concat', 'SG:', ['to-string', ['get', 'signalGroupId']]],
     'text-size': 20,
     'text-offset': [0, 1],
-    'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
+    'text-font': ['literal', ['Open Sans Bold', 'Arial Unicode MS Bold']],
+    // 'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
     'text-allow-overlap': true,
     'icon-allow-overlap': true,
     'icon-image': 'rounded',
     'icon-text-fit': 'both',
   },
   paint: {
-    'text-color': '#000000',
-    'text-halo-color': '#ffffff',
-    'text-halo-width': 5,
+    'text-color': '#ffffff',
+    'text-halo-color': '#000000',
+    'text-halo-width': 2,
   },
 }
 
@@ -232,12 +233,13 @@ const srmLayer: SymbolLayer = {
     'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.4, 16, 0.6, 20, 1],
     'icon-allow-overlap': true,
     'icon-ignore-placement': true,
-    'icon-rotation-alignment': 'map',
-    'icon-rotate': ['*', ['get', 'heading']],
+    'icon-rotation-alignment': 'viewport',
   },
   paint: {
-    'icon-color': '#0004ff',
+    'icon-color': ['match', ['get', 'vehicleID'], 'temp-id', '#0004ff', '#0004ff'],
     'icon-opacity': 1,
+    'icon-halo-color': '#000000',
+    'icon-halo-width': 1,
   },
 }
 
@@ -257,6 +259,8 @@ const bsmLayerStyle: CircleLayer = {
   paint: {
     'circle-color': ['match', ['get', 'id'], 'temp-id', '#0004ff', '#0004ff'],
     'circle-radius': 8,
+    'circle-stroke-color': '#000000',
+    'circle-stroke-width': 1,
   },
 }
 
@@ -302,7 +306,7 @@ export type MAP_LEGEND_COLORS = {
   travelConnectionColors: { [key: string]: [string, number[]] }
   signalHeadIcons: { [key: string]: string }
   ssmStatusIcons: { [key: string]: [string, string] }
-  other: { [key: string]: string }
+  srmColors: { [key: string]: string }
 }
 
 const mapLegendColors: MAP_LEGEND_COLORS = {
@@ -347,7 +351,7 @@ const mapLegendColors: MAP_LEGEND_COLORS = {
     MAX_PRESENCE: ['/icons/timer.png', '#740000'],
     RESERVICE_LOCKED: ['/icons/lock.png', '#680c00'],
   },
-  other: { SRMs: '#0004ff' },
+  srmColors: { Other: '#0004ff' },
 }
 
 export const initialState = {
@@ -375,10 +379,19 @@ export const intersectionMapLayerStyleSlice = createSlice({
     setBsmLegendColors: (state, action: PayloadAction<{ [key: string]: string }>) => {
       state.value.mapLegendColors = { ...state.value.mapLegendColors, bsmColors: action.payload }
     },
+    setSrmLegendColors: (state, action: PayloadAction<{ [key: string]: string }>) => {
+      state.value.mapLegendColors = { ...state.value.mapLegendColors, srmColors: action.payload }
+    },
     setBsmCircleColor: (state, action: PayloadAction<mapboxgl.CirclePaint['circle-color']>) => {
       state.value.bsmLayerStyle = {
         ...state.value.bsmLayerStyle,
         paint: { ...state.value.bsmLayerStyle.paint, 'circle-color': action.payload },
+      }
+    },
+    setSrmCircleColor: (state, action: PayloadAction<mapboxgl.SymbolPaint['icon-color']>) => {
+      state.value.srmLayerStyle = {
+        ...state.value.srmLayerStyle,
+        paint: { ...state.value.srmLayerStyle.paint, 'icon-color': action.payload },
       }
     },
     setSignalLayerLayout: (state, action: PayloadAction<mapboxgl.SymbolLayout>) => {
@@ -408,6 +421,7 @@ export const selectSignalStateLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.signalStateLayerStyle
 export const selectMapLegendColors = (state: RootState) => state.intersectionMapLayerStyle.value.mapLegendColors
 
-export const { setBsmLegendColors, setBsmCircleColor, setSignalLayerLayout } = intersectionMapLayerStyleSlice.actions
+export const { setBsmLegendColors, setSrmLegendColors, setBsmCircleColor, setSrmCircleColor, setSignalLayerLayout } =
+  intersectionMapLayerStyleSlice.actions
 
 export default intersectionMapLayerStyleSlice.reducer

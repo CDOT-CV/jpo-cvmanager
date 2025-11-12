@@ -86,7 +86,7 @@ export const MapLegend = (props: MapLegendProps) => {
     }
   }
 
-  const { bsmColors, travelConnectionColors, laneColors, signalHeadIcons, ssmStatusIcons, other } = mapLegendColors
+  const { bsmColors, travelConnectionColors, laneColors, signalHeadIcons, ssmStatusIcons, srmColors } = mapLegendColors
 
   const bsmColorsList: JSX.Element[] = []
   for (const [key, value] of Object.entries(bsmColors)) {
@@ -220,10 +220,9 @@ export const MapLegend = (props: MapLegendProps) => {
       </React.Fragment>
     )
   }
-
-  const otherLayerList: JSX.Element[] = []
-  for (const [key, value] of Object.entries(other)) {
-    otherLayerList.push(
+  const srmColorsList: JSX.Element[] = []
+  for (const [key, value] of Object.entries(srmColors)) {
+    srmColorsList.push(
       <React.Fragment key={key}>
         <div
           style={{
@@ -233,9 +232,9 @@ export const MapLegend = (props: MapLegendProps) => {
             margin: '5px',
           }}
         >
-          <div style={{ height: 20, width: 20, backgroundColor: value as string }} />
+          <div style={{ height: 20, width: 20, backgroundColor: value as string, borderRadius: '50%' }} />
           <Typography fontSize="14px" sx={{ ml: 1, textTransform: 'capitalize' }}>
-            {key}
+            {key.toLowerCase()}
           </Typography>
         </div>
       </React.Fragment>
@@ -436,7 +435,7 @@ export const MapLegend = (props: MapLegendProps) => {
                     disableGutters
                   >
                     <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
-                      <Typography fontSize="16px">Other Layers</Typography>
+                      <Typography fontSize="16px">SRM Vehicles</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                       <div
@@ -447,7 +446,7 @@ export const MapLegend = (props: MapLegendProps) => {
                           justifyContent: 'flex-start',
                         }}
                       >
-                        {otherLayerList}
+                        {srmColorsList}
                       </div>
                     </AccordionDetails>
                   </Accordion>
