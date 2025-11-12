@@ -388,13 +388,13 @@ export const addSsmSrmToMapFeatures = (
       const srmInfo: SrmInfo[] = srms.map(getSrmInfoList).flat()
       const signalStatuses = ssmInfo.filter(
         (status) =>
-          (status.inboundLaneID && status.inboundLaneID === feature.properties.laneId) ||
-          (status.outboundLaneID && status.outboundLaneID === feature.properties.laneId)
+          (status.inboundLaneID && status.inboundLaneID == feature.properties.laneId) ||
+          (status.outboundLaneID && status.outboundLaneID == feature.properties.laneId)
       )
       const signalRequests = srmInfo.filter(
         (request) =>
-          (request.inboundLaneID && request.inboundLaneID === feature.properties.laneId) ||
-          (request.outboundLaneID && request.outboundLaneID === feature.properties.laneId)
+          (request.inboundLaneID && request.inboundLaneID == feature.properties.laneId) ||
+          (request.outboundLaneID && request.outboundLaneID == feature.properties.laneId)
       )
       return {
         ...feature,

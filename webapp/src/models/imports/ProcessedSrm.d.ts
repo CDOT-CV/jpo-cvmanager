@@ -7,6 +7,15 @@ type ProcessedSrmFeature = {
   properties: ProcessedSrmProperties
 }
 
+type ProcessedSrmFeatureWithStatus = {
+  type: 'Feature'
+  geometry: {
+    type: 'Point'
+    coordinates: [number, number]
+  }
+  properties: ProcessedSrmPropertiesWithStatus
+}
+
 type ProcessedSrmProperties = {
   schemaVersion: number
   messageType: 'SRM'
@@ -38,6 +47,10 @@ type ProcessedSrmProperties = {
   validationMessages: ProcessedValidationMessage[]
 }
 
+type ProcessedSrmPropertiesWithStatus = ProcessedSrmProperties & {
+  ssms: ProcessedSsm[]
+}
+
 type ProcessedSignalRequest = {
   region?: number
   intersectionId: number
@@ -53,12 +66,6 @@ type ProcessedSignalRequest = {
   estimatedTimeOfArrivalDurationSeconds?: number // Duration in seconds
 }
 
-type ProcessedSrmFeatureWithStatus = ProcessedSrmFeature & {
-  properties: ProcessedSrmProperties & {
-    ssms: ProcessedSsm[]
-  }
-}
-
 type SrmInfo = {
   vehicleInfo: SrmVehicleInfo
   timeStampEpochMillis: number
@@ -71,6 +78,7 @@ type SrmInfo = {
   outboundLaneConnectionID?: number
   estimatedTimeOfArrival?: string
   estimatedTimeOfArrivalDurationSeconds?: number // Duration in seconds
+  responseInfo?: SsmInfo
 }
 
 type SrmVehicleInfo = {

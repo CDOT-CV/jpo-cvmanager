@@ -63,11 +63,11 @@ type SsmVehicleInfo = {}
 
 // New enum type for SSM
 type ProcessedPrioritizationResponseStatus =
-  | 'unknown'
-  | 'requested'
-  | 'processing'
-  | 'watchOtherTraffic'
-  | 'granted'
-  | 'rejected'
-  | 'maxPresence'
-  | 'reserviceLocked'
+  | 'UNKNOWN'
+  | 'REQUESTED'
+  | 'PROCESSING'
+  | 'WATCH_OTHER_TRAFFIC'
+  | 'GRANTED'
+  | 'REJECTED'
+  | 'MAX_PRESENCE'
+  | 'RESERVICE_LOCKED'

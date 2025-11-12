@@ -3,7 +3,7 @@ import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
 import { Container, Col } from 'reactstrap'
 
-import { Paper, Box, Fab, useTheme } from '@mui/material'
+import { Paper, Box, Fab, useTheme, FormControl, InputLabel, Select, MenuItem } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 
 import ControlPanel from './control-panel'
@@ -15,6 +15,7 @@ import {
   selectConnectingLanesHighlightLayerStyle,
   selectConnectingLanesLabelsLayerStyle,
   selectConnectingLanesLayerStyle,
+  selectConnectingLanesSsmStatusLayerStyle,
   selectMapMessageHighlightLayerStyle,
   selectMapMessageLabelsLayerStyle,
   selectMapMessageLayerStyle,
@@ -63,6 +64,7 @@ import {
   updateRenderTimeInterval,
   updateRenderedMapState,
   MAP_LAYERS,
+  selectLayersVisible,
 } from './map-slice'
 import EnvironmentVars from '../../../EnvironmentVars'
 import {
@@ -116,10 +118,12 @@ const IntersectionMap = (props: MAP_PROPS) => {
   // userSlice
   const authToken = useSelector(selectToken)
 
+  const layersVisible = useSelector(selectLayersVisible)
   const mapMessageLayerStyle = useSelector(selectMapMessageLayerStyle)
   const mapMessageHighlightLayerStyle = useSelector(selectMapMessageHighlightLayerStyle)
   const mapMessageLabelsLayerStyle = useSelector(selectMapMessageLabelsLayerStyle)
   const connectingLanesLayerStyle = useSelector(selectConnectingLanesLayerStyle)
+  const connectingLanesSsmStatusLayerStyle = useSelector(selectConnectingLanesSsmStatusLayerStyle)
   const connectingLanesHighlightLayerStyle = useSelector(selectConnectingLanesHighlightLayerStyle)
   const connectingLanesLabelsLayerStyle = useSelector(selectConnectingLanesLabelsLayerStyle)
   const markerLayerStyle = useSelector(selectMarkerLayerStyle)
@@ -145,8 +149,6 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
   const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
-  const sigGroupLabelsVisible = useSelector(selectSigGroupLabelsVisible)
-  const laneLabelsVisible = useSelector(selectLaneLabelsVisible)
   const showPopupOnHover = useSelector(selectShowPopupOnHover)
   const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
   const liveDataActive = useSelector(selectLiveDataActive)
@@ -165,6 +167,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const [cursor, setCursor] = useState<string>('default')
   const [hoveredFeature, setHoveredFeature] = useState<any>(undefined)
   const [selectedFeature, setSelectedFeature] = useState<any>(undefined)
+  const [ssmStatus, setSsmStatus] = useState<ProcessedPrioritizationResponseStatus>('UNKNOWN')
 
   useEffect(() => {
     return () => {
@@ -319,10 +322,20 @@ const IntersectionMap = (props: MAP_PROPS) => {
     srmSsmConnections = addSsmSrmToConnections(connections, activeSsmData, activeSrmData)
     const srmSsmOnlyConnections = {
       ...srmSsmConnections,
-      features: srmSsmConnections.features.filter((feature) => feature.properties.signalStatuses.length > 0),
+      features: srmSsmConnections.features
+        .filter((feature) => feature.properties.signalStatuses.length > 0)
+        .map((feature) => {
+          return {
+            ...feature,
+            properties: {
+              ...feature.properties,
+              ssmStatus: ssmStatus,
+            },
+          }
+        }),
     }
     return [srmSsmConnections, srmSsmOnlyConnections]
-  }, [connectingLanes, currentSignalGroups, mapData])
+  }, [connectingLanes, currentSignalGroups, mapData, activeSsmData, activeSrmData, ssmStatus])
 
   const [mapLanesFeatureCollection, mapLanesFeatureCollectionOnlyWithSsmSrm] = useMemo(() => {
     let mapFeatures: MapFeatureCollectionWithSsmSrm = EMPTY_FEATURE_COLLECTION
@@ -335,7 +348,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       features: mapFeatures.features.filter((feature) => feature.properties.signalRequests.length > 0),
     }
     return [mapFeatures, srmSsmOnlyMapFeatures]
-  }, [mapData])
+  }, [mapData, activeSsmData, activeSrmData])
 
   const onMapClick = (point: mapboxgl.Point, lngLat: mapboxgl.LngLat) => {
     const features = mapRef.current.queryRenderedFeatures(point, {
@@ -370,6 +383,17 @@ const IntersectionMap = (props: MAP_PROPS) => {
     setCursor('default')
     setHoveredFeature(undefined)
   }
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map || !map.isStyleLoaded()) return
+
+    Object.entries(layersVisible).forEach(([layerKey, isVisible]) => {
+      if (map.getLayer(layerKey)) {
+        map.setLayoutProperty(layerKey, 'visibility', isVisible ? 'visible' : 'none')
+      }
+    })
+  }, [layersVisible])
 
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
@@ -436,6 +460,55 @@ const IntersectionMap = (props: MAP_PROPS) => {
         >
           <Remove />
         </Fab>
+        <FormControl
+          fullWidth
+          margin="normal"
+          sx={{
+            position: 'absolute',
+            zIndex: 10,
+            top: theme.spacing(24),
+            right: theme.spacing(3),
+            width: 120,
+            '&:hover': {
+              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
+            },
+          }}
+        >
+          <InputLabel htmlFor="msg-type-select">Message Type</InputLabel>
+          <Select
+            label="Message Type"
+            id="msg-type-select"
+            value={ssmStatus}
+            onChange={(event) => {
+              setSsmStatus(event.target.value as ProcessedPrioritizationResponseStatus)
+            }}
+          >
+            <MenuItem key={'UNKNOWN'} value={'UNKNOWN'}>
+              UNKNOWN
+            </MenuItem>
+            <MenuItem key={'REQUESTED'} value={'REQUESTED'}>
+              REQUESTED
+            </MenuItem>
+            <MenuItem key={'PROCESSING'} value={'PROCESSING'}>
+              PROCESSING
+            </MenuItem>
+            <MenuItem key={'WATCH_OTHER_TRAFFIC'} value={'WATCH_OTHER_TRAFFIC'}>
+              WATCH_OTHER_TRAFFIC
+            </MenuItem>
+            <MenuItem key={'GRANTED'} value={'GRANTED'}>
+              GRANTED
+            </MenuItem>
+            <MenuItem key={'REJECTED'} value={'REJECTED'}>
+              REJECTED
+            </MenuItem>
+            <MenuItem key={'MAX_PRESENCE'} value={'MAX_PRESENCE'}>
+              MAX_PRESENCE
+            </MenuItem>
+            <MenuItem key={'RESERVICE_LOCKED'} value={'RESERVICE_LOCKED'}>
+              RESERVICE_LOCKED
+            </MenuItem>
+          </Select>
+        </FormControl>
 
         <Map
           {...viewState}
@@ -464,6 +537,15 @@ const IntersectionMap = (props: MAP_PROPS) => {
               { name: 'traffic-light-icon-green-1', sdf: false },
               { name: 'traffic-light-icon-yellow-1', sdf: false },
               { name: 'srm_square', sdf: true },
+              { name: 'close', sdf: true },
+              { name: 'check', sdf: true },
+              { name: 'circular-arrow', sdf: true },
+              { name: 'gear', sdf: true },
+              { name: 'lock', sdf: true },
+              { name: 'question-mark', sdf: true },
+              { name: 'sent', sdf: true },
+              { name: 'timer', sdf: true },
+              { name: 'warning', sdf: true },
             ]
             for (const img of images) {
               map.loadImage(`/icons/${img.name}.png`, (error, image) => {
@@ -471,6 +553,16 @@ const IntersectionMap = (props: MAP_PROPS) => {
                 if (!map.hasImage(img.name)) map.addImage(img.name, image, { sdf: img.sdf })
               })
             }
+
+            // Set initial layer visibility after map loads
+            map.once('idle', () => {
+              Object.entries(layersVisible).forEach(([layerKey, isVisible]) => {
+                if (map.getLayer(layerKey)) {
+                  map.setLayoutProperty(layerKey, 'visibility', isVisible ? 'visible' : 'none')
+                }
+              })
+            })
+
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
@@ -485,6 +577,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
           </Source>
           <Source type="geojson" data={connectingLanesFeatureCollection}>
             <Layer {...connectingLanesLayerStyle} />
+          </Source>
+          <Source type="geojson" data={connectingLanesOnlyWithSsmSrmFeatureCollection}>
+            <Layer {...connectingLanesSsmStatusLayerStyle} />
           </Source>
           <Source type="geojson" data={activeSrmFeatureCollection}>
             <Layer {...srmLayerStyle} />
@@ -520,7 +615,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           <Source
             type="geojson"
             data={
-              (laneLabelsVisible ? mapData?.mapFeatureCollection : undefined) ?? {
+              mapData?.mapFeatureCollection ?? {
                 type: 'FeatureCollection',
                 features: [],
               }
@@ -528,14 +623,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           >
             <Layer {...mapMessageLabelsLayerStyle} />
           </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes && currentSignalGroups && sigGroupLabelsVisible && mapData?.mapFeatureCollection
-                ? addConnections(connectingLanes, currentSignalGroups, mapData.mapFeatureCollection)
-                : undefined) ?? { type: 'FeatureCollection', features: [] }
-            }
-          >
+          <Source type="geojson" data={connectingLanesFeatureCollection}>
             <Layer {...connectingLanesLabelsLayerStyle} />
           </Source>
           {selectedFeature && (
@@ -549,6 +637,8 @@ const IntersectionMap = (props: MAP_PROPS) => {
           laneInfo={connectingLanes}
           signalGroups={currentSignalGroups}
           bsms={currentBsms}
+          ssmData={activeSsmData}
+          srmData={activeSrmData}
           events={filteredSurroundingEvents}
           notifications={filteredSurroundingNotifications}
           sourceData={props.sourceData}

@@ -49,6 +49,7 @@ export type MAP_LAYERS =
   | 'srm'
   | 'srm-requested-lanes'
   | 'ssm-connection-status'
+  | 'ssm-connection-highlight'
 
 export type MAP_QUERY_PARAMS = {
   startDate: Date
@@ -107,27 +108,29 @@ export type BSM_COUNTS_CHART_DATA = MessageMonitor.MinuteCount & {
   timestamp: string
 }
 
-interface MinimalClient {
-  connect: (headers: unknown, connectCallback: () => void, errorCallback?: (error: string) => void) => void
-  subscribe: (destination: string, callback: (message: IMessage) => void) => void
-  disconnect: (disconnectCallback: () => void) => void
-}
-
 const initialState = {
   mapRef: React.createRef() as React.MutableRefObject<MapRef>,
   layersVisible: {
-    'map-message': false,
+    'map-message': true,
     'map-message-labels': false,
-    'connecting-lanes': false,
+    'connecting-lanes': true,
     'connecting-lanes-labels': false,
-    'invalid-lane-collection': false,
-    bsm: false,
-    'signal-states': false,
-    srm: false,
-    'srm-requested-lanes': false,
-    'ssm-connection-status': false,
+    'invalid-lane-collection': true,
+    'signal-states': true,
+    bsm: true,
+    srm: true,
+    'srm-requested-lanes': true,
+    'ssm-connection-status': true,
+    'ssm-connection-highlight': true,
   } as Record<MAP_LAYERS, boolean>,
-  allInteractiveLayerIds: ['map-message', 'connecting-lanes', 'signal-states', 'bsm', 'srm'] as MAP_LAYERS[],
+  allInteractiveLayerIds: [
+    'map-message',
+    'connecting-lanes',
+    'signal-states',
+    'bsm',
+    'srm',
+    'ssm-connection-status',
+  ] as MAP_LAYERS[],
   queryParams: {
     startDate: new Date(Date.now() - 1000 * 60 * 1),
     endDate: new Date(Date.now() + 1000 * 60 * 1),

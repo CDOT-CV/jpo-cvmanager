@@ -12,7 +12,7 @@ const mapMessageLayer: LineLayer = {
 }
 
 const mapMessageHighlightLayer: LineLayer = {
-  id: 'map-message-highlight',
+  id: 'srm-requested-lanes',
   type: 'line',
   paint: {
     'line-width': 12,
@@ -120,8 +120,82 @@ const connectingLanesLayer: LineLayer = {
   },
 }
 
+const connectingLanesSsmStatusLayer: SymbolLayer = {
+  id: 'ssm-connection-status',
+  type: 'symbol',
+  minzoom: 1,
+  maxzoom: 24,
+  layout: {
+    'icon-image': [
+      'match',
+      ['get', 'ssmStatus'],
+      'UNKNOWN',
+      'question-mark',
+      'REQUESTED',
+      'circular-arrow',
+      'PROCESSING',
+      'gear',
+      'WATCH_OTHER_TRAFFIC',
+      'warning',
+      'GRANTED',
+      'check',
+      'REJECTED',
+      'close',
+      'MAX_PRESENCE',
+      'timer',
+      'RESERVICE_LOCKED',
+      'lock',
+      'close',
+    ],
+    'symbol-placement': 'line-center',
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
+    'text-allow-overlap': true, // ⚡ Add this
+    'text-ignore-placement': true, // ⚡ Add this
+    'icon-optional': false, // ⚡ Always show icon
+    'icon-rotation-alignment': 'viewport',
+    'icon-size': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      10,
+      0.003, // ⚡ Scale with zoom instead of fixed 0.1
+      14,
+      0.05,
+      18,
+      0.08,
+      22,
+      0.12,
+    ],
+  },
+  paint: {
+    'icon-color': [
+      'match',
+      ['get', 'ssmStatus'],
+      'UNKNOWN',
+      '#202020',
+      'REQUESTED',
+      '#002f9e',
+      'PROCESSING',
+      '#383838',
+      'WATCH_OTHER_TRAFFIC',
+      '#c06600',
+      'GRANTED',
+      '#109501',
+      'REJECTED',
+      '#ff0000',
+      'MAX_PRESENCE',
+      '#740000',
+      'RESERVICE_LOCKED',
+      '#680c00',
+      '#202020',
+    ],
+    'icon-opacity': 1,
+  },
+}
+
 const connectingLanesHighlightLayer: LineLayer = {
-  id: 'connecting-lanes-highlight',
+  id: 'ssm-connection-highlight',
   type: 'line',
   paint: {
     'line-width': 12,
@@ -150,7 +224,7 @@ const connectingLanesLabelsLayer: SymbolLayer = {
 }
 
 const srmLayer: SymbolLayer = {
-  id: 'srmMarker',
+  id: 'srm',
   type: 'symbol',
   source: 'srmData',
   layout: {
@@ -227,6 +301,8 @@ export type MAP_LEGEND_COLORS = {
   laneColors: { [key: string]: string }
   travelConnectionColors: { [key: string]: [string, number[]] }
   signalHeadIcons: { [key: string]: string }
+  ssmStatusIcons: { [key: string]: [string, string] }
+  other: { [key: string]: string }
 }
 
 const mapLegendColors: MAP_LEGEND_COLORS = {
@@ -234,6 +310,7 @@ const mapLegendColors: MAP_LEGEND_COLORS = {
   laneColors: {
     Ingress: '#eb34e8',
     Egress: '#0004ff',
+    'RSM/SSM Info (highlighted)': '#ccff33',
   },
   travelConnectionColors: {
     UNAVAILABLE: ['#797979', [2, 1]],
@@ -246,6 +323,7 @@ const mapLegendColors: MAP_LEGEND_COLORS = {
     PERMISSIVE_CLEARANCE: ['#e6b000', [2, 1]],
     PROTECTED_CLEARANCE: ['#e6b000', [1]],
     CAUTION_CONFLICTING_TRAFFIC: ['#e6b000', [1, 4]],
+    'RSM/SSM Info (highlighted)': ['#ccff33', [1]],
   },
   signalHeadIcons: {
     UNAVAILABLE: '/icons/traffic-light-icon-unknown.svg',
@@ -259,6 +337,17 @@ const mapLegendColors: MAP_LEGEND_COLORS = {
     PROTECTED_CLEARANCE: '/icons/traffic-light-icon-yellow-1.svg',
     CAUTION_CONFLICTING_TRAFFIC: '/icons/traffic-light-icon-yellow-1.svg',
   },
+  ssmStatusIcons: {
+    UNKNOWN: ['/icons/question-mark.png', '#202020'],
+    REQUESTED: ['/icons/circular-arrow.png', '#002f9e'],
+    PROCESSING: ['/icons/gear.png', '#383838'],
+    WATCH_OTHER_TRAFFIC: ['/icons/warning.png', '#c06600'],
+    GRANTED: ['/icons/check.png', '#109501'],
+    REJECTED: ['/icons/close.png', '#ff0000'],
+    MAX_PRESENCE: ['/icons/timer.png', '#740000'],
+    RESERVICE_LOCKED: ['/icons/lock.png', '#680c00'],
+  },
+  other: { SRMs: '#0004ff' },
 }
 
 export const initialState = {
@@ -266,6 +355,7 @@ export const initialState = {
   mapMessageHighlightLayerStyle: { ...mapMessageHighlightLayer, source: 'string' },
   mapMessageLabelsLayerStyle: { ...mapMessageLabelsLayer, source: 'string' },
   connectingLanesLayerStyle: { ...connectingLanesLayer, source: 'string' },
+  connectingLanesSsmStatusLayerStyle: { ...connectingLanesSsmStatusLayer, source: 'string' },
   connectingLanesHighlightLayerStyle: { ...connectingLanesHighlightLayer, source: 'string' },
   connectingLanesLabelsLayerStyle: { ...connectingLanesLabelsLayer, source: 'string' },
   srmLayerStyle: { ...srmLayer, source: 'string' },
@@ -305,6 +395,8 @@ export const selectMapMessageLabelsLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.mapMessageLabelsLayerStyle
 export const selectConnectingLanesLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.connectingLanesLayerStyle
+export const selectConnectingLanesSsmStatusLayerStyle = (state: RootState) =>
+  state.intersectionMapLayerStyle.value.connectingLanesSsmStatusLayerStyle
 export const selectConnectingLanesHighlightLayerStyle = (state: RootState) =>
   state.intersectionMapLayerStyle.value.connectingLanesHighlightLayerStyle
 export const selectConnectingLanesLabelsLayerStyle = (state: RootState) =>

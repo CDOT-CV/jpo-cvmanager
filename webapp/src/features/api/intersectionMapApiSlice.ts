@@ -106,7 +106,7 @@ export const fetchSrmWithinTimeWindow = (
   const loc = {
     longitude: mapCoordinates.longitude,
     latitude: mapCoordinates.latitude,
-    distance: 10000,
+    distance: 500,
   }
   return dispatch(
     intersectionMapApiSlice.endpoints.getSrmWithinTimeWindow.initiate({

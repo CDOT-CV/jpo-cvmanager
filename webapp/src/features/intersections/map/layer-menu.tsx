@@ -22,6 +22,7 @@ const layerTitleMap: { [key in MAP_LAYERS]: string } = {
   srm: 'SRMs',
   'srm-requested-lanes': 'SRM Requested Lanes',
   'ssm-connection-status': 'SSM Connection Status',
+  'ssm-connection-highlight': 'SSM Connection Highlight',
 }
 
 function LayerMenu(props: LayerMenuProps) {

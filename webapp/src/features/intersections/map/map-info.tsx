@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 
 import { Paper, Box, IconButton, Typography, Fab, AccordionSummary } from '@mui/material'
 import MuiAccordion, { AccordionProps } from '@mui/material/Accordion'
@@ -17,6 +17,8 @@ import { RootState } from '../../../store'
 import { selectSelectedIntersection } from '../../../generalSlices/intersectionSlice'
 import '../../../components/css/RsuMapView.css'
 import { InfoOutlined, Close, ExpandMoreOutlined } from '@mui/icons-material'
+import { ConnectionOfTravelNotification } from '../../../models/jpo-conflictmonitor/notifications/ConnectionOfTravelNotification'
+import { getSrmInfoList, getSsmInfoList } from './utilities/message-utils'
 
 const Accordion = styled((props: AccordionProps) => <MuiAccordion disableGutters elevation={0} square {...props} />)(
   () => ({})
@@ -28,6 +30,8 @@ interface SidePanelProps {
   laneInfo: ConnectingLanesFeatureCollection | undefined
   signalGroups: SpatSignalGroup[] | undefined
   bsms: BsmFeatureCollection
+  ssmData: ProcessedSsm[]
+  srmData: ProcessedSrmFeature[]
   events: MessageMonitor.Event[]
   notifications: MessageMonitor.Notification[]
   sourceData: MAP_PROPS['sourceData']
@@ -37,15 +41,9 @@ interface SidePanelProps {
 }
 
 export const SidePanel = (props: SidePanelProps) => {
-  const { laneInfo, signalGroups, bsms, events, notifications, sourceData, sourceDataType } = props
+  const { laneInfo, signalGroups, bsms, ssmData, srmData, events, notifications, sourceData, sourceDataType } = props
 
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
-
-  const srmCount = useSelector(selectSrmCount)
-  const srmSsmCount = useSelector(selectSrmSsmCount)
-  const srmMsgList = useSelector(selectSrmMsgList)
-  const selectedIntersection = useSelector(selectSelectedIntersection)
 
   const toggleOpen = () => {
     if (props.openPanel === 'map-info') {
@@ -54,6 +52,25 @@ export const SidePanel = (props: SidePanelProps) => {
       props.setOpenPanel('map-info')
     }
   }
+
+  const [ssmInfo, ssmResponseDict] = useMemo(() => {
+    const ssmInfo = ssmData.flatMap(getSsmInfoList)
+    const ssmResponseDict: { [key: number]: SsmInfo } = {}
+    ssmInfo.forEach((ssm) => {
+      if (ssm.requestID in ssmResponseDict) {
+        if (ssm.sequenceNumber ?? 0 > (ssmResponseDict[ssm.requestID].sequenceNumber ?? 0)) {
+          ssmResponseDict[ssm.requestID] = ssm
+        }
+      } else if (ssm.requestID) {
+        ssmResponseDict[ssm.requestID] = ssm
+      }
+    })
+    return [ssmInfo, ssmResponseDict]
+  }, [ssmData])
+
+  const srmInfo = useMemo(() => {
+    return srmData.flatMap(getSrmInfoList)
+  }, [srmData])
 
   const getDataTable = (sourceData: MAP_PROPS['sourceData'], sourceDataType: MAP_PROPS['sourceDataType']) => {
     switch (sourceDataType) {
@@ -115,27 +132,95 @@ export const SidePanel = (props: SidePanelProps) => {
     }
   }
 
-  const getSsmSrmTable = (msgList, rsuIpv4: string | undefined, ssmCount: number, srmCount: number) => {
-    if (rsuIpv4 == undefined) return <div>No RSU IP Found</div>
+  const getSrmImportanceLevel = (level: ProcessedRequestImportanceLevel): string => {
+    if (level?.includes('requestImportanceLevel')) {
+      return level.replace('requestImportanceLevel', '')
+    } else if (level === 'requestImportanceLevelUnKnown') {
+      return 'Unknown'
+    } else {
+      return level
+    }
+  }
+
+  const getSsmRow = (ssm: SsmInfo) => {
+    const rows: any[] = []
+    rows.push([`SSM ID`, ssm.requestID])
+    rows.push([`Status`, ssm.status])
+    if (ssm.inboundLaneID || ssm.outboundLaneID) {
+      rows.push(['Inbound Lane', ssm.inboundLaneID])
+      rows.push(['Outbound Lane', ssm.outboundLaneID])
+    }
+    if (ssm.inboundLaneConnectionID || ssm.outboundLaneConnectionID) {
+      rows.push(['Inbound Lane Connection', ssm.inboundLaneConnectionID])
+      rows.push(['Outbound Lane Connection', ssm.outboundLaneConnectionID])
+    }
+    if (ssm.requestInfo) {
+      rows.push(['SRM Veh. ID', ssm.requestInfo.vehicleID])
+      rows.push(['SRM Veh. Role', ssm.requestInfo.role])
+      rows.push(['SRM Req. Level', getSrmImportanceLevel(ssm.requestInfo.importanceLevel)])
+    }
     return (
-      <div className="ssmSrmContainer">
-        <h3 id="ssmsrmDataHeader">SSM / SRM Data For {rsuIpv4}</h3>
-        <div id="ssmSrmHeaderContainer" style={{ borderBottom: `1px ${theme.palette.text.primary} solid` }}>
-          <p id="ssmTimeHeader">Time</p>
-          <p id="requestHeader">Request Id</p>
-          <p id="roleHeader">Role</p>
-          <p id="ssmSrmHeader">Status</p>
-          <p id="ssmSrmHeader">Display</p>
-        </div>
-        {msgList.map((index) => (
-          <SsmSrmItem key={index} elem={msgList[index]} setSelectedSrm={() => dispatch(setSelectedSrm())} />
-        ))}
-        <h3 id="countsHeader">Total Counts</h3>
-        <div id="countsContainer">
-          <h4 id="countsData">SSM: {ssmCount}</h4>
-          <h4 id="countsData">SRM: {srmCount}</h4>
-        </div>
-      </div>
+      <Accordion
+        sx={{
+          '& .Mui-expanded': {
+            backgroundColor: theme.palette.custom.intersectionMapAccordionExpanded,
+          },
+        }}
+        disableGutters
+      >
+        <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
+          <Typography fontSize="16px">
+            {ssm.requestID}: {ssm.status}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ mt: 1 }}>
+            <CustomTable headers={['Field', 'Value']} data={rows} />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    )
+  }
+
+  const getSrmRow = (srm: SrmInfo, ssmResponseDict: { [key: number]: SsmInfo }) => {
+    const rows: any[] = []
+    rows.push([`Request ID`, srm.requestID])
+    rows.push(['Time', format(srm.timeStampEpochMillis, 'yyyy-MM-dd HH:mm:ss.SSS')])
+    rows.push([`Request Type`, srm.priorityRequestType])
+    if (srm.estimatedTimeOfArrival)
+      rows.push([`Estimated Arrival`, format(srm.estimatedTimeOfArrival, 'yyyy-MM-dd HH:mm:ss.SSS')])
+    if (srm.inboundLaneID || srm.outboundLaneID) {
+      rows.push(['Inbound Lane', srm.inboundLaneID])
+      rows.push(['Outbound Lane', srm.outboundLaneID])
+    }
+    if (srm.inboundLaneConnectionID || srm.outboundLaneConnectionID) {
+      rows.push(['Inbound Lane Connection', srm.inboundLaneConnectionID])
+      rows.push(['Outbound Lane Connection', srm.outboundLaneConnectionID])
+    }
+    const ssm = ssmResponseDict[srm.requestID]
+    if (ssm) {
+      rows.push(['SSM Status', ssm.status])
+    }
+    return (
+      <Accordion
+        sx={{
+          '& .Mui-expanded': {
+            backgroundColor: theme.palette.custom.intersectionMapAccordionExpanded,
+          },
+        }}
+        disableGutters
+      >
+        <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
+          <Typography fontSize="16px">
+            {srm.requestID}: {srm.vehicleInfo.vehicleID}
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ mt: 1 }}>
+            <CustomTable headers={['Field', 'Value']} data={rows} />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
     )
   }
 
@@ -316,12 +401,25 @@ export const SidePanel = (props: SidePanelProps) => {
                     disableGutters
                   >
                     <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
-                      <Typography fontSize="16px">Ssm Srm Data</Typography>
+                      <Typography fontSize="16px">Signal Request Messages (SRMs)</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                      <Box sx={{ mt: 1 }}>
-                        {getSsmSrmTable(srmMsgList, selectedIntersection?.rsuIP, srmSsmCount, srmCount)}
-                      </Box>
+                      <Box sx={{ mt: 1 }}>{srmInfo.map((srm) => getSrmRow(srm, ssmResponseDict))}</Box>
+                    </AccordionDetails>
+                  </Accordion>
+                  <Accordion
+                    sx={{
+                      '& .Mui-expanded': {
+                        backgroundColor: theme.palette.custom.intersectionMapAccordionExpanded,
+                      },
+                    }}
+                    disableGutters
+                  >
+                    <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
+                      <Typography fontSize="16px">Signal Status Messages (SSMs)</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Box sx={{ mt: 1 }}>{ssmInfo.map(getSsmRow)}</Box>
                     </AccordionDetails>
                   </Accordion>
                   {sourceDataType && (
