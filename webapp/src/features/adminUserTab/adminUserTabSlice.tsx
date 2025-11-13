@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { selectToken } from '../../generalSlices/userSlice'
+import {selectOrganizationName, selectToken} from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
 import { RootState } from '../../store'
@@ -11,12 +11,12 @@ const initialState = {
   editUserRowData: {} as AdminUserWithId,
 }
 
-export const getUserData = async (user_email: string, token: string) => {
+export const getUserData = async (user_email: string, token: string, organization: string) => {
   return await apiHelper._getDataWithCodes({
     url: EnvironmentVars.adminUser,
     token,
     query_params: { user_email },
-    additional_headers: { 'Content-Type': 'application/json' },
+    additional_headers: { 'Content-Type': 'application/json', Organization: organization },
   })
 }
 
@@ -39,15 +39,16 @@ export const deleteUser = async (user_email: string, token: string) => {
 
 export const getAvailableUsers = createAsyncThunk(
   'adminUserTab/getAvailableUsers',
-  async (organizationName: string, { getState, dispatch }) => {
+  async (_, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
+    const organization = selectOrganizationName(currentState)
 
-    const data = await getUserData('all', token)
+    const data = await getUserData('all', token, organization)
 
     switch (data.status) {
       case 200:
-        return { success: true, message: '', data: data.body, organization: organizationName }
+        return { success: true, message: '', data: data.body }
       default:
         return { success: false, message: data.message }
     }
@@ -57,8 +58,8 @@ export const getAvailableUsers = createAsyncThunk(
 
 export const deleteUsers = createAsyncThunk(
   'adminUserTab/deleteUser',
-  async (payload: { data: Array<{ email: string }>, organizationName: string }, { getState, dispatch }) => {
-    const { data, organizationName } = payload
+  async (payload: { data: Array<{ email: string }> }, { getState, dispatch }) => {
+    const { data } = payload
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -67,7 +68,7 @@ export const deleteUsers = createAsyncThunk(
       promises.push(deleteUser(user.email, token))
     }
     const res = await Promise.all(promises)
-    dispatch(getAvailableUsers(organizationName))
+    dispatch(getAvailableUsers())
     for (const r of res) {
       if (!r.success) {
         return { success: false, message: 'Failed to delete one or more User(s)' }
@@ -109,16 +110,7 @@ export const adminUserTabSlice = createSlice({
       .addCase(getAvailableUsers.fulfilled, (state, action) => {
         state.loading = false
         if (action.payload.success) {
-          const userData = action.payload?.data?.user_data || []
-          const orgName = action.meta.arg as string
-
-          state.value.tableData = orgName ? userData.filter((user: { organizations?: { name: string; role: string }[] }) =>
-              Array.isArray(user.organizations) &&
-              user.organizations.some((org) => org.name === orgName)
-            )
-            : userData
-
-          state.value.tableData = state.value.tableData.map((user: AdminUser, index: number) => ({
+          state.value.tableData = (action.payload.data?.user_data ?? []).map((user: AdminUser, index: number) => ({
             ...user,
             id: index,
           }))

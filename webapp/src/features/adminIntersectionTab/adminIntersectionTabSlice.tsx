@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { selectToken } from '../../generalSlices/userSlice'
+import {selectOrganizationName, selectToken} from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
 import { RootState } from '../../store'
@@ -26,21 +26,21 @@ const initialState = {
  */
 export const updateTableData = createAsyncThunk(
   'adminIntersectionTab/updateTableData',
-  async (organizationName: string, { getState }) => {
+  async (_, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-
+    const organization = selectOrganizationName(currentState)
     const data = await apiHelper._getDataWithCodes({
       url: EnvironmentVars.adminIntersection,
       token,
       query_params: { intersection_id: 'all' },
-      additional_headers: { 'Content-Type': 'application/json' },
+      additional_headers: { 'Content-Type': 'application/json', Organization: organization },
       tag: 'intersection',
     })
 
     switch (data.status) {
       case 200:
-        return { ...data.body, organizationName }
+        return { ...data.body }
       default:
         console.error(data.message)
         return
@@ -59,8 +59,8 @@ export const updateTableData = createAsyncThunk(
  */
 export const deleteIntersection = createAsyncThunk(
   'adminIntersectionTab/deleteIntersection',
-  async (payload: { intersection_id: string; shouldUpdateTableData: boolean; organization?: string }, { getState, dispatch }) => {
-    const { intersection_id, shouldUpdateTableData, organization } = payload
+  async (payload: { intersection_id: string; shouldUpdateTableData: boolean }, { getState, dispatch }) => {
+    const { intersection_id, shouldUpdateTableData } = payload
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -83,7 +83,7 @@ export const deleteIntersection = createAsyncThunk(
         break
     }
     if (shouldUpdateTableData) {
-      dispatch(updateTableData(organization))
+      dispatch(updateTableData())
     }
     return return_val
   },
@@ -99,8 +99,8 @@ export const deleteIntersection = createAsyncThunk(
  */
 export const deleteMultipleIntersections = createAsyncThunk(
   'adminIntersectionTabSlice/deleteMultipleIntersections',
-  async (payload: { rows: AdminEditIntersectionFormType[], organization?: string }, { dispatch }) => {
-    const { rows, organization } = payload
+  async (payload: { rows: AdminEditIntersectionFormType[] }, { dispatch }) => {
+    const { rows } = payload
     const promises = []
     for (const row of rows) {
       promises.push(
@@ -108,7 +108,7 @@ export const deleteMultipleIntersections = createAsyncThunk(
       )
     }
     const res = await Promise.all(promises)
-    dispatch(updateTableData(organization))
+    dispatch(updateTableData())
     for (const r of res) {
       if (!r.payload.success) {
         return { success: false, message: 'Failed to delete one or more Intersection(s)' }
@@ -138,16 +138,7 @@ export const adminIntersectionTabSlice = createSlice({
       })
       .addCase(updateTableData.fulfilled, (state, action) => {
         state.loading = false
-        const intersectionData = action.payload?.intersection_data || []
-        const orgName = action.meta.arg as string
-        state.value.tableData =
-          orgName && orgName.trim() !== '' ? intersectionData.filter(
-              (intersection: { organizations?: string[] }) =>
-                Array.isArray(intersection.organizations) &&
-                intersection.organizations.some((org) => org === orgName)
-            )
-            : intersectionData;
-
+        state.value.tableData = action.payload?.intersection_data
         state.value.tableData?.forEach((element: AdminIntersection) => {
           element.rsus = (element.rsus as string[])?.join(', ') // This is really silly, but without it the Admin Table breaks... no idea why
         })

@@ -36,7 +36,7 @@ const AdminUserTab = () => {
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
   useEffect(() =>{
-    dispatch(getAvailableUsers(organization))
+    dispatch(getAvailableUsers())
   }, [organization, dispatch])
 
   const activeTab = location.pathname.split('/')[4]
@@ -120,7 +120,7 @@ const AdminUserTab = () => {
         itemType: 'outlined',
       },
       onClick: () => {
-        dispatch(getAvailableUsers(organization))
+        dispatch(getAvailableUsers())
       },
     },
     {

@@ -34,7 +34,7 @@ const AdminRsuTab = () => {
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
   useEffect(() =>{
-    dispatch(updateTableData(organization))
+    dispatch(updateTableData())
   }, [organization, dispatch])
 
   const tableData = useSelector(selectTableData)
