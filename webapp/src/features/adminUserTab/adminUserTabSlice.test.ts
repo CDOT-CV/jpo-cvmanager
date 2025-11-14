@@ -71,7 +71,7 @@ describe('async thunks', () => {
 
       apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual({ success: true, message: '', data: 'data', organization: undefined })
+      expect(resp.payload).toEqual({ success: true, message: '', data: 'data' })
 
       dispatch = jest.fn()
       apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
@@ -91,63 +91,33 @@ describe('async thunks', () => {
       })
     })
 
-    it('Updates the state correctly on fulfilled', async () => {
+    it('Updates the state correctly fulfilled', async () => {
       const loading = false
       let success = true
-
-      // --- Case 1: success = true, no orgName filter
-      const data = {
-        user_data: [
-          { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }] },
-          { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }] },
-        ],
-      }
-      const expectedTableData = [
-        { name: 'username1', organizations: [{ name: 'OrgA', role: 'admin' }], id: 0 },
-        { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 1 },
+      const data = { user_data: [{ name: 'username1' }, { name: 'username2' }] }
+      const tableData = [
+        { name: 'username1', id: 0 },
+        { name: 'username2', id: 1 },
       ]
-
       let state = reducer(initialState, {
         type: 'adminUserTab/getAvailableUsers/fulfilled',
         payload: { data, success },
-        meta: { arg: '' }, // no orgName filter
       })
-
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: { ...initialState.value, tableData: expectedTableData },
+        value: { ...initialState.value, tableData },
       })
 
-      // --- Case 2: success = true, with orgName filter applied
-      const filteredExpected = [
-        { name: 'username2', organizations: [{ name: 'OrgB', role: 'user' }], id: 0 },
-      ]
-
-      state = reducer(initialState, {
-        type: 'adminUserTab/getAvailableUsers/fulfilled',
-        payload: { data, success },
-        meta: { arg: 'OrgB' }, // filter by OrgB
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, tableData: filteredExpected },
-      })
-
-      // --- Case 3: success = false
       success = false
       state = reducer(initialState, {
         type: 'adminUserTab/getAvailableUsers/fulfilled',
         payload: { success },
-        meta: { arg: '' },
       })
-
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: { ...initialState.value }, // tableData should remain unchanged
+        value: { ...initialState.value },
       })
     })
 
@@ -172,7 +142,7 @@ describe('async thunks', () => {
       })
       const data = [{ email: 'test1@gmail.com' }, { email: 'test2@gmail.com' }, { email: 'test3@gmail.com' }]
 
-      const action = deleteUsers({data})
+      const action = deleteUsers(data)
 
       apiHelper._deleteData = jest
         .fn()

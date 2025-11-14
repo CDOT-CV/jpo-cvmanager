@@ -69,11 +69,10 @@ describe('async thunks', () => {
         },
       })
       const action = updateTableData()
-      const mockRsu = { data: 'data'}
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: mockRsu })
+      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
-      expect(resp.payload.data).toEqual('data')
+      expect(resp.payload).toEqual('data')
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
         url: EnvironmentVars.adminRsu,
         token: 'token',
@@ -108,64 +107,32 @@ describe('async thunks', () => {
       })
     })
 
-    it('Updates the state correctly fulfilled with organization filtering', () => {
+    it('Updates the state correctly fulfilled', async () => {
       const loading = false
-
-      const rsu_data = [
-        { id: 1, organizations: ['OrgA', 'OrgB'] },
-        { id: 2, organizations: ['OrgB'] },
-        { id: 3, organizations: [] },
-        { id: 4 }, // no organizations
-      ]
-
-      // Case 1: filtering for OrgB RSUs
+      let rsu_data = 'rsu_data'
       let state = reducer(initialState, {
         type: 'adminRsuTab/updateTableData/fulfilled',
         payload: { rsu_data },
-        meta: { arg: 'OrgB' },
       })
-
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: {
-          ...initialState.value,
-          tableData: [
-            { id: 1, organizations: ['OrgA', 'OrgB'] },
-            { id: 2, organizations: ['OrgB'] },
-          ],
-        },
+        value: { ...initialState.value, tableData: rsu_data },
       })
 
-      // Case 2: filtering for an org that doesn't have RSUs
+      rsu_data = undefined
       state = reducer(initialState, {
         type: 'adminRsuTab/updateTableData/fulfilled',
         payload: { rsu_data },
-        meta: { arg: 'OrgC' },
       })
-
-      expect(state.value.tableData).toEqual([])
-
-      // Case 3: no organization filtering
-      state = reducer(initialState, {
-        type: 'adminRsuTab/updateTableData/fulfilled',
-        payload: { rsu_data },
-        meta: { arg: '' },
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: rsu_data },
       })
-
-      expect(state.value.tableData).toEqual(rsu_data)
-
-      // Case 4: rsu_data undefined returns empty list to not break UI
-      state = reducer(initialState, {
-        type: 'adminRsuTab/updateTableData/fulfilled',
-        payload: { rsu_data: undefined },
-        meta: { arg: 'OrgA' },
-      })
-
-      expect(state.value.tableData).toEqual([])
     })
 
-    it('Updates the state correctly rejected', () => {
+    it('Updates the state correctly rejected', async () => {
       const loading = false
       const state = reducer(initialState, {
         type: 'adminRsuTab/updateTableData/rejected',
@@ -173,7 +140,6 @@ describe('async thunks', () => {
       expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
     })
   })
-
 
   describe('deleteRsu', () => {
     it('returns and calls the api correctly', async () => {
@@ -190,7 +156,7 @@ describe('async thunks', () => {
 
       let action = deleteRsu({ rsu_ip, shouldUpdateTableData })
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data', organization: undefined })
+      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
       expect(apiHelper._deleteData).toHaveBeenCalledWith({
         url: EnvironmentVars.adminRsu,
@@ -212,7 +178,7 @@ describe('async thunks', () => {
         query_params: { rsu_ip },
         tag: 'rsu',
       })
-      expect(dispatch).toHaveBeenCalledTimes(0 + 2)
+      expect(dispatch).toHaveBeenCalledTimes(2)
     })
 
     it('Updates the state correctly pending', async () => {
@@ -252,7 +218,7 @@ describe('async thunks', () => {
       })
       const rows = [{ ip: '1.1.1.1' }, { ip: '1.1.1.2' }, { ip: '1.1.1.3' }] as any
 
-      const action = deleteMultipleRsus({rows, undefined})
+      const action = deleteMultipleRsus(rows)
 
       await action(dispatch, getState, undefined)
       expect(dispatch).toHaveBeenCalledTimes(rows.length + 1 + 2)

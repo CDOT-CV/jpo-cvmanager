@@ -58,8 +58,7 @@ export const getAvailableUsers = createAsyncThunk(
 
 export const deleteUsers = createAsyncThunk(
   'adminUserTab/deleteUser',
-  async (payload: { data: Array<{ email: string }> }, { getState, dispatch }) => {
-    const { data } = payload
+  async (data: Array<{ email: string }>, { getState, dispatch }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 

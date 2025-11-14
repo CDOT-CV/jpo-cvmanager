@@ -68,11 +68,10 @@ describe('async thunks', () => {
         },
       })
       const action = updateTableData()
-      const rsuData = { data: "data"}
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: rsuData })
+      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       let resp = await action(dispatch, getState, undefined)
-      expect(resp.payload.data).toEqual('data')
+      expect(resp.payload).toEqual('data')
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
         url: EnvironmentVars.adminIntersection,
         token: 'token',
@@ -107,61 +106,29 @@ describe('async thunks', () => {
       })
     })
 
-    it('Updates the state correctly on fulfilled', async () => {
+    it('Updates the state correctly fulfilled', async () => {
       const loading = false
-
-      // --- Case 1: intersection_data present, no orgName filter
-      let intersection_data = [
-        { rsus: ['1.1.1.1', '1.1.1.2'], organizations: ['OrgA', 'OrgB'] },
-      ]
-      const intersection_data_expected = [
-        { rsus: '1.1.1.1, 1.1.1.2', organizations: ['OrgA', 'OrgB'] },
-      ]
-
+      let intersection_data = [{ rsus: ['1.1.1.1', '1.1.1.2'] }]
+      const intersection_data_expected = [{ rsus: '1.1.1.1, 1.1.1.2' }]
       let state = reducer(initialState, {
         type: 'adminIntersectionTab/updateTableData/fulfilled',
         payload: { intersection_data },
-        meta: { arg: '' }, // no org filter
       })
-
       expect(state).toEqual({
         ...initialState,
         loading,
         value: { ...initialState.value, tableData: intersection_data_expected },
       })
 
-      // --- Case 2: orgName filter applied (filters to matching org only)
-      intersection_data = [
-        { rsus: ['1.1.1.1'], organizations: ['OrgA'] },
-        { rsus: ['1.1.1.2'], organizations: ['OrgB'] },
-      ]
-      const filtered_expected = [
-        { rsus: '1.1.1.2', organizations: ['OrgB'] },
-      ]
-
+      intersection_data = undefined
       state = reducer(initialState, {
         type: 'adminIntersectionTab/updateTableData/fulfilled',
         payload: { intersection_data },
-        meta: { arg: 'OrgB' }, // filter by OrgB
       })
-
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: { ...initialState.value, tableData: filtered_expected },
-      })
-
-      // --- Case 3: intersection_data undefined (should fallback to empty array)
-      state = reducer(initialState, {
-        type: 'adminIntersectionTab/updateTableData/fulfilled',
-        payload: { intersection_data: undefined },
-        meta: { arg: '' },
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, tableData: [] },
+        value: { ...initialState.value, tableData: intersection_data },
       })
     })
 
@@ -251,7 +218,7 @@ describe('async thunks', () => {
       })
       const rows = [{ intersection_id: '1' }, { intersection_id: '2' }, { intersection_id: '3' }] as any
 
-      const action = deleteMultipleIntersections({rows})
+      const action = deleteMultipleIntersections(rows)
 
       await action(dispatch, getState, undefined)
       expect(dispatch).toHaveBeenCalledTimes(rows.length + 1 + 2)

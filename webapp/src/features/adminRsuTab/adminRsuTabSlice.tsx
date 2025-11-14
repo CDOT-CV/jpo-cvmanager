@@ -35,7 +35,7 @@ export const updateTableData = createAsyncThunk(
 
     switch (data.status) {
       case 200:
-        return { ...data.body }
+        return data.body
       default:
         console.error(data.message)
         return

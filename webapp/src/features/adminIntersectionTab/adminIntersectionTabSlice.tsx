@@ -40,7 +40,7 @@ export const updateTableData = createAsyncThunk(
 
     switch (data.status) {
       case 200:
-        return { ...data.body }
+        return data.body
       default:
         console.error(data.message)
         return
@@ -99,8 +99,7 @@ export const deleteIntersection = createAsyncThunk(
  */
 export const deleteMultipleIntersections = createAsyncThunk(
   'adminIntersectionTabSlice/deleteMultipleIntersections',
-  async (payload: { rows: AdminEditIntersectionFormType[] }, { dispatch }) => {
-    const { rows } = payload
+  async (rows: AdminEditIntersectionFormType[], { dispatch }) => {
     const promises = []
     for (const row of rows) {
       promises.push(
