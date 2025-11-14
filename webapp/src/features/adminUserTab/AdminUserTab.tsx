@@ -138,7 +138,7 @@ const AdminUserTab = () => {
   ]
 
   const handleDelete = (rowData: AdminUserWithId[]) => {
-    dispatch(deleteUsers({rowData})).then((data: any) => {
+    dispatch(deleteUsers(rowData)).then((data: any) => {
       if (data.payload.success) {
         toast.success('User(s) Deleted Successfully')
       } else {

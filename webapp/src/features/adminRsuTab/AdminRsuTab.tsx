@@ -72,7 +72,7 @@ const AdminRsuTab = () => {
           { label: 'Yes', onClick: () => onDelete(rowData) },
           { label: 'No', onClick: () => {} },
         ]
-        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '" from ' + organization + '?', buttons)
+        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '?', buttons)
         confirmAlert(alertOptions)
       },
     },
@@ -90,7 +90,7 @@ const AdminRsuTab = () => {
         ]
         const alertOptions = Options(
           'Delete Selected RSUs',
-          'Are you sure you want to delete ' + rowData.length + ' RSUs from ' + organization + '?',
+          'Are you sure you want to delete ' + rowData.length + ' RSUs?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -105,7 +105,7 @@ const AdminRsuTab = () => {
       },
       position: 'toolbar',
       onClick: () => {
-        dispatch(updateTableData(organization))
+        dispatch(updateTableData())
       },
     },
     {
@@ -142,7 +142,7 @@ const AdminRsuTab = () => {
   }
 
   const multiDelete = (rows: AdminEditRsuFormType[]) => {
-    dispatch(deleteMultipleRsus({rows})).then((data: any) => {
+    dispatch(deleteMultipleRsus(rows)).then((data: any) => {
       if (data.payload.success) {
         toast.success('RSUs Deleted Successfully')
       } else {
