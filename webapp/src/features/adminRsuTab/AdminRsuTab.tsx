@@ -72,7 +72,7 @@ const AdminRsuTab = () => {
           { label: 'Yes', onClick: () => onDelete(rowData) },
           { label: 'No', onClick: () => {} },
         ]
-        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '?', buttons)
+        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '"?', buttons)
         confirmAlert(alertOptions)
       },
     },

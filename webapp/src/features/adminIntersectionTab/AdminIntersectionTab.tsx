@@ -139,7 +139,7 @@ const AdminIntersectionTab = () => {
   }
 
   const multiDelete = (rows: AdminEditIntersectionFormType[]) => {
-    dispatch(deleteMultipleIntersections({rows})).then((data: any) => {
+    dispatch(deleteMultipleIntersections(rows)).then((data: any) => {
       if (data.payload.success) {
         toast.success('Intersections Deleted Successfully')
       } else {
