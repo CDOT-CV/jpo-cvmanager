@@ -142,7 +142,7 @@ const AdminRsuTab = () => {
   }
 
   const multiDelete = (rows: AdminEditRsuFormType[]) => {
-    dispatch(deleteMultipleRsus({rows, organization})).then((data: any) => {
+    dispatch(deleteMultipleRsus({rows})).then((data: any) => {
       if (data.payload.success) {
         toast.success('RSUs Deleted Successfully')
       } else {

@@ -127,7 +127,7 @@ const AdminIntersectionTab = () => {
   }
 
   const onDelete = (row: AdminEditIntersectionFormType) => {
-    dispatch(deleteIntersection({ intersection_id: row.intersection_id, shouldUpdateTableData: true, organization: organization })).then(
+    dispatch(deleteIntersection({ intersection_id: row.intersection_id, shouldUpdateTableData: true })).then(
       (data: any) => {
         if (data.payload.success) {
           toast.success('Intersection Deleted Successfully')
@@ -139,7 +139,7 @@ const AdminIntersectionTab = () => {
   }
 
   const multiDelete = (rows: AdminEditIntersectionFormType[]) => {
-    dispatch(deleteMultipleIntersections({rows, organization})).then((data: any) => {
+    dispatch(deleteMultipleIntersections({rows})).then((data: any) => {
       if (data.payload.success) {
         toast.success('Intersections Deleted Successfully')
       } else {

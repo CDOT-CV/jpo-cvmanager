@@ -74,7 +74,7 @@ const AdminUserTab = () => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => handleDelete([rowData], organization),
+            onClick: () => handleDelete([rowData]),
           },
           {
             label: 'No',
@@ -96,7 +96,7 @@ const AdminUserTab = () => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => handleDelete(rowData, organization),
+            onClick: () => handleDelete(rowData),
           },
           {
             label: 'No',
@@ -137,8 +137,8 @@ const AdminUserTab = () => {
     },
   ]
 
-  const handleDelete = (rowData: AdminUserWithId[], organization: string) => {
-    dispatch(deleteUsers({rowData, organization})).then((data: any) => {
+  const handleDelete = (rowData: AdminUserWithId[]) => {
+    dispatch(deleteUsers({rowData})).then((data: any) => {
       if (data.payload.success) {
         toast.success('User(s) Deleted Successfully')
       } else {

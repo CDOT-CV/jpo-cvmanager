@@ -79,7 +79,7 @@ export const deleteRsu = createAsyncThunk(
 
 export const deleteMultipleRsus = createAsyncThunk(
   'adminRsuTabSlice/deleteMultipleRsus',
-  async ({ rows }: { rows: AdminEditRsuFormType[]; organization: string }, { dispatch }) => {
+  async (rows: AdminEditRsuFormType[], { dispatch }) => {
     const promises = []
     for (const row of rows) {
       promises.push(dispatch(deleteRsu({ rsu_ip: row.ip, shouldUpdateTableData: false })))
