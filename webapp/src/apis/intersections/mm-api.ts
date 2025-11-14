@@ -154,7 +154,7 @@ class MessageMonitorApi {
     lat?: number
     distance?: number
     abortController?: AbortController
-  }): Promise<OdeBsmData[]> {
+  }): Promise<ProcessedBsmFeature[]> {
     const queryParams: Record<string, string> = {}
     if (vehicleId) queryParams['origin_ip'] = vehicleId
     if (startTime) queryParams['start_time_utc_millis'] = startTime.getTime().toString()
@@ -163,15 +163,15 @@ class MessageMonitorApi {
     if (lat) queryParams['latitude'] = lat.toString()
     if (distance) queryParams['distance'] = distance.toString()
 
-    const response: PagedResponse<OdeBsmData> = await authApiHelper.invokeApi({
-      path: '/data/ode-bsm-json',
+    const response: PagedResponse<ProcessedBsmFeature> = await authApiHelper.invokeApi({
+      path: '/data/processed-bsm',
       token: token,
       queryParams,
       abortController,
       failureMessage: 'Failed to retrieve BSM messages',
       tag: 'intersection',
     })
-    return response?.content ?? ([] as OdeBsmData[])
+    return response?.content ?? ([] as ProcessedBsmFeature[])
   }
 
   async getMessageCount(

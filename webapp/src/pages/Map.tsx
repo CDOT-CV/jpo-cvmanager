@@ -638,7 +638,7 @@ function MapPage() {
           }}
         >
           <div onClick={() => openPopup(index)}>
-            <img src="/workzone_icon.png" height={60} alt="Work Zone Icon" />
+            <img src="/workzone_icon.png" height={40} alt="Work Zone Icon" />
           </div>
         </Marker>
       )
@@ -863,7 +863,7 @@ function MapPage() {
           .filter((layer) => evaluateFeatureFlags(layer.tag))
           .map((layer) => (
             <div key={layer.id}>
-              <Typography fontSize="small" display="flex" alignItems="center">
+              <div style={{ fontSize: 'small', display: 'flex', alignItems: 'center' }}>
                 {layer.control && (
                   <IconButton
                     onClick={() => toggleExpandLayer(layer.id)}
@@ -879,7 +879,7 @@ function MapPage() {
                   label={<Typography>{layer.label}</Typography>}
                   control={<Checkbox checked={activeLayers.includes(layer.id)} />}
                 />
-              </Typography>
+              </div>
               {layer.control && <Collapse in={expandedLayers.includes(layer.id)}>{layer.control}</Collapse>}
             </div>
           ))}
@@ -966,7 +966,6 @@ function MapPage() {
                   defaultValue={selectedVendor}
                   onChange={(event) => {
                     const vendor = event.target.value as string
-                    console.log(vendor)
                     setVendor(vendor)
                   }}
                 >
@@ -986,6 +985,7 @@ function MapPage() {
                   ].map((val) => (
                     <FormControlLabel
                       value={val.key}
+                      key={val.key}
                       sx={{ mt: -1 }}
                       control={
                         <Radio
@@ -1035,15 +1035,18 @@ function MapPage() {
                       sx={{ ml: 1 }}
                     />
                     <Tooltip title="Clear Points">
-                      <IconButton
-                        disabled={configCoordinates.length == 0}
-                        onClick={() => {
-                          dispatch(clearConfig())
-                        }}
-                        size="large"
-                      >
-                        <ClearIcon />
-                      </IconButton>
+                      <div>
+                        {/* prevents warning of Tooltip not wanting to wrap a disabled button element */}
+                        <IconButton
+                          disabled={configCoordinates.length == 0}
+                          onClick={() => {
+                            dispatch(clearConfig())
+                          }}
+                          size="large"
+                        >
+                          <ClearIcon />
+                        </IconButton>
+                      </div>
                     </Tooltip>
                   </FormGroup>
                   <FormGroup row sx={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -1335,7 +1338,7 @@ function MapPage() {
                       dispatch(setSelectedIntersectionId(intersection.intersectionID))
                     }}
                   >
-                    <img src="/icons/intersection_icon.png" style={{ width: 70 }} />
+                    <img src="/icons/intersection_icon.png" style={{ width: 40 }} />
                   </Marker>
                 )
               })}

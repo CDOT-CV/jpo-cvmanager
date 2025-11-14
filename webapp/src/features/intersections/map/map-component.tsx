@@ -22,6 +22,7 @@ import {
 } from './map-layer-style-slice'
 import {
   MAP_PROPS,
+  addInitialDataAbortPromise,
   cleanUpLiveStreaming,
   clearHoveredFeature,
   clearSelectedFeature,
@@ -34,6 +35,7 @@ import {
   onMapMouseMove,
   pullInitialData,
   resetInitialDataAbortControllers,
+  resetMapView,
   selectAllInteractiveLayerIds,
   selectBsmData,
   selectConnectingLanes,
@@ -57,10 +59,11 @@ import {
   selectShowPopupOnHover,
   selectSigGroupLabelsVisible,
   selectSignalStateData,
-  selectSliderValue,
+  selectSliderValueDeciseconds,
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
   selectViewState,
+  setDecoderModeEnabled,
   setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
@@ -83,6 +86,11 @@ import { Remove } from '@mui/icons-material'
 import VisualSettings from './visual-settings'
 import { useDispatch, useSelector } from 'react-redux'
 
+/**
+ *  Converts a date string or timestamp to a timestamp in milliseconds since epoch.
+ * @param dt - Date or timestamp to be converted - can be a string, seconds since epoch, or milliseconds since epoch
+ * @returns timestamp in milliseconds since epoch
+ */
 export const getTimestamp = (dt: any): number => {
   try {
     const dtFromString = Date.parse(dt as any as string)
@@ -134,7 +142,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const filteredSurroundingNotifications = useSelector(selectFilteredSurroundingNotifications)
   const viewState = useSelector(selectViewState)
   const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
-  const sliderValue = useSelector(selectSliderValue)
+  const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
   const hoveredFeature = useSelector(selectHoveredFeature)
   const selectedFeature = useSelector(selectSelectedFeature)
@@ -163,7 +171,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     dispatch(setMapProps(props))
   }, [props])
 
-  // Increment sliderValue by 1 every second when playbackModeActive is true
+  // Increment selectSliderValueDeciseconds by 1 every second when playbackModeActive is true
   useEffect(() => {
     if (playbackModeActive) {
       const playbackPeriod = 100 //ms
@@ -215,7 +223,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (loadInitialDataTimeoutId) {
       clearTimeout(loadInitialDataTimeoutId)
     }
-    const timeoutId = setTimeout(() => dispatch(pullInitialData()), 500)
+    const timeoutId = setTimeout(() => dispatch(addInitialDataAbortPromise(dispatch(pullInitialData()))), 500)
     dispatch(setLoadInitialDataTimeoutId(timeoutId))
   }, [queryParams])
 
@@ -224,8 +232,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups])
 
   useEffect(() => {
-    dispatch(updateRenderTimeInterval())
-  }, [sliderValue, queryParams, timeWindowSeconds])
+    if (!liveDataActive) {
+      dispatch(updateRenderTimeInterval())
+    }
+  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds])
 
   useEffect(() => {
     if (liveDataActive) {
