@@ -62,7 +62,7 @@ describe('generatePdf', () => {
       reportGeneratedAt: new Date('2023-01-01T00:00:00Z'),
       reportStartTime: new Date('2023-01-01T00:00:00Z'),
       reportStopTime: new Date('2023-01-01T01:00:00Z'),
-      reportContents: ['Lane Direction of Travel', 'Signal State Events'],
+      reportContents: ['Lane Direction of Travel', 'Stop Line Passage Events'],
       laneDirectionOfTravelEventCounts: [
         { id: '1', count: 10 },
         { id: '2', count: 15 },
@@ -84,11 +84,11 @@ describe('generatePdf', () => {
         { id: '2', count: 25 },
       ],
       signalStateConflictEventCount: [{ id: '1', count: 5 }],
-      signalStateEventCounts: [
+      stopLinePassageEventCounts: [
         { id: '1', count: 30 },
         { id: '2', count: 35 },
       ],
-      signalStateStopEventCounts: [
+      stopLineStopEventCounts: [
         { id: '1', count: 12 },
         { id: '2', count: 18 },
       ],
@@ -225,8 +225,6 @@ describe('generatePdf', () => {
 
   it('should handle errors during graph capture gracefully', async () => {
     ;(toPng as jest.Mock).mockRejectedValue(new Error('Graph capture failed'))
-    const pdf = new jsPDF()
-
     await generatePdf(mockReport, mockSetLoading, false, mockIsModalOpen, mockSetProgress, mockSignal)
 
     expect(console.error).toHaveBeenCalledWith('Error capturing graph:', expect.any(Error))
@@ -236,8 +234,6 @@ describe('generatePdf', () => {
     const abortController = new AbortController()
     abortController.abort()
     mockSignal = abortController.signal
-    const pdf = new jsPDF()
-
     await generatePdf(mockReport, mockSetLoading, false, mockIsModalOpen, mockSetProgress, mockSignal)
 
     expect(console.error).not.toHaveBeenCalled()

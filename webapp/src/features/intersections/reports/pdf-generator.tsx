@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { jsPDF } from 'jspdf'
 import { toPng } from 'html-to-image'
 import { format } from 'date-fns'
@@ -11,11 +12,6 @@ const setPdfSectionTitleFormatting = (pdf: jsPDF) => {
 const setPdfDescriptionFormatting = (pdf: jsPDF) => {
   pdf.setFontSize(9)
   pdf.setFont('helvetica', 'italic')
-}
-
-const setPdfBodyFormatting = (pdf: jsPDF) => {
-  pdf.setFontSize(9)
-  pdf.setFont('helvetica', 'normal')
 }
 
 const setPdfItemTitleFormatting = (pdf: jsPDF) => {
@@ -305,9 +301,9 @@ export const generatePdf = async (
   )
   currentPage = addPageWithNumber(pdf, currentPage)
 
-  // Add Signal State Events section
+  // Add Stop Line Passage Events section
   setPdfSectionTitleFormatting(pdf)
-  pdf.text('Signal State Events', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' })
+  pdf.text('Stop Line Passage Events', pdf.internal.pageSize.getWidth() / 2, 20, { align: 'center' })
   await captureGraph(pdf, 'stop-line-stacked-graph', { x: 0, y: 25 }, setProgress, totalGraphs, ++currentGraph, signal)
   setPdfDescriptionFormatting(pdf)
   pdf.text(
@@ -316,7 +312,6 @@ export const generatePdf = async (
     pdfHeight / 2,
     { align: 'center' }
   )
-  currentPage = addPageWithNumber(pdf, currentPage)
 
   // Add MAP and SPaT sections
   setPdfItemTitleFormatting(pdf)

@@ -13,8 +13,11 @@ import {
   TableRow,
   Typography,
   IconButton,
-  TableContainer,
   Collapse,
+  useTheme,
+  alpha,
+  Chip,
+  Tooltip,
 } from '@mui/material'
 import React, { ReactElement } from 'react'
 import MapRoundedIcon from '@mui/icons-material/MapRounded'
@@ -23,6 +26,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
+import { CeaseBroadcastRecommendationTypes } from './notifications-table'
 
 export const NotificationsTableResults = ({
   customers,
@@ -40,6 +44,7 @@ export const NotificationsTableResults = ({
   const intersectionId = useSelector(selectSelectedIntersectionId)
 
   const navigate = useNavigate()
+  const theme = useTheme()
   const handleSelectAll = (event) => {
     let newSelectedCustomerIds: string[] = []
     if (notificationsCount === 0) return
@@ -70,7 +75,7 @@ export const NotificationsTableResults = ({
 
   const getDescriptionTextForNotification = (notification: MessageMonitor.Notification): ReactElement => {
     switch (notification.notificationType) {
-      case 'ConnectionOfTravelNotification':
+      case 'ConnectionOfTravelNotification': {
         const connectionOfTravelNotification = notification as ConnectionOfTravelNotification
         return (
           <Typography>
@@ -84,7 +89,8 @@ export const NotificationsTableResults = ({
             ))}
           </Typography>
         )
-      case 'IntersectionReferenceAlignmentNotification':
+      }
+      case 'IntersectionReferenceAlignmentNotification': {
         const intersectionReferenceAlignmentNotification = notification as IntersectionReferenceAlignmentNotification
         const intersectionReferenceAlignmentEvent = intersectionReferenceAlignmentNotification.event
         const mapArr = Array.from(intersectionReferenceAlignmentEvent.mapRegulatorIntersectionIds) ?? []
@@ -96,7 +102,8 @@ export const NotificationsTableResults = ({
             )}`}
           </Typography>
         )
-      case 'LaneDirectionOfTravelAssessmentNotification':
+      }
+      case 'LaneDirectionOfTravelAssessmentNotification': {
         const laneDirTravelNotification = notification as LaneDirectionOfTravelNotification
         const laneDirTravelAssessmentGroups = laneDirTravelNotification.assessment.laneDirectionOfTravelAssessmentGroup
         return (
@@ -119,7 +126,8 @@ export const NotificationsTableResults = ({
             })}
           </Typography>
         )
-      case 'SignalGroupAlignmentNotification':
+      }
+      case 'SignalGroupAlignmentNotification': {
         const sigGroupAlignmentNotification = notification as SignalGroupAlignmentNotification
         const sigGroupAlignmentEvent = sigGroupAlignmentNotification.event as SignalGroupAlignmentEvent & {
           sourceID: string
@@ -135,7 +143,8 @@ export const NotificationsTableResults = ({
             {`- MAP Signal Group IDs: ${sigGroupAlignmentEvent.mapSignalGroupIds}`}
           </Typography>
         )
-      case 'SignalStateConflictNotification':
+      }
+      case 'SignalStateConflictNotification': {
         const sigStateConflictNotification = notification as SignalStateConflictNotification
         const sigStateConflictEvent = sigStateConflictNotification.event
         return (
@@ -147,7 +156,8 @@ export const NotificationsTableResults = ({
             {`- Second conflicting signal state: ${sigStateConflictEvent.secondConflictingSignalState} of group: ${sigStateConflictEvent.secondConflictingSignalGroup}`}
           </Typography>
         )
-      case 'TimeChangeDetailsNotification':
+      }
+      case 'TimeChangeDetailsNotification': {
         const timeChangeDetailsNotification = notification as TimeChangeDetailsNotification
         const timeChangeDetailsEvent = timeChangeDetailsNotification.event
         return (
@@ -159,9 +169,11 @@ export const NotificationsTableResults = ({
             {`- Second conflicting timemark: ${timeChangeDetailsEvent.secondConflictingTimemark} spat timestamp: ${timeChangeDetailsEvent.secondSpatTimestamp}, type: ${timeChangeDetailsEvent.secondTimeMarkType}`}
           </Typography>
         )
-      case 'KafkaStreamsAnomalyNotification':
+      }
+      case 'KafkaStreamsAnomalyNotification': {
         // No markers for this notification
         return <Typography>No Data</Typography>
+      }
       case 'BroadcastRateNotification':
         // No markers for this notification
         return <Typography>No Data</Typography>
@@ -175,7 +187,12 @@ export const NotificationsTableResults = ({
       <PerfectScrollbar>
         <Box sx={{ minWidth: 1050 }}>
           <Table>
-            <TableHead>
+            <TableHead
+              sx={{
+                backgroundColor: theme.palette.background.paper,
+                '& .MuiTableCell-root': { textTransform: 'capitalize' },
+              }}
+            >
               <TableRow>
                 <TableCell></TableCell>
                 <TableCell padding="checkbox">
@@ -231,18 +248,33 @@ export const NotificationsTableResults = ({
                           <Typography color="textPrimary" variant="body1">
                             {notification.notificationType}
                           </Typography>
+                          {CeaseBroadcastRecommendationTypes.includes(notification.notificationType) && (
+                            <Tooltip title="Cease Broadcast Recommended">
+                              <Chip color="error" sx={{ ml: 2 }} label={<Typography>CBR</Typography>} size="small" />
+                            </Tooltip>
+                          )}
                         </Box>
                       </TableCell>
                       <TableCell>{format(notification.notificationGeneratedAt, 'MM/dd/yyyy HH:mm:ss')}</TableCell>
                       <TableCell>{notification.notificationText}</TableCell>
                       <TableCell align="right">
                         <IconButton
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: alpha(theme.palette.custom.rowActionIcon, 0.1),
+                              borderRadius: '4px',
+                            },
+                            '& .MuiButtonBase-root': {
+                              borderRadius: '4px',
+                              color: theme.palette.custom.rowActionIcon,
+                            },
+                          }}
                           component="a"
                           onClick={() =>
                             navigate(`/dashboard/intersectionMap/notification/${intersectionId}/${notification.key}`)
                           }
                         >
-                          <MapRoundedIcon fontSize="medium" />
+                          <MapRoundedIcon sx={{ color: theme.palette.custom.rowActionIcon }} fontSize="medium" />
                         </IconButton>
                       </TableCell>
                     </TableRow>
