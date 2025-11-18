@@ -3,10 +3,11 @@ import Map, { Source, Layer, MapRef } from 'react-map-gl'
 
 import { Container, Col } from 'reactstrap'
 
-import { Paper, Box } from '@mui/material'
+import { Paper, Box, Fab, useTheme } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
 
 import ControlPanel from './control-panel'
-import { SidePanel } from './side-panel'
+import { SidePanel } from './map-info'
 import { CustomPopup } from './popup'
 import { selectToken } from '../../../generalSlices/userSlice'
 import {
@@ -21,6 +22,7 @@ import {
 } from './map-layer-style-slice'
 import {
   MAP_PROPS,
+  addInitialDataAbortPromise,
   cleanUpLiveStreaming,
   clearHoveredFeature,
   clearSelectedFeature,
@@ -32,8 +34,8 @@ import {
   onMapMouseLeave,
   onMapMouseMove,
   pullInitialData,
-  renderRsuData,
   resetInitialDataAbortControllers,
+  resetMapView,
   selectAllInteractiveLayerIds,
   selectBsmData,
   selectConnectingLanes,
@@ -47,7 +49,6 @@ import {
   selectLaneLabelsVisible,
   selectLiveDataActive,
   selectLiveDataRestart,
-  selectLiveDataRestartTimeoutId,
   selectLoadInitialDataTimeoutId,
   selectMapData,
   selectMapSignalGroups,
@@ -58,10 +59,11 @@ import {
   selectShowPopupOnHover,
   selectSigGroupLabelsVisible,
   selectSignalStateData,
-  selectSliderValue,
+  selectSliderValueDeciseconds,
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
   selectViewState,
+  setDecoderModeEnabled,
   setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
@@ -80,8 +82,15 @@ import { selectSelectedSrm } from '../../../generalSlices/rsuSlice'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
 import { useLocation } from 'react-router-dom'
+import { Remove } from '@mui/icons-material'
+import VisualSettings from './visual-settings'
 import { useDispatch, useSelector } from 'react-redux'
 
+/**
+ *  Converts a date string or timestamp to a timestamp in milliseconds since epoch.
+ * @param dt - Date or timestamp to be converted - can be a string, seconds since epoch, or milliseconds since epoch
+ * @returns timestamp in milliseconds since epoch
+ */
 export const getTimestamp = (dt: any): number => {
   try {
     const dtFromString = Date.parse(dt as any as string)
@@ -100,13 +109,10 @@ export const getTimestamp = (dt: any): number => {
   }
 }
 
-type timestamp = {
-  timestamp: number
-}
-
 const IntersectionMap = (props: MAP_PROPS) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const location = useLocation()
+  const theme = useTheme()
 
   // userSlice
   const authToken = useSelector(selectToken)
@@ -136,7 +142,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const filteredSurroundingNotifications = useSelector(selectFilteredSurroundingNotifications)
   const viewState = useSelector(selectViewState)
   const timeWindowSeconds = useSelector(selectTimeWindowSeconds)
-  const sliderValue = useSelector(selectSliderValue)
+  const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
   const hoveredFeature = useSelector(selectHoveredFeature)
   const selectedFeature = useSelector(selectSelectedFeature)
@@ -147,12 +153,13 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
   const liveDataActive = useSelector(selectLiveDataActive)
   const playbackModeActive = useSelector(selectPlaybackModeActive)
-  const liveDataRestartTimeoutId = useSelector(selectLiveDataRestartTimeoutId)
   const liveDataRestart = useSelector(selectLiveDataRestart)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const mapRef = React.useRef<MapRef>(null)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
+
+  const [openPanel, setOpenPanel] = useState<string>('')
 
   useEffect(() => {
     return () => {
@@ -164,7 +171,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     dispatch(setMapProps(props))
   }, [props])
 
-  // Increment sliderValue by 1 every second when playbackModeActive is true
+  // Increment selectSliderValueDeciseconds by 1 every second when playbackModeActive is true
   useEffect(() => {
     if (playbackModeActive) {
       const playbackPeriod = 100 //ms
@@ -181,32 +188,29 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [playbackModeActive])
 
   useEffect(() => {
-    if (props.intersectionId != queryParams.intersectionId || props.roadRegulatorId != queryParams.roadRegulatorId) {
+    if (props.intersectionId != queryParams.intersectionId) {
       dispatch(
         updateQueryParams({
           intersectionId: props.intersectionId,
-          roadRegulatorId: props.roadRegulatorId,
         })
       )
-      if (liveDataActive && authToken && props.roadRegulatorId && props.intersectionId) {
-        cleanUpLiveStreaming()
+      if (liveDataActive && authToken && props.intersectionId) {
+        dispatch(cleanUpLiveStreaming())
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
           })
         )
       }
     }
-  }, [props.intersectionId, props.roadRegulatorId])
+  }, [props.intersectionId])
 
   useEffect(() => {
     dispatch(
       updateQueryParams({
         ...generateQueryParams(props.sourceData, props.sourceDataType, decoderModeEnabled),
         intersectionId: props.intersectionId,
-        roadRegulatorId: props.roadRegulatorId,
         resetTimeWindow: true,
       })
     )
@@ -219,7 +223,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (loadInitialDataTimeoutId) {
       clearTimeout(loadInitialDataTimeoutId)
     }
-    const timeoutId = setTimeout(() => dispatch(pullInitialData()), 500)
+    const timeoutId = setTimeout(() => dispatch(addInitialDataAbortPromise(dispatch(pullInitialData()))), 500)
     dispatch(setLoadInitialDataTimeoutId(timeoutId))
   }, [queryParams])
 
@@ -228,16 +232,17 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups])
 
   useEffect(() => {
-    dispatch(updateRenderTimeInterval())
-  }, [sliderValue, queryParams, timeWindowSeconds])
+    if (!liveDataActive) {
+      dispatch(updateRenderTimeInterval())
+    }
+  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds])
 
   useEffect(() => {
     if (liveDataActive) {
-      if (authToken && props.roadRegulatorId && props.intersectionId) {
+      if (authToken && props.intersectionId) {
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
           })
         )
@@ -248,9 +253,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           'Did not attempt to update notifications. Access token missing:',
           authToken == null || authToken == undefined,
           'Intersection ID:',
-          props.intersectionId,
-          'Road Regulator ID:',
-          props.roadRegulatorId
+          props.intersectionId
         )
       }
     } else {
@@ -261,11 +264,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     if (liveDataRestart != -1 && liveDataRestart < 5 && liveDataActive) {
-      if (authToken && props.roadRegulatorId && props.intersectionId) {
+      if (authToken && props.intersectionId) {
         dispatch(
           initializeLiveStreaming({
             token: authToken,
-            roadRegulatorId: props.roadRegulatorId,
             intersectionId: props.intersectionId,
             numRestarts: liveDataRestart,
           })
@@ -301,43 +303,66 @@ const IntersectionMap = (props: MAP_PROPS) => {
       <Col className="mapContainer" style={{ overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}>
         <div
           style={{
-            padding: '0px 0px 6px 12px',
-            marginTop: '6px',
-            marginLeft: '35px',
             position: 'absolute',
             zIndex: 10,
-            top: 0,
-            left: 0,
-            borderRadius: '4px',
-            fontSize: '16px',
-            maxHeight: 'calc(100vh - 120px)',
+            top: theme.spacing(3),
+            left: theme.spacing(3),
+            width: '600px',
+            maxHeight: 'calc(100vh - 240px)',
             overflow: 'auto',
             scrollBehavior: 'auto',
           }}
         >
           <Box style={{ position: 'relative' }}>
-            <Paper sx={{ pt: 1, pb: 1, opacity: 0.85 }}>
+            <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
               <ControlPanel />
             </Paper>
           </Box>
         </div>
-        <div
-          style={{
-            padding: '0px 0px 6px 12px',
+        <Fab
+          color="primary"
+          id="plus-button"
+          sx={{
             position: 'absolute',
-            zIndex: 9,
-            bottom: 0,
-            left: 0,
-            fontSize: '16px',
-            overflow: 'auto',
-            scrollBehavior: 'auto',
-            width: '100%',
+            zIndex: 10,
+            top: theme.spacing(10),
+            right: theme.spacing(3),
+            '&:hover': {
+              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
+            },
+          }}
+          size="small"
+          onClick={() => {
+            if (mapRef.current) {
+              const map = mapRef.current.getMap()
+              map.zoomIn()
+            }
           }}
         >
-          <Box style={{ position: 'relative' }}>
-            <MapLegend />
-          </Box>
-        </div>
+          <AddIcon />
+        </Fab>
+        <Fab
+          color="primary"
+          id="minus-button"
+          sx={{
+            position: 'absolute',
+            zIndex: 10,
+            top: theme.spacing(17),
+            right: theme.spacing(3),
+            '&:hover': {
+              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
+            },
+          }}
+          size="small"
+          onClick={() => {
+            if (mapRef.current) {
+              const map = mapRef.current.getMap()
+              map.zoomOut()
+            }
+          }}
+        >
+          <Remove />
+        </Fab>
 
         <Map
           {...viewState}
@@ -354,7 +379,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
           cursor={cursor}
           onMouseMove={(e) => dispatch(onMapMouseMove({ features: e.features, lngLat: e.lngLat }))}
           onMouseEnter={(e) => dispatch(onMapMouseEnter({ features: e.features, lngLat: e.lngLat }))}
-          onMouseLeave={(e) => dispatch(onMapMouseLeave())}
+          onMouseLeave={() => dispatch(onMapMouseLeave())}
           onLoad={(e: mapboxgl.MapboxEvent<undefined>) => {
             const map = e.target
             if (!map) return
@@ -482,7 +507,11 @@ const IntersectionMap = (props: MAP_PROPS) => {
           notifications={filteredSurroundingNotifications}
           sourceData={props.sourceData}
           sourceDataType={props.sourceDataType}
+          openPanel={openPanel}
+          setOpenPanel={(panel) => setOpenPanel(panel)}
         />
+        <MapLegend openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
+        <VisualSettings openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
       </Col>
       <DecoderEntryDialog />
     </Container>

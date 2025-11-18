@@ -27,7 +27,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.broadcast_rate.MapBr
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.broadcast_rate.SpatBroadcastRateEvent;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.MapMinimumDataEvent;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.minimum_data.SpatMinimumDataEvent;
-import us.dot.its.jpo.ode.plugin.j2735.J2735MovementPhaseState;
+import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedMovementPhaseState;
 
 public class MockEventGenerator {
 
@@ -61,7 +61,6 @@ public class MockEventGenerator {
     public static ConnectionOfTravelEvent getConnectionOfTravelEvent() {
         ConnectionOfTravelEvent event = new ConnectionOfTravelEvent();
         event.setTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
-        event.setRoadRegulatorID(3);
         event.setIntersectionID(2);
         event.setIngressLaneID(2);
         event.setEgressLaneID(7);
@@ -73,7 +72,6 @@ public class MockEventGenerator {
         LaneDirectionOfTravelEvent event = new LaneDirectionOfTravelEvent();
         event.setTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
         event.setExpectedHeading(55);
-        event.setRoadRegulatorID(2);
         event.setIntersectionID(3);
         event.setLaneID(5);
         event.setLaneSegmentNumber(1);
@@ -97,24 +95,22 @@ public class MockEventGenerator {
     public static SignalStateConflictEvent getSignalStateConflictEvent() {
         SignalStateConflictEvent event = new SignalStateConflictEvent();
         event.setTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
-        event.setRoadRegulatorID(5);
         event.setIntersectionID(2);
-        event.setConflictType(J2735MovementPhaseState.DARK);
+        event.setConflictType(ProcessedMovementPhaseState.DARK);
         event.setFirstConflictingSignalGroup(2);
-        event.setFirstConflictingSignalState(J2735MovementPhaseState.PROTECTED_CLEARANCE);
+        event.setFirstConflictingSignalState(ProcessedMovementPhaseState.PROTECTED_CLEARANCE);
         event.setSecondConflictingSignalGroup(2);
-        event.setSecondConflictingSignalState(J2735MovementPhaseState.PRE_MOVEMENT);
+        event.setSecondConflictingSignalState(ProcessedMovementPhaseState.PRE_MOVEMENT);
         return event;
     }
 
     public static StopLinePassageEvent getStopLinePassageEvent() {
         StopLinePassageEvent event = new StopLinePassageEvent();
         event.setTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
-        event.setRoadRegulatorID(5);
         event.setIngressLane(2);
         event.setEgressLane(4);
         event.setConnectionID(2);
-        event.setEventState(J2735MovementPhaseState.STOP_THEN_PROCEED);
+        event.setEventState(ProcessedMovementPhaseState.STOP_THEN_PROCEED);
         event.setVehicleID("C0FFEE");
         event.setLatitude(-104.124742);
         event.setLongitude(55.12745);
@@ -128,14 +124,13 @@ public class MockEventGenerator {
         StopLineStopEvent event = new StopLineStopEvent();
         event.setInitialTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
         event.setFinalTimestamp(ZonedDateTime.now().toInstant().toEpochMilli() + 100);
-        event.setRoadRegulatorID(0);
         event.setIngressLane(1);
         event.setEgressLane(5);
         event.setConnectionID(3);
         event.setLatitude(-104.124742);
         event.setLongitude(55.12745);
-        event.setInitialEventState(J2735MovementPhaseState.CAUTION_CONFLICTING_TRAFFIC);
-        event.setFinalEventState(J2735MovementPhaseState.PROTECTED_CLEARANCE);
+        event.setInitialEventState(ProcessedMovementPhaseState.CAUTION_CONFLICTING_TRAFFIC);
+        event.setFinalEventState(ProcessedMovementPhaseState.PROTECTED_CLEARANCE);
         event.setVehicleID("C0FFEE");
         event.setHeading(53);
         event.setTimeStoppedDuringRed(0.1);
@@ -150,7 +145,6 @@ public class MockEventGenerator {
     public static TimeChangeDetailsEvent getTimeChangeDetailsEvent() {
 
         TimeChangeDetailsEvent event = new TimeChangeDetailsEvent();
-        event.setRoadRegulatorID(104);
         event.setIntersectionID(12109);
         event.setSignalGroup(6);
         event.setFirstSpatTimestamp(ZonedDateTime.now().toInstant().toEpochMilli());
@@ -158,8 +152,8 @@ public class MockEventGenerator {
         event.setFirstConflictingTimemark(
                 (ZonedDateTime.now().toInstant().toEpochMilli() + 100) % (60 * 60 * 1000) / 100);
         event.setSecondConflictingTimemark(ZonedDateTime.now().toInstant().toEpochMilli() % (60 * 60 * 1000) / 100);
-        event.setFirstState(J2735MovementPhaseState.PROTECTED_CLEARANCE);
-        event.setSecondState(J2735MovementPhaseState.PROTECTED_CLEARANCE);
+        event.setFirstState(ProcessedMovementPhaseState.PROTECTED_CLEARANCE);
+        event.setSecondState(ProcessedMovementPhaseState.PROTECTED_CLEARANCE);
         event.setFirstTimeMarkType("minEndTime");
         event.setSecondTimeMarkType("maxEndTime");
         event.setFirstConflictingUtcTimestamp(ZonedDateTime.now().toInstant().toEpochMilli() + 100);
@@ -239,12 +233,12 @@ public class MockEventGenerator {
     public static BsmEvent getBsmEvent() {
         BsmEvent event = new BsmEvent();
         event.setIntersectionID(12109);
-        event.setStartingBsm(MockBsmGenerator.getJsonBsms().getFirst());
-        event.setEndingBsm(MockBsmGenerator.getJsonBsms().getLast());
+        event.setStartingBsm(MockBsmGenerator.getProcessedBsms().getFirst());
+        event.setEndingBsm(MockBsmGenerator.getProcessedBsms().getLast());
         event.setStartingBsmTimestamp(
-                Instant.parse(event.getStartingBsm().getMetadata().getOdeReceivedAt()).toEpochMilli());
+                Instant.parse(event.getStartingBsm().getProperties().getOdeReceivedAt()).toEpochMilli());
         event.setEndingBsmTimestamp(
-                Instant.parse(event.getEndingBsm().getMetadata().getOdeReceivedAt()).toEpochMilli());
+                Instant.parse(event.getEndingBsm().getProperties().getOdeReceivedAt()).toEpochMilli());
         event.setWktMapBoundingBox(
                 "LINESTRING (-105.09071084163995 39.587773371787485, -105.09071620693672 39.58779610924971, -105.09072266805292 39.58781264558122, -105.09072836868071 39.587833057609934)");
         event.setInMapBoundingBox(true);

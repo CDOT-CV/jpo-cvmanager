@@ -89,7 +89,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _getDataWithCodes: ' + err)
       }
-
       return {
         body: respBody,
         status: resp.status,
@@ -111,7 +110,7 @@ class ApiHelper {
     tag,
   }: {
     url: string
-    body: Object | string
+    body: object | string
     token?: string
     query_params?: Record<string, string>
     url_ext?: string
@@ -139,7 +138,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _postData: ' + err)
       }
-
       return {
         body: respBody,
         status: resp.status,
@@ -187,7 +185,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _deleteData: ' + err)
       }
-
       return {
         body: respBody,
         status: resp.status,
@@ -211,7 +208,7 @@ class ApiHelper {
   }: {
     url: string
     token: string
-    body: Object
+    body: object | string
     query_params?: Record<string, string>
     url_ext?: string
     additional_headers?: Record<string, string>
@@ -238,7 +235,6 @@ class ApiHelper {
       } catch (err) {
         console.error('Error in _patchData: ' + err)
       }
-
       return {
         body: respBody,
         status: resp.status,

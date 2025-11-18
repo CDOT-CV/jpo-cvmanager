@@ -9,6 +9,7 @@ import {
   organizationParser,
 
   // reducers
+  clear,
   updateOrganizations,
   updateStates,
   setSelectedRole,
@@ -168,7 +169,7 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: true, message: 'Changes were successfully applied!' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminUser,
@@ -186,7 +187,7 @@ describe('async thunks', () => {
       global.setTimeout = jest.fn((cb) => cb()) as any
       try {
         apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
-        let resp = await action(dispatch, getState, undefined)
+        const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminUser,
@@ -276,7 +277,6 @@ describe('async thunks', () => {
         },
       })
       const data = { data: 'data' } as any
-      let updateUserData = jest.fn()
 
       let action = submitForm({ data })
       let resp = await action(dispatch, getState, undefined)
@@ -351,14 +351,31 @@ describe('reducers', () => {
   const initialState: RootState['adminEditUser'] = {
     loading: null,
     value: {
-      selectedOrganizationNames: null,
-      selectedOrganizations: null,
-      organizationNames: null,
-      availableRoles: null,
-      apiData: null,
-      submitAttempt: null,
+      selectedOrganizationNames: [] as { name: string; id: number }[],
+      selectedOrganizations: [] as { name: string; role: string; id: number }[],
+      organizationNames: [] as { name: string; id: number }[],
+      availableRoles: [] as { role: string }[],
+      apiData: undefined,
+      submitAttempt: false,
     },
   }
+
+  it('clear reducer updates state correctly', async () => {
+    const availableRoles = [{ role: 'role1' }]
+    const selectedOrganizations = [
+      { id: 0, name: 'org1', role: 'role3' },
+      { id: 1, name: 'org2', role: 'role4' },
+    ]
+
+    expect(
+      reducer({ ...initialState, value: { ...initialState.value, selectedOrganizations, availableRoles } }, clear())
+    ).toEqual({
+      ...initialState,
+      value: {
+        ...initialState.value,
+      },
+    })
+  })
 
   it('updateOrganizations reducer updates state correctly', async () => {
     const availableRoles = [{ role: 'role1' }]

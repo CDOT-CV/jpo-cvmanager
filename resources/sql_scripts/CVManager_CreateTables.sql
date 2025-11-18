@@ -381,6 +381,7 @@ CREATE TABLE IF NOT EXISTS public.snmp_msgfwd_config
    start_datetime timestamp without time zone NOT NULL,
    end_datetime timestamp without time zone NOT NULL,
    active bit(1) NOT NULL,
+   security bit(1) NOT NULL,
    CONSTRAINT snmp_msgfwd_config_pkey PRIMARY KEY (rsu_id, msgfwd_type, snmp_index),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
 		REFERENCES public.rsus (rsu_id) MATCH SIMPLE
@@ -544,3 +545,21 @@ CREATE TABLE IF NOT EXISTS public.max_retry_limit_reached_instances
       ON UPDATE NO ACTION
       ON DELETE NO ACTION
 );
+
+-- Indexes
+CREATE INDEX idx_organizations_name ON public.organizations (name);
+
+-- RSUs
+CREATE INDEX idx_rsu_organization ON public.rsu_organization (organization_id, rsu_id);
+CREATE INDEX idx_rsus_ipv4_address ON public.rsus (ipv4_address);
+CREATE INDEX idx_rsus_ipv4_rsu_id ON public.rsus (ipv4_address, rsu_id);
+
+-- Intersections
+CREATE INDEX idx_intersections_intersection_number ON public.intersections (intersection_number);
+CREATE INDEX idx_intersection_id ON public.intersections (intersection_id);
+CREATE INDEX idx_intersection_organization ON public.intersection_organization (organization_id, intersection_id);
+
+-- Users
+CREATE INDEX idx_users_email ON public.users (email);
+CREATE INDEX idx_users_user_id ON public.users (user_id);
+CREATE INDEX idx_user_organization ON public.user_organization (user_id, organization_id);

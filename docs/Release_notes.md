@@ -1,5 +1,113 @@
 ## JPO CV Manager Release Notes
 
+## Version 2.0.1
+
+### **Summary**
+
+In this hotfix, the V2X message viewer backend functionality has been modified to be compatible with the latest jpo-geojsonconverter output.
+
+Enhancements in this release:
+
+- [USDOT PR 60](https://github.com/usdot-jpo-ode/jpo-cvmanager/pull/60): Hotfix/2.0.1: Update V2X Message Viewer Schema Validation
+
+## Version 2.0.0
+
+This version introduces updates across both backend and frontend components, enhancing system performance, reliability, and user experience. This release includes a complete rework of SNMP message forwarding, upgraded authentication with Keycloak 26, and refactored Intersection API endpoints with the new reworked jpo-geojsonconverter's (3.1.0) processed message output. The update also streamlines standalone deployments and adds new interface improvements such as toast notifications and updated visualization tools. Numerous bug fixes, dependency cleanups, and UI refinements have also been made.
+
+Enhancements in this release:
+
+- [CDOT PR 127](https://github.com/CDOT-CV/jpo-cvmanager/pull/127): Enforcing Organization and Role API Permissions
+- [CDOT PR 182](https://github.com/CDOT-CV/jpo-cvmanager/pull/182): Integrate jpo-utils Mongo Setup into CV Manager via Submodule
+- [CDOT PR 183](https://github.com/CDOT-CV/jpo-cvmanager/pull/183): Standalone deployment updates
+- [CDOT PR 201](https://github.com/CDOT-CV/jpo-cvmanager/pull/201): SNMP Message Forwarding Rework
+- [CDOT PR 202](https://github.com/CDOT-CV/jpo-cvmanager/pull/202): Upgrading keycloak to version 26
+- [CDOT PR 207](https://github.com/CDOT-CV/jpo-cvmanager/pull/207): Adding Intersection API global path prefix
+- [CDOT PR 210](https://github.com/CDOT-CV/jpo-cvmanager/pull/210): Intersection API Endpoint Refactoring for Combination
+- [CDOT PR 211](https://github.com/CDOT-CV/jpo-cvmanager/pull/211): Live Intersection Map Timing Rework
+- [CDOT PR 212](https://github.com/CDOT-CV/jpo-cvmanager/pull/212): IAPI package renaming v2
+- [CDOT PR 214](https://github.com/CDOT-CV/jpo-cvmanager/pull/214): SNMP-suggestions
+- [CDOT PR 216](https://github.com/CDOT-CV/jpo-cvmanager/pull/216): Fix temporary 'object not found' issue on admin pages
+- [CDOT PR 217](https://github.com/CDOT-CV/jpo-cvmanager/pull/217): Fix DisplayRsuErrors formatting for single RSU
+- [CDOT PR 218](https://github.com/CDOT-CV/jpo-cvmanager/pull/218): Add Toast Notifications to User Settings Menu
+- [CDOT PR 219](https://github.com/CDOT-CV/jpo-cvmanager/pull/219): Cleanup Webapp
+- [CDOT PR 220](https://github.com/CDOT-CV/jpo-cvmanager/pull/220): Restricting CI sonar pipeline to only run on USDOT-JPO-ODE repos
+- [CDOT PR 221](https://github.com/CDOT-CV/jpo-cvmanager/pull/221): Converting v2x Message Viewer Slider to MUI
+- [CDOT PR 225](https://github.com/CDOT-CV/jpo-cvmanager/pull/225): Fixing Bugs 2025/07/03
+- [CDOT PR 226](https://github.com/CDOT-CV/jpo-cvmanager/pull/226): Intersection API Unit Tests - Services
+- [CDOT PR 227](https://github.com/CDOT-CV/jpo-cvmanager/pull/227): Intersection API Unit Tests - Controllers
+- [CDOT PR 228](https://github.com/CDOT-CV/jpo-cvmanager/pull/228): Admin page object not found - using loading instead of unknownUser
+- [CDOT PR 229](https://github.com/CDOT-CV/jpo-cvmanager/pull/229): Fixing Minor Intersection Viewer Bugs
+- [CDOT PR 230](https://github.com/CDOT-CV/jpo-cvmanager/pull/230): Intersection API HAAS alert
+- [CDOT PR 231](https://github.com/CDOT-CV/jpo-cvmanager/pull/231): Re-generating Sample Intersection Data
+- [CDOT PR 232](https://github.com/CDOT-CV/jpo-cvmanager/pull/232): Removing Unused Webapp Dependencies
+- [CDOT PR 235](https://github.com/CDOT-CV/jpo-cvmanager/pull/235): Bug fixes and improvements to ASN1 decoder page
+- [CDOT PR 237](https://github.com/CDOT-CV/jpo-cvmanager/pull/237): Intersection API Unit Testing #3
+- [CDOT PR 238](https://github.com/CDOT-CV/jpo-cvmanager/pull/238): Processed msg updates
+- [CDOT PR 239](https://github.com/CDOT-CV/jpo-cvmanager/pull/239): Processed msg visualization updates
+- [CDOT PR 241](https://github.com/CDOT-CV/jpo-cvmanager/pull/241): Max Files Change Limit
+- [CDOT PR 242](https://github.com/CDOT-CV/jpo-cvmanager/pull/242): 2025/Q3 Bug Fixes
+- [CDOT PR 243](https://github.com/CDOT-CV/jpo-cvmanager/pull/243): Re-generating MongoDB Intersection Data
+- [CDOT PR 247](https://github.com/CDOT-CV/jpo-cvmanager/pull/247): Updating Released Dependencies
+
+## Version 1.6.1
+
+### **Summary**
+
+In this hotfix, UX bugs have been resolved to ensure full feature functionality for the user.
+
+Enhancements in this release:
+
+- [CDOT PR 209](https://github.com/CDOT-CV/jpo-cvmanager/pull/209): Hotfix/1.6.1: Fix/map UI bugs
+
+## Version 1.6.0
+
+### **Summary**
+
+This release delivers a set of targeted enhancements and stability improvements across multiple components. Notable changes include the extension of the CV Manager webapp capabilities with the intersection API configuration page, the integration of the Moove.AI dataset as a visualizable map layer, and rework to the CV Manager webapp UX. The CV Manager webapp has undergone a UX refactor for improved usability and consistency. Performance optimizations and bug fixes have been implemented across the CV Manager API, Intersection API, and addons, including implementing paging in the Intersection API. The CV Manager now supports configuring RSU message forwarding with security headers included through SNMP using NTCIP-1218.
+
+Enhancements in this release:
+
+- [CDOT PR 162](https://github.com/CDOT-CV/jpo-cvmanager/pull/162): Intersection API constructor injection
+- [CDOT PR 163](https://github.com/CDOT-CV/jpo-cvmanager/pull/163): Adding Keycloak webapp environment variables
+- [CDOT PR 167](https://github.com/CDOT-CV/jpo-cvmanager/pull/167): Fixing Intersection API auth errors
+- [CDOT PR 171](https://github.com/CDOT-CV/jpo-cvmanager/pull/171): Individual profiles
+- [CDOT PR 156](https://github.com/CDOT-CV/jpo-cvmanager/pull/156): Moove.AI dataset layer hard braking feature
+- [CDOT PR 169](https://github.com/CDOT-CV/jpo-cvmanager/pull/169): Removing duplicate webapp Keycloak auth provider
+- [CDOT PR 168](https://github.com/CDOT-CV/jpo-cvmanager/pull/168): Webapp logging reduction and Intersection API auth fix
+- [CDOT PR 165](https://github.com/CDOT-CV/jpo-cvmanager/pull/165): Adding Intersection API pagination
+- [CDOT PR 176](https://github.com/CDOT-CV/jpo-cvmanager/pull/176): Bug fixes for SNMP related features
+- [CDOT PR 177](https://github.com/CDOT-CV/jpo-cvmanager/pull/177): Bug fix for user creation through the CV Manager
+- [CDOT PR 184](https://github.com/CDOT-CV/jpo-cvmanager/pull/184): Modifying standalone deployment - adding endpoint/Keycloak/IP distinctions
+- [CDOT PR 115](https://github.com/CDOT-CV/jpo-cvmanager/pull/115): Adds CIMMS configuration page to the CV Manager webapp
+- [CDOT PR 186](https://github.com/CDOT-CV/jpo-cvmanager/pull/186): Improve Dockerfiles using best practices
+- [CDOT PR 159](https://github.com/CDOT-CV/jpo-cvmanager/pull/159): Webapp header UI updates
+- [CDOT PR 188](https://github.com/CDOT-CV/jpo-cvmanager/pull/188): Swapping to profiles for run-intersection option
+- [CDOT PR 187](https://github.com/CDOT-CV/jpo-cvmanager/pull/187): Bug fix for Firmware Manager Upgrade Runner callback endpoint
+- [CDOT PR 160](https://github.com/CDOT-CV/jpo-cvmanager/pull/160): Help / Contact Support UI updates
+- [CDOT PR 185](https://github.com/CDOT-CV/jpo-cvmanager/pull/185): Intersection API PostgreSQL optimizations
+- [CDOT PR 178](https://github.com/CDOT-CV/jpo-cvmanager/pull/178): Optimizing SPaT and MAP Intersection API queries
+- [CDOT PR 193](https://github.com/CDOT-CV/jpo-cvmanager/pull/193): Intersection API Dockerfile updates to support ARM64 CPUs
+- [CDOT PR 146](https://github.com/CDOT-CV/jpo-cvmanager/pull/146): Adding client side report generation
+- [CDOT PR 195](https://github.com/CDOT-CV/jpo-cvmanager/pull/195): Make aggregation query implementations typesafe
+- [CDOT PR 194](https://github.com/CDOT-CV/jpo-cvmanager/pull/194): Update jpo-utils submodule to use CDOT fork
+- [CDOT PR 175](https://github.com/CDOT-CV/jpo-cvmanager/pull/175): Map page UX rework
+- [CDOT PR 190](https://github.com/CDOT-CV/jpo-cvmanager/pull/190): Update V2X Message Viewer geometry generation from useEffect to useMemo
+- [CDOT PR 164](https://github.com/CDOT-CV/jpo-cvmanager/pull/164): Intersection API MongoDB query limits
+- [CDOT PR 180](https://github.com/CDOT-CV/jpo-cvmanager/pull/180): SNMP message forwarding with IEEE 1609.2 security headers
+- [CDOT PR 192](https://github.com/CDOT-CV/jpo-cvmanager/pull/192): Removing road regulator ID from Intersection API and webapp
+- [CDOT PR 191](https://github.com/CDOT-CV/jpo-cvmanager/pull/191): RSU Config Polygon Rendering Update
+- [CDOT PR 158](https://github.com/CDOT-CV/jpo-cvmanager/pull/158): Admin & User settings UI rework
+- [CDOT PR 174](https://github.com/CDOT-CV/jpo-cvmanager/pull/174): Intersection Map UI rework
+- [CDOT PR 181](https://github.com/CDOT-CV/jpo-cvmanager/pull/181): Integrate jpo-utils Kafka setup into CV Manager via submodule
+- [CDOT PR 196](https://github.com/CDOT-CV/jpo-cvmanager/pull/196): Fixing Q2 Testing Bugs
+- [CDOT PR 198](https://github.com/CDOT-CV/jpo-cvmanager/pull/198): RSU popup display fixes
+- [CDOT PR 199](https://github.com/CDOT-CV/jpo-cvmanager/pull/199): Improving Intersection Dashboard Assessment Plot Formatting
+- [CDOT PR 206](https://github.com/CDOT-CV/jpo-cvmanager/pull/206): Adding additional required package to dockerfile
+- [CDOT PR 204](https://github.com/CDOT-CV/jpo-cvmanager/pull/204): Prevent RSU selection during point selection
+- [CDOT PR 189](https://github.com/CDOT-CV/jpo-cvmanager/pull/189): Update the collection and topic names based on the new event names
+- [CDOT PR 205](https://github.com/CDOT-CV/jpo-cvmanager/pull/205): Upgrading Intersection API ODE Dependencies
+- [CDOT PR 208](https://github.com/CDOT-CV/jpo-cvmanager/pull/208): Fixing Notification Dismissal Response
+
 ## Version 1.5.0
 
 ### **Summary**
