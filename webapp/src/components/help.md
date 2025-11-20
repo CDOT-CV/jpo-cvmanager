@@ -95,7 +95,7 @@ On the right side of the interface, there are two menu toggles that open menus w
 For each device listed, the following information is displayed:
 
 - Location: Roadway and mile marker, select the "location" icon to center the map on the device
-- Online Status: reen means the RSU is online and actively reporting data, yellow indicates the RSU is currently offline but was recently active, and red indicates that RSU is offline and has not reported in some time
+- Online Status: green indicates the RSU is online and actively reporting data, red indicates the RSU is offline, and yellow indicates recent status fluctuations are detected
 - SCMS Status: Status of SCMS certificates, including the expiration date
 - RSU IP Address
 
