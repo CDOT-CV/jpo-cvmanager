@@ -8,6 +8,12 @@ This application uses organizations to manage permissions. All devices and users
 
 <img src=../icons/help/organization_selection.png alt="Profile Dropdown" width="200"/>
 
+## Permissions
+
+There are 3 roles within the CV Manager: User, Operator, and Admin. See the table below for the permissions of each role (red is not allowed, green is allowed within an organization). Some users can be granted Super User permissions, which enable access to all resources within an organization, and increase their ability to move resource between organizations.
+
+<img src=../icons/help/permissions_table.png alt="Role Permissions Table" width="400"/>
+
 **Note on feature flags**
 
 Some features in the CV Manager can be enabled or disabled for each version. The feature flags set in this application are:
@@ -32,9 +38,10 @@ The map dashboard is composed of a Mapbox map (background), the [Map Layer Menu]
 The menu on the left side of the screen contains three main sections: Map Layers, RSU Filters, and RSU
 Configuration. The Map Layers section allows users to change how data is visualized. The available layers are:
 
-- RSU Viewer: display location and status of RSUs. Selecting an RSU will open a popup with status and health information, as well as opening a side panel for RSU configuration. The color of the RSU points indicates the status (configurable under "Filter RSUs"). Green means the RSU is online and actively reporting data, yellow indicates the RSU is currently offline but was recently active, and red indicates that RSU is offline and has not reported in some time.
+- RSU Viewer: display location and status of RSUs. Selecting an RSU will open a popup with status and health information, as well as opening a side panel for RSU configuration
+  - The color of the RSU points indicates the status (configurable under "Filter RSUs"). Green means the RSU is online and actively reporting data, yellow indicates the RSU is currently offline but was recently active, and red indicates that RSU is offline and has not reported in some time
 - Heatmap: shows a heatmap based on message counts using the filters from the Message Count Menu
-- V2x Message Viewer: query specific areas of the map to view corresponding messages or traffic data
+- V2X Message Viewer: query specific areas of the map to view corresponding messages or traffic data
 - WZDx Viewer: display available WZDx work zone messages. Selecting a work zone icon will open a popup with details about the event
 - Intersections: display locations of connected intersections and their corresponding intersection id
 - Moove AI Viewer: query the map (by selecting a polygon region) for harsh braking events
@@ -43,9 +50,9 @@ Configuration. The Map Layers section allows users to change how data is visuali
 The RSU Filters section allows users to narrow down the visible RSUs based on vendor and operational status.
 This helps users focus on specific types of hardware or troubleshoot particular categories of RSUs.
 
-The RSU Configuration section allows users to query for RSUs (by selecting a polygon on the map), and configure multiple RSUs at once.For more information on RSU configuration, see [Configuring RSUs](#configuring-rsus)
+The RSU Configuration section allows Operators and Admins to query for RSUs (by selecting a polygon on the map), and configure multiple RSUs at once. For more information on RSU configuration, see [Configuring RSUs](#configuring-rsus)
 
-#### Configuring RSUs
+#### Configuring RSUs (Requires Operator or Admin role)
 
 Selecting an RSU on the map will open a popup window along with a side configuration menu. The popup displays detailed information including the RSU’s IP address, online status, last online time, milepost number, serial number, and the number of messages it has reported. The configuration menu allows users, depending on their access level, to perform actions such as retrieving the current message forwarding settings, modifying configurations, checking firmware updates, applying firmware updates, or rebooting the RSU.
 
