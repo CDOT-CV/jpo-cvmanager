@@ -11,6 +11,7 @@ import EnvironmentVars from '../EnvironmentVars'
 import ContactSupportMenu from './ContactSupportMenu'
 import { BorderedImage } from '../styles/components/BorderedImage'
 import { Stack, Container, useTheme } from '@mui/material'
+import { Link } from 'react-router-dom'
 
 const Help = () => {
   const theme = useTheme()
@@ -18,7 +19,7 @@ const Help = () => {
     <Container
       maxWidth={false}
       id="help"
-      sx={{ textAlign: 'left', backgroundColor: theme.palette.background.default }}
+      sx={{textAlign: 'left', backgroundColor: theme.palette.background.default}}
     >
       <Stack spacing={2}>
         <h2>{`Welcome to the ${EnvironmentVars.DOT_NAME} CV Manager Website`}</h2>
@@ -57,33 +58,21 @@ const Help = () => {
           width="400"
         />
 
-        <h3>Note on feature flags</h3>
-
+        <h3>Enabled Features</h3>
+        <p>
+          The CV Manager can have different feature sets enabled or disabled. In this application, the
+          following features are currently enabled or disabled as shown below:
+        </p>
         <ul>
-          <li>ENABLE_RSU_FEATURES: ENABLED
-            <ul>
-              <li>Affects: RSU viewer, RSU status monitoring, RSU configuration</li>
-            </ul>
-          </li>
-          <li>ENABLE_INTERSECTION_FEATURES: ENABLED
-            <ul>
-              <li>Affects: Intersection map, Intersection dashboard, Conflict Monitor events, assessments, and notifications</li>
-            </ul>
-          </li>
-          <li>ENABLE_WZDX_FEATURES: DISABLED
-            <ul>
-              <li>Affects: WZDx message viewer</li>
-            </ul>
-          </li>
-          <li>ENABLE_MOOVE_AI_FEATURES: DISABLED
-            <ul>
-              <li>Affects: Moove AI hard braking event viewer</li>
-            </ul>
-          </li>
+          <li>{`RSU Monitoring and Configuration: ${EnvironmentVars.ENABLE_RSU_FEATURES ? 'ENABLED' : 'DISABLED'}`}</li>
+          <li>{`Intersection Map/Dashboard: ${EnvironmentVars.ENABLE_INTERSECTION_FEATURES ? 'ENABLED' : 'DISABLED'}`}</li>
+          <li>{`WZDx Viewer: ${EnvironmentVars.ENABLE_WZDX_FEATURES ? 'ENABLED' : 'DISABLED'}`}</li>
+          <li>{`Moove AI Viewer: ${EnvironmentVars.ENABLE_MOOVE_AI_FEATURES ? 'ENABLED' : 'DISABLED'}`}</li>
+          <li>{`HAAS Alert Viewer: ${EnvironmentVars.ENABLE_HAAS_FEATURES ? 'ENABLED' : 'DISABLED'}`}</li>
         </ul>
 
         <h2>
-          <a href="/dashboard/map">Map Dashboard</a>
+          <Link to="/dashboard/map">Map Dashboard</Link>
         </h2>
 
         <p>
@@ -229,7 +218,7 @@ const Help = () => {
           selected geographic region.
         </p>
       </Stack>
-      <ContactSupportMenu />
+      <ContactSupportMenu/>
     </Container>
   )
 }

@@ -40,40 +40,26 @@ exports[`should take a snapshot 1`] = `
         width="400"
       />
       <h3>
-        Note on feature flags
+        Enabled Features
       </h3>
+      <p>
+        The CV Manager can have different feature sets enabled or disabled. In this application, the following features are currently enabled or disabled as shown below:
+      </p>
       <ul>
         <li>
-          ENABLE_RSU_FEATURES: ENABLED
-          <ul>
-            <li>
-              Affects: RSU viewer, RSU status monitoring, RSU configuration
-            </li>
-          </ul>
+          RSU Monitoring and Configuration: ENABLED
         </li>
         <li>
-          ENABLE_INTERSECTION_FEATURES: ENABLED
-          <ul>
-            <li>
-              Affects: Intersection map, Intersection dashboard, Conflict Monitor events, assessments, and notifications
-            </li>
-          </ul>
+          Intersection Map/Dashboard: ENABLED
         </li>
         <li>
-          ENABLE_WZDX_FEATURES: DISABLED
-          <ul>
-            <li>
-              Affects: WZDx message viewer
-            </li>
-          </ul>
+          WZDx Viewer: ENABLED
         </li>
         <li>
-          ENABLE_MOOVE_AI_FEATURES: DISABLED
-          <ul>
-            <li>
-              Affects: Moove AI hard braking event viewer
-            </li>
-          </ul>
+          Moove AI Viewer: ENABLED
+        </li>
+        <li>
+          HAAS Alert Viewer: ENABLED
         </li>
       </ul>
       <h2>
