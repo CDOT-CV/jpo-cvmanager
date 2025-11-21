@@ -2,7 +2,6 @@ import React from 'react'
 import '../components/css/Help.css'
 import popup from '../icons/help/rsu_popup_and_config_menu.png'
 import organizationSelection from '../icons/help/organization_selection.png'
-import permissionsTable from '../icons/help/permissions_table.png'
 import mapOverview from '../icons/help/map_overview.png'
 import statusMenu from '../icons/help/rsu_status_menu.png'
 import countMenu from '../icons/help/rsu_count_menu.png'
@@ -10,10 +9,97 @@ import table from '../icons/help/rsu_count.png'
 import EnvironmentVars from '../EnvironmentVars'
 import ContactSupportMenu from './ContactSupportMenu'
 import { BorderedImage } from '../styles/components/BorderedImage'
-import { Stack, Container, useTheme } from '@mui/material'
+import {
+  Stack,
+  Container,
+  useTheme,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  Paper,
+  TableBody,
+} from '@mui/material'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
 
 const Help = () => {
   const theme = useTheme()
+
+  const permissions = [
+    { action: 'View Map Data (including RSUs)', user: true, operator: true, admin: true },
+    { action: 'Register, Manage, and Configure RSUs', user: false, operator: true, admin: true },
+    { action: 'Manage Intersection Settings and Notifications', user: false, operator: true, admin: true },
+    { action: 'Manage Users', user: false, operator: false, admin: true },
+    { action: 'Add and Remove Resources Within Organizations', user: false, operator: false, admin: true },
+  ]
+
+  const permissionsTable = (
+    <TableContainer component={Paper} sx={{ maxWidth: 'fit-content', margin: '10px 0' }}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell
+              colSpan={4}
+              sx={{
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                border: `1px solid ${theme.palette.divider}`,
+                padding: '14px',
+              }}
+            >
+              User Roles and Permissions (By Organization)
+            </TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 'bold', border: `1px solid ${theme.palette.divider}` }}>
+              {/* Empty cell for action column */}
+            </TableCell>
+            <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', border: `1px solid ${theme.palette.divider}` }}>
+              User
+            </TableCell>
+            <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', border: `1px solid ${theme.palette.divider}` }}>
+              Operator
+            </TableCell>
+            <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', border: `1px solid ${theme.palette.divider}` }}>
+              Admin
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {permissions.map((row, index) => (
+            <TableRow key={index}>
+              <TableCell sx={{ border: `1px solid ${theme.palette.divider}`, padding: '20px' }}>{row.action}</TableCell>
+              <TableCell sx={{ border: `1px solid ${theme.palette.divider}`, textAlign: 'center' }}>
+                {row.user ? (
+                  <CheckCircleIcon sx={{ color: theme.palette.success.light, fontSize: '1.5rem' }} />
+                ) : (
+                  <CancelIcon sx={{ color: theme.palette.error.light, fontSize: '1.5rem' }} />
+                )}
+              </TableCell>
+              <TableCell sx={{ border: `1px solid ${theme.palette.divider}`, textAlign: 'center' }}>
+                {row.operator ? (
+                  <CheckCircleIcon sx={{ color: theme.palette.success.light, fontSize: '1.5rem' }} />
+                ) : (
+                  <CancelIcon sx={{ color: theme.palette.error.light, fontSize: '1.5rem' }} />
+                )}
+              </TableCell>
+              <TableCell sx={{ border: `1px solid ${theme.palette.divider}`, textAlign: 'center' }}>
+                {row.admin ? (
+                  <CheckCircleIcon sx={{ color: theme.palette.success.light, fontSize: '1.5rem' }} />
+                ) : (
+                  <CancelIcon sx={{ color: theme.palette.error.light, fontSize: '1.5rem' }} />
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+
   return (
     <Container maxWidth={false} id="help" sx={{ textAlign: 'left', backgroundColor: theme.palette.background.default }}>
       <Stack spacing={2}>
@@ -36,13 +122,12 @@ const Help = () => {
         <h2>Permissions</h2>
 
         <p>
-          There are 3 roles within the CV Manager: User, Operator, and Admin. See the table below for the permissions of
-          each role (red = not allowed, green = allowed). Some users can also be granted Super User permissions, which
-          enable access to all resources within an organization and increase their ability to move resources between
-          organizations.
+          There are 3 roles within the CV Manager: User, Operator, and Admin. Some users can also be granted Super User
+          permissions, which enables access to all resources within an organization and increases their ability to move
+          resources between organizations.
         </p>
 
-        <BorderedImage src={permissionsTable} alt="Role Permissions Table" width="400" />
+        {permissionsTable}
 
         <h3>Note on feature flags</h3>
 
