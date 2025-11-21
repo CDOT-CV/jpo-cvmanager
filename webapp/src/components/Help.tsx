@@ -1,12 +1,12 @@
 import React from 'react'
 import '../components/css/Help.css'
-import popup from '../icons/rsu_popup_and_config_menu.png'
+import popup from '../icons/help/rsu_popup_and_config_menu.png'
 import organizationSelection from '../icons/help/organization_selection.png'
 import permissionsTable from '../icons/help/permissions_table.png'
 import mapOverview from '../icons/help/map_overview.png'
-import statusMenu from '../icons/rsu_status_menu.png'
-import countMenu from '../icons/rsu_count_menu.png'
-import table from '../icons/rsu_count.png'
+import statusMenu from '../icons/help/rsu_status_menu.png'
+import countMenu from '../icons/help/rsu_count_menu.png'
+import table from '../icons/help/rsu_count.png'
 import EnvironmentVars from '../EnvironmentVars'
 import ContactSupportMenu from './ContactSupportMenu'
 import { BorderedImage } from '../styles/components/BorderedImage'
@@ -15,13 +15,13 @@ import { Stack, Container, useTheme } from '@mui/material'
 const Help = () => {
   const theme = useTheme()
   return (
-    <Container className="help-content"
+    <Container
       maxWidth={false}
       id="help"
       sx={{ textAlign: 'left', backgroundColor: theme.palette.background.default }}
     >
       <Stack spacing={2}>
-        <h2>Welcome to the {EnvironmentVars.DOT_NAME} CV Manager Website</h2>
+        <h2>{`Welcome to the ${EnvironmentVars.DOT_NAME} CV Manager Website`}</h2>
         <p>
           This application helps organizations manage and monitor deployed RSUs, monitor and detect issues
           with connected intersections, and view numerous data types all in one application.
@@ -87,9 +87,9 @@ const Help = () => {
         </h2>
 
         <p>
-          The map dashboard is composed of a Mapbox map (background), the{' '}
-          <a href="#map-layers">Map Layer Menu</a> (red), and{' '}
-          <a href="#rsu-status-and-message-counts">RSU Status and Message Counts Menu</a> (green).
+          The map dashboard is composed of a Mapbox map (background), the
+          <a href="#map-layers"> Map Layer Menu</a> (red), and
+          <a href="#rsu-status-and-message-counts"> RSU Status and Message Counts Menu</a> (green).
         </p>
 
         <BorderedImage
@@ -100,8 +100,8 @@ const Help = () => {
         <h3 id="map-layers">Map Layers</h3>
 
         <p>
-          The menu on the left contains three sections: <strong>Map Layers</strong>,{' '}
-          <strong>RSU Filters</strong>, and <strong>RSU Configuration</strong>. The Map Layers section
+          The menu on the left contains three sections:<strong> Map Layers</strong>,
+          <strong> RSU Filters</strong>, and<strong> RSU Configuration</strong>. The Map Layers section
           allows users to visualize various data types. Available layers include:
         </p>
 
@@ -180,8 +180,8 @@ const Help = () => {
         <h3 id="rsu-status-and-message-counts">RSU Status and Message Counts</h3>
 
         <p>
-          On the right side are two menus: <strong>RSU Status Menu</strong> and{' '}
-          <strong>Message Count Menu</strong>.
+          On the right side are two menus:<strong> RSU Status Menu</strong> and
+          <strong> Message Count Menu</strong>.
         </p>
 
         <p>
