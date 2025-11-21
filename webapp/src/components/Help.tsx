@@ -1,13 +1,12 @@
 import React from 'react'
 import '../components/css/Help.css'
 import popup from '../icons/rsu_popup_and_config_menu.png'
-import status from '../icons/rsu_status.png'
+import organizationSelection from '../icons/help/organization_selection.png'
+import permissionsTable from '../icons/help/permissions_table.png'
+import mapOverview from '../icons/help/map_overview.png'
 import statusMenu from '../icons/rsu_status_menu.png'
 import countMenu from '../icons/rsu_count_menu.png'
 import table from '../icons/rsu_count.png'
-import filters from '../icons/rsu_filters.png'
-import layers from '../icons/rsu_layers.png'
-import configure from '../icons/rsu_configure.png'
 import EnvironmentVars from '../EnvironmentVars'
 import ContactSupportMenu from './ContactSupportMenu'
 import { BorderedImage } from '../styles/components/BorderedImage'
@@ -16,7 +15,7 @@ import { Stack, Container, useTheme } from '@mui/material'
 const Help = () => {
   const theme = useTheme()
   return (
-    <Container
+    <Container className="help-content"
       maxWidth={false}
       id="help"
       sx={{ textAlign: 'left', backgroundColor: theme.palette.background.default }}
@@ -24,72 +23,211 @@ const Help = () => {
       <Stack spacing={2}>
         <h2>Welcome to the {EnvironmentVars.DOT_NAME} CV Manager Website</h2>
         <p>
-          This application shows the physical location and message counts for each RSU installed by the Colorado
-          Department of Transportation at various road sites throughout Colorado.
+          This application helps organizations manage and monitor deployed RSUs, monitor and detect issues
+          with connected intersections, and view numerous data types all in one application.
+        </p>
+
+        <h2>Organizations and Profiles</h2>
+        <p>
+          This application uses organizations to manage permissions. All devices and users within the CV
+          Manager are associated with one or more organizations. When using the CV Manager, you can only
+          view one organization at a time. At the top right corner, you will see the User Profile menu.
+          This menu allows the user to change organizations, if they are a member of multiple, as well as
+          logging out of the application.
+        </p>
+
+        <BorderedImage
+          src={organizationSelection}
+          alt="Profile Dropdown"
+          width="200"
+        />
+
+        <h2>Permissions</h2>
+
+        <p>
+          There are 3 roles within the CV Manager: User, Operator, and Admin. See the table below for the
+          permissions of each role (red = not allowed, green = allowed). Some users can also be granted
+          Super User permissions, which enable access to all resources within an organization and increase
+          their ability to move resources between organizations.
+        </p>
+
+        <BorderedImage
+          src={permissionsTable}
+          alt="Role Permissions Table"
+          width="400"
+        />
+
+        <h3>Note on feature flags</h3>
+
+        <ul>
+          <li>ENABLE_RSU_FEATURES: ENABLED
+            <ul>
+              <li>Affects: RSU viewer, RSU status monitoring, RSU configuration</li>
+            </ul>
+          </li>
+          <li>ENABLE_INTERSECTION_FEATURES: ENABLED
+            <ul>
+              <li>Affects: Intersection map, Intersection dashboard, Conflict Monitor events, assessments, and notifications</li>
+            </ul>
+          </li>
+          <li>ENABLE_WZDX_FEATURES: DISABLED
+            <ul>
+              <li>Affects: WZDx message viewer</li>
+            </ul>
+          </li>
+          <li>ENABLE_MOOVE_AI_FEATURES: DISABLED
+            <ul>
+              <li>Affects: Moove AI hard braking event viewer</li>
+            </ul>
+          </li>
+        </ul>
+
+        <h2>
+          <a href="/dashboard/map">Map Dashboard</a>
+        </h2>
+
+        <p>
+          The map dashboard is composed of a Mapbox map (background), the{' '}
+          <a href="#map-layers">Map Layer Menu</a> (red), and{' '}
+          <a href="#rsu-status-and-message-counts">RSU Status and Message Counts Menu</a> (green).
+        </p>
+
+        <BorderedImage
+          src={mapOverview}
+          alt="Map Layer Selection Options"
+        />
+
+        <h3 id="map-layers">Map Layers</h3>
+
+        <p>
+          The menu on the left contains three sections: <strong>Map Layers</strong>,{' '}
+          <strong>RSU Filters</strong>, and <strong>RSU Configuration</strong>. The Map Layers section
+          allows users to visualize various data types. Available layers include:
+        </p>
+
+        <ul>
+          <li>
+            <strong>RSU Viewer:</strong> Displays RSU locations and status. Selecting one opens a popup and
+            side panel for configuration. Colors:
+            <ul>
+              <li>Green = online and reporting</li>
+              <li>Yellow = recently offline</li>
+              <li>Red = offline for extended time</li>
+            </ul>
+          </li>
+          <li><strong>Heatmap:</strong> Displays a message-count heatmap</li>
+          <li><strong>V2X Message Viewer:</strong> Query messages for a map region</li>
+          <li><strong>WZDx Viewer:</strong> Displays work zone events</li>
+          <li><strong>Intersections:</strong> Shows connected intersections and IDs</li>
+          <li><strong>Moove AI Viewer:</strong> Query harsh braking events</li>
+          <li><strong>HAAS Alert Viewer:</strong> Query alert incidents by time</li>
+        </ul>
+
+        <p>
+          The RSU Filters section allows filtering RSUs by vendor and status.
+          The RSU Configuration section allows Operators/Admins to select RSUs on the map and configure them
+          in bulk.
+        </p>
+
+        <h4 id="configuring-rsus">Configuring RSUs (Requires Operator or Admin)</h4>
+
+        <p>
+          Selecting an RSU opens a popup and configuration menu. It displays IP address, online status,
+          last report time, milepost, serial number, and message count. Depending on access, users can
+          retrieve configurations, modify them, check/apply firmware updates, or reboot the RSU.
+        </p>
+
+        <BorderedImage
+          src={popup}
+          alt="RSU Popup and Configuration Panel"
+        />
+
+        <h5>Message Forwarding Current Configuration</h5>
+        <p>Message forwarding rules come in three types:</p>
+
+        <ul>
+          <li>TX (transmitted messages: TIM, MAP, SPAT, SSM)</li>
+          <li>RX (received messages: BSM, SRM, SDSM)</li>
+          <li>Generic (SNMP 4.1: applies to all messages)</li>
+        </ul>
+
+        <p>Each rule includes:</p>
+
+        <ul>
+          <li>Message Type</li>
+          <li>Destination IP</li>
+          <li>Port</li>
+          <li>Start / End date</li>
+          <li>Security header enabled</li>
+          <li>Active state</li>
+          <li>Delete button</li>
+        </ul>
+
+        <h5>Message Forwarding Management</h5>
+        <p>Create forwarding rules by entering:</p>
+        <ul>
+          <li>Destination IP</li>
+          <li>Message type</li>
+          <li>Security header</li>
+        </ul>
+
+        <h5>Firmware Management</h5>
+        <p>Check for firmware updates and apply if available.</p>
+
+        <h5>Reboot</h5>
+        <p>Reboot the selected RSU.</p>
+
+        <h3 id="rsu-status-and-message-counts">RSU Status and Message Counts</h3>
+
+        <p>
+          On the right side are two menus: <strong>RSU Status Menu</strong> and{' '}
+          <strong>Message Count Menu</strong>.
         </p>
 
         <p>
-          On the map interface, RSUs are represented by colored dots to indicate their current status. A green dot
-          means the RSU is online and actively reporting data. A yellow dot indicates the RSU is currently offline but
-          was recently active. A red dot shows the RSU is offline and has not reported in some time.
+          The RSU Status Menu lists all RSUs and their status. Users can print a full or error-only report.
+          For each device you will find:
         </p>
-        <BorderedImage src={status} alt="RSU Status Indicators on Map" />
+
+        <ul>
+          <li>Location</li>
+          <li>Online status (green / red / yellow)</li>
+          <li>SCMS certificate status</li>
+          <li>RSU IP address</li>
+        </ul>
+
+        <BorderedImage
+          src={statusMenu}
+          alt="RSU Status Menu Display"
+          width="400"
+        />
 
         <p>
-          Selecting an RSU on the map will open a popup window along with a side configuration menu. The popup displays
-          detailed information including the RSU’s IP address, online status, last online time, milepost number, serial
-          number, and the number of messages it has reported. The configuration menu allows users, depending on their
-          access level, to perform actions such as retrieving the current message forwarding settings, modifying
-          configurations, checking firmware updates, applying firmware updates, or rebooting the RSU.
+          The Message Count Menu filters RSU message counts by time range and message type. Changing any
+          filter updates the map and table automatically.
         </p>
-        <BorderedImage src={popup} alt="RSU Popup and Configuration Panel" />
+
+        <BorderedImage
+          src={countMenu}
+          alt="RSU Count Menu"
+          width="300"
+        />
 
         <p>
-          On the right side of the interface, there are two menu toggles that open menus with more detailed information
-          about the RSUs. The first is the RSU Status Menu, which shows a full list of all RSUs and their current status.
-          This menu can be toggled on or off by clicking the red X in the corner or by selecting the "Display RSU Status"
-          toggle again. From this menu, users also have the option to print a complete report or an error-specific report
-          for further analysis or record-keeping.
+          A table below shows the number of messages from each RSU, sortable by RSU name, road, or message
+          count.
         </p>
-        <BorderedImage src={statusMenu} alt="RSU Status Menu Display" />
+
+        <BorderedImage
+          src={table}
+          alt="RSU Message Count Table"
+          width="300"
+        />
 
         <p>
-          The second menu is the Message Count Menu, which allows users to filter RSU message counts by selecting a
-          specific time range and message type. The top date-time picker sets the start of the range, while the bottom
-          one sets the end. Below these pickers, a dropdown allows users to choose the type of message they want to track.
-          Any change made to the date, time, or message type will automatically update the map and table view to reflect
-          the selected parameters.
+          The RSU Configuration section allows applying configuration changes to multiple RSUs based on a
+          selected geographic region.
         </p>
-        <BorderedImage src={countMenu} alt="RSU Count Menu" />
-
-        <p>
-          A table below the filter menu displays the number of messages received from each RSU within the specified time
-          range, regardless of whether the RSU is currently online. The table can be sorted by RSU name, road, or message
-          count by clicking on the appropriate column header. Each click toggles between ascending and descending order.
-        </p>
-        <BorderedImage src={table} alt="RSU Message Count Table" />
-
-        <p>
-          The menu on the left side of the screen contains three main sections: Map Layers, RSU Filters, and RSU
-          Configuration. The Map Layers section allows users to change how data is visualized. When "RSU Viewer" is
-          selected, all RSUs are displayed on the map. Choosing "Heat Map" shows a heatmap based on message counts using
-          the filters from the Message Count Menu. The "V2X Message Viewer" and "Moove AI Viewer" options let users query
-          specific areas of the map to view corresponding messages or traffic data. Selecting "WZDx Viewer" shows all
-          WZDx messages, and the "Intersections" option displays known intersections on the map.
-        </p>
-        <BorderedImage src={layers} alt="Map Layer Selection Options" />
-
-        <p>
-          The RSU Filters section allows users to narrow down the visible RSUs based on vendor and operational status.
-          This helps users focus on specific types of hardware or troubleshoot particular categories of RSUs.
-        </p>
-        <BorderedImage src={filters} alt="RSU Filtering Options" />
-
-        <p>
-          The RSU Configuration section enables users to apply configuration changes to multiple RSUs within a selected
-          geographic area. This feature streamlines mass updates and management tasks across a network of RSUs.
-        </p>
-        <BorderedImage src={configure} alt="Bulk RSU Configuration Menu" />
       </Stack>
       <ContactSupportMenu />
     </Container>
