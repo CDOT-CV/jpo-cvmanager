@@ -153,6 +153,15 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     return acc
   }, [])
 
+  // Utility to get days, hours, minutes from a duration in milliseconds
+  function splitDurationIntoParts(durationMs: number) {
+    const durationSec = Math.floor(durationMs / 1000)
+    const days = Math.floor(durationSec / 86400)
+    const hours = Math.floor((durationSec % 86400) / 3600)
+    const minutes = Math.floor((durationSec % 3600) / 60)
+    return { days, hours, minutes }
+  }
+
   // Calculate reboot zones (from local max to subsequent local min)
   const rebootZones = uptimeData.reduce((zones, curr, index, arr) => {
     if (index > 0 && arr[index - 1].value > curr.value) {
@@ -160,12 +169,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
       const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
       const durationMs = end - start
 
-      // Format duration into a human-readable string
-      const durationSec = Math.floor(durationMs / 1000)
-      const days = Math.floor(durationSec / 86400)
-      const hours = Math.floor((durationSec % 86400) / 3600)
-      const minutes = Math.floor((durationSec % 3600) / 60)
-
+      const { days, hours, minutes } = splitDurationIntoParts(durationMs)
       let durationLabel = ''
       if (days > 0) {
         durationLabel = `${days} day${days > 1 ? 's' : ''}`
@@ -245,13 +249,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
         const start = arr[index - 1].time
         const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
         const durationMs = end - start
-
-        // Format duration into a human-readable string
-        const durationSec = Math.floor(durationMs / 1000)
-        const days = Math.floor(durationSec / 86400)
-        const hours = Math.floor((durationSec % 86400) / 3600)
-        const minutes = Math.floor((durationSec % 3600) / 60)
-
+        const { days, hours, minutes } = splitDurationIntoParts(durationMs)
         let durationLabel = ''
         if (days > 0) {
           durationLabel = `${days} day${days > 1 ? 's' : ''}`

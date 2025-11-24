@@ -33,11 +33,6 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
     }
 
     @Override
-    public void add(RsuState item) {
-        mongoTemplate.insert(item, collectionName);
-    }
-
-    @Override
     public List<RsuState> retrieveRsuStateWithinTimeInterval(String rsuIP, long start, long end) {
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP)
                 .and("timestamp").gte(new Date(start)).lte(new Date(end));
@@ -66,8 +61,6 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
                         .first("timestamp").as("timestamp"),
                 Aggregation.sort(Sort.by(Sort.Direction.ASC, "timestamp")) // Sort by timestamp
         );
-
-        System.out.println("[RSU Status] Aggregation Pipeline: " + aggregation.toString());
 
         List<RsuState> results = mongoTemplate.aggregate(aggregation, collectionName, RsuState.class)
                 .getMappedResults();
