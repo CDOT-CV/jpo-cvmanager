@@ -10,7 +10,7 @@ exports[`should take a snapshot 1`] = `
       class="MuiStack-root css-mocked-MuiStack-root"
     >
       <h2>
-        Welcome to the undefined CV Manager Website
+        Welcome to the undefined CV Manager
       </h2>
       <p>
         This application helps organizations manage and monitor deployed RSUs, monitor and detect issues with connected intersections, and view numerous data types all in one application.

@@ -104,7 +104,7 @@ const Help = () => {
   return (
     <Container maxWidth={false} id="help" sx={{ textAlign: 'left', backgroundColor: theme.palette.background.default }}>
       <Stack spacing={2}>
-        <h2>{`Welcome to the ${EnvironmentVars.DOT_NAME} CV Manager Website`}</h2>
+        <h2>{`Welcome to the ${EnvironmentVars.DOT_NAME} CV Manager`}</h2>
         <p>
           This application helps organizations manage and monitor deployed RSUs, monitor and detect issues with
           connected intersections, and view numerous data types all in one application.
