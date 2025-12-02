@@ -4,11 +4,11 @@ import subprocess
 import time
 from common import gcs_utils
 import logging
-import os
 import requests
 import shutil
 from common.email_api import EmailApi
 import download_blob
+import upgrade_runner_environment
 
 
 class UpgraderAbstractClass(abc.ABC):
@@ -44,9 +44,7 @@ class UpgraderAbstractClass(abc.ABC):
         )
 
         # Download blob, defaults to GCP blob storage
-        bspCaseInsensitive = os.environ.get(
-            "BLOB_STORAGE_PROVIDER", "DOCKER"
-        ).casefold()
+        bspCaseInsensitive = upgrade_runner_environment.BLOB_STORAGE_PROVIDER.casefold()
         if bspCaseInsensitive == "gcp":
             return (
                 gcs_utils.download_gcp_blob(
@@ -72,8 +70,8 @@ class UpgraderAbstractClass(abc.ABC):
         )
 
         # Obtain the upgrade scheduler endpoint
-        upgrade_scheduler_endpoint = os.environ.get(
-            "UPGRADE_SCHEDULER_ENDPOINT", "127.0.0.1"
+        upgrade_scheduler_endpoint = (
+            upgrade_runner_environment.UPGRADE_SCHEDULER_ENDPOINT
         )
         if upgrade_scheduler_endpoint == "UNDEFINED":
             raise Exception(

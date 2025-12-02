@@ -89,6 +89,7 @@
     "OIDC",
     "OIDCID",
     "pgdb",
+    "pgquery",
     "PGSQL",
     "postgis",
     "pythjon",

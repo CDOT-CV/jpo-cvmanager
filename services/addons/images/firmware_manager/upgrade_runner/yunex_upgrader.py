@@ -1,13 +1,12 @@
 import upgrader
 import json
 import logging
-import os
 import subprocess
 import sys
 import tarfile
 import time
 import traceback
-
+from common import common_environment
 
 class YunexUpgrader(upgrader.UpgraderAbstractClass):
     def __init__(self, upgrade_info):
@@ -127,8 +126,7 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
 # - target_firmware_version
 # - install_package
 if __name__ == "__main__":
-    log_level = os.environ.get("LOGGING_LEVEL", "INFO")
-    logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
+    common_environment.configure_logging()
     # Trimming outer single quotes from the json.loads
     upgrade_info = json.loads(sys.argv[1][1:-1])
     yunex_upgrader = YunexUpgrader(upgrade_info)

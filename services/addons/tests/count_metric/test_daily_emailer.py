@@ -198,18 +198,15 @@ def test_prepare_org_rsu_dict(mock_query_db):
     daily_emailer.message_types = ["BSM", "TIM", "Map", "SPaT", "SRM", "SSM"]
 
 
-@patch.dict(
-    os.environ,
-    {
-        "DEPLOYMENT_TITLE": "Test",
-        "IAPI_ENDPOINT": "localhost:8089",
-        "KC_USERNAME": "username",
-        "KC_PASSWORD": "password",
-    },
-)
+@patch("count_metric_environment.DEPLOYMENT_TITLE", "Test")
+@patch("count_metric_environment.SMTP_SERVER_IP", "10.0.0.1")
+@patch("count_metric_environment.SMTP_USERNAME", "username")
+@patch("count_metric_environment.SMTP_PASSWORD", "password")
+@patch("count_metric_environment.SMTP_EMAIL", "test@gmail.com")
 @patch("addons.images.count_metric.daily_emailer.EmailApi")
-def test_email_daily_counts(mock_email_api):
-    email_api_obj = mock_email_api.return_value
+def test_email_daily_counts(mock_email_list, mock_emailsender):
+    mock_email_list.return_value = ["bob@gmail.com"]
+    emailsender_obj = mock_emailsender.return_value
 
     start_date = datetime.now()
     end_date = datetime.now()
@@ -227,14 +224,9 @@ def test_email_daily_counts(mock_email_api):
     )
 
 
-@patch.dict(
-    os.environ,
-    {
-        "MONGO_DB_URI": "mongo-uri",
-        "MONGO_DB_NAME": "test_db",
-        "DEPLOYMENT_TITLE": "Test",
-    },
-)
+@patch("count_metric_environment.MONGO_DB_URI", "mongo-uri")
+@patch("count_metric_environment.MONGO_DB_NAME", "test_db")
+@patch("count_metric_environment.DEPLOYMENT_TITLE", "Test")
 @patch("addons.images.count_metric.daily_emailer.MongoClient", MagicMock())
 @patch("addons.images.count_metric.daily_emailer.email_daily_counts")
 @patch("addons.images.count_metric.daily_emailer.query_mongo_out_counts")

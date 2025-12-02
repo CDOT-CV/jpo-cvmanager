@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Api
-import os
-import logging
+import api_environment
+
 
 # Custom script imports
 from middleware import Middleware
@@ -29,19 +29,12 @@ from admin_user import AdminUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg
 import smtp_error_handler
+from common import common_environment
+import api_environment
 
-log_level = os.environ.get("LOGGING_LEVEL", "INFO")
-logging.basicConfig(format="%(levelname)s:%(message)s", level=log_level)
+common_environment.configure_logging()
 
 app = Flask(__name__)
-
-# Feature flag environment variables
-ENABLE_RSU_FEATURES = os.environ.get("ENABLE_RSU_FEATURES", "true") != "false"
-ENABLE_INTERSECTION_FEATURES = (
-    os.environ.get("ENABLE_INTERSECTION_FEATURES", "true") != "false"
-)
-ENABLE_WZDX_FEATURES = os.environ.get("ENABLE_WZDX_FEATURES", "true") != "false"
-ENABLE_MOOVE_AI_FEATURES = os.environ.get("ENABLE_MOOVE_AI_FEATURES", "true") != "false"
 
 smtp_error_handler.configure_error_emails(app)
 
@@ -51,7 +44,7 @@ app.wsgi_app = Middleware(app.wsgi_app)
 @app.after_request
 def apply_cors_header(response):
     # Add CORS header to all responses to prevent webapp parsing errors. Webapps have trouble handling responses that do not have the Access-Control-Allow-Origin header set.
-    response.headers["Access-Control-Allow-Origin"] = os.environ["CORS_DOMAIN"]
+    response.headers["Access-Control-Allow-Origin"] = api_environment.CORS_DOMAIN
     return response
 
 
@@ -66,7 +59,7 @@ api.add_resource(AdminOrg, "/admin-org")
 api.add_resource(AdminNotification, "/admin-notification")
 api.add_resource(AdminNewNotification, "/admin-new-notification")
 
-if ENABLE_RSU_FEATURES:
+if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuInfo, "/rsuinfo")
     api.add_resource(RsuOnlineStatus, "/rsu-online-status")
     api.add_resource(RsuQueryCounts, "/rsucounts")
@@ -78,12 +71,12 @@ if ENABLE_RSU_FEATURES:
     api.add_resource(RsuSsmSrmData, "/rsu-ssm-srm-data")
     api.add_resource(AdminNewRsu, "/admin-new-rsu")
     api.add_resource(AdminRsu, "/admin-rsu")
-if ENABLE_WZDX_FEATURES:
+if api_environment.ENABLE_WZDX_FEATURES:
     api.add_resource(WzdxFeed, "/wzdx-feed")
-if ENABLE_INTERSECTION_FEATURES:
+if api_environment.ENABLE_INTERSECTION_FEATURES:
     api.add_resource(AdminNewIntersection, "/admin-new-intersection")
     api.add_resource(AdminIntersection, "/admin-intersection")
-if ENABLE_MOOVE_AI_FEATURES:
+if api_environment.ENABLE_MOOVE_AI_FEATURES:
     api.add_resource(MooveAiData, "/moove-ai-data")
 
 if __name__ == "__main__":
