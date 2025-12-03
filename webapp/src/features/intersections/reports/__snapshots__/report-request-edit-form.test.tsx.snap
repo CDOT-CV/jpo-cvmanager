@@ -79,7 +79,7 @@ exports[`should take a snapshot 1`] = `
                   inputmode="text"
                   placeholder="MM/DD/YYYY hh:mm aa"
                   type="text"
-                  value="04/05/2025 06:00 PM"
+                  value="04/05/2025 07:00 PM"
                 />
                 <div
                   class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-mocked-MuiInputAdornment-root"

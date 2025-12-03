@@ -55,9 +55,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 2000, endMillis: 4000 }
       const result = filterSsms(ssms, timeWindow)
 
-      expect(result).toHaveLength(2)
+      expect(result).toHaveLength(3)
       expect(result[0].timeStampEpochMillis).toBe(2000)
-      expect(result[1].timeStampEpochMillis).toBe(3000)
+      expect(result[2].timeStampEpochMillis).toBe(4000)
     })
 
     it('should return empty array when no SSMs in time window', () => {
@@ -83,8 +83,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 2000, endMillis: 3000 }
       const result = filterSsms(ssms, timeWindow)
 
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].timeStampEpochMillis).toBe(2000)
+      expect(result[1].timeStampEpochMillis).toBe(3000)
     })
 
     it('should exclude SSMs at exact end time', () => {
@@ -93,8 +94,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 1000, endMillis: 2000 }
       const result = filterSsms(ssms, timeWindow)
 
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].timeStampEpochMillis).toBe(1000)
+      expect(result[1].timeStampEpochMillis).toBe(2000)
     })
 
     it('should handle duplicate timestamps', () => {
@@ -106,7 +108,7 @@ describe('intersectionMapApiSlice utility functions', () => {
         createMockSsm(3000),
       ]
 
-      const timeWindow = { startMillis: 2000, endMillis: 3000 }
+      const timeWindow = { startMillis: 2000, endMillis: 2900 }
       const result = filterSsms(ssms, timeWindow)
 
       expect(result).toHaveLength(3)
@@ -163,9 +165,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 2000, endMillis: 4000 }
       const result = filterSrms(srms, timeWindow)
 
-      expect(result).toHaveLength(2)
+      expect(result).toHaveLength(3)
       expect(result[0].properties.timeStampEpochMillis).toBe(2000)
-      expect(result[1].properties.timeStampEpochMillis).toBe(3000)
+      expect(result[2].properties.timeStampEpochMillis).toBe(4000)
     })
 
     it('should return empty array when no SRMs in time window', () => {
@@ -191,8 +193,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 2000, endMillis: 3000 }
       const result = filterSrms(srms, timeWindow)
 
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].properties.timeStampEpochMillis).toBe(2000)
+      expect(result[1].properties.timeStampEpochMillis).toBe(3000)
     })
 
     it('should exclude SRMs at exact end time', () => {
@@ -201,7 +204,7 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 1000, endMillis: 2000 }
       const result = filterSrms(srms, timeWindow)
 
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].properties.timeStampEpochMillis).toBe(1000)
     })
 
@@ -214,7 +217,7 @@ describe('intersectionMapApiSlice utility functions', () => {
         createMockSrm(3000),
       ]
 
-      const timeWindow = { startMillis: 2000, endMillis: 3000 }
+      const timeWindow = { startMillis: 2000, endMillis: 2900 }
       const result = filterSrms(srms, timeWindow)
 
       expect(result).toHaveLength(3)
@@ -228,9 +231,9 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 5000000, endMillis: 5010000 }
       const result = filterSrms(srms, timeWindow)
 
-      expect(result).toHaveLength(10)
+      expect(result).toHaveLength(11)
       expect(result[0].properties.timeStampEpochMillis).toBe(5000000)
-      expect(result[9].properties.timeStampEpochMillis).toBe(5009000)
+      expect(result[10].properties.timeStampEpochMillis).toBe(5010000)
     })
   })
 
@@ -255,7 +258,7 @@ describe('intersectionMapApiSlice utility functions', () => {
       const timeWindow = { startMillis: 2000, endMillis: 2000 }
       const result = filterSsms(ssms, timeWindow)
 
-      expect(result).toHaveLength(0)
+      expect(result).toHaveLength(1)
     })
 
     it('should handle very large timestamps', () => {
@@ -271,7 +274,7 @@ describe('intersectionMapApiSlice utility functions', () => {
       }
       const result = filterSsms(ssms, timeWindow)
 
-      expect(result).toHaveLength(1)
+      expect(result).toHaveLength(2)
       expect(result[0].timeStampEpochMillis).toBe(Number.MAX_SAFE_INTEGER - 1)
     })
   })

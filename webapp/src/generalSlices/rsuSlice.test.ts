@@ -59,7 +59,6 @@ import {
   selectGeoMsgFilterStep,
   selectGeoMsgFilterOffset,
   selectIssScmsStatusData,
-  selectSelectedSrm,
   selectHeatMapData,
 } from './rsuSlice'
 import RsuApi from '../apis/rsu-api'
@@ -116,7 +115,6 @@ describe('rsu reducer', () => {
         geoMsgFilterStep: 60,
         geoMsgFilterOffset: 0,
         issScmsStatusData: {},
-        selectedSrm: [],
       },
     })
   })
@@ -157,7 +155,6 @@ describe('async thunks', () => {
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
       issScmsStatusData: null,
-      selectedSrm: null,
     },
   }
 
@@ -979,7 +976,6 @@ describe('reducers', () => {
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
       issScmsStatusData: null,
-      selectedSrm: null,
     },
   }
 
@@ -1138,7 +1134,6 @@ describe('selectors', () => {
       geoMsgFilterStep: 'geoMsgFilterStep',
       geoMsgFilterOffset: 'geoMsgFilterOffset',
       issScmsStatusData: 'issScmsStatusData',
-      selectedSrm: 'selectedSrm',
     },
   }
   const rsuState = { rsu: initialState } as any
@@ -1175,7 +1170,6 @@ describe('selectors', () => {
     expect(selectGeoMsgFilterStep(rsuState)).toEqual('geoMsgFilterStep')
     expect(selectGeoMsgFilterOffset(rsuState)).toEqual('geoMsgFilterOffset')
     expect(selectIssScmsStatusData(rsuState)).toEqual('issScmsStatusData')
-    expect(selectSelectedSrm(rsuState)).toEqual('selectedSrm')
     expect(selectHeatMapData(rsuState)).toEqual('heatMapData')
   })
 })
