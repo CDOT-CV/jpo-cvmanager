@@ -11,7 +11,6 @@ beforeEach(() => {
   EnvironmentVars.wzdxEndpoint = 'REACT_APP_ENV/wzdx-feed'
   EnvironmentVars.geoMsgDataEndpoint = 'REACT_APP_ENV/rsu-geo-data'
   EnvironmentVars.issScmsStatusEndpoint = 'REACT_APP_ENV/iss-scms-status'
-  EnvironmentVars.ssmSrmEndpoint = 'REACT_APP_ENV/rsu-ssm-srm-data'
   EnvironmentVars.authEndpoint = 'REACT_APP_ENV/user-auth'
   EnvironmentVars.adminAddRsu = 'REACT_APP_ENV/admin-new-rsu'
   EnvironmentVars.adminRsu = 'REACT_APP_ENV/admin-rsu'
@@ -162,32 +161,6 @@ it('Test getRsuCommand With Params', async () => {
   expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.rsuCommandEndpoint + url_ext + '?query_param=test')
   expect(fetchMock.mock.calls[0][1].method).toBe('GET')
   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
-})
-
-it('Test getSsmSrmData', async () => {
-  const expectedResponse = { data: 'Test JSON' }
-  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
-  const actualResponse = await RsuApi.getSsmSrmData('testToken')
-  expect(actualResponse).toEqual(expectedResponse)
-
-  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.ssmSrmEndpoint)
-  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
-  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken' })
-})
-
-it('Test getSsmSrmData With Params', async () => {
-  // Set url_ext and query_params
-  const url_ext = 'url_ext'
-  const query_params = { query_param: 'test' }
-
-  const expectedResponse = { data: 'Test JSON' }
-  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
-  const actualResponse = await RsuApi.getSsmSrmData('testToken', url_ext, query_params)
-  expect(actualResponse).toEqual(expectedResponse)
-
-  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.ssmSrmEndpoint + url_ext + '?query_param=test')
-  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
-  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken' })
 })
 
 it('Test getIssScmsStatus', async () => {

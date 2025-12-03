@@ -71,7 +71,6 @@ if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuGeoQuery, "/rsu-config-geo-query")
     api.add_resource(RsuGeoData, "/rsu-geo-msg-data")
     api.add_resource(IssScmsStatus, "/iss-scms-status")
-    api.add_resource(RsuSsmSrmData, "/rsu-ssm-srm-data")
     api.add_resource(AdminNewRsu, "/admin-new-rsu")
     api.add_resource(AdminRsu, "/admin-rsu")
     api.add_resource(RSUErrorSummaryResource, "/rsu-error-summary")

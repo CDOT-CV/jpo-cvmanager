@@ -8,11 +8,9 @@ import {
   RsuMapInfoIpList,
   RsuOnlineStatusRespMultiple,
   RsuOnlineStatusRespSingle,
-  SsmSrmData,
 } from '../models/RsuApi'
 import { RootState } from '../store'
 import { selectToken, selectOrganizationName } from './userSlice'
-import { SelectedSrm } from '../models/Srm'
 import { CountsListElement } from '../models/Rsu'
 import { MessageType } from '../models/MessageTypes'
 import { toast } from 'react-hot-toast'
@@ -49,9 +47,6 @@ const initialState = {
   geoMsgFilterStep: 60,
   geoMsgFilterOffset: 0,
   issScmsStatusData: {} as IssScmsStatus,
-  ssmDisplay: false,
-  srmSsmList: [] as SsmSrmData,
-  selectedSrm: [] as SelectedSrm[],
   heatMapData: {
     type: 'FeatureCollection',
     features: [],
@@ -142,12 +137,6 @@ export const _getRsuCounts = createAsyncThunk('rsu/_getRsuCounts', async (_, { g
   })
 
   return { rsuCounts, countList }
-})
-
-export const getSsmSrmData = createAsyncThunk('rsu/getSsmSrmData', async (_, { getState }) => {
-  const currentState = getState() as RootState
-  const token = selectToken(currentState)
-  return await RsuApi.getSsmSrmData(token)
 })
 
 export const getIssScmsStatus = createAsyncThunk(
@@ -307,12 +296,6 @@ export const rsuSlice = createSlice({
       state.value.geoMsgData = []
       state.value.geoMsgDateError = false
     },
-    toggleSsmSrmDisplay: (state) => {
-      state.value.ssmDisplay = !state.value.ssmDisplay
-    },
-    setSelectedSrm: (state, action: PayloadAction<SelectedSrm>) => {
-      state.value.selectedSrm = Object.keys(action.payload ?? {}).length === 0 ? [] : [action.payload]
-    },
     toggleGeoMsgPointSelect: (state) => {
       state.value.addGeoMsgPoint = !state.value.addGeoMsgPoint
     },
@@ -403,7 +386,7 @@ export const rsuSlice = createSlice({
         state.loading = false
         const payload = action.payload as RsuOnlineStatusRespSingle
         if (Object.prototype.hasOwnProperty.call(state.value.rsuOnlineStatus, payload.ip)) {
-          (state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
+          ;(state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
         }
       })
       .addCase(getRsuLastOnline.rejected, (state) => {
@@ -418,15 +401,6 @@ export const rsuSlice = createSlice({
       .addCase(_getRsuCounts.fulfilled, (state, action) => {
         state.value.rsuCounts = action.payload.rsuCounts
         state.value.countList = action.payload.countList
-      })
-      .addCase(getSsmSrmData.pending, (state) => {
-        state.loading = true
-      })
-      .addCase(getSsmSrmData.rejected, (state) => {
-        state.loading = false
-      })
-      .addCase(getSsmSrmData.fulfilled, (state, action) => {
-        state.value.srmSsmList = action.payload
       })
       .addCase(getIssScmsStatus.fulfilled, (state, action) => {
         state.value.issScmsStatusData = action.payload ?? state.value.issScmsStatusData
@@ -504,17 +478,12 @@ export const selectGeoMsgFilter = (state: RootState) => state.rsu.value.geoMsgFi
 export const selectGeoMsgFilterStep = (state: RootState) => state.rsu.value.geoMsgFilterStep
 export const selectGeoMsgFilterOffset = (state: RootState) => state.rsu.value.geoMsgFilterOffset
 export const selectIssScmsStatusData = (state: RootState) => state.rsu.value.issScmsStatusData
-export const selectSsmDisplay = (state: RootState) => state.rsu.value.ssmDisplay
-export const selectSrmSsmList = (state: RootState) => state.rsu.value.srmSsmList
-export const selectSelectedSrm = (state: RootState) => state.rsu.value.selectedSrm
 export const selectHeatMapData = (state: RootState) => state.rsu.value.heatMapData
 
 export const {
   selectRsu,
   toggleMapDisplay,
   clearGeoMsg,
-  toggleSsmSrmDisplay,
-  setSelectedSrm,
   toggleGeoMsgPointSelect,
   updateGeoMsgPoints,
   updateGeoMsgDate,

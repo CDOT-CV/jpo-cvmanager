@@ -61,7 +61,6 @@ class EnvironmentVars {
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
   static mooveAiDataEndpoint = `${this.getBaseApiUrl()}/moove-ai-data`
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
-  static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static authEndpoint = `${this.getBaseApiUrl()}/user-auth`
   static adminAddRsu = `${this.getBaseApiUrl()}/admin-new-rsu`
   static adminRsu = `${this.getBaseApiUrl()}/admin-rsu`
