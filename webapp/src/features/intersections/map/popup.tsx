@@ -104,14 +104,13 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         rows.push(['Connection ID', connectsTo.connectionID])
       })
       const ssmResponses = JSON.parse(map?.signalStatuses ?? '[]') as SsmInfo[]
-      const ssmResponseDict: { [key: number]: SsmInfo } = {}
+      const ssmResponseDict: { [key: number]: SsmInfo[] } = {}
       ssmResponses.forEach((ssm) => {
-        if (ssm.requestID in ssmResponseDict) {
-          if (ssm.sequenceNumber ?? 0 > (ssmResponseDict[ssm.requestID].sequenceNumber ?? 0)) {
-            ssmResponseDict[ssm.requestID] = ssm
-          }
-        } else {
-          ssmResponseDict[ssm.requestID] = ssm
+        const key = ssm.requestInfo.vehicleID + '_' + ssm.requestID
+        if (key in ssmResponseDict) {
+          ssmResponseDict[key] = [...ssmResponseDict[key], ssm]
+        } else if (key) {
+          ssmResponseDict[key] = [ssm]
         }
       })
       JSON.parse(map?.signalRequests ?? '[]').forEach((srm: SrmInfo) => {
@@ -128,9 +127,15 @@ export const getSelectedLayerPopupContent = (feature: any) => {
           rows.push(['  Inbound Lane Connection', srm.inboundLaneConnectionID])
           rows.push(['  Outbound Lane Connection', srm.outboundLaneConnectionID])
         }
-        const ssm = ssmResponseDict[srm.requestID]
-        if (ssm) {
-          rows.push(['  SSM Status', ssm.status])
+        const ssmKey = srm.vehicleInfo.vehicleID + '_' + srm.requestID
+        const ssms: SsmInfo[] = ssmResponseDict[ssmKey]
+        if (ssms) {
+          // Find matching SSM by requesterSequenceNumber, or use latest if none match
+          let matchingSsm = ssms.find((s) => s.requestInfo.requesterSequenceNumber === srm.sequenceNumber)
+          if (!matchingSsm) {
+            matchingSsm = ssms.sort((a, b) => (b.sequenceNumber ?? 0) - (a.sequenceNumber ?? 0))[0]
+          }
+          rows.push([`  SSM Status (seq ${matchingSsm.requestInfo.requesterSequenceNumber})`, matchingSsm.status])
         }
       })
       return (

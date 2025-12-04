@@ -8,13 +8,7 @@ import { styled, useTheme } from '@mui/material/styles'
 import { CustomTable } from './custom-table'
 import { format } from 'date-fns'
 import { ExpandableTable } from './expandable-table'
-import { MAP_PROPS, selectSrmCount, selectSrmMsgList, selectSrmSsmCount } from './map-slice'
-import SsmSrmItem from '../../../components/SsmSrmItem'
-import { setSelectedSrm } from '../../../generalSlices/rsuSlice'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../../store'
-import { selectSelectedIntersection } from '../../../generalSlices/intersectionSlice'
+import { MAP_PROPS } from './map-slice'
 import '../../../components/css/RsuMapView.css'
 import { InfoOutlined, Close, ExpandMoreOutlined } from '@mui/icons-material'
 import { ConnectionOfTravelNotification } from '../../../models/jpo-conflictmonitor/notifications/ConnectionOfTravelNotification'
@@ -55,14 +49,13 @@ export const SidePanel = (props: SidePanelProps) => {
 
   const [ssmInfo, ssmResponseDict] = useMemo(() => {
     const ssmInfo = ssmData.flatMap(getSsmInfoList)
-    const ssmResponseDict: { [key: number]: SsmInfo } = {}
+    const ssmResponseDict: { [key: number]: SsmInfo[] } = {}
     ssmInfo.forEach((ssm) => {
-      if (ssm.requestID in ssmResponseDict) {
-        if (ssm.sequenceNumber ?? 0 > (ssmResponseDict[ssm.requestID].sequenceNumber ?? 0)) {
-          ssmResponseDict[ssm.requestID] = ssm
-        }
-      } else if (ssm.requestID) {
-        ssmResponseDict[ssm.requestID] = ssm
+      const key = ssm.requestInfo.vehicleID + '_' + ssm.requestID
+      if (key in ssmResponseDict) {
+        ssmResponseDict[key] = [...ssmResponseDict[key], ssm]
+      } else if (key) {
+        ssmResponseDict[key] = [ssm]
       }
     })
     return [ssmInfo, ssmResponseDict]
@@ -182,7 +175,7 @@ export const SidePanel = (props: SidePanelProps) => {
     )
   }
 
-  const getSrmRow = (srm: SrmInfo, ssmResponseDict: { [key: number]: SsmInfo }) => {
+  const getSrmRow = (srm: SrmInfo, ssmResponseDict: { [key: number]: SsmInfo[] }) => {
     const rows: any[] = []
     rows.push([`Request ID`, srm.requestID])
     rows.push(['Time', format(srm.timeStampEpochMillis, 'yyyy-MM-dd HH:mm:ss.SSS')])
@@ -197,9 +190,15 @@ export const SidePanel = (props: SidePanelProps) => {
       rows.push(['Inbound Lane Connection', srm.inboundLaneConnectionID])
       rows.push(['Outbound Lane Connection', srm.outboundLaneConnectionID])
     }
-    const ssm = ssmResponseDict[srm.requestID]
-    if (ssm) {
-      rows.push(['SSM Status', ssm.status])
+    const ssmKey = srm.vehicleInfo.vehicleID + '_' + srm.requestID
+    const ssms: SsmInfo[] = ssmResponseDict[ssmKey]
+    if (ssms) {
+      // Find matching SSM by requesterSequenceNumber, or use latest if none match
+      let matchingSsm = ssms.find((s) => s.requestInfo.requesterSequenceNumber === srm.sequenceNumber)
+      if (!matchingSsm) {
+        matchingSsm = ssms.sort((a, b) => (b.sequenceNumber ?? 0) - (a.sequenceNumber ?? 0))[0]
+      }
+      rows.push([`  SSM Status (seq ${matchingSsm.requestInfo.requesterSequenceNumber})`, matchingSsm.status])
     }
     return (
       <Accordion
