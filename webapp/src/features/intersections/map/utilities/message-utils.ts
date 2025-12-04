@@ -463,6 +463,7 @@ export const getSsmInfoList = (ssm: ProcessedSsm): SsmInfo[] =>
   ssm.statusList?.map((status) => ({
     requestInfo: {
       vehicleID: status.vehicleID,
+      requesterSequenceNumber: status.requesterSequenceNumber,
       role: status.requesterRole,
       subrole: status.requesterSubrole,
       importanceLevel: status.requestImportanceLevel,

@@ -52,6 +52,7 @@ type SsmInfo = {
 
 type SsmRequesterInfo = {
   vehicleID?: string
+  requesterSequenceNumber?: number
   role?: ProcessedBasicVehicleRole
   subrole?: ProcessedRequestSubRole
   importanceLevel?: ProcessedRequestImportanceLevel

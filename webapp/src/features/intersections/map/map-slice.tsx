@@ -129,6 +129,8 @@ const initialState = {
     'bsm',
     'srm',
     'ssm-connection-status',
+    'srm-requested-lanes',
+    'ssm-connection-highlight',
   ] as MAP_LAYERS[],
   queryParams: {
     startDate: new Date(Date.now() - 1000 * 60 * 1),

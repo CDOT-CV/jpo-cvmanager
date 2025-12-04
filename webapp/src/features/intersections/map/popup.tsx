@@ -46,19 +46,20 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         ['Importance Level', srm.importanceLevel],
         ['Role', srm.role],
       ]
+      // Pre-process SSMs into a dictionary keyed by SRM vehicleID + requestID
       const ssms = (JSON.parse((srm.ssms as unknown as string) ?? '[]') as ProcessedSsm[]).flatMap(getSsmInfoList)
-      const ssmResponseDict: { [key: number]: SsmInfo } = {}
+      const ssmResponseDict: { [key: number]: SsmInfo[] } = {}
       ssms.forEach((ssm) => {
-        if (ssm.requestID in ssmResponseDict) {
-          if (ssm.sequenceNumber ?? 0 > (ssmResponseDict[ssm.requestID].sequenceNumber ?? 0)) {
-            ssmResponseDict[ssm.requestID] = ssm
-          }
-        } else if (ssm.requestID) {
-          ssmResponseDict[ssm.requestID] = ssm
+        const key = ssm.requestInfo.vehicleID + '_' + ssm.requestID
+        if (key in ssmResponseDict) {
+          ssmResponseDict[key] = [...ssmResponseDict[key], ssm]
+        } else if (key) {
+          ssmResponseDict[key] = [ssm]
         }
       })
       JSON.parse((srm.requests as unknown as string) ?? '[]').forEach((request: ProcessedSignalRequest) => {
         rows.push([`Request ID`, request.requestID])
+        rows.push([`  Seq Num`, srm.sequenceNumber])
         rows.push([`  Request Type`, request.priorityRequestType])
         if (request.estimatedTimeOfArrival)
           rows.push([`  Estimated Arrival`, format(request.estimatedTimeOfArrival, 'yyyy-MM-dd HH:mm:ss.SSS')])
@@ -74,9 +75,15 @@ export const getSelectedLayerPopupContent = (feature: any) => {
           rows.push(['  Inbound Lane Connection', request.inboundLaneConnectionID])
           rows.push(['  Outbound Lane Connection', request.outboundLaneConnectionID])
         }
-        const ssm = ssmResponseDict[request.requestID]
-        if (ssm) {
-          rows.push(['  SSM Status', ssm.status])
+        const ssmKey = srm.vehicleID + '_' + request.requestID
+        const ssms: SsmInfo[] = ssmResponseDict[ssmKey]
+        if (ssms) {
+          // Find matching SSM by requesterSequenceNumber, or use latest if none match
+          let matchingSsm = ssms.find((s) => s.requestInfo.requesterSequenceNumber === srm.sequenceNumber)
+          if (!matchingSsm) {
+            matchingSsm = ssms.sort((a, b) => (b.sequenceNumber ?? 0) - (a.sequenceNumber ?? 0))[0]
+          }
+          rows.push([`  SSM Status (seq ${matchingSsm.requestInfo.requesterSequenceNumber})`, matchingSsm.status])
         }
       })
 
@@ -87,6 +94,7 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         </Box>
       )
     }
+    case 'srm-requested-lanes':
     case 'map-message': {
       const map = feature.properties
       const rows: any[] = []
@@ -133,6 +141,7 @@ export const getSelectedLayerPopupContent = (feature: any) => {
       )
     }
     case 'ssm-connection-status':
+    case 'ssm-connection-highlight':
     case 'connecting-lanes': {
       const map = feature.properties
       const rows: any[] = [
@@ -142,8 +151,22 @@ export const getSelectedLayerPopupContent = (feature: any) => {
         ['Signal Group', feature.properties.signalGroupId],
       ]
       let unrespondedSrms = JSON.parse(map?.signalRequests ?? '[]') as SrmInfo[]
+
+      // Get latest SSMs, one per vehicleID
+      let signalStatuses = {}
       JSON.parse(map?.signalStatuses ?? '[]').forEach((ssm: SsmInfo) => {
         unrespondedSrms = unrespondedSrms.filter((srm) => srm.requestID !== ssm.requestID)
+        const vehicleId = ssm.requestInfo?.vehicleID
+        if (vehicleId && vehicleId in signalStatuses) {
+          if (ssm.sequenceNumber ?? 0 > (signalStatuses[vehicleId]?.sequenceNumber ?? 0)) {
+            signalStatuses[vehicleId] = ssm
+          }
+        } else {
+          signalStatuses[vehicleId] = ssm
+        }
+      })
+      // Add SSM info to table
+      Object.values(signalStatuses).forEach((ssm: SsmInfo) => {
         rows.push([`SSM ID`, ssm.requestID])
         rows.push([`  Status`, ssm.status])
         if (ssm.inboundLaneID || ssm.outboundLaneID) {
@@ -159,13 +182,6 @@ export const getSelectedLayerPopupContent = (feature: any) => {
           rows.push(['  SRM Veh. Role', ssm.requestInfo.role])
           rows.push(['  SRM Req. Level', getSrmImportanceLevel(ssm.requestInfo.importanceLevel)])
         }
-      })
-      unrespondedSrms.forEach((srm: SrmInfo) => {
-        rows.push(['SRM (unresponded)', srm.requestID])
-        rows.push(['  Sequence Number', srm.sequenceNumber])
-        rows.push(['  Vehicle ID', srm.vehicleInfo?.vehicleID])
-        rows.push(['  Importance Level', getSrmImportanceLevel(srm.vehicleInfo?.importanceLevel)])
-        rows.push(['  Importance Level', srm.vehicleInfo?.role])
       })
       return (
         <Box>
