@@ -347,6 +347,26 @@ const IntersectionMap = (props: MAP_PROPS) => {
     return [mapFeatures, srmSsmOnlyMapFeatures]
   }, [mapData, activeSsmData, activeSrmData])
 
+  const notificationMarkerFeatureCollection = useMemo(() => {
+    let notificationFeatures = EMPTY_FEATURE_COLLECTION
+    if (mapData && props.sourceData && props.sourceDataType == 'notification') {
+      notificationFeatures = createMarkerForNotification(
+        [0, 0],
+        props.sourceData as MessageMonitor.Notification,
+        mapData.mapFeatureCollection
+      )
+    }
+    return notificationFeatures
+  }, [mapData, props.sourceData, props.sourceDataType])
+
+  const spatSignalHeadFeatures = useMemo(() => {
+    let signalHeadFeatures = EMPTY_FEATURE_COLLECTION
+    if (connectingLanes && currentSignalGroups) {
+      signalHeadFeatures = signalStateData
+    }
+    return signalHeadFeatures
+  }, [connectingLanes, currentSignalGroups, signalStateData])
+
   const onMapClick = (point: mapboxgl.Point, lngLat: mapboxgl.LngLat) => {
     const features = mapRef.current.queryRenderedFeatures(point, {
       // layers: state.value.allInteractiveLayerIds,
@@ -513,51 +533,38 @@ const IntersectionMap = (props: MAP_PROPS) => {
             if (mapRef.current) dispatch(setMapRef(mapRef))
           }}
         >
+          {/* 
+            LAYER RENDERING ORDER
+            Layers render from bottom to top (first = bottom, last = top).
+            To change layer stacking order, modify LAYER_RENDER_ORDER in map-layer-style-slice.ts
+            and reorder the <Source>/<Layer> components below to match.
+          */}
           <Source type="geojson" data={mapLanesFeatureCollectionOnlyWithSsmSrm}>
             <Layer {...mapMessageHighlightLayerStyle} />
-          </Source>
-          <Source type="geojson" data={mapLanesFeatureCollection}>
-            <Layer {...mapMessageLayerStyle} />
           </Source>
           <Source type="geojson" data={connectingLanesOnlyWithSsmSrmFeatureCollection}>
             <Layer {...connectingLanesHighlightLayerStyle} />
           </Source>
+          <Source type="geojson" data={mapLanesFeatureCollection}>
+            <Layer {...mapMessageLayerStyle} />
+          </Source>
           <Source type="geojson" data={connectingLanesFeatureCollection}>
             <Layer {...connectingLanesLayerStyle} />
+          </Source>
+          <Source type="geojson" data={notificationMarkerFeatureCollection}>
+            <Layer {...markerLayerStyle} />
+          </Source>
+          <Source type="geojson" data={spatSignalHeadFeatures}>
+            <Layer {...signalStateLayerStyle} />
           </Source>
           <Source type="geojson" data={connectingLanesOnlyWithSsmSrmFeatureCollection}>
             <Layer {...connectingLanesSsmStatusLayerStyle} />
           </Source>
-          <Source type="geojson" data={activeSrmFeatureCollection}>
-            <Layer {...srmLayerStyle} />
-          </Source>
-          <Source
-            type="geojson"
-            data={
-              (mapData && props.sourceData && props.sourceDataType == 'notification'
-                ? createMarkerForNotification(
-                    [0, 0],
-                    props.sourceData as MessageMonitor.Notification,
-                    mapData.mapFeatureCollection
-                  )
-                : undefined) ?? { type: 'FeatureCollection', features: [] }
-            }
-          >
-            <Layer {...markerLayerStyle} />
-          </Source>
           <Source type="geojson" data={currentBsms ?? { type: 'FeatureCollection', features: [] }}>
             <Layer {...bsmLayerStyle} />
           </Source>
-          <Source
-            type="geojson"
-            data={
-              (connectingLanes && currentSignalGroups ? signalStateData : undefined) ?? {
-                type: 'FeatureCollection',
-                features: [],
-              }
-            }
-          >
-            <Layer {...signalStateLayerStyle} />
+          <Source type="geojson" data={activeSrmFeatureCollection}>
+            <Layer {...srmLayerStyle} />
           </Source>
           <Source
             type="geojson"

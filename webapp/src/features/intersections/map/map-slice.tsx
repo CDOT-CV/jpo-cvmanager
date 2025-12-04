@@ -25,7 +25,6 @@ import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
 import EnvironmentVars from '../../../EnvironmentVars'
 import { downloadAllData } from './utilities/file-utilities'
 import React from 'react'
-import { SsmSrmData } from '../../../models/RsuApi'
 import { getTimestamp } from './map-component'
 import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
 import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
@@ -189,9 +188,6 @@ const initialState = {
   liveDataRestartTimeoutId: undefined as NodeJS.Timeout | undefined,
   pullInitialDataAbortControllers: [] as AbortController[],
   abortAllFutureRequests: false,
-  srmCount: 0,
-  srmSsmCount: 0,
-  srmMsgList: [],
   decoderModeEnabled: false,
   liveSpatLatestLatencyMs: undefined as number | undefined,
 }
@@ -1363,24 +1359,6 @@ export const intersectionMapSlice = createSlice({
     value: initialState,
   },
   reducers: {
-    updateSsmSrmCounts: (state, action: PayloadAction<{ srmSsmList: SsmSrmData; rsuIpv4: string }>) => {
-      let localSrmCount = 0
-      let localSsmCount = 0
-      const localMsgList = []
-      for (const elem of action.payload.srmSsmList) {
-        if (elem.ip === action.payload.rsuIpv4) {
-          localMsgList.push(elem)
-          if (elem.type === 'srmTx') {
-            localSrmCount += 1
-          } else {
-            localSsmCount += 1
-          }
-        }
-      }
-      state.value.srmCount = localSrmCount
-      state.value.srmSsmCount = localSsmCount
-      state.value.srmMsgList = localMsgList
-    },
     setSurroundingEvents: (state, action: PayloadAction<MessageMonitor.Event[]>) => {
       state.value.surroundingEvents = action.payload
     },
@@ -1894,9 +1872,6 @@ export const selectLiveDataRestartTimeoutId = (state: RootState) => state.inters
 export const selectLiveDataRestart = (state: RootState) => state.intersectionMap.value.liveDataRestart
 export const selectPullInitialDataAbortControllers = (state: RootState) =>
   state.intersectionMap.value.pullInitialDataAbortControllers
-export const selectSrmCount = (state: RootState) => state.intersectionMap.value.srmCount
-export const selectSrmSsmCount = (state: RootState) => state.intersectionMap.value.srmSsmCount
-export const selectSrmMsgList = (state: RootState) => state.intersectionMap.value.srmMsgList
 export const selectDecoderModeEnabled = (state: RootState) => state.intersectionMap.value.decoderModeEnabled
 export const selectTimeFilterBsms = (state: RootState) => !state.intersectionMap.value.decoderModeEnabled
 export const selectAbortAllFutureRequests = (state: RootState) => state.intersectionMap.value.abortAllFutureRequests

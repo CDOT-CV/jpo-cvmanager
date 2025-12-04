@@ -239,7 +239,7 @@ const srmLayer: SymbolLayer = {
     'icon-color': ['match', ['get', 'vehicleID'], 'temp-id', '#0004ff', '#0004ff'],
     'icon-opacity': 1,
     'icon-halo-color': '#000000',
-    'icon-halo-width': 1,
+    'icon-halo-width': 20,
   },
 }
 
@@ -299,6 +299,28 @@ const signalStateLayer: SymbolLayer = {
     'icon-size': ['interpolate', ['linear'], ['zoom'], 0, 0, 9, 0.01, 19, 0.15, 22, 0.4],
   },
 }
+
+/**
+ * LAYER RENDERING ORDER
+ * Layers are rendered from bottom to top (first = bottom, last = top).
+ * This controls which layers appear on top of others on the map.
+ * Modify this array to change the visual stacking order.
+ */
+export const LAYER_RENDER_ORDER = [
+  // Base layers (bottom)
+  'srm-requested-lanes', // SRM requested lanes highlight (yellow)
+  'ssm-connection-highlight', // SSM connection highlight (yellow)
+  'map-message', // Map lanes
+  'connecting-lanes', // Connecting lanes with signal states
+  'invalid-lane-collection', // Invalid lane markers (red)
+  'signal-states', // Signal head icons
+  'ssm-connection-status', // SSM status icons on lanes
+  'bsm', // BSM vehicle circles
+  'srm', // SRM vehicle markers
+  // Label layers (top - always visible over other elements)
+  'map-message-labels', // Map lane labels
+  'connecting-lanes-labels', // Connecting lane labels
+] as const
 
 export type MAP_LEGEND_COLORS = {
   bsmColors: { [key: string]: string }
