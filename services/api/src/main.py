@@ -19,7 +19,6 @@ from wzdx_feed import WzdxFeed
 from rsu_geo_msg_query import RsuGeoData
 from moove_ai_query import MooveAiData
 from iss_scms_status import IssScmsStatus
-from rsu_ssm_srm import RsuSsmSrmData
 from admin_new_rsu import AdminNewRsu
 from admin_rsu import AdminRsu
 from admin_new_intersection import AdminNewIntersection
