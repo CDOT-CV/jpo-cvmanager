@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
@@ -58,6 +59,19 @@ public class EmailController {
             @RequestBody FirmwareUpgradeFailureEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendFirmwareUpgradeFailure(body));
+    }
+
+    @Operation(summary = "API Error Summary", description = "Request access to an organization")
+    @RequestMapping(value = "/send-api-error", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendApiErrorEmails(
+            @RequestBody ApiErrorEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendApiError(body));
     }
 
     @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")

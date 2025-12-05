@@ -31,7 +31,7 @@ class EmailApi:
         self.password = iapi_password
         self.token: KeycloakToken | None = None
         self.token_expiration_date: datetime.datetime
-        
+
     def gen_keycloak_token(self) -> tuple[int, KeycloakToken]:
         """
         Request a new Keycloak token from the authentication endpoint.
@@ -43,7 +43,7 @@ class EmailApi:
         if response.status_code != 200:
             logging.error(f"Failed to generate Keycloak token: {response.status_code} - {response.text}")
         return response.status_code, response.json()
-    
+
     def is_current_token_valid(self) -> bool:
         """
         Check if the current Keycloak token is valid (not expired).
@@ -52,7 +52,7 @@ class EmailApi:
             bool: True if the token exists and is not expired, False otherwise.
         """
         return self.token is not None and datetime.datetime.now() < self.token_expiration_date
-    
+
     def get_kc_token(self) -> KeycloakToken | None:
         """
         Get a valid Keycloak token, regenerating it if necessary.
@@ -62,7 +62,7 @@ class EmailApi:
         """
         if self.is_current_token_valid():
             return self.token
-        
+
         # TODO: Implement token refresh logic if refresh_token still valid
         status_code, token = self.gen_keycloak_token()
         if status_code == 200:
@@ -72,7 +72,7 @@ class EmailApi:
             logging.error("Failed to obtain initial Keycloak token.")
             return None
         return self.token
-    
+
     def send_message_counts(
         self,
         org_name: str,
@@ -139,7 +139,7 @@ class EmailApi:
         if not (200 <= response.status_code < 300):
             logging.error(f"Failed to send firmware upgrade failure email: {response.status_code} - {response.text}")
         return response.status_code, response.json()
-    
+
     def send_rsu_error_summary(
         self,
         recipients: list[str],
@@ -165,4 +165,27 @@ class EmailApi:
         })
         if not (200 <= response.status_code < 300):
             logging.error(f"Failed to send RSU error summary email: {response.status_code} - {response.text}")
-        return response.status_code,
+        return response.status_code, response.json()
+
+    def send_api_error_email(self, subject: str, message: str):
+        """
+        Send a critical api error email via the API.
+
+        Args:
+            subject (str): Email subject.
+            message (str): Email message body.
+
+        Returns:
+            tuple[int, str]: The HTTP status code and the response JSON.
+        """
+        token = self.get_kc_token()
+        response = requests.post(
+            f"{self.iapi_endpoint}/emails/send-api-error",
+            headers={"Authorization": f"bearer {token}"},
+            json={"subject": subject, "message": message},
+        )
+        if not (200 <= response.status_code < 300):
+            logging.error(
+                f"Failed to send API error email: {response.status_code} - {response.text}"
+            )
+        return response.status_code, response.json()

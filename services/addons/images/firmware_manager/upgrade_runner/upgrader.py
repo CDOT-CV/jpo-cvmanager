@@ -118,9 +118,9 @@ class UpgraderAbstractClass(abc.ABC):
     def send_error_email(self, err: Exception, stack_trace: str, type: str):
         try:
             email_api = EmailApi(
-                os.environ["IAPI_ENDPOINT"],
-                os.environ["KC_USERNAME"],
-                os.environ["KC_PASSWORD"],
+                upgrade_runner_environment.IAPI_ENDPOINT,
+                upgrade_runner_environment.KC_USERNAME,
+                upgrade_runner_environment.KC_PASSWORD,
             )
 
             email_api.send_firmware_upgrade_failure(

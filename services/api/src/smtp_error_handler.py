@@ -1,35 +1,12 @@
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-
 import logging
-
-from logging.handlers import SMTPHandler
-import smtplib
+from logging import Handler
 import datetime
-import ssl
 import api_environment
-
-
-def get_subscribed_users():
-    emails = api_environment.CSM_EMAILS_TO_SEND_TO
-    return emails
+from common.email_api import EmailApi
 
 
 def configure_error_emails(app):
-    mail_handler = SMTP_SSLHandler(
-        mailhost=[
-            api_environment.CSM_TARGET_SMTP_SERVER_ADDRESS,
-            api_environment.CSM_TARGET_SMTP_SERVER_PORT,
-        ],
-        fromaddr=api_environment.CSM_EMAIL_TO_SEND_FROM,
-        toaddrs=[],
-        subject="Automated CV Manager API Error",
-        credentials=[
-            api_environment.CSM_EMAIL_APP_USERNAME,
-            api_environment.CSM_EMAIL_APP_PASSWORD,
-        ],
-        secure=(),
-    )
+    mail_handler = ErrorEmailHandler()
     mail_handler.setLevel(logging.ERROR)
     # this seems weird, but it's the only way I can figure out how to include the stack trace info. This command appends the stack trace to the end of the self.format(record) call.
     mail_handler.setFormatter(logging.Formatter(""))
@@ -43,54 +20,44 @@ def get_environment_name(instance_connection_name: str) -> str:
         return str(instance_connection_name)
 
 
-class SMTP_SSLHandler(SMTPHandler):
-    def __init__(
-        self, mailhost, fromaddr, toaddrs, subject, credentials=None, secure=None
-    ):
-        super(SMTP_SSLHandler, self).__init__(
-            mailhost, fromaddr, toaddrs, subject, credentials, secure
+class ErrorEmailHandler(Handler):
+    def __init__(self):
+        super().__init__()  # initialize handler
+        self.email_api = EmailApi(
+            api_environment.IAPI_ENDPOINT,
+            api_environment.KC_USERNAME,
+            api_environment.KC_PASSWORD,
         )
 
+    def generate_message(self, environment_name, error_message, error_time, logs_link):
+        return f"""<p>You are receiving this email because you have been included in the CV Manager developer group.</p>
+            <br />
+            <p>This error originated in the {environment_name} environment CV Manager API</p>
+            <br />
+            <p>Error Message: {error_message}</p>
+            <br />
+            <p>Error occurred at: {error_time}</p>
+            <br />
+            <p>View this error in Logs: <a href="{logs_link}">rsu-manager-api logs</a></p>"""
+
     def emit(self, record):
-        # try:
-        subscribed_users = get_subscribed_users()
+        try:
+            if not hasattr(record, "asctime"):
+                # For some reason, asctime is not always available. So we update it to the current time in the same format (2023-08-23 15:39:29,115)
+                record.asctime = datetime.datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S,%f"
+                )[:-3]
 
-        if not hasattr(record, "asctime"):
-            # For some reason, asctime is not always available. So we update it to the current time in the same format (2023-08-23 15:39:29,115)
-            record.asctime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[
-                :-3
-            ]
+            message = self.generate_message(
+                environment_name=api_environment.ENVIRONMENT_NAME,
+                error_message=self.format(record).replace("\n", "<br>"),
+                error_time=str(record.asctime),
+                logs_link=api_environment.LOGS_LINK,
+            )
+            self.email_api.send_api_error_email(
+                subject=self.subject,
+                message=message,
+            )
 
-        body_content = open("./error_email/error_email_template.html").read()
-
-        EMAIL_KEYS = {
-            "ENVIRONMENT": api_environment.ENVIRONMENT_NAME,
-            "ERROR_MESSAGE": self.format(record).replace("\n", "<br>"),
-            "ERROR_TIME": str(record.asctime),
-            "LOGS_LINK": api_environment.LOGS_LINK,
-        }
-
-        context = ssl._create_unverified_context()
-        smtp = smtplib.SMTP(host=self.mailhost, port=self.mailport)
-        logging.error("real_smtplib", smtp)
-        smtp.starttls(context=context)
-        smtp.ehlo()
-        smtp.login(self.username, self.password)
-
-        print("Subscribed Users", subscribed_users)
-
-        for email in subscribed_users:
-            message = MIMEMultipart()
-            message["Subject"] = self.subject
-            message["From"] = self.fromaddr
-            message["To"] = email
-
-            for key, value in EMAIL_KEYS.items():
-                body_content = body_content.replace(f"##_{key}_##", value)
-            message.attach(MIMEText(body_content, "html"))
-            smtp.sendmail(self.fromaddr, email, message.as_string())
-        smtp.quit()
-
-        logging.debug(f"Successfully sent error email to {subscribed_users}")
-        # except Exception as e:
-        #     logging.exception(e)
+        except Exception:
+            self.handleError(record)

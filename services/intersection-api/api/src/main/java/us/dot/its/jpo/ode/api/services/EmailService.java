@@ -13,12 +13,14 @@ import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.access_requests.AccessRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.emails.generators.AccessRequestEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.ApiErrorEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.FirmwareUpgradeFailureEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.MessageCountEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.RsuErrorSummaryEmailGenerator;
@@ -38,6 +40,7 @@ public class EmailService {
     private final MessageCountEmailGenerator messageCountEmailGenerator;
     private final FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
     private final RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
+    private final ApiErrorEmailGenerator apiErrorEmailGenerator;
 
     public void sendEmails(List<EmailRecipient> recipients, EmailContent content) {
         emailProvider.sendBatchedEmails(recipients, content);
@@ -103,6 +106,13 @@ public class EmailService {
         // TODO: Use email addresses from RSU org only
         List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
                 data.getRsuIp());
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendApiError(ApiErrorEmailContents data) {
+        EmailContent content = apiErrorEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.CRITICAL_ERROR_MESSAGE,
+                EmailFrequency.ALWAYS);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 

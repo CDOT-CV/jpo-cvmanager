@@ -131,9 +131,9 @@ def email_daily_counts(
     logging.info("Attempting to send the count emails...")
     try:
         email_api = EmailApi(
-            os.environ["IAPI_ENDPOINT"],
-            os.environ["KC_USERNAME"],
-            os.environ["KC_PASSWORD"],
+            count_metric_environment.IAPI_ENDPOINT,
+            count_metric_environment.KC_USERNAME,
+            count_metric_environment.KC_PASSWORD,
         )
         email_api.send_message_counts(
             org_name,
@@ -177,7 +177,7 @@ def run_daily_emailer():
         # Send emails through the Intersection API
         email_daily_counts(
             org_name=org_name,
-            deployment_title=str(os.environ["DEPLOYMENT_TITLE"]),
+            deployment_title=count_metric_environment.DEPLOYMENT_TITLE,
             start_date=start_dt,
             end_date=end_dt,
             message_type_list=message_types,
