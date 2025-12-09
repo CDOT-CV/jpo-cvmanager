@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -42,6 +42,8 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
   const [intervalMinutes, setIntervalMinutes] = useState<number>(5)
   const [chartStartDate, setChartStartDate] = useState<string>(startDate)
   const [chartEndDate, setChartEndDate] = useState<string>(endDate)
+  // Track whether the generate button has been pressed
+  const [hasGenerated, setHasGenerated] = useState(false)
 
   useEffect(() => {
     if (open && rsuIp) {
@@ -51,6 +53,13 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
         .catch(() => setLatestRsuState(null))
     }
   }, [open, rsuIp, token])
+
+  useEffect(() => {
+    if (!open) {
+      setShowCharts(false)
+      setHasGenerated(false)
+    }
+  }, [open])
 
   const handleStartDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setStartDate(event.target.value)
@@ -65,6 +74,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
   }
 
   const handleGenerateCharts = () => {
+    setHasGenerated(true) // Mark that the generate button has been pressed
     const [earlierDate, laterDate] =
       new Date(startDate) <= new Date(endDate) ? [startDate, endDate] : [endDate, startDate]
 
@@ -104,17 +114,33 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
       value: data.uptime,
     })) || []
 
-  const temperatureDomain = [
-    Math.floor(Math.min(...temperatureData.map((d) => d.value)) / 5) * 5,
-    Math.ceil(Math.max(...temperatureData.map((d) => d.value)) / 5) * 5,
-  ]
+  // Ensure data arrays are non-empty before calculating domains and offsets
+  const temperatureDomain = useMemo(() => {
+    if (temperatureData.length === 0) {
+      return [0, 0] // Default domain when no data is available
+    }
+    return [
+      Math.floor(Math.min(...temperatureData.map((d) => d.value)) / 5) * 5,
+      Math.ceil(Math.max(...temperatureData.map((d) => d.value)) / 5) * 5,
+    ]
+  }, [temperatureData])
 
-  const uptimeDomain = [
-    Math.round(Math.min(...uptimeData.map((d) => d.value)) - 1),
-    Math.round(Math.max(...uptimeData.map((d) => d.value)) + 1),
-  ]
+  const uptimeDomain = useMemo(() => {
+    if (uptimeData.length === 0) {
+      return [0, 0] // Default domain when no data is available
+    }
+    return [
+      Math.round(Math.min(...uptimeData.map((d) => d.value)) - 1),
+      Math.round(Math.max(...uptimeData.map((d) => d.value)) + 1),
+    ]
+  }, [uptimeData])
 
-  const timeDomain = [Math.min(...temperatureData.map((d) => d.time)), Math.max(...temperatureData.map((d) => d.time))]
+  const timeDomain = useMemo(() => {
+    if (temperatureData.length === 0) {
+      return [0, 0] // Default domain when no data is available
+    }
+    return [Math.min(...temperatureData.map((d) => d.time)), Math.max(...temperatureData.map((d) => d.time))]
+  }, [temperatureData])
 
   // Updated formatTimestamp to include hours and minutes for X-axis
   const formatTimestamp = (unixTime: number) => {
@@ -311,6 +337,7 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     }/${end.split('-')[0]}`
   }
 
+  // Render the dialog with controls and conditional "no data" message
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>
@@ -388,138 +415,148 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
             </Button>
           </div>
         </div>
-
-        {showCharts && (
-          <>
-            <Typography variant="h6">{formatChartTitle(chartStartDate, chartEndDate, 'Temperature')}</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-                <defs>
-                  <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
-                    {yellowTempTarget < temperatureDomain[1] && <stop offset={`${redOffset}`} stopColor="#ca8282" />}
-                    <stop offset={`${yellowOffset}`} stopColor="#f0e68c" />
-                    {yellowTempTarget > temperatureDomain[0] && <stop offset={`${greenOffset}`} stopColor="#82ca9d" />}
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="time"
-                  domain={timeDomain}
-                  name="Time"
-                  tickFormatter={formatTimestamp}
-                  type="number"
-                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
-                  ticks={xAxisTicks} // Use calculated ticks including start and end
-                />
-                <YAxis
-                  dataKey="value"
-                  domain={temperatureDomain}
-                  name="Temperature"
-                  label={{ value: 'Temperature (°F)', angle: -90, position: 'center', dx: -20 }}
-                  ticks={Array.from(
-                    { length: (temperatureDomain[1] - temperatureDomain[0]) / 5 + 1 },
-                    (_, i) => temperatureDomain[0] + i * 5
-                  )}
-                />
-                <Tooltip isAnimationActive={false} formatter={formatTooltip} />
-                <Scatter
-                  data={temperatureData}
-                  line={{ stroke: 'url(#temperatureGradient)', strokeWidth: 3 }}
-                  fill="rgba(0, 0, 0, 0)"
-                  lineJointType="monotoneX"
-                />
-              </ScatterChart>
-            </ResponsiveContainer>
-
-            <Typography variant="h6">{formatChartTitle(chartStartDate, chartEndDate, 'Uptime')}</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-                <defs>
-                  <linearGradient id="uptimeGradient" x1="0" y1="0" x2="0" y2="1">
-                    {yellowUptimeTarget <= uptimeDomain[1] && (
-                      <stop offset={`${yellowUptimeOffset}`} stopColor="#f0e68c" />
-                    )}
-                    {yellowUptimeTarget >= uptimeDomain[0] && (
-                      <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />
-                    )}
-                    <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="time"
-                  domain={timeDomain}
-                  name="Time"
-                  tickFormatter={formatTimestamp}
-                  type="number"
-                  label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
-                  ticks={xAxisTicks} // Use calculated ticks including start and end
-                />
-                <YAxis
-                  dataKey="value"
-                  domain={uptimeDomain}
-                  name="Uptime"
-                  label={{ value: 'Uptime', angle: -90, position: 'center', dx: -40 }}
-                  tickFormatter={(value) => formatUptime(value)}
-                  ticks={Array.from(
-                    { length: (uptimeDomain[1] - uptimeDomain[0]) / 5 + 1 },
-                    (_, i) => uptimeDomain[0] + i * 5
-                  )}
-                  width={80}
-                />
-                <Tooltip isAnimationActive={false} formatter={formatTooltip} />
-                {/* Render shaded areas for reboot zones with labels starting at the right end */}
-                {rebootZones.map((zone, index) => (
-                  <ReferenceArea
-                    key={index}
-                    x1={zone.start}
-                    x2={zone.end}
-                    stroke="red"
-                    strokeOpacity={0.3}
-                    fill="red"
-                    fillOpacity={0.1}
-                    label={{
-                      value: zone.label,
-                      position: 'insideRight',
-                      fill: 'red',
-                      fontSize: 14,
-                      angle: 90,
-                      dy: 0,
-                      dx: 20,
-                    }}
+        {hasGenerated && (temperatureData.length === 0 || uptimeData.length === 0) ? (
+          <Typography variant="subtitle2">No data available for the selected time range.</Typography>
+        ) : (
+          showCharts && (
+            <>
+              <Typography variant="h6">{formatChartTitle(chartStartDate, chartEndDate, 'Temperature')}</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                  <defs>
+                    <linearGradient id="temperatureGradient" x1="0" y1="0" x2="0" y2="1">
+                      {yellowTempTarget < temperatureDomain[1] && <stop offset={`${redOffset}`} stopColor="#ca8282" />}
+                      <stop offset={`${yellowOffset}`} stopColor="#f0e68c" />
+                      {yellowTempTarget > temperatureDomain[0] && (
+                        <stop offset={`${greenOffset}`} stopColor="#82ca9d" />
+                      )}
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="time"
+                    domain={timeDomain}
+                    name="Time"
+                    tickFormatter={formatTimestamp}
+                    type="number"
+                    label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
+                    ticks={xAxisTicks} // Use calculated ticks including start and end
                   />
-                ))}
-                <Scatter
-                  data={uptimeData}
-                  line={{ stroke: 'url(#uptimeGradient)', strokeWidth: 3 }}
-                  fill="rgba(0, 0, 0, 0)"
-                  lineJointType="monotoneX"
-                />
-                {/* Conditional textbox for warning */}
-                {yellowUptimeTarget < uptimeDomain[1] && (
-                  <foreignObject x={warningBoxX} y={warningBoxY} width={warningBoxWidth} height={warningBoxHeight}>
-                    <div
-                      style={{
-                        border: '2px solid black',
-                        backgroundColor: 'white',
-                        padding: '5px',
-                        borderRadius: '5px',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        whiteSpace: 'pre-wrap',
+                  <YAxis
+                    dataKey="value"
+                    domain={temperatureDomain}
+                    name="Temperature"
+                    label={{ value: 'Temperature (°F)', angle: -90, position: 'center', dx: -20 }}
+                    ticks={Array.from(
+                      { length: (temperatureDomain[1] - temperatureDomain[0]) / 5 + 1 },
+                      (_, i) => temperatureDomain[0] + i * 5
+                    )}
+                  />
+                  <Tooltip isAnimationActive={false} formatter={formatTooltip} />
+                  <Scatter
+                    data={temperatureData}
+                    line={{ stroke: 'url(#temperatureGradient)', strokeWidth: 3 }}
+                    fill="rgba(0, 0, 0, 0)"
+                    lineJointType="monotoneX"
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+
+              <Typography variant="h6">{formatChartTitle(chartStartDate, chartEndDate, 'Uptime')}</Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+                  <defs>
+                    <linearGradient id="uptimeGradient" x1="0" y1="0" x2="0" y2="1">
+                      {yellowUptimeTarget <= uptimeDomain[1] && (
+                        <stop offset={`${yellowUptimeOffset}`} stopColor="#f0e68c" />
+                      )}
+                      {yellowUptimeTarget >= uptimeDomain[0] && (
+                        <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />
+                      )}
+                      <stop offset={`${greenUptimeOffset}`} stopColor="#82ca9d" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="time"
+                    domain={timeDomain}
+                    name="Time"
+                    tickFormatter={formatTimestamp}
+                    type="number"
+                    label={{ value: 'Time (UTC)', position: 'insideBottom', offset: -5 }}
+                    ticks={xAxisTicks} // Use calculated ticks including start and end
+                  />
+                  <YAxis
+                    dataKey="value"
+                    domain={uptimeDomain}
+                    name="Uptime"
+                    label={{ value: 'Uptime', angle: -90, position: 'center', dx: -40 }}
+                    tickFormatter={(value) => formatUptime(value)}
+                    ticks={Array.from(
+                      { length: 3 },
+                      (_, i) => uptimeDomain[0] + (i * (uptimeDomain[1] - uptimeDomain[0])) / 2
+                    )}
+                    width={85}
+                  />
+                  <Tooltip isAnimationActive={false} formatter={formatTooltip} />
+                  {/* Render shaded areas for reboot zones with labels starting at the right end */}
+                  {rebootZones.map((zone, index) => (
+                    <ReferenceArea
+                      key={index}
+                      x1={zone.start}
+                      x2={zone.end}
+                      stroke="red"
+                      strokeOpacity={0.3}
+                      fill="red"
+                      fillOpacity={0.1}
+                      label={{
+                        value: zone.label,
+                        position: 'insideRight',
+                        fill: 'red',
+                        fontSize: 14,
+                        angle: 90,
+                        dy: 0,
+                        dx: 20,
                       }}
-                    >
-                      Yellow indicates more
-                      <br />
-                      than 90 days since
-                      <br />
-                      previous reboot.
-                    </div>
-                  </foreignObject>
-                )}
-              </ScatterChart>
-            </ResponsiveContainer>
-          </>
+                    />
+                  ))}
+                  <Scatter
+                    data={uptimeData}
+                    line={{ stroke: 'url(#uptimeGradient)', strokeWidth: 3 }}
+                    fill="rgba(0, 0, 0, 0)"
+                    lineJointType="monotoneX"
+                  />
+                  {/* Conditional textbox for warning */}
+                  {yellowUptimeTarget < uptimeDomain[1] && (
+                    <foreignObject x={warningBoxX} y={warningBoxY} width={warningBoxWidth} height={warningBoxHeight}>
+                      <div
+                        style={{
+                          border: `2px solid ${
+                            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'black'
+                          }`,
+                          backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches
+                            ? 'black'
+                            : 'white',
+                          padding: '5px',
+                          borderRadius: '5px',
+                          fontSize: '14px',
+                          fontWeight: 'bold',
+                          whiteSpace: 'pre-wrap',
+                          color: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'black',
+                        }}
+                      >
+                        Yellow indicates more
+                        <br />
+                        than 90 days since
+                        <br />
+                        previous reboot.
+                      </div>
+                    </foreignObject>
+                  )}
+                </ScatterChart>
+              </ResponsiveContainer>
+            </>
+          )
         )}
       </DialogContent>
     </Dialog>

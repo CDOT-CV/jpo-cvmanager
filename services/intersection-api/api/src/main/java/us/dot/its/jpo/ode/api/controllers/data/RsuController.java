@@ -58,9 +58,8 @@ public class RsuController {
             @ApiResponse(responseCode = "404", description = "No RSU status found for this RSU IP")
     })
     public ResponseEntity<RsuState> getLatestRsuStatus(@RequestParam String rsuIp) {
-        List<RsuState> results = rsuStateRepository.findByRsuIPOrderByTimestampDesc(rsuIp);
-        if (!results.isEmpty()) {
-            RsuState latest = results.get(0);
+        RsuState latest = rsuStateRepository.findLatestByRsuIP(rsuIp);
+        if (latest != null) {
             return ResponseEntity.ok(latest);
         } else {
             return ResponseEntity.notFound().build();
