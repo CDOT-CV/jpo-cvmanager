@@ -25,7 +25,7 @@ import java.time.ZoneOffset;
 public class RsuStateRepositoryImpl implements RsuStateRepository {
 
     private final MongoTemplate mongoTemplate;
-    private final String collectionName = "IntersectionApiRsuStatus";
+    private final String collectionName = "RmMonitoringStatusRecords";
 
     @Autowired
     public RsuStateRepositoryImpl(MongoTemplate mongoTemplate) {
@@ -35,7 +35,10 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
     @Override
     public List<RsuState> retrieveRsuStateWithinTimeInterval(String rsuIP, long start, long end) {
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP)
-                .and("timestamp").gte(new Date(start)).lte(new Date(end));
+                .and("timestamp").gte(new Date(start)).lte(new Date(end))
+                .andOperator(
+                        Criteria.where("uptime").ne(-1),
+                        Criteria.where("temperature").ne(-1));
         Query query = Query.query(criteria).with(Sort.by(Sort.Direction.ASC, "timestamp"));
         return mongoTemplate.find(query, RsuState.class, collectionName);
     }
@@ -45,7 +48,10 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
         long intervalMs = intervalMinutes * 60 * 1000; // Convert minutes to milliseconds
 
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP)
-                .and("timestamp").gte(new Date(start)).lte(new Date(end));
+                .and("timestamp").gte(new Date(start)).lte(new Date(end))
+                .andOperator(
+                        Criteria.where("uptime").ne(-1),
+                        Criteria.where("temperature").ne(-1));
 
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.match(criteria), // filter by rsuIP and timestamp
@@ -69,11 +75,12 @@ public class RsuStateRepositoryImpl implements RsuStateRepository {
     }
 
     @Override
-    public List<RsuState> findByRsuIPOrderByTimestampDesc(String rsuIP) {
+    public RsuState findLatestByRsuIP(String rsuIP) {
         Criteria criteria = Criteria.where("rsuIP").is(rsuIP);
-        Query query = Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "timestamp"));
+        Query query = Query.query(criteria)
+                .with(Sort.by(Sort.Direction.DESC, "timestamp"))
+                .limit(1); // Limit the results to just one record
 
-        List<RsuState> results = mongoTemplate.find(query, RsuState.class, collectionName);
-        return results;
+        return mongoTemplate.findOne(query, RsuState.class, collectionName);
     }
 }

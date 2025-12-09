@@ -6,7 +6,7 @@ import us.dot.its.jpo.ode.api.models.snmp.RsuState;
 public interface RsuStateRepository {
     List<RsuState> retrieveRsuStateWithinTimeInterval(String rsuIP, long start, long end);
 
-    List<RsuState> findByRsuIPOrderByTimestampDesc(String rsuIP);
+    RsuState findLatestByRsuIP(String rsuIP);
 
     List<RsuState> retrieveRsuStateWithinTimeInterval(String rsuIP, long start, long end,
             int intervalMinutes);

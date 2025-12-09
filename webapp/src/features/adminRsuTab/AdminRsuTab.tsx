@@ -223,12 +223,14 @@ const AdminRsuTab = () => {
             loading === false && (
               <div className="scroll-div-tab">
                 <AdminTable title={''} data={tableData} columns={columns} actions={tableActions} />
-                <RsuStatusDialog
-                  open={statusDialogOpen}
-                  onClose={handleStatusDialogClose}
-                  rsuIp={selectedRsuIp}
-                  token={token}
-                />
+                {statusDialogOpen && (
+                  <RsuStatusDialog
+                    open={statusDialogOpen}
+                    onClose={handleStatusDialogClose}
+                    rsuIp={selectedRsuIp}
+                    token={token}
+                  />
+                )}
               </div>
             )
           }
