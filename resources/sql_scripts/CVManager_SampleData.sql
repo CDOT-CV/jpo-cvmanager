@@ -74,6 +74,12 @@ INSERT INTO public.email_type(
 	email_type)
 	VALUES ('Support Requests'), ('Firmware Upgrade Failures'), ('Daily Message Counts');
 
+INSERT INTO public.user_email_notification(
+	user_email_notification_id, user_id, email_type_id)
+	VALUES (1, 1, 1),
+    (2, 1, 2),
+    (3, 1, 3);
+
 INSERT INTO public.intersections(
 	intersection_number, ref_pt, intersection_name)
 	VALUES (12109, ST_GeomFromText('POINT(-105.0908854 39.5880413)'), 'S Wadsworth & W Columbine Dr');

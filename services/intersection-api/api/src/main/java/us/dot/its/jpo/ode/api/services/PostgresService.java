@@ -66,7 +66,7 @@ public class PostgresService {
     private final String findNotificationSettingsByEmailQuery = "SELECT et.email_type " +
             "FROM public.user_email_notification uen " +
             "JOIN public.users u ON uen.user_id = u.user_id " +
-            "JOIN public.email_type et ON uen.email_type_id = et.email_type_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
             "WHERE u.email = :email";
 
     private final String findUsersByNotificationTypeQuery = "SELECT u.email " +

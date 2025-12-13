@@ -9,13 +9,13 @@ server:
 ### keycloak configuration
 keycloak:
   realm: cvmanager
-  auth-server-url: ${AUTH_SERVER_URL:http://localhost:8084}
+  auth-server-url: ${AUTH_SERVER_URL:http://172.26.97.25:8084}
   client-id: ${KEYCLOAK_CLIENT_API_ID:cvmanager-api}
-  client-secret: ${KEYCLOAK_CLIENT_API_SECRET:w8zpoArUwIVN6TSDY5WQgX9TlVAgH9OF}
+  client-secret: ${KEYCLOAK_CLIENT_API_SECRET:keycloak-secret-key}
 
 spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: ${AUTH_SERVER_URL:http://localhost:8084}/realms/cvmanager
-  jwk-set-uri: ${AUTH_SERVER_URL:http://localhost:8084}/realms/cvmanager/protocol/openid-connect/certs
+  issuer-uri: ${AUTH_SERVER_URL:http://172.26.97.25:8084}/realms/cvmanager
+  jwk-set-uri: ${AUTH_SERVER_URL:http://172.26.97.25:8084}/realms/cvmanager/protocol/openid-connect/certs
 
 spring.kafka.bootstrap-servers: ${KAFKA_BROKER_IP:localhost}:${KAFKA_BROKER_PORT:9092}
 logging.level.org.apache.kafka: INFO
@@ -70,7 +70,7 @@ spring:
   ### Spring Mail Settings (If using emailBroker SMTP)
   mail:
     host: ${INTERSECTION_SMTP_SERVER_IP:localhost}
-    port: ${INTERSECTION_SMTP_SERVER_PORT:1025}
+    port: ${INTERSECTION_SMTP_SERVER_PORT:25}
     properties:
       mail:
         smtp:
@@ -99,8 +99,8 @@ email:
   # Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
   broker: ${INTERSECTION_EMAIL_BROKER:SMTP}
   sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
-  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:}
-  cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost}
+  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:dm3TPDtaPlw0tARfm6Eg4BlIr0yp12qJ}
+  cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost:3000}
 
   sendgrid:
     api-key: ${SENDGRID_API_KEY:}

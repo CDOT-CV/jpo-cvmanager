@@ -12,7 +12,6 @@ ENV APP_HOME=/app
 WORKDIR $APP_HOME
 COPY api/requirements.txt .
 COPY api/src/* .
-COPY api/src/error_email/* ./error_email/
 COPY common/ ./common/
 
 # Install production dependencies.

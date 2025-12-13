@@ -40,17 +40,26 @@ services:
       KAFKA_BROKER_IP: ${KAFKA_BROKER_IP:-kafka}
       KAFKA_BROKER_PORT: ${KAFKA_BROKER_PORT:-5432}
 
-      PG_DB_USER: ${PG_DB_USER}
-      PG_DB_PASS: ${PG_DB_PASS}
-      POSTGRES_SERVER_URL: jdbc:postgresql://${PG_DB_HOST}
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
-      POSTMARK_API_KEY: ${POSTMARK_API_KEY}
+      PG_DB_USER: ${PG_DB_USER:-postgres}
+      PG_DB_PASS: ${PG_DB_PASS:-postgres}
+      POSTGRES_SERVER_URL: jdbc:postgresql://${PG_DB_HOST:-cvmanager_postgres:5432}
 
       INTERSECTION_API_ENABLE_API: ${INTERSECTION_API_ENABLE_API:-True}
-      INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER:-false}
+      INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER:-True}
       INTERSECTION_API_ENABLE_REPORTS: ${INTERSECTION_API_ENABLE_REPORTS:-false}
+      INTERSECTION_API_ENABLE_HAAS: ${INTERSECTION_API_ENABLE_HAAS:-false}
+      INTERSECTION_API_ENABLE_ASN1_DECODER: ${INTERSECTION_API_ENABLE_ASN1_DECODER:-true}
 
       BASE_ROUTE_PREFIX: ${INTERSECTION_API_ROUTE_PREFIX:-/}
+
+      INTERSECTION_EMAIL_BROKER: ${INTERSECTION_EMAIL_BROKER:-SMTP}
+      INTERSECTION_SENDER_EMAIL: ${INTERSECTION_SENDER_EMAIL:-donotreply@cvmanager.com}
+      UNSUBSCRIBE_SECRET_KEY: ${UNSUBSCRIBE_SECRET_KEY:-replace_me}
+      CV_MANAGER_FRONT_END_URI: ${CV_MANAGER_FRONT_END_URI:-http://localhost:${WEBAPP_PORT:-3000}}
+      INTERSECTION_SMTP_SERVER_IP: ${INTERSECTION_SMTP_SERVER_IP:-localhost}
+      INTERSECTION_SMTP_SERVER_PORT: ${INTERSECTION_SMTP_SERVER_PORT:-1025}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      POSTMARK_API_KEY: ${POSTMARK_API_KEY}
     entrypoint:
       - sh
       - -c
@@ -70,3 +79,14 @@ services:
       kafka-setup:
         condition: service_started
         required: false
+  smtp4dev:
+    profiles:
+      - smtp4dev
+    image: rnwood/smtp4dev:v3
+    restart: always
+    ports:
+      - "5001:80"  # Web UI
+      - "5000:5000"  # Web UI
+      - "25:25"      # SMTP
+      - "143:143"    # IMAP
+      - "110:110"    # POP3

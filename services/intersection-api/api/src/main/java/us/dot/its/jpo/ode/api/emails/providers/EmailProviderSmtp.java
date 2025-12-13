@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
@@ -30,7 +32,7 @@ public class EmailProviderSmtp implements EmailProvider {
     @Override
     public EmailSendResponse sendEmail(EmailRecipient recipient, EmailContent content) {
         try {
-            SimpleMailMessage message = getMessage(recipient, content);
+            MimeMessage message = getMessage(recipient, content);
             mailSender.send(message);
             return new EmailSendResponse(200, "Email sent successfully");
         } catch (org.springframework.mail.MailAuthenticationException e) {
@@ -48,9 +50,10 @@ public class EmailProviderSmtp implements EmailProvider {
     @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
         try {
-            List<SimpleMailMessage> messages = recipients.stream().map(r -> getMessage(r, content)).toList();
-            mailSender.send(messages.toArray(new SimpleMailMessage[0]));
-            return List.of(new EmailSendResponse(200, "Emails sent successfully"));
+            MimeMessage[] messages = recipients.stream().map(r -> getMessage(r, content)).filter((v) -> v != null)
+                    .toArray(MimeMessage[]::new);
+            mailSender.send(messages);
+            return List.of(new EmailSendResponse(200, "Emails sent successfully: " + recipients.size()));
         } catch (org.springframework.mail.MailAuthenticationException e) {
             log.error("SMTP authentication failed for batch: {}", e.getMessage());
             return List.of(new EmailSendResponse(500, "SMTP authentication failed"));
@@ -63,17 +66,26 @@ public class EmailProviderSmtp implements EmailProvider {
         }
     }
 
-    private SimpleMailMessage getMessage(EmailRecipient recipient, EmailContent content) {
+    private MimeMessage getMessage(EmailRecipient recipient, EmailContent content) {
         String unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
         String htmlText = replacePlaceholders(content.getBody(), unsubscribeUrl);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(emailProperties.getSenderAddress());
-        message.setTo(recipient.getEmail());
-        message.setSubject(content.getSubject());
-        message.setText(htmlText);
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper;
+        try {
+            helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        return message;
+            helper.setFrom(emailProperties.getSenderAddress());
+            helper.setTo(recipient.getEmail());
+            helper.setSubject(content.getSubject());
+            helper.setText(htmlText, true); // true = HTML content
+
+            return message;
+        } catch (MessagingException e) {
+            log.error("Failed to create email message for {}: {}", recipient.getEmail(), e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private String replacePlaceholders(String htmlContents, String unsubscribeUrl) {
