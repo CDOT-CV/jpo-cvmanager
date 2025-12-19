@@ -32,9 +32,10 @@ from contact_support import ContactSupportResource
 from rsu_error_summary import RSUErrorSummaryResource
 import smtp_error_handler
 from common import common_environment
-import api_environment
 
-common_environment.configure_logging()
+logging.info(
+    "CVManager API running with LOGGING_LEVEL: " + str(common_environment.LOGGING_LEVEL)
+)
 
 app = Flask(__name__)
 
