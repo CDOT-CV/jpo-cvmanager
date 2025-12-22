@@ -83,8 +83,6 @@ def purge_ping_data(stale_period):
 
 
 if __name__ == "__main__":
-    common_environment.configure_logging()
-
     run_service = (
         rsu_status_check_environment.RSU_PING or rsu_status_check_environment.ZABBIX
     )

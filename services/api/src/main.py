@@ -30,9 +30,10 @@ from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg
 import smtp_error_handler
 from common import common_environment
-import api_environment
 
-common_environment.configure_logging()
+logging.info(
+    "CVManager API running with LOGGING_LEVEL: " + str(common_environment.LOGGING_LEVEL)
+)
 
 app = Flask(__name__)
 

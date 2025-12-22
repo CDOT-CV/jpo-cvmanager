@@ -139,7 +139,6 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
 # - target_firmware_version
 # - install_package
 if __name__ == "__main__":
-    common_environment.configure_logging()
     # Trimming outer single quotes from the json.loads
     upgrade_info = json.loads(sys.argv[1][1:-1])
     commsignia_upgrader = CommsigniaUpgrader(upgrade_info)
