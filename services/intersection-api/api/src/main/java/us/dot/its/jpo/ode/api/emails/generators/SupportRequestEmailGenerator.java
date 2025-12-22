@@ -28,7 +28,7 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
         context.setVariable("preview_text", "New Support Request in CV Manager");
         context.setVariable("greeting", "Hello,");
         context.setVariable("content_1",
-                String.format("New support request from %s:\n\n%s", data.getEmail(), data.getMessage()));
+                String.format("New support request from %s:\r\n\r\n%s", data.getEmail(), data.getMessage()));
         context.setVariable("action_button_text", "Navigate to the CV-Manager");
         context.setVariable("action_button_href",
                 String.format("%s", emailProperties.getCvmgrFrontEndUri()));
@@ -40,6 +40,16 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
         context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
         context.setVariable("unsubscribe_link_text", "Unsubscribe");
         context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
+        context.setVariable("backgroundColor", "#f4f5f6");
+        context.setVariable("contentBackgroundColor", "#f4f5f6");
+        context.setVariable("tableMainBackgroundColor", "#ffffff");
+        context.setVariable("tableMainBorderColor", "#eaebed");
+        context.setVariable("tableHoverColor", "#ec8208ff");
+        context.setVariable("tableButtonColor", "#0867ec");
+        context.setVariable("btnColor", "#0867ec");
+        context.setVariable("btnFontColor", "#ffffff");
+        context.setVariable("btnHoverColor", "#ec8208ff");
+        context.setVariable("footerFontColor", "#9a9ea6");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 

@@ -26,9 +26,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
-@RequestMapping("/users/notifications")
+@RequestMapping("/users")
 @RequiredArgsConstructor
-public class NotificationController {
+public class UserController {
     private final EmailService emailService;
 
     // TODO: Remove all authentication for send-support-request-email

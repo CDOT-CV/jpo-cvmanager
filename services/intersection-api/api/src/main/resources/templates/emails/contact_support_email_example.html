@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title th:text="${head_title}">head_title</title>
+    <title>CV Manager - Support Request</title>
     <style media="all" type="text/css">
       body {
         font-family: Helvetica, sans-serif;
@@ -12,7 +12,7 @@
         line-height: 1.3;
         -ms-text-size-adjust: 100%;
         -webkit-text-size-adjust: 100%;
-        background-color: [[${backgroundColor}]];
+        background-color: #f4f5f6;
         margin: 0;
         padding: 0;
       }
@@ -21,7 +21,7 @@
         border-collapse: separate;
         mso-table-lspace: 0pt;
         mso-table-rspace: 0pt;
-        background-color: [[${contentBackgroundColor}]];
+        background-color: #f4f5f6;
         width: 100%;
       }
 
@@ -64,8 +64,8 @@
         border-collapse: separate;
         mso-table-lspace: 0pt;
         mso-table-rspace: 0pt;
-        background: [[${tableMainBackgroundColor}]];
-        border: 1px solid [[${tableMainBorderColor}]];
+        background: #ffffff;
+        border: 1px solid #eaebed;
         border-radius: 16px;
         width: 100%;
       }
@@ -75,13 +75,12 @@
         padding: 24px;
       }
 
-      p span {
+      p {
         font-family: Helvetica, sans-serif;
         font-size: 16px;
         font-weight: normal;
         margin: 0;
         margin-bottom: 16px;
-        color: [[${footerFontColor}]];
       }
 
       table.btn {
@@ -139,20 +138,20 @@
       .content-block {
         font-family: Helvetica, sans-serif;
         vertical-align: top;
-        color: [[${backgroundColor}]];
+        color: #f4f5f6;
         font-size: 16px;
         text-align: center;
       }
 
       .apple-link {
-        color: [[${footerFontColor}]];
+        color: #9a9ea6;
         font-size: 16px;
         text-align: center;
       }
 
       .footer a {
         text-decoration: underline;
-        color: [[${footerFontColor}]];
+        color: #9a9ea6;
         font-size: 16px;
         text-align: center;
       }
@@ -238,23 +237,24 @@
           <td class="container">
             <div class="content">
               <!-- START CENTERED WHITE CONTAINER -->
-              <span class="preheader" th:text="${preview_text}">preview_text</span>
+              <span class="preheader">New Support Request in CV Manager</span>
               <table role="presentation" class="main">
                 <tbody>
                   <!-- START MAIN CONTENT AREA -->
                   <tr>
                     <td class="wrapper">
-                      <p th:text="${greeting}"></p>
-                      <p th:text="${content_1}"></p>
-                      <p>
-                        <a
-                          th:href="${action_button_href}"
-                          target="_blank"
-                          th:text="${action_button_text}"
-                        ></a>
-                      </p>
-                      <p th:text="${content_2}">content_2</p>
-                      <p th:text="${signature}">signature</p>
+                      <p>Hello,</p>
+                      <p>New support request from email@gmail.com:
+
+email_message</p>
+                      
+                        <p></p><a
+                        href="http://localhost:3000"
+                        target="_blank"
+                        >Navigate to the CV-Manager</a>
+                        <p>
+                      <p>If not actionable, please forward this request on to the relevant party.</p>
+                      <p>This was an automated email from the CV Manager. Please do not reply to this email.</p>
                     </td>
                   </tr>
                   <!-- END MAIN CONTENT AREA -->
@@ -267,11 +267,11 @@
                   <tbody>
                     <tr>
                       <td class="content-block">
-                        <span class="apple-link" th:text="${footer_address}"></span>
+                        <span class="apple-link">CV-Manager User-Submitted Support Request</span>
                         <br />
                         <p>
-                        <span th:text="${unsubscribe_pre_text}"></span>
-                        <a th:href="${unsubscribe_href}" th:text="${unsubscribe_link_text}"></a>
+                        <span>If you no longer wish to receive these emails, please </span>
+                        <a href="http://localhost:3000/unsubscribe?token=eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTcyLjI2Ljk3LjI1OjgwODQvcmVhbG1zL2N2bWFuYWdlciIsInN1YiI6InRlc3RAZ21haWwuY29tIiwicHVycG9zZSI6InVuc3Vic2NyaWJlIiwiaWF0IjoxNzY1NTk5ODczfQ.ZwYQpzv00n-AbzuY8SjZruIBLM_vlPMr5zsfY0WtZtc">Unsubscribe</a>
                         </p>
                       </td>
                     </tr>

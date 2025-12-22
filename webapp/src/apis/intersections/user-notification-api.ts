@@ -3,7 +3,7 @@ import { authApiHelper } from './api-helper-cviz'
 class UserNotificationApi {
   async sendSupportRequest({ emailContents }: { emailContents: SupportRequestEmailContents }): Promise<boolean> {
     const response = await authApiHelper.invokeApi({
-      path: '/users/notifications/submit-support-request',
+      path: '/users/submit-support-request',
       method: 'POST',
       body: emailContents,
       booleanResponse: true,
