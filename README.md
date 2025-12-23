@@ -103,7 +103,7 @@ To generate a free mapbox access token:
 7. Press create a new token (it is easier to manage and re-create new tokens than the default public token)
    i. Enter a recognizable token name
    ii. No scopes are required, as this token will only be used for tile loading
-   iii. Under Token Restrictions, enter the URL paths the CV-Manager will be hosted on. For local development, this is http://localhost and http://${DOCKER_HOST_IP} 1. This is incredibly important. When the CV-Manager is deployed, the mapbox token can be extracted quite easily. The only way to protect the use of this token (and not incur additional access costs) is to restrict the allowed domains
+   iii. Under Token Restrictions, enter the URL paths the CV-Manager will be hosted on. For local development, this is http://localhost:3000 and http://${DOCKER_HOST_IP}:3000. This is incredibly important. When the CV-Manager is deployed, the mapbox token can be extracted quite easily. The only way to protect the use of this token (and not incur additional access costs) is to restrict the allowed domains
    iv. Select "Create Token"
 8. Copy the token value and paste it into the .env under MAPBOX_TOKEN=
 
