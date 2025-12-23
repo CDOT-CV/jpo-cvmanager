@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import Api
 import api_environment
-
+import logging
 
 # Custom script imports
 from middleware import Middleware
