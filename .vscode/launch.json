@@ -35,7 +35,9 @@
       "stopOnEntry": false,
       "program": "${workspaceRoot}/services/api/src/main.py",
       "env": {
+        "PYTHONPATH": "${workspaceRoot}/services",
         "FLASK_APP": "${workspaceRoot}/services/api/src/main.py",
+        "FLASK_RUN_PORT": "8081",
         "PG_DB_HOST": "localhost:5432",
         "PG_DB_USER": "postgres",
         "PG_DB_PASS": "postgres",
@@ -53,7 +55,7 @@
         "KEYCLOAK_API_CLIENT_ID": "cvmanager-api",
         "KEYCLOAK_API_CLIENT_SECRET_KEY": "keycloak-secret-key"
       },
-      "args": ["run", "--port=8081"],
+      "args": ["run", "--port", "8081"],
       "envFile": "${workspaceRoot}/services/api/.env",
       "preLaunchTask": "build-python-services"
     },
