@@ -53,7 +53,7 @@
         "KEYCLOAK_API_CLIENT_ID": "cvmanager-api",
         "KEYCLOAK_API_CLIENT_SECRET_KEY": "keycloak-secret-key"
       },
-      "args": ["run"],
+      "args": ["run", "--port=8081"],
       "envFile": "${workspaceRoot}/services/api/.env",
       "preLaunchTask": "build-python-services"
     },
