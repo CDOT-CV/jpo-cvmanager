@@ -85,7 +85,4 @@ if api_environment.ENABLE_MOOVE_AI_FEATURES:
     api.add_resource(MooveAiData, "/moove-ai-data")
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("FLASK_RUN_PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-
+    app.run(host="0.0.0.0", port=api_environment.FLASK_RUN_PORT)
