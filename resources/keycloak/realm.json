@@ -471,7 +471,7 @@
         "groups": []
       },
       {
-        "id": "f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:de84412f-b6a4-4a33-8dd0-93b042abfdc8",
+        "id": "de84412f-b6a4-4a33-8dd0-93b042abfdc8",
         "username": "cvmanager_count_metric",
         "email": "cvmanager_count_metric",
         "emailVerified": false,
@@ -505,7 +505,7 @@
         "groups": []
       },
       {
-        "id": "f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:107a501b-14fb-478f-a37a-dbca5e315644",
+        "id": "107a501b-14fb-478f-a37a-dbca5e315644",
         "username": "cvmanager_firmware_upgrade_runner",
         "email": "cvmanager_firmware_upgrade_runner",
         "emailVerified": false,

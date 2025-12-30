@@ -83,7 +83,7 @@ public class PostgresService {
             "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
             "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
             "WHERE et.email_type = :notification_type " +
-            "AND r.ipv4_address = :rsu_ip";
+            "AND CAST(r.ipv4_address AS text) = :rsu_ip";
 
     private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
@@ -244,7 +244,7 @@ public class PostgresService {
     public List<String> getUsersByNotificationTypeAndRsu(String notificationType, String rsuIp) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndRsuQuery, String.class);
         query.setParameter("notification_type", notificationType);
-        query.setParameter("rsu_ip", rsuIp);
+        query.setParameter("rsu_ip", rsuIp + "/32");
         return query.getResultList();
     }
 

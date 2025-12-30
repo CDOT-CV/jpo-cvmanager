@@ -48,7 +48,7 @@ public class EmailController {
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendMessageCounts(body));
     }
 
-    @Operation(summary = "Request Organization Access", description = "Request access to an organization")
+    @Operation(summary = "Send Firmware Upgrade Failure Emails", description = "Send firmware upgrade failure emails")
     @RequestMapping(value = "/send-firmware-upgrade-failure", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {

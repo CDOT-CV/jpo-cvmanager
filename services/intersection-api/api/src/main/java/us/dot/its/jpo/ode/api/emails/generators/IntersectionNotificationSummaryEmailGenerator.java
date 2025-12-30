@@ -28,23 +28,10 @@ public class IntersectionNotificationSummaryEmailGenerator
     @Override
     public EmailContent generateEmailBody(IntersectionNotificationSummaryEmailContents data) {
 
-        Context context = new Context();
-        context.setVariable("head_title", "CV Manager - New Notifications");
+        Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "New Notifications in CV Manager");
-        context.setVariable("greeting", "Hello,");
-        context.setVariable("content_1", getEmailText(data.getNotifications()));
-        context.setVariable("action_button_text", "View Notifications in the CV-Manager");
-        context.setVariable("action_button_href",
-                String.format("%s/intersectionDashboard/notifications",
-                        emailProperties.getCvmgrFrontEndUri()));
-        context.setVariable("content_2",
-                "Any notifications marked with CBR are Critical and should be reviewed immediately.");
-        context.setVariable("signature",
-                "This was an automated email from the CV Manager. Please do not reply to this email.");
+        context.setVariable("content_1", "<p>" + getEmailText(data.getNotifications()) + "</p>");
         context.setVariable("footer_address", "CV-Manager Automated Notifications");
-        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-        context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
 
         String htmlContent = templateEngine.process(EMAIL_TEMPLATE, context);
 

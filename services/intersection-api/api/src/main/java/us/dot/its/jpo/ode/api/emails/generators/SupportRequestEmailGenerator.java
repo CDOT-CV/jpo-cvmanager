@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.emails.generators;
 
-import java.time.Instant;
-
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -23,33 +21,11 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
     @Override
     public EmailContent generateEmailBody(SupportRequestEmailContents data) {
 
-        Context context = new Context();
-        context.setVariable("head_title", "CV Manager - Support Request");
+        Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "New Support Request in CV Manager");
-        context.setVariable("greeting", "Hello,");
         context.setVariable("content_1",
-                String.format("New support request from %s:\r\n\r\n%s", data.getEmail(), data.getMessage()));
-        context.setVariable("action_button_text", "Navigate to the CV-Manager");
-        context.setVariable("action_button_href",
-                String.format("%s", emailProperties.getCvmgrFrontEndUri()));
-        context.setVariable("content_2",
-                "If not actionable, please forward this request on to the relevant party.");
-        context.setVariable("signature",
-                "This was an automated email from the CV Manager. Please do not reply to this email.");
+                String.format("<p>New support request from %s:<br><br>%s</p>", data.getEmail(), data.getMessage()));
         context.setVariable("footer_address", "CV-Manager User-Submitted Support Request");
-        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-        context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
-        context.setVariable("backgroundColor", "#f4f5f6");
-        context.setVariable("contentBackgroundColor", "#f4f5f6");
-        context.setVariable("tableMainBackgroundColor", "#ffffff");
-        context.setVariable("tableMainBorderColor", "#eaebed");
-        context.setVariable("tableHoverColor", "#ec8208ff");
-        context.setVariable("tableButtonColor", "#0867ec");
-        context.setVariable("btnColor", "#0867ec");
-        context.setVariable("btnFontColor", "#ffffff");
-        context.setVariable("btnHoverColor", "#ec8208ff");
-        context.setVariable("footerFontColor", "#9a9ea6");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 

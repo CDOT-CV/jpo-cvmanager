@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>CV Manager - Support Request</title>
+    <title></title>
     <style media="all" type="text/css">
       body {
         font-family: Helvetica, sans-serif;
@@ -19,8 +19,6 @@
 
       table.body {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
         background-color: #f4f5f6;
         width: 100%;
       }
@@ -55,15 +53,12 @@
         max-width: 0;
         opacity: 0;
         overflow: hidden;
-        mso-hide: all;
         visibility: hidden;
         width: 0;
       }
 
       table.main {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
         background: #ffffff;
         border: 1px solid #eaebed;
         border-radius: 16px;
@@ -75,18 +70,36 @@
         padding: 24px;
       }
 
-      p {
+      p span {
         font-family: Helvetica, sans-serif;
         font-size: 16px;
         font-weight: normal;
         margin: 0;
         margin-bottom: 16px;
+        color: #9a9ea6;
+      }
+
+      /* Styles for embedded content tables */
+      .content-table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 16px 0;
+      }
+
+      .content-table th,
+      .content-table td {
+        border: 1px solid #eaebed;
+        padding: 8px;
+        text-align: left;
+      }
+
+      .content-table th {
+        background-color: #eaebed;
+        font-weight: bold;
       }
 
       table.btn {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
         box-sizing: border-box;
         width: 100%;
         min-width: 100%;
@@ -98,8 +111,6 @@
 
       table.btn table {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
         width: auto;
       }
 
@@ -130,8 +141,6 @@
 
       .footer table {
         border-collapse: separate;
-        mso-table-lspace: 0pt;
-        mso-table-rspace: 0pt;
         width: 100%;
       }
 
@@ -193,6 +202,15 @@
           max-width: 100% !important;
           width: 100% !important;
         }
+
+        .content-table {
+          font-size: 14px !important;
+        }
+
+        .content-table th,
+        .content-table td {
+          padding: 4px !important;
+        }
       }
 
       @media all {
@@ -237,22 +255,22 @@
           <td class="container">
             <div class="content">
               <!-- START CENTERED WHITE CONTAINER -->
-              <span class="preheader">New Support Request in CV Manager</span>
+              <span class="preheader">Firmware Upgrade Failure in CV Manager</span>
               <table role="presentation" class="main">
                 <tbody>
                   <!-- START MAIN CONTENT AREA -->
                   <tr>
                     <td class="wrapper">
-                      <p>Hello,</p>
-                      <p>New support request from email@gmail.com:
-
-email_message</p>
-                      
-                        <p></p><a
-                        href="http://localhost:3000"
-                        target="_blank"
-                        >Navigate to the CV-Manager</a>
-                        <p>
+                      <p>Hello CV-Manager User,</p>
+                      <div><p>A firmware upgrade command failed on RSU 10.0.0.78.<br><br><strong>Update type:</strong> Firmware Upgrader<br><strong>Error message:</strong> ConnectionError: SNMP timeout: No response from 10.0.0.78 during firmware transfer. Device may have rebooted unexpectedly or network connection was interrupted.<br><strong>Stack Trace:</strong> Traceback (most recent call last):
+  File "/usr/local/bin/rsu_firmware_upgrade.py", line 23, in <module>
+    upgrade_firmware("10.0.0.78", "/opt/firmware/commsignia_v4.2.1.bin")
+  File "/usr/local/bin/rsu_firmware_upgrade.py", line 15, in upgrade_firmware
+    raise ConnectionError(f"SNMP timeout: No response from {rsu_ip} during firmware transfer. Device may have rebooted unexpectedly or network connection was interrupted.")
+ConnectionError: SNMP timeout: No response from 10.0.0.78 during firmware transfer. Device may have rebooted unexpectedly or network connection was interrupted.</p></div>
+                      <p>
+                        <a href="http://localhost:3000" target="_blank">Navigate to the CV-Manager</a>
+                      </p>
                       <p>If not actionable, please forward this request on to the relevant party.</p>
                       <p>This was an automated email from the CV Manager. Please do not reply to this email.</p>
                     </td>
@@ -267,11 +285,11 @@ email_message</p>
                   <tbody>
                     <tr>
                       <td class="content-block">
-                        <span class="apple-link">CV-Manager User-Submitted Support Request</span>
+                        <span class="apple-link">CV-Manager Firmware Upgrade Failure</span>
                         <br />
                         <p>
-                        <span>If you no longer wish to receive these emails, please </span>
-                        <a href="http://localhost:3000/unsubscribe?token=eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTcyLjI2Ljk3LjI1OjgwODQvcmVhbG1zL2N2bWFuYWdlciIsInN1YiI6InRlc3RAZ21haWwuY29tIiwicHVycG9zZSI6InVuc3Vic2NyaWJlIiwiaWF0IjoxNzY1NTk5ODczfQ.ZwYQpzv00n-AbzuY8SjZruIBLM_vlPMr5zsfY0WtZtc">Unsubscribe</a>
+                          <span>If you no longer wish to receive these emails, please </span>
+                          <a href="http://localhost:3000/unsubscribe?token=eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTkyLjE2OC4xMTAuMTQ3OjgwODQvcmVhbG1zL2N2bWFuYWdlciIsInN1YiI6InRlc3RAZ21haWwuY29tIiwicHVycG9zZSI6InVuc3Vic2NyaWJlIiwiaWF0IjoxNzY3MDUzMTA4fQ.eLqNlHtNPd5-85d81IEHyEA2kFlvrl210gbnKpV-Y2U">Unsubscribe</a>
                         </p>
                       </td>
                     </tr>

@@ -23,7 +23,7 @@ const ContactSupportMenu = () => {
 
   const onSubmit = async (data: SupportRequestEmailContents) => {
     try {
-      const success = await UserNotificationApi.sendSupportRequest(data)
+      const success = await UserNotificationApi.sendSupportRequest({ emailContents: data })
       if (success) {
         reset()
       }

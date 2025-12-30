@@ -30,9 +30,7 @@ class ErrorEmailHandler(Handler):
         )
 
     def generate_message(self, environment_name, error_message, error_time, logs_link):
-        return f"""<p>You are receiving this email because you have been included in the CV Manager developer group.</p>
-            <br />
-            <p>This error originated in the {environment_name} environment CV Manager API</p>
+        return f"""<p>This error originated in the {environment_name} environment CV Manager API</p>
             <br />
             <p>Error Message: {error_message}</p>
             <br />
@@ -48,15 +46,13 @@ class ErrorEmailHandler(Handler):
                     "%Y-%m-%d %H:%M:%S,%f"
                 )[:-3]
 
-            message = self.generate_message(
-                environment_name=api_environment.ENVIRONMENT_NAME,
-                error_message=self.format(record).replace("\n", "<br>"),
-                error_time=str(record.asctime),
-                logs_link=api_environment.LOGS_LINK,
-            )
             self.email_api.send_api_error_email(
-                subject=self.subject,
-                message=message,
+                error_message=self.format(record).replace("\n", "<br>"),
+                stack_trace=(
+                    record.exc_text if record.exc_text else "No stack trace available"
+                ),
+                timestamp=record.asctime,
+                logs_link=api_environment.LOGS_LINK,
             )
 
         except Exception:

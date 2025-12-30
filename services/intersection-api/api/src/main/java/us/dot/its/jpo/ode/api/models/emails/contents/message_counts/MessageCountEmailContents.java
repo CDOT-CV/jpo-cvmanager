@@ -9,9 +9,13 @@ import lombok.Data;
 
 @Data
 public class MessageCountEmailContents {
+    @JsonProperty("org_name")
     private String organizationName;
+    @JsonProperty("deployment_title")
     private String deploymentTitle;
+    @JsonProperty("start_date")
     private Instant startDate;
+    @JsonProperty("end_date")
     private Instant endDate;
 
     @JsonProperty("message_type_list")

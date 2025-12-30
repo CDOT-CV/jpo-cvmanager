@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.emails.generators;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -27,50 +26,50 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
     @Override
     public EmailContent generateEmailBody(MessageCountEmailContents data) {
 
-        Context context = new Context();
-        context.setVariable("head_title", "CV Manager - Message Counts");
+        Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "Message Counts from CV Manager");
-        context.setVariable("greeting", "Hello,");
-        context.setVariable("content_1", getContent(data));
-        context.setVariable("action_button_text", "Navigate to the CV-Manager");
-        context.setVariable("action_button_href",
-                String.format("%s", emailProperties.getCvmgrFrontEndUri()));
-        context.setVariable("content_2",
-                "If not actionable, please forward this request on to the relevant party.");
-        context.setVariable("signature",
-                "This was an automated email from the CV Manager. Please do not reply to this email.");
-        context.setVariable("footer_address", "CV-Manager Firmware Upgrade Failure");
-        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-        context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
+        context.setVariable("content_1", "<p>" + getContent(data) + "</p>");
+        context.setVariable("footer_address", "CV-Manager Message Counts");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 
         return new EmailContent(
-                "CV-Manager Support Request: " + dateTimeFormatter.format(Instant.now()),
+                "CV-Manager Message Counts",
                 htmlContent);
     }
 
     String getContent(MessageCountEmailContents data) {
-        String content = String.format("<h2>%s %s Count Report %s UTC - %s UTC</h2>" +
-                "<p>This is an automated email to report yesterday's ODE message counts for J2735 messages going in and out of the ODE. "
-                +
-                "In counts are the number of encoded messages received by the ODE from the load balancer. " +
-                "Out counts are the number of decoded messages that have come out of the ODE in JSON form and " +
-                "are available for querying in mongoDB. Ideally, these two counts should be identical. " +
-                "Although, some deviation is expected due to count recording timings. Outbound counts exceeding " +
-                "5% deviation with their corresponding inbound counts will be marked red. Outbound counts within the 5% deviation will be marked "
-                +
-                "green. Map and TIM Out counts are deduplicated so these are going to be lower at 1 per hour. The deviation is normalized with this in mind. "
-                +
-                "Any RSUs with a road name of \"Unknown\" are not recorded in the PostgreSQL database and might need to be added.</p>"
-                +
-                "<h3>RSU Message Counts</h3>",
+        String content = String.format(
+                "<p>This is an automated email to report yesterday's ODE message counts for J2735 messages going in and out of the ODE. </p>"
+                        +
+                        "<p>Organization: %s<br>Deployment: %s<br>Start Date: %s UTC<br>End Date: %s UTC</p>"
+                        +
+                        "<p>`In counts` are the number of encoded messages received by the ODE from the load balancer. "
+                        +
+                        "`Out counts` are the number of decoded messages that have come out of the ODE in JSON form and "
+                        +
+                        "are available for querying in mongoDB. Ideally these two counts should be identical, "
+                        +
+                        "although some deviation is expected due to count recording timings.<br>"
+                        +
+                        "Map and TIM Out counts are deduplicated so these are going to be lower at 1 per hour. The deviation is normalized with this in mind."
+                        +
+                        "<h3>RSU Message Counts</h3>"
+                        +
+                        "<div style=\"margin: 16px 0; padding: 12px; background-color: #f5f5f5; border-radius: 4px; display: inline-block;\">"
+                        +
+                        "<strong>Out Counts:</strong>&nbsp;&nbsp;"
+                        +
+                        "<span style=\"background-color: #a4ffa1; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Green: ≤5%% deviation</span>"
+                        +
+                        "<span style=\"background-color: #ff7373; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Red: >5%% deviation</span>"
+                        +
+                        "</div>",
                 data.getOrganizationName(), data.getDeploymentTitle(), data.getStartDate().toString(),
                 data.getEndDate().toString());
         String countsTable = generateCountTable(data);
 
-        return String.format("%s\n%s", content, countsTable);
+        return String.format("%s %s", content, countsTable);
     }
 
     public static String generateTableHeader(List<String> messageTypeList) {

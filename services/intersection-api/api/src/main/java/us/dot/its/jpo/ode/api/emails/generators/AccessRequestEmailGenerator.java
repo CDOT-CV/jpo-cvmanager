@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.emails.generators;
 
-import java.time.Instant;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -25,33 +24,21 @@ public class AccessRequestEmailGenerator extends AbstractEmailGenerator<AccessRe
     @Override
     public EmailContent generateEmailBody(AccessRequestEmailContents data) {
 
-        Context context = new Context();
-        context.setVariable("head_title", "CV Manager - Access Request");
+        Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "Requesting Additional Access in CV Manager");
-        context.setVariable("greeting", "Hello,");
         context.setVariable("content_1", getContent(data));
-        context.setVariable("action_button_text", "Navigate to the CV-Manager");
-        context.setVariable("action_button_href",
-                String.format("%s", emailProperties.getCvmgrFrontEndUri()));
-        context.setVariable("content_2",
-                "If not actionable, please forward this request on to the relevant party.");
-        context.setVariable("signature",
-                "This was an automated email from the CV Manager. Please do not reply to this email.");
         context.setVariable("footer_address", "CV-Manager Access Request");
-        context.setVariable("unsubscribe_pre_text", "If you no longer wish to receive these emails, please ");
-        context.setVariable("unsubscribe_link_text", "Unsubscribe");
-        context.setVariable("unsubscribe_href", "{{unsubscribe_url}}");
 
         String htmlContent = templateEngine.process("emails/announcement", context);
 
         return new EmailContent(
-                "CV-Manager Access Request: " + dateTimeFormatter.format(Instant.now()),
+                "CV-Manager Access Request",
                 htmlContent);
     }
 
     private String getContent(AccessRequestEmailContents data) {
         return String.format(
-                "New user %s has requested access to the CV Manager. They have requested the following permissions:\n\n%s",
+                "<p>The user %s has requested access to the CV Manager for the following organizations:<br></p>%s",
                 data.getEmail(), getOrgRoleTable(data.getAccessRequests()));
     }
 
