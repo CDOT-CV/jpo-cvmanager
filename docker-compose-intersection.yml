@@ -45,7 +45,7 @@ services:
       POSTGRES_SERVER_URL: jdbc:postgresql://${PG_DB_HOST:-cvmanager_postgres:5432}
 
       INTERSECTION_API_ENABLE_API: ${INTERSECTION_API_ENABLE_API:-True}
-      INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER:-True}
+      INTERSECTION_API_ENABLE_EMAILER: ${INTERSECTION_API_ENABLE_EMAILER:-true}
       INTERSECTION_API_ENABLE_REPORTS: ${INTERSECTION_API_ENABLE_REPORTS:-false}
       INTERSECTION_API_ENABLE_HAAS: ${INTERSECTION_API_ENABLE_HAAS:-false}
       INTERSECTION_API_ENABLE_ASN1_DECODER: ${INTERSECTION_API_ENABLE_ASN1_DECODER:-true}
@@ -85,8 +85,8 @@ services:
     image: rnwood/smtp4dev:v3
     restart: always
     ports:
-      - "5001:80"  # Web UI
-      - "5000:5000"  # Web UI
-      - "25:25"      # SMTP
-      - "143:143"    # IMAP
-      - "110:110"    # POP3
+      - '5001:80' # Web UI
+      - '5000:5000' # Web UI
+      - '25:25' # SMTP
+      - '143:143' # IMAP
+      - '110:110' # POP3

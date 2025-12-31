@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timedelta
 from mock import MagicMock, patch
 from addons.images.count_metric import daily_emailer
