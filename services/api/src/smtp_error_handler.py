@@ -29,15 +29,6 @@ class ErrorEmailHandler(Handler):
             api_environment.KC_PASSWORD,
         )
 
-    def generate_message(self, environment_name, error_message, error_time, logs_link):
-        return f"""<p>This error originated in the {environment_name} environment CV Manager API</p>
-            <br />
-            <p>Error Message: {error_message}</p>
-            <br />
-            <p>Error occurred at: {error_time}</p>
-            <br />
-            <p>View this error in Logs: <a href="{logs_link}">rsu-manager-api logs</a></p>"""
-
     def emit(self, record):
         try:
             if not hasattr(record, "asctime"):
