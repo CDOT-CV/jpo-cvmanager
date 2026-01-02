@@ -37,7 +37,7 @@ public class EmailController {
     // TODO: Authenticate these services for non-user access
     @Operation(summary = "Send Message Counts Emails", description = "Send message counts emails")
     @RequestMapping(value = "/send-message-counts", method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_MESSAGE_COUNTS_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
@@ -50,7 +50,7 @@ public class EmailController {
 
     @Operation(summary = "Send Firmware Upgrade Failure Emails", description = "Send firmware upgrade failure emails")
     @RequestMapping(value = "/send-firmware-upgrade-failure", method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_FIRMWARE_UPGRADE_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
@@ -63,7 +63,7 @@ public class EmailController {
 
     @Operation(summary = "API Error Summary", description = "Request access to an organization")
     @RequestMapping(value = "/send-api-error", method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),

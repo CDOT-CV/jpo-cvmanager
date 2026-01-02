@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.keycloak.TokenPostRequest;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenPostRequestKeycloak;
+import us.dot.its.jpo.ode.api.models.keycloak.TokenPostRequestServiceAccount;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenPostResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenRefreshRequest;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenRefreshRequestKeycloak;
@@ -37,6 +38,26 @@ public class KeycloakApi {
     public Mono<TokenPostResponse> generateKeycloakToken(TokenPostRequest request) {
         TokenPostRequestKeycloak requestBody = new TokenPostRequestKeycloak(request, keycloakClientId,
                 keycloakClientSecret);
+
+        return webClient.post()
+                .uri(String.format("/realms/%s/protocol/openid-connect/token", keycloakRealm))
+                .headers(headers -> {
+                    headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+                })
+                .body(BodyInserters.fromFormData(requestBody.getFormData()))
+                .exchangeToMono(response -> switch (response.statusCode()) {
+                    case HttpStatus.OK -> response.bodyToMono(TokenPostResponse.class);
+                    default -> {
+                        log.warn("Received non-success error code: {}", response.statusCode());
+                        yield response.bodyToMono(String.class)
+                                .flatMap(body -> Mono.error(new ResponseStatusException(response.statusCode(),
+                                        String.format("Keycloak returned error: %s", body))));
+                    }
+                });
+    }
+
+    public Mono<TokenPostResponse> generateKeycloakTokenServiceAccount(TokenPostRequestServiceAccount request) {
+        TokenPostRequestKeycloak requestBody = new TokenPostRequestKeycloak(request);
 
         return webClient.post()
                 .uri(String.format("/realms/%s/protocol/openid-connect/token", keycloakRealm))

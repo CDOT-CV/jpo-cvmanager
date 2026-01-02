@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.keycloak.KeycloakApi;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenPostRequest;
+import us.dot.its.jpo.ode.api.models.keycloak.TokenPostRequestServiceAccount;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenPostResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.TokenRefreshRequest;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,12 +31,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class AuthController {
     private final KeycloakApi keycloakApi;
 
-    
-
     @Operation(summary = "Generate Keycloak Token", description = "Generate Keycloak token for a user")
     @PostMapping(value = "/token", produces = "application/json")
     public Mono<TokenPostResponse> generateToken(@RequestBody TokenPostRequest request) {
         return keycloakApi.generateKeycloakToken(request);
+    }
+
+    @Operation(summary = "Generate Keycloak Token for Service Account", description = "Generate Keycloak token for a service account")
+    @PostMapping(value = "/token-service-account", produces = "application/json")
+    public Mono<TokenPostResponse> generateTokenForServiceAccount(@RequestBody TokenPostRequestServiceAccount request) {
+        return keycloakApi.generateKeycloakTokenServiceAccount(request);
     }
 
     @Operation(summary = "Refresh Keycloak Token", description = "Refresh Keycloak token for a user")
@@ -44,5 +49,4 @@ public class AuthController {
         return keycloakApi.refreshKeycloakToken(request);
     }
 
-    
 }

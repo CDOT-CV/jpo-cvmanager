@@ -35,6 +35,13 @@ public class TokenPostRequestKeycloak {
         this.scope = "openid";
     }
 
+    public TokenPostRequestKeycloak(TokenPostRequestServiceAccount request) {
+        this.clientId = request.getClientId();
+        this.clientSecret = request.getClientSecret();
+        this.grantType = "client_credentials";
+        this.scope = "openid";
+    }
+
     public MultiValueMap<String, String> getFormData() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("client_id", clientId);

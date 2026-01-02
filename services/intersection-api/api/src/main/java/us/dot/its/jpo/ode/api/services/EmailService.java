@@ -118,9 +118,9 @@ public class EmailService {
 
     public List<EmailSendResponse> sendRsuErrorSummary(RsuErrorSummaryEmailContents data) {
         EmailContent content = rsuErrorSummaryEmailGenerator.generateEmailBody(data);
-        // TODO: Use email addresses from RSU org only
-        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.RSU_ERROR_SUMMARY,
-                EmailFrequency.ALWAYS);
+        List<EmailRecipient> recipients = data.getRecipients().stream()
+                .map(email -> new EmailRecipient(email, ""))
+                .toList();
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 }
