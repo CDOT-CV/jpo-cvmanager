@@ -36,22 +36,22 @@ public class IntersectionNotificationSummaryEmailGenerator
         String htmlContent = templateEngine.process(EMAIL_TEMPLATE, context);
 
         return new EmailContent(
-                "CV-Manager New CM Notifications: " + dateTimeFormatter.format(Instant.now()),
+                "New CV-Manager Intersection Notifications",
                 htmlContent);
     }
 
     public String getEmailText(List<Notification> notifications) {
 
-        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the Conflict Visualizer to Analyze these notifications";
+        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the Conflict Visualizer to Analyze these notifications<br>";
 
         for (Notification notification : notifications) {
-            messageBody += "\n\nNotification : " + notification.getNotificationHeading() + "\n";
-            messageBody += "\t" + notification.getNotificationText() + "\n";
-            messageBody += "\tIntersection ID: " + notification.getIntersectionID() + "\n";
-            messageBody += "\tGenerated At: "
+            messageBody += "<br><strong>Heading:</strong> " + notification.getNotificationHeading() + "<br>";
+            messageBody += "<strong>Description:</strong> " + notification.getNotificationText() + "<br>";
+            messageBody += "<strong>Intersection ID:</strong> " + notification.getIntersectionID() + "<br>";
+            messageBody += "<strong>Generated At:</strong> "
                     + dateTimeFormatter.format(
                             Instant.ofEpochMilli(notification.getNotificationGeneratedAt()))
-                    + "\n";
+                    + "<br>";
         }
 
         return messageBody;
