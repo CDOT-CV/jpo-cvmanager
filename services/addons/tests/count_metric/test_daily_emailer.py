@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from mock import MagicMock, patch
 from addons.images.count_metric import daily_emailer
+import logging
 
 
 def test_query_mongo_in_counts():
@@ -125,7 +126,7 @@ def test_query_mongo_out_counts():
             },
             {
                 "$group": {
-                    "_id": f"$metadata.originIp",
+                    "_id": "$metadata.originIp",
                     "count": {"$sum": 1},
                 }
             },
@@ -197,23 +198,25 @@ def test_prepare_org_rsu_dict(mock_query_db):
     daily_emailer.message_types = ["BSM", "TIM", "Map", "SPaT", "SRM", "SSM"]
 
 
-@patch("count_metric_environment.DEPLOYMENT_TITLE", "Test")
-@patch("count_metric_environment.SMTP_SERVER_IP", "10.0.0.1")
-@patch("count_metric_environment.SMTP_USERNAME", "username")
-@patch("count_metric_environment.SMTP_PASSWORD", "password")
-@patch("count_metric_environment.SMTP_EMAIL", "test@gmail.com")
+@patch("addons.images.count_metric.count_metric_environment.DEPLOYMENT_TITLE", "Test")
+@patch("addons.images.count_metric.count_metric_environment.IAPI_ENDPOINT", "Test")
+@patch("addons.images.count_metric.count_metric_environment.KC_SA_CLIENT_ID", "Test")
+@patch(
+    "addons.images.count_metric.count_metric_environment.KC_SA_CLIENT_SECRET", "Test"
+)
 @patch("addons.images.count_metric.daily_emailer.EmailApi")
-def test_email_daily_counts(mock_email_list, mock_emailsender):
-    mock_email_list.return_value = ["bob@gmail.com"]
-    emailsender_obj = mock_emailsender.return_value
-
+def test_email_daily_counts(mock_email_api):
     start_date = datetime.now()
     end_date = datetime.now()
+
+    mock_email_api_instance = MagicMock()
+    mock_email_api.return_value = mock_email_api_instance
+
     daily_emailer.email_daily_counts(
         "Test Org", "test", start_date, end_date, ["BSM"], []
     )
 
-    email_api_obj.send_message_counts.assert_called_once_with(
+    mock_email_api_instance.send_message_counts.assert_called_once_with(
         "Test Org",
         "test",
         start_date,

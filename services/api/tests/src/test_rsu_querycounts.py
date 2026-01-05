@@ -1,10 +1,11 @@
 from unittest.mock import patch, MagicMock
 import pytest
+from datetime import datetime
 import api.src.rsu_querycounts as rsu_querycounts
 import api.tests.data.rsu_querycounts_data as querycounts_data
 from api.src.rsu_querycounts import query_rsu_counts_aggregated
 from api.tests.data import auth_data
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Forbidden, InternalServerError
 
 user_valid = auth_data.get_request_environ()
 
@@ -18,9 +19,8 @@ def test_options_request():
     assert headers["Access-Control-Allow-Methods"] == "GET"
 
 
-@patch("api_environment.COUNTS_MSG_TYPES", ["BSM", "SSM", "SPAT"])
 @patch("api.src.rsu_querycounts.get_organization_rsus")
-@patch("api.src.rsu_querycounts.query_rsu_counts_mongo")
+@patch("api.src.rsu_querycounts.query_rsu_counts_aggregated")
 @patch(
     "api.src.rsu_querycounts.request",
     MagicMock(

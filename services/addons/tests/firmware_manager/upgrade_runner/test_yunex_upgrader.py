@@ -109,8 +109,9 @@ def test_yunex_upgrader_run_xfer_upgrade_fail_output(mock_subprocess, mock_loggi
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_upgrade_success(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json
@@ -166,8 +167,9 @@ def test_yunex_upgrader_upgrade_success(
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_core_upgrade_fail(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json
@@ -219,8 +221,9 @@ def test_yunex_upgrader_core_upgrade_fail(
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_core_ping_fail(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json
@@ -272,8 +275,9 @@ def test_yunex_upgrader_core_ping_fail(
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_sdk_upgrade_fail(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json
@@ -326,8 +330,9 @@ def test_yunex_upgrader_sdk_upgrade_fail(
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_sdk_ping_fail(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json
@@ -380,8 +385,9 @@ def test_yunex_upgrader_sdk_ping_fail(
     "addons.images.firmware_manager.upgrade_runner.yunex_upgrader.tarfile.open",
     return_value=MagicMock(),
 )
+@patch("addons.images.firmware_manager.upgrade_runner.upgrader.EmailApi")
 def test_yunex_upgrader_provision_upgrade_fail(
-    mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
+    mock_email_api, mock_tarfile_open, mock_open, mock_json, mock_time, mock_logging
 ):
     taropen_obj = mock_tarfile_open.return_value.__enter__.return_value
     mock_json.load.return_value = test_upgrade_info_json

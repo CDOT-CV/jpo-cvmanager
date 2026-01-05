@@ -15,7 +15,6 @@ import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -67,7 +66,7 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
 
         EmailContent emailContent = generator.generateEmailBody(data);
 
-        assertEquals("CV-Manager New CM Notifications: " + generator.dateTimeFormatter.format(Instant.now()),
+        assertEquals("CV-Manager New CM Notifications",
                 emailContent.getSubject());
         assertTrue(emailContent.getBody().contains("CV Manager - New Notifications"));
         assertTrue(emailContent.getBody().contains("{{unsubscribe_url}}"));

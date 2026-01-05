@@ -94,7 +94,7 @@ class EmailApi:
         end_date: datetime.datetime,
         message_type_list: list[str],
         counts: list[dict],
-    ) -> tuple[int, str]:
+    ) -> tuple[int, dict]:
         """
         Send a message counts email via the API.
 
@@ -111,9 +111,11 @@ class EmailApi:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
         token = self.get_kc_token()
+        if not token:
+            return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
             f"{self.iapi_endpoint}/emails/send-message-counts",
-            headers={"Authorization": f"bearer {token}"},
+            headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "org_name": org_name,
                 "deployment_title": deployment_title,
@@ -131,7 +133,7 @@ class EmailApi:
 
     def send_firmware_upgrade_failure(
         self, rsu_ip: str, error_message: str, failure_type: str, stack_trace: str
-    ):
+    ) -> tuple[int, dict]:
         """
         Send a firmware upgrade failure email via the API.
 
@@ -145,9 +147,12 @@ class EmailApi:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
         token = self.get_kc_token()
+        if not token:
+            return 500, {"error": "Unable to obtain Keycloak token."}
+
         response = requests.post(
             f"{self.iapi_endpoint}/emails/send-firmware-upgrade-failure",
-            headers={"Authorization": f"bearer {token}"},
+            headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "rsu_ip": rsu_ip,
                 "error_message": error_message,
@@ -161,7 +166,9 @@ class EmailApi:
             )
         return response.status_code, response.json()
 
-    def send_rsu_error_summary(self, recipients: list[str], subject: str, message: str):
+    def send_rsu_error_summary(
+        self, recipients: list[str], subject: str, message: str
+    ) -> tuple[int, dict]:
         """
         Send an RSU error summary email via the API.
 
@@ -174,9 +181,11 @@ class EmailApi:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
         token = self.get_kc_token()
+        if not token:
+            return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
             f"{self.iapi_endpoint}/emails/send-rsu-error-summary",
-            headers={"Authorization": f"bearer {token}"},
+            headers={"Authorization": f"bearer {token['access_token']}"},
             json={"recipients": recipients, "subject": subject, "message": message},
         )
         if not (200 <= response.status_code < 300):
@@ -191,7 +200,7 @@ class EmailApi:
         stack_trace: str,
         timestamp: str,
         logs_link: str,
-    ):
+    ) -> tuple[int, dict]:
         """
         Send a critical api error email via the API.
 
@@ -205,9 +214,11 @@ class EmailApi:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
         token = self.get_kc_token()
+        if not token:
+            return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
             f"{self.iapi_endpoint}/emails/send-api-error",
-            headers={"Authorization": f"bearer {token}"},
+            headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "error_message": error_message,
                 "stack_trace": stack_trace,

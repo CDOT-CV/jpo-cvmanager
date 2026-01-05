@@ -135,6 +135,7 @@ def email_daily_counts(
             count_metric_environment.KC_SA_CLIENT_ID,
             count_metric_environment.KC_SA_CLIENT_SECRET,
         )
+
         email_api.send_message_counts(
             org_name,
             deployment_title,

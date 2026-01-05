@@ -13,13 +13,6 @@ def configure_error_emails(app):
     app.logger.addHandler(mail_handler)
 
 
-def get_environment_name(instance_connection_name: str) -> str:
-    try:
-        return instance_connection_name.split(":")[0]
-    except (AttributeError, IndexError):
-        return str(instance_connection_name)
-
-
 class ErrorEmailHandler(Handler):
     def __init__(self):
         super().__init__()  # initialize handler
@@ -38,10 +31,10 @@ class ErrorEmailHandler(Handler):
                 )[:-3]
 
             self.email_api.send_api_error_email(
-                error_message=self.format(record).replace("\n", "<br>"),
+                error_message=record.getMessage().replace("\n", "<br>"),
                 stack_trace=(
                     record.exc_text if record.exc_text else "No stack trace available"
-                ),
+                ).replace("\n", "<br>"),
                 timestamp=record.asctime,
                 logs_link=api_environment.LOGS_LINK,
             )

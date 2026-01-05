@@ -30,13 +30,11 @@ To run this service, the following environment variables must be set:
 
 <b>MONGO_DB_NAME:</b> MongoDB database name.
 
-<b>SMTP_SERVER_IP:</b> The IP or domain of the SMTP server your organization uses. DOTs often have a self hosted SMTP server for security reasons.
+<b>IAPI_ENDPOINT:</b> The Intersection API endpoint, used for generating keycloak tokens and submitting email send requests.
 
-<b>SMTP_USERNAME:</b> The username for the SMTP server account.
+<b>KC_SA_CLIENT_ID:</b> The keycloak service account client id.
 
-<b>SMTP_PASSWORD:</b> The password for the SMTP server account.
-
-<b>SMTP_EMAIL:</b> The origin email that the count_metric will send the email from. This is usually associated with the SMTP server authentication.
+<b>KC_SA_CLIENT_SECRET:</b> The keycloak service account client secret.
 
 ## Daily Counter (MongoDB)
 
