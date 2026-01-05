@@ -64,8 +64,8 @@ The Firmware Manager is capable of directing the Intersection API to send an ema
 This functionality relies on the following environment variables:
 
 - IAPI_ENDPOINT - Base endpoint of Intersection API (no email/auth route)
-- KC_USERNAME - Keycloak service account username
-- KC_PASSWORD - Keycloak service account password
+- KC_SA_CLIENT_ID - Keycloak service account client ID
+- KC_SA_CLIENT_SECRET - Keycloak service account client secret
 
 GCP Required environment variables:
 

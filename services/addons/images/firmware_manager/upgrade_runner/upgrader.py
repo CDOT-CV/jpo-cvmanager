@@ -119,8 +119,8 @@ class UpgraderAbstractClass(abc.ABC):
         try:
             email_api = EmailApi(
                 upgrade_runner_environment.IAPI_ENDPOINT,
-                upgrade_runner_environment.KC_USERNAME,
-                upgrade_runner_environment.KC_PASSWORD,
+                upgrade_runner_environment.KC_SA_CLIENT_ID,
+                upgrade_runner_environment.KC_SA_CLIENT_SECRET,
             )
 
             email_api.send_firmware_upgrade_failure(

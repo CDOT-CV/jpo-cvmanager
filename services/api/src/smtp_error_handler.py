@@ -25,8 +25,8 @@ class ErrorEmailHandler(Handler):
         super().__init__()  # initialize handler
         self.email_api = EmailApi(
             api_environment.IAPI_ENDPOINT,
-            api_environment.KC_USERNAME,
-            api_environment.KC_PASSWORD,
+            api_environment.KC_SA_CLIENT_ID,
+            api_environment.KC_SA_CLIENT_SECRET,
         )
 
     def emit(self, record):

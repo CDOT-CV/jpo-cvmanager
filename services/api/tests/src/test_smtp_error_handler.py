@@ -31,8 +31,8 @@ def test_get_subscribed_users_success():
 
 
 IAPI_ENDPOINT = "localhost:8089"
-KC_USERNAME = "test"
-KC_PASSWORD = "test"
+KC_SA_CLIENT_ID = "sa_cvmanager_python_api"
+KC_SA_CLIENT_SECRET = "sa-python-api-secret-key"
 LOGS_LINK = "http://logs_link.com"
 
 
@@ -46,8 +46,8 @@ def test_configure_error_emails():
 
 @patch("api_environment.LOGS_LINK", LOGS_LINK)
 @patch("api_environment.IAPI_ENDPOINT", IAPI_ENDPOINT)
-@patch("api_environment.KC_USERNAME", KC_USERNAME)
-@patch("api_environment.KC_PASSWORD", KC_PASSWORD)
+@patch("api_environment.KC_SA_CLIENT_ID", KC_SA_CLIENT_ID)
+@patch("api_environment.KC_SA_CLIENT_SECRET", KC_SA_CLIENT_SECRET)
 @patch("builtins.open", new_callable=mock_open, read_data="data")
 @patch("api.src.smtp_error_handler.smtplib")
 def test_send(mock_smtplib, mock_file):

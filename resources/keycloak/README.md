@@ -81,7 +81,7 @@ To regenerate the ream.json from an active keycloak instance, execute the follow
 
 ```sh
 cd /opt/keycloak
-./bin/kc.sh export --file=realm.json
+./bin/kc.sh export --realm=cvmanager --file=realm.json
 ```
 
 Then from the source machine:
@@ -159,6 +159,22 @@ The realm.json used by this project is slightly modified from a keycloak generat
     "clientId": "sa_firmware_upgrade_runner",
     ...
     "secret": "${KEYCLOAK_SA_FIRMWARE_UPGRADE_RUNNER_CLIENT_SECRET_KEY}",
+}
+```
+
+5. Update google IDP client id and secret wildcards
+
+```json
+{
+    "alias": "google",
+    "displayName": "Google",
+    "internalId": "b5433047-44ca-4c60-91e7-c5b766360bb2",
+    ...
+    "config": {
+        ...
+        "clientSecret": "${GOOGLE_CLIENT_SECRET}",
+        "clientId": "${GOOGLE_CLIENT_ID}"
+    }
 }
 ```
 

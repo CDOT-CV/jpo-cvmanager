@@ -1,5 +1,5 @@
 import os
 
 os.environ["IAPI_ENDPOINT"] = "localhost:8089"
-os.environ["KC_USERNAME"] = "username"
-os.environ["KC_PASSWORD"] = "password"
+os.environ["KC_SA_CLIENT_ID"] = "sa_firmware_upgrade_runner"
+os.environ["KC_SA_CLIENT_SECRET"] = "sa-firmware-upgrade-runner-secret-key"
