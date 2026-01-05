@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
@@ -85,5 +86,19 @@ public class EmailController {
             @RequestBody RsuErrorSummaryEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendRsuErrorSummary(body));
+    }
+
+    @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")
+    @RequestMapping(value = "/send-intersection-notification-summary", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendIntersectionNotificationSummaryEmails(
+            @RequestBody IntersectionNotificationSummaryEmailContents body) {
+
+        return EmailSendResponse
+                .getCombinedResponseEntity(emailService.sendIntersectionNotificationSummaryEmailSendResponses(body));
     }
 }
