@@ -50,5 +50,5 @@ MOOVE_AI_SEGMENT_EVENT_STATS_TABLE = get_env_var(
 )
 
 IAPI_ENDPOINT = get_env_var("IAPI_ENDPOINT")
-KC_USERNAME = get_env_var("KC_USERNAME")
-KC_PASSWORD = get_env_var("KC_PASSWORD")
+KC_SA_CLIENT_ID = get_env_var("KC_SA_CLIENT_ID", "sa_cvmanager_python_api")
+KC_SA_CLIENT_SECRET = get_env_var("KC_SA_CLIENT_SECRET")

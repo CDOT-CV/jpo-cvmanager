@@ -544,33 +544,6 @@
         },
         "notBefore": 0,
         "groups": []
-      },
-      {
-        "id": "f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:fc3d8729-8526-4aaa-805b-d64bf3b93860",
-        "username": "test@gmail.com",
-        "firstName": "Test",
-        "lastName": "User",
-        "email": "test@gmail.com",
-        "emailVerified": false,
-        "attributes": {
-          "organizations": ["[{\"org\":\"Test Org\",\"role\":\"admin\"},{\"org\":\"Test Org 2\",\"role\":\"user\"}]"],
-          "super_user": ["1"],
-          "created_timestamp": ["1767041170623"]
-        },
-        "origin": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
-        "createdTimestamp": 1767041170623,
-        "enabled": true,
-        "totp": false,
-        "federationLink": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
-        "credentials": [],
-        "disableableCredentialTypes": [],
-        "requiredActions": [],
-        "realmRoles": ["offline_access", "uma_authorization"],
-        "clientRoles": {
-          "account": ["manage-account", "view-profile"]
-        },
-        "notBefore": 0,
-        "groups": []
       }
     ],
     "federatedUsers": [
@@ -756,7 +729,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "keycloak-secret-key",
+        "secret": "${KEYCLOAK_API_CLIENT_SECRET_KEY}",
         "redirectUris": ["/*"],
         "webOrigins": ["/*"],
         "notBefore": 0,
@@ -798,11 +771,18 @@
         "clientAuthenticatorType": "client-secret",
         "redirectUris": [
           "http://localhost:3000/*",
-          "http://localhost/*",
+          "http://localhost:3001/*",
           "http://localhost:3002/*",
-          "http://localhost:3001/*"
+          "http://localhost/*",
+          "${WEBAPP_ENDPOINT}/*"
         ],
-        "webOrigins": ["http://localhost:3002", "http://localhost", "http://localhost:3001", "http://localhost:3000"],
+        "webOrigins": [
+          "http://localhost:3000",
+          "http://localhost:3001",
+          "http://localhost:3002",
+          "http://localhost",
+          "${WEBAPP_ENDPOINT}"
+        ],
         "notBefore": 0,
         "bearerOnly": false,
         "consentRequired": false,
@@ -884,7 +864,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "Fm500hkAXD61mWIqiZzciqAf9Gj9ky9w",
+        "secret": "${KEYCLOAK_SA_COUNT_METRIC_CLIENT_SECRET_KEY}",
         "redirectUris": ["/*"],
         "webOrigins": ["/*"],
         "notBefore": 0,
@@ -981,7 +961,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "e8bFNZE3x86bbBu6XwVN1PE3HEdQ1lP6",
+        "secret": "${KEYCLOAK_SA_PYTHON_API_CLIENT_SECRET_KEY}",
         "redirectUris": ["/*"],
         "webOrigins": ["/*"],
         "notBefore": 0,
@@ -1077,7 +1057,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "hN1WiW2n1Nc2xCw2UyBY4XloWen9GS99",
+        "secret": "${KEYCLOAK_SA_FIRMWARE_UPGRADE_RUNNER_CLIENT_SECRET_KEY}",
         "redirectUris": ["/*"],
         "webOrigins": ["/*"],
         "notBefore": 0,
@@ -1994,13 +1974,15 @@
           "providerId": "custom-user-provider",
           "subComponents": {},
           "config": {
-            "JDBC_URL": ["jdbc:postgresql://cvmanager_postgres:5432/postgres?currentSchema=keycloak"],
-            "DB_USERNAME": ["postgres"],
+            "JDBC_URL": [
+              "jdbc:postgresql://${KC_DB_URL_HOST}:${KC_DB_URL_PORT}/${KC_DB_URL_DATABASE}?currentSchema=${KC_DB_SCHEMA}"
+            ],
+            "DB_USERNAME": ["${KC_DB_USERNAME}"],
             "VALIDATION_QUERY": ["select 1"],
             "cachePolicy": ["NO_CACHE"],
             "JDBC_DRIVER": ["org.postgresql.Driver"],
             "enabled": ["true"],
-            "DB_PASSWORD": ["postgres"]
+            "DB_PASSWORD": ["${KC_DB_PASSWORD}"]
           }
         }
       ],

@@ -74,3 +74,112 @@ This section describes the steps required to add this custom user provider to an
 9. Complete
    - Now, users can login through the google IDP, and their newly-created keycloak identities will be automatically linked to their existing postgres information!
    - In the future, consider reverting the changes to the first broker login authentication flow
+
+## Updating the Realm.json
+
+To regenerate the ream.json from an active keycloak instance, execute the following commands within the keycloak container:
+
+```sh
+cd /opt/keycloak
+./bin/kc.sh export --file=realm.json
+```
+
+Then from the source machine:
+
+```sh
+docker cp jpo-cvmanager-cvmanager_keycloak-1:/opt/keycloak/realm.json ./resources/keycloak/realm-updated.json
+```
+
+### Updating a generated realm.json
+
+The realm.json used by this project is slightly modified from a keycloak generated realm.json. These modifications include:
+
+1. Update cvmanager-api client secret wildcard
+
+```json
+{
+    "id": "d35340f6-db3c-42fa-8596-6184649ce624",
+    "clientId": "cvmanager-api",
+    ...
+    "secret": "${KEYCLOAK_API_CLIENT_SECRET_KEY}",
+}
+```
+
+2. Update cvmanager-gui client redirect URI and web origin wildcards
+
+```json
+{
+    "id": "62094482-22c8-4982-abd0-9e033b36635d",
+    "clientId": "cvmanager-gui",
+    ...
+    "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:3001/*",
+        "http://localhost:3002/*",
+        "http://localhost/*",
+        "${WEBAPP_ENDPOINT}/*"
+    ],
+    "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost",
+        "${WEBAPP_ENDPOINT}"
+    ],
+}
+```
+
+3. Update sa_count_metric client secret wildcard
+
+```json
+{
+    "id": "e327e402-24ce-41d0-b53a-a06738e386ec",
+    "clientId": "sa_count_metric",
+    ...
+    "secret": "${KEYCLOAK_SA_COUNT_METRIC_CLIENT_SECRET_KEY}",
+}
+```
+
+4. Update sa_count_metric client secret wildcard
+
+```json
+{
+    "id": "679891a3-6396-41a7-85d4-7e654a1bdcaa",
+    "clientId": "sa_cvmanager_python_api",
+    ...
+    "secret": "${KEYCLOAK_SA_PYTHON_API_CLIENT_SECRET_KEY}",
+}
+```
+
+5. Update sa_count_metric client secret wildcard
+
+```json
+{
+    "id": "9728749e-eb5b-4c7a-b6dd-bb8cf3cd0297",
+    "clientId": "sa_firmware_upgrade_runner",
+    ...
+    "secret": "${KEYCLOAK_SA_FIRMWARE_UPGRADE_RUNNER_CLIENT_SECRET_KEY}",
+}
+```
+
+6. User provider wildcards. Update the "org.keycloak.storage.UserStorageProvider" to the following:
+
+```json
+{
+  "id": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
+  "name": "postgres-user-provider",
+  "providerId": "custom-user-provider",
+  "subComponents": {},
+  "config": {
+    "JDBC_URL": [
+      "jdbc:postgresql://${KC_DB_URL_HOST}:${KC_DB_URL_PORT}/${KC_DB_URL_DATABASE}?currentSchema=${KC_DB_SCHEMA}"
+    ],
+    "DB_USERNAME": ["${KC_DB_USERNAME}"],
+    "VALIDATION_QUERY": ["select 1"],
+    "cachePolicy": ["NO_CACHE"],
+    "JDBC_DRIVER": ["org.postgresql.Driver"],
+    "enabled": ["true"],
+    "DB_PASSWORD": ["${KC_DB_PASSWORD}"]
+  }
+}
+```

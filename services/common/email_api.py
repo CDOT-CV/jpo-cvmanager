@@ -17,20 +17,20 @@ class KeycloakToken(TypedDict):
 
 
 class EmailApi:
-    def __init__(self, iapi_base_url, iapi_username, iapi_password):
+    def __init__(self, iapi_base_url, kc_client_id, kc_client_secret):
         """
         Initialize the EmailApi with the base URL, username, and password.
 
         Args:
             iapi_base_url (str): The base URL for the email API.
-            iapi_username (str): The username for authentication.
-            iapi_password (str): The password for authentication.
+            kc_client_id (str): The Keycloak client ID for authentication.
+            kc_client_secret (str): The Keycloak client secret for authentication.
         """
         self.iapi_endpoint = iapi_base_url
-        self.username = iapi_username
-        self.password = iapi_password
+        self.kc_client_id = kc_client_id
+        self.kc_client_secret = kc_client_secret
         self.token: KeycloakToken | None = None
-        self.token_expiration_date: datetime.datetime
+        self.token_expiration_date: datetime.datetime | None = None
 
     def gen_keycloak_token(self) -> tuple[int, KeycloakToken]:
         """
@@ -39,7 +39,13 @@ class EmailApi:
         Returns:
             tuple[int, KeycloakToken]: The HTTP status code and the token dictionary.
         """
-        response = requests.post(f"{self.iapi_endpoint}/auth/token")
+        response = requests.post(
+            f"{self.iapi_endpoint}/auth/token-service-account",
+            data={
+                "client_id": self.kc_client_id,
+                "client_secret": self.kc_client_secret,
+            },
+        )
         if response.status_code != 200:
             logging.error(
                 f"Failed to generate Keycloak token: {response.status_code} - {response.text}"
