@@ -169,14 +169,14 @@ class EmailServiceTest {
 
     @Test
     void testSendRsuErrorSummary() {
-        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents();
+        List<String> recipientNames = List.of("test@example.com");
+        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents(recipientNames, "subject", "message");
         EmailContent content = new EmailContent("subject", "body");
-        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
         when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
-        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+        when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
 
