@@ -7,7 +7,23 @@ import { testTheme } from '../../styles'
 import { setupStore } from '../../store'
 import { replaceChaoticIds } from '../../utils/test-utils'
 
-jest.useFakeTimers().setSystemTime(new Date('2024-10-01'))
+// Mock fetch to prevent actual API calls
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve([]),
+  })
+) as jest.Mock
+
+beforeAll(() => {
+  jest.useFakeTimers()
+  jest.setSystemTime(new Date('2024-10-01'))
+})
+
+afterAll(() => {
+  jest.useRealTimers()
+  jest.restoreAllMocks()
+})
 
 it('should take a snapshot', () => {
   const { container } = render(
