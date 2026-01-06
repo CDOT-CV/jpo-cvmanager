@@ -12,7 +12,17 @@ jest.useFakeTimers().setSystemTime(new Date('2024-10-01'))
 it('should take a snapshot', () => {
   const { container } = render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({})}>
+      <Provider
+        store={setupStore({
+          user: {
+            value: {
+              authLoginData: {
+                token: 'token',
+              },
+            },
+          },
+        })}
+      >
         <DisplayRsuErrors
           initialSelectedRsu={{
             id: 1,

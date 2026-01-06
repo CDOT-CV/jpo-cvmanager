@@ -38,7 +38,7 @@ describe('<Header />', () => {
               value: {
                 loginFailure: true,
                 loginMessage: 'User Unauthorized',
-                atuhLoginData: {
+                authLoginData: {
                   data: {
                     organizations: [{ name: 'org1', role: 'role1' }],
                   },
