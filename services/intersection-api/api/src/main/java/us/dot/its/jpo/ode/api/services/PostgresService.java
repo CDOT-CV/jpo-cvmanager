@@ -63,6 +63,31 @@ public class PostgresService {
             "WHERE io.intersection_id = i.intersection_id AND o.name = :orgName" +
             ")";
 
+    private final String findUsersByNotificationTypeQuery = "SELECT u.email " +
+            "FROM UserEmailNotification uen " +
+            "JOIN Users u ON uen.user_id = u.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "WHERE et.email_type = :notification_type";
+
+    private final String findUsersByNotificationTypeAndRsuQuery = "SELECT DISTINCT u.email " +
+            "FROM Users u " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
+            "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
+            "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
+            "WHERE et.email_type = :notification_type " +
+            "AND CAST(r.ipv4_address AS text) = :rsu_ip";
+
+    private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
+            "FROM Users u " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
+            "JOIN Organizations o ON uo.organization_id = o.organization_id " +
+            "WHERE et.email_type = :notification_type " +
+            "AND o.name = :organization_name";
+
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
         query.setParameter("email", email);
@@ -185,5 +210,26 @@ public class PostgresService {
                 .filter(entry -> PermissionService.checkRoleAbove(entry.getRole_name(), requiredRole))
                 .map(val -> val.getOrganization_name())
                 .collect(Collectors.toList());
+    }
+
+    public List<String> getUsersByNotificationType(String notificationType) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeQuery, String.class);
+        query.setParameter("notification_type", notificationType);
+        return query.getResultList();
+    }
+
+    public List<String> getUsersByNotificationTypeAndRsu(String notificationType, String rsuIp) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndRsuQuery, String.class);
+        query.setParameter("notification_type", notificationType);
+        query.setParameter("rsu_ip", rsuIp + "/32");
+        return query.getResultList();
+    }
+
+    public List<String> getUsersByNotificationTypeAndOrganization(String notificationType, String orgName) {
+        TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndOrganizationQuery,
+                String.class);
+        query.setParameter("notification_type", notificationType);
+        query.setParameter("organization_name", orgName);
+        return query.getResultList();
     }
 }
