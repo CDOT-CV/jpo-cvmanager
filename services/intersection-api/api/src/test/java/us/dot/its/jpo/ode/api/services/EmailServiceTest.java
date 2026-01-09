@@ -83,7 +83,7 @@ class EmailServiceTest {
     }
 
     @Test
-    void testSendSupportRequest() {
+    void testSendIntersectionNotificationSummaryEmailSendResponses() {
         IntersectionNotificationSummaryEmailContents data = new IntersectionNotificationSummaryEmailContents();
         EmailContent content = new EmailContent("subject", "body");
         List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
