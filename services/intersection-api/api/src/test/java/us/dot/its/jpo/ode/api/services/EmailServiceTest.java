@@ -7,12 +7,15 @@ import org.mockito.*;
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -23,6 +26,8 @@ class EmailServiceTest {
     private PostgresService postgresService;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    @Mock
+    private FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
 
     @InjectMocks
     private EmailService emailService;
@@ -98,4 +103,25 @@ class EmailServiceTest {
         assertEquals(responses, result);
     }
 
+    @Test
+    void testSendFirmwareUpgradeFailure() {
+        FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        data.setRsuIp("1.1.1.1");
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationTypeAndRsu("Firmware Upgrade Failures", "1.1.1.1"))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
+
+        verify(emailProvider).sendBatchedEmails(
+                argThat(list -> list.size() == 1 && list.getFirst().getEmail().equals("test@example.com")),
+                eq(content));
+
+        assertEquals(responses, result);
+    }
 }
