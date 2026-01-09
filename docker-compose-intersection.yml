@@ -86,8 +86,7 @@ services:
     image: rnwood/smtp4dev:v3
     restart: always
     ports:
-      - '5001:80' # Web UI
-      - '5000:5000' # Web UI
+      - '5000:80' # Web UI
       - '25:25' # SMTP
       - '143:143' # IMAP
       - '110:110' # POP3
