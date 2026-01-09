@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class EmailController {
     private final EmailService emailService;
 
-    @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")
+    @Operation(summary = "Intersection Notification Summary", description = "Sends an email with a summary of intersection notifications.")
     @RequestMapping(value = "/send-intersection-notification-summary", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
