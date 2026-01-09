@@ -7,12 +7,19 @@ import org.mockito.*;
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -23,6 +30,14 @@ class EmailServiceTest {
     private PostgresService postgresService;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    @Mock
+    private SupportRequestEmailGenerator supportRequestEmailGenerator;
+    @Mock
+    private MessageCountEmailGenerator messageCountEmailGenerator;
+    @Mock
+    private FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
+    @Mock
+    private RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
     @InjectMocks
     private EmailService emailService;
@@ -98,4 +113,73 @@ class EmailServiceTest {
         assertEquals(responses, result);
     }
 
+    @Test
+    void testSendSupportRequest() {
+        SupportRequestEmailContents data = new SupportRequestEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendSupportRequest(data);
+
+        assertEquals(responses, result);
+    }
+
+    @Test
+    void testSendMessageCounts() {
+        MessageCountEmailContents data = new MessageCountEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendMessageCounts(data);
+
+        assertEquals(responses, result);
+    }
+
+    @Test
+    void testSendFirmwareUpgradeFailure() {
+        FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        data.setRsuIp("1.1.1.1");
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationTypeAndRsu("Firmware Upgrade Failures", "1.1.1.1"))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
+        // assert emailProvider.sendBatchedEmails arguments
+        verify(emailProvider).sendBatchedEmails(
+                argThat(list -> list.size() == 1 && list.getFirst().getEmail().equals("test@example.com")),
+                eq(content));
+
+        assertEquals(responses, result);
+    }
+
+    @Test
+    void testSendRsuErrorSummary() {
+        List<String> recipientNames = List.of("test@example.com");
+        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents(recipientNames, "subject", "message");
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
+
+        assertEquals(responses, result);
+    }
 }
