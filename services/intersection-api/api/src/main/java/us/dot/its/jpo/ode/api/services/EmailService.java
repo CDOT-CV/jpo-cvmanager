@@ -45,9 +45,9 @@ public class EmailService {
                 .toList();
     }
 
-    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String rsuIp) {
+    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName) {
         // TODO: Filter by email frequency
-        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), rsuIp).stream()
+        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), orgName).stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
