@@ -12,6 +12,7 @@ import { RootState } from './store'
 import { AnyAction } from '@reduxjs/toolkit'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Dashboard from './Dashboard'
+import Unsubscribe from './Unsubscribe'
 import { NotFound } from './pages/404'
 import { getCurrentTheme } from './styles'
 import { getIntersections } from './generalSlices/intersectionSlice'
@@ -80,6 +81,7 @@ const App = () => {
               <Routes>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard/*" element={<Dashboard />} />
+                <Route path="unsubscribe/:category?" element={<Unsubscribe />} />
                 <Route path="*" element={<NotFound shouldRedirect={true} />} />
               </Routes>
             )}
