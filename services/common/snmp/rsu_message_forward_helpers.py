@@ -138,6 +138,21 @@ def startend_ntcip1218(val):
     return f"{year}-{month}-{day} {hour}:{minute}"
 
 
+class MsgFwdType:
+    def __init__(self):
+        pass
+
+    DSRC = "rsuDsrcFwd"
+    RECEIVED = "rsuReceivedMsg"
+    XMIT = "rsuXmitMsgFwding"
+
+class TableNames:
+    def __init__(self):
+        pass
+
+    RECEIVED = "rsuReceivedMsgTable"
+    XMIT = "rsuXmitMsgFwdingTable"
+
 def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
     msgfwd_configs_dict = {}
     for row in config_list:
@@ -152,32 +167,23 @@ def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
         }
 
         # Based on the value of msgfwd_type, store the configuration data to match the response object of rsufwdsnmpwalk
-        if row["msgfwd_type"] == "rsuDsrcFwd":
+        m_type = row["msgfwd_type"]
+        if m_type == MsgFwdType.DSRC:
             msgfwd_configs_dict[row["snmp_index"]] = config_row
-        elif row["msgfwd_type"] == "rsuReceivedMsg":
-            if "rsuReceivedMsgTable" not in msgfwd_configs_dict:
-                msgfwd_configs_dict["rsuReceivedMsgTable"] = {}
-            msgfwd_configs_dict["rsuReceivedMsgTable"][row["snmp_index"]] = config_row
-        elif row["msgfwd_type"] == "rsuXmitMsgFwding":
-            if "rsuXmitMsgFwdingTable" not in msgfwd_configs_dict:
-                msgfwd_configs_dict["rsuXmitMsgFwdingTable"] = {}
-            msgfwd_configs_dict["rsuXmitMsgFwdingTable"][row["snmp_index"]] = config_row
+        elif m_type == MsgFwdType.RECEIVED:
+            msgfwd_configs_dict.setdefault(TableNames.RECEIVED, {})[row["snmp_index"]] = config_row
+        elif m_type == MsgFwdType.XMIT:
+            msgfwd_configs_dict.setdefault(TableNames.XMIT, {})[row["snmp_index"]] = config_row
         else:
             rsu_info = f" for RSU '{rsu_ip}'" if rsu_ip else ""
             logging.warning(
-                f"Encountered unknown message forwarding configuration type '{row['msgfwd_type']}'{rsu_info}"
+                f"Encountered unknown message forwarding configuration type '{m_type}'{rsu_info}"
             )
 
     # Make sure both RX and TX objects are available if the RSU ends up having NTCIP 1218 configurations
-    if (
-        "rsuReceivedMsgTable" in msgfwd_configs_dict
-        and "rsuXmitMsgFwdingTable" not in msgfwd_configs_dict
-    ):
-        msgfwd_configs_dict["rsuXmitMsgFwdingTable"] = {}
-    elif (
-        "rsuXmitMsgFwdingTable" in msgfwd_configs_dict
-        and "rsuReceivedMsgTable" not in msgfwd_configs_dict
-    ):
-        msgfwd_configs_dict["rsuReceivedMsgTable"] = {}
+    if TableNames.RECEIVED in msgfwd_configs_dict and TableNames.XMIT not in msgfwd_configs_dict:
+        msgfwd_configs_dict[TableNames.XMIT] = {}
+    elif TableNames.XMIT in msgfwd_configs_dict and TableNames.RECEIVED not in msgfwd_configs_dict:
+        msgfwd_configs_dict[TableNames.RECEIVED] = {}
 
     return {"RsuFwdSnmpwalk": msgfwd_configs_dict}
