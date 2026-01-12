@@ -6,9 +6,10 @@ import { Options } from './AdminDeletionOptions'
 import { selectRsuIpv4 } from '../generalSlices/rsuSlice'
 import {
   selectMsgFwdConfig,
+  selectMsgFwdConfigType,
 
   // Actions
-  refreshSnmpFwdConfig,
+  refreshSnmpFwdConfig, getRsuMsgFwdFetch,
 } from '../generalSlices/configSlice'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import './css/SnmpwalkMenu.css'
@@ -25,6 +26,7 @@ const SnmpwalkMenu = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
   const msgFwdConfig = useSelector(selectMsgFwdConfig)
+  const msgFwdConfigType = useSelector(selectMsgFwdConfigType)
 
   const rsuIp = useSelector(selectRsuIpv4)
 
@@ -69,6 +71,11 @@ const SnmpwalkMenu = () => {
 
   return (
     <div>
+      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+        <h3 className="museo-slab">
+          Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
+        </h3>
+      </div>
       <div>
         {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
           <div>
@@ -117,7 +124,14 @@ const SnmpwalkMenu = () => {
             startIcon={<RefreshIcon />}
             variant="outlined"
             onClick={() => {
-              dispatch(refreshSnmpFwdConfig(rsuIp))
+              dispatch(getRsuMsgFwdFetch(rsuIp)).then((data: any) => {
+                if (data.type.endsWith('rejected')) {
+                  toast.error(data.payload || 'Failed to fetch RSU message forwarding configuration')
+                  dispatch(refreshSnmpFwdConfig(rsuIp))
+                } else {
+                  toast.success('Successfully fetched RSU message forwarding configuration')
+                }
+              })
             }}
             size="large"
             sx={{
