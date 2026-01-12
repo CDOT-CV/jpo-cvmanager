@@ -1,3 +1,7 @@
+import common.util as util
+import logging
+
+
 # Delta is in years
 def hex_datetime(now, delta=0):
     """
@@ -132,3 +136,48 @@ def startend_ntcip1218(val):
     minute = "0" + minute if len(minute) == 1 else minute
     # Return the processed datetime string
     return f"{year}-{month}-{day} {hour}:{minute}"
+
+
+def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
+    msgfwd_configs_dict = {}
+    for row in config_list:
+        config_row = {
+            "Message Type": row["message_type"].upper(),
+            "IP": row["dest_ipv4"],
+            "Port": row["dest_port"],
+            "Start DateTime": util.format_date_denver_iso(row["start_datetime"]),
+            "End DateTime": util.format_date_denver_iso(row["end_datetime"]),
+            "Config Active": active(row["active"]),
+            "Full WSMP": active(row["security"]),
+        }
+
+        # Based on the value of msgfwd_type, store the configuration data to match the response object of rsufwdsnmpwalk
+        if row["msgfwd_type"] == "rsuDsrcFwd":
+            msgfwd_configs_dict[row["snmp_index"]] = config_row
+        elif row["msgfwd_type"] == "rsuReceivedMsg":
+            if "rsuReceivedMsgTable" not in msgfwd_configs_dict:
+                msgfwd_configs_dict["rsuReceivedMsgTable"] = {}
+            msgfwd_configs_dict["rsuReceivedMsgTable"][row["snmp_index"]] = config_row
+        elif row["msgfwd_type"] == "rsuXmitMsgFwding":
+            if "rsuXmitMsgFwdingTable" not in msgfwd_configs_dict:
+                msgfwd_configs_dict["rsuXmitMsgFwdingTable"] = {}
+            msgfwd_configs_dict["rsuXmitMsgFwdingTable"][row["snmp_index"]] = config_row
+        else:
+            rsu_info = f" for RSU '{rsu_ip}'" if rsu_ip else ""
+            logging.warning(
+                f"Encountered unknown message forwarding configuration type '{row['msgfwd_type']}'{rsu_info}"
+            )
+
+    # Make sure both RX and TX objects are available if the RSU ends up having NTCIP 1218 configurations
+    if (
+        "rsuReceivedMsgTable" in msgfwd_configs_dict
+        and "rsuXmitMsgFwdingTable" not in msgfwd_configs_dict
+    ):
+        msgfwd_configs_dict["rsuXmitMsgFwdingTable"] = {}
+    elif (
+        "rsuXmitMsgFwdingTable" in msgfwd_configs_dict
+        and "rsuReceivedMsgTable" not in msgfwd_configs_dict
+    ):
+        msgfwd_configs_dict["rsuReceivedMsgTable"] = {}
+
+    return {"RsuFwdSnmpwalk": msgfwd_configs_dict}
