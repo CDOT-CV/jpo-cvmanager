@@ -70,6 +70,19 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
+  getRsuMsgFwdFetch = async (
+    token: string,
+    org: string,
+    url_ext = '',
+    query_params: Record<string, string> = {}
+  ): Promise<RsuMsgFwdConfigs> =>
+    apiHelper._getData({
+      url: EnvironmentVars.rsuMsgFwdFetchEndpoint + url_ext,
+      token,
+      query_params,
+      additional_headers: { Organization: org },
+      tag: 'rsu',
+    })
   getRsuAuth = async (
     token: string,
     org: string,
