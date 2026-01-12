@@ -37,6 +37,7 @@ public class KeycloakSecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
                         .requestMatchers(HttpMethod.POST, "/users/manage-email-subscriptions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/email-subscriptions").permitAll()
                         .requestMatchers("/**").access(AccessController::checkAccess)
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServerConfigurer -> resourceServerConfigurer.jwt(

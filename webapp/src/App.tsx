@@ -81,7 +81,8 @@ const App = () => {
               <Routes>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard/*" element={<Dashboard />} />
-                <Route path="unsubscribe/:category?" element={<Unsubscribe />} />
+                <Route path="unsubscribe" element={<Unsubscribe />} />
+                <Route path="unsubscribe/:category" element={<Unsubscribe />} />
                 <Route path="*" element={<NotFound shouldRedirect={true} />} />
               </Routes>
             )}

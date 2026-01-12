@@ -19,5 +19,6 @@ public class EmailType {
     @Id
     private int email_type_id;
     private String email_type;
-
+    private String description;
+    private int required_role;
 }

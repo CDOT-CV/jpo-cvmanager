@@ -405,7 +405,13 @@ CREATE TABLE IF NOT EXISTS public.email_type
    email_type_id integer NOT NULL DEFAULT nextval('email_type_email_type_id_seq'::regclass),
    CONSTRAINT email_type_pkey PRIMARY KEY (email_type_id),
    email_type character varying(128) COLLATE pg_catalog.default NOT NULL,
-   CONSTRAINT email_type_unique UNIQUE (email_type)
+   CONSTRAINT email_type_unique UNIQUE (email_type),
+   required_role integer NOT NULL,
+   CONSTRAINT fk_role_id FOREIGN KEY (required_role)
+      REFERENCES public.roles (role_id) MATCH SIMPLE
+      ON UPDATE NO ACTION
+      ON DELETE NO ACTION,
+   description character varying(256)
 );
 
 CREATE SEQUENCE public.user_email_notification_user_email_notification_id_seq

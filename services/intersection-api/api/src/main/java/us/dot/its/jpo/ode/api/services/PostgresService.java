@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
+import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
 @Service
@@ -87,6 +89,17 @@ public class PostgresService {
             "JOIN Organizations o ON uo.organization_id = o.organization_id " +
             "WHERE et.email_type = :notification_type " +
             "AND o.name = :organization_name";
+
+    private final String listEmailSubscriptionTypes = "SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription(et.email_type, et.description, r.name, false)"
+            +
+            " FROM EmailType et" +
+            " JOIN Roles r ON r.role_id = et.required_role";
+
+    private final String getEmailSubscriptionsByUser = "SELECT sub " +
+            "FROM Users u " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
+            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "WHERE u.email = :email";
 
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
@@ -230,6 +243,18 @@ public class PostgresService {
                 String.class);
         query.setParameter("notification_type", notificationType);
         query.setParameter("organization_name", orgName);
+        return query.getResultList();
+    }
+
+    public List<EmailSubscription> getEmailSubscriptionTypes() {
+        TypedQuery<EmailSubscription> query = entityManager.createQuery(listEmailSubscriptionTypes,
+                EmailSubscription.class);
+        return query.getResultList();
+    }
+
+    public List<EmailType> getEmailSubscriptionsByUser(String email) {
+        TypedQuery<EmailType> query = entityManager.createQuery(getEmailSubscriptionsByUser, EmailType.class);
+        query.setParameter("email", email);
         return query.getResultList();
     }
 }
