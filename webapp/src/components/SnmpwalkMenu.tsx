@@ -136,11 +136,11 @@ const SnmpwalkMenu = () => {
             startIcon={<RefreshIcon />}
             variant="outlined"
             onClick={() => {
-              dispatch(getRsuMsgFwdFetch(rsuIp)).then((data: any) => {
-                if (data.type.endsWith('rejected')) {
-                  toast.error(data.payload || 'Failed to fetch RSU message forwarding configuration')
+              dispatch(getRsuMsgFwdFetch(rsuIp)).then((data: { payload: string }) => {
+                if (getRsuMsgFwdFetch.rejected.match(data)) {
+                  toast.error((data.payload as string) || 'Failed to fetch RSU message forwarding configuration')
                   dispatch(refreshSnmpFwdConfig(rsuIp))
-                } else {
+                } else if (getRsuMsgFwdFetch.fulfilled.match(data)) {
                   toast.success('Successfully fetched RSU message forwarding configuration')
                 }
               })

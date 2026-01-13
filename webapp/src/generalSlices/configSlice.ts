@@ -22,7 +22,11 @@ const initialState = {
   msgFwdConfigType: 'database' as 'database' | 'rsu',
 }
 
-export const refreshSnmpFwdConfig = createAsyncThunk(
+export const refreshSnmpFwdConfig = createAsyncThunk<
+  { msgFwdConfig: RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs; errorState: string },
+  string,
+  { state: RootState }
+>(
   'config/refreshSnmpFwdConfig',
   async (rsu_ip: string, { getState }) => {
     console.log('Retrieving RSU message forwarding config from database for IP:', rsu_ip)
@@ -45,7 +49,11 @@ export const refreshSnmpFwdConfig = createAsyncThunk(
   }
 )
 
-export const getRsuMsgFwdFetch = createAsyncThunk(
+export const getRsuMsgFwdFetch = createAsyncThunk<
+  { msgFwdConfig: RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs; errorState: string },
+  string,
+  { state: RootState }
+>(
   'config/getRsuMsgFwdFetch',
   async (rsu_ip: string, { getState, rejectWithValue }) => {
     console.log('Retrieving RSU message forwarding config directly from RSU for IP:', rsu_ip)
