@@ -77,7 +77,8 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
       if (typeof e === 'string') {
         return rejectWithValue(e)
       }
-      return rejectWithValue('An unknown error occurred while fetching RSU message forwarding configuration')    }
+      return rejectWithValue('An unknown error occurred while fetching RSU message forwarding configuration')
+    }
   }
 )
 
