@@ -20,6 +20,12 @@ class RsuSnmpFwdFetchSchema(Schema):
 
 
 class RsuSnmpFwdFetch(Resource):
+    """
+    Handles fetching SNMP message forwarding configurations for Roadside Units (RSUs).
+    This resource provides endpoints to retrieve SNMP configurations for a specified RSU,
+    ensuring proper permissions and schema validation, and interacting with the necessary
+    helper services for RSU data retrieval.
+    """
     options_headers = {
         "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
         "Access-Control-Allow-Headers": "Content-Type,Authorization,Organization",
@@ -38,6 +44,17 @@ class RsuSnmpFwdFetch(Resource):
 
     @require_permission(required_role=ORG_ROLE_LITERAL.USER)
     def get(self, permission_result: PermissionResult):
+        """
+        Handles the GET request for fetching SNMP configurations of a specified RSU (Roadside Unit)
+        based on the RSU IP and the organization of the requesting user. This method validates the input
+        parameters, fetches RSU information, and utilizes SNMP configuration methods to retrieve and
+        format the required information.
+
+        :param permission_result: An instance of `PermissionResult` containing user-related
+            permissions data, used to determine the organization context for the operation.
+        :return: A tuple consisting of the formatted SNMP configuration data, the HTTP status code,
+            and response headers.
+        """
         logging.debug("RsuSnmpFwdFetch GET requested")
         # Schema check for arguments
         schema = RsuSnmpFwdFetchSchema()
