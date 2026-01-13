@@ -84,9 +84,6 @@ const SnmpwalkMenu = () => {
   return (
     <div>
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-        <h3 className="museo-slab">
-          Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
-        </h3>
         {isConfigEmpty && (
           <h4 className="museo-slab">No message forward configurations set up</h4>
         )}
@@ -159,6 +156,9 @@ const SnmpwalkMenu = () => {
           </Button>
         </Tooltip>
       </div>
+      <h3 className="museo-slab">
+        Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
+      </h3>
     </div>
   )
 }
