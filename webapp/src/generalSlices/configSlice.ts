@@ -214,7 +214,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
 export const geoRsuQuery = createAsyncThunk(
   'config/geoRsuQuery',
-  async (vendor: string, { getState }) => {
+  async (vendor: string, { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
