@@ -1,6 +1,6 @@
 import reducer, {
-  refreshSnmpFwdConfig,
-  getRsuMsgFwdFetch,
+  getCachedSnmpFwdConfigsFromDatabase,
+  getRsuMsgConfigsFromRsu,
   submitSnmpSet,
   deleteSnmpSet,
   rebootRsu,
@@ -80,14 +80,14 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgFwdConfigs = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
+      RsuApi.getCachedRsuMsgFwdConfigsFromDatabase = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
 
       const rsu_ip = '1.2.3.4'
 
-      const action = refreshSnmpFwdConfig(rsu_ip)
+      const action = getCachedSnmpFwdConfigsFromDatabase(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getRsuMsgFwdConfigs).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
+      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
       expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
     })
 
@@ -139,14 +139,14 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgFwdFetch = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
+      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
 
       const rsu_ip = '1.2.3.4'
 
-      const action = getRsuMsgFwdFetch(rsu_ip)
+      const action = getRsuMsgConfigsFromRsu(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getRsuMsgFwdFetch).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
+      expect(RsuApi.getRsuMsgConfigsFromRsu).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
       expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
     })
 
@@ -160,11 +160,11 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgFwdFetch = jest.fn().mockReturnValue(null)
+      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockReturnValue(null)
 
       const rsu_ip = '1.2.3.4'
 
-      const action = getRsuMsgFwdFetch(rsu_ip)
+      const action = getRsuMsgConfigsFromRsu(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('Failed to fetch RSU message forwarding configuration')

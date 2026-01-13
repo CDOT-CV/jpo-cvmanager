@@ -9,7 +9,7 @@ import {
   selectMsgFwdConfigType,
 
   // Actions
-  refreshSnmpFwdConfig, getRsuMsgFwdFetch,
+  getCachedSnmpFwdConfigsFromDatabase, getRsuMsgConfigsFromRsu,
 } from '../generalSlices/configSlice'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import './css/SnmpwalkMenu.css'
@@ -44,7 +44,7 @@ const SnmpwalkMenu = () => {
 
   useEffect(() => {
     // Refresh Data
-    dispatch(refreshSnmpFwdConfig(rsuIp))
+    dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
   }, [rsuIp, dispatch])
 
   const handleDelete = (countsMsgType: string, ip: string) => {
@@ -136,11 +136,11 @@ const SnmpwalkMenu = () => {
             startIcon={<RefreshIcon />}
             variant="outlined"
             onClick={() => {
-              dispatch(getRsuMsgFwdFetch(rsuIp)).then((data: { payload: string }) => {
-                if (getRsuMsgFwdFetch.rejected.match(data)) {
+              dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data: { payload: string }) => {
+                if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
                   toast.error((data.payload as string) || 'Failed to fetch RSU message forwarding configuration')
-                  dispatch(refreshSnmpFwdConfig(rsuIp))
-                } else if (getRsuMsgFwdFetch.fulfilled.match(data)) {
+                  dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+                } else if (getRsuMsgConfigsFromRsu.fulfilled.match(data)) {
                   toast.success('Successfully fetched RSU message forwarding configuration')
                 }
               })

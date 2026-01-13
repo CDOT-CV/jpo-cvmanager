@@ -57,7 +57,7 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getRsuMsgFwdConfigs = async (
+  getCachedRsuMsgFwdConfigsFromDatabase = async (
     token: string,
     org: string,
     url_ext = '',
@@ -70,7 +70,7 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getRsuMsgFwdFetch = async (
+  getRsuMsgConfigsFromRsu = async (
     token: string,
     org: string,
     url_ext = '',
