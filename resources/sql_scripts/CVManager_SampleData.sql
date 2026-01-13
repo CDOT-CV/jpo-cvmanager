@@ -71,8 +71,8 @@ INSERT INTO public.snmp_msgfwd_config(
 	(2, 3, 2, 'SPAT', '10.0.0.80', 44910, '2024/04/01T00:00:00', '2034/04/01T00:00:00', '1', '0');
 
 INSERT INTO public.email_type(
-	email_type, description)
-	VALUES ('Support Requests', ''), ('Firmware Upgrade Failures', ''), ('Daily Message Counts', ''), ('Access Requests', ''), ('Intersection Notification Summary', ''), ('Critical Error Messages', '');
+	email_type, required_role, description)
+	VALUES ('Support Requests', 1, 'Receive support requests from users'), ('Firmware Upgrade Failures', 2, 'Receive automated firmware upgrade failure emails'), ('Daily Message Counts', 3, 'Receive automated daily message count emails'), ('Access Requests', 1, 'Receive organization access requests from users'), ('Intersection Notification Summary', 3, 'Receive automated intersection notification summary emails'), ('Critical Error Messages', 2, 'Receive automated critical error message emails');
 
 INSERT INTO public.user_email_notification(
 	user_email_notification_id, user_id, email_type_id)

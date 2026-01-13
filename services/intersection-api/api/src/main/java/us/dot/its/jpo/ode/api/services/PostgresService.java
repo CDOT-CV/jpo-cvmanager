@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -95,24 +96,11 @@ public class PostgresService {
             " FROM EmailType et" +
             " JOIN Roles r ON r.role_id = et.required_role";
 
-    private final String getEmailSubscriptionsByUser = "SELECT sub " +
+    private final String getEmailSubscriptionsByUser = "SELECT et " +
             "FROM Users u " +
             "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
             "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
             "WHERE u.email = :email";
-
-    private final String removeEmailSubscriptionsByUserAndTypes = "DELETE FROM UserEmailNotification uen " +
-            "USING Users u, EmailType et " +
-            "WHERE uen.user_id = u.user_id " +
-            "AND uen.email_type_id = et.email_type_id " +
-            "AND u.email = :email " +
-            "AND et.email_type IN :email_types";
-
-    private final String addEmailSubscriptionByUser = "INSERT INTO UserEmailNotification (user_id, email_type_id) " +
-            "SELECT u.user_id, et.email_type_id " +
-            "FROM Users u, EmailType et " +
-            "WHERE u.email = :email " +
-            "AND et.email_type = :email_type";
 
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
@@ -271,15 +259,33 @@ public class PostgresService {
         return query.getResultList();
     }
 
+    @Transactional
     public void removeEmailSubscriptionsByUser(String email, List<String> emailTypes) {
-        entityManager.createQuery(removeEmailSubscriptionsByUserAndTypes)
+        if (emailTypes.isEmpty()) {
+            return;
+        }
+        String nativeQuery = "DELETE FROM user_email_notification uen " +
+                "USING users u, email_type et " +
+                "WHERE uen.user_id = u.user_id " +
+                "AND uen.email_type_id = et.email_type_id " +
+                "AND u.email = :email " +
+                "AND et.email_type IN :email_types";
+
+        entityManager.createNativeQuery(nativeQuery)
                 .setParameter("email", email)
                 .setParameter("email_types", emailTypes)
                 .executeUpdate();
     }
 
+    @Transactional
     public void addEmailSubscriptionByUser(String email, String emailType) {
-        entityManager.createQuery(addEmailSubscriptionByUser)
+        String nativeQuery = "INSERT INTO user_email_notification (user_id, email_type_id) " +
+                "SELECT u.user_id, et.email_type_id " +
+                "FROM users u, email_type et " +
+                "WHERE u.email = :email " +
+                "AND et.email_type = :email_type";
+
+        entityManager.createNativeQuery(nativeQuery)
                 .setParameter("email", email)
                 .setParameter("email_type", emailType)
                 .executeUpdate();

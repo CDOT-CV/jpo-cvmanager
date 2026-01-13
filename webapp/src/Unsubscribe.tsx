@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
   Paper,
@@ -16,53 +16,19 @@ import {
   useTheme,
 } from '@mui/material'
 import { SecureStorageManager } from './managers'
-
-// Define subscription categories
-interface SubscriptionCategory {
-  id: string
-  name: string
-  description: string
-  adminOnly: boolean
-}
-
-const SUBSCRIPTION_CATEGORIES: SubscriptionCategory[] = [
-  {
-    id: 'contact-support',
-    name: 'Contact Support Notifications',
-    description: 'Receive notifications about contact support requests and updates',
-    adminOnly: true,
-  },
-  {
-    id: 'intersection-events',
-    name: 'Intersection Events',
-    description: 'Notifications about intersection status changes and events',
-    adminOnly: false,
-  },
-  {
-    id: 'system-alerts',
-    name: 'System Alerts',
-    description: 'Important system-wide alerts and maintenance notifications',
-    adminOnly: false,
-  },
-  {
-    id: 'weekly-reports',
-    name: 'Weekly Reports',
-    description: 'Weekly summary reports of system activity',
-    adminOnly: false,
-  },
-  {
-    id: 'admin-notifications',
-    name: 'Admin Notifications',
-    description: 'Administrative notifications and user management alerts',
-    adminOnly: true,
-  },
-]
+import {
+  useGetEmailSubscriptionsQuery,
+  useUpdateEmailSubscriptionsMutation,
+} from './features/api/userNotificationSlice'
+import { EmailSubscription } from './models/email-subscriptions'
 
 const Unsubscribe = () => {
   const theme = useTheme()
   const { category } = useParams<{ category: string }>()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
   const navigate = useNavigate()
-  const [subscriptions, setSubscriptions] = useState<Record<string, boolean>>({})
+  const [subscriptions, setSubscriptions] = useState<Record<string, EmailSubscription>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +36,10 @@ const Unsubscribe = () => {
   const isAdmin = SecureStorageManager.getUserRole() === 'admin'
 
   // Filter categories based on admin status
-  const availableCategories = SUBSCRIPTION_CATEGORIES.filter((cat) => !cat.adminOnly || isAdmin)
+  const { data } = useGetEmailSubscriptionsQuery(token)
+  const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
+  const availableCategories = data?.subscriptions || []
+  const userEmail = data?.email || ''
 
   // Initialize subscriptions
   useEffect(() => {
@@ -78,12 +47,22 @@ const Unsubscribe = () => {
       setLoading(true)
       setError(null)
 
+      // Validate token if present
+      if (!token) {
+        setError('Invalid or missing authentication token')
+        setLoading(false)
+        return
+      }
+
       try {
         // TODO: Replace with actual API call to fetch user's current subscriptions
+        // Pass the token to authenticate the request
+        // Example: await fetchSubscriptionPreferences(token)
+
         // For now, initialize all as subscribed
-        const initialSubscriptions: Record<string, boolean> = {}
+        const initialSubscriptions: Record<string, EmailSubscription> = {}
         availableCategories.forEach((cat) => {
-          initialSubscriptions[cat.id] = true
+          initialSubscriptions[cat.category] = cat
         })
         setSubscriptions(initialSubscriptions)
       } catch (err) {
@@ -94,11 +73,11 @@ const Unsubscribe = () => {
     }
 
     loadSubscriptions()
-  }, [isAdmin])
+  }, [token, isAdmin, availableCategories])
 
   // Check if the category from URL is valid
   useEffect(() => {
-    if (category && !availableCategories.find((cat) => cat.id === category)) {
+    if (category && !availableCategories.find((cat) => cat.category === category)) {
       setError(`Invalid subscription category: ${category}`)
     }
   }, [category, availableCategories])
@@ -106,14 +85,14 @@ const Unsubscribe = () => {
   const handleToggle = (categoryId: string) => {
     setSubscriptions((prev) => ({
       ...prev,
-      [categoryId]: !prev[categoryId],
+      [categoryId]: { ...prev[categoryId], subscribed: !prev[categoryId].subscribed },
     }))
   }
 
   const handleToggleAll = (subscribe: boolean) => {
-    const updatedSubscriptions: Record<string, boolean> = {}
+    const updatedSubscriptions: Record<string, EmailSubscription> = {}
     availableCategories.forEach((cat) => {
-      updatedSubscriptions[cat.id] = subscribe
+      updatedSubscriptions[cat.category] = { ...cat, subscribed: subscribe }
     })
     setSubscriptions(updatedSubscriptions)
   }
@@ -123,12 +102,14 @@ const Unsubscribe = () => {
     setError(null)
     setSuccess(false)
 
-    try {
-      // TODO: Replace with actual API call to save subscription preferences
-      // Example: await saveSubscriptionPreferences(subscriptions)
+    if (!token) {
+      setError('Invalid or missing authentication token')
+      setSaving(false)
+      return
+    }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      await updateEmailSubscriptions({ token, subscriptions: Object.values(subscriptions) }).unwrap()
 
       setSuccess(true)
 
@@ -143,8 +124,8 @@ const Unsubscribe = () => {
     }
   }
 
-  const allSubscribed = availableCategories.every((cat) => subscriptions[cat.id])
-  const noneSubscribed = availableCategories.every((cat) => !subscriptions[cat.id])
+  const allSubscribed = availableCategories.every((cat) => subscriptions[cat.category])
+  const noneSubscribed = availableCategories.every((cat) => !subscriptions[cat.category])
 
   if (loading) {
     return (
@@ -206,7 +187,7 @@ const Unsubscribe = () => {
           <FormGroup>
             {availableCategories.map((cat) => (
               <Box
-                key={cat.id}
+                key={cat.category}
                 sx={{
                   p: 2,
                   mb: 2,
@@ -214,7 +195,7 @@ const Unsubscribe = () => {
                   borderColor: 'divider',
                   borderRadius: 1,
                   backgroundColor:
-                    category === cat.id
+                    category === cat.category
                       ? theme.palette.mode === 'dark'
                         ? 'action.selected'
                         : 'action.hover'
@@ -224,16 +205,16 @@ const Unsubscribe = () => {
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={subscriptions[cat.id] || false}
-                      onChange={() => handleToggle(cat.id)}
+                      checked={subscriptions[cat.category]?.subscribed || false}
+                      onChange={() => handleToggle(cat.category)}
                       color="primary"
                     />
                   }
                   label={
                     <Box>
                       <Typography variant="body1" fontWeight="medium">
-                        {cat.name}
-                        {cat.adminOnly && (
+                        {cat.category}
+                        {cat.requiredRole != 'user' && (
                           <Typography
                             component="span"
                             variant="caption"
@@ -246,7 +227,7 @@ const Unsubscribe = () => {
                               borderRadius: 1,
                             }}
                           >
-                            Admin Only
+                            {cat.requiredRole}
                           </Typography>
                         )}
                       </Typography>

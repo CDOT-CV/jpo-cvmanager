@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
-import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionUpdateRequest;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.services.PostgresService;
@@ -39,30 +38,32 @@ public class UserController {
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
-    @RequestMapping(value = "/update-email-subscriptions", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
             @RequestParam(required = false) String token,
-            @RequestBody EmailSubscriptionUpdateRequest body) {
+            @RequestBody List<EmailSubscription> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
 
         List<EmailType> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
-        List<String> addedSubscriptions = body.getSubscriptions().stream()
+        List<String> addedSubscriptions = requestedSubscriptions.stream()
+                .filter(sub -> sub.getSubscribed() != null && sub.getSubscribed())
                 .filter(sub -> userSubscriptions.stream()
                         .noneMatch(userSub -> userSub.getEmail_type().equals(sub.getCategory())))
                 .map(EmailSubscription::getCategory)
                 .toList();
 
-        List<String> removedSubscriptions = userSubscriptions.stream()
-                .filter(userSub -> body.getSubscriptions().stream()
-                        .noneMatch(sub -> sub.getCategory().equals(userSub.getEmail_type())))
-                .map(EmailType::getEmail_type)
+        List<String> removedSubscriptions = requestedSubscriptions.stream()
+                .filter(sub -> sub.getSubscribed() != null && !sub.getSubscribed())
+                .filter(sub -> userSubscriptions.stream()
+                        .anyMatch(userSub -> userSub.getEmail_type().equals(sub.getCategory())))
+                .map(EmailSubscription::getCategory)
                 .toList();
 
         postgresService.removeEmailSubscriptionsByUser(userEmail, removedSubscriptions);
@@ -86,14 +87,14 @@ public class UserController {
         }
         List<EmailType> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
         List<EmailSubscription> allSubscriptionTypes = postgresService.getEmailSubscriptionTypes();
-        List<EmailSubscription> subscriptions = allSubscriptionTypes.stream().filter(subType -> {
+        List<EmailSubscription> subscriptions = allSubscriptionTypes.stream().map(subType -> {
             for (EmailType subscribedType : userSubscriptions) {
                 if (subscribedType.getEmail_type().equals(subType.getCategory())) {
                     subType.setSubscribed(true);
-                    return true;
+                    return subType;
                 }
             }
-            return false;
+            return subType;
         }).toList();
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
