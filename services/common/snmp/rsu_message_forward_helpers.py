@@ -1,6 +1,6 @@
 import common.util as util
 import logging
-
+from enum import Enum
 
 # Delta is in years
 def hex_datetime(now, delta=0):
@@ -138,18 +138,12 @@ def startend_ntcip1218(val):
     return f"{year}-{month}-{day} {hour}:{minute}"
 
 
-class MsgFwdType:
-    def __init__(self):
-        pass
-
+class MsgFwdType(Enum):
     DSRC = "rsuDsrcFwd"
     RECEIVED = "rsuReceivedMsg"
     XMIT = "rsuXmitMsgFwding"
 
-class TableNames:
-    def __init__(self):
-        pass
-
+class TableNames(Enum):
     RECEIVED = "rsuReceivedMsgTable"
     XMIT = "rsuXmitMsgFwdingTable"
 
