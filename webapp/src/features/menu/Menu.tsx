@@ -28,7 +28,7 @@ const Menu = () => {
   const displayCounts = useSelector(selectDisplayCounts)
   const displayRsuErrors = useSelector(selectDisplayRsuErrors)
 
-  const isOperator = useMemo(() => {
+  const isOperatorOrAbove = useMemo(() => {
     const allowedRoles = ['operator', 'admin']
     return allowedRoles.includes(SecureStorageManager.getUserRole())
   }, [])
@@ -55,7 +55,7 @@ const Menu = () => {
           <DisplayRsuErrors />
         </div>
       )}
-      {isOperator && (selectedRsu || selectedRsuList?.length > 0) && (
+      {isOperatorOrAbove && (selectedRsu || selectedRsuList?.length > 0) && (
         <div
           style={{ ...menuStyle, backgroundColor: theme.palette.custom.mapLegendBackground, width: '400px' }}
           className="visibleProp map-control-container"
