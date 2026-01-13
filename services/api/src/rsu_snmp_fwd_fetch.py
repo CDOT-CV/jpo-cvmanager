@@ -64,19 +64,10 @@ class RsuSnmpFwdFetch(Resource):
         required_keys = ["rsu_id", "snmp_username", "snmp_password", "snmp_encrypt_pw", "snmp_version"]
         missing_keys = [key for key in required_keys if not rsu_info.get(key)]
         if missing_keys:
-            logging.error(
+            logging.warning(
                 "RSU info for IP %s is missing required fields for SNMP config fetch: %s",
                 rsu_ip,
                 ", ".join(missing_keys),
-            )
-            return (
-                {
-                    "message": (
-                        "RSU information is missing required fields for SNMP config "
-                        f"fetch: {', '.join(missing_keys)}"
-                    )
-                },
-                500,
             )
         rsu_info["ipv4_address"] = rsu_ip
         
