@@ -165,9 +165,9 @@ def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
         if m_type == MsgFwdType.DSRC.value:
             msgfwd_configs_dict[row["snmp_index"]] = config_row
         elif m_type == MsgFwdType.RECEIVED.value:
-            msgfwd_configs_dict.setdefault(TableNames.RECEIVED, {})[row["snmp_index"]] = config_row
+            msgfwd_configs_dict.setdefault(TableNames.RECEIVED.value, {})[row["snmp_index"]] = config_row
         elif m_type == MsgFwdType.XMIT.value:
-            msgfwd_configs_dict.setdefault(TableNames.XMIT, {})[row["snmp_index"]] = config_row
+            msgfwd_configs_dict.setdefault(TableNames.XMIT.value, {})[row["snmp_index"]] = config_row
         else:
             rsu_info = f" for RSU '{rsu_ip}'" if rsu_ip else ""
             logging.warning(
@@ -175,9 +175,9 @@ def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
             )
 
     # Make sure both RX and TX objects are available if the RSU ends up having NTCIP 1218 configurations
-    if TableNames.RECEIVED in msgfwd_configs_dict and TableNames.XMIT not in msgfwd_configs_dict:
-        msgfwd_configs_dict[TableNames.XMIT] = {}
-    elif TableNames.XMIT in msgfwd_configs_dict and TableNames.RECEIVED not in msgfwd_configs_dict:
-        msgfwd_configs_dict[TableNames.RECEIVED] = {}
+    if TableNames.RECEIVED.value in msgfwd_configs_dict and TableNames.XMIT.value not in msgfwd_configs_dict:
+        msgfwd_configs_dict[TableNames.XMIT.value] = {}
+    elif TableNames.XMIT.value in msgfwd_configs_dict and TableNames.RECEIVED.value not in msgfwd_configs_dict:
+        msgfwd_configs_dict[TableNames.RECEIVED.value] = {}
 
     return {"RsuFwdSnmpwalk": msgfwd_configs_dict}
