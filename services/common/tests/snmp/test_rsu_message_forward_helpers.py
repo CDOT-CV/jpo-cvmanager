@@ -154,10 +154,10 @@ def test_format_snmp_msgfwd_configs_ntcip(mock_format_date):
     
     result = format_snmp_msgfwd_configs(config_list)
     
-    assert TableNames.RECEIVED in result["RsuFwdSnmpwalk"]
-    assert TableNames.XMIT in result["RsuFwdSnmpwalk"]
-    assert result["RsuFwdSnmpwalk"][TableNames.RECEIVED]["2"]["Message Type"] == "SPAT"
-    assert result["RsuFwdSnmpwalk"][TableNames.XMIT]["3"]["Message Type"] == "MAP"
+    assert TableNames.RECEIVED.value in result["RsuFwdSnmpwalk"]
+    assert TableNames.XMIT.value in result["RsuFwdSnmpwalk"]
+    assert result["RsuFwdSnmpwalk"][TableNames.RECEIVED.value]["2"]["Message Type"] == "SPAT"
+    assert result["RsuFwdSnmpwalk"][TableNames.XMIT.value]["3"]["Message Type"] == "MAP"
 
 def test_format_snmp_msgfwd_configs_balancing():
     # Only RECEIVED
@@ -168,9 +168,9 @@ def test_format_snmp_msgfwd_configs_balancing():
     }]
     with patch("common.util.format_date_denver_iso", side_effect=lambda x: x):
         result = format_snmp_msgfwd_configs(config_list)
-    assert TableNames.RECEIVED in result["RsuFwdSnmpwalk"]
-    assert TableNames.XMIT in result["RsuFwdSnmpwalk"]
-    assert result["RsuFwdSnmpwalk"][TableNames.XMIT] == {}
+    assert TableNames.RECEIVED.value in result["RsuFwdSnmpwalk"]
+    assert TableNames.XMIT.value in result["RsuFwdSnmpwalk"]
+    assert result["RsuFwdSnmpwalk"][TableNames.XMIT.value] == {}
 
     # Only XMIT
     config_list = [{
@@ -180,9 +180,9 @@ def test_format_snmp_msgfwd_configs_balancing():
     }]
     with patch("common.util.format_date_denver_iso", side_effect=lambda x: x):
         result = format_snmp_msgfwd_configs(config_list)
-    assert TableNames.RECEIVED in result["RsuFwdSnmpwalk"]
-    assert TableNames.XMIT in result["RsuFwdSnmpwalk"]
-    assert result["RsuFwdSnmpwalk"][TableNames.RECEIVED] == {}
+    assert TableNames.RECEIVED.value in result["RsuFwdSnmpwalk"]
+    assert TableNames.XMIT.value in result["RsuFwdSnmpwalk"]
+    assert result["RsuFwdSnmpwalk"][TableNames.RECEIVED.value] == {}
 
 def test_format_snmp_msgfwd_configs_unknown_type(caplog):
     config_list = [{
