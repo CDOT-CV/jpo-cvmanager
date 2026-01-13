@@ -28,6 +28,18 @@ const SnmpwalkMenu = () => {
   const msgFwdConfig = useSelector(selectMsgFwdConfig)
   const msgFwdConfigType = useSelector(selectMsgFwdConfigType)
 
+  const isConfigEmpty = React.useMemo(() => {
+    if (!msgFwdConfig) return true
+    if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
+      const txEmpty = !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || 
+                      Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable).length === 0
+      const rxEmpty = !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') || 
+                      Object.keys(msgFwdConfig.rsuReceivedMsgTable).length === 0
+      return txEmpty && rxEmpty
+    }
+    return Object.keys(msgFwdConfig).length === 0
+  }, [msgFwdConfig])
+
   const rsuIp = useSelector(selectRsuIpv4)
 
   useEffect(() => {
@@ -75,6 +87,9 @@ const SnmpwalkMenu = () => {
         <h3 className="museo-slab">
           Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
         </h3>
+        {isConfigEmpty && (
+          <h4 className="museo-slab">No message forward configurations set up</h4>
+        )}
       </div>
       <div>
         {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
