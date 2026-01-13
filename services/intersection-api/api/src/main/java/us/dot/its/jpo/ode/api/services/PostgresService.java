@@ -101,6 +101,19 @@ public class PostgresService {
             "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
             "WHERE u.email = :email";
 
+    private final String removeEmailSubscriptionsByUserAndTypes = "DELETE FROM UserEmailNotification uen " +
+            "USING Users u, EmailType et " +
+            "WHERE uen.user_id = u.user_id " +
+            "AND uen.email_type_id = et.email_type_id " +
+            "AND u.email = :email " +
+            "AND et.email_type IN :email_types";
+
+    private final String addEmailSubscriptionByUser = "INSERT INTO UserEmailNotification (user_id, email_type_id) " +
+            "SELECT u.user_id, et.email_type_id " +
+            "FROM Users u, EmailType et " +
+            "WHERE u.email = :email " +
+            "AND et.email_type = :email_type";
+
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
         query.setParameter("email", email);
@@ -256,5 +269,19 @@ public class PostgresService {
         TypedQuery<EmailType> query = entityManager.createQuery(getEmailSubscriptionsByUser, EmailType.class);
         query.setParameter("email", email);
         return query.getResultList();
+    }
+
+    public void removeEmailSubscriptionsByUser(String email, List<String> emailTypes) {
+        entityManager.createQuery(removeEmailSubscriptionsByUserAndTypes)
+                .setParameter("email", email)
+                .setParameter("email_types", emailTypes)
+                .executeUpdate();
+    }
+
+    public void addEmailSubscriptionByUser(String email, String emailType) {
+        entityManager.createQuery(addEmailSubscriptionByUser)
+                .setParameter("email", email)
+                .setParameter("email_type", emailType)
+                .executeUpdate();
     }
 }

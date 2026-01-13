@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
-import us.dot.its.jpo.ode.api.models.emails.ManageSubscriptionsBody;
+import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionUpdateRequest;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.services.PostgresService;
@@ -38,21 +38,39 @@ public class UserController {
     private final PostgresService postgresService;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
-    // TODO: Remove all authentication for send-support-request-email
-    @Operation(summary = "Manage email subscription preferences", description = "Manage the user's email subscription preferences")
-    @RequestMapping(value = "/manage-email-subscriptions", method = RequestMethod.POST, produces = "application/json")
+    @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
+    @RequestMapping(value = "/update-email-subscriptions", method = RequestMethod.POST, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<String> manageEmailSubscriptions(
-            @RequestParam(name = "token", required = false) String token,
-            @RequestBody EmailSubscription body) {
+    public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
+            @RequestParam(required = false) String token,
+            @RequestBody EmailSubscriptionUpdateRequest body) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
-        return null;
+
+        List<EmailType> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
+        List<String> addedSubscriptions = body.getSubscriptions().stream()
+                .filter(sub -> userSubscriptions.stream()
+                        .noneMatch(userSub -> userSub.getEmail_type().equals(sub.getCategory())))
+                .map(EmailSubscription::getCategory)
+                .toList();
+
+        List<String> removedSubscriptions = userSubscriptions.stream()
+                .filter(userSub -> body.getSubscriptions().stream()
+                        .noneMatch(sub -> sub.getCategory().equals(userSub.getEmail_type())))
+                .map(EmailType::getEmail_type)
+                .toList();
+
+        postgresService.removeEmailSubscriptionsByUser(userEmail, removedSubscriptions);
+        addedSubscriptions.forEach(subType -> {
+            postgresService.addEmailSubscriptionByUser(userEmail, subType);
+        });
+
+        return ResponseEntity.ok("Email subscriptions updated successfully");
     }
 
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
@@ -60,8 +78,8 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<List<EmailSubscription>> getEmailSubscriptions(
-            @RequestParam(name = "token", required = false) String token) {
+    public @ResponseBody ResponseEntity<EmailSubscriptionGetResponse> getEmailSubscriptions(
+            @RequestParam(required = false) String token) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
