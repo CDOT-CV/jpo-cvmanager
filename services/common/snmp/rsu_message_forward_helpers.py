@@ -161,17 +161,17 @@ def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
         }
 
         # Based on the value of msgfwd_type, store the configuration data to match the response object of rsufwdsnmpwalk
-        m_type = row["msgfwd_type"]
-        if m_type == MsgFwdType.DSRC.value:
+        msgfwd_type_value = row["msgfwd_type"]
+        if msgfwd_type_value == MsgFwdType.DSRC.value:
             msgfwd_configs_dict[row["snmp_index"]] = config_row
-        elif m_type == MsgFwdType.RECEIVED.value:
+        elif msgfwd_type_value == MsgFwdType.RECEIVED.value:
             msgfwd_configs_dict.setdefault(TableNames.RECEIVED.value, {})[row["snmp_index"]] = config_row
-        elif m_type == MsgFwdType.XMIT.value:
+        elif msgfwd_type_value == MsgFwdType.XMIT.value:
             msgfwd_configs_dict.setdefault(TableNames.XMIT.value, {})[row["snmp_index"]] = config_row
         else:
             rsu_info = f" for RSU '{rsu_ip}'" if rsu_ip else ""
             logging.warning(
-                f"Encountered unknown message forwarding configuration type '{m_type}'{rsu_info}"
+                f"Encountered unknown message forwarding configuration type '{msgfwd_type_value}'{rsu_info}"
             )
 
     # Make sure both RX and TX objects are available if the RSU ends up having NTCIP 1218 configurations
