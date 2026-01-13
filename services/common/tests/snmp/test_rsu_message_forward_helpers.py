@@ -1,7 +1,5 @@
-import pytest
 import datetime
-import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from common.snmp.rsu_message_forward_helpers import (
     hex_datetime,
     message_type_rsu41,
@@ -15,7 +13,6 @@ from common.snmp.rsu_message_forward_helpers import (
     startend_rsu41,
     startend_ntcip1218,
     format_snmp_msgfwd_configs,
-    MsgFwdType,
     TableNames,
 )
 
