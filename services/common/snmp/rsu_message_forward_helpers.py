@@ -148,6 +148,23 @@ class TableNames(Enum):
     XMIT = "rsuXmitMsgFwdingTable"
 
 def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
+    """
+    Formats and organizes SNMP message forwarding configurations into a structured dictionary format.
+
+    This function processes a list of configuration rows, restructures them into a dictionary
+    compatible with the SNMP walk response format, and classifies the configurations based on their
+    message forwarding types. It handles specific message forwarding types such as DSRC, RECEIVED,
+    and XMIT, ensuring that related objects (RX and TX) are available for complete NTCIP 1218
+    configuration support. Unknown message forwarding types are logged with a warning.
+
+    :param config_list: A list of configuration dictionaries where each dictionary represents data
+        for a single configuration row.
+    :type config_list: list[dict]
+    :param rsu_ip: Optional IPv4 address of the RSU, used for logging purposes. Defaults to None.
+    :type rsu_ip: str | None
+    :return: A dictionary containing organized SNMP message forwarding configurations.
+    :rtype: dict
+    """
     msgfwd_configs_dict = {}
     for row in config_list:
         config_row = {
