@@ -69,11 +69,12 @@ class RsuSnmpFwdFetch(Resource):
                 rsu_ip,
                 ", ".join(missing_keys),
             )
-        rsu_info["ipv4_address"] = rsu_ip
+        rsu_info_copy = rsu_info.copy()
+        rsu_info_copy["ipv4_address"] = rsu_ip
         
         try:
-            configs = updater.get_snmp_configs([rsu_info])
-            rsu_configs = configs.get(rsu_info["rsu_id"])
+            configs = updater.get_snmp_configs([rsu_info_copy])
+            rsu_configs = configs.get(rsu_info_copy["rsu_id"])
 
             if rsu_configs == "Unable to retrieve latest SNMP config":
                 return {"message": "Unable to retrieve latest SNMP config from RSU"}, 500
