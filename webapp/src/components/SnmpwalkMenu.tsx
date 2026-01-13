@@ -156,6 +156,7 @@ const SnmpwalkMenu = () => {
           </Button>
         </Tooltip>
       </div>
+      <br />
       <h3 className="museo-slab">
         Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
       </h3>
