@@ -11,10 +11,10 @@ import {
   CircularProgress,
   Container,
   Divider,
-  Switch,
   FormGroup,
   useTheme,
 } from '@mui/material'
+import HomeIcon from '@mui/icons-material/Home'
 import { SecureStorageManager } from './managers'
 import {
   useGetEmailSubscriptionsQuery,
@@ -89,14 +89,6 @@ const Unsubscribe = () => {
     }))
   }
 
-  const handleToggleAll = (subscribe: boolean) => {
-    const updatedSubscriptions: Record<string, EmailSubscription> = {}
-    availableCategories.forEach((cat) => {
-      updatedSubscriptions[cat.category] = { ...cat, subscribed: subscribe }
-    })
-    setSubscriptions(updatedSubscriptions)
-  }
-
   const handleSave = async () => {
     setSaving(true)
     setError(null)
@@ -123,9 +115,6 @@ const Unsubscribe = () => {
       setSaving(false)
     }
   }
-
-  const allSubscribed = availableCategories.every((cat) => subscriptions[cat.category])
-  const noneSubscribed = availableCategories.every((cat) => !subscriptions[cat.category])
 
   if (loading) {
     return (
@@ -165,25 +154,6 @@ const Unsubscribe = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* Toggle All Switch */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 3,
-              p: 2,
-              backgroundColor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-              borderRadius: 1,
-            }}
-          >
-            <Typography variant="body1" fontWeight="bold">
-              {allSubscribed ? 'Unsubscribe from All' : 'Subscribe to All'}
-            </Typography>
-            <Switch checked={allSubscribed} onChange={(e) => handleToggleAll(e.target.checked)} color="primary" />
-          </Box>
-
-          {/* Subscription List */}
           <FormGroup>
             {availableCategories.map((cat) => (
               <Box
@@ -250,23 +220,26 @@ const Unsubscribe = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onClick={() => navigate('/dashboard')} disabled={saving}>
-              Cancel
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+            <Button variant="outlined" startIcon={<HomeIcon />} onClick={() => navigate('/')} disabled={saving}>
+              Home
             </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={saving || availableCategories.length === 0}
-              startIcon={saving && <CircularProgress size={20} />}
-            >
-              {saving ? 'Saving...' : 'Save Preferences'}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button variant="outlined" onClick={() => navigate('/dashboard')} disabled={saving}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSave}
+                disabled={saving || availableCategories.length === 0}
+                startIcon={saving && <CircularProgress size={20} />}
+              >
+                {saving ? 'Saving...' : 'Save Preferences'}
+              </Button>
+            </Box>
           </Box>
 
-          {/* Info Text */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="caption" color="text.secondary">
               Your subscription preferences will be applied immediately. You can update these settings at any time.

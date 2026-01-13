@@ -66,7 +66,9 @@ public class UserController {
                 .map(EmailSubscription::getCategory)
                 .toList();
 
-        postgresService.removeEmailSubscriptionsByUser(userEmail, removedSubscriptions);
+        if (!removedSubscriptions.isEmpty()) {
+            postgresService.removeEmailSubscriptionsByUser(userEmail, removedSubscriptions);
+        }
         addedSubscriptions.forEach(subType -> {
             postgresService.addEmailSubscriptionByUser(userEmail, subType);
         });
