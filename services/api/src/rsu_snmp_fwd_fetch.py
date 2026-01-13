@@ -89,4 +89,4 @@ class RsuSnmpFwdFetch(Resource):
             )
         except Exception as e:
             logging.error(f"Error fetching SNMP configs: {e}")
-            return {"message": f"Error fetching SNMP configs: {e}"}, 500
+            return {"message": "An internal error occurred while fetching SNMP configs."}, 500
