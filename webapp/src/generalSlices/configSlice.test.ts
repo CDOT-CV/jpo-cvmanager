@@ -95,13 +95,24 @@ describe('async thunks', () => {
       const loading = true
       const msgFwdConfig = {}
       const rebootChangeSuccess = false
+      const changeSuccess = false
       const errorState = ''
+      const destIp = ''
+      const snmpMsgType = 'bsm'
       const state = reducer(initialState, {
         type: 'config/refreshSnmpFwdConfig/pending',
       })
       expect(state).toEqual({
         loading,
-        value: { ...initialState.value, msgFwdConfig, errorState, rebootChangeSuccess },
+        value: {
+          ...initialState.value,
+          msgFwdConfig,
+          errorState,
+          rebootChangeSuccess,
+          changeSuccess,
+          destIp,
+          snmpMsgType,
+        },
       })
     })
 
@@ -174,13 +185,24 @@ describe('async thunks', () => {
       const loading = true
       const msgFwdConfig = {}
       const rebootChangeSuccess = false
+      const changeSuccess = false
       const errorState = ''
+      const destIp = ''
+      const snmpMsgType = 'bsm'
       const state = reducer(initialState, {
         type: 'config/getRsuMsgFwdFetch/pending',
       })
       expect(state).toEqual({
         loading,
-        value: { ...initialState.value, msgFwdConfig, errorState, rebootChangeSuccess },
+        value: {
+          ...initialState.value,
+          msgFwdConfig,
+          errorState,
+          rebootChangeSuccess,
+          changeSuccess,
+          destIp,
+          snmpMsgType,
+        },
       })
     })
 
