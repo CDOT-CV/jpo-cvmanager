@@ -214,7 +214,7 @@ const Unsubscribe = () => {
 
           {availableCategories.length === 0 && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              No subscription categories available for your role.
+              Unable to retrieve subscription details - this unsubscribe link may be invalid
             </Alert>
           )}
 
