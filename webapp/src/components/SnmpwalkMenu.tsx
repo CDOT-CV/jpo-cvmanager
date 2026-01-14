@@ -31,10 +31,10 @@ const SnmpwalkMenu = () => {
   const isConfigEmpty = React.useMemo(() => {
     if (!msgFwdConfig) return true
     if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
-      const txEmpty = !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || 
-                      Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable).length === 0
-      const rxEmpty = !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') || 
-                      Object.keys(msgFwdConfig.rsuReceivedMsgTable).length === 0
+      const txEmpty = !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') ||
+        Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).length === 0
+      const rxEmpty = !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ||
+        Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).length === 0
       return txEmpty && rxEmpty
     }
     return Object.keys(msgFwdConfig).length === 0
@@ -89,10 +89,10 @@ const SnmpwalkMenu = () => {
         )}
       </div>
       <div>
-        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
+        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
           <div>
             <h2 id="snmptxheader">TX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable).map((index) => (
+            {Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).map((index) => (
               <div key={'msgFwd-' + index}>
                 <SnmpwalkItem
                   key={'snmptxitem-' + index}
@@ -104,7 +104,7 @@ const SnmpwalkMenu = () => {
             ))}
 
             <h2 id="snmprxheader">RX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuReceivedMsgTable).map((index) => (
+            {Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).map((index) => (
               <div>
                 <SnmpwalkItem
                   key={'snmprxitem-' + index}
