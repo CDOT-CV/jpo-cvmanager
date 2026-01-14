@@ -181,6 +181,28 @@ describe('async thunks', () => {
       expect(resp.payload).toEqual('Failed to fetch RSU message forwarding configuration')
     })
 
+    it('returns error when API throws exception', async () => {
+      const dispatch = jest.fn()
+      const getState = jest.fn().mockReturnValue({
+        user: {
+          value: {
+            authLoginData: { token: 'token' },
+            organization: { name: 'name' },
+          },
+        },
+      })
+      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockImplementation(() => {
+        throw new Error('Test Exception')
+      })
+
+      const rsu_ip = '1.2.3.4'
+
+      const action = getRsuMsgConfigsFromRsu(rsu_ip)
+
+      const resp = await action(dispatch, getState, undefined)
+      expect(resp.payload).toEqual('Test Exception')
+    })
+
     it('Updates the state correctly pending', async () => {
       const loading = true
       const msgFwdConfig = {}
