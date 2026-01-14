@@ -3,6 +3,15 @@
 exports[`should take a snapshot 1`] = `
 <div>
   <div>
+    <div
+      style="text-align: center; margin-bottom: 10px;"
+    >
+      <h4
+        class="museo-slab"
+      >
+        No message forward configurations set up
+      </h4>
+    </div>
     <div>
       <div />
     </div>
@@ -34,6 +43,13 @@ exports[`should take a snapshot 1`] = `
         Refresh Message Forwarding
       </button>
     </div>
+    <br />
+    <h3
+      class="museo-slab"
+    >
+      Source: 
+      Cached (Database)
+    </h3>
   </div>
 </div>
 `;
