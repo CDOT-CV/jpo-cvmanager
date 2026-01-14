@@ -19,5 +19,10 @@ public class EmailType {
     @Id
     private int email_type_id;
     private String email_type;
+    private boolean supports_immediate;
+    private boolean supports_hourly;
+    private boolean supports_daily;
+    private boolean supports_weekly;
+    private boolean supports_monthly;
 
 }

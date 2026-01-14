@@ -20,5 +20,10 @@ public class UserEmailNotification {
     private int user_email_notification_id;
     private int user_id;
     private int email_type_id;
+    private boolean immediate;
+    private boolean hourly;
+    private boolean daily;
+    private boolean weekly;
+    private boolean monthly;
 
 }

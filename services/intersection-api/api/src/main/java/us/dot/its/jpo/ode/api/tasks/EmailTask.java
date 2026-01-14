@@ -79,7 +79,7 @@ public class EmailTask {
         if (!newNotifications.isEmpty()) {
             List<EmailRecipient> recipients = email.getUsersForNotificationType(
                     EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ALWAYS);
+                    EmailFrequency.IMMEDIATE);
             EmailContent content = emailGenerator
                     .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
             email.sendEmails(recipients, content);
