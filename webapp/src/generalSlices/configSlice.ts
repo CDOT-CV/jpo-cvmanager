@@ -29,7 +29,6 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
 >(
   'config/refreshSnmpFwdConfig',
   async (rsu_ip: string, { getState }) => {
-    console.log('Retrieving RSU message forwarding config from database for IP:', rsu_ip)
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
@@ -56,7 +55,6 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
 >(
   'config/getRsuMsgFwdFetch',
   async (rsu_ip: string, { getState, rejectWithValue }) => {
-    console.log('Retrieving RSU message forwarding config directly from RSU for IP:', rsu_ip)
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
