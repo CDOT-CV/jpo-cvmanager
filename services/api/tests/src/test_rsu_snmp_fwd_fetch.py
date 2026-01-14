@@ -82,7 +82,7 @@ def test_get_request_rsu_not_found(mock_fetch_info, app, permission_result):
         assert "404" in str(excinfo.value)
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
-def test_get_request_missing_fields(mock_fetch_info, app, permission_result):
+def test_get_request_missing_required_fields(mock_fetch_info, app, permission_result):
     with app.test_request_context(query_string={"rsu_ip": "10.0.0.1"}):
         request.environ[ENVIRON_USER_KEY] = permission_result.user
         # Missing snmp_version
@@ -99,6 +99,36 @@ def test_get_request_missing_fields(mock_fetch_info, app, permission_result):
         
         assert code == 500
         assert data["message"] == "RSU info missing required fields for SNMP config fetch"
+
+@patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
+@patch("rsu_snmp_fwd_fetch.UpdatePostgresRsuMessageForward")
+@patch("rsu_snmp_fwd_fetch.rsu_message_forward_helpers")
+def test_get_request_missing_snmp_encrypt_pw_field(mock_helpers, mock_update_pg, mock_fetch_info, app, permission_result):
+    with app.test_request_context(query_string={"rsu_ip": "10.0.0.1"}):
+        request.environ[ENVIRON_USER_KEY] = permission_result.user
+        rsu_info = {
+            "rsu_id": 1,
+            "snmp_username": "user",
+            "snmp_password": "pw",
+            "snmp_version": "v3"
+        }
+        mock_fetch_info.return_value = rsu_info
+
+        mock_updater = MagicMock()
+        mock_update_pg.return_value = mock_updater
+        mock_updater.get_snmp_configs.return_value = {1: "some_configs"}
+
+        mock_helpers.format_snmp_msgfwd_configs.return_value = {"formatted": "data"}
+
+        resource = RsuSnmpFwdFetch()
+        (data, code, headers) = resource.get()
+
+        assert code == 200
+        assert data == {"formatted": "data"}
+        mock_fetch_info.assert_called_once_with("10.0.0.1", "TestOrg")
+        mock_updater.get_snmp_configs.assert_called_once()
+        args, _ = mock_updater.get_snmp_configs.call_args
+        assert args[0][0]["ipv4_address"] == "10.0.0.1"
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
 @patch("rsu_snmp_fwd_fetch.UpdatePostgresRsuMessageForward")

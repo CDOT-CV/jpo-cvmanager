@@ -76,9 +76,9 @@ class RsuSnmpFwdFetch(Resource):
         # Call get_snmp_configs
         updater = UpdatePostgresRsuMessageForward()
         # get_snmp_configs expects a list of RSU dicts with specific keys.
-        # fetch_rsu_info must provide at least: rsu_id, snmp_username, snmp_password, snmp_encrypt_pw, snmp_version.
+        # fetch_rsu_info must provide at least: rsu_id, snmp_username, snmp_password, snmp_version.
         # UpdatePostgresRsuMessageForward.get_snmp_configs uses: ipv4_address, snmp_username, snmp_password, snmp_encrypt_pw, snmp_version, rsu_id.
-        required_keys = ["rsu_id", "snmp_username", "snmp_password", "snmp_encrypt_pw", "snmp_version"]
+        required_keys = ["rsu_id", "snmp_username", "snmp_password", "snmp_version"] # "snmp_encrypt_pw" is expected but appears to be optional
         missing_keys = [key for key in required_keys if not rsu_info.get(key)]
         if missing_keys:
             logging.error(
