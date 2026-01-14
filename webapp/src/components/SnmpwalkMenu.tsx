@@ -136,7 +136,7 @@ const SnmpwalkMenu = () => {
             startIcon={<RefreshIcon />}
             variant="outlined"
             onClick={() => {
-              dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data: { payload: string }) => {
+              dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data: any) => {
                 if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
                   toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
                   dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
