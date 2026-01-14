@@ -69,8 +69,7 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
         EmailContent emailContent = generator.generateEmailBody(data);
 
         assertEquals("New CV-Manager Intersection Notifications",
-                        emailContent.getSubject());
-        log.error("EMAIL Body: " + emailContent.getBody());
+                emailContent.getSubject());
         assertTrue(emailContent.getBody().isEmpty() == false);
     }
 }

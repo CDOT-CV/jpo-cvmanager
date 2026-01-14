@@ -32,22 +32,22 @@ public class EmailService {
     }
 
     public List<EmailRecipient> getUsersForNotificationType(EmailCategory category, EmailFrequency frequency) {
-        // TODO: Filter by email frequency
-        return postgresService.getUsersByNotificationType(category.getCategoryKey()).stream()
+        return postgresService.getUsersByNotificationType(category.getCategoryKey(), frequency).stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
 
-    public List<EmailRecipient> getUsersForNotificationTypeByRsu(EmailCategory category, String rsuIp) {
-        // TODO: Filter by email frequency
-        return postgresService.getUsersByNotificationTypeAndRsu(category.getCategoryKey(), rsuIp).stream()
+    public List<EmailRecipient> getUsersForNotificationTypeByRsu(EmailCategory category, String rsuIp,
+            EmailFrequency frequency) {
+        return postgresService.getUsersByNotificationTypeAndRsu(category.getCategoryKey(), rsuIp, frequency).stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
 
-    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName) {
-        // TODO: Filter by email frequency
-        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), orgName).stream()
+    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName,
+            EmailFrequency frequency) {
+        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), orgName, frequency)
+                .stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
@@ -56,7 +56,7 @@ public class EmailService {
             IntersectionNotificationSummaryEmailContents data) {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ALWAYS);
+                EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 }

@@ -42,7 +42,7 @@ public class IntersectionNotificationSummaryEmailGenerator
 
     public String getEmailText(List<Notification> notifications) {
 
-        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the Conflict Visualizer to Analyze these notifications<br>";
+        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the CV-Manager to Analyze these notifications<br>";
 
         for (Notification notification : notifications) {
             messageBody += "<br><strong>Heading:</strong> " + notification.getNotificationHeading() + "<br>";

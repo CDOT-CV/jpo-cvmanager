@@ -24,4 +24,10 @@ public class EmailType {
     private String email_type;
     private String description;
     private int required_role;
+    private boolean supports_immediate;
+    private boolean supports_hourly;
+    private boolean supports_daily;
+    private boolean supports_weekly;
+    private boolean supports_monthly;
+
 }
