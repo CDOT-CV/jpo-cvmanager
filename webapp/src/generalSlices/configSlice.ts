@@ -37,7 +37,7 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
     if (!response) {
       return {
         msgFwdConfig: {},
-        errorState: 'Failed to retrieve RSU message forwarding configuration from database',
+        errorState: 'Failed to retrieve RSU message forwarding configuration from database for RSU IP ${rsu_ip}: received empty or no response',
       }
     }
 
