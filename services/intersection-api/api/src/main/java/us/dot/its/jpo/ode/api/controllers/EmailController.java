@@ -35,8 +35,10 @@ public class EmailController {
     @RequestMapping(value = "/send-intersection-notification-summary", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "200", description = "All emails sent successfully"),
+            @ApiResponse(responseCode = "207", description = "Partial success - some emails sent, some failed"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
+            @ApiResponse(responseCode = "500", description = "All emails failed to send"),
     })
     public @ResponseBody ResponseEntity<String> sendIntersectionNotificationSummaryEmails(
             @RequestBody IntersectionNotificationSummaryEmailContents body) {
