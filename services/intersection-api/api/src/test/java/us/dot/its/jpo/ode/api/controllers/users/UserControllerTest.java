@@ -43,14 +43,18 @@ public class UserControllerTest {
     private static final String TEST_EMAIL = "test@example.com";
 
     private static final List<EmailType> EMAIL_TYPE_LIST = Arrays.asList(
-            new EmailType(1, "Support Requests", "Receive support requests from users", 1),
+            new EmailType(1, "Support Requests", "Receive support requests from users", 1, true, false, false, false,
+                    false),
             new EmailType(2, "Firmware Upgrade Failures", "Receive automated firmware upgrade failure emails",
-                    2),
+                    2, true, false, false, false, false),
             new EmailType(3, "Intersection Notification Summary",
-                    "Receive automated intersection notification summary emails", 3),
-            new EmailType(4, "Daily Message Counts", "Receive automated daily message count emails", 3),
-            new EmailType(5, "Access Requests", "Receive organization access requests from users", 1),
-            new EmailType(6, "Critical Error Messages", "Receive automated critical error message emails", 2));
+                    "Receive automated intersection notification summary emails", 3, true, false, false, false, false),
+            new EmailType(4, "Daily Message Counts", "Receive automated daily message count emails", 3, true, false,
+                    false, false, false),
+            new EmailType(5, "Access Requests", "Receive organization access requests from users", 1, true, false,
+                    false, false, false),
+            new EmailType(6, "Critical Error Messages", "Receive automated critical error message emails", 2, true,
+                    false, false, false, false));
 
     private static final List<EmailSubscription> SUBSCRIPTION_LIST = Arrays.asList(
             new EmailSubscription("Support Requests", "Receive support requests from users", "admin", true),
