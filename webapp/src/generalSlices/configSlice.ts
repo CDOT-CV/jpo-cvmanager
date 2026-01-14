@@ -321,7 +321,7 @@ export const configSlice = createSlice({
       })
       .addCase(getRsuMsgConfigsFromRsu.rejected, (state, action) => {
         state.loading = false
-        state.value.errorState = (action.payload as string) || 'Failed to fetch RSU message forwarding configuration'
+        state.value.errorState = (action.payload as string | undefined) || 'Failed to fetch RSU message forwarding configuration'
       })
       .addCase(submitSnmpSet.pending, (state) => {
         state.loading = true
