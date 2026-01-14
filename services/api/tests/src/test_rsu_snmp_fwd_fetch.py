@@ -4,6 +4,8 @@ from flask import Flask, request
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
 from common.auth_tools import PermissionResult, EnvironWithOrg, ORG_ROLE_LITERAL, ENVIRON_USER_KEY, UserInfo
 
+from werkzeug.exceptions import InternalServerError, BadRequest, NotFound
+
 @pytest.fixture
 def app():
     app = Flask(__name__)
@@ -77,9 +79,10 @@ def test_get_request_rsu_not_found(mock_fetch_info, app, permission_result):
         mock_fetch_info.return_value = None
         
         resource = RsuSnmpFwdFetch()
-        with pytest.raises(Exception) as excinfo:
+        with pytest.raises(NotFound) as excinfo:
             resource.get()
         assert "404" in str(excinfo.value)
+        assert "not found in organization" in str(excinfo.value)
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
 def test_get_request_missing_required_fields(mock_fetch_info, app, permission_result):
@@ -95,10 +98,10 @@ def test_get_request_missing_required_fields(mock_fetch_info, app, permission_re
         mock_fetch_info.return_value = rsu_info
         
         resource = RsuSnmpFwdFetch()
-        (data, code) = resource.get()
-        
-        assert code == 500
-        assert data["message"] == "RSU info missing required fields for SNMP config fetch"
+        with pytest.raises(InternalServerError) as excinfo:
+            resource.get()
+        assert excinfo.value.code == 500
+        assert "RSU info missing required fields" in str(excinfo.value)
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
 @patch("rsu_snmp_fwd_fetch.UpdatePostgresRsuMessageForward")
@@ -149,10 +152,10 @@ def test_get_request_unable_to_retrieve(mock_update_pg, mock_fetch_info, app, pe
         mock_updater.get_snmp_configs.return_value = {1: "Unable to retrieve latest SNMP config"}
         
         resource = RsuSnmpFwdFetch()
-        (data, code) = resource.get()
-        
-        assert code == 500
-        assert data["message"] == "Unable to retrieve latest SNMP config from RSU"
+        with pytest.raises(InternalServerError) as excinfo:
+            resource.get()
+        assert excinfo.value.code == 500
+        assert "Error fetching SNMP configs" in str(excinfo.value)
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
 @patch("rsu_snmp_fwd_fetch.UpdatePostgresRsuMessageForward")
@@ -173,10 +176,10 @@ def test_get_request_unsupported_version(mock_update_pg, mock_fetch_info, app, p
         mock_updater.get_snmp_configs.return_value = {1: "Unsupported SNMP version"}
         
         resource = RsuSnmpFwdFetch()
-        (data, code) = resource.get()
-        
-        assert code == 400
-        assert data["message"] == "Unsupported SNMP version for direct fetch"
+        with pytest.raises(InternalServerError) as excinfo:
+            resource.get()
+        assert excinfo.value.code == 500
+        assert "Error fetching SNMP configs" in str(excinfo.value)
 
 @patch("rsu_snmp_fwd_fetch.fetch_rsu_info")
 @patch("rsu_snmp_fwd_fetch.UpdatePostgresRsuMessageForward")
@@ -197,7 +200,7 @@ def test_get_request_exception(mock_update_pg, mock_fetch_info, app, permission_
         mock_updater.get_snmp_configs.side_effect = Exception("Test Exception")
         
         resource = RsuSnmpFwdFetch()
-        (data, code) = resource.get()
-        
-        assert code == 500
-        assert data["message"] == "An internal error occurred while fetching SNMP configs."
+        with pytest.raises(InternalServerError) as excinfo:
+            resource.get()
+        assert excinfo.value.code == 500
+        assert "Error fetching SNMP configs" in str(excinfo.value)

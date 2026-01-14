@@ -13,6 +13,8 @@ from common.auth_tools import (
     require_permission,
 )
 
+from werkzeug.exceptions import InternalServerError, BadRequest, NotFound
+
 
 # REST endpoint resource class and schema
 class RsuSnmpFwdFetchSchema(Schema):
@@ -69,9 +71,7 @@ class RsuSnmpFwdFetch(Resource):
         # Fetch RSU info
         rsu_info = fetch_rsu_info(rsu_ip, organization)
         if not rsu_info:
-            abort(
-                404, f"RSU with IP {rsu_ip} not found or not authorized for your organization"
-            )
+            raise NotFound(f"RSU IP {rsu_ip} not found in organization {organization}")
 
         # Call get_snmp_configs
         updater = UpdatePostgresRsuMessageForward()
@@ -86,7 +86,7 @@ class RsuSnmpFwdFetch(Resource):
                 rsu_ip,
                 ", ".join(missing_keys),
             )
-            return {"message": "RSU info missing required fields for SNMP config fetch"}, 500
+            raise InternalServerError(f"RSU info missing required fields: {missing_keys}")
         rsu_info_copy = rsu_info.copy()
         rsu_info_copy["ipv4_address"] = rsu_ip
         
@@ -95,9 +95,9 @@ class RsuSnmpFwdFetch(Resource):
             rsu_configs = configs.get(rsu_info_copy["rsu_id"])
 
             if rsu_configs == "Unable to retrieve latest SNMP config":
-                return {"message": "Unable to retrieve latest SNMP config from RSU"}, 500
+                raise InternalServerError("Unable to retrieve latest SNMP config from RSU")
             if rsu_configs == "Unsupported SNMP version":
-                return {"message": "Unsupported SNMP version for direct fetch"}, 400
+                raise BadRequest("Unsupported SNMP version for direct fetch")
 
             return (
                 rsu_message_forward_helpers.format_snmp_msgfwd_configs(
@@ -108,4 +108,4 @@ class RsuSnmpFwdFetch(Resource):
             )
         except Exception as e:
             logging.exception(f"Error fetching SNMP configs: {e}")
-            return {"message": "An internal error occurred while fetching SNMP configs."}, 500
+            raise InternalServerError("Error fetching SNMP configs") from e
