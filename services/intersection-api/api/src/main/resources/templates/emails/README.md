@@ -1,8 +1,8 @@
 # Email Templates
 
-## Announcement Email Template
+## Default Email Template
 
-![Blank Announcement Template](announcement_template_blank.png)
+![Blank Email Template](email_template_blank.png)
 
 | Placeholder           | Description                                                | Sample Value                                             |
 | --------------------- | ---------------------------------------------------------- | -------------------------------------------------------- |

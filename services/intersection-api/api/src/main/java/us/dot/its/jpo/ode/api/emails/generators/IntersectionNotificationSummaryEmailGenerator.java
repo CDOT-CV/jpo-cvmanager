@@ -17,7 +17,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 public class IntersectionNotificationSummaryEmailGenerator
         extends AbstractEmailGenerator<IntersectionNotificationSummaryEmailContents> {
 
-    private final String EMAIL_TEMPLATE = "emails/announcement";
+    private final String EMAIL_TEMPLATE = "emails/email_template";
 
     public IntersectionNotificationSummaryEmailGenerator(TemplateEngine templateEngine,
             UnsubscribeTokenGenerator unsubscribeTokenGenerator,
