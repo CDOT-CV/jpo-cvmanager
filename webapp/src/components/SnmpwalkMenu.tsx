@@ -30,7 +30,7 @@ const SnmpwalkMenu = () => {
 
   const isConfigEmpty = React.useMemo(() => {
     if (!msgFwdConfig) return true
-    if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
+    if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
       const txEmpty = !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') ||
         Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).length === 0
       const rxEmpty = !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ||
@@ -89,7 +89,7 @@ const SnmpwalkMenu = () => {
         )}
       </div>
       <div>
-        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') || Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
+        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
           <div>
             <h2 id="snmptxheader">TX Forward Table</h2>
             {Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).map((index) => (
