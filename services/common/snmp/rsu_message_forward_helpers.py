@@ -179,11 +179,11 @@ def format_snmp_msgfwd_configs(config_list, rsu_ip=None):
 
         # Based on the value of msgfwd_type, store the configuration data to match the response object of rsufwdsnmpwalk
         msgfwd_type_value = row["msgfwd_type"]
-        if msgfwd_type_value == MsgFwdType.DSRC.value:
+        if msgfwd_type_value.upper() == MsgFwdType.DSRC.value.upper():
             msgfwd_configs_dict[row["snmp_index"]] = config_row
-        elif msgfwd_type_value == MsgFwdType.RECEIVED.value:
+        elif msgfwd_type_value.upper() == MsgFwdType.RECEIVED.value.upper():
             msgfwd_configs_dict.setdefault(TableNames.RECEIVED.value, {})[row["snmp_index"]] = config_row
-        elif msgfwd_type_value == MsgFwdType.XMIT.value:
+        elif msgfwd_type_value.upper() == MsgFwdType.XMIT.value.upper():
             msgfwd_configs_dict.setdefault(TableNames.XMIT.value, {})[row["snmp_index"]] = config_row
         else:
             rsu_info = f" for RSU '{rsu_ip}'" if rsu_ip else ""

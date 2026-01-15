@@ -195,3 +195,33 @@ def test_format_snmp_msgfwd_configs_unknown_type(caplog):
     
     assert "Encountered unknown message forwarding configuration type 'unknown' for RSU '1.1.1.1'" in caplog.text
     assert result["RsuFwdSnmpwalk"] == {}
+
+def test_format_snmp_msgfwd_configs_case_insensitivity():
+    config_list = [
+        {
+            "message_type": "bsm", "dest_ipv4": "192.168.1.1", "dest_port": "1234",
+            "start_datetime": "start", "end_datetime": "end",
+            "active": "1", "security": "1", "msgfwd_type": "RSUdsrCFWD", "snmp_index": "1"
+        },
+        {
+            "message_type": "spat", "dest_ipv4": "192.168.1.2", "dest_port": "5678",
+            "start_datetime": "start", "end_datetime": "end",
+            "active": "4", "security": "0", "msgfwd_type": "RsuReceiveDMsG", "snmp_index": "2"
+        },
+        {
+            "message_type": "map", "dest_ipv4": "192.168.1.3", "dest_port": "9012",
+            "start_datetime": "start", "end_datetime": "end",
+            "active": "1", "security": "1", "msgfwd_type": "rsuxmitmsgfwding", "snmp_index": "3"
+        }
+    ]
+    with patch("common.util.format_date_denver_iso", side_effect=lambda x: x):
+        result = format_snmp_msgfwd_configs(config_list)
+    
+    # Check DSRC
+    assert "1" in result["RsuFwdSnmpwalk"]
+    # Check RECEIVED
+    assert TableNames.RECEIVED.value in result["RsuFwdSnmpwalk"]
+    assert "2" in result["RsuFwdSnmpwalk"][TableNames.RECEIVED.value]
+    # Check XMIT
+    assert TableNames.XMIT.value in result["RsuFwdSnmpwalk"]
+    assert "3" in result["RsuFwdSnmpwalk"][TableNames.XMIT.value]
