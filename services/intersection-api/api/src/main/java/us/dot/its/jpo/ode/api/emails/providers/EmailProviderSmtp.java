@@ -2,8 +2,7 @@ package us.dot.its.jpo.ode.api.emails.providers;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -20,8 +19,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 
 @Slf4j
 @Component
-@Qualifier("SMTP")
-@Primary
+@ConditionalOnProperty(name = "email.broker", havingValue = "SMTP", matchIfMissing = true)
 @RequiredArgsConstructor
 public class EmailProviderSmtp implements EmailProvider {
 
@@ -91,7 +89,6 @@ public class EmailProviderSmtp implements EmailProvider {
             return message;
         } catch (MessagingException e) {
             log.error("Failed to create email message for {}: {}", recipient.getEmail(), e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

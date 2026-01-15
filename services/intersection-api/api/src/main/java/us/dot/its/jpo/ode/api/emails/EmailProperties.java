@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.emails;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -26,11 +27,13 @@ public class EmailProperties {
     private PostmarkProperties postmark;
 
     @Bean
+    @ConditionalOnProperty(name = "email.broker", havingValue = "SENDGRID")
     SendGrid sendGrid() {
         return new SendGrid(sendgrid.getApiKey());
     }
 
     @Bean
+    @ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
     ApiClient apiClient() {
         return Postmark.getApiClient(postmark.getApiKey());
     }

@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.emails.providers;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.sendgrid.Method;
@@ -25,7 +25,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 
 @Slf4j
 @Component
-@Qualifier("SENDGRID")
+@ConditionalOnProperty(name = "email.broker", havingValue = "SENDGRID")
 @RequiredArgsConstructor
 public class EmailProviderSendGrid implements EmailProvider {
 
@@ -59,12 +59,11 @@ public class EmailProviderSendGrid implements EmailProvider {
         Email fromEmail = new Email(emailProperties.getSenderAddress());
         Content sendGridContent = new Content("text/html", content.getBody());
 
-        Mail mail = new Mail(
+        return new Mail(
                 fromEmail,
                 content.getSubject(),
                 recipient.toSendGridEmail(),
                 sendGridContent);
-        return mail;
     }
 
     /**

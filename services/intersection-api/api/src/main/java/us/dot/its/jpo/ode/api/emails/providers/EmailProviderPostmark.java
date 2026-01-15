@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.emails.providers;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.postmarkapp.postmark.client.ApiClient;
@@ -21,7 +21,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 
 @Slf4j
 @Component
-@Qualifier("POSTMARK")
+@ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
 @RequiredArgsConstructor
 public class EmailProviderPostmark implements EmailProvider {
 
