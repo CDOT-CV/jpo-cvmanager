@@ -17,7 +17,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 public class IntersectionNotificationSummaryEmailGenerator
         extends AbstractEmailGenerator<IntersectionNotificationSummaryEmailContents> {
 
-    private final String EMAIL_TEMPLATE = "emails/announcement";
+    private final String EMAIL_TEMPLATE = "emails/email_template";
 
     public IntersectionNotificationSummaryEmailGenerator(TemplateEngine templateEngine,
             UnsubscribeTokenGenerator unsubscribeTokenGenerator,
@@ -42,18 +42,16 @@ public class IntersectionNotificationSummaryEmailGenerator
 
     public String getEmailText(List<Notification> notifications) {
 
-        String messageBody = "There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the CV-Manager to Analyze these notifications<br>";
+        StringBuilder messageBody = new StringBuilder("There are new Notifications to review in the conflict monitor application. Please review the Notifications below, or log into the CV-Manager to Analyze these notifications<br>");
 
         for (Notification notification : notifications) {
-            messageBody += "<br><strong>Heading:</strong> " + notification.getNotificationHeading() + "<br>";
-            messageBody += "<strong>Description:</strong> " + notification.getNotificationText() + "<br>";
-            messageBody += "<strong>Intersection ID:</strong> " + notification.getIntersectionID() + "<br>";
-            messageBody += "<strong>Generated At:</strong> "
-                    + dateTimeFormatter.format(
-                            Instant.ofEpochMilli(notification.getNotificationGeneratedAt()))
-                    + "<br>";
+            messageBody.append("<br><strong>Heading:</strong> ").append(notification.getNotificationHeading()).append("<br>");
+            messageBody.append("<strong>Description:</strong> ").append(notification.getNotificationText()).append("<br>");
+            messageBody.append("<strong>Intersection ID:</strong> ").append(notification.getIntersectionID()).append("<br>");
+            messageBody.append("<strong>Generated At:</strong> ").append(dateTimeFormatter.format(
+              Instant.ofEpochMilli(notification.getNotificationGeneratedAt()))).append("<br>");
         }
 
-        return messageBody;
+        return messageBody.toString();
     }
 }

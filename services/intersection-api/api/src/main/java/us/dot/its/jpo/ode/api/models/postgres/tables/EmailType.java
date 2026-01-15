@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.models.postgres.tables;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -20,14 +21,31 @@ import lombok.ToString;
 @Table(name = "email_type")
 public class EmailType {
     @Id
-    private int email_type_id;
-    private String email_type;
+    @Column(name = "email_type_id")
+    private int emailTypeId;
+
+    @Column(name = "email_type")
+    private String emailType;
+
+    @Column(name = "description")
     private String description;
-    private int required_role;
-    private boolean supports_immediate;
-    private boolean supports_hourly;
-    private boolean supports_daily;
-    private boolean supports_weekly;
-    private boolean supports_monthly;
+
+    @Column(name = "required_role")
+    private int requiredRole;
+
+    @Column(name = "supports_immediate")
+    private boolean supportsImmediate;
+
+    @Column(name = "supports_hourly")
+    private boolean supportsHourly;
+
+    @Column(name = "supports_daily")
+    private boolean supportsDaily;
+
+    @Column(name = "supports_weekly")
+    private boolean supportsWeekly;
+
+    @Column(name = "supports_monthly")
+    private boolean supportsMonthly;
 
 }

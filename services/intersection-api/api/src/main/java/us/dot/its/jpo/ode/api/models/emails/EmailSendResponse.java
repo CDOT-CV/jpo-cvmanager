@@ -20,6 +20,7 @@ public class EmailSendResponse {
     }
 
     private Integer getMappedStatusCode() {
+        // Postmark APIs can use 0 for success
         if (statusCode.equals(0))
             return 200;
         return statusCode;

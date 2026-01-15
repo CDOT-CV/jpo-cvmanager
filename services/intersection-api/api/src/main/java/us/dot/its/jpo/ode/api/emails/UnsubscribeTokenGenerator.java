@@ -10,7 +10,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -36,11 +35,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class UnsubscribeTokenGenerator {
-    @Autowired
-    private EmailProperties emailProperties;
+    private final EmailProperties emailProperties;
+    private final String kcIssuerUri;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private String kcIssuerUri;
+    public UnsubscribeTokenGenerator(EmailProperties emailProperties,
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String kcIssuerUri) {
+        this.emailProperties = emailProperties;
+        this.kcIssuerUri = kcIssuerUri;
+    }
 
     /**
      * Generates a complete unsubscribe URL with an embedded JWT token.
@@ -61,6 +63,10 @@ public class UnsubscribeTokenGenerator {
      */
     public String generateUnsubscribeUrl(String emailAddress) {
         String token = generateUnsubscribeToken(emailAddress);
+
+        if (token == null) {
+            return null; // Token generation failed
+        }
 
         // Encode the token to ensure it is URL-safe
         String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);

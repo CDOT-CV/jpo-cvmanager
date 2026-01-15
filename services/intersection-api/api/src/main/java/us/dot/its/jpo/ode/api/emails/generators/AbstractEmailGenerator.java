@@ -67,24 +67,6 @@ public abstract class AbstractEmailGenerator<T> {
     }
 
     /**
-     * Generates complete email content from the provided data.
-     * 
-     * <p>
-     * This is a convenience method that delegates to
-     * {@link #generateEmailBody(Object)}
-     * to allow subclasses to implement their specific email generation logic.
-     * </p>
-     *
-     * @param data The data object containing information needed to generate the
-     *             email
-     * @return EmailContent object containing the subject, body, and recipient
-     *         information
-     */
-    public EmailContent generateEmailContent(T data) {
-        return generateEmailBody(data);
-    }
-
-    /**
      * Generates a basic Thymeleaf context with common email template variables.
      * 
      * <p>

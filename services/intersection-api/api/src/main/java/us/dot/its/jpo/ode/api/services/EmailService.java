@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
@@ -22,7 +21,6 @@ import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 @RequiredArgsConstructor
 public class EmailService {
 
-    @Qualifier("${email.broker}")
     private final EmailProvider emailProvider;
     private final PostgresService postgresService;
     private final IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
