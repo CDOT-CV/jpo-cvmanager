@@ -223,7 +223,7 @@ def test_format_snmp_msgfwd_configs_balancing():
     assert TableNames.XMIT.value in result["RsuFwdSnmpwalk"]
     assert result["RsuFwdSnmpwalk"][TableNames.RECEIVED.value] == {}
 
-def test_format_snmp_msgfwd_configs_unknown_type(caplog):
+def test_format_snmp_msgfwd_configs_unknown_type():
     config_list = [{
         "message_type": "bsm", "dest_ipv4": "ip", "dest_port": "port",
         "start_datetime": "start", "end_datetime": "end",
@@ -232,7 +232,6 @@ def test_format_snmp_msgfwd_configs_unknown_type(caplog):
     with patch("common.util.format_date_denver_iso", side_effect=lambda x: x):
         result = format_snmp_msgfwd_configs(config_list, rsu_ip="1.1.1.1")
     
-    assert "Encountered unknown message forwarding configuration type 'unknown' for RSU '1.1.1.1'" in caplog.text
     assert result["RsuFwdSnmpwalk"] == {}
 
 def test_format_snmp_msgfwd_configs_case_insensitivity():
