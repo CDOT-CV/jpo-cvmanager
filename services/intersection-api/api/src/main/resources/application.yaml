@@ -62,7 +62,7 @@ spring:
   datasource:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://cvmanager_postgres:5432}/postgres
     username: ${PG_DB_USER:postgres}
-    password: ${PG_DB_PASS:postgres}
+    password: ${PG_DB_PASS}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -99,7 +99,7 @@ email:
   # Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
   broker: ${INTERSECTION_EMAIL_BROKER:SMTP}
   sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
-  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52}
+  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY}
   cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost:3000}
 
   sendgrid:
