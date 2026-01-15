@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.emails.providers;
 
 import com.postmarkapp.postmark.client.ApiClient;
-import com.postmarkapp.postmark.client.data.model.message.Message;
 import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
 import com.postmarkapp.postmark.client.exception.PostmarkException;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -44,44 +42,6 @@ class EmailProviderPostmarkTest {
         when(unsubscribeTokenGenerator.generateUnsubscribeUrl(anyString())).thenReturn("http://unsubscribe");
         recipient = new EmailRecipient("to@example.com", null);
         content = new EmailContent("subject", "body with {{unsubscribe_url}}");
-    }
-
-    @Test
-    void testSendEmailSuccess() throws Exception {
-        MessageResponse response = new MessageResponse();
-        response.setErrorCode(0);
-        response.setMessage("OK");
-        when(postmark.deliverMessage(any(Message.class))).thenReturn(response);
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(0, result.getStatusCode());
-        assertEquals("OK", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
-    }
-
-    @Test
-    void testSendEmailThrowsPostmarkException() throws Exception {
-        when(postmark.deliverMessage(any(Message.class)))
-                .thenThrow(new PostmarkException("fail", 500));
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(500, result.getStatusCode());
-        assertEquals("Internal Server Error", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
-    }
-
-    @Test
-    void testSendEmailThrowsIOException() throws Exception {
-        when(postmark.deliverMessage(any(Message.class)))
-                .thenThrow(new IOException("fail"));
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(500, result.getStatusCode());
-        assertEquals("Internal Server Error", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
     }
 
     @Test

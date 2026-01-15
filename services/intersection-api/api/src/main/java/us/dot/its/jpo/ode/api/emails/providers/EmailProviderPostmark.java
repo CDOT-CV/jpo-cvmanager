@@ -30,22 +30,6 @@ public class EmailProviderPostmark implements EmailProvider {
     private final ApiClient postmark;
 
     @Override
-    public EmailSendResponse sendEmail(EmailRecipient recipient, EmailContent content) {
-        try {
-            Message message = getMessage(recipient, content);
-            MessageResponse response = postmark.deliverMessage(message);
-            return new EmailSendResponse(response.getErrorCode(), response.getMessage());
-        } catch (IllegalStateException e) {
-            // Unsubscribe URL generation failed - don't send email
-            log.error("Cannot send email due to unsubscribe URL generation failure: {}", e.getMessage());
-            return new EmailSendResponse(500, "Failed to generate unsubscribe URL");
-        } catch (PostmarkException | IOException e) {
-            log.error("Exception sending postmark email", e);
-            return new EmailSendResponse(500, "Internal Server Error");
-        }
-    }
-
-    @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
         try {
             List<Message> messages = recipients.stream().map(r -> getMessage(r, content)).toList();

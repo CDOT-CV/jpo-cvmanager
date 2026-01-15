@@ -30,28 +30,6 @@ public class EmailProviderSmtp implements EmailProvider {
     private final JavaMailSender mailSender;
 
     @Override
-    public EmailSendResponse sendEmail(EmailRecipient recipient, EmailContent content) {
-        try {
-            MimeMessage message = getMessage(recipient, content);
-            mailSender.send(message);
-            return new EmailSendResponse(200, "Email sent successfully");
-        } catch (IllegalStateException e) {
-            // Unsubscribe URL generation failed - don't send email
-            log.error("Cannot send email due to unsubscribe URL generation failure: {}", e.getMessage());
-            return new EmailSendResponse(500, "Failed to generate unsubscribe URL");
-        } catch (org.springframework.mail.MailAuthenticationException e) {
-            log.error("SMTP authentication failed for recipient {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "SMTP authentication failed");
-        } catch (org.springframework.mail.MailSendException e) {
-            log.error("Failed to send email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Failed to send email");
-        } catch (Exception e) {
-            log.error("Unexpected error sending email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Unknown error");
-        }
-    }
-
-    @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
         try {
             MimeMessage[] messages = recipients.stream().map(r -> getMessage(r, content)).filter((v) -> v != null)
