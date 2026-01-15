@@ -16,7 +16,7 @@ import {
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import { SecureStorageManager } from './managers'
-import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from './features/api/unsubscriptionSlice'
+import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from './features/api/unsubscribeApiSlice'
 import { EmailSubscription } from './models/email-subscriptions'
 
 const Unsubscribe = () => {

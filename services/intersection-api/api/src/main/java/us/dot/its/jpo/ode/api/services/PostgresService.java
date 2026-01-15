@@ -12,7 +12,6 @@ import jakarta.persistence.TypedQuery;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
-import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
 @Service
@@ -69,9 +68,9 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeQuery = "SELECT u.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN Users u ON uen.user_id = u.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
-            "WHERE et.email_type = :notification_type " +
+            "JOIN Users u ON uen.userId = u.user_id " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
+            "WHERE et.emailType = :notification_type " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
             "OR (:frequency = 'DAILY' AND uen.daily = true) " +
@@ -80,12 +79,12 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeAndRsuQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
-            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.userId " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
             "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
             "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
-            "WHERE et.email_type = :notification_type " +
+            "WHERE et.emailType = :notification_type " +
             "AND CAST(r.ipv4_address AS text) = :rsu_ip " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
@@ -95,11 +94,11 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
-            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.userId " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
             "JOIN Organizations o ON uo.organization_id = o.organization_id " +
-            "WHERE et.email_type = :notification_type " +
+            "WHERE et.emailType = :notification_type " +
             "AND o.name = :organization_name " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
@@ -107,15 +106,23 @@ public class PostgresService {
             "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
             "OR (:frequency = 'MONTHLY' AND uen.monthly = true))";
 
-    private final String listEmailSubscriptionTypes = "SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription(et.email_type, et.description, r.name, false)"
+    private final String listEmailSubscriptionTypes = "SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription("
             +
-            " FROM EmailType et" +
-            " JOIN Roles r ON r.role_id = et.required_role";
+            "et.emailType, et.description, r.name, " +
+            "false, false, false, false, false, " +
+            "et.supportsImmediate, et.supportsHourly, et.supportsDaily, et.supportsWeekly, et.supportsMonthly) " +
+            "FROM EmailType et " +
+            "JOIN Roles r ON r.role_id = et.requiredRole";
 
-    private final String getEmailSubscriptionsByUser = "SELECT et " +
+    private final String getEmailSubscriptionsByUser = "SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription("
+            +
+            "et.emailType, et.description, r.name, " +
+            "uen.immediate, uen.hourly, uen.daily, uen.weekly, uen.monthly, " +
+            "et.supportsImmediate, et.supportsHourly, et.supportsDaily, et.supportsWeekly, et.supportsMonthly) " +
             "FROM Users u " +
-            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.userId " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
+            "JOIN Roles r ON r.role_id = et.requiredRole " +
             "WHERE u.email = :email";
 
     public List<UserOrgRole> findUserOrgRoles(String email) {
@@ -274,8 +281,9 @@ public class PostgresService {
         return query.getResultList();
     }
 
-    public List<EmailType> getEmailSubscriptionsByUser(String email) {
-        TypedQuery<EmailType> query = entityManager.createQuery(getEmailSubscriptionsByUser, EmailType.class);
+    public List<EmailSubscription> getEmailSubscriptionsByUser(String email) {
+        TypedQuery<EmailSubscription> query = entityManager.createQuery(getEmailSubscriptionsByUser,
+                EmailSubscription.class);
         query.setParameter("email", email);
         return query.getResultList();
     }
@@ -309,6 +317,31 @@ public class PostgresService {
         entityManager.createNativeQuery(nativeQuery)
                 .setParameter("email", email)
                 .setParameter("email_type", emailType)
+                .executeUpdate();
+    }
+
+    @Transactional
+    public void updateEmailSubscriptionByUser(String email, EmailSubscription subscription) {
+        String nativeQuery = "UPDATE user_email_notification uen " +
+                "SET immediate = :immediate, " +
+                "hourly = :hourly, " +
+                "daily = :daily, " +
+                "weekly = :weekly, " +
+                "monthly = :monthly " +
+                "FROM users u, email_type et " +
+                "WHERE uen.user_id = u.user_id " +
+                "AND uen.email_type_id = et.email_type_id " +
+                "AND u.email = :email " +
+                "AND et.email_type = :email_type";
+
+        entityManager.createNativeQuery(nativeQuery)
+                .setParameter("immediate", subscription.getImmediate())
+                .setParameter("hourly", subscription.getHourly())
+                .setParameter("daily", subscription.getDaily())
+                .setParameter("weekly", subscription.getWeekly())
+                .setParameter("monthly", subscription.getMonthly())
+                .setParameter("email", email)
+                .setParameter("email_type", subscription.getCategory())
                 .executeUpdate();
     }
 }

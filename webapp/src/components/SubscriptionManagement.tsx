@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Paper,
@@ -14,72 +14,72 @@ import {
   FormGroup,
   useTheme,
 } from '@mui/material'
-import HomeIcon from '@mui/icons-material/Home'
-import { SecureStorageManager } from '../managers'
-import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from '../features/api/unsubscriptionSlice'
+import {
+  useGetEmailSubscriptionsQuery,
+  useUpdateEmailSubscriptionsMutation,
+} from '../features/api/subscriptionManagementApiSlice'
 import { EmailSubscription } from '../models/email-subscriptions'
+import { headerTabHeight } from '../styles/index'
+import { SecureStorageManager } from '../managers'
 
-const Unsubscribe = () => {
+const SubscriptionManagement = () => {
   const theme = useTheme()
-  const navigate = useNavigate()
   const [subscriptions, setSubscriptions] = useState<Record<string, EmailSubscription>>({})
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const isAdmin = SecureStorageManager.getUserRole() === 'admin'
 
-  // Filter categories based on admin status
-  const { data } = useGetEmailSubscriptionsQuery(token)
+  // Fetch email subscriptions with RTK Query
+  const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery()
   const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
-  const availableCategories = data?.subscriptions || []
-  const userEmail = data?.email || ''
 
-  // Initialize subscriptions
+  const isOperatorOrAbove = useMemo(() => {
+    const allowedRoles = ['operator', 'admin']
+    return allowedRoles.includes(SecureStorageManager.getUserRole())
+  }, [])
+
+  const isAdmin = useMemo(() => {
+    return SecureStorageManager.getUserRole() === 'admin'
+  }, [])
+
+  // Initialize subscriptions from API data
   useEffect(() => {
-    const loadSubscriptions = async () => {
-      setLoading(true)
-      setError(null)
-
-      // Validate token if present
-      if (!token) {
-        setError('Invalid or missing authentication token')
-        setLoading(false)
-        return
-      }
-
-      try {
-        // TODO: Replace with actual API call to fetch user's current subscriptions
-        // Pass the token to authenticate the request
-        // Example: await fetchSubscriptionPreferences(token)
-
-        // For now, initialize all as subscribed
-        const initialSubscriptions: Record<string, EmailSubscription> = {}
-        availableCategories.forEach((cat) => {
-          initialSubscriptions[cat.category] = cat
-        })
-        setSubscriptions(initialSubscriptions)
-      } catch (err) {
-        setError('Failed to load subscription preferences')
-      } finally {
-        setLoading(false)
-      }
+    if (data?.subscriptions) {
+      const initialSubscriptions: Record<string, EmailSubscription> = {}
+      data.subscriptions.forEach((cat) => {
+        initialSubscriptions[cat.category] = { ...cat }
+      })
+      setSubscriptions(initialSubscriptions)
     }
-
-    loadSubscriptions()
-  }, [token, isAdmin, availableCategories])
-
-  // Check if the category from URL is valid
-  useEffect(() => {
-    if (category && !availableCategories.find((cat) => cat.category === category)) {
-      setError(`Invalid subscription category: ${category}`)
-    }
-  }, [category, availableCategories])
+  }, [data])
 
   const handleToggle = (categoryId: string) => {
+    setSubscriptions((prev) => {
+      const subscription = prev[categoryId]
+      const newSubscribed = !isSubscribed(subscription)
+
+      // If has frequencies, just toggle subscribed
+      return {
+        ...prev,
+        [categoryId]: {
+          ...subscription,
+          immediate: subscription.supports_immediate && newSubscribed,
+          hourly: subscription.supports_hourly && newSubscribed,
+          daily: subscription.supports_daily && newSubscribed,
+          weekly: subscription.supports_weekly && newSubscribed,
+          monthly: subscription.supports_monthly && newSubscribed,
+        },
+      }
+    })
+  }
+
+  const handleFrequencyToggle = (
+    categoryId: string,
+    frequency: 'immediate' | 'hourly' | 'daily' | 'weekly' | 'monthly'
+  ) => {
     setSubscriptions((prev) => ({
       ...prev,
-      [categoryId]: { ...prev[categoryId], subscribed: !prev[categoryId].subscribed },
+      [categoryId]: { ...prev[categoryId], [frequency]: !prev[categoryId][frequency] },
     }))
   }
 
@@ -88,14 +88,8 @@ const Unsubscribe = () => {
     setError(null)
     setSuccess(false)
 
-    if (!token) {
-      setError('Invalid or missing authentication token')
-      setSaving(false)
-      return
-    }
-
     try {
-      await updateEmailSubscriptions({ token, subscriptions: Object.values(subscriptions) }).unwrap()
+      await updateEmailSubscriptions(Object.values(subscriptions)).unwrap()
 
       setSuccess(true)
 
@@ -110,7 +104,48 @@ const Unsubscribe = () => {
     }
   }
 
-  if (loading) {
+  const handleUnsubscribeAll = () => {
+    setSubscriptions((prev) => {
+      const updated: Record<string, EmailSubscription> = {}
+      Object.keys(prev).forEach((category) => {
+        updated[category] = {
+          ...prev[category],
+          immediate: false,
+          hourly: false,
+          daily: false,
+          weekly: false,
+          monthly: false,
+        }
+      })
+      return updated
+    })
+  }
+
+  const isSubscribed = (subscription: EmailSubscription) => {
+    return (
+      subscription?.immediate ||
+      subscription?.hourly ||
+      subscription?.daily ||
+      subscription?.weekly ||
+      subscription?.monthly
+    )
+  }
+
+  const availableCategories = useMemo(() => {
+    const categories = data?.subscriptions || []
+    return categories.filter((cat) => {
+      if (cat.requiredRole === 'admin') {
+        return isAdmin
+      }
+      if (cat.requiredRole === 'operator') {
+        return isOperatorOrAbove
+      }
+      return true // 'user' role is available to everyone
+    })
+  }, [data?.subscriptions, isAdmin, isOperatorOrAbove])
+
+  // Show loading while fetching data OR while subscriptions state is being initialized
+  if (isLoading || isFetching || Object.keys(subscriptions).length === 0) {
     return (
       <Container maxWidth="md">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -121,60 +156,45 @@ const Unsubscribe = () => {
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Email Subscription Preferences
-          </Typography>
+    <Container
+      maxWidth={false}
+      sx={{ backgroundColor: theme.palette.background.default, height: `calc(100vh - ${headerTabHeight}px)` }}
+    >
+      <Container maxWidth="md">
+        <Box sx={{ py: 4 }}>
+          <Paper elevation={3} sx={{ p: 4 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Email Subscription Preferences
+            </Typography>
 
-          {category && (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              Manage your subscription for: <strong>{category}</strong>
-            </Alert>
-          )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                Subscription preferences saved successfully!
+              </Alert>
+            )}
 
-          {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
-              Subscription preferences saved successfully!
-            </Alert>
-          )}
+            <Divider sx={{ my: 3 }} />
 
-          <Divider sx={{ my: 3 }} />
-
-          <FormGroup>
-            {availableCategories.map((cat) => (
-              <Box
-                key={cat.category}
-                sx={{
-                  p: 2,
-                  mb: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  backgroundColor:
-                    category === cat.category
-                      ? theme.palette.mode === 'dark'
-                        ? 'action.selected'
-                        : 'action.hover'
-                      : 'transparent',
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={subscriptions[cat.category]?.subscribed || false}
-                      onChange={() => handleToggle(cat.category)}
-                      color="primary"
-                    />
-                  }
-                  label={
+            <FormGroup>
+              {availableCategories.map((cat) => {
+                return (
+                  <Box
+                    key={cat.category}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      backgroundColor: 'transparent',
+                    }}
+                  >
                     <Box>
                       <Typography variant="body1" fontWeight="medium">
                         {cat.category}
@@ -199,28 +219,101 @@ const Unsubscribe = () => {
                         {cat.description}
                       </Typography>
                     </Box>
-                  }
-                  sx={{ m: 0, alignItems: 'flex-start' }}
-                />
-              </Box>
-            ))}
-          </FormGroup>
 
-          {availableCategories.length === 0 && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              Unable to retrieve subscription details - this unsubscribe link may be invalid
-            </Alert>
-          )}
+                    {/* Frequency Options */}
 
-          <Divider sx={{ my: 3 }} />
+                    <Box sx={{ ml: 4, mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      {cat.supports_immediate && (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={subscriptions[cat.category]?.immediate || false}
+                              onChange={() => handleFrequencyToggle(cat.category, 'immediate')}
+                              color="secondary"
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2">Immediate</Typography>}
+                        />
+                      )}
 
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
-            <Button variant="outlined" startIcon={<HomeIcon />} onClick={() => navigate('/')} disabled={saving}>
-              Home
-            </Button>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button variant="outlined" onClick={() => navigate('/dashboard')} disabled={saving}>
-                Cancel
+                      {cat.supports_hourly && (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={subscriptions[cat.category]?.hourly || false}
+                              onChange={() => handleFrequencyToggle(cat.category, 'hourly')}
+                              color="secondary"
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2">Hourly</Typography>}
+                        />
+                      )}
+
+                      {cat.supports_daily && (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={subscriptions[cat.category]?.daily || false}
+                              onChange={() => handleFrequencyToggle(cat.category, 'daily')}
+                              color="secondary"
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2">Daily</Typography>}
+                        />
+                      )}
+
+                      {cat.supports_weekly && (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={subscriptions[cat.category]?.weekly || false}
+                              onChange={() => handleFrequencyToggle(cat.category, 'weekly')}
+                              color="secondary"
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2">Weekly</Typography>}
+                        />
+                      )}
+
+                      {cat.supports_monthly && (
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={subscriptions[cat.category]?.monthly || false}
+                              onChange={() => handleFrequencyToggle(cat.category, 'monthly')}
+                              color="secondary"
+                              size="small"
+                            />
+                          }
+                          label={<Typography variant="body2">Monthly</Typography>}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                )
+              })}
+            </FormGroup>
+
+            {availableCategories.length === 0 && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                Unable to retrieve subscription details - this unsubscribe link may be invalid
+              </Alert>
+            )}
+
+            <Divider sx={{ my: 3 }} />
+
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={handleUnsubscribeAll}
+                disabled={saving || availableCategories.length === 0}
+              >
+                Unsubscribe from All
               </Button>
               <Button
                 variant="contained"
@@ -232,17 +325,17 @@ const Unsubscribe = () => {
                 {saving ? 'Saving...' : 'Save Preferences'}
               </Button>
             </Box>
-          </Box>
 
-          <Box sx={{ mt: 3 }}>
-            <Typography variant="caption" color="text.secondary">
-              Your subscription preferences will be applied immediately. You can update these settings at any time.
-            </Typography>
-          </Box>
-        </Paper>
-      </Box>
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="caption" color="text.secondary">
+                Your subscription preferences will be applied immediately. You can update these settings at any time.
+              </Typography>
+            </Box>
+          </Paper>
+        </Box>
+      </Container>
     </Container>
   )
 }
 
-export default Unsubscribe
+export default SubscriptionManagement

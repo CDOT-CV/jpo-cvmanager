@@ -17,7 +17,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
-import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.services.PostgresService;
 
 import org.springframework.http.ResponseEntity;
@@ -51,18 +50,18 @@ public class UnsubscribeController {
             return ResponseEntity.status(401).build();
         }
 
-        List<EmailType> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
+        List<EmailSubscription> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
         List<String> addedSubscriptions = requestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed() != null && sub.getSubscribed())
                 .filter(sub -> userSubscriptions.stream()
-                        .noneMatch(userSub -> userSub.getEmailType().equals(sub.getCategory())))
+                        .noneMatch(userSub -> userSub.getCategory().equals(sub.getCategory())))
                 .map(EmailSubscription::getCategory)
                 .toList();
 
         List<String> removedSubscriptions = requestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed() != null && !sub.getSubscribed())
                 .filter(sub -> userSubscriptions.stream()
-                        .anyMatch(userSub -> userSub.getEmailType().equals(sub.getCategory())))
+                        .anyMatch(userSub -> userSub.getCategory().equals(sub.getCategory())))
                 .map(EmailSubscription::getCategory)
                 .toList();
 
@@ -87,13 +86,12 @@ public class UnsubscribeController {
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
-        List<EmailType> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
+        List<EmailSubscription> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
         List<EmailSubscription> allSubscriptionTypes = postgresService.getEmailSubscriptionTypes();
         List<EmailSubscription> subscriptions = allSubscriptionTypes.stream().map(subType -> {
-            for (EmailType subscribedType : userSubscriptions) {
-                if (subscribedType.getEmailType().equals(subType.getCategory())) {
-                    subType.setSubscribed(true);
-                    return subType;
+            for (EmailSubscription subscribedType : userSubscriptions) {
+                if (subscribedType.getCategory().equals(subType.getCategory())) {
+                    return subscribedType;
                 }
             }
             return subType;
