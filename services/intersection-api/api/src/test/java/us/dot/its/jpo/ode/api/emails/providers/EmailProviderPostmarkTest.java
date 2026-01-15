@@ -71,7 +71,7 @@ class EmailProviderPostmarkTest {
         List<EmailSendResponse> results = provider.sendBatchedEmails(
                 List.of(recipient, new EmailRecipient("to2@example.com", null)), content);
 
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
         assertEquals(500, results.get(0).getStatusCode());
         assertEquals("Internal Server Error", results.get(0).getMessage());
         verify(postmark, times(1)).deliverMessage(anyList());
@@ -85,7 +85,7 @@ class EmailProviderPostmarkTest {
         List<EmailSendResponse> results = provider.sendBatchedEmails(
                 List.of(recipient, new EmailRecipient("to2@example.com", null)), content);
 
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
         assertEquals(500, results.get(0).getStatusCode());
         assertEquals("Internal Server Error", results.get(0).getMessage());
         verify(postmark, times(1)).deliverMessage(anyList());
