@@ -35,15 +35,19 @@ public class EmailProviderSmtp implements EmailProvider {
             MimeMessage message = getMessage(recipient, content);
             mailSender.send(message);
             return new EmailSendResponse(200, "Email sent successfully");
+        } catch (IllegalStateException e) {
+            // Unsubscribe URL generation failed - don't send email
+            log.error("Cannot send email due to unsubscribe URL generation failure: {}", e.getMessage());
+            return new EmailSendResponse(500, "Failed to generate unsubscribe URL");
         } catch (org.springframework.mail.MailAuthenticationException e) {
             log.error("SMTP authentication failed for recipient {}: {}", recipient.getEmail(), e.getMessage());
             return new EmailSendResponse(500, "SMTP authentication failed");
         } catch (org.springframework.mail.MailSendException e) {
             log.error("Failed to send email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Failed to send email: " + e.getMessage());
+            return new EmailSendResponse(500, "Failed to send email");
         } catch (Exception e) {
             log.error("Unexpected error sending email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Unknown error: " + e.getMessage());
+            return new EmailSendResponse(500, "Unknown error");
         }
     }
 
@@ -54,20 +58,46 @@ public class EmailProviderSmtp implements EmailProvider {
                     .toArray(MimeMessage[]::new);
             mailSender.send(messages);
             return List.of(new EmailSendResponse(200, "Emails sent successfully: " + recipients.size()));
+        } catch (IllegalStateException e) {
+            // Unsubscribe URL generation failed - don't send any emails in batch
+            log.error("Cannot send batch emails due to unsubscribe URL generation failure: {}", e.getMessage());
+            return recipients.stream()
+                    .map(r -> new EmailSendResponse(500, "Failed to generate unsubscribe URL"))
+                    .toList();
         } catch (org.springframework.mail.MailAuthenticationException e) {
             log.error("SMTP authentication failed for batch: {}", e.getMessage());
             return List.of(new EmailSendResponse(500, "SMTP authentication failed"));
         } catch (org.springframework.mail.MailSendException e) {
             log.error("Failed to send batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Failed to send batch emails: " + e.getMessage()));
+            return List.of(new EmailSendResponse(500, "Failed to send batch emails"));
         } catch (Exception e) {
             log.error("Unexpected error sending batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Unknown error: " + e.getMessage()));
+            return List.of(new EmailSendResponse(500, "Unknown error"));
         }
     }
 
+    /**
+     * Constructs a MimeMessage for sending via SMTP.
+     * 
+     * @param recipient The email recipient
+     * @param content   The email content
+     * @return Constructed MimeMessage
+     * @throws IllegalStateException if unsubscribe URL generation fails (indicates
+     *                               system misconfiguration)
+     */
     private MimeMessage getMessage(EmailRecipient recipient, EmailContent content) {
-        String unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+        String unsubscribeUrl;
+        try {
+            unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+            if (unsubscribeUrl == null || unsubscribeUrl.isEmpty()) {
+                throw new IllegalStateException("Unsubscribe URL generation returned null or empty");
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate unsubscribe URL for email: {}. Email will not be sent.", recipient.getEmail(),
+                    e);
+            throw new IllegalStateException("Cannot send email without valid unsubscribe URL (CAN-SPAM compliance)", e);
+        }
+
         String htmlText = replacePlaceholders(content.getBody(), unsubscribeUrl);
 
         MimeMessage message = mailSender.createMimeMessage();
