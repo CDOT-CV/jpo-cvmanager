@@ -1,4 +1,5 @@
 import datetime
+import pytest
 from unittest.mock import patch
 from common.snmp.rsu_message_forward_helpers import (
     hex_datetime,
@@ -23,41 +24,65 @@ def test_hex_datetime():
     # With delta=1: 2024 -> 07e8
     assert hex_datetime(now, delta=1) == "07e80a1b0a1e"
 
-def test_message_type_rsu41():
-    assert message_type_rsu41('" "') == "BSM"
-    assert message_type_rsu41("00 00 00 20") == "BSM"
-    assert message_type_rsu41("00 00 80 02") == "SPaT"
-    assert message_type_rsu41("80 02") == "SPaT"
-    assert message_type_rsu41("00 00 80 03") == "TIM"
-    assert message_type_rsu41("E0 00 00 17") == "MAP"
-    assert message_type_rsu41("E0 00 00 15") == "SSM"
-    assert message_type_rsu41("E0 00 00 16") == "SRM"
-    assert message_type_rsu41("unknown") == "Other"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ('" "', "BSM"),
+        ("00 00 00 20", "BSM"),
+        ("00 00 80 02", "SPaT"),
+        ("80 02", "SPaT"),
+        ("00 00 80 03", "TIM"),
+        ("E0 00 00 17", "MAP"),
+        ("E0 00 00 15", "SSM"),
+        ("E0 00 00 16", "SRM"),
+        ("unknown", "Other"),
+    ],
+)
+def test_message_type_rsu41(raw_value, expected):
+    assert message_type_rsu41(raw_value) == expected
 
-def test_message_type_ntcip1218():
-    assert message_type_ntcip1218("20000000") == "BSM"
-    assert message_type_ntcip1218("80020000") == "SPaT"
-    assert message_type_ntcip1218("80030000") == "TIM"
-    assert message_type_ntcip1218("E0000017") == "MAP"
-    assert message_type_ntcip1218("e0000017") == "MAP"
-    assert message_type_ntcip1218("E0000015") == "SSM"
-    assert message_type_ntcip1218("E0000016") == "SRM"
-    assert message_type_ntcip1218("unknown") == "Other"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("20000000", "BSM"),
+        ("80020000", "SPaT"),
+        ("80030000", "TIM"),
+        ("E0000017", "MAP"),
+        ("e0000017", "MAP"),
+        ("E0000015", "SSM"),
+        ("E0000016", "SRM"),
+        ("unknown", "Other"),
+    ],
+)
+def test_message_type_ntcip1218(raw_value, expected):
+    assert message_type_ntcip1218(raw_value) == expected
 
-def test_ip_rsu41():
-    assert ip_rsu41("C0 A8 01 01") == "192.168.1.1"
-    # It takes the last 4 components
-    assert ip_rsu41("00 00 00 00 C0 A8 01 02") == "192.168.1.2"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("C0 A8 01 01", "192.168.1.1"),
+        # It takes the last 4 components
+        ("00 00 00 00 C0 A8 01 02", "192.168.1.2"),
+    ],
+)
+def test_ip_rsu41(raw_value, expected):
+    assert ip_rsu41(raw_value) == expected
 
 def test_ip_ntcip1218():
     assert ip_ntcip1218(" 192.168.1.1 ") == "192.168.1.1"
 
-def test_protocol():
-    assert protocol("1") == "TCP"
-    assert protocol("tcp(1)") == "TCP"
-    assert protocol("2") == "UDP"
-    assert protocol("udp(2)") == "UDP"
-    assert protocol("3") == "Other"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("1", "TCP"),
+        ("tcp(1)", "TCP"),
+        ("2", "UDP"),
+        ("udp(2)", "UDP"),
+        ("3", "Other"),
+    ],
+)
+def test_protocol(raw_value, expected):
+    assert protocol(raw_value) == expected
 
 def test_rssi_ntcip1218():
     assert rssi_ntcip1218("-70 dBm") == -70
@@ -66,27 +91,41 @@ def test_fwdon():
     assert fwdon("1") == "On"
     assert fwdon("0") == "Off"
 
-def test_active():
-    assert active("1") == "Enabled"
-    assert active("4") == "Enabled"
-    assert active("active(1)") == "Enabled"
-    assert active("2") == "Disabled"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("1", "Enabled"),
+        ("4", "Enabled"),
+        ("active(1)", "Enabled"),
+        ("2", "Disabled"),
+    ],
+)
+def test_active(raw_value, expected):
+    assert active(raw_value) == expected
 
-def test_startend_rsu41():
-    # 2023-10-27 10:30
-    # 2023 -> 07 E7
-    # 10 -> 0A
-    # 27 -> 1B
-    # 10 -> 0A
-    # 30 -> 1E
-    assert startend_rsu41("07 E7 0A 1B 0A 1E") == "2023-10-27 10:30"
-    # Padding check: 2023-01-02 03:04
-    assert startend_rsu41("07 E7 01 02 03 04") == "2023-01-02 03:04"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        # 2023-10-27 10:30
+        # 2023 -> 07 E7, 10 -> 0A, 27 -> 1B, 10 -> 0A, 30 -> 1E
+        ("07 E7 0A 1B 0A 1E", "2023-10-27 10:30"),
+        # Padding check: 2023-01-02 03:04
+        ("07 E7 01 02 03 04", "2023-01-02 03:04"),
+    ],
+)
+def test_startend_rsu41(raw_value, expected):
+    assert startend_rsu41(raw_value) == expected
 
-def test_startend_ntcip1218():
-    assert startend_ntcip1218("2023-10-27,10:30") == "2023-10-27 10:30"
-    # Padding check
-    assert startend_ntcip1218("2023-1-2,3:4") == "2023-01-02 03:04"
+@pytest.mark.parametrize(
+    "raw_value, expected",
+    [
+        ("2023-10-27,10:30", "2023-10-27 10:30"),
+        # Padding check
+        ("2023-1-2,3:4", "2023-01-02 03:04"),
+    ],
+)
+def test_startend_ntcip1218(raw_value, expected):
+    assert startend_ntcip1218(raw_value) == expected
 
 @patch("common.util.format_date_denver_iso")
 def test_format_snmp_msgfwd_configs_dsrc(mock_format_date):
