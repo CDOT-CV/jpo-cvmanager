@@ -15,15 +15,12 @@ import {
   useTheme,
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
-import { SecureStorageManager } from './managers'
-import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from './features/api/unsubscriptionSlice'
-import { EmailSubscription } from './models/email-subscriptions'
+import { SecureStorageManager } from '../managers'
+import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from '../features/api/unsubscriptionSlice'
+import { EmailSubscription } from '../models/email-subscriptions'
 
 const Unsubscribe = () => {
   const theme = useTheme()
-  const { category } = useParams<{ category: string }>()
-  const [searchParams] = useSearchParams()
-  const token = searchParams.get('token')
   const navigate = useNavigate()
   const [subscriptions, setSubscriptions] = useState<Record<string, EmailSubscription>>({})
   const [loading, setLoading] = useState(true)

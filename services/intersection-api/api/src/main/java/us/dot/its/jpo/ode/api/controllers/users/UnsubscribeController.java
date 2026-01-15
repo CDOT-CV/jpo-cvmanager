@@ -55,14 +55,14 @@ public class UnsubscribeController {
         List<String> addedSubscriptions = requestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed() != null && sub.getSubscribed())
                 .filter(sub -> userSubscriptions.stream()
-                        .noneMatch(userSub -> userSub.getEmail_type().equals(sub.getCategory())))
+                        .noneMatch(userSub -> userSub.getEmailType().equals(sub.getCategory())))
                 .map(EmailSubscription::getCategory)
                 .toList();
 
         List<String> removedSubscriptions = requestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed() != null && !sub.getSubscribed())
                 .filter(sub -> userSubscriptions.stream()
-                        .anyMatch(userSub -> userSub.getEmail_type().equals(sub.getCategory())))
+                        .anyMatch(userSub -> userSub.getEmailType().equals(sub.getCategory())))
                 .map(EmailSubscription::getCategory)
                 .toList();
 
@@ -91,7 +91,7 @@ public class UnsubscribeController {
         List<EmailSubscription> allSubscriptionTypes = postgresService.getEmailSubscriptionTypes();
         List<EmailSubscription> subscriptions = allSubscriptionTypes.stream().map(subType -> {
             for (EmailType subscribedType : userSubscriptions) {
-                if (subscribedType.getEmail_type().equals(subType.getCategory())) {
+                if (subscribedType.getEmailType().equals(subType.getCategory())) {
                     subType.setSubscribed(true);
                     return subType;
                 }

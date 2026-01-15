@@ -6,7 +6,7 @@ import { getQueryString } from './intersectionApiSlice'
 import { EmailSubscription, EmailSubscriptionGetResponse } from '../../models/email-subscriptions'
 
 // Define a service using a base URL and expected endpoints
-export const userNotificationSlice = createApi({
+export const unsubscriptionSlice = createApi({
   reducerPath: 'userNotification',
   baseQuery: fetchBaseQuery({
     baseUrl: combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL, '/users'),
@@ -36,4 +36,4 @@ export const userNotificationSlice = createApi({
   }),
 })
 
-export const { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } = userNotificationSlice
+export const { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } = unsubscriptionSlice

@@ -30,7 +30,7 @@ import intersectionMapLayerStyleReducer from './features/intersections/map/map-l
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
 import { intersectionApiSlice } from './features/api/intersectionApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
-import { userNotificationSlice } from './features/api/userNotificationSlice'
+import { unsubscriptionSlice } from './features/api/unsubscriptionSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -72,7 +72,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       haas: haasSliceReducer,
       [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
       [rsuCountsApiSlice.reducerPath]: rsuCountsApiSlice.reducer,
-      [userNotificationSlice.reducerPath]: userNotificationSlice.reducer,
+      [unsubscriptionSlice.reducerPath]: unsubscriptionSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -83,7 +83,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       })
         .concat(intersectionApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
-        .concat(userNotificationSlice.middleware),
+        .concat(unsubscriptionSlice.middleware),
     devTools: true,
   })
 }
