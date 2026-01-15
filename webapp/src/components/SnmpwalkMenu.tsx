@@ -85,7 +85,7 @@ const SnmpwalkMenu = () => {
     <div>
       <div style={{ textAlign: 'center', marginBottom: '10px' }}>
         {isConfigEmpty && (
-          <h4 className="museo-slab">No message forward configurations set up</h4>
+          <h5 className="museo-slab">No message forwarding configurations were found. This may indicate that none are configured or that there was an error retrieving them. Verify that this RSU is configured and refresh.</h5>
         )}
       </div>
       <div>
