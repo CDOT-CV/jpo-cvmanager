@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 import pytest
 from flask import Flask, request
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
@@ -16,13 +16,10 @@ def permission_result():
     mock_user_info = MagicMock(spec=UserInfo)
     mock_user_info.super_user = False
     mock_user_info.organizations = {"TestOrg": "admin"}
-    
-    mock_user = MagicMock(spec=EnvironWithOrg)
-    mock_user.organization = "TestOrg"
-    mock_user.user_info = mock_user_info
-    mock_user.role = ORG_ROLE_LITERAL.USER
-    
-    return PermissionResult(allowed=True, qualified_orgs=["TestOrg"], message=None, user=mock_user)
+
+    user = EnvironWithOrg(mock_user_info, "TestOrg", ORG_ROLE_LITERAL.USER)
+
+    return PermissionResult(allowed=True, qualified_orgs=["TestOrg"], message=None, user=user)
 
 # #################################### Testing Requests ###########################################
 
@@ -59,7 +56,7 @@ def test_get_request_success(mock_helpers, mock_update_pg, mock_fetch_info, app,
         
         assert code == 200
         assert data == {"formatted": "data"}
-        mock_fetch_info.assert_called_once_with("10.0.0.1", "TestOrg")
+        mock_fetch_info.assert_called_once_with("10.0.0.1", ANY)
         mock_updater.get_snmp_configs.assert_called_once()
         args, _ = mock_updater.get_snmp_configs.call_args
         assert args[0][0]["ipv4_address"] == "10.0.0.1"
@@ -128,7 +125,7 @@ def test_get_request_missing_snmp_encrypt_pw_field(mock_helpers, mock_update_pg,
 
         assert code == 200
         assert data == {"formatted": "data"}
-        mock_fetch_info.assert_called_once_with("10.0.0.1", "TestOrg")
+        mock_fetch_info.assert_called_once_with("10.0.0.1", ANY)
         mock_updater.get_snmp_configs.assert_called_once()
         args, _ = mock_updater.get_snmp_configs.call_args
         assert args[0][0]["ipv4_address"] == "10.0.0.1"
