@@ -28,7 +28,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.services.PostgresService;
 
 @ExtendWith(MockitoExtension.class)
-public class UserControllerTest {
+public class UnsubscribeControllerTest {
 
     @Mock
     private PostgresService postgresService;
@@ -36,7 +36,7 @@ public class UserControllerTest {
     @Mock
     private UnsubscribeTokenGenerator tokenGenerator;
 
-    private UserController userController;
+    private UnsubscribeController userController;
 
     private static final String VALID_TOKEN = "valid-token-123";
     private static final String INVALID_TOKEN = "invalid-token-456";
@@ -70,7 +70,7 @@ public class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(postgresService, tokenGenerator);
+        userController = new UnsubscribeController(postgresService, tokenGenerator);
     }
 
     @Test

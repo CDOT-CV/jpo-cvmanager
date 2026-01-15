@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
-@RequestMapping("/users")
+@RequestMapping("/users/unsubscribe")
 @RequiredArgsConstructor
-public class UserController {
+public class UnsubscribeController {
     private final PostgresService postgresService;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
