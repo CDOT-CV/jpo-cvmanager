@@ -30,11 +30,13 @@ class ErrorEmailHandler(Handler):
                     "%Y-%m-%d %H:%M:%S,%f"
                 )[:-3]
 
+            # Ensure stack_trace is always a string
+            stack_trace = record.exc_text if record.exc_text else "No stack trace available"
+            stack_trace = str(stack_trace).replace("\n", "<br>")
+
             self.email_api.send_api_error_email(
                 error_message=record.getMessage().replace("\n", "<br>"),
-                stack_trace=(
-                    record.exc_text if record.exc_text else "No stack trace available"
-                ).replace("\n", "<br>"),
+                stack_trace=stack_trace,
                 timestamp=record.asctime,
                 logs_link=api_environment.LOGS_LINK,
             )
