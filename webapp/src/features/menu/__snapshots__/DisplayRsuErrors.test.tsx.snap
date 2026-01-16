@@ -100,7 +100,7 @@ exports[`should take a snapshot 1`] = `
                         <b>
                           RSU Online Status: 
                         </b>
-                        Offline
+                        online
                       </p>
                       <p
                         class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
@@ -180,7 +180,7 @@ exports[`should take a snapshot 1`] = `
                         <b>
                           SCMS Status: 
                         </b>
-                        Unhealthy
+                        Healthy
                       </p>
                       <p
                         class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
@@ -188,7 +188,7 @@ exports[`should take a snapshot 1`] = `
                         <b>
                           SCMS Expiration: 
                         </b>
-                        Never downloaded certificates
+                        2024-12-31T23:59:59Z
                       </p>
                     </div>
                   </div>

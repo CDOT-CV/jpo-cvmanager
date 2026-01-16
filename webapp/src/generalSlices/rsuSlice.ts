@@ -245,7 +245,7 @@ export const rsuSlice = createSlice({
       .addCase(getRsuLastOnline.fulfilled, (state, action) => {
         state.loading = false
         const payload = action.payload as RsuOnlineStatusRespSingle
-        if (Object.prototype.hasOwnProperty.call(state.value.rsuOnlineStatus, payload.ip)) {
+        if (Object.prototype.hasOwnProperty.call(state.value.rsuOnlineStatus, payload?.ip)) {
           ;(state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
         }
       })
