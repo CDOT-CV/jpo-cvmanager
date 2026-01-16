@@ -10,7 +10,7 @@ import { replaceChaoticIds } from '../utils/test-utils'
 it('should take a snapshot', () => {
   const { container } = render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({})}>
+      <Provider store={setupStore({ user: { value: { authLoginData: { token: 'token' } } } })}>
         <RsuErrorSummary
           rsu={'string'}
           online_status={''}
