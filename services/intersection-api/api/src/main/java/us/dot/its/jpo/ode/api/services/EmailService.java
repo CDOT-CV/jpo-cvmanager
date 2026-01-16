@@ -76,14 +76,14 @@ public class EmailService {
     public List<EmailSendResponse> sendSupportRequest(SupportRequestEmailContents data) {
         EmailContent content = supportRequestEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
-                EmailFrequency.ALWAYS);
+                EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
     public List<EmailSendResponse> sendMessageCounts(MessageCountEmailContents data) {
         EmailContent content = messageCountEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.MESSAGE_COUNTS,
-                EmailFrequency.ALWAYS);
+                EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -91,14 +91,14 @@ public class EmailService {
         EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
         // TODO: Use email addresses from RSU org only
         List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
-                data.getRsuIp());
+                data.getRsuIp(), EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
     public List<EmailSendResponse> sendApiError(ApiErrorEmailContents data) {
         EmailContent content = apiErrorEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.CRITICAL_ERROR_MESSAGE,
-                EmailFrequency.ALWAYS);
+                EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 

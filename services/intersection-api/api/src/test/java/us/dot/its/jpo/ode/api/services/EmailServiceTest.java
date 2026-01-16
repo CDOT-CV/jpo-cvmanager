@@ -122,7 +122,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
@@ -138,7 +138,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendMessageCounts(data);
@@ -155,7 +155,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationTypeAndRsu("Firmware Upgrade Failures", "1.1.1.1"))
+        when(postgresService.getUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"), eq("1.1.1.1"), any()))
                 .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
@@ -176,7 +176,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
