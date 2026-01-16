@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.emails;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
@@ -26,11 +27,13 @@ public class EmailProperties {
     private PostmarkProperties postmark;
 
     @Bean
+    @ConditionalOnProperty(name = "email.broker", havingValue = "SENDGRID")
     SendGrid sendGrid() {
         return new SendGrid(sendgrid.getApiKey());
     }
 
     @Bean
+    @ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
     ApiClient apiClient() {
         return Postmark.getApiClient(postmark.getApiKey());
     }
@@ -44,11 +47,12 @@ public class EmailProperties {
     }
 
     /**
-     * Sets the email broker type based on the provided string.
+     * Sets the email broker type based on the provided string
      * 
      * @param broker the string representation of the broker type
      *               If the string is null, empty, or does not match any
-     *               EmailBrokerType, it defaults to SMTP.
+     *               EmailBrokerType, it defaults to SMTP. If the broker is not
+     *               one of the allowed values, an exception will be thrown.
      */
     public void setBroker(String broker) {
         if (broker == null || broker.trim().isEmpty()) {
@@ -56,14 +60,8 @@ public class EmailProperties {
             log.info("Email broker not specified, defaulting to SMTP.");
             return;
         }
-        try {
-            this.broker = EmailBrokerType.valueOf(broker); // Matching @Qualifier from EmailProvider classes
-            log.info("Email broker set to : {}", this.broker);
-        } catch (IllegalArgumentException e) {
-            // If the value doesn't match any EmailBrokerType, default to SMTP
-            this.broker = EmailBrokerType.SMTP;
-            log.warn("Invalid email broker type '{}', defaulting to SMTP.", broker);
-        }
+        this.broker = EmailBrokerType.valueOf(broker); // Matching @Qualifier from EmailProvider classes
+        log.info("Email broker set to : {}", this.broker);
     }
 
     @Data

@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.emails.providers;
 
 import com.postmarkapp.postmark.client.ApiClient;
-import com.postmarkapp.postmark.client.data.model.message.Message;
 import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
 import com.postmarkapp.postmark.client.exception.PostmarkException;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -47,44 +45,6 @@ class EmailProviderPostmarkTest {
     }
 
     @Test
-    void testSendEmailSuccess() throws Exception {
-        MessageResponse response = new MessageResponse();
-        response.setErrorCode(0);
-        response.setMessage("OK");
-        when(postmark.deliverMessage(any(Message.class))).thenReturn(response);
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(0, result.getStatusCode());
-        assertEquals("OK", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
-    }
-
-    @Test
-    void testSendEmailThrowsPostmarkException() throws Exception {
-        when(postmark.deliverMessage(any(Message.class)))
-                .thenThrow(new PostmarkException("fail", 500));
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(500, result.getStatusCode());
-        assertEquals("Internal Server Error", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
-    }
-
-    @Test
-    void testSendEmailThrowsIOException() throws Exception {
-        when(postmark.deliverMessage(any(Message.class)))
-                .thenThrow(new IOException("fail"));
-
-        EmailSendResponse result = provider.sendEmail(recipient, content);
-
-        assertEquals(500, result.getStatusCode());
-        assertEquals("Internal Server Error", result.getMessage());
-        verify(postmark, times(1)).deliverMessage(any(Message.class));
-    }
-
-    @Test
     void testSendBatchedEmailsSuccess() throws Exception {
         MessageResponse resp1 = new MessageResponse();
         resp1.setErrorCode(0);
@@ -111,7 +71,7 @@ class EmailProviderPostmarkTest {
         List<EmailSendResponse> results = provider.sendBatchedEmails(
                 List.of(recipient, new EmailRecipient("to2@example.com", null)), content);
 
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
         assertEquals(500, results.get(0).getStatusCode());
         assertEquals("Internal Server Error", results.get(0).getMessage());
         verify(postmark, times(1)).deliverMessage(anyList());
@@ -125,7 +85,7 @@ class EmailProviderPostmarkTest {
         List<EmailSendResponse> results = provider.sendBatchedEmails(
                 List.of(recipient, new EmailRecipient("to2@example.com", null)), content);
 
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
         assertEquals(500, results.get(0).getStatusCode());
         assertEquals("Internal Server Error", results.get(0).getMessage());
         verify(postmark, times(1)).deliverMessage(anyList());

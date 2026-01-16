@@ -19,6 +19,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
@@ -69,8 +70,7 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
         EmailContent emailContent = generator.generateEmailBody(data);
 
         assertEquals("New CV-Manager Intersection Notifications",
-                        emailContent.getSubject());
-        log.error("EMAIL Body: " + emailContent.getBody());
-        assertTrue(emailContent.getBody().isEmpty() == false);
+                emailContent.getSubject());
+        assertFalse(emailContent.getBody().isEmpty());
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
@@ -67,7 +68,12 @@ public class PostgresService {
             "FROM UserEmailNotification uen " +
             "JOIN Users u ON uen.user_id = u.user_id " +
             "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
-            "WHERE et.email_type = :notification_type";
+            "WHERE et.email_type = :notification_type " +
+            "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
+            "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
+            "OR (:frequency = 'DAILY' AND uen.daily = true) " +
+            "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
+            "OR (:frequency = 'MONTHLY' AND uen.monthly = true))";
 
     private final String findUsersByNotificationTypeAndRsuQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
@@ -77,7 +83,12 @@ public class PostgresService {
             "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
             "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
             "WHERE et.email_type = :notification_type " +
-            "AND CAST(r.ipv4_address AS text) = :rsu_ip";
+            "AND CAST(r.ipv4_address AS text) = :rsu_ip " +
+            "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
+            "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
+            "OR (:frequency = 'DAILY' AND uen.daily = true) " +
+            "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
+            "OR (:frequency = 'MONTHLY' AND uen.monthly = true))";
 
     private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
@@ -86,7 +97,12 @@ public class PostgresService {
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
             "JOIN Organizations o ON uo.organization_id = o.organization_id " +
             "WHERE et.email_type = :notification_type " +
-            "AND o.name = :organization_name";
+            "AND o.name = :organization_name " +
+            "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
+            "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
+            "OR (:frequency = 'DAILY' AND uen.daily = true) " +
+            "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
+            "OR (:frequency = 'MONTHLY' AND uen.monthly = true))";
 
     public List<UserOrgRole> findUserOrgRoles(String email) {
         TypedQuery<UserOrgRole> query = entityManager.createQuery(findUserOrgRolesQuery, UserOrgRole.class);
@@ -212,24 +228,29 @@ public class PostgresService {
                 .collect(Collectors.toList());
     }
 
-    public List<String> getUsersByNotificationType(String notificationType) {
+    public List<String> getUsersByNotificationType(String notificationType, EmailFrequency frequency) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeQuery, String.class);
         query.setParameter("notification_type", notificationType);
+        query.setParameter("frequency", frequency.name());
         return query.getResultList();
     }
 
-    public List<String> getUsersByNotificationTypeAndRsu(String notificationType, String rsuIp) {
+    public List<String> getUsersByNotificationTypeAndRsu(String notificationType, String rsuIp,
+            EmailFrequency frequency) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndRsuQuery, String.class);
         query.setParameter("notification_type", notificationType);
         query.setParameter("rsu_ip", rsuIp + "/32");
+        query.setParameter("frequency", frequency.name());
         return query.getResultList();
     }
 
-    public List<String> getUsersByNotificationTypeAndOrganization(String notificationType, String orgName) {
+    public List<String> getUsersByNotificationTypeAndOrganization(String notificationType, String orgName,
+            EmailFrequency frequency) {
         TypedQuery<String> query = entityManager.createQuery(findUsersByNotificationTypeAndOrganizationQuery,
                 String.class);
         query.setParameter("notification_type", notificationType);
         query.setParameter("organization_name", orgName);
+        query.setParameter("frequency", frequency.name());
         return query.getResultList();
     }
 }

@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.emails.providers;
 import java.io.IOException;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.postmarkapp.postmark.client.ApiClient;
@@ -21,7 +21,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 
 @Slf4j
 @Component
-@Qualifier("POSTMARK")
+@ConditionalOnProperty(name = "email.broker", havingValue = "POSTMARK")
 @RequiredArgsConstructor
 public class EmailProviderPostmark implements EmailProvider {
 
@@ -30,34 +30,47 @@ public class EmailProviderPostmark implements EmailProvider {
     private final ApiClient postmark;
 
     @Override
-    public EmailSendResponse sendEmail(EmailRecipient recipient, EmailContent content) {
-        Message message = getMessage(recipient, content);
-
-        try {
-            MessageResponse response = postmark.deliverMessage(message);
-            return new EmailSendResponse(response.getErrorCode(), response.getMessage());
-        } catch (PostmarkException | IOException e) {
-            log.error("Exception sending postmark email", e);
-            return new EmailSendResponse(500, "Internal Server Error");
-        }
-    }
-
-    @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
-
-        List<Message> messages = recipients.stream().map(r -> getMessage(r, content)).toList();
-
         try {
+            List<Message> messages = recipients.stream().map(r -> getMessage(r, content)).toList();
             List<MessageResponse> responses = postmark.deliverMessage(messages);
             return responses.stream().map(r -> new EmailSendResponse(r.getErrorCode(), r.getMessage())).toList();
+        } catch (IllegalStateException e) {
+            // Unsubscribe URL generation failed - don't send any emails in batch
+            log.error("Cannot send batch emails due to unsubscribe URL generation failure: {}", e.getMessage());
+            return recipients.stream()
+                    .map(r -> new EmailSendResponse(500, "Failed to generate unsubscribe URL"))
+                    .toList();
         } catch (PostmarkException | IOException e) {
-            log.error("Exception sending postmark email", e);
-            return List.of(new EmailSendResponse(500, "Internal Server Error"));
+            log.error("Exception sending postmark email batch", e);
+            return recipients.stream()
+                    .map(r -> new EmailSendResponse(500, "Internal Server Error"))
+                    .toList();
         }
     }
 
+    /**
+     * Constructs a Message object for sending via Postmark.
+     * 
+     * @param recipient The email recipient
+     * @param content   The email content
+     * @return Constructed Message object
+     * @throws IllegalStateException if unsubscribe URL generation fails (indicates
+     *                               system misconfiguration)
+     */
     private Message getMessage(EmailRecipient recipient, EmailContent content) {
-        String unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+        String unsubscribeUrl;
+        try {
+            unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+            if (unsubscribeUrl == null || unsubscribeUrl.isEmpty()) {
+                throw new IllegalStateException("Unsubscribe URL generation returned null or empty");
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate unsubscribe URL for email: {}. Email will not be sent.", recipient.getEmail(),
+                    e);
+            throw new IllegalStateException("Cannot send email without valid unsubscribe URL (CAN-SPAM compliance)", e);
+        }
+
         String htmlText = replacePlaceholders(content.getBody(), unsubscribeUrl);
 
         Message message = new Message(
@@ -66,7 +79,7 @@ public class EmailProviderPostmark implements EmailProvider {
                 content.getSubject(),
                 htmlText);
 
-        // Add the List-Unsubscribe header
+        // Add the List-Unsubscribe header (required for CAN-SPAM compliance)
         message.addHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
 
         return message;
