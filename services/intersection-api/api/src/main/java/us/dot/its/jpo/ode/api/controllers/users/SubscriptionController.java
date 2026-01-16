@@ -15,8 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
+import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.PostgresService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequestMapping("/users/subscriptions")
 @RequiredArgsConstructor
 public class SubscriptionController {
-    private final PostgresService postgresService;
+    private final EmailService emailService;
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
@@ -50,36 +50,7 @@ public class SubscriptionController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
 
-        List<EmailSubscription> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
-        List<String> addedSubscriptions = requestedSubscriptions.stream()
-                .filter(sub -> sub.getSubscribed())
-                .filter(sub -> userSubscriptions.stream()
-                        .noneMatch(userSub -> userSub.getCategory().equals(sub.getCategory())))
-                .map(EmailSubscription::getCategory)
-                .toList();
-
-        List<EmailSubscription> modifiedSubscriptions = requestedSubscriptions.stream()
-                .filter(sub -> sub.getSubscribed() != null && sub.getSubscribed())
-                .filter(sub -> userSubscriptions.stream()
-                        .anyMatch(userSub -> userSub.isFrequencyEqual(sub)))
-                .toList();
-
-        List<String> removedSubscriptions = requestedSubscriptions.stream()
-                .filter(sub -> !sub.getSubscribed())
-                .filter(sub -> userSubscriptions.stream()
-                        .anyMatch(userSub -> userSub.getCategory().equals(sub.getCategory())))
-                .map(EmailSubscription::getCategory)
-                .toList();
-
-        if (!removedSubscriptions.isEmpty()) {
-            postgresService.removeEmailSubscriptionsByUser(userEmail, removedSubscriptions);
-        }
-        modifiedSubscriptions.forEach(subType -> {
-            postgresService.updateEmailSubscriptionByUser(userEmail, subType);
-        });
-        addedSubscriptions.forEach(subType -> {
-            postgresService.addEmailSubscriptionByUser(userEmail, subType);
-        });
+        emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
 
         return ResponseEntity.ok("Email subscriptions updated successfully");
     }
@@ -95,16 +66,7 @@ public class SubscriptionController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
 
-        List<EmailSubscription> userSubscriptions = postgresService.getEmailSubscriptionsByUser(userEmail);
-        List<EmailSubscription> allSubscriptionTypes = postgresService.getEmailSubscriptionTypes();
-        List<EmailSubscription> subscriptions = allSubscriptionTypes.stream().map(subType -> {
-            for (EmailSubscription subscribedType : userSubscriptions) {
-                if (subscribedType.getCategory().equals(subType.getCategory())) {
-                    return subscribedType;
-                }
-            }
-            return subType;
-        }).toList();
+        List<EmailSubscription> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
 }

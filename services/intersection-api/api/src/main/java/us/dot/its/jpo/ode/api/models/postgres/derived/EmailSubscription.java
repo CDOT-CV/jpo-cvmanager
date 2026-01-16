@@ -23,14 +23,18 @@ public class EmailSubscription {
     private Boolean supports_monthly;
 
     public Boolean getSubscribed() {
-        return immediate != null || hourly != null || daily != null || weekly != null || monthly != null;
+        return (immediate != null && immediate) ||
+                (hourly != null && hourly) ||
+                (daily != null && daily) ||
+                (weekly != null && weekly) ||
+                (monthly != null && monthly);
     }
 
     public Boolean isFrequencyEqual(EmailSubscription other) {
         return (this.immediate != null && other.immediate != null && this.immediate.equals(other.immediate))
-                || (this.hourly != null && other.hourly != null && this.hourly.equals(other.hourly))
-                || (this.daily != null && other.daily != null && this.daily.equals(other.daily))
-                || (this.weekly != null && other.weekly != null && this.weekly.equals(other.weekly))
-                || (this.monthly != null && other.monthly != null && this.monthly.equals(other.monthly));
+                && (this.hourly != null && other.hourly != null && this.hourly.equals(other.hourly))
+                && (this.daily != null && other.daily != null && this.daily.equals(other.daily))
+                && (this.weekly != null && other.weekly != null && this.weekly.equals(other.weekly))
+                && (this.monthly != null && other.monthly != null && this.monthly.equals(other.monthly));
     }
 }

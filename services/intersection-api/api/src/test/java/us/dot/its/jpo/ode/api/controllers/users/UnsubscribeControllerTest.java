@@ -2,14 +2,10 @@ package us.dot.its.jpo.ode.api.controllers.users;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,14 +20,13 @@ import org.springframework.http.ResponseEntity;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
-import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
-import us.dot.its.jpo.ode.api.services.PostgresService;
+import us.dot.its.jpo.ode.api.services.EmailService;
 
 @ExtendWith(MockitoExtension.class)
 public class UnsubscribeControllerTest {
 
     @Mock
-    private PostgresService postgresService;
+    private EmailService emailService;
 
     @Mock
     private UnsubscribeTokenGenerator tokenGenerator;
@@ -42,128 +37,41 @@ public class UnsubscribeControllerTest {
     private static final String INVALID_TOKEN = "invalid-token-456";
     private static final String TEST_EMAIL = "test@example.com";
 
-    private static final List<EmailType> EMAIL_TYPE_LIST = Arrays.asList(
-            new EmailType(1, "Support Requests", "Receive support requests from users", 1, true, false, false, false,
-                    false),
-            new EmailType(2, "Firmware Upgrade Failures", "Receive automated firmware upgrade failure emails",
-                    2, true, false, false, false, false),
-            new EmailType(3, "Intersection Notification Summary",
-                    "Receive automated intersection notification summary emails", 3, true, false, false, false, false),
-            new EmailType(4, "Daily Message Counts", "Receive automated daily message count emails", 3, true, false,
-                    false, false, false),
-            new EmailType(5, "Access Requests", "Receive organization access requests from users", 1, true, false,
-                    false, false, false),
-            new EmailType(6, "Critical Error Messages", "Receive automated critical error message emails", 2, true,
-                    false, false, false, false));
-
     private static final List<EmailSubscription> SUBSCRIPTION_LIST = Arrays.asList(
-            new EmailSubscription("Support Requests", "Receive support requests from users", "admin", true),
+            new EmailSubscription("Support Requests", "Receive support requests from users", "admin", true, false, false, false, false,
+                true, false, false, false, false),
             new EmailSubscription("Firmware Upgrade Failures", "Receive automated firmware upgrade failure emails",
-                    "operator", true),
+                    "operator", true, false, false, false, false,
+                true, false, false, false, false),
             new EmailSubscription("Intersection Notification Summary",
-                    "Receive automated intersection notification summary emails", "user", true),
+                    "Receive automated intersection notification summary emails", "user", true, false, false, false, false,
+                true, true, true, true, true),
             new EmailSubscription("Daily Message Counts", "Receive automated daily message count emails", "user",
-                    false),
-            new EmailSubscription("Access Requests", "Receive organization access requests from users", "admin", false),
+                    false, false, false, false, false,
+                true, false, false, false, false),
+            new EmailSubscription("Access Requests", "Receive organization access requests from users", "admin", false, false, false, false, false,
+                true, false, false, false, false),
             new EmailSubscription("Critical Error Messages", "Receive automated critical error message emails",
-                    "operator", false));
+                    "operator", false, false, false, false, false,
+                true, false, false, false, false));
 
     @BeforeEach
     void setUp() {
-        userController = new UnsubscribeController(postgresService, tokenGenerator);
+        userController = new UnsubscribeController(emailService, tokenGenerator);
     }
 
     @Test
-    void testUpdateEmailSubscriptions_ValidToken_NoChange() {
-
-        List<EmailType> emailTypes = List.of(EMAIL_TYPE_LIST.get(0), EMAIL_TYPE_LIST.get(1),
-                EMAIL_TYPE_LIST.get(2));
+    void testUpdateEmailSubscriptions_ValidToken() {
 
         when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(emailTypes);
+        when(emailService.updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST)).thenReturn(0);
 
         ResponseEntity<String> response = userController.updateEmailSubscriptions(VALID_TOKEN, SUBSCRIPTION_LIST);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
-        verify(postgresService, never()).removeEmailSubscriptionsByUser(eq(TEST_EMAIL), any());
-        verify(postgresService, never()).addEmailSubscriptionByUser(eq(TEST_EMAIL), anyString());
-    }
-
-    @Test
-    void testUpdateEmailSubscriptions_ValidToken_AddSubscriptions() {
-        List<EmailSubscription> subscriptionList = new ArrayList<>(SUBSCRIPTION_LIST);
-        subscriptionList.set(2, new EmailSubscription("Intersection Notification Summary",
-                "Receive automated intersection notification summary emails", "user", true));
-        subscriptionList.add(new EmailSubscription("Daily Message Counts",
-                "Receive automated daily message count emails", "user", true));
-
-        List<EmailType> emailTypes = List.of(EMAIL_TYPE_LIST.get(0), EMAIL_TYPE_LIST.get(1),
-                EMAIL_TYPE_LIST.get(2));
-
-        when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(emailTypes);
-
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(VALID_TOKEN, subscriptionList);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
-        verify(postgresService, never()).removeEmailSubscriptionsByUser(eq(TEST_EMAIL), any());
-        verify(postgresService, never()).addEmailSubscriptionByUser(eq(TEST_EMAIL),
-                eq("Intersection Notification Summary"));
-        verify(postgresService).addEmailSubscriptionByUser(TEST_EMAIL, "Daily Message Counts");
-    }
-
-    @Test
-    void testUpdateEmailSubscriptions_ValidToken_RemoveSubscriptions() {
-        List<EmailSubscription> subscriptionList = new ArrayList<>(SUBSCRIPTION_LIST);
-        subscriptionList.set(2, new EmailSubscription("Intersection Notification Summary",
-                "Receive automated intersection notification summary emails", "user", false));
-        subscriptionList.add(new EmailSubscription("Daily Message Counts",
-                "Receive automated daily message count emails", "user", false));
-
-        List<EmailType> emailTypes = List.of(EMAIL_TYPE_LIST.get(0), EMAIL_TYPE_LIST.get(1),
-                EMAIL_TYPE_LIST.get(2));
-
-        when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(emailTypes);
-
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(VALID_TOKEN, subscriptionList);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
-        verify(postgresService).removeEmailSubscriptionsByUser(TEST_EMAIL,
-                List.of("Intersection Notification Summary"));
-        verify(postgresService, never()).removeEmailSubscriptionsByUser(TEST_EMAIL, List.of("Daily Message Counts"));
-        verify(postgresService, never()).addEmailSubscriptionByUser(eq(TEST_EMAIL), anyString());
-    }
-
-    @Test
-    void testUpdateEmailSubscriptions_ValidToken_MixedAddAndRemove() {
-        List<EmailSubscription> subscriptionList = new ArrayList<>(SUBSCRIPTION_LIST);
-        subscriptionList.set(2, new EmailSubscription("Intersection Notification Summary",
-                "Receive automated intersection notification summary emails", "user", false));
-        subscriptionList.add(new EmailSubscription("Daily Message Counts",
-                "Receive automated daily message count emails", "user", true));
-
-        List<EmailType> emailTypes = List.of(EMAIL_TYPE_LIST.get(0), EMAIL_TYPE_LIST.get(1),
-                EMAIL_TYPE_LIST.get(2));
-
-        when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(emailTypes);
-
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(VALID_TOKEN, subscriptionList);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
-        verify(postgresService).removeEmailSubscriptionsByUser(TEST_EMAIL,
-                List.of("Intersection Notification Summary"));
-        verify(postgresService).addEmailSubscriptionByUser(TEST_EMAIL, "Daily Message Counts");
-    }
+        verify(emailService).updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST);
+    }    
 
     @Test
     void testUpdateEmailSubscriptions_InvalidToken() {
@@ -177,11 +85,9 @@ public class UnsubscribeControllerTest {
 
     @Test
     void testGetEmailSubscriptions_ValidToken_UserWithSubscriptions() {
-        List<EmailType> emailTypeList = List.of(EMAIL_TYPE_LIST.get(0), EMAIL_TYPE_LIST.get(1), EMAIL_TYPE_LIST.get(2));
 
         when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(postgresService.getEmailSubscriptionTypes()).thenReturn(SUBSCRIPTION_LIST);
-        when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(emailTypeList);
+        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
 
         ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions(VALID_TOKEN);
 
@@ -192,8 +98,7 @@ public class UnsubscribeControllerTest {
         assertEquals(SUBSCRIPTION_LIST, response.getBody().getSubscriptions());
 
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(postgresService).getEmailSubscriptionTypes();
-        verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
+        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
     }
 
     @Test
@@ -207,7 +112,6 @@ public class UnsubscribeControllerTest {
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
-        verify(postgresService, never()).getEmailSubscriptionTypes();
-        verify(postgresService, never()).getEmailSubscriptionsByUser(anyString());
+        verify(emailService, never()).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
     }
 }
