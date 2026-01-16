@@ -84,20 +84,15 @@ spec:
               value: ""
             - name: LOGGING_LEVEL
               value: "INFO"
-            - name: SMTP_SERVER_IP
+            - name: IAPI_ENDPOINT
               value: ""
-            - name: SMTP_EMAIL
-              value: ""
-            - name: SMTP_USERNAME
-              valueFrom: 
+            - name: KEYCLOAK_API_CLIENT_ID
+              value: "sa_firmware_upgrade_runner"
+            - name: KEYCLOAK_API_CLIENT_SECRET_KEY
+              valueFrom:
                 secretKeyRef:
-                  name: some-smtp-secret-username
-                  key: some-smtp-secret-key
-            - name: SMTP_PASSWORD
-              valueFrom: 
-                secretKeyRef:
-                  name: some-smtp-secret-password
-                  key: some-smtp-secret-key
+                  name: keycloak-sa-firmware-upgrade-runner-secret-name
+                  key: keycloak-sa-firmware-upgrade-runner-secret-key
           volumeMounts:
             - name: cv-manager-service-key
               mountPath: /home/secret
