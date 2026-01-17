@@ -2,8 +2,7 @@ package us.dot.its.jpo.ode.api.emails.providers;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -20,8 +19,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 
 @Slf4j
 @Component
-@Qualifier("SMTP")
-@Primary
+@ConditionalOnProperty(name = "email.broker", havingValue = "SMTP", matchIfMissing = true)
 @RequiredArgsConstructor
 public class EmailProviderSmtp implements EmailProvider {
 
@@ -30,44 +28,52 @@ public class EmailProviderSmtp implements EmailProvider {
     private final JavaMailSender mailSender;
 
     @Override
-    public EmailSendResponse sendEmail(EmailRecipient recipient, EmailContent content) {
-        try {
-            MimeMessage message = getMessage(recipient, content);
-            mailSender.send(message);
-            return new EmailSendResponse(200, "Email sent successfully");
-        } catch (org.springframework.mail.MailAuthenticationException e) {
-            log.error("SMTP authentication failed for recipient {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "SMTP authentication failed");
-        } catch (org.springframework.mail.MailSendException e) {
-            log.error("Failed to send email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Failed to send email: " + e.getMessage());
-        } catch (Exception e) {
-            log.error("Unexpected error sending email to {}: {}", recipient.getEmail(), e.getMessage());
-            return new EmailSendResponse(500, "Unknown error: " + e.getMessage());
-        }
-    }
-
-    @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
         try {
             MimeMessage[] messages = recipients.stream().map(r -> getMessage(r, content)).filter((v) -> v != null)
                     .toArray(MimeMessage[]::new);
             mailSender.send(messages);
             return List.of(new EmailSendResponse(200, "Emails sent successfully: " + recipients.size()));
+        } catch (IllegalStateException e) {
+            // Unsubscribe URL generation failed - don't send any emails in batch
+            log.error("Cannot send batch emails due to unsubscribe URL generation failure: {}", e.getMessage());
+            return recipients.stream()
+                    .map(r -> new EmailSendResponse(500, "Failed to generate unsubscribe URL"))
+                    .toList();
         } catch (org.springframework.mail.MailAuthenticationException e) {
             log.error("SMTP authentication failed for batch: {}", e.getMessage());
             return List.of(new EmailSendResponse(500, "SMTP authentication failed"));
         } catch (org.springframework.mail.MailSendException e) {
             log.error("Failed to send batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Failed to send batch emails: " + e.getMessage()));
+            return List.of(new EmailSendResponse(500, "Failed to send batch emails"));
         } catch (Exception e) {
             log.error("Unexpected error sending batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Unknown error: " + e.getMessage()));
+            return List.of(new EmailSendResponse(500, "Unknown error"));
         }
     }
 
+    /**
+     * Constructs a MimeMessage for sending via SMTP.
+     * 
+     * @param recipient The email recipient
+     * @param content   The email content
+     * @return Constructed MimeMessage
+     * @throws IllegalStateException if unsubscribe URL generation fails (indicates
+     *                               system misconfiguration)
+     */
     private MimeMessage getMessage(EmailRecipient recipient, EmailContent content) {
-        String unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+        String unsubscribeUrl;
+        try {
+            unsubscribeUrl = getUnsubscribeUrl(recipient.getEmail());
+            if (unsubscribeUrl == null || unsubscribeUrl.isEmpty()) {
+                throw new IllegalStateException("Unsubscribe URL generation returned null or empty");
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate unsubscribe URL for email: {}. Email will not be sent.", recipient.getEmail(),
+                    e);
+            throw new IllegalStateException("Cannot send email without valid unsubscribe URL (CAN-SPAM compliance)", e);
+        }
+
         String htmlText = replacePlaceholders(content.getBody(), unsubscribeUrl);
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -83,7 +89,6 @@ public class EmailProviderSmtp implements EmailProvider {
             return message;
         } catch (MessagingException e) {
             log.error("Failed to create email message for {}: {}", recipient.getEmail(), e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

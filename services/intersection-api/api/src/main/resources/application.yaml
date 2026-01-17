@@ -9,15 +9,15 @@ server:
 ### keycloak configuration
 keycloak:
   realm: cvmanager
-  auth-server-url: ${AUTH_SERVER_URL:http://localhost:8084}
+  auth-server-url: ${AUTH_SERVER_URL:http://cvmanager_keycloak:8084}
   client-id: ${KEYCLOAK_CLIENT_API_ID:cvmanager-api}
   client-secret: ${KEYCLOAK_CLIENT_API_SECRET:keycloak-secret-key}
 
 spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: ${AUTH_SERVER_URL:http://localhost:8084}/realms/cvmanager
-  jwk-set-uri: ${AUTH_SERVER_URL:http://localhost:8084}/realms/cvmanager/protocol/openid-connect/certs
+  issuer-uri: ${AUTH_SERVER_URL:http://cvmanager_keycloak:8084}/realms/cvmanager
+  jwk-set-uri: ${AUTH_SERVER_URL:http://cvmanager_keycloak:8084}/realms/cvmanager/protocol/openid-connect/certs
 
-spring.kafka.bootstrap-servers: ${KAFKA_BROKER_IP:localhost}:${KAFKA_BROKER_PORT:9092}
+spring.kafka.bootstrap-servers: ${KAFKA_BROKER_IP:kafka}:${KAFKA_BROKER_PORT:9092}
 logging.level.org.apache.kafka: INFO
 logging.level: INFO
 
@@ -52,7 +52,7 @@ spring:
   data:
     mongodb:
       database: ${CM_DATABASE_NAME:CV}
-      host: ${DB_HOST_IP:localhost}
+      host: ${DB_HOST_IP:mongo}
       port: 27017
       username: ${MONGO_READ_WRITE_USER:ode}
       password: ${MONGO_READ_WRITE_PASS:replace_me}
@@ -60,9 +60,9 @@ spring:
       uri: ${CM_MONGO_URI:null}
   # Postgres Configuration
   datasource:
-    url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/postgres
+    url: ${POSTGRES_SERVER_URL:jdbc:postgresql://cvmanager_postgres:5432}/postgres
     username: ${PG_DB_USER:postgres}
-    password: ${PG_DB_PASS:postgres}
+    password: ${PG_DB_PASS}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -85,7 +85,7 @@ enable:
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
 
-cmServerURL: ${CM_SERVER_URL:http://localhost:8082}
+cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
@@ -99,7 +99,7 @@ email:
   # Email Broker Options: sendgrid, postmark, anything else will use generic SMTP mail server.
   broker: ${INTERSECTION_EMAIL_BROKER:SMTP}
   sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
-  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY:b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52}
+  unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY}
   cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost:3000}
 
   sendgrid:

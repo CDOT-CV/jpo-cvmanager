@@ -45,11 +45,11 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationType() {
-        when(postgresService.getUsersByNotificationType("Support Requests"))
+        when(postgresService.getUsersByNotificationType("Support Requests", EmailFrequency.IMMEDIATE))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationType(
-                EmailCategory.SUPPORT_REQUEST, EmailFrequency.ALWAYS);
+                EmailCategory.SUPPORT_REQUEST, EmailFrequency.IMMEDIATE);
 
         assertEquals(2, recipients.size());
         assertEquals("user1@example.com", recipients.get(0).getEmail());
@@ -58,11 +58,11 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationTypeByRsu() {
-        when(postgresService.getUsersByNotificationTypeAndRsu("Support Requests", "1.1.1.1"))
+        when(postgresService.getUsersByNotificationTypeAndRsu("Support Requests", "1.1.1.1", EmailFrequency.IMMEDIATE))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByRsu(
-                EmailCategory.SUPPORT_REQUEST, "1.1.1.1");
+                EmailCategory.SUPPORT_REQUEST, "1.1.1.1", EmailFrequency.IMMEDIATE);
 
         assertEquals(2, recipients.size());
         assertEquals("user1@example.com", recipients.get(0).getEmail());
@@ -71,11 +71,12 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationTypeByOrganization() {
-        when(postgresService.getUsersByNotificationTypeAndOrganization("Support Requests", "Test Org"))
+        when(postgresService.getUsersByNotificationTypeAndOrganization("Support Requests", "Test Org",
+                EmailFrequency.IMMEDIATE))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByOrganization(
-                EmailCategory.SUPPORT_REQUEST, "Test Org");
+                EmailCategory.SUPPORT_REQUEST, "Test Org", EmailFrequency.IMMEDIATE);
 
         assertEquals(2, recipients.size());
         assertEquals("user1@example.com", recipients.get(0).getEmail());
@@ -90,7 +91,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(intersectionNotificationSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString())).thenReturn(List.of("test@example.com"));
+        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendIntersectionNotificationSummaryEmailSendResponses(data);

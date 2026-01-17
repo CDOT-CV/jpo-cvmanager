@@ -118,7 +118,7 @@ class EmailTaskTest {
 
         List<EmailRecipient> recipients = List.of(new EmailRecipient("email", "name"));
         when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                EmailFrequency.ALWAYS)).thenReturn(recipients);
+                EmailFrequency.IMMEDIATE)).thenReturn(recipients);
 
         EmailContent content = new EmailContent("subject", "body");
         when(emailGenerator.generateEmailBody(any())).thenReturn(content);

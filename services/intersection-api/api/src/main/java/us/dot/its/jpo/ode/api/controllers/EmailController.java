@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Slf4j
 @RestController
-@ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = { "enable.api", "enable.email" }, havingValue = "true", matchIfMissing = false)
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
@@ -35,8 +35,10 @@ public class EmailController {
     @RequestMapping(value = "/send-intersection-notification-summary", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "200", description = "All emails sent successfully"),
+            @ApiResponse(responseCode = "207", description = "Partial success - some emails sent, some failed"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
+            @ApiResponse(responseCode = "500", description = "All emails failed to send"),
     })
     public @ResponseBody ResponseEntity<String> sendIntersectionNotificationSummaryEmails(
             @RequestBody IntersectionNotificationSummaryEmailContents body) {
