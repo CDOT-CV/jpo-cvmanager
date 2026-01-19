@@ -64,7 +64,7 @@ public class EmailService {
     public List<EmailSendResponse> sendAccessRequest(AccessRequestEmailContents data) {
         EmailContent content = accessRequestEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.ACCESS_REQUEST,
-                EmailFrequency.ALWAYS);
+                EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 }
