@@ -21,12 +21,6 @@ export const WzdxRouteGuard = ({ children }: { children: ReactJSXElement; condit
   return isAccessAllowed ? children : <Navigate to="/" />
 }
 
-export const MooveAiRouteGuard = ({ children }: { children: ReactJSXElement; condition? }) => {
-  // Re-direct to home page if intersection pages are disabled
-  const isAccessAllowed = evaluateFeatureFlags('mooveai')
-  return isAccessAllowed ? children : <Navigate to="/" />
-}
-
 export const HaasRouteGuard = ({ children }: { children: ReactJSXElement; condition? }) => {
   // Re-direct to home page if haas pages are disabled
   const isAccessAllowed = evaluateFeatureFlags('haas')

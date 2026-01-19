@@ -310,11 +310,6 @@ exports[`snapshot bsmCoordinates wzdx 1`] = `
                               />
                             </svg>
                           </span>
-                          <p
-                            class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                          >
-                            Moove AI Viewer
-                          </p>
                         </label>
                       </div>
                     </div>
@@ -932,11 +927,6 @@ exports[`snapshot bsmData clicked 1`] = `
                               />
                             </svg>
                           </span>
-                          <p
-                            class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-                          >
-                            Moove AI Viewer
-                          </p>
                         </label>
                       </div>
                     </div>

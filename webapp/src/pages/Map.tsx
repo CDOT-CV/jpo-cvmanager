@@ -42,18 +42,6 @@ import {
   selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
-import {
-  selectMooveAiData,
-  selectAddMooveAiPoint,
-  selectMooveAiCoordinates,
-  selectMooveAiFilter,
-
-  // actions
-  clearMooveAiData,
-  updateMooveAiData,
-  toggleMooveAiPointSelect,
-  updateMooveAiPoints,
-} from '../generalSlices/mooveAiSlice'
 import { selectOrganizationName } from '../generalSlices/userSlice'
 import { SecureStorageManager } from '../managers'
 import {
@@ -128,7 +116,6 @@ import {
 import { MapLayer } from '../models/MapLayer'
 import { toast } from 'react-hot-toast'
 import { RoomOutlined } from '@mui/icons-material'
-import MooveAiHardBrakingLegend from '../components/MooveAiHardBrakingLegend'
 import { selectHaasLocationData } from '../generalSlices/haasAlertSlice'
 import { HaasLocationProperties } from '../models/haas/HaasWebsocketLocation'
 import { HaasAlertVisualization } from '../components/HaasAlertVisualization'
@@ -180,11 +167,6 @@ function MapPage() {
   const filterOffset = useSelector(selectGeoMsgFilterOffset)
 
   const wzdxData = useSelector(selectWzdxData)
-
-  const mooveAiData = useSelector(selectMooveAiData)
-  const addMooveAiPoint = useSelector(selectAddMooveAiPoint)
-  const mooveAiCoordinates = useSelector(selectMooveAiCoordinates)
-  const mooveAiFilter = useSelector(selectMooveAiFilter)
 
   const haasLocationData = useSelector(selectHaasLocationData)
   const [selectedHaasIncident, setSelectedHaasIncident] = useState<Feature<Point, HaasLocationProperties> | null>(null)
@@ -370,49 +352,6 @@ function MapPage() {
     return polygonSource
   }, [geoMsgCoordinates, activeLayers, addGeoMsgPoint, previewPoint])
 
-  const mooveAiPolygonPointSource = useMemo(
-    () =>
-      ({
-        type: 'FeatureCollection',
-        features: mooveAiCoordinates.map(createPointFeature),
-      } as GeoJSON.FeatureCollection<GeoJSON.Geometry>),
-    [mooveAiCoordinates]
-  )
-
-  const mooveAiPolygonSource = useMemo(() => {
-    // Get coordinates including preview point if it exists
-    let polygonCoords = [...mooveAiCoordinates]
-    if (previewPoint && addMooveAiPoint) {
-      const previewCoords = previewPoint.geometry.coordinates
-
-      if (polygonCoords.length >= 3 && polygonCoords[0] === polygonCoords[polygonCoords.length - 1]) {
-        // For completed polygon: Remove closing point, add preview, then close
-        polygonCoords = polygonCoords.slice(0, -1)
-        polygonCoords.push(previewCoords)
-        polygonCoords.push(polygonCoords[0])
-      } else if (polygonCoords.length === 2) {
-        // For two points: Draw triangle with preview point
-        polygonCoords.push(previewCoords)
-        polygonCoords.push(polygonCoords[0])
-      } else if (polygonCoords.length === 1) {
-        // For one point: Draw line to preview point
-        polygonCoords = [[...polygonCoords[0]], [...previewCoords]] // Create a fresh array with both points
-      }
-    } else if (polygonCoords.length >= 3) {
-      // Close the polygon if we have 3+ points and no preview
-      polygonCoords.push(polygonCoords[0])
-    }
-
-    return {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: polygonCoords.length === 2 ? 'LineString' : 'Polygon', // Use LineString for 2 points
-        coordinates: polygonCoords.length === 2 ? polygonCoords : [polygonCoords],
-      },
-    } as GeoJSON.Feature<GeoJSON.Geometry>
-  }, [mooveAiCoordinates, addMooveAiPoint, previewPoint])
-
   const configPolygonPointSource = useMemo(
     () =>
       ({
@@ -459,7 +398,7 @@ function MapPage() {
   // Effect for handling point source updates msg-viewer-layer
   useEffect(() => {
     // if the msg-viewer-layer is not active, exit the effect
-    if (!activeLayers.includes('msg-viewer-layer') || activeLayers.includes('moove-ai-layer')) return
+    if (!activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id)) return
 
     const pointSourceFeatures: Array<GeoJSON.Feature<GeoJSON.Geometry>> = []
 
@@ -594,21 +533,6 @@ function MapPage() {
       }
     } else {
       dispatch(updateConfigPoints([...configCoordinates, pointArray]))
-    }
-  }
-
-  const addMooveAiPointToCoordinates = (point: { lat: number; lng: number }) => {
-    const pointArray = [point.lng, point.lat]
-    if (mooveAiCoordinates.length > 1) {
-      if (mooveAiCoordinates[0] === mooveAiCoordinates.slice(-1)[0]) {
-        const tmp = [...mooveAiCoordinates]
-        tmp.pop()
-        dispatch(updateMooveAiPoints([...tmp, pointArray, mooveAiCoordinates[0]]))
-      } else {
-        dispatch(updateMooveAiPoints([...mooveAiCoordinates, pointArray, mooveAiCoordinates[0]]))
-      }
-    } else {
-      dispatch(updateMooveAiPoints([...mooveAiCoordinates, pointArray]))
     }
   }
 
@@ -866,12 +790,6 @@ function MapPage() {
       type: 'symbol',
       tag: 'intersection',
     },
-    MOOVE_AI: {
-      id: 'moove-ai-layer',
-      label: 'Moove AI Viewer',
-      type: 'line',
-      tag: 'mooveai',
-    },
     HAAS_ALERT: {
       id: 'haas-alert-layer',
       label: 'HAAS Alert Viewer',
@@ -893,9 +811,6 @@ function MapPage() {
             setSelectedWZDxMarkerIndex(null)
             setSelectedWZDxMarker(null)
             break
-          case MAP_LAYERS.MOOVE_AI.id:
-            dispatch(clearMooveAiData())
-            break
           case MAP_LAYERS.HAAS_ALERT.id:
             setSelectedHaasIncident(null)
             break
@@ -911,11 +826,6 @@ function MapPage() {
               dispatch(toggleMapMenuSelection('Display Message Counts'))
             }
             break
-          case MAP_LAYERS.MOOVE_AI.id:
-            if (activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id)) dispatch(toggleLayerActive(MAP_LAYERS.MSG_VIEWER.id))
-            break
-          case MAP_LAYERS.MSG_VIEWER.id:
-            if (activeLayers.includes(MAP_LAYERS.MOOVE_AI.id)) dispatch(toggleLayerActive(MAP_LAYERS.MOOVE_AI.id))
         }
       }
     }
@@ -939,10 +849,7 @@ function MapPage() {
     )
   }
 
-  const handleButtonToggle = (
-    event: React.SyntheticEvent<Element, Event>,
-    origin: 'config' | 'msgViewer' | 'mooveai'
-  ) => {
+  const handleButtonToggle = (event: React.SyntheticEvent<Element, Event>, origin: 'config' | 'msgViewer') => {
     // Deselect any selected RSU when toggling point select tools
     dispatch(selectRsu(null))
     dispatch(clearFirmware())
@@ -951,13 +858,9 @@ function MapPage() {
     if (origin === 'config') {
       dispatch(toggleConfigPointSelect())
       if (addGeoMsgPoint) dispatch(toggleGeoMsgPointSelect())
-      if (addMooveAiPoint) dispatch(toggleMooveAiPointSelect())
     } else if (origin === 'msgViewer') {
       dispatch(toggleGeoMsgPointSelect())
       if (addConfigPoint) dispatch(toggleConfigPointSelect())
-      if (addMooveAiPoint) dispatch(toggleMooveAiPointSelect())
-    } else if (origin === 'mooveai') {
-      dispatch(toggleMooveAiPointSelect())
     }
   }
 
