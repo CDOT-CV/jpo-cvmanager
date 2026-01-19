@@ -8,11 +8,18 @@ ALTER TABLE public.email_type
   ADD COLUMN IF NOT EXISTS supports_weekly boolean DEFAULT false NOT NULL,
   ADD COLUMN IF NOT EXISTS supports_monthly boolean DEFAULT false NOT NULL;
 
--- Add constraints to email_type
-ALTER TABLE public.email_type
-  ADD CONSTRAINT IF NOT EXISTS email_type_unique UNIQUE (email_type),
-  ADD CONSTRAINT IF NOT EXISTS at_least_one_frequency 
-    CHECK (supports_immediate OR supports_hourly OR supports_daily OR supports_weekly OR supports_monthly);
+-- Add constraints to email_type (skip if already exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'email_type_unique') THEN
+    ALTER TABLE public.email_type ADD CONSTRAINT email_type_unique UNIQUE (email_type);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'at_least_one_frequency') THEN
+    ALTER TABLE public.email_type ADD CONSTRAINT at_least_one_frequency 
+      CHECK (supports_immediate OR supports_hourly OR supports_daily OR supports_weekly OR supports_monthly);
+  END IF;
+END $$;
 
 
 -- Insert or update email types with specific frequency settings
@@ -42,13 +49,15 @@ ALTER TABLE public.user_email_notification
   ADD COLUMN IF NOT EXISTS weekly boolean DEFAULT false NOT NULL,
   ADD COLUMN IF NOT EXISTS monthly boolean DEFAULT false NOT NULL;
 
--- Add constraints to user_email_notification
-ALTER TABLE public.user_email_notification
-  ADD CONSTRAINT IF NOT EXISTS user_email_notification_unique UNIQUE (user_id, email_type_id),
-  ADD CONSTRAINT IF NOT EXISTS at_least_one_subscription 
-    CHECK (immediate OR hourly OR daily OR weekly OR monthly);
-
-
-
-
-
+-- Add constraints to user_email_notification (skip if already exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_email_notification_unique') THEN
+    ALTER TABLE public.user_email_notification ADD CONSTRAINT user_email_notification_unique UNIQUE (user_id, email_type_id);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'at_least_one_subscription') THEN
+    ALTER TABLE public.user_email_notification ADD CONSTRAINT at_least_one_subscription 
+      CHECK (immediate OR hourly OR daily OR weekly OR monthly);
+  END IF;
+END $$;
