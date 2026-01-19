@@ -787,8 +787,8 @@ function MapPage() {
     const target = event.target as HTMLInputElement
     if (target.value === 'online') handleOnlineStatus()
     else if (target.value === 'scms') handleScmsStatus()
-    if (!activeLayers.includes('rsu-layer')) {
-      dispatch(toggleLayerActive('rsu-layer'))
+    if (!activeLayers.includes(MAP_LAYERS.RSU.id)) {
+      dispatch(toggleLayerActive(MAP_LAYERS.RSU.id))
     }
   }
 
@@ -885,37 +885,37 @@ function MapPage() {
       dispatch(toggleLayerActive(id))
       if (activeLayers.includes(id)) {
         switch (id) {
-          case 'rsu-layer':
+          case MAP_LAYERS.RSU.id:
             dispatch(selectRsu(null))
             dispatch(clearFirmware())
             break
-          case 'wzdx-layer':
+          case MAP_LAYERS.WZDX.id:
             setSelectedWZDxMarkerIndex(null)
             setSelectedWZDxMarker(null)
             break
-          case 'moove-ai-layer':
+          case MAP_LAYERS.MOOVE_AI.id:
             dispatch(clearMooveAiData())
             break
-          case 'haas-alert-layer':
+          case MAP_LAYERS.HAAS_ALERT.id:
             setSelectedHaasIncident(null)
             break
         }
       } else {
         switch (id) {
-          case 'wzdx-layer':
+          case MAP_LAYERS.WZDX.id:
             dispatch(getWzdxData())
             break
-          case 'heatmap-layer':
-          case 'heatmap-cluster':
+          case MAP_LAYERS.HEATMAP.id:
+          case MAP_LAYERS.HEATMAP_CLUSTER.id:
             if (!menuSelection.includes('Display Message Counts')) {
               dispatch(toggleMapMenuSelection('Display Message Counts'))
             }
             break
-          case 'moove-ai-layer':
-            if (activeLayers.includes('msg-viewer-layer')) dispatch(toggleLayerActive('msg-viewer-layer'))
+          case MAP_LAYERS.MOOVE_AI.id:
+            if (activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id)) dispatch(toggleLayerActive(MAP_LAYERS.MSG_VIEWER.id))
             break
-          case 'msg-viewer-layer':
-            if (activeLayers.includes('moove-ai-layer')) dispatch(toggleLayerActive('moove-ai-layer'))
+          case MAP_LAYERS.MSG_VIEWER.id:
+            if (activeLayers.includes(MAP_LAYERS.MOOVE_AI.id)) dispatch(toggleLayerActive(MAP_LAYERS.MOOVE_AI.id))
         }
       }
     }
@@ -1168,7 +1168,7 @@ function MapPage() {
           mapStyle={mbStyle}
           style={{ width: '100%', height: '100%' }}
           onMove={(evt) => dispatch(setMapViewState(evt.viewState))}
-          interactiveLayerIds={['geoMsgPointLayer', 'haas-alert-points']}
+          interactiveLayerIds={['geoMsgPointLayer']}
           onMouseMove={(e) => {
             if (addGeoMsgPoint || addConfigPoint || addMooveAiPoint) {
               const point: GeoJSON.Feature<GeoJSON.Point> = {
@@ -1185,23 +1185,6 @@ function MapPage() {
             }
           }}
           onClick={(e) => {
-            // Handle HAAS Alert point clicks
-            if (e.features?.[0]?.layer?.id === 'haas-alert-points') {
-              const feature = e.features[0]
-              const geometry = feature.geometry as GeoJSON.Point
-              setSelectedHaasIncident({
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [geometry.coordinates[0], geometry.coordinates[1]],
-                },
-                properties: {
-                  ...feature.properties,
-                },
-              } as Feature<Point, HaasLocationProperties>)
-              return
-            }
-
             // Prevent double click from triggering single click
             const clickTime = new Date().getTime()
             if (clickTime - lastClickTime < 300) {
@@ -1233,9 +1216,9 @@ function MapPage() {
           }}
         >
           {/* Add preview sources and layers */}
-          {activeLayers.includes('msg-viewer-layer') ||
-            activeLayers.includes('moove-ai-layer') ||
-            (activeLayers.includes('rsu-layer') && previewPoint && (
+          {activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id) ||
+            activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) ||
+            (activeLayers.includes(MAP_LAYERS.RSU.id) && previewPoint && (
               <Source id="preview-point" type="geojson" data={previewPoint}>
                 <Layer
                   id="preview-point-layer"
@@ -1245,14 +1228,14 @@ function MapPage() {
                     'circle-color': addGeoMsgPoint
                       ? 'rgba(255, 164, 0, 0.5)'
                       : addMooveAiPoint
-                      ? 'rgb(53, 121, 148)'
-                      : 'rgba(255, 0, 0, 0.5)',
+                        ? 'rgb(53, 121, 148)'
+                        : 'rgba(255, 0, 0, 0.5)',
                     'circle-stroke-width': 2,
                     'circle-stroke-color': addGeoMsgPoint
                       ? 'rgb(255, 164, 0)'
                       : addMooveAiPoint
-                      ? 'rgb(94, 206, 250)'
-                      : 'rgb(255, 0, 0)',
+                        ? 'rgb(94, 206, 250)'
+                        : 'rgb(255, 0, 0)',
                   }}
                 />
               </Source>
@@ -1261,13 +1244,13 @@ function MapPage() {
           {activeLayers.includes('rsu-layer') && (
             <div>
               {configCoordinates.length >= 1 ? (
-                <Source id={LAYER_IDS.RSU + '-fill'} type="geojson" data={configPolygonSource}>
+                <Source id={MAP_LAYERS.RSU.id + '-fill'} type="geojson" data={configPolygonSource}>
                   <Layer {...getConfigOutlineLayer(addConfigPoint)} />
                   <Layer {...configFillLayer} />
                 </Source>
               ) : null}
               {addConfigPoint && (
-                <Source id={LAYER_IDS.RSU + '-polygon-points'} type="geojson" data={configPolygonPointSource}>
+                <Source id={MAP_LAYERS.RSU.id + '-polygon-points'} type="geojson" data={configPolygonPointSource}>
                   <Layer {...configPointLayer} />
                 </Source>
               )}
@@ -1275,7 +1258,7 @@ function MapPage() {
           )}
           {rsuDataWithCounts?.map(
             (rsu) =>
-              activeLayers.includes('rsu-layer') &&
+              activeLayers.includes(MAP_LAYERS.RSU.id) &&
               (selectedVendor === 'Select Vendor' || rsu['properties']['manufacturer_name'] === selectedVendor) && [
                 <Marker
                   key={rsu.id}
@@ -1325,12 +1308,12 @@ function MapPage() {
                 </Marker>,
               ]
           )}
-          {activeLayers.includes('heatmap-layer') && (
+          {activeLayers.includes(MAP_LAYERS.HEATMAP.id) && (
             <Source id={MAP_LAYERS.HEATMAP.id} type="geojson" data={heatMapData}>
               <Layer {...MAP_LAYERS.HEATMAP} />
             </Source>
           )}
-          {activeLayers.includes('heatmap-cluster') && (
+          {activeLayers.includes(MAP_LAYERS.HEATMAP_CLUSTER.id) && (
             <Source
               id={MAP_LAYERS.HEATMAP_CLUSTER.id}
               type="geojson"
@@ -1403,7 +1386,7 @@ function MapPage() {
               />
             </Source>
           )}
-          {activeLayers.includes('msg-viewer-layer') && (
+          {activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id) && (
             <div>
               {geoMsgCoordinates.length >= 1 ? (
                 <Source id={MAP_LAYERS.MSG_VIEWER.id + '-fill'} type="geojson" data={geoMsgPolygonSource}>
@@ -1427,7 +1410,7 @@ function MapPage() {
               )}
             </div>
           )}
-          {activeLayers.includes('wzdx-layer') && (
+          {activeLayers.includes(MAP_LAYERS.WZDX.id) && (
             <div>
               <Source id={MAP_LAYERS.WZDX.id} type="geojson" data={wzdxData}>
                 <Layer {...MAP_LAYERS.WZDX} />
@@ -1446,7 +1429,7 @@ function MapPage() {
               <div>{selectedWZDxMarker.props.feature.properties.table}</div>
             </Popup>
           ) : null}
-          {activeLayers.includes('intersection-layer') &&
+          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) &&
             intersectionsList
               .filter((intersection) => intersection.latitude != 0)
               .map((intersection) => {
@@ -1464,7 +1447,7 @@ function MapPage() {
                   </Marker>
                 )
               })}
-          {activeLayers.includes('intersection-layer') && selectedIntersection && (
+          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && selectedIntersection && (
             <Popup
               latitude={selectedIntersection.latitude}
               longitude={selectedIntersection.longitude}
@@ -1474,7 +1457,7 @@ function MapPage() {
               <div>SELECTED {selectedIntersection.intersectionID}</div>
             </Popup>
           )}
-          {activeLayers.includes('intersection-layer') && (
+          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && (
             <Source
               type="geojson"
               data={{
@@ -1495,7 +1478,7 @@ function MapPage() {
               <Layer {...intersectionMapLabelsLayer} />
             </Source>
           )}
-          {activeLayers.includes('moove-ai-layer') && (
+          {activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) && (
             <div>
               {mooveAiCoordinates.length >= 1 ? (
                 <Source id={MAP_LAYERS.MOOVE_AI.id + '-fill'} type="geojson" data={mooveAiPolygonSource}>
@@ -1556,8 +1539,8 @@ function MapPage() {
                           getStatus().toLowerCase() === 'online'
                             ? theme.palette.success.dark
                             : getStatus().toLowerCase() === 'unstable'
-                            ? theme.palette.warning.main
-                            : theme.palette.error.dark,
+                              ? theme.palette.warning.main
+                              : theme.palette.error.dark,
                         width: '4rem',
                         height: '1.5rem',
                         display: 'flex',
@@ -1647,7 +1630,7 @@ function MapPage() {
               </Box>
             </Popup>
           ) : null}
-          {activeLayers.includes('haas-alert-layer') && haasLocationData.data && (
+          {activeLayers.includes(MAP_LAYERS.HAAS_ALERT.id) && haasLocationData.data && (
             <HaasAlertVisualization
               menuSelection={menuSelection}
               haasLocationData={haasLocationData}
@@ -1659,7 +1642,7 @@ function MapPage() {
         </Map>
       </Container>
 
-      {activeLayers.includes('msg-viewer-layer') &&
+      {activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id) &&
         (filter && geoMsgData.length > 0 ? (
           <div className="filterControl" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
             <div id="timeContainer" style={{ textAlign: 'center' }}>
@@ -1840,7 +1823,7 @@ function MapPage() {
             </div>
           </Paper>
         ))}
-      {activeLayers.includes('moove-ai-layer') &&
+      {activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) &&
         (mooveAiData.features.length > 0 ? (
           <div className="filterControl" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
             <MooveAiHardBrakingLegend />
