@@ -23,7 +23,7 @@ public class RsuDetailedInfo {
     @JsonProperty("geo_position")
     private GeoPosition geoPosition;
     @JsonProperty("milepost")
-    private Double milepost;
+    private Float milepost;
     @JsonProperty("primary_route")
     private String primaryRoute;
     @JsonProperty("serial_number")

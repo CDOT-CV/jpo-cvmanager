@@ -32,7 +32,7 @@ public class SnmpMsgfwdConfig {
     @Column(name = "message_type")
     private int messageType;
 
-    @Column(name = "dest_ipv4", columnDefinition = "inet")
+    @Column(name = "dest_ipv4")
     private String destIpv4;
 
     @Column(name = "dest_port")

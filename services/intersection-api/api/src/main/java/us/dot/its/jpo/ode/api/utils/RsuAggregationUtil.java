@@ -1,8 +1,5 @@
 package us.dot.its.jpo.ode.api.utils;
 
-import org.geolatte.geom.G2D;
-import org.geolatte.geom.Point;
-
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo;
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow;
 
@@ -33,14 +30,10 @@ public class RsuAggregationUtil {
                 rsuInfo = new RsuDetailedInfo();
                 rsuInfo.setIp(ip);
 
-                // Set geo_position - geolatte Point uses getPosition() to get coordinates
+                // Set geo_position
                 RsuDetailedInfo.GeoPosition geoPosition = new RsuDetailedInfo.GeoPosition();
-                Point<?> point = row.getGeometry();
-                if (point != null && point.getPosition() instanceof G2D) {
-                    G2D position = (G2D) point.getPosition();
-                    geoPosition.setLatitude(position.getLat());
-                    geoPosition.setLongitude(position.getLon());
-                }
+                geoPosition.setLatitude(row.getGeometry().getCoordinate().y);
+                geoPosition.setLongitude(row.getGeometry().getCoordinate().x);
                 rsuInfo.setGeoPosition(geoPosition);
 
                 rsuInfo.setMilepost(row.getMilepost());

@@ -14,7 +14,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GetModifyRsuData {
+public class GetModifyRsuDataSingle {
     @JsonProperty("rsu_data")
-    private List<RsuDetailedInfo> rsuData;
+    private RsuDetailedInfo rsuData;
+    @JsonProperty("allowed_selections")
+    private ModifyRsuAllowedSelections allowedSelections;
 }

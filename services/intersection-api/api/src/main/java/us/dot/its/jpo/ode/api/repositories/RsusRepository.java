@@ -19,7 +19,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
     /**
      * Find RSU by IPv4 address
      */
-    @Query(value = "SELECT * FROM rsus WHERE ipv4_address = CAST(:ipv4Address AS inet)", nativeQuery = true)
+    @Query(value = "SELECT * FROM rsus WHERE ipv4_address = :ipv4Address::inet", nativeQuery = true)
     Optional<Rsus> findByIpv4Address(@Param("ipv4Address") String ipv4Address);
 
     /**
@@ -33,110 +33,56 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
      * Returns one row per RSU-organization relationship
      * These rows need to be aggregated by service layer to group organizations
      */
-    @Query(value = "SELECT " +
-            "r.ipv4_address::text as ipv4Address, " +
-            "r.geography as geography, " +
-            "r.milepost as milepost, " +
-            "r.primary_route as primaryRoute, " +
-            "r.serial_number as serialNumber, " +
-            "r.iss_scms_id as issScmsId, " +
-            "CONCAT(man.name, ' ', rm.name) as model, " +
-            "rc.nickname as sshCredential, " +
-            "sc.nickname as snmpCredential, " +
-            "sp.nickname as snmpVersion, " +
-            "o.name as orgName " +
-            "FROM rsus r " +
-            "JOIN rsu_models rm ON rm.rsu_model_id = r.model " +
-            "JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer " +
-            "JOIN rsu_credentials rc ON rc.credential_id = r.credential_id " +
-            "JOIN snmp_credentials sc ON sc.snmp_credential_id = r.snmp_credential_id " +
-            "JOIN snmp_protocols sp ON sp.snmp_protocol_id = r.snmp_protocol_id " +
-            "JOIN rsu_organization ro ON ro.rsu_id = r.rsu_id " +
-            "JOIN organizations o ON o.organization_id = ro.organization_id " +
-            "WHERE r.ipv4_address = CAST(:ipv4Address AS inet)", nativeQuery = true)
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
+            "r.ipv4AddressText, " +
+            "r.geography, " +
+            "r.milepost, " +
+            "r.primaryRoute, " +
+            "r.serialNumber, " +
+            "r.issScmsId, " +
+            "CONCAT(man.name, ' ', rm.name), " +
+            "rc.nickname, " +
+            "sc.nickname, " +
+            "sp.nickname, " +
+            "o.name) " +
+            "FROM Rsus r " +
+            "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
+            "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
+            "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
+            "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
+            "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpProtocolId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
+            "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+            "WHERE r.ipv4AddressText = :ipv4Address")
     List<RsuDetailedInfoRow> findDetailedRsuInfoRowsByIp(@Param("ipv4Address") String ipv4Address);
 
     /**
      * Get all detailed RSU information rows filtered by organization
      * Returns one row per RSU-organization relationship
      */
-    @Query(value = "SELECT " +
-            "r.ipv4_address::text as ipv4Address, " +
-            "r.geography as geography, " +
-            "r.milepost as milepost, " +
-            "r.primary_route as primaryRoute, " +
-            "r.serial_number as serialNumber, " +
-            "r.iss_scms_id as issScmsId, " +
-            "CONCAT(man.name, ' ', rm.name) as model, " +
-            "rc.nickname as sshCredential, " +
-            "sc.nickname as snmpCredential, " +
-            "sp.nickname as snmpVersion, " +
-            "o.name as orgName " +
-            "FROM rsus r " +
-            "JOIN rsu_models rm ON rm.rsu_model_id = r.model " +
-            "JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer " +
-            "JOIN rsu_credentials rc ON rc.credential_id = r.credential_id " +
-            "JOIN snmp_credentials sc ON sc.snmp_credential_id = r.snmp_credential_id " +
-            "JOIN snmp_protocols sp ON sp.snmp_protocol_id = r.snmp_protocol_id " +
-            "JOIN rsu_organization ro ON ro.rsu_id = r.rsu_id " +
-            "JOIN organizations o ON o.organization_id = ro.organization_id " +
-            "WHERE o.name = :organizationName", nativeQuery = true)
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
+            "r.ipv4AddressText, " +
+            "r.geography, " +
+            "r.milepost, " +
+            "r.primaryRoute, " +
+            "r.serialNumber, " +
+            "r.issScmsId, " +
+            "CONCAT(man.name, ' ', rm.name), " +
+            "rc.nickname, " +
+            "sc.nickname, " +
+            "sp.nickname, " +
+            "o.name) " +
+            "FROM Rsus r " +
+            "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
+            "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
+            "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
+            "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
+            "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpProtocolId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
+            "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+            "WHERE o.name = :organizationName")
     List<RsuDetailedInfoRow> findAllDetailedRsuInfoRowsByOrganization(
             @Param("organizationName") String organizationName);
-
-    /**
-     * Get all detailed RSU information rows
-     * Returns one row per RSU-organization relationship
-     */
-    @Query(value = "SELECT " +
-            "r.ipv4_address::text as ipv4Address, " +
-            "r.geography as geography, " +
-            "r.milepost as milepost, " +
-            "r.primary_route as primaryRoute, " +
-            "r.serial_number as serialNumber, " +
-            "r.iss_scms_id as issScmsId, " +
-            "CONCAT(man.name, ' ', rm.name) as model, " +
-            "rc.nickname as sshCredential, " +
-            "sc.nickname as snmpCredential, " +
-            "sp.nickname as snmpVersion, " +
-            "o.name as orgName " +
-            "FROM rsus r " +
-            "JOIN rsu_models rm ON rm.rsu_model_id = r.model " +
-            "JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer " +
-            "JOIN rsu_credentials rc ON rc.credential_id = r.credential_id " +
-            "JOIN snmp_credentials sc ON sc.snmp_credential_id = r.snmp_credential_id " +
-            "JOIN snmp_protocols sp ON sp.snmp_protocol_id = r.snmp_protocol_id " +
-            "JOIN rsu_organization ro ON ro.rsu_id = r.rsu_id " +
-            "JOIN organizations o ON o.organization_id = ro.organization_id", nativeQuery = true)
-    List<RsuDetailedInfoRow> findAllDetailedRsuInfoRows();
-
-    /**
-     * Get all detailed RSU information rows filtered by multiple organizations
-     * Returns one row per RSU-organization relationship
-     */
-    @Query(value = "SELECT " +
-            "r.ipv4_address::text as ipv4Address, " +
-            "r.geography as geography, " +
-            "r.milepost as milepost, " +
-            "r.primary_route as primaryRoute, " +
-            "r.serial_number as serialNumber, " +
-            "r.iss_scms_id as issScmsId, " +
-            "CONCAT(man.name, ' ', rm.name) as model, " +
-            "rc.nickname as sshCredential, " +
-            "sc.nickname as snmpCredential, " +
-            "sp.nickname as snmpVersion, " +
-            "o.name as orgName " +
-            "FROM rsus r " +
-            "JOIN rsu_models rm ON rm.rsu_model_id = r.model " +
-            "JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer " +
-            "JOIN rsu_credentials rc ON rc.credential_id = r.credential_id " +
-            "JOIN snmp_credentials sc ON sc.snmp_credential_id = r.snmp_credential_id " +
-            "JOIN snmp_protocols sp ON sp.snmp_protocol_id = r.snmp_protocol_id " +
-            "JOIN rsu_organization ro ON ro.rsu_id = r.rsu_id " +
-            "JOIN organizations o ON o.organization_id = ro.organization_id " +
-            "WHERE o.name IN :organizationNames", nativeQuery = true)
-    List<RsuDetailedInfoRow> findAllDetailedRsuInfoRowsByOrganizations(
-            @Param("organizationNames") List<String> organizationNames);
 
     /**
      * Update RSU information

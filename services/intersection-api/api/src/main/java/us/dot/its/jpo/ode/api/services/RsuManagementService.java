@@ -24,7 +24,8 @@ public class RsuManagementService {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsusRepository.findDistinctPrimaryRoutes());
-        allowed.setRsuModels(rsuModelsRepository.findAllModelsWithManufacturers());
+        allowed.setRsuModels(rsuModelsRepository.findAllModelsWithManufacturers().stream()
+                .map(v -> String.format("%s %s", v.getManufacturer(), v.getModel())).toList());
         allowed.setSshCredentialGroups(rsuCredentialsRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialsRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolsRepository.findAllNicknames());

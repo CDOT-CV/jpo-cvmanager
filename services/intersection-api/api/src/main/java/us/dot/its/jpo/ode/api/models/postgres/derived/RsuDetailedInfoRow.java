@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.models.postgres.derived;
 
-import org.geolatte.geom.Point;
+import org.locationtech.jts.geom.Geometry;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,8 +15,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class RsuDetailedInfoRow {
     private String ipv4Address;
-    private Point<?> geometry;
-    private Double milepost;
+    private Geometry geometry;
+    private Float milepost;
     private String primaryRoute;
     private String serialNumber;
     private String issScmsId;
@@ -29,8 +29,8 @@ public class RsuDetailedInfoRow {
     // Explicit constructor for JPQL queries - must match exact order and types
     public RsuDetailedInfoRow(
             String ipv4Address,
-            Point<?> geometry,
-            Double milepost,
+            Geometry geometry,
+            Float milepost,
             String primaryRoute,
             String serialNumber,
             String issScmsId,

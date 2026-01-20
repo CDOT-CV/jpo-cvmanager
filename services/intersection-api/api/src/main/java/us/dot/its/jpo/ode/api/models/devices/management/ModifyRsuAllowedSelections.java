@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.models.devices.management;
 
 import lombok.Getter;
 import lombok.Setter;
-import us.dot.its.jpo.ode.api.models.postgres.derived.RsuModelWithManufacturer;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
@@ -18,7 +17,7 @@ public class ModifyRsuAllowedSelections {
     @JsonProperty("primary_routes")
     List<String> primaryRoutes;
     @JsonProperty("rsu_models")
-    List<RsuModelWithManufacturer> rsuModels;
+    List<String> rsuModels;
     @JsonProperty("ssh_credential_groups")
     List<String> sshCredentialGroups;
     @JsonProperty("snmp_credential_groups")
