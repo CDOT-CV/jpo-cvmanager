@@ -60,13 +60,8 @@ services:
       ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:-}
       LOGS_LINK: ${LOGS_LINK:-}
 
-      GOOGLE_APPLICATION_CREDENTIALS: /home/gcp_key.json
-      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
-
       TIMEZONE: ${TIMEZONE:-}
       LOGGING_LEVEL: ${API_LOGGING_LEVEL:-}
-    volumes:
-      - ./resources/google/${GOOGLE_ACCESS_KEY_NAME}:/home/gcp_key.json
     logging:
       options:
         max-size: '10m'

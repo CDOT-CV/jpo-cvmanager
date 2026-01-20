@@ -354,8 +354,6 @@ HTTP URL Arguments:
 - CSM_TARGET_SMTP_SERVER_PORT: Destination SMTP server port.
 - WZDX_ENDPOINT: WZDX datafeed enpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.
-- GOOGLE_ACCESS_KEY_NAME: The required Google environment variable for authenticating with Google Cloud.
-- GCP_PROJECT_ID: The Google Cloud project ID for which the service account associated with GOOGLE_ACCESS_KEY_NAME is for.
 - TIMEZONE: Timezone to be used for the API.
 
 1. Configure the Cloud Run deployment connections settings
