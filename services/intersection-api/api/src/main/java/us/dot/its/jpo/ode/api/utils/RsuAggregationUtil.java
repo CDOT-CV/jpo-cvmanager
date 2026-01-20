@@ -32,8 +32,8 @@ public class RsuAggregationUtil {
 
                 // Set geo_position
                 RsuDetailedInfo.GeoPosition geoPosition = new RsuDetailedInfo.GeoPosition();
-                geoPosition.setLatitude(row.getLatitude());
-                geoPosition.setLongitude(row.getLongitude());
+                geoPosition.setLatitude(row.getGeometry().getCoordinate().y);
+                geoPosition.setLongitude(row.getGeometry().getCoordinate().x);
                 rsuInfo.setGeoPosition(geoPosition);
 
                 rsuInfo.setMilepost(row.getMilepost());

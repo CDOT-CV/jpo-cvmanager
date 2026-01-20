@@ -1,5 +1,7 @@
 package us.dot.its.jpo.ode.api.services;
 
+import org.springframework.stereotype.Service;
+
 import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialsRepository;
@@ -8,6 +10,7 @@ import us.dot.its.jpo.ode.api.repositories.RsusRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialsRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolsRepository;
 
+@Service
 @RequiredArgsConstructor
 public class RsuManagementService {
     private RsusRepository rsusRepository;

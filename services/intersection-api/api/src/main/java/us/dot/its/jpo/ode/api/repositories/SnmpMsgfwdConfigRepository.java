@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpMsgfwdConfig;
+
 import java.util.UUID;
 
 /**
@@ -14,7 +16,7 @@ import java.util.UUID;
  * Used for cleanup operations when deleting RSUs
  */
 @Repository
-public interface SnmpMsgfwdConfigRepository extends JpaRepository<Object, UUID> {
+public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConfig, UUID> {
 
     /**
      * Delete all SNMP message forward config records for an RSU

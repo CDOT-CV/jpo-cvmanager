@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.models.postgres.derived;
 
-import lombok.AllArgsConstructor;
+import org.locationtech.jts.geom.Geometry;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,12 +13,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class RsuDetailedInfoRow {
     private String ipv4Address;
-    private Double latitude;
-    private Double longitude;
-    private Double milepost;
+    private Geometry geometry;
+    private Float milepost;
     private String primaryRoute;
     private String serialNumber;
     private String issScmsId;
@@ -26,4 +25,30 @@ public class RsuDetailedInfoRow {
     private String snmpCredential;
     private String snmpVersion;
     private String orgName;
+
+    // Explicit constructor for JPQL queries - must match exact order and types
+    public RsuDetailedInfoRow(
+            String ipv4Address,
+            Geometry geometry,
+            Float milepost,
+            String primaryRoute,
+            String serialNumber,
+            String issScmsId,
+            String model,
+            String sshCredential,
+            String snmpCredential,
+            String snmpVersion,
+            String orgName) {
+        this.ipv4Address = ipv4Address;
+        this.geometry = geometry;
+        this.milepost = milepost;
+        this.primaryRoute = primaryRoute;
+        this.serialNumber = serialNumber;
+        this.issScmsId = issScmsId;
+        this.model = model;
+        this.sshCredential = sshCredential;
+        this.snmpCredential = snmpCredential;
+        this.snmpVersion = snmpVersion;
+        this.orgName = orgName;
+    }
 }

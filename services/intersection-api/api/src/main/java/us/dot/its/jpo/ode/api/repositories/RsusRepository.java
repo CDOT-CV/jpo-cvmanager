@@ -34,8 +34,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
      */
     @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
             "r.ipv4Address, " +
-            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
-            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.geography, " +
             "r.milepost, " +
             "r.primaryRoute, " +
             "r.serialNumber, " +
@@ -51,7 +50,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
             "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
             "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
-            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
             "JOIN Organizations o ON o.organization_id = ro.organization_id " +
             "WHERE r.ipv4Address = :ipv4Address")
     List<RsuDetailedInfoRow> findDetailedRsuInfoRowsByIp(@Param("ipv4Address") String ipv4Address);
@@ -62,8 +61,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
      */
     @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
             "r.ipv4Address, " +
-            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
-            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.geography, " +
             "r.milepost, " +
             "r.primaryRoute, " +
             "r.serialNumber, " +
@@ -79,7 +77,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
             "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
             "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
-            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
             "JOIN Organizations o ON o.organization_id = ro.organization_id " +
             "WHERE o.name = :organizationName")
     List<RsuDetailedInfoRow> findAllDetailedRsuInfoRowsByOrganization(
@@ -91,8 +89,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
      */
     @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
             "r.ipv4Address, " +
-            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
-            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.geography, " +
             "r.milepost, " +
             "r.primaryRoute, " +
             "r.serialNumber, " +
@@ -108,7 +105,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
             "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
             "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
-            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
             "JOIN Organizations o ON o.organization_id = ro.organization_id")
     List<RsuDetailedInfoRow> findAllDetailedRsuInfoRows();
 
@@ -118,8 +115,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
      */
     @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow(" +
             "r.ipv4Address, " +
-            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
-            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.geography, " +
             "r.milepost, " +
             "r.primaryRoute, " +
             "r.serialNumber, " +
@@ -135,7 +131,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
             "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
             "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
-            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN RsuOrganization ro ON ro.rsu_id = r.rsuId " +
             "JOIN Organizations o ON o.organization_id = ro.organization_id " +
             "WHERE o.name IN :organizationNames")
     List<RsuDetailedInfoRow> findAllDetailedRsuInfoRowsByOrganizations(

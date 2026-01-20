@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.locationtech.jts.geom.Geometry;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -21,18 +22,30 @@ import lombok.ToString;
 public class Rsus {
 
     @Id
-    private UUID rsu_id;
-    private Geometry geometry;
+    @Column(name = "rsu_id")
+    private UUID rsuId;
+    @Column(name = "geography")
+    private Geometry geography;
+    @Column(name = "milepost")
     private float milepost;
-    private String ipv4_address;
-    private String serial_number;
-    private String iss_scms_id;
-    private String primary_route;
+    @Column(name = "ipv4_address", columnDefinition = "inet")
+    private String ipv4Address;
+    @Column(name = "serial_number")
+    private String serialNumber;
+    @Column(name = "iss_scms_id")
+    private String issScmsId;
+    @Column(name = "primary_route")
+    private String primaryRoute;
+    @Column(name = "model")
     private int model;
-    private int credential_id;
-    private int snmp_credential_id;
-    private int snmp_version_id;
-    private int firmware_version;
-    private int target_firmware_version;
-
+    @Column(name = "credential_id")
+    private int credentialId;
+    @Column(name = "snmp_credential_id")
+    private int snmpCredentialId;
+    @Column(name = "snmp_version_id")
+    private int snmpVersionId;
+    @Column(name = "firmware_version")
+    private int firmwareVersion;
+    @Column(name = "target_firmware_version")
+    private int targetFirmwareVersion;
 }

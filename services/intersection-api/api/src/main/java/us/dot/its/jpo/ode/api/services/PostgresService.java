@@ -34,7 +34,7 @@ public class PostgresService {
             "FROM Users u2 " +
             "WHERE u2.email = :email AND u2.user_id = u.user_id)";
 
-    private final String findUserRsuIPQuery = "SELECT r.ipv4_address " +
+    private final String findUserRsuIPQuery = "SELECT r.ipv4Address " +
             "FROM Rsus r " +
             "WHERE EXISTS (" +
             "SELECT 1 " +
@@ -129,7 +129,7 @@ public class PostgresService {
         if (organizations.isEmpty()) {
             return false;
         }
-        String queryString = "SELECT rsu.ipv4_address::text AS ipv4_address " +
+        String queryString = "SELECT rsu.ipv4Address::text AS ipv4Address " +
                 "FROM Rsus rsu " +
                 "WHERE EXISTS (" +
                 "SELECT 1 " +
@@ -137,7 +137,7 @@ public class PostgresService {
                 "JOIN Organizations org ON org.organization_id = rsu_org.organization_id " +
                 "WHERE rsu_org.rsu_id = rsu.rsu_id " +
                 "AND org.name IN (:allowedOrgs)) " +
-                "AND rsu.ipv4_address = :rsuIp";
+                "AND rsu.ipv4Address = :rsuIp";
 
         TypedQuery<String> query = entityManager.createQuery(queryString, String.class);
         query.setParameter("allowedOrgs", organizations);
