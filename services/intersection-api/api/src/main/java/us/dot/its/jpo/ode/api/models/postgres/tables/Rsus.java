@@ -42,8 +42,8 @@ public class Rsus {
     private int credentialId;
     @Column(name = "snmp_credential_id")
     private int snmpCredentialId;
-    @Column(name = "snmp_version_id")
-    private int snmpVersionId;
+    @Column(name = "snmp_protocol_id")
+    private int snmpProtocolId;
     @Column(name = "firmware_version")
     private int firmwareVersion;
     @Column(name = "target_firmware_version")

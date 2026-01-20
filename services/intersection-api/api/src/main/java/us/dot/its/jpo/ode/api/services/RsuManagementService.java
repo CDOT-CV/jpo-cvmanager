@@ -13,12 +13,12 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolsRepository;
 @Service
 @RequiredArgsConstructor
 public class RsuManagementService {
-    private RsusRepository rsusRepository;
-    private RsuModelsRepository rsuModelsRepository;
-    private RsuCredentialsRepository rsuCredentialsRepository;
-    private SnmpCredentialsRepository snmpCredentialsRepository;
-    private SnmpProtocolsRepository snmpProtocolsRepository;
-    private PostgresService postgresService;
+    private final RsusRepository rsusRepository;
+    private final RsuModelsRepository rsuModelsRepository;
+    private final RsuCredentialsRepository rsuCredentialsRepository;
+    private final SnmpCredentialsRepository snmpCredentialsRepository;
+    private final SnmpProtocolsRepository snmpProtocolsRepository;
+    private final PostgresService postgresService;
 
     public ModifyRsuAllowedSelections getAllowedSelections(String username) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
