@@ -1,0 +1,147 @@
+package us.dot.its.jpo.ode.api.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Rsus;
+import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface RsusRepository extends JpaRepository<Rsus, UUID> {
+
+    /**
+     * Find RSU by IPv4 address
+     */
+    Optional<Rsus> findByIpv4Address(String ipv4Address);
+
+    /**
+     * Get detailed RSU information with all related data
+     * 
+     * Returns RSU with manufacturer, model, credentials, and organization info
+     */
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo(" +
+            "r.ipv4Address, " +
+            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.milepost, " +
+            "r.primaryRoute, " +
+            "r.serialNumber, " +
+            "r.issScmsId, " +
+            "CONCAT(man.name, ' ', rm.name), " +
+            "rc.nickname, " +
+            "sc.nickname, " +
+            "sp.nickname, " +
+            "o.name) " +
+            "FROM Rsus r " +
+            "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
+            "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
+            "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
+            "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
+            "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
+            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+            "WHERE r.ipv4Address = :ipv4Address")
+    List<RsuDetailedInfo> findDetailedRsuInfoByIp(@Param("ipv4Address") String ipv4Address);
+
+    /**
+     * Get detailed RSU information filtered by organization
+     */
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo(" +
+            "r.ipv4_address, " +
+            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.milepost, " +
+            "r.primaryRoute, " +
+            "r.serialNumber, " +
+            "r.issScmsId, " +
+            "CONCAT(man.name, ' ', rm.name), " +
+            "rc.nickname, " +
+            "sc.nickname, " +
+            "sp.nickname, " +
+            "o.name) " +
+            "FROM Rsus r " +
+            "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
+            "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
+            "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
+            "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
+            "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
+            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+            "WHERE r.ipv4Address = :ipv4Address AND o.name = :organizationName")
+    List<RsuDetailedInfo> findDetailedRsuInfoByIpAndOrganization(
+            @Param("ipv4Address") String ipv4Address,
+            @Param("organizationName") String organizationName);
+
+    /**
+     * Get all detailed RSU information filtered by organization
+     */
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo(" +
+            "r.ipv4_address, " +
+            "FUNCTION('ST_X', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "FUNCTION('ST_Y', FUNCTION('CAST', r.geography, 'geometry')), " +
+            "r.milepost, " +
+            "r.primaryRoute, " +
+            "r.serialNumber, " +
+            "r.issScmsId, " +
+            "CONCAT(man.name, ' ', rm.name), " +
+            "rc.nickname, " +
+            "sc.nickname, " +
+            "sp.nickname, " +
+            "o.name) " +
+            "FROM Rsus r " +
+            "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
+            "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
+            "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
+            "JOIN SnmpCredentials sc ON sc.snmpCredentialId = r.snmpCredentialId " +
+            "JOIN SnmpProtocols sp ON sp.snmpProtocolId = r.snmpVersionId " +
+            "JOIN RsuOrganization ro ON ro.rsuId = r.rsuId " +
+            "JOIN Organizations o ON o.organization_id = ro.organization_id " +
+            "WHERE o.name = :organizationName")
+    List<RsuDetailedInfo> findAllDetailedRsuInfoByOrganization(@Param("organizationName") String organizationName);
+
+    /**
+     * Update RSU information
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE rsus SET " +
+            "geography = ST_GeomFromText(CONCAT('POINT(', :longitude, ' ', :latitude, ')')), " +
+            "milepost = :milepost, " +
+            "ipv4_address = :newIpv4Address, " +
+            "serial_number = :serialNumber, " +
+            "primary_route = :primaryRoute, " +
+            "model = (SELECT rsu_model_id FROM rsu_models WHERE name = :modelName), " +
+            "credential_id = (SELECT credential_id FROM rsu_credentials WHERE nickname = :sshCredential), " +
+            "snmp_credential_id = (SELECT snmp_credential_id FROM snmp_credentials WHERE nickname = :snmpCredential), "
+            +
+            "snmp_protocol_id = (SELECT snmp_protocol_id FROM snmp_protocols WHERE nickname = :snmpVersion), " +
+            "iss_scms_id = :scmsId " +
+            "WHERE ipv4_address = :originalIpv4Address", nativeQuery = true)
+    int updateRsuByIpv4Address(
+            @Param("originalIpv4Address") String originalIpv4Address,
+            @Param("newIpv4Address") String newIpv4Address,
+            @Param("longitude") Double longitude,
+            @Param("latitude") Double latitude,
+            @Param("milepost") Double milepost,
+            @Param("serialNumber") String serialNumber,
+            @Param("primaryRoute") String primaryRoute,
+            @Param("modelName") String modelName,
+            @Param("sshCredential") String sshCredential,
+            @Param("snmpCredential") String snmpCredential,
+            @Param("snmpVersion") String snmpVersion,
+            @Param("scmsId") String scmsId);
+
+    /**
+     * Delete RSU by IPv4 address
+     */
+    @Modifying
+    @Transactional
+    void deleteByIpv4Address(String ipv4Address);
+}
