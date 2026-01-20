@@ -57,16 +57,6 @@ export const ConditionalRenderWzdx: React.FC<{
   return <>{shouldRender}</>
 }
 
-export const ConditionalRenderMooveAi: React.FC<{
-  children: React.ReactNode // Specify the type for children prop
-}> = ({ children }) => {
-  const shouldRender = React.Children.map(children, (child) => {
-    return !evaluateFeatureFlags('mooveai') ? null : child
-  })
-
-  return <>{shouldRender}</>
-}
-
 export const ConditionalRenderHaas: React.FC<{
   children: React.ReactNode // Specify the type for children prop
 }> = ({ children }) => {
@@ -86,8 +76,6 @@ export const evaluateFeatureFlags = (tag?: FEATURE_KEY): boolean => {
   } else if (tag === 'intersection' && !EnvironmentVars.ENABLE_INTERSECTION_FEATURES) {
     return false
   } else if (tag === 'wzdx' && !EnvironmentVars.ENABLE_WZDX_FEATURES) {
-    return false
-  } else if (tag === 'mooveai' && !EnvironmentVars.ENABLE_MOOVE_AI_FEATURES) {
     return false
   } else if (tag === 'haas' && !EnvironmentVars.ENABLE_HAAS_FEATURES) {
     return false

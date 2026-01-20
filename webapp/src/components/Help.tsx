@@ -185,9 +185,6 @@ const Help = () => {
             <strong>Intersections:</strong> Shows connected intersections and IDs
           </li>
           <li>
-            <strong>Moove AI Viewer:</strong> Query harsh braking events
-          </li>
-          <li>
             <strong>HAAS Alert Viewer:</strong> Query alert incidents by time
           </li>
         </ul>

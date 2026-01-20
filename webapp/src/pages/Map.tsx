@@ -1073,7 +1073,7 @@ function MapPage() {
           onMove={(evt) => dispatch(setMapViewState(evt.viewState))}
           interactiveLayerIds={['geoMsgPointLayer']}
           onMouseMove={(e) => {
-            if (addGeoMsgPoint || addConfigPoint || addMooveAiPoint) {
+            if (addGeoMsgPoint || addConfigPoint) {
               const point: GeoJSON.Feature<GeoJSON.Point> = {
                 type: 'Feature',
                 geometry: {
@@ -1101,9 +1101,6 @@ function MapPage() {
             if (addConfigPoint) {
               addConfigPointToCoordinates(e.lngLat)
             }
-            if (addMooveAiPoint) {
-              addMooveAiPointToCoordinates(e.lngLat)
-            }
           }}
           onDblClick={(e) => {
             e.preventDefault() // Prevent map zoom
@@ -1113,14 +1110,10 @@ function MapPage() {
             if (addConfigPoint) {
               dispatch(toggleConfigPointSelect())
             }
-            if (addMooveAiPoint) {
-              dispatch(toggleMooveAiPointSelect())
-            }
           }}
         >
           {/* Add preview sources and layers */}
           {activeLayers.includes(MAP_LAYERS.MSG_VIEWER.id) ||
-            activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) ||
             (activeLayers.includes(MAP_LAYERS.RSU.id) && previewPoint && (
               <Source id="preview-point" type="geojson" data={previewPoint}>
                 <Layer
@@ -1130,15 +1123,11 @@ function MapPage() {
                     'circle-radius': 5,
                     'circle-color': addGeoMsgPoint
                       ? 'rgba(255, 164, 0, 0.5)'
-                      : addMooveAiPoint
-                        ? 'rgb(53, 121, 148)'
-                        : 'rgba(255, 0, 0, 0.5)',
+                      : 'rgba(255, 0, 0, 0.5)',
                     'circle-stroke-width': 2,
                     'circle-stroke-color': addGeoMsgPoint
                       ? 'rgb(255, 164, 0)'
-                      : addMooveAiPoint
-                        ? 'rgb(94, 206, 250)'
-                        : 'rgb(255, 0, 0)',
+                      : 'rgb(255, 0, 0)',
                   }}
                 />
               </Source>
@@ -1169,7 +1158,7 @@ function MapPage() {
                   longitude={rsu.geometry.coordinates[0]}
                   onClick={(e) => {
                     // Prevent RSU selection if adding points to geospatial polygon selection
-                    if (addConfigPoint || addGeoMsgPoint || addMooveAiPoint) return
+                    if (addConfigPoint || addGeoMsgPoint) return
                     e.originalEvent.stopPropagation()
                     dispatch(selectRsu(rsu))
                     setSelectedWZDxMarkerIndex(null)
@@ -1183,7 +1172,7 @@ function MapPage() {
                     className="marker-btn"
                     onClick={(e) => {
                       // Prevent RSU selection if adding points to geospatial polygon selection
-                      if (addConfigPoint || addGeoMsgPoint || addMooveAiPoint) return
+                      if (addConfigPoint || addGeoMsgPoint) return
                       e.stopPropagation()
                       dispatch(selectRsu(rsu))
                       dispatch(clearFirmware()) // TODO: Should remove??
@@ -1380,26 +1369,6 @@ function MapPage() {
             >
               <Layer {...intersectionMapLabelsLayer} />
             </Source>
-          )}
-          {activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) && (
-            <div>
-              {mooveAiCoordinates.length >= 1 ? (
-                <Source id={MAP_LAYERS.MOOVE_AI.id + '-fill'} type="geojson" data={mooveAiPolygonSource}>
-                  <Layer {...getMooveAiDataOutlineLayer(addMooveAiPoint)} />
-                  <Layer {...mooveAiDataFillLayer} />
-                </Source>
-              ) : null}
-              {addMooveAiPoint && (
-                <Source id={MAP_LAYERS.MOOVE_AI.id + '-polygon-points'} type="geojson" data={mooveAiPolygonPointSource}>
-                  <Layer {...mooveAiDataPolygonPointLayer} />
-                </Source>
-              )}
-              {mooveAiFilter && (
-                <Source id={MAP_LAYERS.MOOVE_AI.id + '-feature-lines'} type="geojson" data={mooveAiData}>
-                  <Layer {...mooveAiDataLineLayer} />
-                </Source>
-              )}
-            </div>
           )}
           {selectedRsu ? (
             <Popup
@@ -1726,80 +1695,6 @@ function MapPage() {
             </div>
           </Paper>
         ))}
-      {activeLayers.includes(MAP_LAYERS.MOOVE_AI.id) &&
-        (mooveAiData.features.length > 0 ? (
-          <div className="filterControl" style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}>
-            <MooveAiHardBrakingLegend />
-            <div id="controlContainer">
-              <Button variant="contained" onClick={() => dispatch(clearMooveAiData())}>
-                New Search
-              </Button>
-            </div>
-          </div>
-        ) : mooveAiFilter && mooveAiData.features.length === 0 ? (
-          <div
-            className={menuSelection.includes('Configure RSUs') ? 'expandedFilterControl' : 'filterControl'}
-            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
-          >
-            <div id="timeContainer">
-              <Typography fontSize="small">
-                No data found for the selected polygon. Please try a new search for different geospatial area.
-              </Typography>
-            </div>
-            <div id="controlContainer">
-              <Button variant="contained" onClick={() => dispatch(clearMooveAiData())}>
-                New Search
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Paper
-            className={menuSelection.includes('Configure RSUs') ? 'expandedControl' : 'control'}
-            style={{ backgroundColor: theme.palette.custom.mapLegendBackground }}
-          >
-            <div className="buttonContainer" style={{ marginBottom: 15 }}>
-              <Button
-                className="museo-slab capital-case"
-                variant="contained"
-                size="small"
-                onClick={(e) => handleButtonToggle(e, 'mooveai')}
-              >
-                Add Point
-              </Button>
-              <Button
-                className="museo-slab capital-case"
-                variant="contained"
-                size="small"
-                onClick={() => {
-                  dispatch(clearMooveAiData())
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-            <div id="mooveAiDescription" style={{ marginBottom: 15 }}>
-              <Typography fontSize="small">
-                Add points on the map to create a geospatial polygon to query for Moove AI harsh braking data
-              </Typography>
-            </div>
-            <div style={{ marginBottom: 5 }} className="submitContainer">
-              <Button
-                className="museo-slab capital-case"
-                variant="contained"
-                size="small"
-                onClick={() => {
-                  if (!addMooveAiPoint) {
-                    dispatch(updateMooveAiData())
-                  } else {
-                    toast.error('Please complete the polygon (double click to close) before submitting')
-                  }
-                }}
-              >
-                Submit
-              </Button>
-            </div>
-          </Paper>
-        ))}
     </div>
   )
 }
@@ -1901,59 +1796,6 @@ const geoMsgPointLayer: CircleLayer = {
       '#008000',
       '#999999',
     ],
-  },
-}
-
-const getMooveAiDataOutlineLayer = (isEditing: boolean): LineLayer => ({
-  id: 'mooveAiDataOutline',
-  type: 'line',
-  source: 'mooveAiPolygonSource',
-  layout: {},
-  paint: {
-    'line-color': '#000',
-    'line-width': 3,
-    'line-dasharray': isEditing ? [2, 2] : undefined,
-  },
-})
-
-const mooveAiDataFillLayer: FillLayer = {
-  id: 'mooveAiDataFill',
-  type: 'fill',
-  source: 'mooveAiPolygonSource',
-  layout: {},
-  paint: {
-    'fill-color': '#0080ff',
-    'fill-opacity': 0.2,
-  },
-}
-
-const mooveAiDataPolygonPointLayer: CircleLayer = {
-  id: 'mooveAiDataPolygonPoint',
-  type: 'circle',
-  source: 'mooveAiPolygonPointSource',
-  paint: {
-    'circle-radius': 5,
-    'circle-color': 'rgb(94, 206, 250)',
-  },
-}
-
-const mooveAiDataLineLayer: LineLayer = {
-  id: 'mooveAiDataLine',
-  type: 'line',
-  source: 'mooveAiData',
-  layout: {},
-  paint: {
-    'line-color': [
-      'case',
-      ['>=', ['get', 'total_hard_brake_count'], 750],
-      'rgb(255, 0, 0)', // Red for values 750 and above
-      ['>=', ['get', 'total_hard_brake_count'], 500],
-      'rgb(255, 165, 0)', // Orange for values between 500 and 750
-      ['>=', ['get', 'total_hard_brake_count'], 250],
-      'rgb(255, 255, 0)', // Yellow for values between 250 and 500
-      'rgb(0, 255, 0)', // Green for values below 250
-    ],
-    'line-width': 5,
   },
 }
 
