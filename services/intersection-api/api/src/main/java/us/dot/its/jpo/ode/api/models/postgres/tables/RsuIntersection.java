@@ -14,33 +14,20 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @Entity
-@Table(name = "scms_health", schema = "public")
-public class ScmsHealth {
+@Table(name = "rsu_intersection", schema = "public")
+public class RsuIntersection {
   @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "scms_health_id_gen")
-  @SequenceGenerator(name = "scms_health_id_gen", sequenceName = "scms_health_scms_health_id_seq", allocationSize = 1)
-  @Column(name = "scms_health_id", nullable = false)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsu_intersection_id_gen")
+  @SequenceGenerator(name = "rsu_intersection_id_gen", sequenceName = "rsu_intersection_rsu_intersection_id_seq", allocationSize = 1)
+  @Column(name = "rsu_intersection_id", nullable = false)
   private Integer id;
-
-  @NotNull
-  @Column(name = "\"timestamp\"", nullable = false)
-  private LocalDateTime timestamp;
-
-  @Column(name = "expiration")
-  private LocalDateTime expiration;
 
   @NotNull
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "rsu_id", nullable = false)
   private Rsu rsu;
-
-  @Column(name = "health", nullable = false, columnDefinition = "bit not null")
-  private boolean health;
 
 }

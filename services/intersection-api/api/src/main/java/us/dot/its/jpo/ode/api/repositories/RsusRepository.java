@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Rsus;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow;
 
 import java.util.List;
@@ -14,18 +14,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface RsusRepository extends JpaRepository<Rsus, UUID> {
+public interface RsusRepository extends JpaRepository<Rsu, UUID> {
 
     /**
      * Find RSU by IPv4 address
      */
     @Query(value = "SELECT * FROM rsus WHERE ipv4_address = :ipv4Address::inet", nativeQuery = true)
-    Optional<Rsus> findByIpv4Address(@Param("ipv4Address") String ipv4Address);
+    Optional<Rsu> findByIpv4Address(@Param("ipv4Address") String ipv4Address);
 
     /**
      * Get distinct primary routes from all RSUs
      */
-    @Query("SELECT DISTINCT r.primaryRoute FROM Rsus r ORDER BY r.primaryRoute ASC")
+    @Query("SELECT DISTINCT r.primaryRoute FROM Rsu r ORDER BY r.primaryRoute ASC")
     List<String> findDistinctPrimaryRoutes();
 
     /**
@@ -45,7 +45,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "sc.nickname, " +
             "sp.nickname, " +
             "o.name) " +
-            "FROM Rsus r " +
+            "FROM Rsu r " +
             "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
             "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +
@@ -72,7 +72,7 @@ public interface RsusRepository extends JpaRepository<Rsus, UUID> {
             "sc.nickname, " +
             "sp.nickname, " +
             "o.name) " +
-            "FROM Rsus r " +
+            "FROM Rsu r " +
             "JOIN RsuModels rm ON rm.rsuModelId = r.model " +
             "JOIN Manufacturers man ON man.manufacturerId = rm.manufacturer " +
             "JOIN RsuCredentials rc ON rc.credentialId = r.credentialId " +

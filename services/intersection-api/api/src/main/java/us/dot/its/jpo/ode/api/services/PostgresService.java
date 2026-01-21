@@ -35,7 +35,7 @@ public class PostgresService {
             "WHERE u2.email = :email AND u2.user_id = u.user_id)";
 
     private final String findUserRsuIPQuery = "SELECT r.ipv4Address " +
-            "FROM Rsus r " +
+            "FROM Rsu r " +
             "WHERE EXISTS (" +
             "SELECT 1 " +
             "FROM Users u " +
@@ -130,7 +130,7 @@ public class PostgresService {
             return false;
         }
         String queryString = "SELECT rsu.ipv4Address::text AS ipv4Address " +
-                "FROM Rsus rsu " +
+                "FROM Rsu rsu " +
                 "WHERE EXISTS (" +
                 "SELECT 1 " +
                 "FROM RsuOrganization rsu_org " +
