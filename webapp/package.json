@@ -56,6 +56,11 @@
     "worker-loader": "^3.0.8",
     "yup": "^1.4.0"
   },
+  "overrides": {
+    "nth-check": "^2.0.1",
+    "postcss": "^8.4.31",
+    "webpack-dev-server": "^5.2.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "start-pc": "set PORT=3001&& react-scripts start",
