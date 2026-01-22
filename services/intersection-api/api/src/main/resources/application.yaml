@@ -71,12 +71,15 @@ spring:
   mail:
     host: ${INTERSECTION_SMTP_SERVER_IP:localhost}
     port: ${INTERSECTION_SMTP_SERVER_PORT:25}
+    username: ${INTERSECTION_SMTP_USERNAME:}
+    password: ${INTERSECTION_SMTP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${INTERSECTION_SMTP_AUTH:false}
           starttls:
-            enable: true
+            enable: ${INTERSECTION_SMTP_STARTTLS:false}
+            required: false
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}

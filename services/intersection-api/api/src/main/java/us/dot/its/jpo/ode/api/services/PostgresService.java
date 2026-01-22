@@ -66,9 +66,9 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeQuery = "SELECT u.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN Users u ON uen.user_id = u.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
-            "WHERE et.email_type = :notification_type " +
+            "JOIN Users u ON uen.userId = u.user_id " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
+            "WHERE et.emailType = :notification_type " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
             "OR (:frequency = 'DAILY' AND uen.daily = true) " +
@@ -77,12 +77,12 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeAndRsuQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
-            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.userId " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
             "JOIN RsuOrganization ro ON uo.organization_id = ro.organization_id " +
             "JOIN Rsus r ON ro.rsu_id = r.rsu_id " +
-            "WHERE et.email_type = :notification_type " +
+            "WHERE et.emailType = :notification_type " +
             "AND CAST(r.ipv4_address AS text) = :rsu_ip " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
@@ -92,11 +92,11 @@ public class PostgresService {
 
     private final String findUsersByNotificationTypeAndOrganizationQuery = "SELECT DISTINCT u.email " +
             "FROM Users u " +
-            "JOIN UserEmailNotification uen ON u.user_id = uen.user_id " +
-            "JOIN EmailType et ON uen.email_type_id = et.email_type_id " +
+            "JOIN UserEmailNotification uen ON u.user_id = uen.userId " +
+            "JOIN EmailType et ON uen.emailTypeId = et.emailTypeId " +
             "JOIN UserOrganization uo ON u.user_id = uo.user_id " +
             "JOIN Organizations o ON uo.organization_id = o.organization_id " +
-            "WHERE et.email_type = :notification_type " +
+            "WHERE et.emailType = :notification_type " +
             "AND o.name = :organization_name " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +

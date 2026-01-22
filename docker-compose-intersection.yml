@@ -58,6 +58,10 @@ services:
       CV_MANAGER_FRONT_END_URI: ${CV_MANAGER_FRONT_END_URI:-http://localhost:${WEBAPP_PORT:-3000}}
       INTERSECTION_SMTP_SERVER_IP: ${INTERSECTION_SMTP_SERVER_IP:-smtp4dev}
       INTERSECTION_SMTP_SERVER_PORT: ${INTERSECTION_SMTP_SERVER_PORT:-1025}
+      INTERSECTION_SMTP_USERNAME: ${INTERSECTION_SMTP_USERNAME:-admin}
+      INTERSECTION_SMTP_PASSWORD: ${INTERSECTION_SMTP_PASSWORD:-password}
+      INTERSECTION_SMTP_AUTH: ${INTERSECTION_SMTP_AUTH_ENABLED:-true}
+      INTERSECTION_SMTP_STARTTLS: ${INTERSECTION_SMTP_STARTTLS_ENABLED:-false}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       POSTMARK_API_KEY: ${POSTMARK_API_KEY}
     entrypoint:
@@ -87,3 +91,9 @@ services:
     ports:
       - '5000:80' # Web UI
       - '25:25' # SMTP
+    environment:
+      # Enable SMTP authentication
+      - ServerOptions__AuthenticationRequired=true
+      # Set username and password for SMTP auth
+      - ServerOptions__Users__0__Username=${SMTP4DEV_USERNAME:-admin}
+      - ServerOptions__Users__0__Password=${SMTP4DEV_PASSWORD:-password}
