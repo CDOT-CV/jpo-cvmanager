@@ -52,6 +52,7 @@ export default defineConfig(({ mode }) => {
 function setEnv(mode: string) {
 	Object.assign(
 		process.env,
+		loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]),
 		loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]),
 	);
 	process.env.NODE_ENV ||= mode;
@@ -72,10 +73,15 @@ function envPlugin(): Plugin {
   return {
     name: "env-plugin",
     config(_, { mode }) {
+      const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]);
       const env = loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]);
+      const combinedEnv = { ...rootEnv, ...env };
+      if (rootEnv.MAPBOX_TOKEN && !combinedEnv.REACT_APP_MAPBOX_TOKEN) {
+        combinedEnv.REACT_APP_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
+      }
       return {
         define: Object.fromEntries(
-          Object.entries(env).map(([key, value]) => [
+          Object.entries(combinedEnv).map(([key, value]) => [
             `process.env.${key}`,
             JSON.stringify(value),
           ]),
@@ -194,13 +200,18 @@ function importPrefixPlugin(): Plugin {
 // Migration guide: Follow the guide below, you may need to rename your environment variable to a name that begins with VITE_ instead of REACT_APP_
 // https://vitejs.dev/guide/env-and-mode.html#html-env-replacement
 function htmlPlugin(mode: string): Plugin {
+	const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]);
 	const env = loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]);
+	const combinedEnv = { ...rootEnv, ...env };
+	if (rootEnv.MAPBOX_TOKEN && !combinedEnv.REACT_APP_MAPBOX_TOKEN) {
+		combinedEnv.REACT_APP_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
+	}
 	return {
 		name: "html-plugin",
 		transformIndexHtml: {
 			order: "pre",
 			handler(html) {
-				return html.replace(/%(.*?)%/g, (match, p1) => env[p1] ?? match);
+				return html.replace(/%(.*?)%/g, (match, p1) => combinedEnv[p1] ?? match);
 			},
 		},
 	};
