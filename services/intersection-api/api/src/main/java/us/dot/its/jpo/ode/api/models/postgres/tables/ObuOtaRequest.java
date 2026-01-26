@@ -1,0 +1,61 @@
+package us.dot.its.jpo.ode.api;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+
+import java.net.InetAddress;
+import java.time.Instant;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "obu_ota_requests")
+public class ObuOtaRequest {
+    @NotNull
+    @ColumnDefault("nextval('obu_ota_request_id_seq')")
+    @Column(name = "request_id", nullable = false)
+    private Integer requestId;
+
+    @Size(max = 128)
+    @NotNull
+    @Column(name = "obu_sn", nullable = false, length = 128)
+    private String obuSn;
+
+    @NotNull
+    @Column(name = "request_datetime", nullable = false)
+    private Instant requestDatetime;
+
+    @NotNull
+    @Column(name = "origin_ip", nullable = false)
+    private InetAddress originIp;
+
+    @Size(max = 128)
+    @NotNull
+    @Column(name = "obu_firmware_version", nullable = false, length = 128)
+    private String obuFirmwareVersion;
+
+    @Size(max = 128)
+    @NotNull
+    @Column(name = "requested_firmware_version", nullable = false, length = 128)
+    private String requestedFirmwareVersion;
+
+    @Column(name = "error_status", columnDefinition = "bit not null")
+    private Object errorStatus;
+
+    @Size(max = 128)
+    @NotNull
+    @Column(name = "error_message", nullable = false, length = 128)
+    private String errorMessage;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "manufacturer", nullable = false)
+    private Manufacturer manufacturer;
+
+
+}
