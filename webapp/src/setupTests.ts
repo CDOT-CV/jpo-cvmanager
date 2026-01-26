@@ -1,5 +1,6 @@
-import 'jest-canvas-mock'
+import 'vitest-canvas-mock'
 import { TextEncoder, TextDecoder } from 'util'
+import { vi } from 'vitest'
 
 // adds the 'fetchMock' global variable and rewires 'fetch' global to call 'fetchMock' instead of the real implementation
 import fetchMock from 'jest-fetch-mock'
@@ -29,8 +30,8 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
 
-jest.mock('luxon', () => {
-  const actualLuxon = jest.requireActual('luxon')
+vi.mock('luxon', async () => {
+  const actualLuxon: any = await vi.importActual('luxon')
   return {
     ...actualLuxon,
     DateTime: {

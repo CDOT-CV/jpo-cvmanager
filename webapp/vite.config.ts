@@ -1,14 +1,14 @@
 import { resolve } from "node:path";
 import { readFileSync, existsSync } from "node:fs";
 import { defineConfig, loadEnv, Plugin } from "vite";
+import { defineConfig as defineTestConfig, mergeConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   setEnv(mode);
-  return {
+  const config = {
     plugins: [
       react(),
       tsconfigPaths(),
@@ -19,11 +19,34 @@ export default defineConfig(({ mode }) => {
       basePlugin(),
       importPrefixPlugin(),
       htmlPlugin(mode),
-      
-      
-      
     ],
   };
+
+  return mergeConfig(
+    config,
+    defineTestConfig({
+      test: {
+        globals: true,
+        environment: "jsdom",
+        setupFiles: "./src/setupTests.ts",
+        deps: {
+          inline: ["keycloak-js"],
+        },
+        resolveSnapshotPath: (testPath, snapExtension) => {
+          const path = testPath.split('/')
+          const filename = path.pop()
+          return [...path, '__snapshots__', filename].join('/') + snapExtension
+        },
+        alias: {
+          "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+          "worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker": resolve(__dirname, "__mocks__/worker-loader.js"),
+        },
+        coverage: {
+          reporter: ["text", "json", "html"],
+        },
+      },
+    })
+  );
 });
 
 function setEnv(mode: string) {
