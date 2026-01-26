@@ -61,16 +61,17 @@
     "postcss": "^8.4.31"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "vite",
     "start-pc": "set PORT=3001&& react-scripts start",
-    "build": "react-scripts build",
+    "build": "vite build",
     "build:dev": "env-cmd -f .env.development npm run build",
     "build:test": "env-cmd -f .env.test npm run build",
     "build:prod": "env-cmd -f .env.production npm run build",
     "build:all": "npm run build:dev && npm run build:test && npm run build:prod",
     "test": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev": "vite"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -98,7 +99,11 @@
     "eslint": "^8.57.1",
     "jest-canvas-mock": "^2.5.2",
     "typescript": "^4.9.5",
-    "typescript-eslint": "^8.34.0"
+    "typescript-eslint": "^8.34.0",
+    "@types/node": "^22.15.19",
+    "@vitejs/plugin-react": "^4.6.0",
+    "vite": "^7.0.0",
+    "vite-tsconfig-paths": "^4.3.2"
   },
   "jest": {
     "transformIgnorePatterns": [
