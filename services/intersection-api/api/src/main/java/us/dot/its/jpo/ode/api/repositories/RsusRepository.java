@@ -11,10 +11,9 @@ import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface RsusRepository extends JpaRepository<Rsu, UUID> {
+public interface RsusRepository extends JpaRepository<Rsu, Integer> {
 
     /**
      * Find RSU by IPv4 address

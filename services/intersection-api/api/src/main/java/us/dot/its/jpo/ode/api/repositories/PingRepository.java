@@ -9,14 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Ping;
 
-import java.util.UUID;
-
 /**
  * Repository for RSU ping data
  * Used for cleanup operations when deleting RSUs
  */
 @Repository
-public interface PingRepository extends JpaRepository<Ping, UUID> {
+public interface PingRepository extends JpaRepository<Ping, Integer> {
 
     /**
      * Delete all ping records for an RSU

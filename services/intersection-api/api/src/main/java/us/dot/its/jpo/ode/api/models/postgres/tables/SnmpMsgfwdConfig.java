@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 public class SnmpMsgfwdConfig {
   @SequenceGenerator(name = "snmp_msgfwd_config_id_gen", sequenceName = "snmp_msgfwd_type_id_seq", allocationSize = 1)
   @EmbeddedId
-  private SnmpMsgfwdConfigId id;
+  private Integer id;
 
   @MapsId("rsuId")
   @ManyToOne(fetch = FetchType.LAZY, optional = false)

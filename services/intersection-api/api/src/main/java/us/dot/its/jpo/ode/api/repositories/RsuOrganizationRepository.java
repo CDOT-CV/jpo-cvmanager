@@ -9,10 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization, UUID> {
+public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization, Integer> {
 
     /**
      * Add RSU to organization relationship

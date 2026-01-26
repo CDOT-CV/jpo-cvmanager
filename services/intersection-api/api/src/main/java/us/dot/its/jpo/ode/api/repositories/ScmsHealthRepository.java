@@ -9,14 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 
-import java.util.UUID;
-
 /**
  * Repository for RSU SCMS health data
  * Used for cleanup operations when deleting RSUs
  */
 @Repository
-public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, UUID> {
+public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer> {
 
     /**
      * Delete all SCMS health records for an RSU
