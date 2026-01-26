@@ -52,8 +52,8 @@ export default defineConfig(({ mode }) => {
 function setEnv(mode: string) {
 	Object.assign(
 		process.env,
-		loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]),
-		loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]),
+		loadEnv(mode, resolve(__dirname, ".."), ["VITE_", "MAPBOX_TOKEN"]),
+		loadEnv(mode, ".", ["VITE_", "NODE_ENV", "PUBLIC_URL"]),
 	);
 	process.env.NODE_ENV ||= mode;
 	const { homepage } = JSON.parse(readFileSync("package.json", "utf-8"));
@@ -67,17 +67,17 @@ function setEnv(mode: string) {
 }
 
 // Expose `process.env` environment variables to your client code
-// Migration guide: Follow the guide below to replace process.env with import.meta.env in your app, you may also need to rename your environment variable to a name that begins with VITE_ instead of REACT_APP_
+// Migration guide: Follow the guide below to replace process.env with import.meta.env in your app
 // https://vitejs.dev/guide/env-and-mode.html#env-variables
 function envPlugin(): Plugin {
   return {
     name: "env-plugin",
     config(_, { mode }) {
-      const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]);
-      const env = loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]);
+      const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["VITE_", "MAPBOX_TOKEN"]);
+      const env = loadEnv(mode, ".", ["VITE_", "NODE_ENV", "PUBLIC_URL"]);
       const combinedEnv = { ...rootEnv, ...env };
-      if (rootEnv.MAPBOX_TOKEN && !combinedEnv.REACT_APP_MAPBOX_TOKEN) {
-        combinedEnv.REACT_APP_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
+      if (rootEnv.MAPBOX_TOKEN && !combinedEnv.VITE_MAPBOX_TOKEN) {
+        combinedEnv.VITE_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
       }
       return {
         define: Object.fromEntries(
@@ -197,14 +197,14 @@ function importPrefixPlugin(): Plugin {
 
 // Replace %ENV_VARIABLES% in index.html
 // https://vitejs.dev/guide/api-plugin.html#transformindexhtml
-// Migration guide: Follow the guide below, you may need to rename your environment variable to a name that begins with VITE_ instead of REACT_APP_
+// Migration guide: Follow the guide below
 // https://vitejs.dev/guide/env-and-mode.html#html-env-replacement
 function htmlPlugin(mode: string): Plugin {
-	const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["REACT_APP_", "MAPBOX_TOKEN"]);
-	const env = loadEnv(mode, ".", ["REACT_APP_", "NODE_ENV", "PUBLIC_URL"]);
+	const rootEnv = loadEnv(mode, resolve(__dirname, ".."), ["VITE_", "MAPBOX_TOKEN"]);
+	const env = loadEnv(mode, ".", ["VITE_", "NODE_ENV", "PUBLIC_URL"]);
 	const combinedEnv = { ...rootEnv, ...env };
-	if (rootEnv.MAPBOX_TOKEN && !combinedEnv.REACT_APP_MAPBOX_TOKEN) {
-		combinedEnv.REACT_APP_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
+	if (rootEnv.MAPBOX_TOKEN && !combinedEnv.VITE_MAPBOX_TOKEN) {
+		combinedEnv.VITE_MAPBOX_TOKEN = rootEnv.MAPBOX_TOKEN;
 	}
 	return {
 		name: "html-plugin",
