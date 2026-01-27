@@ -15,6 +15,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "obu_ota_requests")
 public class ObuOtaRequest {
+    @Id
     @NotNull
     @ColumnDefault("nextval('obu_ota_request_id_seq')")
     @Column(name = "request_id", nullable = false)
