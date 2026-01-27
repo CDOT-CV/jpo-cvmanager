@@ -46,12 +46,22 @@ jest.mock('dayjs', () => {
   return mockDayjs
 })
 
-jest.useFakeTimers().setSystemTime(new Date('2025-04-07'))
+jest.useFakeTimers().setSystemTime(new Date('2025-04-07T00:00:00.000Z'))
 
 it('should take a snapshot', () => {
+  const mockDate = new Date('2025-04-07T00:00:00.000Z')
   const { container } = render(
     <ThemeProvider theme={testTheme}>
-      <Provider store={setupStore({})}>
+      <Provider
+        store={setupStore({
+          menu: {
+            value: {
+              countsStartDate: mockDate,
+              countsEndDate: mockDate,
+            },
+          },
+        })}
+      >
         <ReportRequestEditForm onGenerateReport={() => {}} dbIntersectionId={0} />
       </Provider>
     </ThemeProvider>

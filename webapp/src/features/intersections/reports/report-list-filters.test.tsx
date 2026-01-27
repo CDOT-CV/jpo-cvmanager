@@ -53,7 +53,10 @@ it('should take a snapshot', () => {
         <ReportListFilters
           open={true}
           onClose={() => {}}
-          filters={{ startDate: new Date('2025-04-07'), endDate: new Date('2025-04-08') }}
+          filters={{
+            startDate: new Date('2025-04-07T00:00:00Z'),
+            endDate: new Date('2025-04-08T00:00:00Z'),
+          }}
           onChange={() => {}}
           loading={false}
           containerRef={() => {}}

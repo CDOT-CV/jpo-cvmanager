@@ -54,8 +54,8 @@ it('should take a snapshot', () => {
         store={setupStore({
           menu: {
             value: {
-              countsStartDate: new Date('2024-04-09'),
-              countsEndDate: new Date('2024-04-10'),
+              countsStartDate: new Date('2024-04-09T00:00:00Z'),
+              countsEndDate: new Date('2024-04-10T00:00:00Z'),
               countsMsgType: 'BSM' as MessageType,
               display: 'displayCounts',
               mapMenuSelection: ['Display Message Counts'],
