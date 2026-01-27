@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.models.postgres.tables;
+package us.dot.its.jpo.ode.api;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

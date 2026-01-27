@@ -1,42 +1,34 @@
-package us.dot.its.jpo.ode.api.models.postgres.tables;
+package us.dot.its.jpo.ode.api;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "ping", schema = "public")
+@Table(name = "ping")
 public class Ping {
-  @Id
-  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ping_id_gen")
-  @SequenceGenerator(name = "ping_id_gen", sequenceName = "ping_ping_id_seq", allocationSize = 1)
-  @Column(name = "ping_id", nullable = false)
-  private Integer id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ping_id_gen")
+    @SequenceGenerator(name = "ping_id_gen", sequenceName = "ping_ping_id_seq", allocationSize = 1)
+    @Column(name = "ping_id", nullable = false)
+    private Integer id;
 
-  @NotNull
-  @Column(name = "timestamp", nullable = false)
-  private LocalDateTime timestamp;
+    @NotNull
+    @Column(name = "\"timestamp\"", nullable = false)
+    private Instant timestamp;
 
-  @NotNull
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "rsu_id", nullable = false)
-  private Rsu rsu;
+    @Column(name = "result", columnDefinition = "bit not null")
+    private Object result;
 
-  @Column(name = "result", nullable = false, columnDefinition = "bit not null")
-  private boolean result;
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "rsu_id", nullable = false)
+    private Rsus rsu;
+
 
 }

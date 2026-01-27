@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.models.postgres.tables;
+package us.dot.its.jpo.ode.api;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

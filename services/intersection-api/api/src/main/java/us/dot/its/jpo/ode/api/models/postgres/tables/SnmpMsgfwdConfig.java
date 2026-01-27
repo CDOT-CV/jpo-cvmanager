@@ -1,66 +1,58 @@
-package us.dot.its.jpo.ode.api.models.postgres.tables;
+package us.dot.its.jpo.ode.api;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.net.InetAddress;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "snmp_msgfwd_config", schema = "public")
+@Table(name = "snmp_msgfwd_config")
 public class SnmpMsgfwdConfig {
-  @SequenceGenerator(name = "snmp_msgfwd_config_id_gen", sequenceName = "snmp_msgfwd_type_id_seq", allocationSize = 1)
-  @EmbeddedId
-  private Integer id;
+    @EmbeddedId
+    private SnmpMsgfwdConfigId id;
 
-  @MapsId("rsuId")
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "rsu_id", nullable = false)
-  private Rsu rsu;
+    @MapsId("rsuId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "rsu_id", nullable = false)
+    private Rsus rsu;
 
-  @MapsId("msgfwdType")
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "msgfwd_type", nullable = false)
-  private SnmpMsgfwdType msgfwdType;
+    @MapsId("msgfwdType")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "msgfwd_type", nullable = false)
+    private SnmpMsgfwdType msgfwdType;
 
-  @Size(max = 128)
-  @NotNull
-  @Column(name = "message_type", nullable = false, length = 128)
-  private String messageType;
+    @Size(max = 128)
+    @NotNull
+    @Column(name = "message_type", nullable = false, length = 128)
+    private String messageType;
 
-  @NotNull
-  @Column(name = "dest_ipv4", nullable = false)
-  private InetAddress destIpv4;
+    @NotNull
+    @Column(name = "dest_ipv4", nullable = false)
+    private InetAddress destIpv4;
 
-  @NotNull
-  @Column(name = "dest_port", nullable = false)
-  private Integer destPort;
+    @NotNull
+    @Column(name = "dest_port", nullable = false)
+    private Integer destPort;
 
-  @NotNull
-  @Column(name = "start_datetime", nullable = false)
-  private LocalDateTime startDatetime;
+    @NotNull
+    @Column(name = "start_datetime", nullable = false)
+    private Instant startDatetime;
 
-  @NotNull
-  @Column(name = "end_datetime", nullable = false)
-  private LocalDateTime endDatetime;
+    @NotNull
+    @Column(name = "end_datetime", nullable = false)
+    private Instant endDatetime;
 
-  @Column(name = "active", nullable = false, columnDefinition = "bit not null")
-  private boolean active;
+    @Column(name = "active", columnDefinition = "bit not null")
+    private Object active;
 
-  @Column(name = "security", nullable = false, columnDefinition = "bit not null")
-  private boolean security;
+    @Column(name = "security", columnDefinition = "bit not null")
+    private Object security;
+
 
 }

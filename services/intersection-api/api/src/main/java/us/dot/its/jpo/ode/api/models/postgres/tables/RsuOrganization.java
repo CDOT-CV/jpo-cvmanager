@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.models.postgres.tables;
+package us.dot.its.jpo.ode.api;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -19,7 +19,7 @@ public class RsuOrganization {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rsu_id", nullable = false)
-    private Rsu rsu;
+    private Rsus rsu;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

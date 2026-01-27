@@ -11,7 +11,7 @@ import lombok.Setter;
 @Table(name = "max_retry_limit_reached_instances")
 public class MaxRetryLimitReachedInstance {
     @EmbeddedId
-    private Integer id;
+    private MaxRetryLimitReachedInstanceId id;
 
     @MapsId("rsuId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -22,5 +22,6 @@ public class MaxRetryLimitReachedInstance {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "target_firmware_version", nullable = false)
     private FirmwareImage targetFirmwareVersion;
+
 
 }
