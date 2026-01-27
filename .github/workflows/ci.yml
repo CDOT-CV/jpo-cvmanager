@@ -87,7 +87,7 @@ jobs:
       options: --user root
       env:
         CI: true
-        TZ: UTC
+        TZ: America/Denver
     steps:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4
