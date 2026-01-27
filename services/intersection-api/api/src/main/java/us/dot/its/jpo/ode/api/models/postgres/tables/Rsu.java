@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.net.InetAddress;
+import java.util.List;
 
 @Getter
 @Setter
@@ -73,5 +74,7 @@ public class Rsu {
     @JoinColumn(name = "target_firmware_version")
     private FirmwareImage targetFirmwareVersion;
 
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<RsuOrganization> rsuOrganizations;
 
 }

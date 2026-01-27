@@ -4,7 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
-import us.dot.its.jpo.ode.api.models.postgres.derived.RsuModelWithManufacturer;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,12 +18,16 @@ public interface RsuModelsRepository extends JpaRepository<RsuModel, Integer> {
 
     /**
      * Get all RSU models with manufacturer names
-     * Matches Python: get_allowed_selections() - rsu_models_query
      */
-    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.derived.RsuModelWithManufacturer(" +
-            "m.name, rm.name) " +
+    @Query("SELECT m.name as manufacturerName, rm.name as rsuModelName " +
             "FROM RsuModels rm " +
             "JOIN Manufacturers m ON rm.manufacturer = m.manufacturerId " +
             "ORDER BY m.name ASC, rm.name ASC")
-    List<RsuModelWithManufacturer> findAllModelsWithManufacturers();
+    List<RsuModelWithManufacturerProjection> findAllModelsWithManufacturers();
+
+    interface RsuModelWithManufacturerProjection {
+        String getManufacturerName();
+
+        String getRsuModelName();
+    }
 }

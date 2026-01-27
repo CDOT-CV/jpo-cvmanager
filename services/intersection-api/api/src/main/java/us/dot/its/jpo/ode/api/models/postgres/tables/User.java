@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -44,7 +45,10 @@ public class User {
 
     @ColumnDefault("(0)::bit(1)")
     @Column(name = "super_user", columnDefinition = "bit not null")
-    private Object superUser;
+    private Boolean superUser;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<UserOrganization> userOrganizations;
 
 
 }

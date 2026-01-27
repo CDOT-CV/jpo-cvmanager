@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.net.InetAddress;
+import java.util.List;
 
 @Getter
 @Setter
@@ -37,5 +38,7 @@ public class Intersection {
     @Column(name = "origin_ip")
     private InetAddress originIp;
 
+    @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY)
+    private List<IntersectionOrganization> intersectionOrganizations;
 
 }

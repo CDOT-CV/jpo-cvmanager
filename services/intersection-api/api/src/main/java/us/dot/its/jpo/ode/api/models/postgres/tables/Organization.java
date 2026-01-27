@@ -1,5 +1,7 @@
 package us.dot.its.jpo.ode.api.models.postgres.tables;
 
+import java.util.List;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -26,5 +28,10 @@ public class Organization {
     @Column(name = "email", length = 128)
     private String email;
 
+    @OneToMany(mappedBy = "organization", fetch = FetchType.LAZY)
+    private List<IntersectionOrganization> intersectionOrganizations;
+
+    @OneToMany(mappedBy = "organization", fetch = FetchType.LAZY)
+    private List<UserOrganization> userOrganizations;
 
 }
