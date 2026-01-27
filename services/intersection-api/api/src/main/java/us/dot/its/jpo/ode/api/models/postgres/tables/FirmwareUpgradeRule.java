@@ -1,10 +1,9 @@
-package us.dot.its.jpo.ode.api;
+package us.dot.its.jpo.ode.api.models.postgres.tables;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 
 @Getter
 @Setter

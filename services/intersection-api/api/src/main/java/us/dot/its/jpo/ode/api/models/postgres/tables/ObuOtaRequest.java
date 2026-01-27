@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api;
+package us.dot.its.jpo.ode.api.models.postgres.tables;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 
 import java.net.InetAddress;
 import java.time.Instant;
