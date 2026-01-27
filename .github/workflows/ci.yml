@@ -83,7 +83,7 @@ jobs:
     if: ${{ always() && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     container:
-      image: node:19.8.1
+      image: node:22
       options: --user root
       env:
         CI: true
@@ -96,8 +96,6 @@ jobs:
         run: |
           # Navigate to the webapp directory and perform necessary setup
           cd $GITHUB_WORKSPACE/webapp
-          npm install -g nodemon
-          npm init -y
           npm install --force
 
           # Run tests with coverage and suppress failures
