@@ -87,6 +87,7 @@ jobs:
       options: --user root
       env:
         CI: true
+        TZ: UTC
     steps:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4
@@ -96,7 +97,7 @@ jobs:
         run: |
           # Navigate to the webapp directory and perform necessary setup
           cd $GITHUB_WORKSPACE/webapp
-          npm install --force
+          npm ci
 
           # Run tests with coverage and suppress failures
           npm test -- --coverage

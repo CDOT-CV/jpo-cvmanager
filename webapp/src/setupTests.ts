@@ -36,7 +36,12 @@ vi.mock('luxon', async () => {
     ...actualLuxon,
     DateTime: {
       ...actualLuxon.DateTime,
-      local: () => actualLuxon.DateTime.fromISO('2024-04-10T00:00:00.000+00:00').setZone('America/Denver'),
+      local: (...args: any[]) => {
+        if (args.length > 0) {
+          return actualLuxon.DateTime.local(...args)
+        }
+        return actualLuxon.DateTime.fromISO('2024-04-10T00:00:00.000+00:00').setZone('America/Denver')
+      },
       fromISO: actualLuxon.DateTime.fromISO,
       fromJSDate: actualLuxon.DateTime.fromJSDate,
     },
