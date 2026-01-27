@@ -292,7 +292,7 @@ exports[`should take a snapshot 1`] = `
                   </span>
                   <span
                     class="MuiTypography-root MuiTypography-caption css-mocked-MuiTypography-root"
-                    style="flex: 1 1 0%; text-align: center; align-self: center; flex-basis: inherit;"
+                    style="flex-grow: 1; flex-shrink: 1; text-align: center; align-self: center; flex-basis: inherit;"
                   >
                     0-0 of 0
                   </span>
