@@ -38,9 +38,11 @@ import { useNavigate } from 'react-router-dom'
 import Dialog from '@mui/material/Dialog'
 import {
   Button,
+  Checkbox,
   DialogActions,
   DialogContent,
   FormControl,
+  FormControlLabel,
   Grid2,
   InputLabel,
   MenuItem,
@@ -63,6 +65,7 @@ export type AdminAddRsuForm = {
   snmp_credential_group: string
   snmp_version_group: string
   organizations: string[]
+  tim_deposit: boolean
 }
 
 const AdminAddRsu = () => {
@@ -345,6 +348,18 @@ const AdminAddRsu = () => {
               />
               {errors.scms_id && <p className="errorMsg">{errors.scms_id.message}</p>}
             </FormControl>
+          </Form.Group>
+
+          <Form.Group controlId="tim_deposit">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  {...register('tim_deposit')}
+                  color="primary"
+                />
+              }
+              label="TIM Deposit"
+            />
           </Form.Group>
 
           <Form.Group controlId="ssh_credential_group">

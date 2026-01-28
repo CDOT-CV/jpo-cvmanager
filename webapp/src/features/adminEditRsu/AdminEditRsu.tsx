@@ -39,11 +39,13 @@ import { AdminRsu } from '../../models/Rsu'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { selectTableData, updateTableData } from '../adminRsuTab/adminRsuTabSlice'
 import {
+  Checkbox,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   FormControl,
+  FormControlLabel,
   Grid2,
   InputLabel,
   MenuItem,
@@ -73,6 +75,7 @@ export type AdminEditRsuFormType = {
   organizations: string[]
   organizations_to_add: string[]
   organizations_to_remove: string[]
+  tim_deposit: boolean
 }
 
 const AdminEditRsu = () => {
@@ -122,6 +125,7 @@ const AdminEditRsu = () => {
       snmp_version_group: '',
       organizations_to_add: [],
       organizations_to_remove: [],
+      tim_deposit: false,
     },
   })
 
@@ -137,6 +141,7 @@ const AdminEditRsu = () => {
       setValue('milepost', String(currRsu.milepost))
       setValue('serial_number', currRsu.serial_number)
       setValue('scms_id', currRsu.scms_id)
+      setValue('tim_deposit', currRsu.tim_deposit)
     } else {
       console.error('Unknown RSU IP: ', rsuIp)
     }
@@ -440,6 +445,18 @@ const AdminEditRsu = () => {
                     </p>
                   )}
                 </FormControl>
+              </Form.Group>
+
+              <Form.Group controlId="tim_deposit">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      {...register('tim_deposit')}
+                      color="primary"
+                    />
+                  }
+                  label="TIM Deposit"
+                />
               </Form.Group>
 
               <Form.Group controlId="ssh_credential_group">

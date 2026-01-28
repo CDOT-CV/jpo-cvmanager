@@ -16,4 +16,5 @@ export type AdminRsu = {
   snmp_credential_group: string
   snmp_version_group: string
   organizations: string[]
+  tim_deposit: boolean
 }

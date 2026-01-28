@@ -31,6 +31,7 @@ const initialState = {
   selectedSnmpGroup: '',
   snmpVersions: [] as { name: string }[],
   selectedSnmpVersion: '',
+  tim_deposit: false,
   organizations: [] as { name: string }[],
   selectedOrganizations: [] as { name: string }[],
   submitAttempt: false,
@@ -221,6 +222,7 @@ export const adminEditRsuSlice = createSlice({
       state.value.selectedSshGroup = apiData.rsu_data.ssh_credential_group
       state.value.selectedSnmpGroup = apiData.rsu_data.snmp_credential_group
       state.value.selectedSnmpVersion = apiData.rsu_data.snmp_version_group
+      state.value.tim_deposit = apiData.rsu_data.tim_deposit
 
       state.value.selectedOrganizations = apiData.rsu_data.organizations.map((val) => {
         return { name: val }

@@ -59,6 +59,7 @@ describe('admin edit RSU reducer', () => {
         selectedSnmpGroup: '',
         snmpVersions: [],
         selectedSnmpVersion: '',
+        tim_deposit: false,
         organizations: [],
         selectedOrganizations: [],
         submitAttempt: false,
@@ -83,6 +84,7 @@ describe('async thunks', () => {
       selectedSnmpGroup: null,
       snmpVersions: null,
       selectedSnmpVersion: null,
+      tim_deposit: null,
       organizations: null,
       selectedOrganizations: null,
       submitAttempt: null,
@@ -551,6 +553,7 @@ describe('reducers', () => {
       selectedSnmpGroup: '',
       snmpVersions: [] as { name: string }[],
       selectedSnmpVersion: '',
+      tim_deposit: false,
       organizations: [] as { name: string }[],
       selectedOrganizations: [] as { name: string }[],
       submitAttempt: false,
@@ -651,6 +654,7 @@ describe('reducers', () => {
         ssh_credential_group: 'group1',
         snmp_credential_group: 'group1snmp',
         snmp_version_group: 'version_1',
+        tim_deposit: true,
         organizations: ['org1', 'org2'],
       },
     } as any
@@ -667,6 +671,7 @@ describe('reducers', () => {
       selectedSshGroup: 'group1',
       selectedSnmpGroup: 'group1snmp',
       selectedSnmpVersion: 'version_1',
+      tim_deposit: true,
       selectedOrganizations: [{ name: 'org1' }, { name: 'org2' }],
     }
     expect(reducer(initialState, updateStates(apiData))).toEqual({
@@ -692,6 +697,7 @@ describe('selectors', () => {
       selectedSnmpGroup: 'selectedSnmpGroup',
       snmpVersions: 'snmpVersions',
       selectedSnmpVersion: 'selectedSnmpVersion',
+      tim_deposit: 'tim_deposit',
       organizations: 'organizations',
       selectedOrganizations: 'selectedOrganizations',
       submitAttempt: 'submitAttempt',
