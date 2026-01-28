@@ -13,8 +13,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Table(name = "iss_keys")
 public class IssKey {
     @Id
-    @NotNull
-    @ColumnDefault("nextval('iss_keys_iss_key_id_seq')")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "iss_keys_id_gen")
+    @SequenceGenerator(name = "iss_keys_id_gen", sequenceName = "iss_keys_iss_key_id_seq", allocationSize = 1)
     @Column(name = "iss_key_id", nullable = false)
     private Integer issKeyId;
 

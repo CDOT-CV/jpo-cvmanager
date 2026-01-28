@@ -16,9 +16,9 @@ import java.time.Instant;
 @Table(name = "obu_ota_requests")
 public class ObuOtaRequest {
     @Id
-    @NotNull
-    @ColumnDefault("nextval('obu_ota_request_id_seq')")
-    @Column(name = "request_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "obu_ota_requests_id_gen")
+    @SequenceGenerator(name = "obu_ota_requests_id_gen", sequenceName = "obu_ota_requests_obu_ota_request_id_seq", allocationSize = 1)
+    @Column(name = "obu_ota_request_id", nullable = false)
     private Integer requestId;
 
     @Size(max = 128)
