@@ -234,6 +234,8 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
         }
         pgquery.write_db(query, params=params)
 
+        # TODO: Implement organization-level TIM deposit toggle if "tim_deposit" in org spec
+
         if len(org_spec["users_to_add"]) > 0:
             query_rows: list[tuple[str, dict]] = []
             for index, user in enumerate(org_spec["users_to_add"]):
