@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS public.ping
 (
    ping_id integer NOT NULL DEFAULT nextval('ping_ping_id_seq'::regclass),
    timestamp timestamp without time zone NOT NULL,
-   result boolean NOT NULL,
+   result bit(1) NOT NULL,
    rsu_id integer NOT NULL,
    CONSTRAINT ping_pkey PRIMARY KEY (ping_id),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS public.users
    first_name character varying(128),
    last_name character varying(128),
    created_timestamp bigint NOT NULL,
-   super_user boolean DEFAULT false NOT NULL,
+   super_user bit(1) DEFAULT 0::bit NOT NULL,
    CONSTRAINT users_pkey PRIMARY KEY (user_id),
    CONSTRAINT users_email UNIQUE (email)
 );
@@ -328,8 +328,7 @@ CREATE TABLE IF NOT EXISTS public.iss_keys
 (
    iss_key_id integer NOT NULL DEFAULT nextval('iss_keys_iss_key_id_seq'::regclass),
    common_name character varying(128) COLLATE pg_catalog.default NOT NULL,
-   token character varying(128) COLLATE pg_catalog.default NOT NULL,
-   CONSTRAINT iss_keys_pkey PRIMARY KEY (iss_key_id)
+   token character varying(128) COLLATE pg_catalog.default NOT NULL
 );
 
 -- Create scms_health table
@@ -344,7 +343,7 @@ CREATE TABLE IF NOT EXISTS public.scms_health
 (
    scms_health_id integer NOT NULL DEFAULT nextval('scms_health_scms_health_id_seq'::regclass),
    timestamp timestamp without time zone NOT NULL,
-   health boolean NOT NULL,
+   health bit(1) NOT NULL,
    expiration timestamp without time zone,
    rsu_id integer NOT NULL,
    CONSTRAINT scms_health_pkey PRIMARY KEY (scms_health_id),
@@ -381,8 +380,8 @@ CREATE TABLE IF NOT EXISTS public.snmp_msgfwd_config
    dest_port integer NOT NULL,
    start_datetime timestamp without time zone NOT NULL,
    end_datetime timestamp without time zone NOT NULL,
-   active boolean NOT NULL,
-   security boolean NOT NULL,
+   active bit(1) NOT NULL,
+   security bit(1) NOT NULL,
    CONSTRAINT snmp_msgfwd_config_pkey PRIMARY KEY (rsu_id, msgfwd_type, snmp_index),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
 		REFERENCES public.rsus (rsu_id) MATCH SIMPLE
@@ -441,16 +440,15 @@ CREATE SEQUENCE public.obu_ota_request_id_seq
 
 CREATE TABLE IF NOT EXISTS public.obu_ota_requests (
    request_id integer NOT NULL DEFAULT nextval('obu_ota_request_id_seq'::regclass),
-   obu_sn character varying(128) NOT NULL,
-   request_datetime timestamp NOT NULL,
-   origin_ip inet NOT NULL,
+	obu_sn character varying(128) NOT NULL,
+	request_datetime timestamp NOT NULL,
+	origin_ip inet NOT NULL,
    obu_firmware_version varchar(128) NOT NULL,
    requested_firmware_version varchar(128) NOT NULL,
-   error_status boolean NOT NULL,
+	error_status bit(1) NOT NULL,
    error_message varchar(128) NOT NULL,
    manufacturer int4 NOT NULL,
-   CONSTRAINT obu_ota_requests_pkey PRIMARY KEY (request_id),
-   CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer) REFERENCES public.manufacturers(manufacturer_id)
+	CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer) REFERENCES public.manufacturers(manufacturer_id)
 );
 
 CREATE SCHEMA IF NOT EXISTS keycloak;
