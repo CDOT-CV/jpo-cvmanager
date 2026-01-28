@@ -45,7 +45,7 @@ public class ObuOtaRequest {
     private String requestedFirmwareVersion;
 
     @Column(name = "error_status", columnDefinition = "bit not null")
-    private Object errorStatus;
+    private Boolean errorStatus;
 
     @Size(max = 128)
     @NotNull
@@ -56,6 +56,5 @@ public class ObuOtaRequest {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "manufacturer", nullable = false)
     private Manufacturer manufacturer;
-
 
 }

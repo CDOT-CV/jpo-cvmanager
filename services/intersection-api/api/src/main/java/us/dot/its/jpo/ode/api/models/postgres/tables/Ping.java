@@ -23,12 +23,11 @@ public class Ping {
     private Instant timestamp;
 
     @Column(name = "result", columnDefinition = "bit not null")
-    private Object result;
+    private Boolean result;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rsu_id", nullable = false)
     private Rsu rsu;
-
 
 }

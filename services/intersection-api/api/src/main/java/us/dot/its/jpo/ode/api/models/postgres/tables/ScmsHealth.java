@@ -23,7 +23,7 @@ public class ScmsHealth {
     private Instant timestamp;
 
     @Column(name = "health", columnDefinition = "bit not null")
-    private Object health;
+    private Boolean health;
 
     @Column(name = "expiration")
     private Instant expiration;
@@ -32,6 +32,5 @@ public class ScmsHealth {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rsu_id", nullable = false)
     private Rsu rsu;
-
 
 }

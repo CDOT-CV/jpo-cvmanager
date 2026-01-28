@@ -9,6 +9,9 @@ import lombok.Setter;
 import java.net.InetAddress;
 import java.util.List;
 
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+
 @Getter
 @Setter
 @Entity
@@ -26,10 +29,10 @@ public class Intersection {
     private String intersectionNumber;
 
     @Column(name = "ref_pt", columnDefinition = "geography not null")
-    private Object refPt;
+    private Point refPt;
 
     @Column(name = "bbox", columnDefinition = "geography")
-    private Object bbox;
+    private Polygon bbox;
 
     @Size(max = 128)
     @Column(name = "intersection_name", length = 128)

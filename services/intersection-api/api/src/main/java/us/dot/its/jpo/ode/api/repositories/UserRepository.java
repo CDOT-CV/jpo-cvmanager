@@ -14,19 +14,20 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query("SELECT u.email as email, o.name as organizationName, r.name as roleName " +
-           "FROM User u " +
-           "JOIN u.userOrganizations uo " +
-           "JOIN uo.organization o " +
-           "JOIN uo.role r " +
-           "WHERE u.email = :email")
+            "FROM User u " +
+            "JOIN u.userOrganizations uo " +
+            "JOIN uo.organization o " +
+            "JOIN uo.role r " +
+            "WHERE u.email = :email")
     List<UserOrgRoleProjection> findUserOrgRoles(@Param("email") String email);
 
     Optional<User> findByEmail(@Param("email") String email);
 
-    // Projection interface
     interface UserOrgRoleProjection {
         String getEmail();
+
         String getOrganizationName();
+
         String getRoleName();
     }
 }

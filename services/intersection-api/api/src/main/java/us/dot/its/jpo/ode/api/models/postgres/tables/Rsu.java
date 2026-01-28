@@ -9,6 +9,8 @@ import lombok.Setter;
 import java.net.InetAddress;
 import java.util.List;
 
+import org.locationtech.jts.geom.Point;
+
 @Getter
 @Setter
 @Entity
@@ -21,7 +23,7 @@ public class Rsu {
     private Integer id;
 
     @Column(name = "geography", columnDefinition = "geography not null")
-    private Object geography;
+    private Point geography;
 
     @NotNull
     @Column(name = "milepost", nullable = false)
