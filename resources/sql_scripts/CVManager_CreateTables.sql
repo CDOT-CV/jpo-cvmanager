@@ -2,6 +2,8 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+CREATE SCHEMA IF NOT EXISTS keycloak;
+
 CREATE SEQUENCE public.manufacturers_manufacturer_id_seq
    INCREMENT 1
    START 1
@@ -452,8 +454,6 @@ CREATE TABLE IF NOT EXISTS public.obu_ota_requests (
    CONSTRAINT obu_ota_requests_pkey PRIMARY KEY (request_id),
    CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer) REFERENCES public.manufacturers(manufacturer_id)
 );
-
-CREATE SCHEMA IF NOT EXISTS keycloak;
 
 -- Intersections
 CREATE SEQUENCE public.intersections_intersection_id_seq
