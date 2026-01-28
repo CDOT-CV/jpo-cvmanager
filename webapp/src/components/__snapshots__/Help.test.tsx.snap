@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`should take a snapshot 1`] = `
 <div>
@@ -24,7 +24,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="Profile Dropdown"
         class="css-2ttpiu"
-        src="organization_selection.png"
+        src="/src/icons/help/organization_selection.png"
         width="200"
       />
       <h2>
@@ -374,9 +374,6 @@ exports[`should take a snapshot 1`] = `
           WZDx Viewer: ENABLED
         </li>
         <li>
-          Moove AI Viewer: ENABLED
-        </li>
-        <li>
           HAAS Alert Viewer: ENABLED
         </li>
       </ul>
@@ -405,7 +402,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="Map Layer Selection Options"
         class="css-2ttpiu"
-        src="map_overview.png"
+        src="/src/icons/help/map_overview.png"
       />
       <h3
         id="map-layers"
@@ -471,12 +468,6 @@ exports[`should take a snapshot 1`] = `
         </li>
         <li>
           <strong>
-            Moove AI Viewer:
-          </strong>
-           Query harsh braking events
-        </li>
-        <li>
-          <strong>
             HAAS Alert Viewer:
           </strong>
            Query alert incidents by time
@@ -496,7 +487,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="RSU Popup and Configuration Panel"
         class="css-2ttpiu"
-        src="rsu_popup_and_config_menu.png"
+        src="/src/icons/help/rsu_popup_and_config_menu.png"
       />
       <h5>
         Message Forwarding Current Configuration
@@ -606,7 +597,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="RSU Status Menu Display"
         class="css-2ttpiu"
-        src="rsu_status_menu.png"
+        src="/src/icons/help/rsu_status_menu.png"
         width="400"
       />
       <p>
@@ -615,7 +606,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="RSU Count Menu"
         class="css-2ttpiu"
-        src="rsu_count_menu.png"
+        src="/src/icons/help/rsu_count_menu.png"
         width="300"
       />
       <p>
@@ -624,7 +615,7 @@ exports[`should take a snapshot 1`] = `
       <img
         alt="RSU Message Count Table"
         class="css-2ttpiu"
-        src="rsu_count.png"
+        src="/src/icons/help/rsu_count.png"
         width="300"
       />
       <p>
