@@ -36,6 +36,7 @@ describe('admin organization tab reducer', () => {
         rsuTableData: [],
         userTableData: [],
         intersectionTableData: [],
+        timDeposit: false,
       },
     })
   })
@@ -52,6 +53,7 @@ describe('async thunks', () => {
       rsuTableData: null,
       intersectionTableData: null,
       userTableData: null,
+      timDeposit: null,
     },
   }
 
@@ -154,7 +156,7 @@ describe('async thunks', () => {
       const data = {
         org_data: {
           org_users: 'org_users',
-          org_rsus: 'org_rsus',
+          org_rsus: [{ tim_deposit: true }, { tim_deposit: false }],
           org_intersections: 'org_intersections',
         },
       }
@@ -172,6 +174,7 @@ describe('async thunks', () => {
           rsuTableData: data.org_data.org_rsus,
           userTableData: data.org_data.org_users,
           intersectionTableData: data.org_data.org_intersections,
+          timDeposit: false,
         },
       })
     })

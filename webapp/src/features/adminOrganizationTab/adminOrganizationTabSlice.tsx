@@ -53,6 +53,7 @@ export type adminOrgPatch = {
   rsus_to_remove?: string[]
   intersections_to_add?: string[]
   intersections_to_remove?: string[]
+  tim_deposit?: boolean
 }
 
 const initialState = {
@@ -63,6 +64,7 @@ const initialState = {
   rsuTableData: [] as AdminOrgRsu[],
   intersectionTableData: [] as AdminOrgIntersection[],
   userTableData: [] as AdminOrgUser[],
+  timDeposit: false,
 }
 
 export const getOrgData = createAsyncThunk(
@@ -161,6 +163,28 @@ export const editOrg = createAsyncThunk(
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
 
+export const updateOrgTimDeposit = createAsyncThunk(
+  'adminOrganizationTab/updateOrgTimDeposit',
+  async (payload: { orgName: string; email: string; timDeposit: boolean }, { getState, dispatch }) => {
+    const { orgName, email, timDeposit } = payload
+
+    const patchJson: adminOrgPatch = {
+      name: orgName,
+      email: email,
+      tim_deposit: timDeposit,
+    }
+
+    const res = await dispatch(editOrg(patchJson))
+    if ((res.payload as any).success) {
+      dispatch(getOrgData({ orgName }))
+      return { success: true, message: 'Successfully updated TIM deposit for all RSUs in ' + orgName }
+    } else {
+      return { success: false, message: (res.payload as any).message }
+    }
+  },
+  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
+)
+
 export const adminOrganizationTabSlice = createSlice({
   name: 'adminOrganizationTab',
   initialState: {
@@ -221,6 +245,10 @@ export const adminOrganizationTabSlice = createSlice({
             state.value.rsuTableData = org_data?.org_rsus
             state.value.intersectionTableData = org_data?.org_intersections
             state.value.userTableData = org_data?.org_users
+            state.value.timDeposit =
+              Array.isArray(org_data?.org_rsus) && org_data.org_rsus.length > 0
+                ? org_data.org_rsus.every((rsu: any) => rsu.tim_deposit)
+                : false
           }
         }
         state.loading = false
@@ -255,5 +283,6 @@ export const selectSelectedOrgEmail = (state: RootState) => state.adminOrganizat
 export const selectRsuTableData = (state: RootState) => state.adminOrganizationTab.value.rsuTableData
 export const selectIntersectionTableData = (state: RootState) => state.adminOrganizationTab.value.intersectionTableData
 export const selectUserTableData = (state: RootState) => state.adminOrganizationTab.value.userTableData
+export const selectTimDeposit = (state: RootState) => state.adminOrganizationTab.value.timDeposit
 
 export default adminOrganizationTabSlice.reducer
