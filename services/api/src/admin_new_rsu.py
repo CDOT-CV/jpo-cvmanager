@@ -116,7 +116,7 @@ def add_rsu(rsu_spec: dict):
 
     try:
         query = (
-            "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id) "
+            "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id, tim_deposit) "
             "VALUES ("
             f"ST_GeomFromText('POINT({str(rsu_spec['geo_position']['longitude'])} {str(rsu_spec['geo_position']['latitude'])})'), "
             f"{str(rsu_spec['milepost'])}, "
@@ -127,7 +127,8 @@ def add_rsu(rsu_spec: dict):
             f"(SELECT credential_id FROM public.rsu_credentials WHERE nickname = '{rsu_spec['ssh_credential_group']}'), "
             f"(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = '{rsu_spec['snmp_credential_group']}'), "
             f"(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = '{rsu_spec['snmp_version_group']}'), "
-            f"'{scms_id}'"
+            f"'{scms_id}', "
+            f"'{'1' if rsu_spec['tim_deposit'] is True else '0'}'"
             ")"
         )
         pgquery.write_db(query)
@@ -174,6 +175,7 @@ class AdminNewRsuSchema(Schema):
     serial_number = fields.Str(required=True)
     model = fields.Str(required=True)
     scms_id = fields.Str(required=True)
+    tim_deposit = fields.Bool(required=True)
     ssh_credential_group = fields.Str(required=True)
     snmp_credential_group = fields.Str(required=True)
     snmp_version_group = fields.Str(required=True)

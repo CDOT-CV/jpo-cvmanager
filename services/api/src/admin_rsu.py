@@ -24,7 +24,7 @@ def get_rsu_data(rsu_ip: str, user: EnvironWithOrg, qualified_orgs: list[str]):
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-        "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+        "milepost, primary_route, serial_number, iss_scms_id, tim_deposit, concat(man.name, ' ',rm.name) AS model, "
         "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
         "FROM public.rsus "
         "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -71,6 +71,7 @@ def get_rsu_data(rsu_ip: str, user: EnvironWithOrg, qualified_orgs: list[str]):
                 "primary_route": row["primary_route"],
                 "serial_number": row["serial_number"],
                 "scms_id": row["iss_scms_id"],
+                "tim_deposit": row["tim_deposit"] == "1",
                 "model": row["model"],
                 "ssh_credential_group": row["ssh_credential"],
                 "snmp_credential_group": row["snmp_credential"],
@@ -143,7 +144,8 @@ def modify_rsu_authorized(
             "credential_id=(SELECT credential_id FROM public.rsu_credentials WHERE nickname = :ssh_credential_group), "
             "snmp_credential_id=(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = :snmp_credential_group), "
             "snmp_protocol_id=(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = :snmp_version_group), "
-            "iss_scms_id=:scms_id "
+            "iss_scms_id=:scms_id, "
+            "tim_deposit=:tim_deposit "
             "WHERE ipv4_address=:orig_ip"
         )
         params = {
@@ -158,6 +160,7 @@ def modify_rsu_authorized(
             "snmp_credential_group": rsu_spec["snmp_credential_group"],
             "snmp_version_group": rsu_spec["snmp_version_group"],
             "scms_id": rsu_spec["scms_id"],
+            "tim_deposit": "1" if rsu_spec["tim_deposit"] is True else "0",
             "orig_ip": orig_ip,
         }
         pgquery.write_db(query, params=params)
@@ -279,6 +282,7 @@ class AdminRsuPatchSchema(Schema):
     serial_number = fields.Str(required=True)
     model = fields.Str(required=True)
     scms_id = fields.Str(required=True)
+    tim_deposit = fields.Bool(required=True)
     ssh_credential_group = fields.Str(required=True)
     snmp_credential_group = fields.Str(required=True)
     snmp_version_group = fields.Str(required=True)

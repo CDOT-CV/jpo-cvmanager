@@ -18,6 +18,7 @@ request_json_good = {
     "serial_number": "test",
     "model": "manufacturer model",
     "scms_id": "test",
+    "tim_deposit": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -52,6 +53,7 @@ get_rsu_data_return = [
             "milepost": 45,
             "primary_route": "test route",
             "serial_number": "test",
+            "tim_deposit": "1",
             "model": "test",
             "iss_scms_id": "test",
             "ssh_credential": "ssh test",
@@ -69,8 +71,9 @@ expected_get_rsu_all = [
         "milepost": 45,
         "primary_route": "test route",
         "serial_number": "test",
-        "model": "test",
         "scms_id": "test",
+        "tim_deposit": True,
+        "model": "test",
         "ssh_credential_group": "ssh test",
         "snmp_credential_group": "snmp test",
         "snmp_version_group": "snmp test",
@@ -82,7 +85,7 @@ expected_get_rsu_query_all = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, tim_deposit, concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -99,7 +102,7 @@ expected_get_rsu_query_one = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, tim_deposit, concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -124,7 +127,8 @@ modify_rsu_sql = (
     "credential_id=(SELECT credential_id FROM public.rsu_credentials WHERE nickname = :ssh_credential_group), "
     "snmp_credential_id=(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = :snmp_credential_group), "
     "snmp_protocol_id=(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = :snmp_version_group), "
-    "iss_scms_id=:scms_id "
+    "iss_scms_id=:scms_id, "
+    "tim_deposit=:tim_deposit "
     "WHERE ipv4_address=:orig_ip",
     {
         "rsu_ip": "10.0.0.1",
@@ -138,6 +142,7 @@ modify_rsu_sql = (
         "snmp_credential_group": "test",
         "snmp_version_group": "test",
         "scms_id": "test",
+        "tim_deposit": "1",
         "orig_ip": "10.0.0.1",
     },
 )
