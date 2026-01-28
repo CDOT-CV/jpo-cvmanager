@@ -23,11 +23,21 @@ exports[`should take a snapshot 1`] = `
           <span
             class="MuiAccordionSummary-content MuiAccordionSummary-contentGutters css-mocked-MuiAccordionSummary-content"
           >
-            <h6
-              class="MuiTypography-root MuiTypography-h6 css-mocked-MuiTypography-root"
+            <div
+              style="display: flex; align-items: center; flex-grow: 1;"
             >
-              RSUs
-            </h6>
+              <h6
+                class="MuiTypography-root MuiTypography-h6 css-mocked-MuiTypography-root"
+              >
+                RSUs
+              </h6>
+              <h6
+                class="MuiTypography-root MuiTypography-subtitle1 css-mocked-MuiTypography-root"
+              >
+                TIM Deposit: 
+                Disabled
+              </h6>
+            </div>
             <div
               style="display: flex; gap: 8px;"
             >

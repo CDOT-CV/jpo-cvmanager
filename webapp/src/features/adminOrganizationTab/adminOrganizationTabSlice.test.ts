@@ -36,7 +36,7 @@ describe('admin organization tab reducer', () => {
         rsuTableData: [],
         userTableData: [],
         intersectionTableData: [],
-        timDeposit: false,
+        timDeposit: 'Disabled',
       },
     })
   })
@@ -174,7 +174,7 @@ describe('async thunks', () => {
           rsuTableData: data.org_data.org_rsus,
           userTableData: data.org_data.org_users,
           intersectionTableData: data.org_data.org_intersections,
-          timDeposit: false,
+          timDeposit: 'Mixed',
         },
       })
     })

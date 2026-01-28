@@ -31,6 +31,7 @@ export type AdminOrgRsu = {
   ip: string
   primary_route: string
   milepost: number
+  tim_deposit: boolean
 }
 
 export type AdminOrgIntersection = {
@@ -64,7 +65,7 @@ const initialState = {
   rsuTableData: [] as AdminOrgRsu[],
   intersectionTableData: [] as AdminOrgIntersection[],
   userTableData: [] as AdminOrgUser[],
-  timDeposit: false,
+  timDeposit: 'Disabled' as 'Enabled' | 'Disabled' | 'Mixed',
 }
 
 export const getOrgData = createAsyncThunk(
@@ -245,10 +246,20 @@ export const adminOrganizationTabSlice = createSlice({
             state.value.rsuTableData = org_data?.org_rsus
             state.value.intersectionTableData = org_data?.org_intersections
             state.value.userTableData = org_data?.org_users
-            state.value.timDeposit =
-              Array.isArray(org_data?.org_rsus) && org_data.org_rsus.length > 0
-                ? org_data.org_rsus.every((rsu: any) => rsu.tim_deposit)
-                : false
+            const rsus = org_data?.org_rsus
+            if (Array.isArray(rsus) && rsus.length > 0) {
+              const allEnabled = rsus.every((rsu: any) => rsu.tim_deposit)
+              const allDisabled = rsus.every((rsu: any) => !rsu.tim_deposit)
+              if (allEnabled) {
+                state.value.timDeposit = 'Enabled'
+              } else if (allDisabled) {
+                state.value.timDeposit = 'Disabled'
+              } else {
+                state.value.timDeposit = 'Mixed'
+              }
+            } else {
+              state.value.timDeposit = 'Disabled'
+            }
           }
         }
         state.loading = false

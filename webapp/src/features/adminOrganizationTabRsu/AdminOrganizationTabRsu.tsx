@@ -52,9 +52,26 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const timDeposit = useSelector(selectTimDeposit)
   const [rsuColumns] = useState<Column<any>[]>([
-    { title: 'IP Address', field: 'ip', id: 0, width: '31%' },
-    { title: 'Primary Route', field: 'primary_route', id: 1, width: '31%' },
-    { title: 'Milepost', field: 'milepost', id: 2, width: '31%' },
+    { title: 'IP Address', field: 'ip', id: 0, width: '23%' },
+    { title: 'Primary Route', field: 'primary_route', id: 1, width: '23%' },
+    { title: 'Milepost', field: 'milepost', id: 2, width: '23%' },
+    {
+      title: 'TIM Deposit',
+      field: 'tim_deposit',
+      id: 3,
+      width: '23%',
+      render: (rowData) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: rowData.tim_deposit ? theme.palette.success.main : theme.palette.error.main,
+            fontWeight: 'bold',
+          }}
+        >
+          {rowData.tim_deposit ? 'Enabled' : 'Disabled'}
+        </Typography>
+      ),
+    },
   ])
 
   const rsuActions: Action<AdminOrgRsu>[] = [
@@ -206,9 +223,33 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           id="panel1a-header"
           sx={{ display: 'flex', alignItems: 'center' }}
         >
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            RSUs
-          </Typography>
+          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <Typography variant="h6" sx={{ mr: 2 }}>
+              RSUs
+            </Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color:
+                  timDeposit === 'Enabled'
+                    ? theme.palette.success.main
+                    : timDeposit === 'Disabled'
+                    ? theme.palette.error.main
+                    : theme.palette.warning.main,
+                fontWeight: 'bold',
+                bgcolor:
+                  timDeposit === 'Enabled'
+                    ? 'rgba(46, 125, 50, 0.1)'
+                    : timDeposit === 'Disabled'
+                    ? 'rgba(211, 47, 47, 0.1)'
+                    : 'rgba(237, 108, 2, 0.1)',
+                px: 1,
+                borderRadius: 1,
+              }}
+            >
+              TIM Deposit: {timDeposit}
+            </Typography>
+          </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button
               variant="contained"
