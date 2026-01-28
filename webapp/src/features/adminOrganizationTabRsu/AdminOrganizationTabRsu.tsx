@@ -50,7 +50,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const availableRsuList = useSelector(selectAvailableRsuList)
   const selectedRsuList = useSelector(selectSelectedRsuList)
   const loadingGlobal = useSelector(selectLoadingGlobal)
-  const timDeposit = useSelector(selectTimDeposit)
+  const timDepositStatus = useSelector(selectTimDeposit)
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '23%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '23%' },
@@ -187,7 +187,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     })
   }
 
-  const onTimDepositChange = (newValue: boolean) => {
+  const handleOrgTimDepositChange = (newValue: boolean) => {
     const actionLabel = newValue ? 'Enable' : 'Disable'
     const buttons = [
       {
@@ -231,23 +231,23 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               variant="subtitle1"
               sx={{
                 color:
-                  timDeposit === 'Enabled'
+                  timDepositStatus === 'Enabled'
                     ? theme.palette.success.main
-                    : timDeposit === 'Disabled'
+                    : timDepositStatus === 'Disabled'
                     ? theme.palette.error.main
                     : theme.palette.warning.main,
                 fontWeight: 'bold',
                 bgcolor:
-                  timDeposit === 'Enabled'
+                  timDepositStatus === 'Enabled'
                     ? 'rgba(46, 125, 50, 0.1)'
-                    : timDeposit === 'Disabled'
+                    : timDepositStatus === 'Disabled'
                     ? 'rgba(211, 47, 47, 0.1)'
                     : 'rgba(237, 108, 2, 0.1)',
                 px: 1,
                 borderRadius: 1,
               }}
             >
-              TIM Deposit: {timDeposit}
+              TIM Deposit: {timDepositStatus}
             </Typography>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -257,7 +257,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                onTimDepositChange(true)
+                handleOrgTimDepositChange(true)
               }}
             >
               Enable TIM Deposit for all RSUs
@@ -268,7 +268,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               size="small"
               onClick={(e) => {
                 e.stopPropagation()
-                onTimDepositChange(false)
+                handleOrgTimDepositChange(false)
               }}
             >
               Disable TIM Deposit for all RSUs
