@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
 
 @Getter
 @Setter
@@ -27,6 +26,5 @@ public class IssKey {
     @NotNull
     @Column(name = "token", nullable = false, length = 128)
     private String token;
-
 
 }

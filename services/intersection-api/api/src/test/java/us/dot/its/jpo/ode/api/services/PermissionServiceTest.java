@@ -149,7 +149,7 @@ class PermissionServiceTest {
 
         User superUser = new User();
         superUser.setSuperUser(true);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(superUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(superUser);
 
         assertTrue(permissionService.isSuperUser());
     }
@@ -161,18 +161,7 @@ class PermissionServiceTest {
 
         User regularUser = new User();
         regularUser.setSuperUser(false);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
-
-        assertFalse(permissionService.isSuperUser());
-        verify(userRepository).findByEmail("test@example.com");
-    }
-
-    @Test
-    void testIsSuperUser_WhenUserNotFound() {
-        JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
-        setupSecurityContext(token);
-
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
 
         assertFalse(permissionService.isSuperUser());
         verify(userRepository).findByEmail("test@example.com");
@@ -197,7 +186,7 @@ class PermissionServiceTest {
 
         User superUser = new User();
         superUser.setSuperUser(true);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(superUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(superUser);
 
         assertTrue(permissionService.hasRole("ADMIN"));
         assertTrue(permissionService.hasRole("OPERATOR"));
@@ -216,7 +205,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(roleRepository.findUserRoleInOrg("test@example.com", "TestOrg"))
                 .thenReturn(Optional.of("ADMIN"));
 
@@ -235,7 +224,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(roleRepository.findUserRoleInOrg("test@example.com", "TestOrg"))
                 .thenReturn(Optional.of("USER"));
 
@@ -256,7 +245,7 @@ class PermissionServiceTest {
         when(projection.getRoleName()).thenReturn("ADMIN");
         when(projection.getOrganizationName()).thenReturn("Org1");
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(userRepository.findUserOrgRoles("test@example.com")).thenReturn(List.of(projection));
 
         assertTrue(permissionService.hasRole("OPERATOR"));
@@ -273,7 +262,7 @@ class PermissionServiceTest {
         UserOrgRoleProjection projection = mock(UserOrgRoleProjection.class);
         when(projection.getRoleName()).thenReturn("USER");
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(userRepository.findUserOrgRoles("test@example.com")).thenReturn(List.of(projection));
 
         assertFalse(permissionService.hasRole("ADMIN"));
@@ -317,7 +306,7 @@ class PermissionServiceTest {
 
         User superUser = new User();
         superUser.setSuperUser(true);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(superUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(superUser);
 
         assertTrue(permissionService.hasIntersection(123, "USER"));
         verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
@@ -335,7 +324,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
                 .thenReturn(true);
 
@@ -354,7 +343,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
                 .thenReturn(false);
 
@@ -375,7 +364,7 @@ class PermissionServiceTest {
         when(projection.getRoleName()).thenReturn("ADMIN");
         when(projection.getOrganizationName()).thenReturn("Org1");
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(userRepository.findUserOrgRoles("test@example.com")).thenReturn(List.of(projection));
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("Org1")))
                 .thenReturn(true);
@@ -392,7 +381,7 @@ class PermissionServiceTest {
 
         User superUser = new User();
         superUser.setSuperUser(true);
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(superUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(superUser);
 
         assertTrue(permissionService.hasRSU("192.168.1.1", "USER"));
         verify(rsuRepository, never()).existsByIpAndOrganizations(anyString(), anyList());
@@ -410,7 +399,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(rsuRepository.existsByIpAndOrganizations("192.168.1.1", List.of("TestOrg")))
                 .thenReturn(true);
 
@@ -429,7 +418,7 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(rsuRepository.existsByIpAndOrganizations("192.168.1.1", List.of("TestOrg")))
                 .thenReturn(false);
 
@@ -450,7 +439,7 @@ class PermissionServiceTest {
         when(projection.getRoleName()).thenReturn("ADMIN");
         when(projection.getOrganizationName()).thenReturn("Org1");
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(regularUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(regularUser);
         when(userRepository.findUserOrgRoles("test@example.com")).thenReturn(List.of(projection));
         when(rsuRepository.existsByIpAndOrganizations("192.168.1.1", List.of("Org1")))
                 .thenReturn(true);

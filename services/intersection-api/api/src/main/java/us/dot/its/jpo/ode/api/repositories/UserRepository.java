@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
@@ -21,7 +20,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "WHERE u.email = :email")
     List<UserOrgRoleProjection> findUserOrgRoles(@Param("email") String email);
 
-    Optional<User> findByEmail(@Param("email") String email);
+    User findByEmail(@Param("email") String email);
 
     interface UserOrgRoleProjection {
         String getEmail();

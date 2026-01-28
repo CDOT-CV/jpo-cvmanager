@@ -78,9 +78,9 @@ public class PermissionService {
         }
 
         String username = getUsername(auth);
-        Optional<User> user = userRepository.findByEmail(username);
+        User user = userRepository.findByEmail(username);
 
-        return user.isPresent() && user.get().getSuperUser();
+        return user.getSuperUser();
     }
 
     // Allow Connection if the user is a part of at least one organization with a
