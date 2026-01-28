@@ -328,7 +328,8 @@ CREATE TABLE IF NOT EXISTS public.iss_keys
 (
    iss_key_id integer NOT NULL DEFAULT nextval('iss_keys_iss_key_id_seq'::regclass),
    common_name character varying(128) COLLATE pg_catalog.default NOT NULL,
-   token character varying(128) COLLATE pg_catalog.default NOT NULL
+   token character varying(128) COLLATE pg_catalog.default NOT NULL,
+   CONSTRAINT iss_keys_pkey PRIMARY KEY (iss_key_id)
 );
 
 -- Create scms_health table
@@ -440,15 +441,16 @@ CREATE SEQUENCE public.obu_ota_request_id_seq
 
 CREATE TABLE IF NOT EXISTS public.obu_ota_requests (
    request_id integer NOT NULL DEFAULT nextval('obu_ota_request_id_seq'::regclass),
-	obu_sn character varying(128) NOT NULL,
-	request_datetime timestamp NOT NULL,
-	origin_ip inet NOT NULL,
+   obu_sn character varying(128) NOT NULL,
+   request_datetime timestamp NOT NULL,
+   origin_ip inet NOT NULL,
    obu_firmware_version varchar(128) NOT NULL,
    requested_firmware_version varchar(128) NOT NULL,
 	error_status bit(1) NOT NULL,
    error_message varchar(128) NOT NULL,
    manufacturer int4 NOT NULL,
-	CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer) REFERENCES public.manufacturers(manufacturer_id)
+   CONSTRAINT obu_ota_requests_pkey PRIMARY KEY (request_id),
+   CONSTRAINT fk_manufacturer FOREIGN KEY (manufacturer) REFERENCES public.manufacturers(manufacturer_id)
 );
 
 CREATE SCHEMA IF NOT EXISTS keycloak;
