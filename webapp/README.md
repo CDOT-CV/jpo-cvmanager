@@ -8,7 +8,7 @@ This is a web application that is made with React JS that is a front-end for int
   - Create account at https://www.mapbox.com/
   - An access token will be provided on the account page once the account has been created
   - For more instructions, see the main README [Creating a Mapbox Token](../README.md#creating-a-mapbox-token)
-  - Set the access key in the "sample.env.local" file as the VITE_MAPBOX_TOKEN
+  - Set the access key in the "sample.env.development.local" file as the VITE_MAPBOX_TOKEN
 - npm
   - Download instructions: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
 - Nodejs
@@ -19,7 +19,7 @@ This is a web application that is made with React JS that is a front-end for int
 
 ## Running The Application
 
-1. Copy the `sample.env.local` file to a new file named `.env.local`. Make sure this new file is located in this directory (webapp), not root
+1. Copy the `sample.env.development.local` file to a new file named `.env.local`. Make sure this new file is located in this directory (webapp), not root
 2. Edit the `.env.local` file to set the required environment variables. At a minimum, you will need to set the following variables:
    - `DOCKER_HOST_IP`: The IP address of your Docker host. This can be found through linux/wsl through the command "ifconfig", or "localhost" if using Docker Desktop on Windows or Linux (not mac).
    - `VITE_MAPBOX_TOKEN`: Any valid mapbox token. Please see the main README [Creating a Mapbox Token](../README.md#creating-a-mapbox-token) for instructions on how to create and account/generate a new token
