@@ -1,358 +1,226 @@
 package us.dot.its.jpo.ode.api.controllers.devices.management;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.server.ResponseStatusException;
 
-import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuData;
 import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuDataSingle;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
-import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow;
-import us.dot.its.jpo.ode.api.repositories.RsusRepository;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuService;
 
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class RsuManagementControllerTest {
 
-    private static final GeometryFactory geometryFactory = new GeometryFactory();
-
-    private RsuManagementController controller;
+    @Mock
+    private RsuService rsuService;
 
     @Mock
-    private RsusRepository rsusRepository;
+    private SecurityContext securityContext;
 
-    @Mock
-    private RsuManagementService rsuManagementService;
-
-    @Mock
-    private Authentication authentication;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        controller = new RsuManagementController(rsusRepository, rsuManagementService);
-    }
-
-    /**
-     * Helper method to create a test RsuDetailedInfoRow
-     */
-    private RsuDetailedInfoRow createTestRow(String ip, double lat, double lon, String orgName) {
-        RsuDetailedInfoRow row = new RsuDetailedInfoRow();
-        row.setIpv4Address(ip);
-
-        Point point = geometryFactory.createPoint(new Coordinate(lon, lat));
-        row.setGeometry(point);
-
-        row.setMilepost(100.5f);
-        row.setPrimaryRoute("I-25");
-        row.setSerialNumber("SN12345");
-        row.setIssScmsId("SCMS001");
-        row.setModel("Commsignia ITS-RS4-M");
-        row.setSshCredential("ssh_group1");
-        row.setSnmpCredential("snmp_group1");
-        row.setSnmpVersion("41");
-        row.setOrgName(orgName);
-
-        return row;
-    }
+    @InjectMocks
+    private RsuManagementController rsuManagementController;
 
     @Test
-    void testGetAllRsus_singleRsuSingleOrganization() {
-        // Arrange
-        String organization = "CDOT";
-        List<RsuDetailedInfoRow> rows = List.of(
-                createTestRow("192.168.1.1", 39.7392, -104.9903, organization));
+    void testGetAllRsus_Success() {
+        String organization = "TestOrg";
+        Pageable pageable = PageRequest.of(0, 100);
 
-        when(rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization)).thenReturn(rows);
+        RsuInfoDto rsu1 = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU1",
+                "SCMS1",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
 
-        // Act
-        GetModifyRsuData result = controller.getAllRsus(organization);
+        RsuInfoDto rsu2 = new RsuInfoDto(
+                "192.168.1.101",
+                new SimplePosition(39.7400, -105.0850),
+                124.5,
+                "I-70",
+                "RSU2",
+                "SCMS2",
+                "Yunex RSU-2X",
+                "ssh-group-2",
+                "snmp-group-2",
+                "v2c",
+                Arrays.asList("TestOrg"));
 
-        // Assert
+        List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
+        Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
+
+        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
+
+        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
+
         assertNotNull(result);
-        assertNotNull(result.getRsuData());
-        assertEquals(1, result.getRsuData().size());
-        assertEquals("192.168.1.1", result.getRsuData().get(0).getIp());
-        assertEquals(1, result.getRsuData().get(0).getOrganizations().size());
-        assertEquals("CDOT", result.getRsuData().get(0).getOrganizations().get(0));
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals("192.168.1.100", result.getContent().get(0).getIpv4Address());
+        assertEquals("192.168.1.101", result.getContent().get(1).getIpv4Address());
 
-        verify(rsusRepository, times(1)).findAllDetailedRsuInfoRowsByOrganization(organization);
+        verify(rsuService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
-    void testGetAllRsus_singleRsuMultipleOrganizations() {
-        // Arrange
-        String organization = "CDOT";
-        List<RsuDetailedInfoRow> rows = Arrays.asList(
-                createTestRow("192.168.1.1", 39.7392, -104.9903, "CDOT"),
-                createTestRow("192.168.1.1", 39.7392, -104.9903, "City of Denver"));
+    void testGetAllRsus_EmptyResult() {
+        String organization = "EmptyOrg";
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-        when(rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization)).thenReturn(rows);
+        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(emptyPage);
 
-        // Act
-        GetModifyRsuData result = controller.getAllRsus(organization);
+        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
 
-        // Assert
         assertNotNull(result);
-        assertEquals(1, result.getRsuData().size());
-        assertEquals("192.168.1.1", result.getRsuData().get(0).getIp());
-        assertEquals(2, result.getRsuData().get(0).getOrganizations().size());
-        assertTrue(result.getRsuData().get(0).getOrganizations().contains("CDOT"));
-        assertTrue(result.getRsuData().get(0).getOrganizations().contains("City of Denver"));
+        assertEquals(0, result.getTotalElements());
+        assertTrue(result.getContent().isEmpty());
 
-        verify(rsusRepository, times(1)).findAllDetailedRsuInfoRowsByOrganization(organization);
+        verify(rsuService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
-    void testGetAllRsus_multipleRsus() {
-        // Arrange
-        String organization = "CDOT";
-        List<RsuDetailedInfoRow> rows = Arrays.asList(
-                createTestRow("192.168.1.1", 39.7392, -104.9903, organization),
-                createTestRow("192.168.1.2", 39.7500, -105.0000, organization),
-                createTestRow("192.168.1.3", 39.7600, -105.0100, organization));
+    void testGetAllRsus_WithCustomPageSize() {
+        String organization = "TestOrg";
+        Pageable pageable = PageRequest.of(0, 50);
 
-        when(rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization)).thenReturn(rows);
+        RsuInfoDto rsu1 = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU1",
+                "SCMS1",
+                "Model X",
+                "ssh-group",
+                "snmp-group",
+                "v3",
+                Arrays.asList("TestOrg"));
 
-        // Act
-        GetModifyRsuData result = controller.getAllRsus(organization);
+        Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
-        // Assert
+        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
+
+        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
+
         assertNotNull(result);
-        assertEquals(3, result.getRsuData().size());
+        assertEquals(1, result.getTotalElements());
+        assertEquals(50, result.getPageable().getPageSize());
 
-        verify(rsusRepository, times(1)).findAllDetailedRsuInfoRowsByOrganization(organization);
+        verify(rsuService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
-    void testGetAllRsus_emptyResult() {
-        // Arrange
-        String organization = "Empty Org";
-        when(rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization))
-                .thenReturn(Collections.emptyList());
-
-        // Act
-        GetModifyRsuData result = controller.getAllRsus(organization);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.getRsuData());
-        assertTrue(result.getRsuData().isEmpty());
-
-        verify(rsusRepository, times(1)).findAllDetailedRsuInfoRowsByOrganization(organization);
-    }
-
-    @Test
-    void testGetSingleRsuData_success() {
-        // Arrange
-        String organization = "CDOT";
-        String rsuIp = "192.168.1.1";
+    void testGetSingleRsuData_Success() {
+        String organization = "TestOrg";
+        String rsuIp = "192.168.1.100";
         String username = "testuser@example.com";
 
-        List<RsuDetailedInfoRow> rows = List.of(
-                createTestRow(rsuIp, 39.7392, -104.9903, organization));
+        RsuInfoDto rsuInfo = new RsuInfoDto(
+                rsuIp,
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
 
-        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections();
-        allowedSelections.setPrimaryRoutes(List.of("I-25", "I-70"));
+        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
+                Arrays.asList("I-25", "I-70"),
+                Arrays.asList("Commsignia ITS-RS4-M", "Yunex RSU-2X"),
+                Arrays.asList("ssh-group-1", "ssh-group-2"),
+                Arrays.asList("snmp-group-1", "snmp-group-2"),
+                Arrays.asList("v2c", "v3"),
+                Arrays.asList("TestOrg", "OtherOrg"));
 
-        when(rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp)).thenReturn(rows);
-        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
+        when(rsuService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
+        when(rsuService.getAllowedSelections(username)).thenReturn(allowedSelections);
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            // Act
-            GetModifyRsuDataSingle result = controller.getSingleRsuData(organization, rsuIp);
+            GetModifyRsuDataSingle result = rsuManagementController.getSingleRsuData(organization, rsuIp);
 
-            // Assert
             assertNotNull(result);
             assertNotNull(result.getRsuData());
-            assertEquals(rsuIp, result.getRsuData().getIp());
             assertNotNull(result.getAllowedSelections());
+
+            assertEquals(rsuIp, result.getRsuData().getIpv4Address());
+            assertEquals("I-25", result.getRsuData().getPrimaryRoute());
+
             assertEquals(2, result.getAllowedSelections().getPrimaryRoutes().size());
+            assertEquals(2, result.getAllowedSelections().getRsuModels().size());
+            assertEquals(2, result.getAllowedSelections().getSshCredentialGroups().size());
+            assertEquals(2, result.getAllowedSelections().getSnmpCredentialGroups().size());
+            assertEquals(2, result.getAllowedSelections().getSnmpVersionGroups().size());
+            assertEquals(2, result.getAllowedSelections().getOrganizations().size());
 
-            verify(rsusRepository, times(1)).findDetailedRsuInfoRowsByIp(rsuIp);
-            verify(rsuManagementService, times(1)).getAllowedSelections(username);
+            verify(rsuService).getRsuInfo(rsuIp);
+            verify(rsuService).getAllowedSelections(username);
         }
     }
 
     @Test
-    void testGetSingleRsuData_multipleOrganizations() {
-        // Arrange
-        String organization = "CDOT";
-        String rsuIp = "192.168.1.1";
-        String username = "testuser@example.com";
+    void testGetSingleRsuData_RsuNotFound() {
+        String organization = "TestOrg";
+        String rsuIp = "192.168.1.999";
 
-        List<RsuDetailedInfoRow> rows = Arrays.asList(
-                createTestRow(rsuIp, 39.7392, -104.9903, "CDOT"),
-                createTestRow(rsuIp, 39.7392, -104.9903, "City of Denver"));
+        when(rsuService.getRsuInfo(rsuIp)).thenReturn(null);
 
-        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections();
-
-        when(rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp)).thenReturn(rows);
-        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
-
-        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
-            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-
-            // Act
-            GetModifyRsuDataSingle result = controller.getSingleRsuData(organization, rsuIp);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(2, result.getRsuData().getOrganizations().size());
-            assertTrue(result.getRsuData().getOrganizations().contains("CDOT"));
-            assertTrue(result.getRsuData().getOrganizations().contains("City of Denver"));
-        }
-    }
-
-    @Test
-    void testGetSingleRsuData_notFound() {
-        // Arrange
-        String organization = "CDOT";
-        String rsuIp = "192.168.1.99";
-
-        when(rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp)).thenReturn(Collections.emptyList());
-
-        // Act & Assert
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> controller.getSingleRsuData(organization, rsuIp));
+                () -> rsuManagementController.getSingleRsuData(organization, rsuIp));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertThat(exception.getReason()).contains("RSU not found");
+        assertEquals("RSU not found", exception.getReason());
 
-        verify(rsusRepository, times(1)).findDetailedRsuInfoRowsByIp(rsuIp);
-        verifyNoInteractions(rsuManagementService);
+        verify(rsuService).getRsuInfo(rsuIp);
+        verify(rsuService, never()).getAllowedSelections(any());
     }
 
     @Test
-    void testGetSingleRsuData_multipleRsusWithSameIp() {
-        // Arrange - This shouldn't happen, but tests the error handling
-        String organization = "CDOT";
-        String rsuIp = "192.168.1.1";
+    void testGetSingleRsuData_InvalidIpAddress() {
+        String organization = "TestOrg";
+        String invalidRsuIp = "invalid-ip";
 
-        List<RsuDetailedInfoRow> rows = Arrays.asList(
-                createTestRow(rsuIp, 39.7392, -104.9903, "CDOT"),
-                createTestRow("192.168.1.2", 39.7500, -105.0000, "City of Denver") // Different IP
-        );
+        when(rsuService.getRsuInfo(invalidRsuIp))
+                .thenThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp));
 
-        when(rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp)).thenReturn(rows);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuManagementController.getSingleRsuData(organization, invalidRsuIp));
 
-        // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> controller.getSingleRsuData(organization, rsuIp));
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatusCode());
-        assertThat(exception.getReason()).contains("Multiple RSUs found with the same IP address");
-
-        verify(rsusRepository, times(1)).findDetailedRsuInfoRowsByIp(rsuIp);
-        verifyNoInteractions(rsuManagementService);
-    }
-
-    @Test
-    void testGetAllRsus_aggregatesOrganizationsCorrectly() {
-        // Arrange - Multiple RSUs with overlapping organizations
-        String organization = "CDOT";
-        List<RsuDetailedInfoRow> rows = Arrays.asList(
-                createTestRow("192.168.1.1", 39.7392, -104.9903, "CDOT"),
-                createTestRow("192.168.1.1", 39.7392, -104.9903, "RTD"),
-                createTestRow("192.168.1.2", 39.7500, -105.0000, "CDOT"),
-                createTestRow("192.168.1.2", 39.7500, -105.0000, "City of Denver"));
-
-        when(rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization)).thenReturn(rows);
-
-        // Act
-        GetModifyRsuData result = controller.getAllRsus(organization);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.getRsuData().size());
-
-        // Find RSU 192.168.1.1
-        var rsu1 = result.getRsuData().stream()
-                .filter(r -> r.getIp().equals("192.168.1.1"))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(2, rsu1.getOrganizations().size());
-        assertTrue(rsu1.getOrganizations().contains("CDOT"));
-        assertTrue(rsu1.getOrganizations().contains("RTD"));
-
-        // Find RSU 192.168.1.2
-        var rsu2 = result.getRsuData().stream()
-                .filter(r -> r.getIp().equals("192.168.1.2"))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(2, rsu2.getOrganizations().size());
-        assertTrue(rsu2.getOrganizations().contains("CDOT"));
-        assertTrue(rsu2.getOrganizations().contains("City of Denver"));
-    }
-
-    @Test
-    void testGetSingleRsuData_allFieldsPopulated() {
-        // Arrange
-        String organization = "CDOT";
-        String rsuIp = "192.168.1.1";
-        String username = "testuser@example.com";
-
-        RsuDetailedInfoRow row = createTestRow(rsuIp, 39.7392, -104.9903, organization);
-        List<RsuDetailedInfoRow> rows = List.of(row);
-
-        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections();
-        allowedSelections.setPrimaryRoutes(List.of("I-25"));
-        allowedSelections.setRsuModels(List.of("Commsignia ITS-RS4-M"));
-        allowedSelections.setSshCredentialGroups(List.of("ssh_group1"));
-        allowedSelections.setSnmpCredentialGroups(List.of("snmp_group1"));
-        allowedSelections.setSnmpVersionGroups(List.of("41"));
-        allowedSelections.setOrganizations(List.of("CDOT"));
-
-        when(rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp)).thenReturn(rows);
-        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
-
-        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
-            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-
-            // Act
-            GetModifyRsuDataSingle result = controller.getSingleRsuData(organization, rsuIp);
-
-            // Assert
-            assertNotNull(result.getRsuData());
-            assertEquals(rsuIp, result.getRsuData().getIp());
-            assertEquals(100.5f, result.getRsuData().getMilepost());
-            assertEquals("I-25", result.getRsuData().getPrimaryRoute());
-            assertEquals("SN12345", result.getRsuData().getSerialNumber());
-            assertEquals("SCMS001", result.getRsuData().getScmsId());
-            assertEquals("Commsignia ITS-RS4-M", result.getRsuData().getModel());
-            assertEquals("ssh_group1", result.getRsuData().getSshCredentialGroup());
-            assertEquals("snmp_group1", result.getRsuData().getSnmpCredentialGroup());
-            assertEquals("41", result.getRsuData().getSnmpVersionGroup());
-
-            assertNotNull(result.getRsuData().getGeoPosition());
-            assertEquals(39.7392, result.getRsuData().getGeoPosition().getLatitude(), 0.0001);
-            assertEquals(-104.9903, result.getRsuData().getGeoPosition().getLongitude(), 0.0001);
-
-            assertNotNull(result.getAllowedSelections());
-            assertEquals(1, result.getAllowedSelections().getPrimaryRoutes().size());
-            assertEquals(1, result.getAllowedSelections().getRsuModels().size());
-            assertEquals(1, result.getAllowedSelections().getSshCredentialGroups().size());
-        }
+        verify(rsuService).getRsuInfo(invalidRsuIp);
+        verify(rsuService, never()).getAllowedSelections(any());
     }
 }

@@ -2,11 +2,9 @@ package us.dot.its.jpo.ode.api.models.devices.management;
 
 import lombok.Getter;
 import lombok.Setter;
-import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-
-import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -16,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @AllArgsConstructor
 public class GetModifyRsuDataSingle {
     @JsonProperty("rsu_data")
-    private RsuDetailedInfo rsuData;
+    private RsuInfoDto rsuData;
     @JsonProperty("allowed_selections")
     private ModifyRsuAllowedSelections allowedSelections;
 }

@@ -1,11 +1,15 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
+import java.net.InetAddress;
 import java.util.List;
 
 @Repository
@@ -21,4 +25,28 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "WHERE r.ipv4Address = :rsuIp AND o.name IN :organizations")
     boolean existsByIpAndOrganizations(@Param("rsuIp") String rsuIp,
             @Param("organizations") List<String> organizations);
+
+    Rsu findByIpv4Address(InetAddress ipv4Address);
+
+    @Query("SELECT rsu " +
+            "FROM Rsu rsu " +
+            "JOIN rsu.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE o.name = :orgName")
+    Page<Rsu> findAllByOrganization(@Param("orgName") String orgName, Pageable pageable);
+
+    @Query("SELECT DISTINCT r.primaryRoute FROM Rsu r ORDER BY r.primaryRoute ASC")
+    List<String> findAllPrimaryRoutes();
+
+    @Query("SELECT m.name as manufacturer, rm.name as model " +
+            "FROM RsuModel rm " +
+            "JOIN rm.manufacturer m " +
+            "ORDER BY m.name ASC, rm.name ASC")
+    List<RsuModelProjection> findAllRsuModels();
+
+    interface RsuModelProjection {
+        String getManufacturer();
+
+        String getModel();
+    }
 }

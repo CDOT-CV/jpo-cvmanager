@@ -9,21 +9,21 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
+
+import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface RsuMapper {
-    
+
     /**
      * Convert Rsu entity to RsuInfoDto
      * MapStruct will automatically map fields with the same name
      */
     @Mapping(source = "ipv4Address", target = "ipv4Address", qualifiedByName = "mapInetAddressToString")
-    @Mapping(source = "issScmsId", target = "scmsId")
-    @Mapping(source = "geography", target = "latitude", qualifiedByName = "mapLatitude")
-    @Mapping(source = "geography", target = "longitude", qualifiedByName = "mapLongitude")
+    @Mapping(source = "geography", target = "geoPosition", qualifiedByName = "mapGeoPosition")
     @Mapping(target = "model", expression = "java(mapModelNames(rsu.getModel()))")
     @Mapping(source = "credential.nickname", target = "sshCredentialGroup")
     @Mapping(source = "snmpCredential.nickname", target = "snmpCredentialGroup")
@@ -36,23 +36,15 @@ public interface RsuMapper {
      */
     @Named("mapInetAddressToString")
     default String mapInetAddressToString(InetAddress inetAddress) {
-        return String.valueOf(inetAddress.getAddress()[0]);
+        return inetAddress.getHostAddress();
     }
 
     /**
      * Combine model name and manufacturer name
      */
-    @Named("mapLatitude")
-    default Double mapLatitude(Point geography) {
-        return geography.getY();
-    }
-
-    /**
-     * Combine model name and manufacturer name
-     */
-    @Named("mapLongitude")
-    default Double mapLongitude(Point geography) {
-        return geography.getX();
+    @Named("mapGeoPosition")
+    default SimplePosition mapLatitude(Point geography) {
+        return new SimplePosition(geography.getY(), geography.getX());
     }
 
     /**
@@ -77,7 +69,7 @@ public interface RsuMapper {
                 .map(ro -> ro.getOrganization().getName())
                 .collect(Collectors.toList());
     }
-    
+
     /**
      * Convert RsuInfoDto to Rsu entity
      */
@@ -86,7 +78,6 @@ public interface RsuMapper {
     @Mapping(source = "organizations", target = "rsuOrganizations", qualifiedByName = "mapOrganizationNamesReverse")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "geography", ignore = true)
-    @Mapping(target = "issScmsId", ignore = true)
     @Mapping(target = "credential", ignore = true)
     @Mapping(target = "snmpCredential", ignore = true)
     @Mapping(target = "snmpProtocol", ignore = true)
