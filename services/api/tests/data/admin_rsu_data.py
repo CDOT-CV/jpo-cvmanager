@@ -54,8 +54,8 @@ get_rsu_data_return = [
             "milepost": 45,
             "primary_route": "test route",
             "serial_number": "test",
-            "tim_deposit": True,
-            "snmp_monitoring": True,
+            "tim_deposit": False,
+            "snmp_monitoring": False,
             "model": "test",
             "iss_scms_id": "test",
             "ssh_credential": "ssh test",
@@ -74,8 +74,8 @@ expected_get_rsu_all = [
         "primary_route": "test route",
         "serial_number": "test",
         "scms_id": "test",
-        "tim_deposit": True,
-        "snmp_monitoring": True,
+        "tim_deposit": False,
+        "snmp_monitoring": False,
         "model": "test",
         "ssh_credential_group": "ssh test",
         "snmp_credential_group": "snmp test",
@@ -112,11 +112,12 @@ expected_get_rsu_query_one = (
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
     "JOIN public.manufacturers AS man ON man.manufacturer_id = rm.manufacturer "
     "JOIN public.rsu_credentials AS rsu_cred ON rsu_cred.credential_id = rsus.credential_id "
-    "JOIN public.snmp_credentials AS snmp_cred ON snmp_credential_id = rsus.snmp_credential_id "
-    "JOIN public.snmp_protocols AS snmp_ver ON snmp_protocol_id = rsus.snmp_protocol_id "
+    "JOIN public.snmp_credentials AS snmp_cred ON snmp_cred.snmp_credential_id = rsus.snmp_credential_id "
+    "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
     "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
-    "JOIN public.organizations AS org ON org.organization_id = ro.organization_id"
-    " WHERE ipv4_address = :rsu_ip"
+    "JOIN public.organizations AS org ON org.organization_id = ro.organization_id "
+    "LEFT JOIN public.rsu_options AS opt ON opt.rsu_id = rsus.rsu_id "
+    "WHERE ipv4_address = :rsu_ip"
     ") as row"
 )
 
