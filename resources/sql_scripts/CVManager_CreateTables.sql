@@ -192,8 +192,8 @@ CREATE TABLE IF NOT EXISTS public.rsus
 CREATE TABLE IF NOT EXISTS public.rsu_options
 (
    rsu_id integer NOT NULL,
-   tim_deposit bit(1) NOT NULL DEFAULT '1',
-   snmp_monitoring bit(1) NOT NULL DEFAULT '0',
+   tim_deposit boolean NOT NULL DEFAULT TRUE,
+   snmp_monitoring boolean NOT NULL DEFAULT FALSE,
    CONSTRAINT rsu_options_pkey PRIMARY KEY (rsu_id),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
       REFERENCES public.rsus (rsu_id) MATCH SIMPLE

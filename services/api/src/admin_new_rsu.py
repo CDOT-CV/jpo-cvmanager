@@ -136,8 +136,8 @@ def add_rsu(rsu_spec: dict):
             "INSERT INTO public.rsu_options(rsu_id, tim_deposit, snmp_monitoring) "
             "VALUES ("
             f"(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '{rsu_spec['ip']}'), "
-            f"'{'1' if rsu_spec['tim_deposit'] is True else '0'}', "
-            f"'{'1' if rsu_spec['snmp_monitoring'] is True else '0'}'"
+            f"{'TRUE' if rsu_spec['tim_deposit'] is True else 'FALSE'}, "
+            f"{'TRUE' if rsu_spec['snmp_monitoring'] is True else 'FALSE'}"
             ")"
         )
         pgquery.write_db(options_query)

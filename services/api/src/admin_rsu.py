@@ -174,8 +174,8 @@ def modify_rsu_authorized(
         )
         options_params = {
             "rsu_ip": rsu_ip,
-            "tim_deposit": "1" if rsu_spec["tim_deposit"] is True else "0",
-            "snmp_monitoring": "1" if rsu_spec["snmp_monitoring"] is True else "0",
+            "tim_deposit": rsu_spec["tim_deposit"],
+            "snmp_monitoring": rsu_spec["snmp_monitoring"],
         }
         pgquery.write_db(options_query, params=options_params)
 
