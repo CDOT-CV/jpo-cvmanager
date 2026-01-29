@@ -16,23 +16,26 @@ import java.util.List;
  */
 @Value
 public class RsuInfoDto implements Serializable {
-    Point geography;
+    @NotNull
+    String ipv4Address;
+    @NotNull
+    Double longitude;
+    @NotNull
+    Double latitude;
     @NotNull
     Double milepost;
     @NotNull
-    InetAddress ipv4Address;
+    @Size(max = 128)
+    String primaryRoute;
     @NotNull
     @Size(max = 128)
     String serialNumber;
     @NotNull
     @Size(max = 128)
-    String issScmsId;
-    @NotNull
-    @Size(max = 128)
-    String primaryRoute;
-    String modelName;
-    String credentialNickname;
-    String snmpCredentialNickname;
-    String snmpProtocolNickname;
-    List<Organization> rsuOrganizationOrganizations;
+    String scmsId;
+    String model;
+    String sshCredentialGroup;
+    String snmpCredentialGroup;
+    String snmpVersionGroup;
+    List<String> organizations;
 }
