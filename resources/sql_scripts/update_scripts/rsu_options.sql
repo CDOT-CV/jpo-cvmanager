@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.rsu_options (
 );
 
 -- Populate existing rows for tim_deposit
--- Populate with '0' UNLESS they belong to the "Region 1" organization
+-- Populate with 'TRUE' UNLESS they belong to the "Region 1" organization
 INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring)
 SELECT rsu_id, TRUE, FALSE FROM public.rsus
 ON CONFLICT (rsu_id) DO NOTHING;
