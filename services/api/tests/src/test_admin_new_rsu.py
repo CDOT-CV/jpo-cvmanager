@@ -118,6 +118,7 @@ def test_add_rsu_success_commsignia(mock_pgquery, mock_check_safe_input):
 
     calls = [
         call(admin_new_rsu_data.rsu_query_commsignia),
+        call(admin_new_rsu_data.rsu_options_query),
         call(admin_new_rsu_data.rsu_org_query),
     ]
     mock_pgquery.assert_has_calls(calls)
@@ -133,6 +134,7 @@ def test_add_rsu_success_yunex(mock_pgquery, mock_check_safe_input):
 
     calls = [
         call(admin_new_rsu_data.rsu_query_yunex),
+        call(admin_new_rsu_data.rsu_options_query),
         call(admin_new_rsu_data.rsu_org_query),
     ]
     mock_pgquery.assert_has_calls(calls)

@@ -223,6 +223,7 @@ def test_modify_rsu_success(mock_pgquery, mock_check_safe_input):
 
     calls = [
         call(admin_rsu_data.modify_rsu_sql[0], params=admin_rsu_data.modify_rsu_sql[1]),
+        call(admin_rsu_data.modify_rsu_options_sql[0], params=admin_rsu_data.modify_rsu_options_sql[1]),
         call(admin_rsu_data.add_org_sql[0], params=admin_rsu_data.add_org_sql[1]),
         call(admin_rsu_data.remove_org_sql[0], params=admin_rsu_data.remove_org_sql[1]),
     ]
@@ -298,6 +299,10 @@ def test_delete_rsu(mock_write_db):
         call(
             admin_rsu_data.delete_rsu_calls[2][0],
             params=admin_rsu_data.delete_rsu_calls[2][1],
+        ),
+        call(
+            "DELETE FROM public.rsu_options WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
+            params={"rsu_ip": "10.11.81.12"},
         ),
         call(
             admin_rsu_data.delete_rsu_calls[3][0],

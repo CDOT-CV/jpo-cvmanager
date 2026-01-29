@@ -13,6 +13,7 @@ request_json_good = {
     "model": "Commsignia",
     "scms_id": "",
     "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -64,6 +65,7 @@ mock_post_body_commsignia = {
     "model": "Commsignia RSU",
     "scms_id": "",
     "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -79,6 +81,7 @@ mock_post_body_yunex = {
     "model": "Yunex RSU",
     "scms_id": "custom",
     "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -94,6 +97,7 @@ mock_post_body_yunex_no_scms = {
     "model": "Yunex RSU",
     "scms_id": "",
     "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -101,7 +105,7 @@ mock_post_body_yunex_no_scms = {
 }
 
 rsu_query_commsignia = (
-    "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id, tim_deposit) "
+    "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id) "
     "VALUES ("
     "ST_GeomFromText('POINT(-104.984451 39.89645)'), "
     "900.52, "
@@ -112,13 +116,12 @@ rsu_query_commsignia = (
     "(SELECT credential_id FROM public.rsu_credentials WHERE nickname = 'test'), "
     "(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = 'test'), "
     "(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = 'test'), "
-    "'test', "
-    "'1'"
+    "'test'"
     ")"
 )
 
 rsu_query_yunex = (
-    "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id, tim_deposit) "
+    "INSERT INTO public.rsus(geography, milepost, ipv4_address, serial_number, primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id, iss_scms_id) "
     "VALUES ("
     "ST_GeomFromText('POINT(-104.984451 39.89645)'), "
     "900.52, "
@@ -129,7 +132,15 @@ rsu_query_yunex = (
     "(SELECT credential_id FROM public.rsu_credentials WHERE nickname = 'test'), "
     "(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = 'test'), "
     "(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = 'test'), "
-    "'custom', "
+    "'custom'"
+    ")"
+)
+
+rsu_options_query = (
+    "INSERT INTO public.rsu_options(rsu_id, tim_deposit, snmp_monitoring) "
+    "VALUES ("
+    "(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '10.0.0.1'), "
+    "'1', "
     "'1'"
     ")"
 )

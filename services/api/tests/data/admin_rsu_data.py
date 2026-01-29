@@ -19,6 +19,7 @@ request_json_good = {
     "model": "manufacturer model",
     "scms_id": "test",
     "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -54,6 +55,7 @@ get_rsu_data_return = [
             "primary_route": "test route",
             "serial_number": "test",
             "tim_deposit": "1",
+            "snmp_monitoring": "1",
             "model": "test",
             "iss_scms_id": "test",
             "ssh_credential": "ssh test",
@@ -73,6 +75,7 @@ expected_get_rsu_all = [
         "serial_number": "test",
         "scms_id": "test",
         "tim_deposit": True,
+        "snmp_monitoring": True,
         "model": "test",
         "ssh_credential_group": "ssh test",
         "snmp_credential_group": "snmp test",
@@ -85,7 +88,7 @@ expected_get_rsu_query_all = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, tim_deposit, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, opt.tim_deposit, opt.snmp_monitoring, concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -95,6 +98,7 @@ expected_get_rsu_query_all = (
     "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
     "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
     "JOIN public.organizations AS org ON org.organization_id = ro.organization_id "
+    "LEFT JOIN public.rsu_options AS opt ON opt.rsu_id = rsus.rsu_id "
     ") as row"
 )
 
@@ -102,14 +106,14 @@ expected_get_rsu_query_one = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, tim_deposit, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, opt.tim_deposit, opt.snmp_monitoring, concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
     "JOIN public.manufacturers AS man ON man.manufacturer_id = rm.manufacturer "
     "JOIN public.rsu_credentials AS rsu_cred ON rsu_cred.credential_id = rsus.credential_id "
-    "JOIN public.snmp_credentials AS snmp_cred ON snmp_cred.snmp_credential_id = rsus.snmp_credential_id "
-    "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
+    "JOIN public.snmp_credentials AS snmp_cred ON snmp_credential_id = rsus.snmp_credential_id "
+    "JOIN public.snmp_protocols AS snmp_ver ON snmp_protocol_id = rsus.snmp_protocol_id "
     "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
     "JOIN public.organizations AS org ON org.organization_id = ro.organization_id"
     " WHERE ipv4_address = :rsu_ip"
@@ -127,8 +131,7 @@ modify_rsu_sql = (
     "credential_id=(SELECT credential_id FROM public.rsu_credentials WHERE nickname = :ssh_credential_group), "
     "snmp_credential_id=(SELECT snmp_credential_id FROM public.snmp_credentials WHERE nickname = :snmp_credential_group), "
     "snmp_protocol_id=(SELECT snmp_protocol_id FROM public.snmp_protocols WHERE nickname = :snmp_version_group), "
-    "iss_scms_id=:scms_id, "
-    "tim_deposit=:tim_deposit "
+    "iss_scms_id=:scms_id "
     "WHERE ipv4_address=:orig_ip",
     {
         "rsu_ip": "10.0.0.1",
@@ -142,8 +145,16 @@ modify_rsu_sql = (
         "snmp_credential_group": "test",
         "snmp_version_group": "test",
         "scms_id": "test",
-        "tim_deposit": "1",
         "orig_ip": "10.0.0.1",
+    },
+)
+
+modify_rsu_options_sql = (
+    "UPDATE public.rsu_options SET tim_deposit=:tim_deposit, snmp_monitoring=:snmp_monitoring WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip)",
+    {
+        "rsu_ip": "10.0.0.1",
+        "tim_deposit": "1",
+        "snmp_monitoring": "1",
     },
 )
 
