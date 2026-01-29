@@ -79,4 +79,19 @@ public class Rsu {
     @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private List<RsuOrganization> rsuOrganizations;
 
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<RsuModel> rsuModels;
+
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<Manufacturer> manufacturers;
+
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<RsuCredential> rsuCredentials;
+
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<SnmpCredential> snmpCredentials;
+
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
+    private List<SnmpProtocol> snmpProtocols;
+
 }

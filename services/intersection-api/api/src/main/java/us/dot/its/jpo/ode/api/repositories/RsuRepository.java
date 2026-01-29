@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 import java.util.List;
@@ -19,4 +20,6 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
            "JOIN ro.organization o " +
            "WHERE r.ipv4Address = :rsuIp AND o.name IN :organizations")
     boolean existsByIpAndOrganizations(@Param("rsuIp") String rsuIp, @Param("organizations") List<String> organizations);
+
+    RsuInfoDto findRsuByIp(@Param("rsuIp") String rsuIp);
 }

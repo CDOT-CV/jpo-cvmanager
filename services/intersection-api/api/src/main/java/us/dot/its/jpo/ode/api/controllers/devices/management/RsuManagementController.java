@@ -26,7 +26,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuDataSingle;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfo;
 import us.dot.its.jpo.ode.api.models.postgres.derived.RsuDetailedInfoRow;
-import us.dot.its.jpo.ode.api.repositories.RsusRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.utils.RsuAggregationUtil;
@@ -41,7 +41,7 @@ import us.dot.its.jpo.ode.api.utils.RsuAggregationUtil;
 @RequestMapping("/devices/management/rsu")
 @RequiredArgsConstructor
 public class RsuManagementController {
-    private final RsusRepository rsusRepository;
+    private final RsuRepository rsuRepository;
     private final RsuManagementService rsuManagementService;
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
@@ -55,7 +55,7 @@ public class RsuManagementController {
             @RequestHeader(name = "Organization", required = true) String organization) {
         log.info("Getting all RSUs for organization: {}", organization);
         // TODO: Support paging for large result sets
-        List<RsuDetailedInfoRow> allRsus = rsusRepository.findAllDetailedRsuInfoRowsByOrganization(organization);
+        List<RsuDetailedInfoRow> allRsus = rsuRepository.findAllDetailedRsuInfoRowsByOrganization(organization);
         List<RsuDetailedInfo> rsuInfoList = RsuAggregationUtil.aggregateRsuRowsToList(allRsus);
         return new GetModifyRsuData(rsuInfoList);
     }
@@ -72,7 +72,7 @@ public class RsuManagementController {
             @RequestHeader(name = "Organization", required = true) String organization,
             @RequestParam(name = "rsu_ip", required = true) String rsuIp) {
         log.info("Getting RSU data for IP: {} in organization: {}", rsuIp, organization);
-        List<RsuDetailedInfoRow> allRsuInfo = rsusRepository.findDetailedRsuInfoRowsByIp(rsuIp);
+        List<RsuDetailedInfoRow> allRsuInfo = rsuRepository.findDetailedRsuInfoRowsByIp(rsuIp);
         List<RsuDetailedInfo> rsuInfoList = RsuAggregationUtil.aggregateRsuRowsToList(allRsuInfo);
         if (rsuInfoList.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found");
