@@ -8,6 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +26,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuDataSingle;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.RsuService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @Slf4j
 @RestController
@@ -37,7 +38,7 @@ import us.dot.its.jpo.ode.api.services.RsuService;
 @RequestMapping("/devices/management/rsu")
 @RequiredArgsConstructor
 public class RsuManagementController {
-    private final RsuService rsuService;
+    private final RsuManagementService rsuService;
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
@@ -76,5 +77,20 @@ public class RsuManagementController {
         ModifyRsuAllowedSelections allowedSelections = rsuService.getAllowedSelections(username);
 
         return new GetModifyRsuDataSingle(rsuInfo, allowedSelections);
+    }
+
+    @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
+    @RequestMapping(method = RequestMethod.DELETE, produces = "application/json", params = "rsu_ip")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+    })
+    public ResponseEntity<Void> deleteRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp) {
+        log.info("Deleting RSU with IP: {}", rsuIp);
+
+        rsuService.deleteRsuByIpv4Address(rsuIp);
+
+        return ResponseEntity.noContent().build();
     }
 }

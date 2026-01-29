@@ -11,20 +11,28 @@ import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.mappers.RsuMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 @Service
 @RequiredArgsConstructor
-public class RsuService {
+public class RsuManagementService {
 
-    private final RsuRepository rsuRepository;
+    private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
+    private final RsuOrganizationRepository rsuOrganizationRepository;
+    private final RsuRepository rsuRepository;
+    private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
+    private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final UserRepository userRepository;
     private final RsuMapper rsuMapper;
@@ -58,5 +66,22 @@ public class RsuService {
                 .map(role -> role.getOrganizationName()).toList());
 
         return allowed;
+    }
+
+    public void deleteRsuByIpv4Address(String ipv4Address) {
+        try {
+            InetAddress inetAddress = InetAddress.getByName(ipv4Address);
+
+            // Delete related entities first to maintain referential integrity
+            pingRepository.removePingByIpv4Address(inetAddress);
+            rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
+            scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
+            snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
+
+            // Finally, delete the RSU itself
+            rsuRepository.removeRsuByIpv4Address(inetAddress);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
+        }
     }
 }
