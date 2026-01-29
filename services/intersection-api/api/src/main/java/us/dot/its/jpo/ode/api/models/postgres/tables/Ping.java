@@ -22,7 +22,8 @@ public class Ping {
     @Column(name = "\"timestamp\"", nullable = false)
     private Instant timestamp;
 
-    @Column(name = "result", columnDefinition = "bit not null")
+    @NotNull
+    @Column(name = "result", nullable = false, columnDefinition = "bit(1)")
     private Boolean result;
 
     @NotNull

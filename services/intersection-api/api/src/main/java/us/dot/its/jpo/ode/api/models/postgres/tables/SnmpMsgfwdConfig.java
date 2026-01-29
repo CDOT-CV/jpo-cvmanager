@@ -48,10 +48,12 @@ public class SnmpMsgfwdConfig {
     @Column(name = "end_datetime", nullable = false)
     private Instant endDatetime;
 
-    @Column(name = "active", columnDefinition = "bit not null")
+    @NotNull
+    @Column(name = "active", nullable = false, columnDefinition = "bit(1)")
     private Boolean active;
 
-    @Column(name = "security", columnDefinition = "bit not null")
+    @NotNull
+    @Column(name = "security", nullable = false, columnDefinition = "bit(1)")
     private Boolean security;
 
 }

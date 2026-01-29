@@ -43,12 +43,12 @@ public class User {
     @Column(name = "created_timestamp", nullable = false)
     private Long createdTimestamp;
 
+    @NotNull
     @ColumnDefault("(0)::bit(1)")
-    @Column(name = "super_user", columnDefinition = "bit not null")
+    @Column(name = "super_user", nullable = false, columnDefinition = "bit(1)")
     private Boolean superUser;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<UserOrganization> userOrganizations;
-
 
 }
