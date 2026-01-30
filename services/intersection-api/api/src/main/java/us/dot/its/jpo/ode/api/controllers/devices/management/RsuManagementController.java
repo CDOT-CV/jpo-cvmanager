@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -24,6 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuDataSingle;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
+import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
@@ -38,7 +41,7 @@ import us.dot.its.jpo.ode.api.services.RsuManagementService;
 @RequestMapping("/devices/management/rsu")
 @RequiredArgsConstructor
 public class RsuManagementController {
-    private final RsuManagementService rsuService;
+    private final RsuManagementService rsuManagementService;
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
@@ -51,7 +54,7 @@ public class RsuManagementController {
             @RequestHeader(name = "Organization", required = true) String organization,
             @PageableDefault(size = 100) Pageable pageable) {
         log.info("Getting all RSUs for organization: {}", organization);
-        Page<RsuInfoDto> allRsuInfo = rsuService.getAllRsuInfo(organization, pageable);
+        Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, pageable);
         return allRsuInfo;
     }
 
@@ -67,16 +70,32 @@ public class RsuManagementController {
             @RequestHeader(name = "Organization", required = true) String organization,
             @RequestParam(name = "rsu_ip", required = true) String rsuIp) {
         log.info("Getting RSU data for IP: {} in organization: {}", rsuIp, organization);
-        RsuInfoDto rsuInfo = rsuService.getRsuInfo(rsuIp);
+        RsuInfoDto rsuInfo = rsuManagementService.getRsuInfo(rsuIp);
         if (rsuInfo == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found");
         }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
-        ModifyRsuAllowedSelections allowedSelections = rsuService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(username);
 
         return new GetModifyRsuDataSingle(rsuInfo, allowedSelections);
+    }
+
+    @Operation(summary = "Modify RSU", description = "Modify RSU information")
+    @RequestMapping(method = RequestMethod.PATCH, produces = "application/json", params = "rsu_ip")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+    })
+    public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
+            @Validated @RequestBody RsuPatch body) {
+        log.info("Modifying RSU with IP: {}", rsuIp);
+
+        rsuManagementService.modifyRsu(rsuIp, body);
+
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
@@ -89,7 +108,7 @@ public class RsuManagementController {
     public ResponseEntity<Void> deleteRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp) {
         log.info("Deleting RSU with IP: {}", rsuIp);
 
-        rsuService.deleteRsuByIpv4Address(rsuIp);
+        rsuManagementService.deleteRsuByIpv4Address(rsuIp);
 
         return ResponseEntity.noContent().build();
     }

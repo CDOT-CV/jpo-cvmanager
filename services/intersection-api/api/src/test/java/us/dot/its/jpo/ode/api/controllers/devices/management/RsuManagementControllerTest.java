@@ -20,7 +20,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelectio
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.RsuService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 class RsuManagementControllerTest {
 
     @Mock
-    private RsuService rsuService;
+    private RsuManagementService rsuManagementService;
 
     @Mock
     private SecurityContext securityContext;
@@ -75,7 +75,7 @@ class RsuManagementControllerTest {
         List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
         Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
 
-        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
+        when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
 
         Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
 
@@ -85,7 +85,7 @@ class RsuManagementControllerTest {
         assertEquals("192.168.1.100", result.getContent().get(0).getIpv4Address());
         assertEquals("192.168.1.101", result.getContent().get(1).getIpv4Address());
 
-        verify(rsuService).getAllRsuInfo(organization, pageable);
+        verify(rsuManagementService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
@@ -94,7 +94,7 @@ class RsuManagementControllerTest {
         Pageable pageable = PageRequest.of(0, 100);
         Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(emptyPage);
+        when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(emptyPage);
 
         Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
 
@@ -102,7 +102,7 @@ class RsuManagementControllerTest {
         assertEquals(0, result.getTotalElements());
         assertTrue(result.getContent().isEmpty());
 
-        verify(rsuService).getAllRsuInfo(organization, pageable);
+        verify(rsuManagementService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
@@ -125,7 +125,7 @@ class RsuManagementControllerTest {
 
         Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
-        when(rsuService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
+        when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
 
         Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
 
@@ -133,7 +133,7 @@ class RsuManagementControllerTest {
         assertEquals(1, result.getTotalElements());
         assertEquals(50, result.getPageable().getPageSize());
 
-        verify(rsuService).getAllRsuInfo(organization, pageable);
+        verify(rsuManagementService).getAllRsuInfo(organization, pageable);
     }
 
     @Test
@@ -163,8 +163,8 @@ class RsuManagementControllerTest {
                 Arrays.asList("v2c", "v3"),
                 Arrays.asList("TestOrg", "OtherOrg"));
 
-        when(rsuService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
-        when(rsuService.getAllowedSelections(username)).thenReturn(allowedSelections);
+        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
+        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
@@ -185,8 +185,8 @@ class RsuManagementControllerTest {
             assertEquals(2, result.getAllowedSelections().getSnmpVersionGroups().size());
             assertEquals(2, result.getAllowedSelections().getOrganizations().size());
 
-            verify(rsuService).getRsuInfo(rsuIp);
-            verify(rsuService).getAllowedSelections(username);
+            verify(RsuManagementService).getRsuInfo(rsuIp);
+            verify(RsuManagementService).getAllowedSelections(username);
         }
     }
 
@@ -195,7 +195,7 @@ class RsuManagementControllerTest {
         String organization = "TestOrg";
         String rsuIp = "192.168.1.999";
 
-        when(rsuService.getRsuInfo(rsuIp)).thenReturn(null);
+        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(null);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
@@ -204,8 +204,8 @@ class RsuManagementControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
 
-        verify(rsuService).getRsuInfo(rsuIp);
-        verify(rsuService, never()).getAllowedSelections(any());
+        verify(RsuManagementService).getRsuInfo(rsuIp);
+        verify(RsuManagementService, never()).getAllowedSelections(any());
     }
 
     @Test
@@ -213,14 +213,14 @@ class RsuManagementControllerTest {
         String organization = "TestOrg";
         String invalidRsuIp = "invalid-ip";
 
-        when(rsuService.getRsuInfo(invalidRsuIp))
+        when(rsuManagementService.getRsuInfo(invalidRsuIp))
                 .thenThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp));
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementController.getSingleRsuData(organization, invalidRsuIp));
 
-        verify(rsuService).getRsuInfo(invalidRsuIp);
-        verify(rsuService, never()).getAllowedSelections(any());
+        verify(RsuManagementService).getRsuInfo(invalidRsuIp);
+        verify(RsuManagementService, never()).getAllowedSelections(any());
     }
 }

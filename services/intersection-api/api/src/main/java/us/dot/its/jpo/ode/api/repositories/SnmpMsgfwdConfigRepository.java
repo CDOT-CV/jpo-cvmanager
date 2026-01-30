@@ -7,11 +7,12 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpMsgfwdConfig;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpMsgfwdConfigId;
 
 import java.net.InetAddress;
 
 @Repository
-public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConfig, Integer> {
+public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConfig, SnmpMsgfwdConfigId> {
 
     @Transactional
     @Query("DELETE FROM SnmpMsgfwdConfig ro WHERE ro.rsu.ipv4Address = :ipv4Address")

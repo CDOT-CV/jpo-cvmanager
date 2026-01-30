@@ -8,12 +8,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import us.dot.its.jpo.ode.api.mappers.RsuMapper;
+import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
+import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
+import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
@@ -21,21 +25,30 @@ import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Service
 @RequiredArgsConstructor
 public class RsuManagementService {
 
+    private final OrganizationRepository organizationRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
+    private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final UserRepository userRepository;
-    private final RsuMapper rsuMapper;
+    private final RsuInfoMapper rsuMapper;
+    private final RsuPatchMapper rsuPatchMapper;
 
     public RsuInfoDto getRsuInfo(String ipv4Address) {
         try {
@@ -66,6 +79,114 @@ public class RsuManagementService {
                 .map(role -> role.getOrganizationName()).toList());
 
         return allowed;
+    }
+
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch) {
+        try {
+            // 1. Find existing RSU by original IP
+            InetAddress inetAddress = InetAddress.getByName(rsuIp);
+            Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
+
+            if (existingRsu == null) {
+                throw new IllegalArgumentException("RSU not found with IP: " + rsuIp);
+            }
+
+            // 2. Update only non-null fields using MapStruct
+            rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
+
+            // 3. Update relationships that require database lookups
+            updateRelationships(existingRsu, rsuPatch);
+
+            // 4. Handle organization additions/removals
+            handleOrganizationChanges(existingRsu, rsuPatch);
+
+            // 5. Save updated entity (JPA handles UPDATE SQL)
+            Rsu savedRsu = rsuRepository.save(existingRsu);
+
+            // 6. Return DTO
+            return rsuMapper.toDto(savedRsu);
+
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Invalid IP address: " + rsuIp, e);
+        }
+    }
+
+    private void updateRelationships(Rsu rsu, RsuPatch patch) {
+        // Update model if provided
+        if (patch.getModel() != null) {
+            RsuModel model = findRsuModelByName(patch.getModel());
+            rsu.setModel(model);
+        }
+
+        // Update SSH credential if provided
+        if (patch.getSshCredentialGroup() != null) {
+            RsuCredential credential = rsuCredentialRepository
+                    .findByNickname(patch.getSshCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SSH credential not found: " + patch.getSshCredentialGroup()));
+            rsu.setCredential(credential);
+        }
+
+        // Update SNMP credential if provided
+        if (patch.getSnmpCredentialGroup() != null) {
+            SnmpCredential snmpCredential = snmpCredentialRepository
+                    .findByNickname(patch.getSnmpCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP credential not found: " + patch.getSnmpCredentialGroup()));
+            rsu.setSnmpCredential(snmpCredential);
+        }
+
+        // Update SNMP protocol if provided
+        if (patch.getSnmpVersionGroup() != null) {
+            SnmpProtocol snmpProtocol = snmpProtocolRepository
+                    .findByNickname(patch.getSnmpVersionGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP protocol not found: " + patch.getSnmpVersionGroup()));
+            rsu.setSnmpProtocol(snmpProtocol);
+        }
+    }
+
+    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch) {
+        // Add organizations
+        if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
+            for (String orgName : patch.getOrganizationsToAdd()) {
+                // Check if already associated
+                boolean exists = rsu.getRsuOrganizations().stream()
+                        .anyMatch(ro -> ro.getOrganization().getName().equals(orgName));
+
+                if (!exists) {
+                    Organization org = organizationRepository.findByName(orgName)
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Organization not found: " + orgName));
+
+                    RsuOrganization rsuOrg = new RsuOrganization();
+                    rsuOrg.setRsu(rsu);
+                    rsuOrg.setOrganization(org);
+                    rsu.getRsuOrganizations().add(rsuOrg);
+                }
+            }
+        }
+
+        // Remove organizations
+        if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
+            rsu.getRsuOrganizations()
+                    .removeIf(ro -> patch.getOrganizationsToRemove().contains(ro.getOrganization().getName()));
+        }
+    }
+
+    private RsuModel findRsuModelByName(String modelStr) {
+        // Parse "Manufacturer Model" format
+        String[] parts = modelStr.trim().split("\\s+", 2);
+        if (parts.length != 2) {
+            throw new IllegalArgumentException(
+                    "Invalid model format. Expected 'Manufacturer Model', got: " + modelStr);
+        }
+
+        String manufacturerName = parts[0];
+        String modelName = parts[1];
+
+        return rsuModelRepository.findByNameAndManufacturer(modelName, manufacturerName)
+                .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelStr));
     }
 
     public void deleteRsuByIpv4Address(String ipv4Address) {

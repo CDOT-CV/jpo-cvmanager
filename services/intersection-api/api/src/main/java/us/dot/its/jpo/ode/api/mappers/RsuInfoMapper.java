@@ -16,7 +16,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
-public interface RsuMapper {
+public interface RsuInfoMapper {
 
     /**
      * Convert Rsu entity to RsuInfoDto
@@ -67,72 +67,6 @@ public interface RsuMapper {
         }
         return rsuOrganizations.stream()
                 .map(ro -> ro.getOrganization().getName())
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Convert RsuInfoDto to Rsu entity
-     */
-    @Mapping(source = "ipv4Address", target = "ipv4Address", qualifiedByName = "mapStringToInetAddress")
-    @Mapping(source = "model", target = "model", qualifiedByName = "mapStringToRsuModel")
-    @Mapping(source = "organizations", target = "rsuOrganizations", qualifiedByName = "mapOrganizationNamesReverse")
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "geography", ignore = true)
-    @Mapping(target = "credential", ignore = true)
-    @Mapping(target = "snmpCredential", ignore = true)
-    @Mapping(target = "snmpProtocol", ignore = true)
-    @Mapping(target = "firmwareVersion", ignore = true)
-    @Mapping(target = "targetFirmwareVersion", ignore = true)
-    Rsu toEntity(RsuInfoDto dto);
-
-    /**
-     * Map String to InetAddress for reverse mapping (best-effort, returns null on
-     * error)
-     */
-    @Named("mapStringToInetAddress")
-    default InetAddress mapStringToInetAddress(String addr) {
-        if (addr == null) {
-            return null;
-        }
-        try {
-            return InetAddress.getByName(addr);
-        } catch (Exception e) {
-            // swallow exception and return null so MapStruct can proceed
-            return null;
-        }
-    }
-
-    /**
-     * Map model name string back to RsuModel (manufacturer not known when coming
-     * from DTO)
-     */
-    @Named("mapStringToRsuModel")
-    default us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel mapStringToRsuModel(String model) {
-        if (model == null) {
-            return null;
-        }
-        us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel rm = new us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel();
-        rm.setName(model);
-        // manufacturer information is not available from the DTO string; leave null
-        return rm;
-    }
-
-    /**
-     * Map list of organization names back to RsuOrganization list
-     */
-    @Named("mapOrganizationNamesReverse")
-    default List<RsuOrganization> mapOrganizationNamesReverse(List<String> orgNames) {
-        if (orgNames == null) {
-            return null;
-        }
-        return orgNames.stream()
-                .map(name -> {
-                    RsuOrganization ro = new RsuOrganization();
-                    us.dot.its.jpo.ode.api.models.postgres.tables.Organization org = new us.dot.its.jpo.ode.api.models.postgres.tables.Organization();
-                    org.setName(name);
-                    ro.setOrganization(org);
-                    return ro;
-                })
                 .collect(Collectors.toList());
     }
 }

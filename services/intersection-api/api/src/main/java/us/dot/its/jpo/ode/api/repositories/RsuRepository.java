@@ -51,6 +51,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
         String getModel();
     }
 
+
+
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 }

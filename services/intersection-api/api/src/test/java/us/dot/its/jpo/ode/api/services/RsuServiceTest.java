@@ -10,7 +10,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import us.dot.its.jpo.ode.api.mappers.RsuMapper;
+import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
@@ -31,7 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class RsuServiceTest {
+class RsuManagementServiceTest {
 
     @Mock
     private RsuRepository rsuRepository;
@@ -49,10 +49,10 @@ class RsuServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private RsuMapper rsuMapper;
+    private RsuInfoMapper rsuMapper;
 
     @InjectMocks
-    private RsuService rsuService;
+    private RsuManagementService rsuManagementService;
 
     @Test
     void testGetRsuInfo_Success() throws UnknownHostException {
@@ -78,7 +78,7 @@ class RsuServiceTest {
         when(rsuMapper.toDto(mockRsu)).thenReturn(mockDto);
 
         // Act
-        RsuInfoDto result = rsuService.getRsuInfo(ipAddress);
+        RsuInfoDto result = rsuManagementService.getRsuInfo(ipAddress);
 
         // Assert
         assertNotNull(result);
@@ -98,7 +98,7 @@ class RsuServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
         // Act
-        RsuInfoDto result = rsuService.getRsuInfo(ipAddress);
+        RsuInfoDto result = rsuManagementService.getRsuInfo(ipAddress);
 
         // Assert
         assertNull(result);
@@ -114,7 +114,7 @@ class RsuServiceTest {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> rsuService.getRsuInfo(invalidIpAddress));
+                () -> rsuManagementService.getRsuInfo(invalidIpAddress));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
         assertTrue(exception.getCause() instanceof UnknownHostException);
@@ -162,7 +162,7 @@ class RsuServiceTest {
         when(rsuMapper.toDto(rsu2)).thenReturn(dto2);
 
         // Act
-        Page<RsuInfoDto> result = rsuService.getAllRsuInfo(orgName, pageable);
+        Page<RsuInfoDto> result = rsuManagementService.getAllRsuInfo(orgName, pageable);
 
         // Assert
         assertNotNull(result);
@@ -184,7 +184,7 @@ class RsuServiceTest {
         when(rsuRepository.findAllByOrganization(orgName, pageable)).thenReturn(emptyPage);
 
         // Act
-        Page<RsuInfoDto> result = rsuService.getAllRsuInfo(orgName, pageable);
+        Page<RsuInfoDto> result = rsuManagementService.getAllRsuInfo(orgName, pageable);
 
         // Assert
         assertNotNull(result);
@@ -221,7 +221,7 @@ class RsuServiceTest {
         when(userRepository.findUserOrgRoles(username)).thenReturn(userOrgRoles);
 
         // Act
-        ModifyRsuAllowedSelections result = rsuService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
 
         // Assert
         assertNotNull(result);
@@ -267,7 +267,7 @@ class RsuServiceTest {
         when(userRepository.findUserOrgRoles(username)).thenReturn(List.of());
 
         // Act
-        ModifyRsuAllowedSelections result = rsuService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
 
         // Assert
         assertNotNull(result);

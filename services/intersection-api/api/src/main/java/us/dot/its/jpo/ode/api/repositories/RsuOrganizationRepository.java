@@ -9,6 +9,8 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
 import java.net.InetAddress;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization, Integer> {
@@ -16,4 +18,9 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Transactional
     @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     void removeRsuOrganizationByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+
+    @Query("SELECT ro FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
+    List<RsuOrganization> findAllByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+
+    Optional<RsuOrganization> findByOrganizationName(String organizationName);
 }
