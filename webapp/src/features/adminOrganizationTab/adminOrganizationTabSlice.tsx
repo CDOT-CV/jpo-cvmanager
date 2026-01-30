@@ -67,8 +67,6 @@ const initialState = {
   rsuTableData: [] as AdminOrgRsu[],
   intersectionTableData: [] as AdminOrgIntersection[],
   userTableData: [] as AdminOrgUser[],
-  timDeposit: 'Disabled' as 'Enabled' | 'Disabled' | 'Mixed',
-  snmpMonitoring: 'Disabled' as 'Enabled' | 'Disabled' | 'Mixed',
 }
 
 export const getOrgData = createAsyncThunk(
@@ -274,31 +272,6 @@ export const adminOrganizationTabSlice = createSlice({
             state.value.rsuTableData = org_data?.org_rsus
             state.value.intersectionTableData = org_data?.org_intersections
             state.value.userTableData = org_data?.org_users
-            const rsus = org_data?.org_rsus as AdminOrgRsu[]
-            if (Array.isArray(rsus) && rsus.length > 0) {
-              const allTimEnabled = rsus.every((rsu) => rsu.tim_deposit === true)
-              const allTimDisabled = rsus.every((rsu) => rsu.tim_deposit === false)
-              if (allTimEnabled) {
-                state.value.timDeposit = 'Enabled'
-              } else if (allTimDisabled) {
-                state.value.timDeposit = 'Disabled'
-              } else {
-                state.value.timDeposit = 'Mixed'
-              }
-
-              const allSnmpEnabled = rsus.every((rsu) => rsu.snmp_monitoring === true)
-              const allSnmpDisabled = rsus.every((rsu) => rsu.snmp_monitoring === false)
-              if (allSnmpEnabled) {
-                state.value.snmpMonitoring = 'Enabled'
-              } else if (allSnmpDisabled) {
-                state.value.snmpMonitoring = 'Disabled'
-              } else {
-                state.value.snmpMonitoring = 'Mixed'
-              }
-            } else {
-              state.value.timDeposit = 'Disabled'
-              state.value.snmpMonitoring = 'Disabled'
-            }
           }
         }
         state.loading = false
@@ -333,7 +306,35 @@ export const selectSelectedOrgEmail = (state: RootState) => state.adminOrganizat
 export const selectRsuTableData = (state: RootState) => state.adminOrganizationTab.value.rsuTableData
 export const selectIntersectionTableData = (state: RootState) => state.adminOrganizationTab.value.intersectionTableData
 export const selectUserTableData = (state: RootState) => state.adminOrganizationTab.value.userTableData
-export const selectTimDeposit = (state: RootState) => state.adminOrganizationTab.value.timDeposit
-export const selectSnmpMonitoring = (state: RootState) => state.adminOrganizationTab.value.snmpMonitoring
+export const selectTimDeposit = (state: RootState) => {
+  const rsus = state.adminOrganizationTab.value.rsuTableData
+  if (Array.isArray(rsus) && rsus.length > 0) {
+    const allTimEnabled = rsus.every((rsu) => rsu.tim_deposit === true)
+    const allTimDisabled = rsus.every((rsu) => rsu.tim_deposit === false)
+    if (allTimEnabled) {
+      return 'Enabled'
+    } else if (allTimDisabled) {
+      return 'Disabled'
+    } else {
+      return 'Mixed'
+    }
+  }
+  return 'Disabled'
+}
+export const selectSnmpMonitoring = (state: RootState) => {
+  const rsus = state.adminOrganizationTab.value.rsuTableData
+  if (Array.isArray(rsus) && rsus.length > 0) {
+    const allSnmpEnabled = rsus.every((rsu) => rsu.snmp_monitoring === true)
+    const allSnmpDisabled = rsus.every((rsu) => rsu.snmp_monitoring === false)
+    if (allSnmpEnabled) {
+      return 'Enabled'
+    } else if (allSnmpDisabled) {
+      return 'Disabled'
+    } else {
+      return 'Mixed'
+    }
+  }
+  return 'Disabled'
+}
 
 export default adminOrganizationTabSlice.reducer
