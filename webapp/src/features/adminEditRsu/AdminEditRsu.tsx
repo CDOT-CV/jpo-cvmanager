@@ -76,6 +76,7 @@ export type AdminEditRsuFormType = {
   organizations_to_add: string[]
   organizations_to_remove: string[]
   tim_deposit: boolean
+  snmp_monitoring: boolean
 }
 
 const AdminEditRsu = () => {
@@ -107,6 +108,7 @@ const AdminEditRsu = () => {
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<AdminEditRsuFormType>({
     defaultValues: {
       orig_ip: '',
@@ -126,6 +128,7 @@ const AdminEditRsu = () => {
       organizations_to_add: [],
       organizations_to_remove: [],
       tim_deposit: false,
+      snmp_monitoring: false,
     },
   })
 
@@ -142,10 +145,11 @@ const AdminEditRsu = () => {
       setValue('serial_number', currRsu.serial_number)
       setValue('scms_id', currRsu.scms_id)
       setValue('tim_deposit', currRsu.tim_deposit)
+      setValue('snmp_monitoring', currRsu.snmp_monitoring)
     } else {
       console.error('Unknown RSU IP: ', rsuIp)
     }
-  }, [apiData, rsuIp, rsuTableData, setValue])
+  }, [rsuIp, rsuTableData, setValue])
 
   useEffect(() => {
     dispatch(updateSelectedRoute(selectedRoute))
@@ -447,17 +451,36 @@ const AdminEditRsu = () => {
                 </FormControl>
               </Form.Group>
 
-              <Form.Group controlId="tim_deposit">
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      {...register('tim_deposit')}
-                      color="primary"
+              <Grid2 container spacing={1}>
+                <Grid2 size={6}>
+                  <Form.Group controlId="tim_deposit">
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          {...register('tim_deposit')}
+                          checked={watch('tim_deposit')}
+                          color="primary"
+                        />
+                      }
+                      label="TIM Deposit"
                     />
-                  }
-                  label="TIM Deposit"
-                />
-              </Form.Group>
+                  </Form.Group>
+                </Grid2>
+                <Grid2 size={6}>
+                  <Form.Group controlId="snmp_monitoring">
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          {...register('snmp_monitoring')}
+                          checked={watch('snmp_monitoring')}
+                          color="primary"
+                        />
+                      }
+                      label="SNMP Monitoring"
+                    />
+                  </Form.Group>
+                </Grid2>
+              </Grid2>
 
               <Form.Group controlId="ssh_credential_group">
                 <FormControl fullWidth margin="normal">

@@ -20,7 +20,9 @@ import {
 } from './adminOrganizationTabRsuSlice'
 import {
   updateOrgTimDeposit,
+  updateOrgSnmpMonitoring,
   selectTimDeposit,
+  selectSnmpMonitoring,
 } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { useSelector, useDispatch } from 'react-redux'
@@ -51,15 +53,16 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const selectedRsuList = useSelector(selectSelectedRsuList)
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const timDepositStatus = useSelector(selectTimDeposit)
+  const snmpMonitoringStatus = useSelector(selectSnmpMonitoring)
   const [rsuColumns] = useState<Column<any>[]>([
-    { title: 'IP Address', field: 'ip', id: 0, width: '23%' },
-    { title: 'Primary Route', field: 'primary_route', id: 1, width: '23%' },
-    { title: 'Milepost', field: 'milepost', id: 2, width: '23%' },
+    { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
+    { title: 'Primary Route', field: 'primary_route', id: 1, width: '18%' },
+    { title: 'Milepost', field: 'milepost', id: 2, width: '18%' },
     {
       title: 'TIM Deposit',
       field: 'tim_deposit',
       id: 3,
-      width: '23%',
+      width: '18%',
       render: (rowData) => (
         <Typography
           variant="body2"
@@ -69,6 +72,23 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           }}
         >
           {rowData.tim_deposit ? 'Enabled' : 'Disabled'}
+        </Typography>
+      ),
+    },
+    {
+      title: 'SNMP Monitoring',
+      field: 'snmp_monitoring',
+      id: 4,
+      width: '18%',
+      render: (rowData) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: rowData.snmp_monitoring ? theme.palette.success.main : theme.palette.error.main,
+            fontWeight: 'bold',
+          }}
+        >
+          {rowData.snmp_monitoring ? 'Enabled' : 'Disabled'}
         </Typography>
       ),
     },
@@ -214,6 +234,33 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     confirmAlert(alertOptions)
   }
 
+  const handleOrgSnmpMonitoringChange = (newValue: boolean) => {
+    const actionLabel = newValue ? 'Enable' : 'Disable'
+    const buttons = [
+      {
+        label: 'Yes',
+        onClick: () => {
+          dispatch(
+            updateOrgSnmpMonitoring({ orgName: selectedOrg, email: selectedOrgEmail, snmpMonitoring: newValue })
+          ).then((data: any) => {
+            if (data.payload.success) {
+              toast.success(data.payload.message)
+            } else {
+              toast.error(data.payload.message)
+            }
+          })
+        },
+      },
+      { label: 'No', onClick: () => {} },
+    ]
+    const alertOptions = Options(
+      `${actionLabel} SNMP Monitoring`,
+      'Are you sure this will change all RSU values under this organization and overwrite any previous settings?',
+      buttons
+    )
+    confirmAlert(alertOptions)
+  }
+
   return (
     <div className="accordion">
       <Accordion className="accordion-content" elevation={0}>
@@ -223,10 +270,8 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           id="panel1a-header"
           sx={{ display: 'flex', alignItems: 'center' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <Typography variant="h6" sx={{ mr: 2 }}>
-              RSUs
-            </Typography>
+          <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, gap: '16px' }}>
+            <Typography variant="h6">RSUs</Typography>
             <Typography
               variant="subtitle1"
               sx={{
@@ -249,8 +294,34 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
             >
               TIM Deposit: {timDepositStatus}
             </Typography>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color:
+                  snmpMonitoringStatus === 'Enabled'
+                    ? theme.palette.success.main
+                    : snmpMonitoringStatus === 'Disabled'
+                    ? theme.palette.error.main
+                    : snmpMonitoringStatus === 'Mixed'
+                    ? theme.palette.warning.main
+                    : theme.palette.text.secondary,
+                fontWeight: 'bold',
+                bgcolor:
+                  snmpMonitoringStatus === 'Enabled'
+                    ? 'rgba(46, 125, 50, 0.1)'
+                    : snmpMonitoringStatus === 'Disabled'
+                    ? 'rgba(211, 47, 47, 0.1)'
+                    : snmpMonitoringStatus === 'Mixed'
+                    ? 'rgba(237, 108, 2, 0.1)'
+                    : 'transparent',
+                px: 1,
+                borderRadius: 1,
+              }}
+            >
+              SNMP Monitoring: {snmpMonitoringStatus}
+            </Typography>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '50%' }}>
             <Button
               variant="contained"
               color="primary"
@@ -260,7 +331,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
                 handleOrgTimDepositChange(true)
               }}
             >
-              Enable TIM Deposit for all RSUs
+              Enable TIM Deposit
             </Button>
             <Button
               variant="contained"
@@ -271,7 +342,29 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
                 handleOrgTimDepositChange(false)
               }}
             >
-              Disable TIM Deposit for all RSUs
+              Disable TIM Deposit
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgSnmpMonitoringChange(true)
+              }}
+            >
+              Enable SNMP Monitoring
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOrgSnmpMonitoringChange(false)
+              }}
+            >
+              Disable SNMP Monitoring
             </Button>
           </div>
         </AccordionSummary>

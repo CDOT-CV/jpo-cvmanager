@@ -66,6 +66,7 @@ export type AdminAddRsuForm = {
   snmp_version_group: string
   organizations: string[]
   tim_deposit: boolean
+  snmp_monitoring: boolean
 }
 
 const AdminAddRsu = () => {
@@ -109,7 +110,13 @@ const AdminAddRsu = () => {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<AdminAddRsuForm>()
+    watch,
+  } = useForm<AdminAddRsuForm>({
+    defaultValues: {
+      tim_deposit: false,
+      snmp_monitoring: false,
+    },
+  })
 
   useEffect(() => {
     dispatch(getRsuCreationData())
@@ -350,17 +357,36 @@ const AdminAddRsu = () => {
             </FormControl>
           </Form.Group>
 
-          <Form.Group controlId="tim_deposit">
-            <FormControlLabel
-              control={
-                <Checkbox
-                  {...register('tim_deposit')}
-                  color="primary"
+          <Grid2 container spacing={1}>
+            <Grid2 size={6}>
+              <Form.Group controlId="tim_deposit">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      {...register('tim_deposit')}
+                      checked={watch('tim_deposit')}
+                      color="primary"
+                    />
+                  }
+                  label="TIM Deposit"
                 />
-              }
-              label="TIM Deposit"
-            />
-          </Form.Group>
+              </Form.Group>
+            </Grid2>
+            <Grid2 size={6}>
+              <Form.Group controlId="snmp_monitoring">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      {...register('snmp_monitoring')}
+                      checked={watch('snmp_monitoring')}
+                      color="primary"
+                    />
+                  }
+                  label="SNMP Monitoring"
+                />
+              </Form.Group>
+            </Grid2>
+          </Grid2>
 
           <Form.Group controlId="ssh_credential_group">
             <FormControl fullWidth margin="normal">

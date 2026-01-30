@@ -59,6 +59,7 @@ const AdminOrganizationTab = () => {
   let defaultOrgData = orgData.find((org) => org.name === defaultOrgName)
 
   useEffect(() => {
+    // Only fetch organization list on mount
     dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: undefined })).then(() => {
       // on first render set the default organization in the admin
       // organization tab to the currently selected organization
@@ -70,7 +71,7 @@ const AdminOrganizationTab = () => {
         defaultOrgData = null
       }
     })
-  }, [dispatch])
+  }, [])
 
   const getAllOrgData = () => {
     dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: undefined })).then((data: any | undefined) => {
@@ -90,7 +91,7 @@ const AdminOrganizationTab = () => {
 
   useEffect(() => {
     getAllOrgData()
-  }, [dispatch])
+  }, [])
 
   const updateTableData = (orgName: string) => {
     dispatch(getOrgData({ orgName })).then((data: any) => {

@@ -32,6 +32,7 @@ export type AdminOrgRsu = {
   primary_route: string
   milepost: number
   tim_deposit: boolean
+  snmp_monitoring: boolean
 }
 
 export type AdminOrgIntersection = {
@@ -55,6 +56,7 @@ export type adminOrgPatch = {
   intersections_to_add?: string[]
   intersections_to_remove?: string[]
   tim_deposit?: boolean
+  snmp_monitoring?: boolean
 }
 
 const initialState = {
@@ -66,6 +68,7 @@ const initialState = {
   intersectionTableData: [] as AdminOrgIntersection[],
   userTableData: [] as AdminOrgUser[],
   timDeposit: 'Disabled' as 'Enabled' | 'Disabled' | 'Mixed',
+  snmpMonitoring: 'Disabled' as 'Enabled' | 'Disabled' | 'Mixed',
 }
 
 export const getOrgData = createAsyncThunk(
@@ -186,6 +189,28 @@ export const updateOrgTimDeposit = createAsyncThunk(
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
 
+export const updateOrgSnmpMonitoring = createAsyncThunk(
+  'adminOrganizationTab/updateOrgSnmpMonitoring',
+  async (payload: { orgName: string; email: string; snmpMonitoring: boolean }, { getState, dispatch }) => {
+    const { orgName, email, snmpMonitoring } = payload
+
+    const patchJson: adminOrgPatch = {
+      name: orgName,
+      email: email,
+      snmp_monitoring: snmpMonitoring,
+    }
+
+    const res = await dispatch(editOrg(patchJson))
+    if ((res.payload as any).success) {
+      dispatch(getOrgData({ orgName }))
+      return { success: true, message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName }
+    } else {
+      return { success: false, message: (res.payload as any).message }
+    }
+  },
+  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
+)
+
 export const adminOrganizationTabSlice = createSlice({
   name: 'adminOrganizationTab',
   initialState: {
@@ -238,6 +263,9 @@ export const adminOrganizationTabSlice = createSlice({
                   break
                 }
               }
+            } else if (state.value.selectedOrg) {
+              const currentOrg = tempData.find((org) => org.name === state.value.selectedOrg.name)
+              state.value.selectedOrg = currentOrg ?? tempData[0]
             } else {
               state.value.selectedOrg = tempData[0]
             }
@@ -246,19 +274,30 @@ export const adminOrganizationTabSlice = createSlice({
             state.value.rsuTableData = org_data?.org_rsus
             state.value.intersectionTableData = org_data?.org_intersections
             state.value.userTableData = org_data?.org_users
-            const rsus = org_data?.org_rsus
+            const rsus = org_data?.org_rsus as AdminOrgRsu[]
             if (Array.isArray(rsus) && rsus.length > 0) {
-              const allEnabled = rsus.every((rsu: any) => rsu.tim_deposit)
-              const allDisabled = rsus.every((rsu: any) => !rsu.tim_deposit)
-              if (allEnabled) {
+              const allTimEnabled = rsus.every((rsu) => rsu.tim_deposit === true)
+              const allTimDisabled = rsus.every((rsu) => rsu.tim_deposit === false)
+              if (allTimEnabled) {
                 state.value.timDeposit = 'Enabled'
-              } else if (allDisabled) {
+              } else if (allTimDisabled) {
                 state.value.timDeposit = 'Disabled'
               } else {
                 state.value.timDeposit = 'Mixed'
               }
+
+              const allSnmpEnabled = rsus.every((rsu) => rsu.snmp_monitoring === true)
+              const allSnmpDisabled = rsus.every((rsu) => rsu.snmp_monitoring === false)
+              if (allSnmpEnabled) {
+                state.value.snmpMonitoring = 'Enabled'
+              } else if (allSnmpDisabled) {
+                state.value.snmpMonitoring = 'Disabled'
+              } else {
+                state.value.snmpMonitoring = 'Mixed'
+              }
             } else {
               state.value.timDeposit = 'Disabled'
+              state.value.snmpMonitoring = 'Disabled'
             }
           }
         }
@@ -295,5 +334,6 @@ export const selectRsuTableData = (state: RootState) => state.adminOrganizationT
 export const selectIntersectionTableData = (state: RootState) => state.adminOrganizationTab.value.intersectionTableData
 export const selectUserTableData = (state: RootState) => state.adminOrganizationTab.value.userTableData
 export const selectTimDeposit = (state: RootState) => state.adminOrganizationTab.value.timDeposit
+export const selectSnmpMonitoring = (state: RootState) => state.adminOrganizationTab.value.snmpMonitoring
 
 export default adminOrganizationTabSlice.reducer

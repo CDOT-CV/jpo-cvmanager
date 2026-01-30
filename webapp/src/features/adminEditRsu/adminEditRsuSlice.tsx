@@ -31,7 +31,6 @@ const initialState = {
   selectedSnmpGroup: '',
   snmpVersions: [] as { name: string }[],
   selectedSnmpVersion: '',
-  tim_deposit: false,
   organizations: [] as { name: string }[],
   selectedOrganizations: [] as { name: string }[],
   submitAttempt: false,
@@ -56,7 +55,7 @@ export const checkForm = (state: RootState['adminEditRsu']) => {
 }
 
 export const updateJson = (data: AdminEditRsuFormType, state: RootState['adminEditRsu']) => {
-  const json = data
+  const json = { ...data }
 
   if (state.value.selectedRoute !== 'Other') {
     json.primary_route = state.value.selectedRoute
@@ -66,6 +65,8 @@ export const updateJson = (data: AdminEditRsuFormType, state: RootState['adminEd
   json.ssh_credential_group = state.value.selectedSshGroup
   json.snmp_credential_group = state.value.selectedSnmpGroup
   json.snmp_version_group = state.value.selectedSnmpVersion
+  json.tim_deposit = data.tim_deposit
+  json.snmp_monitoring = data.snmp_monitoring
 
   const organizationsToAdd = []
   const organizationsToRemove = []
@@ -222,7 +223,6 @@ export const adminEditRsuSlice = createSlice({
       state.value.selectedSshGroup = apiData.rsu_data.ssh_credential_group
       state.value.selectedSnmpGroup = apiData.rsu_data.snmp_credential_group
       state.value.selectedSnmpVersion = apiData.rsu_data.snmp_version_group
-      state.value.tim_deposit = apiData.rsu_data.tim_deposit
 
       state.value.selectedOrganizations = apiData.rsu_data.organizations.map((val) => {
         return { name: val }
