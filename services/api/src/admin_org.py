@@ -88,12 +88,14 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
     rsu_query = (
         "SELECT to_jsonb(row) "
         "FROM ("
-        "SELECT r.ipv4_address, r.primary_route, r.milepost "
+        "SELECT r.ipv4_address, r.primary_route, r.milepost, r.tim_deposit, r.snmp_monitoring "
         "FROM public.organizations AS org "
         "JOIN ("
-        "SELECT ro.organization_id, rsus.ipv4_address, rsus.primary_route, rsus.milepost "
+        "SELECT ro.organization_id, rsus.ipv4_address, rsus.primary_route, rsus.milepost, "
+        "COALESCE(opts.tim_deposit, FALSE) as tim_deposit, COALESCE(opts.snmp_monitoring, FALSE) as snmp_monitoring "
         "FROM public.rsu_organization ro "
-        "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id"
+        "JOIN public.rsus ON ro.rsu_id = rsus.rsu_id "
+        "LEFT JOIN public.rsu_options opts ON rsus.rsu_id = opts.rsu_id"
         ") r ON r.organization_id = org.organization_id "
         "WHERE org.name = :org_name"
         ") as row"
@@ -106,6 +108,8 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         rsu_obj["ip"] = str(row["ipv4_address"])
         rsu_obj["primary_route"] = row["primary_route"]
         rsu_obj["milepost"] = row["milepost"]
+        rsu_obj["tim_deposit"] = row["tim_deposit"]
+        rsu_obj["snmp_monitoring"] = row["snmp_monitoring"]
         org_obj["org_rsus"].append(rsu_obj)
 
     # Get all Intersection members of the organization
@@ -233,6 +237,36 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
             "orig_name": orig_name,
         }
         pgquery.write_db(query, params=params)
+
+        if "tim_deposit" in org_spec:
+            tim_deposit_query = (
+                "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
+                "SELECT ro.rsu_id, :tim_deposit "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
+            )
+            tim_deposit_params = {
+                "tim_deposit": "TRUE" if org_spec["tim_deposit"] is True else "FALSE",
+                "name": org_spec["name"],
+            }
+            pgquery.write_db(tim_deposit_query, params=tim_deposit_params)
+
+        if "snmp_monitoring" in org_spec:
+            snmp_monitoring_query = (
+                "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
+                "SELECT ro.rsu_id, :snmp_monitoring "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
+            )
+            snmp_monitoring_params = {
+                "snmp_monitoring": "TRUE" if org_spec["snmp_monitoring"] is True else "FALSE",
+                "name": org_spec["name"],
+            }
+            pgquery.write_db(snmp_monitoring_query, params=snmp_monitoring_params)
 
         if len(org_spec["users_to_add"]) > 0:
             query_rows: list[tuple[str, dict]] = []
@@ -501,6 +535,8 @@ class AdminOrgPatchSchema(Schema):
     rsus_to_remove = fields.List(fields.IPv4(), required=True)
     intersections_to_add = fields.List(fields.Integer, required=True)
     intersections_to_remove = fields.List(fields.Integer, required=True)
+    tim_deposit = fields.Boolean(required=False)
+    snmp_monitoring = fields.Boolean(required=False)
 
 
 class AdminOrg(Resource):

@@ -135,12 +135,17 @@ def add_rsu(rsu_spec: dict):
         options_query = (
             "INSERT INTO public.rsu_options(rsu_id, tim_deposit, snmp_monitoring) "
             "VALUES ("
-            f"(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '{rsu_spec['ip']}'), "
-            f"{'TRUE' if rsu_spec['tim_deposit'] is True else 'FALSE'}, "
-            f"{'TRUE' if rsu_spec['snmp_monitoring'] is True else 'FALSE'}"
+            "(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip), "
+            ":tim_deposit, "
+            ":snmp_monitoring"
             ")"
         )
-        pgquery.write_db(options_query)
+        options_params = {
+            "rsu_ip": rsu_spec["ip"],
+            "tim_deposit": "TRUE" if rsu_spec["tim_deposit"] is True else "FALSE",
+            "snmp_monitoring": "TRUE" if rsu_spec["snmp_monitoring"] is True else "FALSE",
+        }
+        pgquery.write_db(options_query, params=options_params)
 
         org_query = (
             "INSERT INTO public.rsu_organization(rsu_id, organization_id) VALUES"
