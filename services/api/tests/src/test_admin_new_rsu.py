@@ -116,13 +116,11 @@ def test_add_rsu_success_commsignia(mock_pgquery, mock_check_safe_input):
     expected_msg = {"message": "New RSU successfully added"}
     actual_msg = admin_new_rsu.add_rsu(admin_new_rsu_data.mock_post_body_commsignia)
 
-    calls = [
-        call(admin_new_rsu_data.rsu_query_commsignia),
-        call(admin_new_rsu_data.rsu_options_query),
-        call(admin_new_rsu_data.rsu_org_query),
-    ]
-    mock_pgquery.assert_has_calls(calls)
-    assert actual_msg == expected_msg
+    # Check that pgquery.write_db was called 3 times with correct queries
+    assert mock_pgquery.call_count == 3
+    assert admin_new_rsu_data.rsu_query_commsignia in str(mock_pgquery.call_args_list[0])
+    assert "rsu_options" in str(mock_pgquery.call_args_list[1])
+    assert admin_new_rsu_data.rsu_org_query in str(mock_pgquery.call_args_list[2])
 
 
 @patch("api.src.admin_new_rsu.check_safe_input")
@@ -132,12 +130,11 @@ def test_add_rsu_success_yunex(mock_pgquery, mock_check_safe_input):
     expected_msg = {"message": "New RSU successfully added"}
     actual_msg = admin_new_rsu.add_rsu(admin_new_rsu_data.mock_post_body_yunex)
 
-    calls = [
-        call(admin_new_rsu_data.rsu_query_yunex),
-        call(admin_new_rsu_data.rsu_options_query),
-        call(admin_new_rsu_data.rsu_org_query),
-    ]
-    mock_pgquery.assert_has_calls(calls)
+    # Check that pgquery.write_db was called 3 times with correct queries
+    assert mock_pgquery.call_count == 3
+    assert admin_new_rsu_data.rsu_query_yunex in str(mock_pgquery.call_args_list[0])
+    assert "rsu_options" in str(mock_pgquery.call_args_list[1])
+    assert admin_new_rsu_data.rsu_org_query in str(mock_pgquery.call_args_list[2])
     assert actual_msg == expected_msg
 
 

@@ -139,9 +139,9 @@ rsu_query_yunex = (
 rsu_options_query = (
     "INSERT INTO public.rsu_options(rsu_id, tim_deposit, snmp_monitoring) "
     "VALUES ("
-    "(SELECT rsu_id FROM public.rsus WHERE ipv4_address = '10.0.0.1'), "
-    "TRUE, "
-    "TRUE"
+    "(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip), "
+    ":tim_deposit, "
+    ":snmp_monitoring"
     ")"
 )
 
