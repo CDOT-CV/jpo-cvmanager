@@ -142,8 +142,8 @@ def add_rsu(rsu_spec: dict):
         )
         options_params = {
             "rsu_ip": rsu_spec["ip"],
-            "tim_deposit": "TRUE" if rsu_spec["tim_deposit"] is True else "FALSE",
-            "snmp_monitoring": "TRUE" if rsu_spec["snmp_monitoring"] is True else "FALSE",
+            "tim_deposit": rsu_spec["tim_deposit"],
+            "snmp_monitoring": rsu_spec["snmp_monitoring"],
         }
         pgquery.write_db(options_query, params=options_params)
 
