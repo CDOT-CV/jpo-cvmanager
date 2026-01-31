@@ -241,7 +241,12 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
         if "tim_deposit" in org_spec:
             # Check if this is a bulk update or just a regular org edit
             # If it's a regular org edit, we don't want to reset all RSUs unless explicitly requested
-            is_bulk_update = request.endpoint in [
+            try:
+                endpoint = request.endpoint
+            except RuntimeError:
+                endpoint = None
+
+            is_bulk_update = endpoint in [
                 "adminorgtimdeposit",
                 "adminorgsnmpmonitoring",
             ]
@@ -262,7 +267,12 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
                 pgquery.write_db(tim_deposit_query, params=tim_deposit_params)
 
         if "snmp_monitoring" in org_spec:
-            is_bulk_update = request.endpoint in [
+            try:
+                endpoint = request.endpoint
+            except RuntimeError:
+                endpoint = None
+
+            is_bulk_update = endpoint in [
                 "adminorgtimdeposit",
                 "adminorgsnmpmonitoring",
             ]
