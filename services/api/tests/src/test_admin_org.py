@@ -1,5 +1,6 @@
 from unittest.mock import patch, MagicMock, call
 import pytest
+from common.auth_tools import PermissionResult, ORG_ROLE_LITERAL
 import api.src.admin_org as admin_org
 import api.tests.data.admin_org_data as admin_org_data
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -155,8 +156,10 @@ def test_get_allowed_selections(mock_query_db):
 def test_get_modify_org_data_all(mock_get_all_orgs):
     mock_get_all_orgs.return_value = ["Test Org data"]
     expected_rsu_data = {"org_data": ["Test Org data"]}
+    mock_permission_result = MagicMock()
+    mock_permission_result.user.user_info.super_user = True
     actual_result = admin_org.get_modify_org_data_authorized(
-        "all",
+        "all", permission_result=mock_permission_result
     )
 
     mock_get_all_orgs.assert_called_with(None)
@@ -172,8 +175,10 @@ def test_get_modify_org_data_specific(mock_get_org_data, mock_get_allowed_select
         "org_data": "Test Org data",
         "allowed_selections": ["allowed_selections"],
     }
+    mock_permission_result = MagicMock()
+    mock_permission_result.user.user_info.super_user = True
     actual_result = admin_org.get_modify_org_data_authorized(
-        "Test Org",
+        "Test Org", permission_result=mock_permission_result
     )
 
     mock_get_org_data.assert_called_with("Test Org", True)

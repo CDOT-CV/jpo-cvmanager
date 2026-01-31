@@ -1,5 +1,6 @@
 from unittest.mock import patch, MagicMock, call
 import pytest
+from common.auth_tools import PermissionResult
 import api.src.admin_new_rsu as admin_new_rsu
 import api.tests.data.admin_new_rsu_data as admin_new_rsu_data
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -29,7 +30,8 @@ def test_request_options():
 def test_entry_get(mock_get_allowed_selections):
     mock_get_allowed_selections.return_value = {}
     status = admin_new_rsu.AdminNewRsu()
-    (body, code, headers) = status.get()
+    mock_permission_result = MagicMock()
+    (body, code, headers) = status.get(permission_result=mock_permission_result)
 
     mock_get_allowed_selections.assert_called_once()
     assert code == 200
@@ -47,7 +49,8 @@ def test_entry_get(mock_get_allowed_selections):
 def test_entry_post(mock_add_rsu):
     mock_add_rsu.return_value = {}
     status = admin_new_rsu.AdminNewRsu()
-    (body, code, headers) = status.post()
+    mock_permission_result = MagicMock()
+    (body, code, headers) = status.post(permission_result=mock_permission_result)
 
     mock_add_rsu.assert_called_once()
     assert code == 200
@@ -63,8 +66,9 @@ def test_entry_post(mock_add_rsu):
 )
 def test_entry_post_schema():
     status = admin_new_rsu.AdminNewRsu()
+    mock_permission_result = MagicMock()
     with pytest.raises(HTTPException):
-        status.post()
+        status.post(permission_result=mock_permission_result)
 
 
 ###################################### Testing Functions ##########################################
