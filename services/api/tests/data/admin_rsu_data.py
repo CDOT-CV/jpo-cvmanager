@@ -154,8 +154,8 @@ modify_rsu_options_sql = (
     "UPDATE public.rsu_options SET tim_deposit=:tim_deposit, snmp_monitoring=:snmp_monitoring WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip)",
     {
         "rsu_ip": "10.0.0.1",
-        "tim_deposit": "TRUE",
-        "snmp_monitoring": "TRUE",
+        "tim_deposit": True,
+        "snmp_monitoring": True,
     },
 )
 
