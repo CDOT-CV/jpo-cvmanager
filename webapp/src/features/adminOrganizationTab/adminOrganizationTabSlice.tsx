@@ -57,6 +57,7 @@ export type adminOrgPatch = {
   intersections_to_remove?: string[]
   tim_deposit?: boolean
   snmp_monitoring?: boolean
+  endpoint?: string
 }
 
 const initialState = {
@@ -149,7 +150,7 @@ export const editOrg = createAsyncThunk(
     }
 
     const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminOrg,
+      url: json.endpoint ?? EnvironmentVars.adminOrg,
       token,
       body: JSON.stringify(jsonComplete),
     })
@@ -174,6 +175,7 @@ export const updateOrgTimDeposit = createAsyncThunk(
       name: orgName,
       email: email,
       tim_deposit: timDeposit,
+      endpoint: EnvironmentVars.adminOrgTimDeposit,
     }
 
     const res = await dispatch(editOrg(patchJson))
@@ -196,6 +198,7 @@ export const updateOrgSnmpMonitoring = createAsyncThunk(
       name: orgName,
       email: email,
       snmp_monitoring: snmpMonitoring,
+      endpoint: EnvironmentVars.adminOrgSnmpMonitoring,
     }
 
     const res = await dispatch(editOrg(patchJson))
