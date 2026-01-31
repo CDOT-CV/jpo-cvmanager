@@ -239,34 +239,48 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
         pgquery.write_db(query, params=params)
 
         if "tim_deposit" in org_spec:
-            tim_deposit_query = (
-                "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
-                "SELECT ro.rsu_id, :tim_deposit "
-                "FROM public.rsu_organization ro "
-                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
-                "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
-            )
-            tim_deposit_params = {
-                "tim_deposit": "TRUE" if org_spec["tim_deposit"] is True else "FALSE",
-                "name": org_spec["name"],
-            }
-            pgquery.write_db(tim_deposit_query, params=tim_deposit_params)
+            # Check if this is a bulk update or just a regular org edit
+            # If it's a regular org edit, we don't want to reset all RSUs unless explicitly requested
+            is_bulk_update = request.endpoint in [
+                "adminorgtimdeposit",
+                "adminorgsnmpmonitoring",
+            ]
+            if is_bulk_update:
+                logging.info(f"Bulk updating TIM deposit for all RSUs in organization {org_spec['name']} to {org_spec['tim_deposit']}")
+                tim_deposit_query = (
+                    "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
+                    "SELECT ro.rsu_id, :tim_deposit "
+                    "FROM public.rsu_organization ro "
+                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                    "WHERE org.name = :name "
+                    "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
+                )
+                tim_deposit_params = {
+                    "tim_deposit": org_spec["tim_deposit"],
+                    "name": org_spec["name"],
+                }
+                pgquery.write_db(tim_deposit_query, params=tim_deposit_params)
 
         if "snmp_monitoring" in org_spec:
-            snmp_monitoring_query = (
-                "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
-                "SELECT ro.rsu_id, :snmp_monitoring "
-                "FROM public.rsu_organization ro "
-                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                "WHERE org.name = :name "
-                "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
-            )
-            snmp_monitoring_params = {
-                "snmp_monitoring": "TRUE" if org_spec["snmp_monitoring"] is True else "FALSE",
-                "name": org_spec["name"],
-            }
-            pgquery.write_db(snmp_monitoring_query, params=snmp_monitoring_params)
+            is_bulk_update = request.endpoint in [
+                "adminorgtimdeposit",
+                "adminorgsnmpmonitoring",
+            ]
+            if is_bulk_update:
+                logging.info(f"Bulk updating SNMP monitoring for all RSUs in organization {org_spec['name']} to {org_spec['snmp_monitoring']}")
+                snmp_monitoring_query = (
+                    "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
+                    "SELECT ro.rsu_id, :snmp_monitoring "
+                    "FROM public.rsu_organization ro "
+                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                    "WHERE org.name = :name "
+                    "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
+                )
+                snmp_monitoring_params = {
+                    "snmp_monitoring": org_spec["snmp_monitoring"],
+                    "name": org_spec["name"],
+                }
+                pgquery.write_db(snmp_monitoring_query, params=snmp_monitoring_params)
 
         if len(org_spec["users_to_add"]) > 0:
             query_rows: list[tuple[str, dict]] = []
@@ -537,6 +551,7 @@ class AdminOrgPatchSchema(Schema):
     intersections_to_remove = fields.List(fields.Integer, required=True)
     tim_deposit = fields.Boolean(required=False)
     snmp_monitoring = fields.Boolean(required=False)
+    endpoint = fields.Str(required=False)
 
 
 class AdminOrg(Resource):
@@ -597,3 +612,71 @@ class AdminOrg(Resource):
 
         org_name = urllib.request.unquote(request.args["org_name"])
         return (delete_org_authorized(org_name), 200, self.headers)
+
+
+class AdminOrgTimDeposit(Resource):
+    options_headers = {
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "PATCH",
+        "Access-Control-Max-Age": "3600",
+    }
+
+    headers = {
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
+        "Content-Type": "application/json",
+    }
+
+    def options(self):
+        # CORS support
+        return ("", 204, self.options_headers)
+
+    @require_permission(required_role=ORG_ROLE_LITERAL.ADMIN)
+    def patch(self):
+        logging.debug("AdminOrgTimDeposit PATCH requested")
+
+        # Check for main body values
+        schema = AdminOrgPatchSchema()
+        errors = schema.validate(request.json)
+        if errors:
+            logging.error(str(errors))
+            abort(400, str(errors))
+        return (
+            modify_org_authorized(request.json["orig_name"], request.json),
+            200,
+            self.headers,
+        )
+
+
+class AdminOrgSnmpMonitoring(Resource):
+    options_headers = {
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "PATCH",
+        "Access-Control-Max-Age": "3600",
+    }
+
+    headers = {
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
+        "Content-Type": "application/json",
+    }
+
+    def options(self):
+        # CORS support
+        return ("", 204, self.options_headers)
+
+    @require_permission(required_role=ORG_ROLE_LITERAL.ADMIN)
+    def patch(self):
+        logging.debug("AdminOrgSnmpMonitoring PATCH requested")
+
+        # Check for main body values
+        schema = AdminOrgPatchSchema()
+        errors = schema.validate(request.json)
+        if errors:
+            logging.error(str(errors))
+            abort(400, str(errors))
+        return (
+            modify_org_authorized(request.json["orig_name"], request.json),
+            200,
+            self.headers,
+        )
