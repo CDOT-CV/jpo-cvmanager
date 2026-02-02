@@ -20,5 +20,5 @@ UPDATE public.rsu_options SET tim_deposit = FALSE
 WHERE rsu_id IN (
     SELECT rsu_id 
     FROM public.rsu_organization_name 
-    WHERE name = 'Region 1'
+    WHERE name = 'Region 1' -- CDOT-specific, but should be fine if org doesn't exist in other deployments
 );
