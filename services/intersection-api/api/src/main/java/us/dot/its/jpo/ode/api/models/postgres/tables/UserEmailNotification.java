@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Setter
@@ -18,27 +21,40 @@ public class UserEmailNotification {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "email_type_id", nullable = false)
     private EmailType emailType;
 
-    @Column(name = "immediate")
-    private boolean immediate;
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "immediate", nullable = false)
+    private Boolean immediate;
 
-    @Column(name = "hourly")
-    private boolean hourly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "hourly", nullable = false)
+    private Boolean hourly;
 
-    @Column(name = "daily")
-    private boolean daily;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "daily", nullable = false)
+    private Boolean daily;
 
-    @Column(name = "weekly")
-    private boolean weekly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "weekly", nullable = false)
+    private Boolean weekly;
 
-    @Column(name = "monthly")
-    private boolean monthly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "monthly", nullable = false)
+    private Boolean monthly;
+
 
 }
