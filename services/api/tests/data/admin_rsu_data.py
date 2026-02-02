@@ -157,7 +157,11 @@ modify_rsu_sql = (
 )
 
 modify_rsu_options_sql = (
-    "UPDATE public.rsu_options SET tim_deposit=:tim_deposit, snmp_monitoring=:snmp_monitoring WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip)",
+    "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
+    "VALUES ((SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip), :tim_deposit, :snmp_monitoring) "
+    "ON CONFLICT (rsu_id) DO UPDATE SET "
+    "tim_deposit = EXCLUDED.tim_deposit, "
+    "snmp_monitoring = EXCLUDED.snmp_monitoring",
     {
         "rsu_ip": "10.0.0.1",
         "tim_deposit": True,

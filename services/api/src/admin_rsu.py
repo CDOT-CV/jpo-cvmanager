@@ -170,10 +170,11 @@ def modify_rsu_authorized(
 
         # Modify the existing RSU options
         options_query = (
-            "UPDATE public.rsu_options SET "
-            "tim_deposit=:tim_deposit, "
-            "snmp_monitoring=:snmp_monitoring "
-            "WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip)"
+            "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
+            "VALUES ((SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip), :tim_deposit, :snmp_monitoring) "
+            "ON CONFLICT (rsu_id) DO UPDATE SET "
+            "tim_deposit = EXCLUDED.tim_deposit, "
+            "snmp_monitoring = EXCLUDED.snmp_monitoring"
         )
         options_params = {
             "rsu_ip": rsu_ip,
