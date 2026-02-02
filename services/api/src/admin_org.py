@@ -559,8 +559,8 @@ class AdminOrgPatchSchema(Schema):
     rsus_to_remove = fields.List(fields.IPv4(), required=True)
     intersections_to_add = fields.List(fields.Integer, required=True)
     intersections_to_remove = fields.List(fields.Integer, required=True)
-    tim_deposit = fields.Boolean(required=False)
-    snmp_monitoring = fields.Boolean(required=False)
+    tim_deposit = fields.Bool(required=False)
+    snmp_monitoring = fields.Bool(required=False)
 
 
 class AdminOrg(Resource):
