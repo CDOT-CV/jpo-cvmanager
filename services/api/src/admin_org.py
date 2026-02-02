@@ -238,59 +238,59 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
         }
         pgquery.write_db(query, params=params)
 
-        if "tim_deposit" in org_spec:
-            # Check if this is a bulk update or just a regular org edit
-            # If it's a regular org edit, we don't want to reset all RSUs unless explicitly requested
-            try:
-                endpoint = request.endpoint
-            except RuntimeError:
-                endpoint = None
+        # Check if this is a bulk update for tim_deposit or snmp_monitoring
+        try:
+            endpoint = request.endpoint
+        except RuntimeError:
+            endpoint = None
 
-            is_bulk_update = endpoint in [
-                "adminorgtimdeposit",
-                "adminorgsnmpmonitoring",
-            ]
-            if is_bulk_update:
-                logging.info(f"Bulk updating TIM deposit for all RSUs in organization {org_spec['name']} to {org_spec['tim_deposit']}")
-                tim_deposit_query = (
-                    "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
-                    "SELECT ro.rsu_id, :tim_deposit "
-                    "FROM public.rsu_organization ro "
-                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                    "WHERE org.name = :name "
-                    "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
-                )
-                tim_deposit_params = {
-                    "tim_deposit": org_spec["tim_deposit"],
-                    "name": org_spec["name"],
-                }
-                pgquery.write_db(tim_deposit_query, params=tim_deposit_params)
+        is_bulk_update = endpoint in [
+            "adminorgtimdeposit",
+            "adminorgsnmpmonitoring",
+        ]
 
-        if "snmp_monitoring" in org_spec:
-            try:
-                endpoint = request.endpoint
-            except RuntimeError:
-                endpoint = None
+        # Handle bulk updates for tim_deposit and snmp_monitoring
+        if is_bulk_update and ("tim_deposit" in org_spec or "snmp_monitoring" in org_spec):
+            logging.info(f"Bulk updating RSU options for all RSUs in organization {org_spec['name']}")
 
-            is_bulk_update = endpoint in [
-                "adminorgtimdeposit",
-                "adminorgsnmpmonitoring",
-            ]
-            if is_bulk_update:
-                logging.info(f"Bulk updating SNMP monitoring for all RSUs in organization {org_spec['name']} to {org_spec['snmp_monitoring']}")
-                snmp_monitoring_query = (
-                    "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
-                    "SELECT ro.rsu_id, :snmp_monitoring "
-                    "FROM public.rsu_organization ro "
-                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                    "WHERE org.name = :name "
-                    "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
-                )
-                snmp_monitoring_params = {
-                    "snmp_monitoring": org_spec["snmp_monitoring"],
-                    "name": org_spec["name"],
-                }
-                pgquery.write_db(snmp_monitoring_query, params=snmp_monitoring_params)
+            # Build the update query to handle both columns
+            update_columns = []
+            insert_columns = ["rsu_id"]
+            select_columns = ["ro.rsu_id"]
+            params_dict = {"name": org_spec["name"]}
+
+            if "tim_deposit" in org_spec:
+                insert_columns.append("tim_deposit")
+                select_columns.append(":tim_deposit")
+                update_columns.append("tim_deposit = EXCLUDED.tim_deposit")
+                params_dict["tim_deposit"] = org_spec["tim_deposit"]
+            else:
+                # Provide explicit default when not updating tim_deposit
+                insert_columns.append("tim_deposit")
+                select_columns.append("FALSE")
+                update_columns.append("tim_deposit = COALESCE(rsu_options.tim_deposit, FALSE)")
+
+            if "snmp_monitoring" in org_spec:
+                insert_columns.append("snmp_monitoring")
+                select_columns.append(":snmp_monitoring")
+                update_columns.append("snmp_monitoring = EXCLUDED.snmp_monitoring")
+                params_dict["snmp_monitoring"] = org_spec["snmp_monitoring"]
+            else:
+                # Provide explicit default when not updating snmp_monitoring
+                insert_columns.append("snmp_monitoring")
+                select_columns.append("FALSE")
+                update_columns.append("snmp_monitoring = COALESCE(rsu_options.snmp_monitoring, FALSE)")
+
+            bulk_update_query = (
+                f"INSERT INTO public.rsu_options ({', '.join(insert_columns)}) "
+                f"SELECT {', '.join(select_columns)} "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                f"ON CONFLICT (rsu_id) DO UPDATE SET {', '.join(update_columns)}"
+            )
+
+            pgquery.write_db(bulk_update_query, params=params_dict)
 
         if len(org_spec["users_to_add"]) > 0:
             query_rows: list[tuple[str, dict]] = []
