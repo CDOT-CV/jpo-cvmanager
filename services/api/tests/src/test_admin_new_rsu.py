@@ -1,6 +1,5 @@
 from unittest.mock import patch, MagicMock, call
 import pytest
-from common.auth_tools import PermissionResult
 import api.src.admin_new_rsu as admin_new_rsu
 import api.tests.data.admin_new_rsu_data as admin_new_rsu_data
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
