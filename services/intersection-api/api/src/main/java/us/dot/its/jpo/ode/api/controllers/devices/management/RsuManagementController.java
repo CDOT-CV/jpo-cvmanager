@@ -38,7 +38,7 @@ import us.dot.its.jpo.ode.api.services.RsuManagementService;
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
-@RequestMapping("/devices/management/rsu")
+@RequestMapping("/devices/management/rsus")
 @RequiredArgsConstructor
 public class RsuManagementController {
     private final RsuManagementService rsuManagementService;
