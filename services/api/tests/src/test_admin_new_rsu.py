@@ -125,6 +125,7 @@ def test_add_rsu_success_commsignia(mock_pgquery, mock_check_safe_input):
     assert admin_new_rsu_data.rsu_query_commsignia in str(mock_pgquery.call_args_list[0])
     assert "rsu_options" in str(mock_pgquery.call_args_list[1])
     assert admin_new_rsu_data.rsu_org_query in str(mock_pgquery.call_args_list[2])
+    assert actual_msg == expected_msg
 
 
 @patch("api.src.admin_new_rsu.check_safe_input")
