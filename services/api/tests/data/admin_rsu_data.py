@@ -195,6 +195,10 @@ delete_rsu_calls = [
         {"rsu_ip": "10.11.81.12"},
     ),
     (
+        "DELETE FROM public.rsu_options WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
+        {"rsu_ip": "10.11.81.12"},
+    ),
+    (
         "DELETE FROM public.snmp_msgfwd_config WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
         {"rsu_ip": "10.11.81.12"},
     ),

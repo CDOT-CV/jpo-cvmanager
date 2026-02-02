@@ -301,16 +301,16 @@ def test_delete_rsu(mock_write_db):
             params=admin_rsu_data.delete_rsu_calls[2][1],
         ),
         call(
-            "DELETE FROM public.rsu_options WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
-            params={"rsu_ip": "10.11.81.12"},
-        ),
-        call(
             admin_rsu_data.delete_rsu_calls[3][0],
             params=admin_rsu_data.delete_rsu_calls[3][1],
         ),
         call(
             admin_rsu_data.delete_rsu_calls[4][0],
             params=admin_rsu_data.delete_rsu_calls[4][1],
+        ),
+        call(
+            admin_rsu_data.delete_rsu_calls[5][0],
+            params=admin_rsu_data.delete_rsu_calls[5][1],
         ),
     ]
     mock_write_db.assert_has_calls(calls)
