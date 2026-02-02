@@ -185,7 +185,7 @@ public class RsuManagementService {
         String manufacturerName = parts[0];
         String modelName = parts[1];
 
-        return rsuModelRepository.findByNameAndManufacturer(modelName, manufacturerName)
+        return rsuModelRepository.findByNameAndManufacturerName(modelName, manufacturerName)
                 .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelStr));
     }
 

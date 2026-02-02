@@ -185,8 +185,8 @@ class RsuManagementControllerTest {
             assertEquals(2, result.getAllowedSelections().getSnmpVersionGroups().size());
             assertEquals(2, result.getAllowedSelections().getOrganizations().size());
 
-            verify(RsuManagementService).getRsuInfo(rsuIp);
-            verify(RsuManagementService).getAllowedSelections(username);
+            verify(rsuManagementService).getRsuInfo(rsuIp);
+            verify(rsuManagementService).getAllowedSelections(username);
         }
     }
 
@@ -204,8 +204,8 @@ class RsuManagementControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
 
-        verify(RsuManagementService).getRsuInfo(rsuIp);
-        verify(RsuManagementService, never()).getAllowedSelections(any());
+        verify(rsuManagementService).getRsuInfo(rsuIp);
+        verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 
     @Test
@@ -220,7 +220,7 @@ class RsuManagementControllerTest {
                 IllegalArgumentException.class,
                 () -> rsuManagementController.getSingleRsuData(organization, invalidRsuIp));
 
-        verify(RsuManagementService).getRsuInfo(invalidRsuIp);
-        verify(RsuManagementService, never()).getAllowedSelections(any());
+        verify(rsuManagementService).getRsuInfo(invalidRsuIp);
+        verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 }
