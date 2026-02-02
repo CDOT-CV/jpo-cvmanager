@@ -561,7 +561,6 @@ class AdminOrgPatchSchema(Schema):
     intersections_to_remove = fields.List(fields.Integer, required=True)
     tim_deposit = fields.Boolean(required=False)
     snmp_monitoring = fields.Boolean(required=False)
-    endpoint = fields.Str(required=False)
 
 
 class AdminOrg(Resource):
