@@ -67,7 +67,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <Typography
           variant="body2"
           sx={{
-            color: rowData.tim_deposit ? theme.palette.success.main : theme.palette.error.main,
+            color: rowData.tim_deposit ? theme.palette.success.light : theme.palette.error.light,
             fontWeight: 'bold',
           }}
         >
@@ -84,7 +84,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <Typography
           variant="body2"
           sx={{
-            color: rowData.snmp_monitoring ? theme.palette.success.main : theme.palette.error.main,
+            color: rowData.snmp_monitoring ? theme.palette.success.light : theme.palette.error.light,
             fontWeight: 'bold',
           }}
         >
