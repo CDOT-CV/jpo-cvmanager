@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 
 import java.net.InetAddress;
+import java.util.List;
 
 @Repository
 public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer> {
@@ -16,4 +17,8 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
     @Transactional
     @Query("DELETE FROM ScmsHealth ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     void removeScmsHealthByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+
+    @Transactional
+    @Query("DELETE FROM ScmsHealth ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
+    void removeMultipleScmsHealthByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 }

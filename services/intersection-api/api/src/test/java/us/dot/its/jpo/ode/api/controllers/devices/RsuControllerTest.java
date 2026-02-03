@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.controllers.devices.management;
+package us.dot.its.jpo.ode.api.controllers.devices;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.server.ResponseStatusException;
 
-import us.dot.its.jpo.ode.api.models.devices.management.GetModifyRsuDataSingle;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
@@ -30,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class RsuManagementControllerTest {
+class RsuControllerTest {
 
     @Mock
     private RsuManagementService rsuManagementService;
@@ -39,7 +38,7 @@ class RsuManagementControllerTest {
     private SecurityContext securityContext;
 
     @InjectMocks
-    private RsuManagementController rsuManagementController;
+    private RsuController rsuController;
 
     @Test
     void testGetAllRsus_Success() {
@@ -77,7 +76,7 @@ class RsuManagementControllerTest {
 
         when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
 
-        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, pageable);
 
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
@@ -96,7 +95,7 @@ class RsuManagementControllerTest {
 
         when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(emptyPage);
 
-        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
@@ -127,7 +126,7 @@ class RsuManagementControllerTest {
 
         when(rsuManagementService.getAllRsuInfo(organization, pageable)).thenReturn(rsuPage);
 
-        Page<RsuInfoDto> result = rsuManagementController.getAllRsus(organization, pageable);
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
@@ -169,21 +168,12 @@ class RsuManagementControllerTest {
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            GetModifyRsuDataSingle result = rsuManagementController.getSingleRsuData(organization, rsuIp);
+            RsuInfoDto result = rsuController.getSingleRsuData(organization, rsuIp);
 
             assertNotNull(result);
-            assertNotNull(result.getRsuData());
-            assertNotNull(result.getAllowedSelections());
 
-            assertEquals(rsuIp, result.getRsuData().getIpv4Address());
-            assertEquals("I-25", result.getRsuData().getPrimaryRoute());
-
-            assertEquals(2, result.getAllowedSelections().getPrimaryRoutes().size());
-            assertEquals(2, result.getAllowedSelections().getRsuModels().size());
-            assertEquals(2, result.getAllowedSelections().getSshCredentialGroups().size());
-            assertEquals(2, result.getAllowedSelections().getSnmpCredentialGroups().size());
-            assertEquals(2, result.getAllowedSelections().getSnmpVersionGroups().size());
-            assertEquals(2, result.getAllowedSelections().getOrganizations().size());
+            assertEquals(rsuIp, result.getIpv4Address());
+            assertEquals("I-25", result.getPrimaryRoute());
 
             verify(rsuManagementService).getRsuInfo(rsuIp);
             verify(rsuManagementService).getAllowedSelections(username);
@@ -199,7 +189,7 @@ class RsuManagementControllerTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuManagementController.getSingleRsuData(organization, rsuIp));
+                () -> rsuController.getSingleRsuData(organization, rsuIp));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
@@ -218,7 +208,91 @@ class RsuManagementControllerTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> rsuManagementController.getSingleRsuData(organization, invalidRsuIp));
+                () -> rsuController.getSingleRsuData(organization, invalidRsuIp));
+
+        verify(rsuManagementService).getRsuInfo(invalidRsuIp);
+        verify(rsuManagementService, never()).getAllowedSelections(any());
+    }
+
+    @Test
+    void testGetSingleRsuAllowedSelections_Success() {
+        String organization = "TestOrg";
+        String rsuIp = "192.168.1.100";
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfo = new RsuInfoDto(
+                rsuIp,
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
+
+        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
+                Arrays.asList("I-25", "I-70"),
+                Arrays.asList("Commsignia ITS-RS4-M", "Yunex RSU-2X"),
+                Arrays.asList("ssh-group-1", "ssh-group-2"),
+                Arrays.asList("snmp-group-1", "snmp-group-2"),
+                Arrays.asList("v2c", "v3"),
+                Arrays.asList("TestOrg", "OtherOrg"));
+
+        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
+        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
+
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
+
+            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections(organization,
+                    rsuIp);
+
+            assertNotNull(result);
+
+            assertEquals(2, result.getPrimaryRoutes().size());
+            assertEquals(2, result.getRsuModels().size());
+            assertEquals(2, result.getSshCredentialGroups().size());
+            assertEquals(2, result.getSnmpCredentialGroups().size());
+            assertEquals(2, result.getSnmpVersionGroups().size());
+            assertEquals(2, result.getOrganizations().size());
+
+            verify(rsuManagementService).getRsuInfo(rsuIp);
+            verify(rsuManagementService).getAllowedSelections(username);
+        }
+    }
+
+    @Test
+    void testGetSingleRsuAllowedSelections_RsuNotFound() {
+        String organization = "TestOrg";
+        String rsuIp = "192.168.1.999";
+
+        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> rsuController.getSingleRsuAllowedSelections(organization, rsuIp));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("RSU not found", exception.getReason());
+
+        verify(rsuManagementService).getRsuInfo(rsuIp);
+        verify(rsuManagementService, never()).getAllowedSelections(any());
+    }
+
+    @Test
+    void testGetSingleRsuAllowedSelections_InvalidIpAddress() {
+        String organization = "TestOrg";
+        String invalidRsuIp = "invalid-ip";
+
+        when(rsuManagementService.getRsuInfo(invalidRsuIp))
+                .thenThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp));
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.getSingleRsuAllowedSelections(organization, invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
         verify(rsuManagementService, never()).getAllowedSelections(any());

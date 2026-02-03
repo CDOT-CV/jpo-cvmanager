@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -204,5 +205,20 @@ public class RsuManagementService {
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
         }
+    }
+
+    public void deleteMultipleRsusByIpv4Address(List<String> rsuIps) {
+        List<InetAddress> inetAddresses = rsuIps.stream().map(ip -> {
+            try {
+                return InetAddress.getByName(ip);
+            } catch (UnknownHostException e) {
+                throw new IllegalArgumentException("Invalid IP address: " + ip, e);
+            }
+        }).toList();
+        pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
+        rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
+        scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
+        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
+        rsuRepository.deleteByIpv4AddressIn(inetAddresses);
     }
 }

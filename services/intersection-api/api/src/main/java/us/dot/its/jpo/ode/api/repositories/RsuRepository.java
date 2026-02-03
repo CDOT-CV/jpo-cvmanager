@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -51,8 +52,11 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
         String getModel();
     }
 
-
-
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Rsu r WHERE r.ipv4Address IN :ipv4Addresses")
+    void deleteByIpv4AddressIn(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 }
