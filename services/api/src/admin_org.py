@@ -254,33 +254,30 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
             logging.info(f"Bulk updating RSU options for all RSUs in organization {org_spec['name']}")
 
             # Build the update query to handle both columns
+            # Only include columns that are actually being updated to avoid overwriting
+            # other column values with defaults
             update_columns = []
             insert_columns = ["rsu_id"]
             select_columns = ["ro.rsu_id"]
             params_dict = {"name": org_spec["name"]}
 
+            # Only add tim_deposit to the query if it's being updated
             if "tim_deposit" in org_spec:
                 insert_columns.append("tim_deposit")
                 select_columns.append(":tim_deposit")
                 update_columns.append("tim_deposit = EXCLUDED.tim_deposit")
                 params_dict["tim_deposit"] = org_spec["tim_deposit"]
-            else:
-                # Provide explicit default when not updating tim_deposit
-                insert_columns.append("tim_deposit")
-                select_columns.append("FALSE")
-                update_columns.append("tim_deposit = COALESCE(rsu_options.tim_deposit, FALSE)")
 
+            # Only add snmp_monitoring to the query if it's being updated
             if "snmp_monitoring" in org_spec:
                 insert_columns.append("snmp_monitoring")
                 select_columns.append(":snmp_monitoring")
                 update_columns.append("snmp_monitoring = EXCLUDED.snmp_monitoring")
                 params_dict["snmp_monitoring"] = org_spec["snmp_monitoring"]
-            else:
-                # Provide explicit default when not updating snmp_monitoring
-                insert_columns.append("snmp_monitoring")
-                select_columns.append("FALSE")
-                update_columns.append("snmp_monitoring = COALESCE(rsu_options.snmp_monitoring, FALSE)")
 
+            # This upsert will:
+            # - INSERT new rows with only the specified column(s)
+            # - UPDATE existing rows with only the specified column(s), preserving other values
             bulk_update_query = (
                 f"INSERT INTO public.rsu_options ({', '.join(insert_columns)}) "
                 f"SELECT {', '.join(select_columns)} "
