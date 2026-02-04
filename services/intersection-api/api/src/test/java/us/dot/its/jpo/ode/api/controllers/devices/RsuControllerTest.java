@@ -12,10 +12,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
+import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -39,6 +41,8 @@ class RsuControllerTest {
 
     @InjectMocks
     private RsuController rsuController;
+
+    // ==================== GET ALL RSUS TESTS ====================
 
     @Test
     void testGetAllRsus_Success() {
@@ -135,6 +139,8 @@ class RsuControllerTest {
         verify(rsuManagementService).getAllRsuInfo(organization, pageable);
     }
 
+    // ==================== GET SINGLE RSU TESTS ====================
+
     @Test
     void testGetSingleRsuData_Success() {
         String rsuIp = "192.168.1.100";
@@ -194,6 +200,8 @@ class RsuControllerTest {
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
     }
 
+    // ==================== GET ALLOWED SELECTIONS TESTS ====================
+
     @Test
     void testGetSingleRsuAllowedSelections_Success() {
         String username = "testuser@example.com";
@@ -224,5 +232,232 @@ class RsuControllerTest {
 
             verify(rsuManagementService).getAllowedSelections(username);
         }
+    }
+
+    // ==================== MODIFY RSU TESTS ====================
+
+    @Test
+    void testModifyRsu_Success() {
+        String rsuIp = "192.168.1.100";
+        RsuPatch patch = new RsuPatch();
+        patch.setIpv4Address("192.168.1.101");
+
+        doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch);
+
+        ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+        assertNull(result.getBody());
+
+        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+    }
+
+    @Test
+    void testModifyRsu_RsuNotFound() {
+        String rsuIp = "192.168.1.999";
+        RsuPatch patch = new RsuPatch();
+
+        doThrow(new IllegalArgumentException("RSU not found"))
+                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.modifyRsu(rsuIp, patch));
+
+        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+    }
+
+    @Test
+    void testModifyRsu_InvalidPatch() {
+        String rsuIp = "192.168.1.100";
+        RsuPatch invalidPatch = new RsuPatch();
+        invalidPatch.setIpv4Address("invalid-ip");
+
+        doThrow(new IllegalArgumentException("Invalid IP address"))
+                .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+
+        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+    }
+
+    @Test
+    void testModifyRsu_ServiceException() {
+        String rsuIp = "192.168.1.100";
+        RsuPatch patch = new RsuPatch();
+
+        doThrow(new RuntimeException("Database error"))
+                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+
+        assertThrows(
+                RuntimeException.class,
+                () -> rsuController.modifyRsu(rsuIp, patch));
+
+        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+    }
+
+    // ==================== DELETE SINGLE RSU TESTS ====================
+
+    @Test
+    void testDeleteRsu_Success() {
+        String rsuIp = "192.168.1.100";
+
+        doNothing().when(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+
+        ResponseEntity<Void> result = rsuController.deleteRsu(rsuIp);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+        assertNull(result.getBody());
+
+        verify(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+    }
+
+    @Test
+    void testDeleteRsu_RsuNotFound() {
+        String rsuIp = "192.168.1.999";
+
+        doThrow(new IllegalArgumentException("RSU not found"))
+                .when(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.deleteRsu(rsuIp));
+
+        verify(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+    }
+
+    @Test
+    void testDeleteRsu_InvalidIpAddress() {
+        String invalidRsuIp = "invalid-ip";
+
+        doThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp))
+                .when(rsuManagementService).deleteRsuByIpv4Address(invalidRsuIp);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.deleteRsu(invalidRsuIp));
+
+        verify(rsuManagementService).deleteRsuByIpv4Address(invalidRsuIp);
+    }
+
+    @Test
+    void testDeleteRsu_ServiceException() {
+        String rsuIp = "192.168.1.100";
+
+        doThrow(new RuntimeException("Database connection failed"))
+                .when(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+
+        assertThrows(
+                RuntimeException.class,
+                () -> rsuController.deleteRsu(rsuIp));
+
+        verify(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
+    }
+
+    // ==================== DELETE MULTIPLE RSUS TESTS ====================
+
+    @Test
+    void testDeleteRsus_Success() {
+        List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
+
+        doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+
+        ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+        assertNull(result.getBody());
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+    }
+
+    @Test
+    void testDeleteRsus_SingleRsu() {
+        List<String> rsuIps = Arrays.asList("192.168.1.100");
+
+        doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+
+        ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+    }
+
+    @Test
+    void testDeleteRsus_EmptyList() {
+        List<String> emptyList = Arrays.asList();
+
+        doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(emptyList);
+
+        ResponseEntity<Void> result = rsuController.deleteRsus(emptyList);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(emptyList);
+    }
+
+    @Test
+    void testDeleteRsus_SomeNotFound() {
+        List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.999", "192.168.1.101");
+
+        doThrow(new IllegalArgumentException("Some RSUs not found"))
+                .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.deleteRsus(rsuIps));
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+    }
+
+    @Test
+    void testDeleteRsus_InvalidIpInList() {
+        List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
+
+        doThrow(new IllegalArgumentException("Invalid IP address: invalid-ip"))
+                .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> rsuController.deleteRsus(rsuIps));
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+    }
+
+    @Test
+    void testDeleteRsus_LargeList() {
+        List<String> largeList = Arrays.asList(
+                "192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4", "192.168.1.5",
+                "192.168.1.6", "192.168.1.7", "192.168.1.8", "192.168.1.9", "192.168.1.10");
+
+        doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(largeList);
+
+        ResponseEntity<Void> result = rsuController.deleteRsus(largeList);
+
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(largeList);
+    }
+
+    @Test
+    void testDeleteRsus_ServiceException() {
+        List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101");
+
+        doThrow(new RuntimeException("Database transaction failed"))
+                .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+
+        assertThrows(
+                RuntimeException.class,
+                () -> rsuController.deleteRsus(rsuIps));
+
+        verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
     }
 }
