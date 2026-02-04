@@ -152,6 +152,5 @@
     "json",
     "jsonc",
     "markdown"
-  ],
-  "java.debug.settings.onBuildFailureProceed": true
+  ]
 }
