@@ -46,11 +46,13 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY m.name ASC, rm.name ASC")
     List<RsuModelProjection> findAllRsuModels();
 
-    interface RsuModelProjection {
-        String getManufacturer();
-
-        String getModel();
-    }
+    @Query("SELECT o.name " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE r.ipv4Address = :ipv4Address " +
+            "ORDER BY o.name ASC")
+    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
@@ -59,4 +61,10 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     @Transactional
     @Query("DELETE FROM Rsu r WHERE r.ipv4Address IN :ipv4Addresses")
     void deleteByIpv4AddressIn(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
+    interface RsuModelProjection {
+        String getManufacturer();
+
+        String getModel();
+    }
 }

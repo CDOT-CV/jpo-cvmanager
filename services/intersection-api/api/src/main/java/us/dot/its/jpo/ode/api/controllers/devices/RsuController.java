@@ -53,25 +53,6 @@ public class RsuController {
             "serial_number", "serialNumber",
             "scms_id", "issScmsId");
 
-    private Pageable mapSortFields(Pageable pageable) {
-        if (!pageable.getSort().isSorted()) {
-            return pageable;
-        }
-
-        Sort mappedSort = Sort.unsorted();
-
-        for (Sort.Order order : pageable.getSort()) {
-            String property = order.getProperty();
-            String mappedProperty = SORT_FIELD_MAPPING.getOrDefault(property, property);
-            mappedSort = mappedSort.and(Sort.by(order.getDirection(), mappedProperty));
-        }
-
-        return PageRequest.of(
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                mappedSort);
-    }
-
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
@@ -170,5 +151,24 @@ public class RsuController {
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
         return ResponseEntity.noContent().build();
+    }
+
+    private Pageable mapSortFields(Pageable pageable) {
+        if (!pageable.getSort().isSorted()) {
+            return pageable;
+        }
+
+        Sort mappedSort = Sort.unsorted();
+
+        for (Sort.Order order : pageable.getSort()) {
+            String property = order.getProperty();
+            String mappedProperty = SORT_FIELD_MAPPING.getOrDefault(property, property);
+            mappedSort = mappedSort.and(Sort.by(order.getDirection(), mappedProperty));
+        }
+
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                mappedSort);
     }
 }
