@@ -168,7 +168,7 @@ class RsuControllerTest {
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            RsuInfoDto result = rsuController.getSingleRsuData(organization, rsuIp);
+            RsuInfoDto result = rsuController.getSingleRsuData(rsuIp);
 
             assertNotNull(result);
 
@@ -189,7 +189,7 @@ class RsuControllerTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuController.getSingleRsuData(organization, rsuIp));
+                () -> rsuController.getSingleRsuData(rsuIp));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
@@ -208,7 +208,7 @@ class RsuControllerTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> rsuController.getSingleRsuData(organization, invalidRsuIp));
+                () -> rsuController.getSingleRsuData(invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
         verify(rsuManagementService, never()).getAllowedSelections(any());
@@ -247,8 +247,7 @@ class RsuControllerTest {
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections(organization,
-                    rsuIp);
+            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections(rsuIp);
 
             assertNotNull(result);
 
@@ -273,7 +272,7 @@ class RsuControllerTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuController.getSingleRsuAllowedSelections(organization, rsuIp));
+                () -> rsuController.getSingleRsuAllowedSelections(rsuIp));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
@@ -292,7 +291,7 @@ class RsuControllerTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> rsuController.getSingleRsuAllowedSelections(organization, invalidRsuIp));
+                () -> rsuController.getSingleRsuAllowedSelections(invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
         verify(rsuManagementService, never()).getAllowedSelections(any());

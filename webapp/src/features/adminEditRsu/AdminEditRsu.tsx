@@ -351,7 +351,7 @@ const AdminEditRsu = () => {
                           setValue('primary_route', event.target.value as string)
                         }}
                       >
-                        {rsuAllowedSelections.primary_routes.map((route) => (
+                        {rsuAllowedSelections.primary_routes?.map((route) => (
                           <MenuItem key={route} value={route}>
                             {route}
                           </MenuItem>
@@ -431,7 +431,7 @@ const AdminEditRsu = () => {
                           setValue('model', event.target.value as string)
                         }}
                       >
-                        {rsuAllowedSelections.rsu_models.map((model) => (
+                        {rsuAllowedSelections.rsu_models?.map((model) => (
                           <MenuItem key={model} value={model}>
                             {model}
                           </MenuItem>
@@ -483,7 +483,7 @@ const AdminEditRsu = () => {
                       setValue('ssh_credential_group', event.target.value as string)
                     }}
                   >
-                    {rsuAllowedSelections.ssh_credential_groups.map((group) => (
+                    {rsuAllowedSelections.ssh_credential_groups?.map((group) => (
                       <MenuItem key={group} value={group}>
                         {group}
                       </MenuItem>
@@ -510,7 +510,7 @@ const AdminEditRsu = () => {
                           setValue('snmp_credential_group', event.target.value as string)
                         }}
                       >
-                        {rsuAllowedSelections.snmp_credential_groups.map((group) => (
+                        {rsuAllowedSelections.snmp_credential_groups?.map((group) => (
                           <MenuItem key={group} value={group}>
                             {group}
                           </MenuItem>
@@ -536,7 +536,7 @@ const AdminEditRsu = () => {
                           setValue('snmp_version_group', event.target.value as string)
                         }}
                       >
-                        {rsuAllowedSelections.snmp_version_groups.map((ver) => (
+                        {rsuAllowedSelections.snmp_version_groups?.map((ver) => (
                           <MenuItem key={ver} value={ver}>
                             {ver}
                           </MenuItem>
@@ -565,7 +565,7 @@ const AdminEditRsu = () => {
                       setValue('organizations', value)
                     }}
                   >
-                    {rsuAllowedSelections.organizations.map((org) => (
+                    {rsuAllowedSelections.organizations?.map((org) => (
                       <MenuItem key={org} value={org}>
                         {org}
                       </MenuItem>

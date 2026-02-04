@@ -37,7 +37,7 @@ export const rsuApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: ['Rsu'],
+  tagTypes: ['Rsu', 'RsuAllowedSelections'],
   endpoints: (builder) => ({
     getAllRsus: builder.query<PaginatedRsusResponse, GetAllRsusParams>({
       query: ({ organization, page = 0, size = 100, sort = '' }) => {
@@ -106,12 +106,12 @@ export const rsuApiSlice = createApi({
     getRsuAllowedSelections: builder.query<AdminRsuAllowedSelections, string>({
       query: (rsuIp) => {
         return {
-          url: `${getQueryString({
+          url: `allowed-selections${getQueryString({
             rsu_ip: rsuIp,
           })}`,
         }
       },
-      providesTags: (result, error, rsuIp) => [{ type: 'Rsu', id: rsuIp }],
+      providesTags: (result, error, rsuIp) => [{ type: 'RsuAllowedSelections', id: rsuIp }],
     }),
     patchRsu: builder.mutation<void, { rsuIp: string; patch: Partial<AdminRsu> }>({
       query: ({ rsuIp, patch }) => ({
