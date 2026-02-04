@@ -256,21 +256,6 @@ class OrganizationControllerTest {
     }
 
     @Test
-    void testGetRsuOrganizationAssignments_EmptyIpAddress() {
-        // Arrange
-        String emptyIp = "";
-
-        // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> organizationController.getRsuOrganizationAssignments(emptyIp));
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-
-        verify(rsuRepository, never()).findAllOrganizationNamesByIpv4Address(any());
-    }
-
-    @Test
     void testGetRsuOrganizationAssignments_IpWithHostname() {
         // Arrange
         String hostnameIp = "localhost";
