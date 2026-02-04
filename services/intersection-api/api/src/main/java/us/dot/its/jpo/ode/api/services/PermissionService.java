@@ -135,7 +135,7 @@ public class PermissionService {
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
-    public boolean hasRSU(String rsuIP, String role) {
+    public boolean hasRsu(String rsuIP, String role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
             return false;
