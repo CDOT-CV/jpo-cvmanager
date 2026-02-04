@@ -100,7 +100,7 @@ public class RsuController {
     })
     public RsuInfoDto getSingleRsuData(
             @RequestParam(name = "rsu_ip", required = true) String rsuIp) {
-        log.info("Getting RSU data for IP: {} in organization: {}", rsuIp);
+        log.info("Getting RSU data for IP: {}", rsuIp);
         RsuInfoDto rsuInfo = rsuManagementService.getRsuInfo(rsuIp);
         if (rsuInfo == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found");
@@ -111,15 +111,13 @@ public class RsuController {
 
     @Operation(summary = "Get Single RSU Management Data", description = "Get RSU data required for RSU modification page. "
             + "Returns detailed data for the specified RSU along with allowed selections for modification.")
-    @RequestMapping(method = RequestMethod.GET, path = "/allowed-selections", produces = "application/json", params = "rsu_ip")
+    @RequestMapping(method = RequestMethod.GET, path = "/allowed-selections", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
-    public ModifyRsuAllowedSelections getSingleRsuAllowedSelections(
-            @RequestParam(name = "rsu_ip", required = true) String rsuIp) {
-        log.info("Getting RSU allowed selections for IP: {}", rsuIp);
+    public ModifyRsuAllowedSelections getSingleRsuAllowedSelections() {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);

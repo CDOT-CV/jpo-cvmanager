@@ -49,7 +49,7 @@ const AdminEditRsu = () => {
   const { rsuIp } = useParams<{ rsuIp: string }>()
 
   const { data: rsuInfo, isLoading: isLoadingRsu } = useGetRsuQuery(rsuIp!)
-  const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery(rsuIp!)
+  const { data: rsuAllowedSelections, isLoading: isLoadingAllowedSelections } = useGetRsuAllowedSelectionsQuery()
   const [patchRsu, { isLoading: isPatchingRsu }] = usePatchRsuMutation()
 
   const [open, setOpen] = useState(true)

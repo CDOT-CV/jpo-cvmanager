@@ -138,7 +138,6 @@ class RsuControllerTest {
     @Test
     void testGetSingleRsuData_Success() {
         String rsuIp = "192.168.1.100";
-        String username = "testuser@example.com";
 
         RsuInfoDto rsuInfo = new RsuInfoDto(
                 rsuIp,
@@ -155,18 +154,14 @@ class RsuControllerTest {
 
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
 
-        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
-            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
+        RsuInfoDto result = rsuController.getSingleRsuData(rsuIp);
 
-            RsuInfoDto result = rsuController.getSingleRsuData(rsuIp);
+        assertNotNull(result);
 
-            assertNotNull(result);
+        assertEquals(rsuIp, result.getIpv4Address());
+        assertEquals("I-25", result.getPrimaryRoute());
 
-            assertEquals(rsuIp, result.getIpv4Address());
-            assertEquals("I-25", result.getPrimaryRoute());
-
-            verify(rsuManagementService).getRsuInfo(rsuIp);
-        }
+        verify(rsuManagementService).getRsuInfo(rsuIp);
     }
 
     @Test
@@ -201,7 +196,6 @@ class RsuControllerTest {
 
     @Test
     void testGetSingleRsuAllowedSelections_Success() {
-        String rsuIp = "192.168.1.100";
         String username = "testuser@example.com";
 
         ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
@@ -217,7 +211,7 @@ class RsuControllerTest {
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections(rsuIp);
+            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections();
 
             assertNotNull(result);
 
@@ -230,35 +224,5 @@ class RsuControllerTest {
 
             verify(rsuManagementService).getAllowedSelections(username);
         }
-    }
-
-    @Test
-    void testGetSingleRsuAllowedSelections_RsuNotFound() {
-        String rsuIp = "192.168.1.999";
-
-        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> rsuController.getSingleRsuAllowedSelections(rsuIp));
-
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertEquals("RSU not found", exception.getReason());
-
-        verify(rsuManagementService, never()).getAllowedSelections(any());
-    }
-
-    @Test
-    void testGetSingleRsuAllowedSelections_InvalidIpAddress() {
-        String invalidRsuIp = "invalid-ip";
-
-        when(rsuManagementService.getRsuInfo(invalidRsuIp))
-                .thenThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp));
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.getSingleRsuAllowedSelections(invalidRsuIp));
-
-        verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 }

@@ -10,7 +10,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Getter
@@ -19,24 +18,19 @@ import jakarta.validation.constraints.Size;
 @AllArgsConstructor
 public class RsuPatch {
     @JsonProperty("ip")
-    @NotNull
     String ipv4Address;
 
     @JsonProperty("geo_position")
-    @NotNull
     SimplePosition geoPosition;
 
     @JsonProperty("milepost")
-    @NotNull
     Double milepost;
 
     @JsonProperty("primary_route")
-    @NotNull
     @Size(max = 128)
     String primaryRoute;
 
     @JsonProperty("serial_number")
-    @NotNull
     @Size(max = 128)
     String serialNumber;
 
@@ -44,7 +38,6 @@ public class RsuPatch {
     String model;
 
     @JsonProperty("scms_id")
-    @NotNull
     @Size(max = 128)
     String issScmsId;
 
