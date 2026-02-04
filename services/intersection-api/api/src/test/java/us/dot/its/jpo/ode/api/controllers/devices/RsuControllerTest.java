@@ -137,7 +137,6 @@ class RsuControllerTest {
 
     @Test
     void testGetSingleRsuData_Success() {
-        String organization = "TestOrg";
         String rsuIp = "192.168.1.100";
         String username = "testuser@example.com";
 
@@ -154,16 +153,7 @@ class RsuControllerTest {
                 "v3",
                 Arrays.asList("TestOrg"));
 
-        ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
-                Arrays.asList("I-25", "I-70"),
-                Arrays.asList("Commsignia ITS-RS4-M", "Yunex RSU-2X"),
-                Arrays.asList("ssh-group-1", "ssh-group-2"),
-                Arrays.asList("snmp-group-1", "snmp-group-2"),
-                Arrays.asList("v2c", "v3"),
-                Arrays.asList("TestOrg", "OtherOrg"));
-
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
-        when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
@@ -176,13 +166,11 @@ class RsuControllerTest {
             assertEquals("I-25", result.getPrimaryRoute());
 
             verify(rsuManagementService).getRsuInfo(rsuIp);
-            verify(rsuManagementService).getAllowedSelections(username);
         }
     }
 
     @Test
     void testGetSingleRsuData_RsuNotFound() {
-        String organization = "TestOrg";
         String rsuIp = "192.168.1.999";
 
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(null);
@@ -195,12 +183,10 @@ class RsuControllerTest {
         assertEquals("RSU not found", exception.getReason());
 
         verify(rsuManagementService).getRsuInfo(rsuIp);
-        verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 
     @Test
     void testGetSingleRsuData_InvalidIpAddress() {
-        String organization = "TestOrg";
         String invalidRsuIp = "invalid-ip";
 
         when(rsuManagementService.getRsuInfo(invalidRsuIp))
@@ -211,27 +197,12 @@ class RsuControllerTest {
                 () -> rsuController.getSingleRsuData(invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
-        verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 
     @Test
     void testGetSingleRsuAllowedSelections_Success() {
-        String organization = "TestOrg";
         String rsuIp = "192.168.1.100";
         String username = "testuser@example.com";
-
-        RsuInfoDto rsuInfo = new RsuInfoDto(
-                rsuIp,
-                new SimplePosition(39.7392, -105.0844),
-                123.4,
-                "I-25",
-                "RSU123",
-                "SCMS123",
-                "Commsignia ITS-RS4-M",
-                "ssh-group-1",
-                "snmp-group-1",
-                "v3",
-                Arrays.asList("TestOrg"));
 
         ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
                 Arrays.asList("I-25", "I-70"),
@@ -241,7 +212,6 @@ class RsuControllerTest {
                 Arrays.asList("v2c", "v3"),
                 Arrays.asList("TestOrg", "OtherOrg"));
 
-        when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
         when(rsuManagementService.getAllowedSelections(username)).thenReturn(allowedSelections);
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
@@ -258,14 +228,12 @@ class RsuControllerTest {
             assertEquals(2, result.getSnmpVersionGroups().size());
             assertEquals(2, result.getOrganizations().size());
 
-            verify(rsuManagementService).getRsuInfo(rsuIp);
             verify(rsuManagementService).getAllowedSelections(username);
         }
     }
 
     @Test
     void testGetSingleRsuAllowedSelections_RsuNotFound() {
-        String organization = "TestOrg";
         String rsuIp = "192.168.1.999";
 
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(null);
@@ -277,13 +245,11 @@ class RsuControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         assertEquals("RSU not found", exception.getReason());
 
-        verify(rsuManagementService).getRsuInfo(rsuIp);
         verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 
     @Test
     void testGetSingleRsuAllowedSelections_InvalidIpAddress() {
-        String organization = "TestOrg";
         String invalidRsuIp = "invalid-ip";
 
         when(rsuManagementService.getRsuInfo(invalidRsuIp))
@@ -293,7 +259,6 @@ class RsuControllerTest {
                 IllegalArgumentException.class,
                 () -> rsuController.getSingleRsuAllowedSelections(invalidRsuIp));
 
-        verify(rsuManagementService).getRsuInfo(invalidRsuIp);
         verify(rsuManagementService, never()).getAllowedSelections(any());
     }
 }
