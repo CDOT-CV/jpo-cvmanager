@@ -48,7 +48,7 @@ public class PermissionService {
         return roles.indexOf(userRole.toUpperCase()) >= roles.indexOf(requiredRole.toUpperCase());
     }
 
-    private List<String> getQualifiedOrgList(String email, String requiredRole) {
+    public List<String> getQualifiedOrgList(String email, String requiredRole) {
         List<UserOrgRoleProjection> organizationRoles = userRepository.findUserOrgRoles(email);
         return getQualifiedOrgList(organizationRoles, requiredRole);
     }
