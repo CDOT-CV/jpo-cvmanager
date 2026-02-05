@@ -20,6 +20,7 @@ public interface PingRepository extends JpaRepository<Ping, Integer> {
     @Query("DELETE FROM Ping p WHERE p.rsu.ipv4Address = :ipv4Address")
     void removePingByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
+    @Modifying
     @Transactional
     @Query("DELETE FROM Ping ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultiplePingsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);

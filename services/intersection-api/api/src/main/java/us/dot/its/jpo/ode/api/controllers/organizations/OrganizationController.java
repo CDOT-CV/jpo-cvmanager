@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,9 +45,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getRsuIpsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @PageableDefault(size = 100) Pageable pageable) {
-
+            @RequestHeader(name = "Organization", required = true) String organization) {
         return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
                 .map(InetAddress::getHostAddress)
                 .collect(Collectors.toList());

@@ -13,6 +13,7 @@ import org.mapstruct.Named;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
@@ -24,7 +25,7 @@ public interface RsuInfoMapper {
      */
     @Mapping(source = "ipv4Address", target = "ipv4Address", qualifiedByName = "mapInetAddressToString")
     @Mapping(source = "geography", target = "geoPosition", qualifiedByName = "mapGeoPosition")
-    @Mapping(target = "model", expression = "java(mapModelNames(rsu.getModel()))")
+    @Mapping(source = "model", target = "model", qualifiedByName = "mapModelNames")
     @Mapping(source = "credential.nickname", target = "sshCredentialGroup")
     @Mapping(source = "snmpCredential.nickname", target = "snmpCredentialGroup")
     @Mapping(source = "snmpProtocol.nickname", target = "snmpVersionGroup")
@@ -51,7 +52,8 @@ public interface RsuInfoMapper {
      * Combine manufacturer name and model name into a single string
      * Returns format: "Manufacturer Model" (e.g., "Commsignia ITS-RS4-M")
      */
-    default String mapModelNames(us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel rsuModel) {
+    @Named("mapModelNames")
+    default String mapModelNames(RsuModel rsuModel) {
         if (rsuModel == null || rsuModel.getManufacturer() == null) {
             return rsuModel != null ? rsuModel.getName() : null;
         }
