@@ -208,9 +208,10 @@ public class RsuManagementService {
                         .anyMatch(ro -> ro.getOrganization().getName().equals(orgName));
 
                 if (!exists) {
-                    Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Organization not found: " + orgName));
+                    Organization org = organizationRepository.findByName(orgName);
+                    if (org == null) {
+                        throw new IllegalArgumentException("Organization not found: " + orgName);
+                    }
 
                     RsuOrganization rsuOrg = new RsuOrganization();
                     rsuOrg.setRsu(rsu);

@@ -65,8 +65,6 @@ public class RsuController {
     public Page<RsuInfoDto> getAllRsus(
             @RequestHeader(name = "Organization", required = true) String organization,
             @PageableDefault(size = 100) Pageable pageable) {
-        log.info("Getting all RSUs for organization: {}", organization);
-
         Pageable mappedPageable = mapSortFields(pageable);
 
         Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, mappedPageable);
@@ -83,7 +81,6 @@ public class RsuController {
     })
     public RsuInfoDto getSingleRsuData(
             @RequestParam(name = "rsu_ip", required = true) String rsuIp) {
-        log.info("Getting RSU data for IP: {}", rsuIp);
         RsuInfoDto rsuInfo = rsuManagementService.getRsuInfo(rsuIp);
         if (rsuInfo == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found");
@@ -101,7 +98,6 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getSingleRsuAllowedSelections() {
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
         ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(username);
@@ -117,8 +113,6 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
-        log.info("Creating new RSU");
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
         List<String> qualifiedOrgList = permissionService.getQualifiedOrgList(username, "OPERATOR");
@@ -148,8 +142,6 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        log.info("Modifying RSU with IP: {}", rsuIp);
-
         rsuManagementService.modifyRsu(rsuIp, body);
 
         return ResponseEntity.noContent().build();
@@ -163,8 +155,6 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ResponseEntity<Void> deleteRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp) {
-        log.info("Deleting RSU with IP: {}", rsuIp);
-
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
 
         return ResponseEntity.noContent().build();
@@ -178,8 +168,6 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ResponseEntity<Void> deleteRsus(@RequestBody List<String> rsuIps) {
-        log.info("Deleting {} RSUs with IPs: {}", rsuIps.size(), rsuIps);
-
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
         return ResponseEntity.noContent().build();
