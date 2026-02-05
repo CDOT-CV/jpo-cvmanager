@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
@@ -14,9 +16,12 @@ import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
+import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
@@ -37,12 +42,15 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 @RequiredArgsConstructor
 public class RsuManagementService {
 
+    private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final OrganizationRepository organizationRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
+    private final RsuIntersectionRepository rsuIntersectionRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
+    private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
@@ -82,6 +90,7 @@ public class RsuManagementService {
         return allowed;
     }
 
+    @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch) {
         try {
             // 1. Find existing RSU by original IP
@@ -190,6 +199,7 @@ public class RsuManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelStr));
     }
 
+    @Transactional
     public void deleteRsuByIpv4Address(String ipv4Address) {
         try {
             InetAddress inetAddress = InetAddress.getByName(ipv4Address);
@@ -199,6 +209,10 @@ public class RsuManagementService {
             rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
             scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
             snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
+            rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(inetAddress);
+            consecutiveFirmwareUpgradeFailureRepository
+                    .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
+            maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
 
             // Finally, delete the RSU itself
             rsuRepository.removeRsuByIpv4Address(inetAddress);
@@ -207,6 +221,7 @@ public class RsuManagementService {
         }
     }
 
+    @Transactional
     public void deleteMultipleRsusByIpv4Address(List<String> rsuIps) {
         List<InetAddress> inetAddresses = rsuIps.stream().map(ip -> {
             try {
@@ -219,6 +234,12 @@ public class RsuManagementService {
         rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
         scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
         snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
+        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(inetAddresses);
+        consecutiveFirmwareUpgradeFailureRepository
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
+        maxRetryLimitReachedInstanceRepository
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
         rsuRepository.deleteByIpv4AddressIn(inetAddresses);
+
     }
 }
