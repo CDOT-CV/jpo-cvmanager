@@ -82,6 +82,58 @@ public class RsuManagementService {
         return allowed;
     }
 
+    public Rsu createRsu(RsuInfoDto rsuInfoDto) {
+        Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
+        updateRelationships(rsu, rsuInfoDto);
+        rsuRepository.save(rsu);
+        return rsu;
+    }
+
+    public void createRsuOrgRelationship(String orgName, Rsu rsu) {
+        Organization organization = organizationRepository.findByName(orgName);
+        if (organization != null) {
+            RsuOrganization rsuOrg = new RsuOrganization();
+            rsuOrg.setOrganization(organization);
+            rsuOrg.setRsu(rsu);
+            rsuOrganizationRepository.save(rsuOrg);
+        }
+    }
+
+    private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
+        // Update model if provided
+        if (rsuInfoDto.getModel() != null) {
+            RsuModel model = findRsuModelByName(rsuInfoDto.getModel());
+            rsu.setModel(model);
+        }
+
+        // Update SSH credential if provided
+        if (rsuInfoDto.getSshCredentialGroup() != null) {
+            RsuCredential credential = rsuCredentialRepository
+                    .findByNickname(rsuInfoDto.getSshCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SSH credential not found: " + rsuInfoDto.getSshCredentialGroup()));
+            rsu.setCredential(credential);
+        }
+
+        // Update SNMP credential if provided
+        if (rsuInfoDto.getSnmpCredentialGroup() != null) {
+            SnmpCredential snmpCredential = snmpCredentialRepository
+                    .findByNickname(rsuInfoDto.getSnmpCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP credential not found: " + rsuInfoDto.getSnmpCredentialGroup()));
+            rsu.setSnmpCredential(snmpCredential);
+        }
+
+        // Update SNMP protocol if provided
+        if (rsuInfoDto.getSnmpVersionGroup() != null) {
+            SnmpProtocol snmpProtocol = snmpProtocolRepository
+                    .findByNickname(rsuInfoDto.getSnmpVersionGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP protocol not found: " + rsuInfoDto.getSnmpVersionGroup()));
+            rsu.setSnmpProtocol(snmpProtocol);
+        }
+    }
+
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch) {
         try {
             // 1. Find existing RSU by original IP
@@ -156,9 +208,10 @@ public class RsuManagementService {
                         .anyMatch(ro -> ro.getOrganization().getName().equals(orgName));
 
                 if (!exists) {
-                    Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Organization not found: " + orgName));
+                    Organization org = organizationRepository.findByName(orgName);
+                    if (org == null) {
+                        throw new IllegalArgumentException("Organization not found: " + orgName);
+                    }
 
                     RsuOrganization rsuOrg = new RsuOrganization();
                     rsuOrg.setRsu(rsu);

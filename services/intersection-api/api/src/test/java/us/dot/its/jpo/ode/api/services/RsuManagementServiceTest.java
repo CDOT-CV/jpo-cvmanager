@@ -454,7 +454,7 @@ class RsuManagementServiceTest {
         org.setName("NewOrg");
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(organizationRepository.findByName("NewOrg")).thenReturn(Optional.of(org));
+        when(organizationRepository.findByName("NewOrg")).thenReturn(org);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 

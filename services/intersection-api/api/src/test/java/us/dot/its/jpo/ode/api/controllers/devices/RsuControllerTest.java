@@ -13,12 +13,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
@@ -28,6 +31,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +41,13 @@ class RsuControllerTest {
     private RsuManagementService rsuManagementService;
 
     @Mock
+    private PermissionService permissionService;
+
+    @Mock
     private SecurityContext securityContext;
+
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private RsuController rsuController;
@@ -459,5 +469,420 @@ class RsuControllerTest {
                 () -> rsuController.deleteRsus(rsuIps));
 
         verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+    }
+
+    // ==================== CREATE RSU TESTS ====================
+
+    @Test
+    void testCreateRsu_Success() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
+
+        Rsu mockRsu = new Rsu();
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg", "OtherOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+            doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
+
+            ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
+
+            assertNotNull(result);
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            assertNull(result.getBody());
+
+            verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+            verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
+        }
+    }
+
+    @Test
+    void testCreateRsu_MultipleOrganizations() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg", "OtherOrg", "ThirdOrg"));
+
+        Rsu mockRsu = new Rsu();
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg", "OtherOrg", "ThirdOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+            doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
+
+            ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
+
+            assertNotNull(result);
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+            verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
+            verify(rsuManagementService).createRsuOrgRelationship("OtherOrg", mockRsu);
+            verify(rsuManagementService).createRsuOrgRelationship("ThirdOrg", mockRsu);
+            verify(rsuManagementService, times(3)).createRsuOrgRelationship(anyString(), eq(mockRsu));
+        }
+    }
+
+    @Test
+    void testCreateRsu_UnqualifiedOrganization() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg", "UnqualifiedOrg"));
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("User not qualified to modify organizations"));
+            assertTrue(exception.getReason().contains("UnqualifiedOrg"));
+
+            verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
+            verify(rsuManagementService, never()).createRsu(any());
+            verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
+        }
+    }
+
+    @Test
+    void testCreateRsu_MultipleUnqualifiedOrganizations() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg", "UnqualifiedOrg1", "UnqualifiedOrg2"));
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("User not qualified to modify organizations"));
+            assertTrue(exception.getReason().contains("UnqualifiedOrg1"));
+            assertTrue(exception.getReason().contains("UnqualifiedOrg2"));
+
+            verify(rsuManagementService, never()).createRsu(any());
+        }
+    }
+
+    @Test
+    void testCreateRsu_NonexistentOrganization() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("NonexistentOrg"));
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+            assertTrue(exception.getReason().contains("NonexistentOrg"));
+
+            verify(rsuManagementService, never()).createRsu(any());
+        }
+    }
+
+    @Test
+    void testCreateRsu_DuplicateIpAddress() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto))
+                    .thenThrow(new IllegalArgumentException("RSU with IP 192.168.1.100 already exists"));
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+            verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
+        }
+    }
+
+    @Test
+    void testCreateRsu_EmptyOrganizationsList() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList());
+
+        Rsu mockRsu = new Rsu();
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+
+            ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
+
+            assertNotNull(result);
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+            verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
+        }
+    }
+
+    @Test
+    void testCreateRsu_ServiceException() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto))
+                    .thenThrow(new RuntimeException("Database connection failed"));
+
+            assertThrows(
+                    RuntimeException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+        }
+    }
+
+    @Test
+    void testCreateRsu_OrgRelationshipCreationFails() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                Arrays.asList("TestOrg"));
+
+        Rsu mockRsu = new Rsu();
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+            when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+            doThrow(new RuntimeException("Failed to create organization relationship"))
+                    .when(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
+
+            assertThrows(
+                    RuntimeException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService).createRsu(rsuInfoDto);
+            verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
+        }
+    }
+
+    @Test
+    void testCreateRsu_NullOrganizationsList() {
+        String username = "testuser@example.com";
+
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                "192.168.1.100",
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Commsignia ITS-RS4-M",
+                "ssh-group-1",
+                "snmp-group-1",
+                "v3",
+                null);
+
+        List<String> qualifiedOrgs = Arrays.asList("TestOrg");
+
+        try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
+                .mockStatic(SecurityContextHolder.class);
+                MockedStatic<PermissionService> mockedPermissionService = Mockito.mockStatic(PermissionService.class)) {
+
+            mockedSecurityContext.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
+
+            when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
+
+            assertThrows(
+                    NullPointerException.class,
+                    () -> rsuController.createRsu(rsuInfoDto));
+
+            verify(rsuManagementService, never()).createRsu(any());
+        }
     }
 }
