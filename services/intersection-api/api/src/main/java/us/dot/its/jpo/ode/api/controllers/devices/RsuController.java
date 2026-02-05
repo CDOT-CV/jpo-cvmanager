@@ -153,6 +153,11 @@ public class RsuController {
         return ResponseEntity.noContent().build();
     }
 
+    /*
+     * Maps API sort fields to database fields. If no mapping is found, the original
+     * field is used. This allows the API to use more user-friendly field names
+     * while still supporting sorting on database fields.
+     */
     private Pageable mapSortFields(Pageable pageable) {
         if (!pageable.getSort().isSorted()) {
             return pageable;

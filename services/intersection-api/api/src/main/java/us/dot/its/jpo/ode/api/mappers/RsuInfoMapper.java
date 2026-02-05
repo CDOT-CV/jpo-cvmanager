@@ -32,7 +32,7 @@ public interface RsuInfoMapper {
     RsuInfoDto toDto(Rsu rsu);
 
     /**
-     * Combine model name and manufacturer name
+     * Convert InetAddress to String representation (IP address)
      */
     @Named("mapInetAddressToString")
     default String mapInetAddressToString(InetAddress inetAddress) {
@@ -40,15 +40,16 @@ public interface RsuInfoMapper {
     }
 
     /**
-     * Combine model name and manufacturer name
+     * Convert JTS Point geometry to SimplePosition (latitude/longitude)
      */
     @Named("mapGeoPosition")
-    default SimplePosition mapLatitude(Point geography) {
+    default SimplePosition mapGeoPosition(Point geography) {
         return new SimplePosition(geography.getY(), geography.getX());
     }
 
     /**
-     * Combine model name and manufacturer name
+     * Combine manufacturer name and model name into a single string
+     * Returns format: "Manufacturer Model" (e.g., "Commsignia ITS-RS4-M")
      */
     default String mapModelNames(us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel rsuModel) {
         if (rsuModel == null || rsuModel.getManufacturer() == null) {
@@ -59,6 +60,7 @@ public interface RsuInfoMapper {
 
     /**
      * Extract organization names from RsuOrganization list
+     * Returns a list of organization name strings
      */
     @Named("mapOrganizationNames")
     default List<String> mapOrganizationNames(List<RsuOrganization> rsuOrganizations) {
