@@ -22,9 +22,12 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
+import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
@@ -51,6 +54,12 @@ import static org.mockito.Mockito.*;
 class RsuManagementServiceTest {
 
     @Mock
+    private ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
+
+    @Mock
+    private MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
+
+    @Mock
     private OrganizationRepository organizationRepository;
 
     @Mock
@@ -58,6 +67,9 @@ class RsuManagementServiceTest {
 
     @Mock
     private RsuCredentialRepository rsuCredentialRepository;
+
+    @Mock
+    private RsuIntersectionRepository rsuIntersectionRepository;
 
     @Mock
     private RsuOrganizationRepository rsuOrganizationRepository;
@@ -558,6 +570,11 @@ class RsuManagementServiceTest {
         doNothing().when(scmsHealthRepository).removeScmsHealthByIpv4Address(inetAddress);
         doNothing().when(snmpMsgfwdConfigRepository).removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
         doNothing().when(rsuRepository).removeRsuByIpv4Address(inetAddress);
+        doNothing().when(rsuIntersectionRepository).removeRsuIntersectionByIpv4Address(inetAddress);
+        doNothing().when(consecutiveFirmwareUpgradeFailureRepository)
+                .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
+        doNothing().when(maxRetryLimitReachedInstanceRepository)
+                .removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
 
         // Act
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
@@ -595,6 +612,11 @@ class RsuManagementServiceTest {
         doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
         doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
         doNothing().when(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
+        doNothing().when(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
+        doNothing().when(consecutiveFirmwareUpgradeFailureRepository)
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
+        doNothing().when(maxRetryLimitReachedInstanceRepository)
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
         doNothing().when(rsuRepository).deleteByIpv4AddressIn(anyList());
 
         // Act
@@ -617,6 +639,11 @@ class RsuManagementServiceTest {
         doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
         doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
         doNothing().when(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
+        doNothing().when(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
+        doNothing().when(consecutiveFirmwareUpgradeFailureRepository)
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
+        doNothing().when(maxRetryLimitReachedInstanceRepository)
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
         doNothing().when(rsuRepository).deleteByIpv4AddressIn(anyList());
 
         // Act
