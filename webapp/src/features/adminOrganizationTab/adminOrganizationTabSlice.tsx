@@ -31,6 +31,8 @@ export type AdminOrgRsu = {
   ip: string
   primary_route: string
   milepost: number
+  tim_deposit: boolean
+  snmp_monitoring: boolean
 }
 
 export type AdminOrgIntersection = {
@@ -53,6 +55,9 @@ export type adminOrgPatch = {
   rsus_to_remove?: string[]
   intersections_to_add?: string[]
   intersections_to_remove?: string[]
+  tim_deposit?: boolean
+  snmp_monitoring?: boolean
+  endpoint?: string
 }
 
 const initialState = {
@@ -145,7 +150,7 @@ export const editOrg = createAsyncThunk(
     }
 
     const data = await apiHelper._patchData({
-      url: EnvironmentVars.adminOrg,
+      url: json.endpoint ?? EnvironmentVars.adminOrg,
       token,
       body: JSON.stringify(jsonComplete),
     })
@@ -156,6 +161,52 @@ export const editOrg = createAsyncThunk(
         return { success: true, message: '' }
       default:
         return { success: false, message: data.message }
+    }
+  },
+  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
+)
+
+export const updateOrgTimDeposit = createAsyncThunk(
+  'adminOrganizationTab/updateOrgTimDeposit',
+  async (payload: { orgName: string; email: string; timDeposit: boolean }, { getState, dispatch }) => {
+    const { orgName, email, timDeposit } = payload
+
+    const patchJson: adminOrgPatch = {
+      name: orgName,
+      email: email,
+      tim_deposit: timDeposit,
+      endpoint: EnvironmentVars.adminOrgTimDeposit,
+    }
+
+    const res = await dispatch(editOrg(patchJson))
+    if ((res.payload as any).success) {
+      dispatch(getOrgData({ orgName }))
+      return { success: true, message: 'Successfully updated TIM deposit for all RSUs in ' + orgName }
+    } else {
+      return { success: false, message: (res.payload as any).message }
+    }
+  },
+  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
+)
+
+export const updateOrgSnmpMonitoring = createAsyncThunk(
+  'adminOrganizationTab/updateOrgSnmpMonitoring',
+  async (payload: { orgName: string; email: string; snmpMonitoring: boolean }, { getState, dispatch }) => {
+    const { orgName, email, snmpMonitoring } = payload
+
+    const patchJson: adminOrgPatch = {
+      name: orgName,
+      email: email,
+      snmp_monitoring: snmpMonitoring,
+      endpoint: EnvironmentVars.adminOrgSnmpMonitoring,
+    }
+
+    const res = await dispatch(editOrg(patchJson))
+    if ((res.payload as any).success) {
+      dispatch(getOrgData({ orgName }))
+      return { success: true, message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName }
+    } else {
+      return { success: false, message: (res.payload as any).message }
     }
   },
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
@@ -213,6 +264,9 @@ export const adminOrganizationTabSlice = createSlice({
                   break
                 }
               }
+            } else if (state.value.selectedOrg) {
+              const currentOrg = tempData.find((org) => org.name === state.value.selectedOrg.name)
+              state.value.selectedOrg = currentOrg ?? tempData[0]
             } else {
               state.value.selectedOrg = tempData[0]
             }
@@ -255,5 +309,35 @@ export const selectSelectedOrgEmail = (state: RootState) => state.adminOrganizat
 export const selectRsuTableData = (state: RootState) => state.adminOrganizationTab.value.rsuTableData
 export const selectIntersectionTableData = (state: RootState) => state.adminOrganizationTab.value.intersectionTableData
 export const selectUserTableData = (state: RootState) => state.adminOrganizationTab.value.userTableData
+export const selectTimDeposit = (state: RootState) => {
+  const rsus = state.adminOrganizationTab.value.rsuTableData
+  if (Array.isArray(rsus) && rsus.length > 0) {
+    const allTimEnabled = rsus.every((rsu) => rsu.tim_deposit === true)
+    const allTimDisabled = rsus.every((rsu) => rsu.tim_deposit === false)
+    if (allTimEnabled) {
+      return 'Enabled'
+    } else if (allTimDisabled) {
+      return 'Disabled'
+    } else {
+      return 'Mixed'
+    }
+  }
+  return 'Disabled'
+}
+export const selectSnmpMonitoring = (state: RootState) => {
+  const rsus = state.adminOrganizationTab.value.rsuTableData
+  if (Array.isArray(rsus) && rsus.length > 0) {
+    const allSnmpEnabled = rsus.every((rsu) => rsu.snmp_monitoring === true)
+    const allSnmpDisabled = rsus.every((rsu) => rsu.snmp_monitoring === false)
+    if (allSnmpEnabled) {
+      return 'Enabled'
+    } else if (allSnmpDisabled) {
+      return 'Disabled'
+    } else {
+      return 'Mixed'
+    }
+  }
+  return 'Disabled'
+}
 
 export default adminOrganizationTabSlice.reducer
