@@ -651,6 +651,7 @@ describe('reducers', () => {
         ssh_credential_group: 'group1',
         snmp_credential_group: 'group1snmp',
         snmp_version_group: 'version_1',
+        tim_deposit: true,
         organizations: ['org1', 'org2'],
       },
     } as any
