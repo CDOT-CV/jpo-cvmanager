@@ -6,8 +6,10 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +45,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 public class RsuManagementService {
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
+    private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final OrganizationRepository organizationRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
@@ -50,7 +53,6 @@ public class RsuManagementService {
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
-    private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
@@ -204,6 +206,12 @@ public class RsuManagementService {
         try {
             InetAddress inetAddress = InetAddress.getByName(ipv4Address);
 
+            // Check if RSU exists
+            Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
+            if (rsu == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + ipv4Address);
+            }
+
             // Delete related entities first to maintain referential integrity
             pingRepository.removePingByIpv4Address(inetAddress);
             rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
@@ -230,6 +238,21 @@ public class RsuManagementService {
                 throw new IllegalArgumentException("Invalid IP address: " + ip, e);
             }
         }).toList();
+
+        // Check if all RSUs exist
+        List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
+        if (existingRsus.size() != inetAddresses.size()) {
+            // Find which IPs don't exist
+            List<String> existingIps = existingRsus.stream()
+                    .map(rsu -> rsu.getIpv4Address().getHostAddress())
+                    .toList();
+            List<String> missingIps = rsuIps.stream()
+                    .filter(ip -> !existingIps.contains(ip))
+                    .toList();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "RSU(s) not found with IP(s): " + String.join(", ", missingIps));
+        }
+
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
         rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
         scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
@@ -239,7 +262,7 @@ public class RsuManagementService {
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
         maxRetryLimitReachedInstanceRepository
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
-        rsuRepository.deleteByIpv4AddressIn(inetAddresses);
+        rsuRepository.removeByIpv4AddressIn(inetAddresses);
 
     }
 }

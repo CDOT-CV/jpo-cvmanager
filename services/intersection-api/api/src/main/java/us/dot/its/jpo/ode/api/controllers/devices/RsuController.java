@@ -140,7 +140,7 @@ public class RsuController {
 
     @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
     @RequestMapping(method = RequestMethod.DELETE, path = "/batch", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (#rsuIps.?[!@PermissionService.hasRsu(#this, 'OPERATOR')].empty and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
