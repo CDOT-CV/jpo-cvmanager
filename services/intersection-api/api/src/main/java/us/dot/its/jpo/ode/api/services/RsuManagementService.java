@@ -251,6 +251,8 @@ public class RsuManagementService {
                     .toList();
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "RSU(s) not found with IP(s): " + String.join(", ", missingIps));
+        } else if (existingRsus.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
         }
 
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);

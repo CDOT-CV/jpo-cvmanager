@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
@@ -108,7 +110,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetRsuInfo_Success() throws UnknownHostException {
-        // Arrange
         String ipAddress = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(ipAddress);
 
@@ -129,10 +130,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(mockRsu);
         when(rsuMapper.toDto(mockRsu)).thenReturn(mockDto);
 
-        // Act
         RsuInfoDto result = rsuManagementService.getRsuInfo(ipAddress);
 
-        // Assert
         assertNotNull(result);
         assertEquals(ipAddress, result.getIpv4Address());
         assertEquals(123.4, result.getMilepost());
@@ -143,16 +142,13 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetRsuInfo_NotFound() throws UnknownHostException {
-        // Arrange
         String ipAddress = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(ipAddress);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
-        // Act
         RsuInfoDto result = rsuManagementService.getRsuInfo(ipAddress);
 
-        // Assert
         assertNull(result);
         verify(rsuRepository).findByIpv4Address(inetAddress);
         verify(rsuMapper, never()).toDto(any());
@@ -160,10 +156,8 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetRsuInfo_InvalidIpAddress() {
-        // Arrange
         String invalidIpAddress = "invalid-ip";
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.getRsuInfo(invalidIpAddress));
@@ -177,7 +171,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetAllRsuInfo_Success() {
-        // Arrange
         String orgName = "TestOrg";
         Pageable pageable = PageRequest.of(0, 10);
 
@@ -215,10 +208,8 @@ class RsuManagementServiceTest {
         when(rsuMapper.toDto(rsu1)).thenReturn(dto1);
         when(rsuMapper.toDto(rsu2)).thenReturn(dto2);
 
-        // Act
         Page<RsuInfoDto> result = rsuManagementService.getAllRsuInfo(orgName, pageable);
 
-        // Assert
         assertNotNull(result);
         assertEquals(2, result.getTotalElements());
         assertEquals(2, result.getContent().size());
@@ -230,17 +221,14 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetAllRsuInfo_EmptyResult() {
-        // Arrange
         String orgName = "EmptyOrg";
         Pageable pageable = PageRequest.of(0, 10);
         Page<Rsu> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
         when(rsuRepository.findAllByOrganization(orgName, pageable)).thenReturn(emptyPage);
 
-        // Act
         Page<RsuInfoDto> result = rsuManagementService.getAllRsuInfo(orgName, pageable);
 
-        // Assert
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
         assertTrue(result.getContent().isEmpty());
@@ -252,7 +240,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetAllowedSelections_Success() {
-        // Arrange
         String username = "testuser@example.com";
 
         List<String> primaryRoutes = Arrays.asList("I-25", "I-70", "US-36");
@@ -276,10 +263,8 @@ class RsuManagementServiceTest {
         when(snmpProtocolRepository.findAllNicknames()).thenReturn(snmpVersions);
         when(userRepository.findUserOrgRoles(username)).thenReturn(userOrgRoles);
 
-        // Act
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
 
-        // Assert
         assertNotNull(result);
 
         assertEquals(3, result.getPrimaryRoutes().size());
@@ -312,7 +297,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetAllowedSelections_EmptyResults() {
-        // Arrange
         String username = "newuser@example.com";
 
         when(rsuRepository.findAllPrimaryRoutes()).thenReturn(List.of());
@@ -322,10 +306,8 @@ class RsuManagementServiceTest {
         when(snmpProtocolRepository.findAllNicknames()).thenReturn(List.of());
         when(userRepository.findUserOrgRoles(username)).thenReturn(List.of());
 
-        // Act
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
 
-        // Assert
         assertNotNull(result);
         assertTrue(result.getPrimaryRoutes().isEmpty());
         assertTrue(result.getRsuModels().isEmpty());
@@ -339,7 +321,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_Success() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -371,10 +352,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(expectedDto);
 
-        // Act
         RsuInfoDto result = rsuManagementService.modifyRsu(rsuIp, patch);
 
-        // Assert
         assertNotNull(result);
         assertEquals(150.0, result.getMilepost());
         assertEquals("I-70", result.getPrimaryRoute());
@@ -386,7 +365,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_WithModelUpdate() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -406,17 +384,14 @@ class RsuManagementServiceTest {
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 
-        // Act
         rsuManagementService.modifyRsu(rsuIp, patch);
 
-        // Assert
         verify(rsuModelRepository).findByNameAndManufacturerName("RSU-2X", "Yunex");
         verify(rsuRepository).save(existingRsu);
     }
 
     @Test
     void testModifyRsu_WithCredentialUpdates() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -440,10 +415,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 
-        // Act
         rsuManagementService.modifyRsu(rsuIp, patch);
 
-        // Assert
         verify(rsuCredentialRepository).findByNickname("ssh-group-new");
         verify(snmpCredentialRepository).findByNickname("snmp-group-new");
         verify(snmpProtocolRepository).findByNickname("v3");
@@ -451,7 +424,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_WithOrganizationAdditions() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -470,24 +442,20 @@ class RsuManagementServiceTest {
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 
-        // Act
         rsuManagementService.modifyRsu(rsuIp, patch);
 
-        // Assert
         verify(organizationRepository).findByName("NewOrg");
         assertEquals(1, existingRsu.getRsuOrganizations().size());
     }
 
     @Test
     void testModifyRsu_RsuNotFound() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.123";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
         RsuPatch patch = new RsuPatch();
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
@@ -498,11 +466,9 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_InvalidIpAddress() {
-        // Arrange
         String invalidIp = "invalid-ip";
         RsuPatch patch = new RsuPatch();
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(invalidIp, patch));
@@ -513,7 +479,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_ModelNotFound() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -527,7 +492,6 @@ class RsuManagementServiceTest {
         when(rsuModelRepository.findByNameAndManufacturerName(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
@@ -537,7 +501,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testModifyRsu_InvalidModelFormat() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -549,7 +512,6 @@ class RsuManagementServiceTest {
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
@@ -561,10 +523,10 @@ class RsuManagementServiceTest {
 
     @Test
     void testDeleteRsuByIpv4Address_Success() throws UnknownHostException {
-        // Arrange
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
+        doReturn(new Rsu()).when(rsuRepository).findByIpv4Address(any());
         doNothing().when(pingRepository).removePingByIpv4Address(inetAddress);
         doNothing().when(rsuOrganizationRepository).removeRsuOrganizationByIpv4Address(inetAddress);
         doNothing().when(scmsHealthRepository).removeScmsHealthByIpv4Address(inetAddress);
@@ -576,10 +538,8 @@ class RsuManagementServiceTest {
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
 
-        // Act
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
 
-        // Assert
         verify(pingRepository).removePingByIpv4Address(inetAddress);
         verify(rsuOrganizationRepository).removeRsuOrganizationByIpv4Address(inetAddress);
         verify(scmsHealthRepository).removeScmsHealthByIpv4Address(inetAddress);
@@ -593,10 +553,8 @@ class RsuManagementServiceTest {
 
     @Test
     void testDeleteRsuByIpv4Address_InvalidIpAddress() {
-        // Arrange
         String invalidIp = "invalid-ip";
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.deleteRsuByIpv4Address(invalidIp));
@@ -609,9 +567,9 @@ class RsuManagementServiceTest {
 
     @Test
     void testDeleteMultipleRsusByIpv4Address_Success() throws UnknownHostException {
-        // Arrange
         List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
 
+        doReturn(List.of(new Rsu(), new Rsu(), new Rsu())).when(rsuRepository).findByIpv4AddressIn(anyList());
         doNothing().when(pingRepository).removeMultiplePingsByIpv4Address(anyList());
         doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
         doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
@@ -623,10 +581,8 @@ class RsuManagementServiceTest {
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
         doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
-        // Act
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
-        // Assert
         verify(pingRepository).removeMultiplePingsByIpv4Address(anyList());
         verify(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
         verify(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
@@ -640,34 +596,43 @@ class RsuManagementServiceTest {
     }
 
     @Test
+    void testDeleteMultipleRsusByIpv4Address_NotFound() throws UnknownHostException {
+        List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName("192.168.1.100"));
+
+        doReturn(List.of(rsu)).when(rsuRepository).findByIpv4AddressIn(anyList());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps));
+
+        assertTrue(exception.getMessage().contains("RSU(s) not found with IP(s): 192.168.1.101, 192.168.1.102"));
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+
+        verify(rsuRepository, never()).removeByIpv4AddressIn(anyList());
+    }
+
+    @Test
     void testDeleteMultipleRsusByIpv4Address_EmptyList() {
-        // Arrange
         List<String> emptyList = Arrays.asList();
 
-        doNothing().when(pingRepository).removeMultiplePingsByIpv4Address(anyList());
-        doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
-        doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
-        doNothing().when(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
-        doNothing().when(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
-        doNothing().when(consecutiveFirmwareUpgradeFailureRepository)
-                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
-        doNothing().when(maxRetryLimitReachedInstanceRepository)
-                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
-        doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
+        doReturn(List.of()).when(rsuRepository).findByIpv4AddressIn(anyList());
 
-        // Act
-        rsuManagementService.deleteMultipleRsusByIpv4Address(emptyList);
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> rsuManagementService.deleteMultipleRsusByIpv4Address(emptyList));
 
-        // Assert
-        verify(rsuRepository).removeByIpv4AddressIn(anyList());
+        assertTrue(exception.getMessage().contains("No valid RSU IP addresses provided"));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+
+        verify(rsuRepository, never()).removeByIpv4AddressIn(anyList());
     }
 
     @Test
     void testDeleteMultipleRsusByIpv4Address_InvalidIpInList() {
-        // Arrange
         List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
 
-        // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps));
@@ -678,9 +643,9 @@ class RsuManagementServiceTest {
 
     @Test
     void testDeleteMultipleRsusByIpv4Address_SingleRsu() {
-        // Arrange
         List<String> rsuIps = Arrays.asList("192.168.1.100");
 
+        doReturn(List.of(new Rsu())).when(rsuRepository).findByIpv4AddressIn(anyList());
         doNothing().when(pingRepository).removeMultiplePingsByIpv4Address(anyList());
         doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
         doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
@@ -692,10 +657,8 @@ class RsuManagementServiceTest {
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
         doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
-        // Act
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
-        // Assert
         verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 
