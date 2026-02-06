@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS public.rsus
 CREATE TABLE IF NOT EXISTS public.rsu_options
 (
    rsu_id integer NOT NULL,
-   tim_deposit boolean NOT NULL DEFAULT TRUE,
+   tim_deposit boolean NOT NULL DEFAULT FALSE,
    snmp_monitoring boolean NOT NULL DEFAULT FALSE,
    CONSTRAINT rsu_options_pkey PRIMARY KEY (rsu_id),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
