@@ -75,17 +75,17 @@ public interface RsuPatchMapper {
      */
     @Named("mapGeoPosition")
     default Point mapGeoPosition(SimplePosition position) {
-        if (position == null) {
+        if (position == null || position.latitude() == null || position.longitude() == null) {
             return null;
         }
-        
+
         // Create GeometryFactory with SRID 4326 (WGS 84 - standard for GPS coordinates)
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        
+
         // Create coordinate (longitude, latitude) - ORDER MATTERS!
         // PostGIS uses (X, Y) = (longitude, latitude)
         Coordinate coordinate = new Coordinate(position.longitude(), position.latitude());
-        
+
         // Create and return Point
         return geometryFactory.createPoint(coordinate);
     }
@@ -98,7 +98,7 @@ public interface RsuPatchMapper {
         if (point == null) {
             return null;
         }
-        
+
         return new SimplePosition(point.getY(), point.getX()); // latitude, longitude
     }
 }

@@ -34,8 +34,8 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 @RequestMapping("/organizations")
 @RequiredArgsConstructor
 public class OrganizationController {
-    RsuRepository rsuRepository;
-    RsuOrganizationRepository rsuOrganizationRepository;
+    final RsuRepository rsuRepository;
+    final RsuOrganizationRepository rsuOrganizationRepository;
 
     @Operation(summary = "Get RSU IPs by Organization", description = "Retrieves a list of IP addresses for all RSUs belonging to the specified organization.")
     @RequestMapping(path = "rsus", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")

@@ -37,6 +37,9 @@ public interface RsuInfoMapper {
      */
     @Named("mapInetAddressToString")
     default String mapInetAddressToString(InetAddress inetAddress) {
+        if (inetAddress == null) {
+            return null;
+        }
         return inetAddress.getHostAddress();
     }
 
@@ -45,6 +48,9 @@ public interface RsuInfoMapper {
      */
     @Named("mapGeoPosition")
     default SimplePosition mapGeoPosition(Point geography) {
+        if (geography == null) {
+            return null;
+        }
         return new SimplePosition(geography.getY(), geography.getX());
     }
 
@@ -70,6 +76,7 @@ public interface RsuInfoMapper {
             return null;
         }
         return rsuOrganizations.stream()
+                .filter(ro -> ro != null && ro.getOrganization() != null && ro.getOrganization().getName() != null)
                 .map(ro -> ro.getOrganization().getName())
                 .collect(Collectors.toList());
     }

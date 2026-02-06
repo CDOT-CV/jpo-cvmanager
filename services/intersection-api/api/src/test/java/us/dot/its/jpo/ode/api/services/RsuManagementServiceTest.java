@@ -169,7 +169,7 @@ class RsuManagementServiceTest {
                 () -> rsuManagementService.getRsuInfo(invalidIpAddress));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
-        assertTrue(exception.getCause() instanceof UnknownHostException);
+        assertInstanceOf(UnknownHostException.class, exception.getCause());
         verify(rsuRepository, never()).findByIpv4Address(any());
     }
 
@@ -584,6 +584,10 @@ class RsuManagementServiceTest {
         verify(rsuOrganizationRepository).removeRsuOrganizationByIpv4Address(inetAddress);
         verify(scmsHealthRepository).removeScmsHealthByIpv4Address(inetAddress);
         verify(snmpMsgfwdConfigRepository).removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
+        verify(rsuIntersectionRepository).removeRsuIntersectionByIpv4Address(inetAddress);
+        verify(consecutiveFirmwareUpgradeFailureRepository)
+                .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
+        verify(maxRetryLimitReachedInstanceRepository).removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
         verify(rsuRepository).removeRsuByIpv4Address(inetAddress);
     }
 
@@ -617,17 +621,22 @@ class RsuManagementServiceTest {
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
-        doNothing().when(rsuRepository).deleteByIpv4AddressIn(anyList());
+        doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
         // Act
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
         // Assert
         verify(pingRepository).removeMultiplePingsByIpv4Address(anyList());
+        verify(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
         verify(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
+        verify(maxRetryLimitReachedInstanceRepository)
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
         verify(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
+        verify(consecutiveFirmwareUpgradeFailureRepository)
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         verify(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
-        verify(rsuRepository).deleteByIpv4AddressIn(anyList());
+        verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 
     @Test
@@ -644,13 +653,13 @@ class RsuManagementServiceTest {
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
-        doNothing().when(rsuRepository).deleteByIpv4AddressIn(anyList());
+        doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
         // Act
         rsuManagementService.deleteMultipleRsusByIpv4Address(emptyList);
 
         // Assert
-        verify(rsuRepository).deleteByIpv4AddressIn(anyList());
+        verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 
     @Test
@@ -664,11 +673,11 @@ class RsuManagementServiceTest {
                 () -> rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
-        verify(rsuRepository, never()).deleteByIpv4AddressIn(anyList());
+        verify(rsuRepository, never()).removeByIpv4AddressIn(anyList());
     }
 
     @Test
-    void testDeleteMultipleRsusByIpv4Address_SingleRsu() throws UnknownHostException {
+    void testDeleteMultipleRsusByIpv4Address_SingleRsu() {
         // Arrange
         List<String> rsuIps = Arrays.asList("192.168.1.100");
 
@@ -676,13 +685,18 @@ class RsuManagementServiceTest {
         doNothing().when(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(anyList());
         doNothing().when(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(anyList());
         doNothing().when(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
-        doNothing().when(rsuRepository).deleteByIpv4AddressIn(anyList());
+        doNothing().when(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(anyList());
+        doNothing().when(consecutiveFirmwareUpgradeFailureRepository)
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
+        doNothing().when(maxRetryLimitReachedInstanceRepository)
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
+        doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
         // Act
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
         // Assert
-        verify(rsuRepository).deleteByIpv4AddressIn(anyList());
+        verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 
     // ==================== HELPER METHODS ====================
