@@ -90,15 +90,15 @@ public class RsuController {
         return rsuInfo;
     }
 
-    @Operation(summary = "Get Single RSU Management Data", description = "Get RSU data required for RSU modification page. "
+    @Operation(summary = "Get Allowed Selections for RSU Management", description = "Get RSU data required for RSU modification page. "
             + "Returns detailed data for the specified RSU along with allowed selections for modification.")
     @RequestMapping(method = RequestMethod.GET, path = "/allowed-selections", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
-    public ModifyRsuAllowedSelections getSingleRsuAllowedSelections() {
+    public ModifyRsuAllowedSelections getAllowedSelections() {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);

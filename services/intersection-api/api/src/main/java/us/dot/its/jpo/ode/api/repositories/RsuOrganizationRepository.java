@@ -29,7 +29,7 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Query("SELECT ro FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     List<RsuOrganization> findAllByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
-    Optional<RsuOrganization> findByOrganizationName(String organizationName);
+    Optional<RsuOrganization> findByOrganization_Name(String organizationName);
 
     @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.name = :organizationName")
     List<InetAddress> findAllRsuIpsByOrganizationName(@Param("organizationName") String organizationName);

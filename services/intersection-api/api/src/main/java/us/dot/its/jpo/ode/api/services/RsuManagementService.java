@@ -66,7 +66,7 @@ public class RsuManagementService {
             Rsu rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(ipv4Address));
             return rsu != null ? rsuMapper.toDto(rsu) : null;
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
         }
     }
 
@@ -100,7 +100,7 @@ public class RsuManagementService {
             Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
 
             if (existingRsu == null) {
-                throw new IllegalArgumentException("RSU not found with IP: " + rsuIp);
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
             }
 
             // 2. Update only non-null fields using MapStruct
@@ -119,7 +119,7 @@ public class RsuManagementService {
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + rsuIp, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
         }
     }
 
@@ -134,7 +134,7 @@ public class RsuManagementService {
         if (patch.getSshCredentialGroup() != null) {
             RsuCredential credential = rsuCredentialRepository
                     .findByNickname(patch.getSshCredentialGroup())
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "SSH credential not found: " + patch.getSshCredentialGroup()));
             rsu.setCredential(credential);
         }
@@ -143,7 +143,7 @@ public class RsuManagementService {
         if (patch.getSnmpCredentialGroup() != null) {
             SnmpCredential snmpCredential = snmpCredentialRepository
                     .findByNickname(patch.getSnmpCredentialGroup())
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "SNMP credential not found: " + patch.getSnmpCredentialGroup()));
             rsu.setSnmpCredential(snmpCredential);
         }
@@ -152,7 +152,7 @@ public class RsuManagementService {
         if (patch.getSnmpVersionGroup() != null) {
             SnmpProtocol snmpProtocol = snmpProtocolRepository
                     .findByNickname(patch.getSnmpVersionGroup())
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "SNMP protocol not found: " + patch.getSnmpVersionGroup()));
             rsu.setSnmpProtocol(snmpProtocol);
         }
@@ -168,7 +168,7 @@ public class RsuManagementService {
 
                 if (!exists) {
                     Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new IllegalArgumentException(
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                                     "Organization not found: " + orgName));
 
                     RsuOrganization rsuOrg = new RsuOrganization();
@@ -190,7 +190,7 @@ public class RsuManagementService {
         // Parse "Manufacturer Model" format
         String[] parts = modelStr.trim().split("\\s+", 2);
         if (parts.length != 2) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Invalid model format. Expected 'Manufacturer Model', got: " + modelStr);
         }
 
@@ -198,7 +198,7 @@ public class RsuManagementService {
         String modelName = parts[1];
 
         return rsuModelRepository.findByNameAndManufacturerName(modelName, manufacturerName)
-                .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelStr));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model not found: " + modelStr));
     }
 
     @Transactional
@@ -225,7 +225,7 @@ public class RsuManagementService {
             // Finally, delete the RSU itself
             rsuRepository.removeRsuByIpv4Address(inetAddress);
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
         }
     }
 
@@ -235,7 +235,7 @@ public class RsuManagementService {
             try {
                 return InetAddress.getByName(ip);
             } catch (UnknownHostException e) {
-                throw new IllegalArgumentException("Invalid IP address: " + ip, e);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ip, e);
             }
         }).toList();
 
