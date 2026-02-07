@@ -158,8 +158,8 @@ class RsuManagementServiceTest {
     void testGetRsuInfo_InvalidIpAddress() {
         String invalidIpAddress = "invalid-ip";
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
                 () -> rsuManagementService.getRsuInfo(invalidIpAddress));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
@@ -456,8 +456,8 @@ class RsuManagementServiceTest {
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
 
         assertTrue(exception.getMessage().contains("RSU not found"));
@@ -469,8 +469,8 @@ class RsuManagementServiceTest {
         String invalidIp = "invalid-ip";
         RsuPatch patch = new RsuPatch();
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.modifyRsu(invalidIp, patch));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
@@ -492,8 +492,8 @@ class RsuManagementServiceTest {
         when(rsuModelRepository.findByNameAndManufacturerName(anyString(), anyString()))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
 
         assertTrue(exception.getMessage().contains("Model not found"));
@@ -512,8 +512,8 @@ class RsuManagementServiceTest {
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch));
 
         assertTrue(exception.getMessage().contains("Invalid model format"));
@@ -555,8 +555,8 @@ class RsuManagementServiceTest {
     void testDeleteRsuByIpv4Address_InvalidIpAddress() {
         String invalidIp = "invalid-ip";
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.deleteRsuByIpv4Address(invalidIp));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
@@ -633,8 +633,8 @@ class RsuManagementServiceTest {
     void testDeleteMultipleRsusByIpv4Address_InvalidIpInList() {
         List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
                 () -> rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));

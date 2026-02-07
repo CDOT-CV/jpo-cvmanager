@@ -8,13 +8,14 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstance;
+import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstanceId;
 
 import java.net.InetAddress;
 import java.util.List;
 
 @Repository
 public interface MaxRetryLimitReachedInstanceRepository
-        extends JpaRepository<MaxRetryLimitReachedInstance, Integer> {
+        extends JpaRepository<MaxRetryLimitReachedInstance, MaxRetryLimitReachedInstanceId> {
 
     @Modifying
     @Transactional

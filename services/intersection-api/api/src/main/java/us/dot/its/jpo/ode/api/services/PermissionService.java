@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.repositories.UserRepository.UserOrgRoleProjection;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,6 +165,33 @@ public class PermissionService {
         }
 
         return rsuRepository.existsByIpAndOrganizations(ipv4Address, getQualifiedOrgList(username, role));
+    }
+
+    // Allow Connection if the users organization controls the specified RSU unit
+    public boolean hasRsus(List<String> rsuIP, String role) {
+        List<InetAddress> ipv4Addresses = new ArrayList<>();
+        for (String ip : rsuIP) {
+            try {
+                ipv4Addresses.add(InetAddress.getByName(ip));
+            } catch (UnknownHostException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + ip, e);
+            }
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        if (isSuperUser()) {
+            return true;
+        }
+
+        String username = getUsername(auth);
+
+        List<String> authorizedOrgs = getQualifiedOrgList(username, role);
+        List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(authorizedOrgs);
+        return allowedRsuIps.containsAll(ipv4Addresses);
     }
 
     // helper method to make sure authentication is valid

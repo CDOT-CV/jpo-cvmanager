@@ -56,6 +56,13 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY o.name ASC")
     List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
+    @Query("SELECT r.ipv4Address " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE o.name in :organizationNames")
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 
