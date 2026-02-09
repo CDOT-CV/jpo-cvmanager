@@ -37,6 +37,9 @@ class RsuControllerTest {
     private RsuManagementService rsuManagementService;
 
     @Mock
+    private PermissionService permissionService;
+
+    @Mock
     private SecurityContext securityContext;
 
     @InjectMocks
@@ -241,63 +244,79 @@ class RsuControllerTest {
         String rsuIp = "192.168.1.100";
         RsuPatch patch = new RsuPatch();
         patch.setIpv4Address("192.168.1.101");
+        String username = "testuser@example.com";
 
-        doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch);
+        doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
-        ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
+            ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
 
-        assertNotNull(result);
-        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-        assertNull(result.getBody());
+            assertNotNull(result);
+            assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+            assertNull(result.getBody());
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+            verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+        }
     }
 
     @Test
     void testModifyRsu_RsuNotFound() {
         String rsuIp = "192.168.1.999";
         RsuPatch patch = new RsuPatch();
+        String username = "testuser@example.com";
 
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
-                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+                .when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
                 ResponseStatusException.class,
                         () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
     }
+}
 
     @Test
     void testModifyRsu_InvalidPatch() {
         String rsuIp = "192.168.1.100";
         RsuPatch invalidPatch = new RsuPatch();
         invalidPatch.setIpv4Address("invalid-ip");
+        String username = "testuser@example.com";
 
         doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address"))
-                .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+                .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
                 ResponseStatusException.class,
                         () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
     }
+}
 
     @Test
     void testModifyRsu_ServiceException() {
         String rsuIp = "192.168.1.100";
         RsuPatch patch = new RsuPatch();
+        String username = "testuser@example.com";
 
         doThrow(new RuntimeException("Database error"))
-                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+                .when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
                 RuntimeException.class,
                 () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
     }
+}
 
     // ==================== DELETE SINGLE RSU TESTS ====================
 
