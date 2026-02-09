@@ -47,6 +47,7 @@ public class RsuManagementService {
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final OrganizationRepository organizationRepository;
+    private final PermissionService permissionService;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuIntersectionRepository rsuIntersectionRepository;
@@ -93,8 +94,10 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch) {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, String username) {
         try {
+            List<String> authorizedOrgs = permissionService.getQualifiedOrgList(username, "ADMIN");
+
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
             Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
@@ -110,7 +113,7 @@ public class RsuManagementService {
             updateRelationships(existingRsu, rsuPatch);
 
             // 4. Handle organization additions/removals
-            handleOrganizationChanges(existingRsu, rsuPatch);
+            handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
 
             // 5. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
@@ -158,13 +161,23 @@ public class RsuManagementService {
         }
     }
 
-    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch) {
+    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
+
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
+            List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
+                    .filter(org -> !authorizedOrgs.contains(org))
+                    .toList();
+            if (!unqualifiedAdds.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "User does not have permission to add RSU to organization(s): "
+                                + String.join(", ", unqualifiedAdds));
+            }
             for (String orgName : patch.getOrganizationsToAdd()) {
                 // Check if already associated
-                boolean exists = rsu.getRsuOrganizations().stream()
-                        .anyMatch(ro -> ro.getOrganization().getName().equals(orgName));
+                boolean exists = rsuRepository.existsByIpAndOrganizations(
+                        rsu.getIpv4Address(),
+                        List.of(orgName));
 
                 if (!exists) {
                     Organization org = organizationRepository.findByName(orgName)
@@ -174,15 +187,29 @@ public class RsuManagementService {
                     RsuOrganization rsuOrg = new RsuOrganization();
                     rsuOrg.setRsu(rsu);
                     rsuOrg.setOrganization(org);
-                    rsu.getRsuOrganizations().add(rsuOrg);
+
+                    // Save to repository
+                    rsuOrganizationRepository.save(rsuOrg);
                 }
             }
         }
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            rsu.getRsuOrganizations()
-                    .removeIf(ro -> patch.getOrganizationsToRemove().contains(ro.getOrganization().getName()));
+            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
+                    .filter(org -> !authorizedOrgs.contains(org))
+                    .toList();
+            if (!unqualifiedRemoves.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "User does not have permission to remove RSU from organization(s): "
+                                + String.join(", ", unqualifiedRemoves));
+            }
+            for (String orgName : patch.getOrganizationsToRemove()) {
+                // Find and delete the specific association
+                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
+                        rsu.getIpv4Address(),
+                        orgName).ifPresent(rsuOrganizationRepository::delete);
+            }
         }
     }
 

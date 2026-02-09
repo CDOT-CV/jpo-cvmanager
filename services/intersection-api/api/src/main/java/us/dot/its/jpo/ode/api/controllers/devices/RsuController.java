@@ -112,7 +112,9 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        rsuManagementService.modifyRsu(rsuIp, body);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = PermissionService.getUsername(auth);
+        rsuManagementService.modifyRsu(rsuIp, body, username);
 
         return ResponseEntity.noContent().build();
     }
