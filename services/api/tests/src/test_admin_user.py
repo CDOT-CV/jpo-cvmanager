@@ -335,6 +335,65 @@ def test_modify_user_sql_exception(
     assert str(exc_info.value) == "500 Internal Server Error: SQL issue encountered"
 
 
+@patch("api.src.admin_user.pgquery.query_db")
+@patch("api.src.admin_user.check_safe_input")
+@patch("api.src.admin_user.admin_new_user.check_email")
+def test_modify_user_not_found(mock_check_email, mock_check_safe_input, mock_query_db):
+    """Test that BadRequest is raised when user is not found in database"""
+    mock_check_email.return_value = True
+    mock_check_safe_input.return_value = True
+    mock_query_db.return_value = []  # User not found
+
+    with pytest.raises(BadRequest) as exc_info:
+        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good, user_valid)
+
+    assert str(exc_info.value) == "400 Bad Request: User not found"
+
+
+@patch("api.src.admin_user.pgquery.query_db")
+@patch("api.src.admin_user.check_safe_input")
+@patch("api.src.admin_user.admin_new_user.check_email")
+def test_modify_user_non_super_user_grant_super_user(mock_check_email, mock_check_safe_input, mock_query_db):
+    """Test that BadRequest is raised when non-super user tries to grant super user privileges"""
+    mock_check_email.return_value = True
+    mock_check_safe_input.return_value = True
+    mock_query_db.return_value = [["0"]]  # Target user is not a super user
+
+    # Create a non-super user as the requesting user
+    non_super_user = auth_data.get_request_environ_user()
+
+    # Request tries to make the target user a super user
+    request_data = deepcopy(admin_user_data.request_json_good)
+    request_data["super_user"] = True
+
+    with pytest.raises(BadRequest) as exc_info:
+        admin_user.modify_user("test@gmail.com", request_data, non_super_user)
+
+    assert str(exc_info.value) == "400 Bad Request: Only super users can grant super user privileges"
+
+
+@patch("api.src.admin_user.pgquery.query_db")
+@patch("api.src.admin_user.check_safe_input")
+@patch("api.src.admin_user.admin_new_user.check_email")
+def test_modify_user_non_super_user_revoke_super_user(mock_check_email, mock_check_safe_input, mock_query_db):
+    """Test that BadRequest is raised when non-super user tries to revoke super user privileges"""
+    mock_check_email.return_value = True
+    mock_check_safe_input.return_value = True
+    mock_query_db.return_value = [["1"]]  # Target user is a super user
+
+    # Create a non-super user as the requesting user
+    non_super_user = auth_data.get_request_environ_user()
+
+    # Request tries to revoke super user status
+    request_data = deepcopy(admin_user_data.request_json_good)
+    request_data["super_user"] = False
+
+    with pytest.raises(BadRequest) as exc_info:
+        admin_user.modify_user("test@gmail.com", request_data, non_super_user)
+
+    assert str(exc_info.value) == "400 Bad Request: Only super users can revoke super user privileges"
+
+
 # delete_user
 @patch("api.src.admin_user.pgquery.write_db")
 def test_delete_user(mock_write_db):
