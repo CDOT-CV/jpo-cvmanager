@@ -122,7 +122,7 @@ def check_safe_input(user_spec):
     return True
 
 
-def modify_user(orig_email: str, user_spec: dict):
+def modify_user(orig_email: str, user_spec: dict, requesting_user: EnvironWithOrg):
     # Check for special characters for potential SQL injection
     if not admin_new_user.check_email(
         user_spec["email"]
@@ -132,6 +132,10 @@ def modify_user(orig_email: str, user_spec: dict):
         raise BadRequest(
             "No special characters are allowed: !\"#$%&'()*+,./:;<=>?@[\\]^`{|}~. No sequences of '-' characters are allowed"
         )
+
+    # Prevent non-super users from granting super_user privileges
+    if user_spec["super_user"] and not requesting_user.user_info.super_user:
+        raise BadRequest("Only super users can grant super user privileges")
 
     try:
         # Modify the existing user data
@@ -335,7 +339,7 @@ class AdminUser(Resource):
         )
 
         return (
-            modify_user(body["orig_email"], body),
+            modify_user(body["orig_email"], body, permission_result.user),
             200,
             self.headers,
         )
