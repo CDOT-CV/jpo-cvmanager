@@ -235,13 +235,14 @@ class AdminNewRsu(Resource):
         # Check for main body values
         if request.json is None:
             raise BadRequest("No JSON body found")
-        body: dict[str, Any] = request.json
 
         schema = AdminNewRsuSchema()
-        errors = schema.validate(body)
-        if errors:
-            logging.error(str(errors))
-            abort(400, str(errors))
+        try:
+            body = schema.load(request.json)
+        except Exception as e:
+            logging.error(str(e.messages) if hasattr(e, "messages") else str(e))
+            abort(400, str(e.messages) if hasattr(e, "messages") else str(e))
+
         enforce_organization_restrictions(
             user=permission_result.user,
             qualified_orgs=permission_result.qualified_orgs,

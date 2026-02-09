@@ -363,14 +363,15 @@ class AdminRsu(Resource):
 
         # Check for main body values
         schema = AdminRsuPatchSchema()
-        errors = schema.validate(request.json)
-        if errors:
-            logging.error(str(errors))
-            abort(400, str(errors))
+        try:
+            validated_data = schema.load(request.json)
+        except Exception as e:
+            logging.error(str(e.messages) if hasattr(e, "messages") else str(e))
+            abort(400, str(e.messages) if hasattr(e, "messages") else str(e))
 
         return (
             modify_rsu_authorized(
-                orig_ip=request.json["orig_ip"], rsu_spec=request.json
+                orig_ip=validated_data["orig_ip"], rsu_spec=validated_data
             ),
             200,
             self.headers,
