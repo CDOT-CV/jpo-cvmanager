@@ -133,9 +133,23 @@ def modify_user(orig_email: str, user_spec: dict, requesting_user: EnvironWithOr
             "No special characters are allowed: !\"#$%&'()*+,./:;<=>?@[\\]^`{|}~. No sequences of '-' characters are allowed"
         )
 
-    # Prevent non-super users from granting super_user privileges
-    if user_spec["super_user"] and not requesting_user.user_info.super_user:
-        raise BadRequest("Only super users can grant super user privileges")
+    # Get the target user's super_user status from the database
+    target_user_query = "SELECT super_user FROM public.users WHERE email = :orig_email"
+    target_user_data = pgquery.query_db(target_user_query, params={"orig_email": orig_email})
+
+    if len(target_user_data) > 0:
+        target_super_user_status = target_user_data[0][0] == "1"
+    else:
+        raise BadRequest("User not found")
+
+    # Prevent non-super users from modifying super_user privileges
+    if not requesting_user.user_info.super_user:
+        # Prevent granting super_user privileges
+        if user_spec["super_user"] and not target_super_user_status:
+            raise BadRequest("Only super users can grant super user privileges")
+        # Prevent revoking super_user privileges
+        if not user_spec["super_user"] and target_super_user_status:
+            raise BadRequest("Only super users can revoke super user privileges")
 
     try:
         # Modify the existing user data
