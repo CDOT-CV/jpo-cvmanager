@@ -236,15 +236,18 @@ def test_check_safe_input_bad():
 
 
 # modify_user
+@patch("api.src.admin_user.pgquery.query_db")
 @patch("api.src.admin_user.check_safe_input")
 @patch("api.src.admin_user.admin_new_user.check_email")
 @patch("api.src.admin_user.pgquery.write_db")
-def test_modify_user_success(mock_pgquery, mock_check_email, mock_check_safe_input):
+def test_modify_user_success(mock_write_db, mock_check_email, mock_check_safe_input, mock_query_db):
     mock_check_email.return_value = True
     mock_check_safe_input.return_value = True
+    # Mock the query to get target user's super_user status
+    mock_query_db.return_value = [["1"]]  # User exists and is a super user
     expected_msg = {"message": "User successfully modified"}
     actual_msg = admin_user.modify_user(
-        "test@gmail.com", admin_user_data.request_json_good
+        "test@gmail.com", admin_user_data.request_json_good, user_valid
     )
 
     calls = [
@@ -255,7 +258,7 @@ def test_modify_user_success(mock_pgquery, mock_check_email, mock_check_safe_inp
         call(admin_user_data.modify_org_sql, params=admin_user_data.modify_org_params),
         call(admin_user_data.remove_org_sql, params=admin_user_data.remove_org_params),
     ]
-    mock_pgquery.assert_has_calls(calls)
+    mock_write_db.assert_has_calls(calls)
     assert actual_msg == expected_msg
 
 
@@ -265,7 +268,7 @@ def test_modify_user_email_check_fail(mock_pgquery, mock_check_email):
     mock_check_email.return_value = False
 
     with pytest.raises(BadRequest) as exc_info:
-        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good)
+        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good, user_valid)
 
     assert str(exc_info.value) == "400 Bad Request: Email is not valid"
     mock_pgquery.assert_has_calls([])
@@ -282,6 +285,7 @@ def test_modify_user_check_fail(mock_pgquery, mock_check_email, mock_check_safe_
         admin_user.modify_user(
             "test@gmail.com",
             admin_user_data.request_json_good,
+            user_valid,
         )
 
     assert (
@@ -290,18 +294,20 @@ def test_modify_user_check_fail(mock_pgquery, mock_check_email, mock_check_safe_
     )
 
 
+@patch("api.src.admin_user.pgquery.query_db")
 @patch("api.src.admin_user.check_safe_input")
 @patch("api.src.admin_user.admin_new_user.check_email")
 @patch("api.src.admin_user.pgquery.write_db")
 def test_modify_user_generic_exception(
-    mock_pgquery, mock_check_email, mock_check_safe_input
+    mock_pgquery, mock_check_email, mock_check_safe_input, mock_query_db
 ):
     mock_check_email.return_value = True
     mock_check_safe_input.return_value = True
+    mock_query_db.return_value = [["1"]]  # User exists and is a super user
     mock_pgquery.side_effect = SQLAlchemyError("Test")
 
     with pytest.raises(InternalServerError) as exc_info:
-        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good)
+        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good, user_valid)
 
     assert (
         str(exc_info.value)
@@ -309,20 +315,22 @@ def test_modify_user_generic_exception(
     )
 
 
+@patch("api.src.admin_user.pgquery.query_db")
 @patch("api.src.admin_user.check_safe_input")
 @patch("api.src.admin_user.admin_new_user.check_email")
 @patch("api.src.admin_user.pgquery.write_db")
 def test_modify_user_sql_exception(
-    mock_pgquery, mock_check_email, mock_check_safe_input
+    mock_pgquery, mock_check_email, mock_check_safe_input, mock_query_db
 ):
     mock_check_email.return_value = True
     mock_check_safe_input.return_value = True
+    mock_query_db.return_value = [["1"]]  # User exists and is a super user
     orig = MagicMock()
     orig.args = ({"D": "SQL issue encountered"},)
     mock_pgquery.side_effect = IntegrityError("", {}, orig)
 
     with pytest.raises(InternalServerError) as exc_info:
-        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good)
+        admin_user.modify_user("test@gmail.com", admin_user_data.request_json_good, user_valid)
 
     assert str(exc_info.value) == "500 Internal Server Error: SQL issue encountered"
 
