@@ -121,9 +121,19 @@ def test_add_rsu_success_commsignia(mock_pgquery, mock_check_safe_input):
 
     # Check that pgquery.write_db was called 3 times with correct queries
     assert mock_pgquery.call_count == 3
-    assert admin_new_rsu_data.rsu_query_commsignia in str(mock_pgquery.call_args_list[0])
-    assert "rsu_options" in str(mock_pgquery.call_args_list[1])
-    assert admin_new_rsu_data.rsu_org_query in str(mock_pgquery.call_args_list[2])
+    calls = [
+        call(admin_new_rsu_data.rsu_query_commsignia),
+        call(
+            admin_new_rsu_data.rsu_options_query,
+            params={
+                "rsu_ip": "10.0.0.1",
+                "tim_deposit": True,
+                "snmp_monitoring": True,
+            },
+        ),
+        call(admin_new_rsu_data.rsu_org_query),
+    ]
+    mock_pgquery.assert_has_calls(calls)
     assert actual_msg == expected_msg
 
 
@@ -136,9 +146,19 @@ def test_add_rsu_success_yunex(mock_pgquery, mock_check_safe_input):
 
     # Check that pgquery.write_db was called 3 times with correct queries
     assert mock_pgquery.call_count == 3
-    assert admin_new_rsu_data.rsu_query_yunex in str(mock_pgquery.call_args_list[0])
-    assert "rsu_options" in str(mock_pgquery.call_args_list[1])
-    assert admin_new_rsu_data.rsu_org_query in str(mock_pgquery.call_args_list[2])
+    calls = [
+        call(admin_new_rsu_data.rsu_query_yunex),
+        call(
+            admin_new_rsu_data.rsu_options_query,
+            params={
+                "rsu_ip": "10.0.0.1",
+                "tim_deposit": True,
+                "snmp_monitoring": True,
+            },
+        ),
+        call(admin_new_rsu_data.rsu_org_query),
+    ]
+    mock_pgquery.assert_has_calls(calls)
     assert actual_msg == expected_msg
 
 
