@@ -21,6 +21,7 @@ public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConf
     @Query("DELETE FROM SnmpMsgfwdConfig ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     void removeSnmpMsgfwdConfigByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
+    @Modifying
     @Transactional
     @Query("DELETE FROM SnmpMsgfwdConfig ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleSnmpMsgfwdConfigByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);

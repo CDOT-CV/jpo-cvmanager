@@ -24,11 +24,13 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE r.ipv4Address = :rsuIp AND o.name IN :organizations")
-    boolean existsByIpAndOrganizations(@Param("rsuIp") String rsuIp,
+            "WHERE r.ipv4Address = :ipv4Address AND o.name IN :organizations")
+    boolean existsByIpAndOrganizations(@Param("ipv4Address") InetAddress ipv4Address,
             @Param("organizations") List<String> organizations);
 
     Rsu findByIpv4Address(InetAddress ipv4Address);
+
+    List<Rsu> findByIpv4AddressIn(List<InetAddress> ipv4Addresses);
 
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
@@ -54,13 +56,20 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY o.name ASC")
     List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
+    @Query("SELECT r.ipv4Address " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE o.name in :organizationNames")
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM Rsu r WHERE r.ipv4Address IN :ipv4Addresses")
-    void deleteByIpv4AddressIn(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+    void removeByIpv4AddressIn(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     interface RsuModelProjection {
         String getManufacturer();
