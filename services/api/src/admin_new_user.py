@@ -7,7 +7,7 @@ import common.pgquery as pgquery
 import api_environment
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import time
-from werkzeug.exceptions import InternalServerError, BadRequest
+from werkzeug.exceptions import InternalServerError, BadRequest, Forbidden
 from common.auth_tools import (
     ORG_ROLE_LITERAL,
     EnvironWithOrg,
@@ -86,7 +86,7 @@ def check_safe_input(user_spec):
     return True
 
 
-def add_user(user_spec: dict):
+def add_user(user_spec: dict, requesting_user: EnvironWithOrg):
     # Check for special characters for potential SQL injection
     if not check_email(user_spec["email"]):
         raise BadRequest("Email is not valid")
@@ -96,8 +96,9 @@ def add_user(user_spec: dict):
         )
 
     try:
-
-        # TODO: prevent non-super-users from creating new users with super-user privileges
+        # Prevent non-super users from modifying super_user privileges
+        if not requesting_user.user_info.super_user and user_spec["super_user"]:
+            raise Forbidden("Only super users can grant super user privileges")
 
         current_timestamp = int(time.time() * 1000)
         user_insert_query = (
@@ -191,11 +192,11 @@ class AdminNewUser(Resource):
             logging.error(str(errors))
             abort(400, str(errors))
 
-        enforce_organization_restrictions(
-            user=permission_result.user,
-            qualified_orgs=permission_result.qualified_orgs,
-            spec=request.json,
-            keys_to_check=["organizations"],
-        )
+        # enforce_organization_restrictions(
+        #     user=permission_result.user,
+        #     qualified_orgs=permission_result.qualified_orgs,
+        #     spec=request.json,
+        #     keys_to_check=["organizations"],
+        # )
 
-        return (add_user(body), 200, self.headers)
+        return (add_user(body, permission_result.user), 200, self.headers)

@@ -177,3 +177,5 @@ def test_add_user_sql_exception(mock_pgquery, mock_check_email, mock_check_safe_
         admin_new_user.add_user(admin_new_user_data.request_json_good)
 
     assert str(exc_info.value) == "500 Internal Server Error: SQL issue encountered"
+
+# TODO: add tests for attempted privilege escalation scenario
