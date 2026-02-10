@@ -96,6 +96,9 @@ def add_user(user_spec: dict):
         )
 
     try:
+
+        # TODO: prevent non-super-users from creating new users with super-user privileges
+
         current_timestamp = int(time.time() * 1000)
         user_insert_query = (
             "INSERT INTO public.users(email, first_name, last_name, super_user, created_timestamp) "
