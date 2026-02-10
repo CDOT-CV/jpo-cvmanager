@@ -71,7 +71,7 @@ spring:
       dialect: org.hibernate.dialect.PostgreSQLDialect
   ### Spring Mail Settings (If using emailBroker SMTP)
   mail:
-    host: ${INTERSECTION_SMTP_SERVER_IP:localhost}
+    host: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
     port: ${INTERSECTION_SMTP_SERVER_PORT:25}
     username: ${INTERSECTION_SMTP_USERNAME:}
     password: ${INTERSECTION_SMTP_PASSWORD:}
@@ -85,7 +85,7 @@ spring:
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
-  email: true
+  email: ${INTERSECTION_API_ENABLE_EMAILER:true}
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
