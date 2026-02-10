@@ -67,7 +67,6 @@ public class RsuManagementService {
             Rsu rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(ipv4Address));
             return rsu != null ? rsuMapper.toDto(rsu) : null;
         } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
         }
     }
@@ -102,7 +101,9 @@ public class RsuManagementService {
     }
 
     public void createRsuOrgRelationship(String orgName, Rsu rsu) {
-        Organization organization = organizationRepository.findByName(orgName);
+        Organization organization = organizationRepository.findByName(orgName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Organization not found: " + orgName));
         if (organization != null) {
             RsuOrganization rsuOrg = new RsuOrganization();
             rsuOrg.setOrganization(organization);
@@ -297,9 +298,12 @@ public class RsuManagementService {
             scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
             snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
             rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(inetAddress);
+            consecutiveFirmwareUpgradeFailureRepository
+                    .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
             maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
 
             // Finally, delete the RSU itself
+            rsuRepository.removeRsuByIpv4Address(inetAddress);
         } catch (UnknownHostException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
         }
