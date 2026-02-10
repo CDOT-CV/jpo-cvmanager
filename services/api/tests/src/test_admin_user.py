@@ -354,7 +354,7 @@ def test_modify_user_not_found(mock_check_email, mock_check_safe_input, mock_que
 @patch("api.src.admin_user.check_safe_input")
 @patch("api.src.admin_user.admin_new_user.check_email")
 def test_modify_user_non_super_user_grant_super_user(mock_check_email, mock_check_safe_input, mock_query_db):
-    """Test that BadRequest is raised when non-super user tries to grant super user privileges"""
+    """Test that Forbidden is raised when non-super user tries to grant super user privileges"""
     mock_check_email.return_value = True
     mock_check_safe_input.return_value = True
     mock_query_db.return_value = [["0"]]  # Target user is not a super user
@@ -376,7 +376,7 @@ def test_modify_user_non_super_user_grant_super_user(mock_check_email, mock_chec
 @patch("api.src.admin_user.check_safe_input")
 @patch("api.src.admin_user.admin_new_user.check_email")
 def test_modify_user_non_super_user_revoke_super_user(mock_check_email, mock_check_safe_input, mock_query_db):
-    """Test that BadRequest is raised when non-super user tries to revoke super user privileges"""
+    """Test that Forbidden is raised when non-super user tries to revoke super user privileges"""
     mock_check_email.return_value = True
     mock_check_safe_input.return_value = True
     mock_query_db.return_value = [["1"]]  # Target user is a super user
