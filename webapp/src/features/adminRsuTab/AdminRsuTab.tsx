@@ -151,13 +151,9 @@ const AdminRsuTab = () => {
     }
   }
 
-  const handleChangePage = (newPage: number) => {
+  const handlePageChange = (newPage: number, newPageSize: number) => {
     setPage(newPage)
-  }
-
-  const handleChangeRowsPerPage = (newPageSize: number) => {
     setPageSize(newPageSize)
-    setPage(0) // Reset to first page when changing page size
   }
 
   const handleOrderCollectionChange = (orderByCollection: OrderByCollection[]) => {
@@ -188,8 +184,7 @@ const AdminRsuTab = () => {
                   actions={tableActions}
                   page={page}
                   totalCount={totalElements}
-                  onChangePage={handleChangePage}
-                  onChangeRowsPerPage={handleChangeRowsPerPage}
+                  onPageChange={handlePageChange}
                   onOrderCollectionChange={handleOrderCollectionChange}
                 />
               </div>
