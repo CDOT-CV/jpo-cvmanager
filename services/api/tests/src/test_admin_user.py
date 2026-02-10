@@ -4,7 +4,7 @@ import api.src.admin_user as admin_user
 import api.tests.data.admin_user_data as admin_user_data
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from api.tests.data import auth_data
-from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
+from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError, Forbidden
 from copy import deepcopy
 
 user_valid = auth_data.get_request_environ()
@@ -366,10 +366,10 @@ def test_modify_user_non_super_user_grant_super_user(mock_check_email, mock_chec
     request_data = deepcopy(admin_user_data.request_json_good)
     request_data["super_user"] = True
 
-    with pytest.raises(BadRequest) as exc_info:
+    with pytest.raises(Forbidden) as exc_info:
         admin_user.modify_user("test@gmail.com", request_data, non_super_user)
 
-    assert str(exc_info.value) == "400 Bad Request: Only super users can grant super user privileges"
+    assert str(exc_info.value) == "403 Forbidden: Only super users can grant super user privileges"
 
 
 @patch("api.src.admin_user.pgquery.query_db")
@@ -388,10 +388,10 @@ def test_modify_user_non_super_user_revoke_super_user(mock_check_email, mock_che
     request_data = deepcopy(admin_user_data.request_json_good)
     request_data["super_user"] = False
 
-    with pytest.raises(BadRequest) as exc_info:
+    with pytest.raises(Forbidden) as exc_info:
         admin_user.modify_user("test@gmail.com", request_data, non_super_user)
 
-    assert str(exc_info.value) == "400 Bad Request: Only super users can revoke super user privileges"
+    assert str(exc_info.value) == "403 Forbidden: Only super users can revoke super user privileges"
 
 
 # delete_user

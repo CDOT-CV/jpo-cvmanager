@@ -8,7 +8,7 @@ import common.pgquery as pgquery
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import admin_new_user
 import api_environment
-from werkzeug.exceptions import InternalServerError, BadRequest
+from werkzeug.exceptions import InternalServerError, BadRequest, Forbidden
 from common.auth_tools import (
     ORG_ROLE_LITERAL,
     RESOURCE_TYPE,
@@ -146,10 +146,10 @@ def modify_user(orig_email: str, user_spec: dict, requesting_user: EnvironWithOr
     if not requesting_user.user_info.super_user:
         # Prevent granting super_user privileges
         if user_spec["super_user"] and not target_super_user_status:
-            raise BadRequest("Only super users can grant super user privileges")
+            raise Forbidden("Only super users can grant super user privileges")
         # Prevent revoking super_user privileges
         if not user_spec["super_user"] and target_super_user_status:
-            raise BadRequest("Only super users can revoke super user privileges")
+            raise Forbidden("Only super users can revoke super user privileges")
 
     try:
         # Modify the existing user data
