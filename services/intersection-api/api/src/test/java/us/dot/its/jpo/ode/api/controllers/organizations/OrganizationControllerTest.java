@@ -5,8 +5,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -40,7 +38,6 @@ class OrganizationControllerTest {
     void testGetRsuIpsByOrganization_Success() throws UnknownHostException {
         // Arrange
         String organization = "TestOrg";
-        Pageable pageable = PageRequest.of(0, 100);
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
                 InetAddress.getByName("192.168.1.100"),
@@ -51,7 +48,7 @@ class OrganizationControllerTest {
                 .thenReturn(mockIpAddresses);
 
         // Act
-        List<String> result = organizationController.getRsuIpsByOrganization(organization, pageable);
+        List<String> result = organizationController.getRsuIpsByOrganization(organization);
 
         // Assert
         assertNotNull(result);
@@ -67,13 +64,12 @@ class OrganizationControllerTest {
     void testGetRsuIpsByOrganization_EmptyResult() {
         // Arrange
         String organization = "EmptyOrg";
-        Pageable pageable = PageRequest.of(0, 100);
 
         when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization))
                 .thenReturn(Arrays.asList());
 
         // Act
-        List<String> result = organizationController.getRsuIpsByOrganization(organization, pageable);
+        List<String> result = organizationController.getRsuIpsByOrganization(organization);
 
         // Assert
         assertNotNull(result);
@@ -86,7 +82,6 @@ class OrganizationControllerTest {
     void testGetRsuIpsByOrganization_SingleRsu() throws UnknownHostException {
         // Arrange
         String organization = "SingleRsuOrg";
-        Pageable pageable = PageRequest.of(0, 100);
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
                 InetAddress.getByName("192.168.1.100"));
@@ -95,7 +90,7 @@ class OrganizationControllerTest {
                 .thenReturn(mockIpAddresses);
 
         // Act
-        List<String> result = organizationController.getRsuIpsByOrganization(organization, pageable);
+        List<String> result = organizationController.getRsuIpsByOrganization(organization);
 
         // Assert
         assertNotNull(result);
@@ -109,7 +104,6 @@ class OrganizationControllerTest {
     void testGetRsuIpsByOrganization_MultiplePages() throws UnknownHostException {
         // Arrange
         String organization = "LargeOrg";
-        Pageable pageable = PageRequest.of(0, 10);
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
                 InetAddress.getByName("192.168.1.1"),
@@ -122,7 +116,7 @@ class OrganizationControllerTest {
                 .thenReturn(mockIpAddresses);
 
         // Act
-        List<String> result = organizationController.getRsuIpsByOrganization(organization, pageable);
+        List<String> result = organizationController.getRsuIpsByOrganization(organization);
 
         // Assert
         assertNotNull(result);
@@ -135,7 +129,6 @@ class OrganizationControllerTest {
     void testGetRsuIpsByOrganization_IpAddressFormatting() throws UnknownHostException {
         // Arrange
         String organization = "TestOrg";
-        Pageable pageable = PageRequest.of(0, 100);
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
                 InetAddress.getByName("10.0.0.1"),
@@ -146,7 +139,7 @@ class OrganizationControllerTest {
                 .thenReturn(mockIpAddresses);
 
         // Act
-        List<String> result = organizationController.getRsuIpsByOrganization(organization, pageable);
+        List<String> result = organizationController.getRsuIpsByOrganization(organization);
 
         // Assert
         assertEquals("10.0.0.1", result.get(0));
