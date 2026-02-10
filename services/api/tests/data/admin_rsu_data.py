@@ -18,6 +18,8 @@ request_json_good = {
     "serial_number": "test",
     "model": "manufacturer model",
     "scms_id": "test",
+    "tim_deposit": True,
+    "snmp_monitoring": True,
     "ssh_credential_group": "test",
     "snmp_credential_group": "test",
     "snmp_version_group": "test",
@@ -52,6 +54,8 @@ get_rsu_data_return = [
             "milepost": 45,
             "primary_route": "test route",
             "serial_number": "test",
+            "tim_deposit": False,
+            "snmp_monitoring": False,
             "model": "test",
             "iss_scms_id": "test",
             "ssh_credential": "ssh test",
@@ -69,8 +73,10 @@ expected_get_rsu_all = [
         "milepost": 45,
         "primary_route": "test route",
         "serial_number": "test",
-        "model": "test",
         "scms_id": "test",
+        "tim_deposit": False,
+        "snmp_monitoring": False,
+        "model": "test",
         "ssh_credential_group": "ssh test",
         "snmp_credential_group": "snmp test",
         "snmp_version_group": "snmp test",
@@ -82,7 +88,10 @@ expected_get_rsu_query_all = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, "
+    "COALESCE(opt.tim_deposit, FALSE) AS tim_deposit, "
+    "COALESCE(opt.snmp_monitoring, FALSE) AS snmp_monitoring, "
+    "concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -92,6 +101,7 @@ expected_get_rsu_query_all = (
     "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
     "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
     "JOIN public.organizations AS org ON org.organization_id = ro.organization_id "
+    "LEFT JOIN public.rsu_options AS opt ON opt.rsu_id = rsus.rsu_id "
     ") as row"
 )
 
@@ -99,7 +109,10 @@ expected_get_rsu_query_one = (
     "SELECT to_jsonb(row) "
     "FROM ("
     "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-    "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+    "milepost, primary_route, serial_number, iss_scms_id, "
+    "COALESCE(opt.tim_deposit, FALSE) AS tim_deposit, "
+    "COALESCE(opt.snmp_monitoring, FALSE) AS snmp_monitoring, "
+    "concat(man.name, ' ',rm.name) AS model, "
     "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
     "FROM public.rsus "
     "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -108,8 +121,9 @@ expected_get_rsu_query_one = (
     "JOIN public.snmp_credentials AS snmp_cred ON snmp_cred.snmp_credential_id = rsus.snmp_credential_id "
     "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
     "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
-    "JOIN public.organizations AS org ON org.organization_id = ro.organization_id"
-    " WHERE ipv4_address = :rsu_ip"
+    "JOIN public.organizations AS org ON org.organization_id = ro.organization_id "
+    "LEFT JOIN public.rsu_options AS opt ON opt.rsu_id = rsus.rsu_id "
+    "WHERE ipv4_address = :rsu_ip"
     ") as row"
 )
 
@@ -142,6 +156,19 @@ modify_rsu_sql = (
     },
 )
 
+modify_rsu_options_sql = (
+    "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
+    "VALUES ((SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip), :tim_deposit, :snmp_monitoring) "
+    "ON CONFLICT (rsu_id) DO UPDATE SET "
+    "tim_deposit = EXCLUDED.tim_deposit, "
+    "snmp_monitoring = EXCLUDED.snmp_monitoring",
+    {
+        "rsu_ip": "10.0.0.1",
+        "tim_deposit": True,
+        "snmp_monitoring": True,
+    },
+)
+
 add_org_sql = (
     "INSERT INTO public.rsu_organization(rsu_id, organization_id) VALUES"
     " ("
@@ -169,6 +196,10 @@ delete_rsu_calls = [
     ),
     (
         "DELETE FROM public.scms_health WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
+        {"rsu_ip": "10.11.81.12"},
+    ),
+    (
+        "DELETE FROM public.rsu_options WHERE rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)",
         {"rsu_ip": "10.11.81.12"},
     ),
     (
