@@ -47,7 +47,6 @@
         "MONGO_PROCESSED_BSM_COLLECTION_NAME": "processed_bsm",
         "MONGO_PROCESSED_PSM_COLLECTION_NAME": "processed_psm",
         "ENABLE_WZDX_FEATURES": "false",
-        "ENABLE_MOOVE_AI_FEATURES": "false",
         "CORS_DOMAIN": "*",
         "KEYCLOAK_ENDPOINT": "http://localhost:8084",
         "KEYCLOAK_REALM": "cvmanager",
@@ -73,7 +72,11 @@
         "PG_DB_PASS": "postgres",
         "POSTGRES_SERVER_URL": "jdbc:postgresql://localhost:5432",
         "CM_SERVER_URL": "http://localhost:8082",
-        "UNSUBSCRIBE_SECRET_KEY": "b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52"
+        "UNSUBSCRIBE_SECRET_KEY": "b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52",
+        "INTERSECTION_SMTP_USERNAME": "admin",
+        "INTERSECTION_SMTP_PASSWORD": "password",
+        "INTERSECTION_SMTP_AUTH": "true",
+        "INTERSECTION_SMTP_STARTTLS": "false"
       }
     }
   ],

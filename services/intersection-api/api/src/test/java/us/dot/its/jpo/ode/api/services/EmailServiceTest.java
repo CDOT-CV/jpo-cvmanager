@@ -12,7 +12,10 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,7 +30,7 @@ class EmailServiceTest {
     @Mock
     private EmailProvider emailProvider;
     @Mock
-    private PostgresService postgresService;
+    private UserEmailNotificationRepository userEmailNotificationRepository;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
     @Mock
@@ -60,7 +63,7 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationType() {
-        when(postgresService.getUsersByNotificationType("Support Requests", EmailFrequency.IMMEDIATE))
+        when(userEmailNotificationRepository.findUsersByNotificationType("Support Requests", "IMMEDIATE"))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationType(
@@ -72,8 +75,9 @@ class EmailServiceTest {
     }
 
     @Test
-    void testGetUsersForNotificationTypeByRsu() {
-        when(postgresService.getUsersByNotificationTypeAndRsu("Support Requests", "1.1.1.1", EmailFrequency.IMMEDIATE))
+    void testGetUsersForNotificationTypeByRsu() throws Throwable {
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu("Support Requests",
+                "IMMEDIATE", InetAddress.getByName("1.1.1.1")))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByRsu(
@@ -86,8 +90,8 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationTypeByOrganization() {
-        when(postgresService.getUsersByNotificationTypeAndOrganization("Support Requests", "Test Org",
-                EmailFrequency.IMMEDIATE))
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndOrganization("Support Requests", "IMMEDIATE",
+                "Test Org"))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByOrganization(
@@ -106,7 +110,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(intersectionNotificationSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendIntersectionNotificationSummaryEmailSendResponses(data);
@@ -122,7 +127,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
@@ -138,7 +143,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendMessageCounts(data);
@@ -147,7 +152,7 @@ class EmailServiceTest {
     }
 
     @Test
-    void testSendFirmwareUpgradeFailure() {
+    void testSendFirmwareUpgradeFailure() throws UnknownHostException {
         FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
         data.setRsuIp("1.1.1.1");
         EmailContent content = new EmailContent("subject", "body");
@@ -155,7 +160,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"), eq("1.1.1.1"), any()))
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"), eq("IMMEDIATE"), eq(InetAddress.getByName("1.1.1.1"))))
                 .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
@@ -176,7 +181,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);

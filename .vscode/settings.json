@@ -78,8 +78,6 @@
     "MESSAGETYPE",
     "millis",
     "mongosh",
-    "moove",
-    "mooveai",
     "msgfwd",
     "multidict",
     "Multivalued",
@@ -155,5 +153,6 @@
     "json",
     "jsonc",
     "markdown"
-  ]
+  ],
+  "java.debug.settings.onBuildFailureProceed": true
 }

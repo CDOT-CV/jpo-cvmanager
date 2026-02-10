@@ -69,7 +69,7 @@ spring:
       dialect: org.hibernate.dialect.PostgreSQLDialect
   ### Spring Mail Settings (If using emailBroker SMTP)
   mail:
-    host: ${INTERSECTION_SMTP_SERVER_IP:localhost}
+    host: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
     port: ${INTERSECTION_SMTP_SERVER_PORT:1025}
     properties:
       mail:
