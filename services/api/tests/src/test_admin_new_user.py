@@ -5,7 +5,8 @@ import api.tests.data.admin_new_user_data as admin_new_user_data
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 from api.tests.data import auth_data
-from werkzeug.exceptions import BadRequest, InternalServerError
+from werkzeug.exceptions import BadRequest, InternalServerError, Forbidden
+from copy import deepcopy
 
 user_valid = auth_data.get_request_environ()
 
@@ -178,4 +179,23 @@ def test_add_user_sql_exception(mock_pgquery, mock_check_email, mock_check_safe_
 
     assert str(exc_info.value) == "500 Internal Server Error: SQL issue encountered"
 
-# TODO: add tests for attempted privilege escalation scenario
+@patch("time.time")  # Mock time.time
+@patch("api.src.admin_new_user.check_safe_input")
+@patch("api.src.admin_new_user.check_email")
+def test_add_user_non_super_user_grant_super_user(
+        mock_check_email, mock_check_safe_input, mock_time
+):
+    mock_check_email.return_value = True
+    mock_check_safe_input.return_value = True
+    mock_time.return_value = 1678901234  # Mocked Unix time in seconds
+
+    # Create a non-super user as the requesting user
+    non_super_user = auth_data.get_request_environ_user()
+
+    request_data = deepcopy(admin_new_user_data.request_json_good)
+    request_data["super_user"] = True
+
+    with pytest.raises(Forbidden) as exc_info:
+        admin_new_user.add_user(request_data, non_super_user)
+
+    assert str(exc_info.value) == "403 Forbidden: Only super users can grant super user privileges"
