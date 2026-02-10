@@ -85,7 +85,7 @@ spring:
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
-  email: ${INTERSECTION_API_ENABLE_EMAILER:true}
+  email: true
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
