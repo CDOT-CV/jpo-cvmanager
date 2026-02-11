@@ -80,13 +80,13 @@ public class Rsu {
     @OneToOne(mappedBy = "rsu")
     private ConsecutiveFirmwareUpgradeFailure consecutiveFirmwareUpgradeFailure;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<MaxRetryLimitReachedInstance> maxRetryLimitReachedInstances = new LinkedHashSet<>();
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<Ping> pings = new LinkedHashSet<>();
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<RsuIntersection> rsuIntersections = new LinkedHashSet<>();
 
     @OneToOne(mappedBy = "rsu")
@@ -95,9 +95,9 @@ public class Rsu {
     @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<RsuOrganization> rsuOrganizations = new LinkedHashSet<>();
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<ScmsHealth> scmsHealths = new LinkedHashSet<>();
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rsu", fetch = FetchType.LAZY)
     private Set<SnmpMsgfwdConfig> snmpMsgfwdConfigs = new LinkedHashSet<>();
 }
