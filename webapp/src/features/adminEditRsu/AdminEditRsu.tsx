@@ -96,8 +96,6 @@ const AdminEditRsu = () => {
   const watchedSnmpGroup = watch('snmp_credential_group')
   const watchedSnmpVersion = watch('snmp_version_group')
   const watchedOrganizations = watch('organizations')
-  const watchedTimDeposit = watch('tim_deposit')
-  const watchedSnmpMonitoring = watch('snmp_monitoring')
 
   // Initialize form when RSU data loads
   useEffect(() => {
@@ -119,6 +117,8 @@ const AdminEditRsu = () => {
         snmp_credential_group: rsuInfo.snmp_credential_group,
         snmp_version_group: rsuInfo.snmp_version_group,
         organizations: rsuInfo.organizations,
+        tim_deposit: rsuInfo.tim_deposit ?? false,
+        snmp_monitoring: rsuInfo.snmp_monitoring ?? false,
       })
     }
   }, [rsuInfo, reset])
@@ -180,6 +180,16 @@ const AdminEditRsu = () => {
 
       if (orgsChanged) {
         patch.organizations = data.organizations
+      }
+
+      // Check if tim_deposit changed
+      if (data.tim_deposit !== rsuInfo?.tim_deposit) {
+        patch.tim_deposit = data.tim_deposit
+      }
+
+      // Check if snmp_monitoring changed
+      if (data.snmp_monitoring !== rsuInfo?.snmp_monitoring) {
+        patch.snmp_monitoring = data.snmp_monitoring
       }
 
       await patchRsu({ rsuIp: data.orig_ip, patch }).unwrap()
