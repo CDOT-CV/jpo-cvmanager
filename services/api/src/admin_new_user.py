@@ -192,11 +192,11 @@ class AdminNewUser(Resource):
             logging.error(str(errors))
             abort(400, str(errors))
 
-        # enforce_organization_restrictions(
-        #     user=permission_result.user,
-        #     qualified_orgs=permission_result.qualified_orgs,
-        #     spec=request.json,
-        #     keys_to_check=["organizations"],
-        # )
+        enforce_organization_restrictions(
+            user=permission_result.user,
+            qualified_orgs=permission_result.qualified_orgs,
+            spec=request.json,
+            keys_to_check=["organizations"],
+        )
 
         return (add_user(body, permission_result.user), 200, self.headers)
