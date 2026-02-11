@@ -78,10 +78,12 @@ spring:
     properties:
       mail:
         smtp:
+          ssl:
+            trust: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
           auth: ${INTERSECTION_SMTP_AUTH:false}
           starttls:
             enable: ${INTERSECTION_SMTP_STARTTLS:false}
-            required: false
+            required: ${INTERSECTION_SMTP_STARTTLS:false}
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
