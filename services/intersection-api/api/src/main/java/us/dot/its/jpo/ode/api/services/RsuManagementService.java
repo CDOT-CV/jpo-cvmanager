@@ -54,6 +54,7 @@ public class RsuManagementService {
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
+    // TODO: add RsuOptionsRepository
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
@@ -110,7 +111,7 @@ public class RsuManagementService {
             rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
 
             // 3. Update relationships that require database lookups
-            updateRelationships(existingRsu, rsuPatch);
+            updateRelationships(existingRsu, rsuPatch); // TODO: account for rsu options
 
             // 4. Handle organization additions/removals
             handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
