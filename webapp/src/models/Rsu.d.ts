@@ -17,6 +17,7 @@ export type AdminRsu = {
   snmp_version_group: string
   organizations: string[]
   tim_deposit: boolean
+  snmp_monitoring: boolean
 }
 
 export type AdminRsuAllowedSelections = {
