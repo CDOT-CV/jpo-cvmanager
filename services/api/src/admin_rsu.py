@@ -24,7 +24,10 @@ def get_rsu_data(rsu_ip: str, user: EnvironWithOrg, qualified_orgs: list[str]):
         "SELECT to_jsonb(row) "
         "FROM ("
         "SELECT ipv4_address, ST_X(geography::geometry) AS longitude, ST_Y(geography::geometry) AS latitude, "
-        "milepost, primary_route, serial_number, iss_scms_id, concat(man.name, ' ',rm.name) AS model, "
+        "milepost, primary_route, serial_number, iss_scms_id, "
+        "COALESCE(opt.tim_deposit, FALSE) AS tim_deposit, "
+        "COALESCE(opt.snmp_monitoring, FALSE) AS snmp_monitoring, "
+        "concat(man.name, ' ',rm.name) AS model, "
         "rsu_cred.nickname AS ssh_credential, snmp_cred.nickname AS snmp_credential, snmp_ver.nickname AS snmp_version, org.name AS org_name "
         "FROM public.rsus "
         "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rsus.model "
@@ -34,6 +37,7 @@ def get_rsu_data(rsu_ip: str, user: EnvironWithOrg, qualified_orgs: list[str]):
         "JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rsus.snmp_protocol_id "
         "JOIN public.rsu_organization AS ro ON ro.rsu_id = rsus.rsu_id  "
         "JOIN public.organizations AS org ON org.organization_id = ro.organization_id "
+        "LEFT JOIN public.rsu_options AS opt ON opt.rsu_id = rsus.rsu_id "
     )
 
     where_clauses = []
@@ -71,6 +75,8 @@ def get_rsu_data(rsu_ip: str, user: EnvironWithOrg, qualified_orgs: list[str]):
                 "primary_route": row["primary_route"],
                 "serial_number": row["serial_number"],
                 "scms_id": row["iss_scms_id"],
+                "tim_deposit": row["tim_deposit"],
+                "snmp_monitoring": row["snmp_monitoring"],
                 "model": row["model"],
                 "ssh_credential_group": row["ssh_credential"],
                 "snmp_credential_group": row["snmp_credential"],
@@ -162,6 +168,21 @@ def modify_rsu_authorized(
         }
         pgquery.write_db(query, params=params)
 
+        # Modify the existing RSU options
+        options_query = (
+            "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
+            "VALUES ((SELECT rsu_id FROM public.rsus WHERE ipv4_address=:rsu_ip), :tim_deposit, :snmp_monitoring) "
+            "ON CONFLICT (rsu_id) DO UPDATE SET "
+            "tim_deposit = EXCLUDED.tim_deposit, "
+            "snmp_monitoring = EXCLUDED.snmp_monitoring"
+        )
+        options_params = {
+            "rsu_ip": rsu_ip,
+            "tim_deposit": rsu_spec["tim_deposit"],
+            "snmp_monitoring": rsu_spec["snmp_monitoring"],
+        }
+        pgquery.write_db(options_query, params=options_params)
+
         # Add the rsu-to-organization relationships for the organizations to add
         if len(rsu_spec["organizations_to_add"]) > 0:
             query_rows: list[tuple[str, dict]] = []
@@ -242,6 +263,13 @@ def delete_rsu_authorized(rsu_ip: str):
     )
     pgquery.write_db(scms_remove_query, params={"rsu_ip": rsu_ip})
 
+    # Delete RSU options
+    options_remove_query = (
+        "DELETE FROM public.rsu_options WHERE "
+        "rsu_id=(SELECT rsu_id FROM public.rsus WHERE ipv4_address = :rsu_ip)"
+    )
+    pgquery.write_db(options_remove_query, params={"rsu_ip": rsu_ip})
+
     # Delete snmp message forward config data
     msg_config_remove_query = (
         "DELETE FROM public.snmp_msgfwd_config WHERE "
@@ -279,6 +307,8 @@ class AdminRsuPatchSchema(Schema):
     serial_number = fields.Str(required=True)
     model = fields.Str(required=True)
     scms_id = fields.Str(required=True)
+    tim_deposit = fields.Bool(required=False, load_default=True)
+    snmp_monitoring = fields.Bool(required=False, load_default=False)
     ssh_credential_group = fields.Str(required=True)
     snmp_credential_group = fields.Str(required=True)
     snmp_version_group = fields.Str(required=True)
@@ -333,14 +363,15 @@ class AdminRsu(Resource):
 
         # Check for main body values
         schema = AdminRsuPatchSchema()
-        errors = schema.validate(request.json)
-        if errors:
-            logging.error(str(errors))
-            abort(400, str(errors))
+        try:
+            validated_data = schema.load(request.json)
+        except Exception as e:
+            logging.error(str(e.messages) if hasattr(e, "messages") else str(e))
+            abort(400, str(e.messages) if hasattr(e, "messages") else str(e))
 
         return (
             modify_rsu_authorized(
-                orig_ip=request.json["orig_ip"], rsu_spec=request.json
+                orig_ip=validated_data["orig_ip"], rsu_spec=validated_data
             ),
             200,
             self.headers,

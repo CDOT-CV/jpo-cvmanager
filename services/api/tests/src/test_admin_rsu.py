@@ -223,6 +223,7 @@ def test_modify_rsu_success(mock_pgquery, mock_check_safe_input):
 
     calls = [
         call(admin_rsu_data.modify_rsu_sql[0], params=admin_rsu_data.modify_rsu_sql[1]),
+        call(admin_rsu_data.modify_rsu_options_sql[0], params=admin_rsu_data.modify_rsu_options_sql[1]),
         call(admin_rsu_data.add_org_sql[0], params=admin_rsu_data.add_org_sql[1]),
         call(admin_rsu_data.remove_org_sql[0], params=admin_rsu_data.remove_org_sql[1]),
     ]
@@ -306,6 +307,10 @@ def test_delete_rsu(mock_write_db):
         call(
             admin_rsu_data.delete_rsu_calls[4][0],
             params=admin_rsu_data.delete_rsu_calls[4][1],
+        ),
+        call(
+            admin_rsu_data.delete_rsu_calls[5][0],
+            params=admin_rsu_data.delete_rsu_calls[5][1],
         ),
     ]
     mock_write_db.assert_has_calls(calls)
