@@ -130,6 +130,9 @@ def add_user(user_spec: dict, requesting_user: EnvironWithOrg):
     except SQLAlchemyError as e:
         logging.error(f"SQL Exception encountered: {e}")
         raise InternalServerError("Encountered unknown issue executing query") from e
+    except Forbidden as e:
+        logging.error(f"Forbidden Exception encountered: {e}")
+        raise e
 
     return {"message": "New user successfully added"}
 

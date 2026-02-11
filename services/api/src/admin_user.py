@@ -240,6 +240,9 @@ def modify_user(orig_email: str, user_spec: dict, requesting_user: EnvironWithOr
     except SQLAlchemyError as e:
         logging.error(f"SQL Exception encountered: {e}")
         raise InternalServerError("Encountered unknown issue executing query") from e
+    except Forbidden as e:
+        logging.error(f"Forbidden Exception encountered: {e}")
+        raise e
 
     return {"message": "User successfully modified"}
 
