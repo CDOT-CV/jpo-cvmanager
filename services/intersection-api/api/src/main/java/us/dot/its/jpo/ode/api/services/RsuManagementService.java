@@ -115,14 +115,14 @@ public class RsuManagementService {
             // 3. Update relationships that require database lookups
             updateRelationships(existingRsu, rsuPatch);
 
-            // 4. Handle RSU options (tim_deposit, snmp_monitoring)
-            updateRsuOptions(existingRsu, rsuPatch);
-
-            // 5. Handle organization additions/removals
+            // 4. Handle organization additions/removals
             handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
 
-            // 6. Save updated entity (JPA handles UPDATE SQL)
+            // 5. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
+
+            // 6. Handle RSU options (tim_deposit, snmp_monitoring) after RSU is saved
+            updateRsuOptions(savedRsu, rsuPatch);
 
             // 7. Return DTO
             return rsuMapper.toDto(savedRsu);
@@ -169,30 +169,32 @@ public class RsuManagementService {
 
     private void updateRsuOptions(Rsu rsu, RsuPatch patch) {
         // Only update if at least one option field is provided
-        if (patch.getTimDeposit() != null || patch.getSnmpMonitoring() != null) {
-            // Find or create RsuOption
-            RsuOption rsuOption = rsuOptionRepository.findByRsuId(rsu.getId())
-                    .orElseGet(() -> {
-                        RsuOption newOption = new RsuOption();
-                        newOption.setId(rsu.getId());
-                        newOption.setRsu(rsu);
-                        // Set defaults for new options
-                        newOption.setTimDeposit(false);
-                        newOption.setSnmpMonitoring(false);
-                        return newOption;
-                    });
-
-            // Update only provided fields
-            if (patch.getTimDeposit() != null) {
-                rsuOption.setTimDeposit(patch.getTimDeposit());
-            }
-            if (patch.getSnmpMonitoring() != null) {
-                rsuOption.setSnmpMonitoring(patch.getSnmpMonitoring());
-            }
-
-            // Save the options
-            rsuOptionRepository.save(rsuOption);
+        if (patch.getTimDeposit() == null && patch.getSnmpMonitoring() == null) {
+            return;
         }
+        
+        // Find or create RsuOption
+        RsuOption rsuOption = rsuOptionRepository.findById(rsu.getId())
+                .orElseGet(() -> {
+                    RsuOption newOption = new RsuOption();
+                    newOption.setId(rsu.getId());
+                    newOption.setRsu(rsu);
+                    // Set defaults for new options
+                    newOption.setTimDeposit(false);
+                    newOption.setSnmpMonitoring(false);
+                    return newOption;
+                });
+
+        // Update only provided fields
+        if (patch.getTimDeposit() != null) {
+            rsuOption.setTimDeposit(patch.getTimDeposit());
+        }
+        if (patch.getSnmpMonitoring() != null) {
+            rsuOption.setSnmpMonitoring(patch.getSnmpMonitoring());
+        }
+
+        // Save the options and flush to database immediately
+        rsuOptionRepository.saveAndFlush(rsuOption);
     }
 
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
