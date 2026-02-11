@@ -36,6 +36,10 @@ class EmailServiceTest {
     @Mock
     private SupportRequestEmailGenerator supportRequestEmailGenerator;
     @Mock
+    private MessageCountEmailGenerator messageCountEmailGenerator;
+    @Mock
+    private FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
+    @Mock
     private RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
     @InjectMocks
