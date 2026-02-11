@@ -310,7 +310,7 @@ def enforce_organization_restrictions(
                         f"Unauthorized organization modification through {key}: {','.join(unqualified_orgs)}"
                     )
         except Exception as e:
-            
+            logging.error("Failed to verify organization permissions", e)
 
 
 class PermissionResult:
