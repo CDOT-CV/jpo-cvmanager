@@ -28,8 +28,6 @@ from admin_new_user import AdminNewUser
 from admin_user import AdminUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg
-from contact_support import ContactSupportResource
-from rsu_error_summary import RSUErrorSummaryResource
 import smtp_error_handler
 from common import common_environment
 
@@ -61,7 +59,6 @@ api.add_resource(AdminNewOrg, "/admin-new-org")
 api.add_resource(AdminOrg, "/admin-org")
 api.add_resource(AdminNotification, "/admin-notification")
 api.add_resource(AdminNewNotification, "/admin-new-notification")
-api.add_resource(ContactSupportResource, "/contact-support")
 
 if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuInfo, "/rsuinfo")
@@ -76,7 +73,6 @@ if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuSsmSrmData, "/rsu-ssm-srm-data")
     api.add_resource(AdminNewRsu, "/admin-new-rsu")
     api.add_resource(AdminRsu, "/admin-rsu")
-    api.add_resource(RSUErrorSummaryResource, "/rsu-error-summary")
 if api_environment.ENABLE_WZDX_FEATURES:
     api.add_resource(WzdxFeed, "/wzdx-feed")
 if api_environment.ENABLE_INTERSECTION_FEATURES:
