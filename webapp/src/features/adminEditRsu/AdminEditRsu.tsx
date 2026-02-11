@@ -183,12 +183,12 @@ const AdminEditRsu = () => {
       }
 
       // Check if tim_deposit changed
-      if (data.tim_deposit !== rsuInfo?.tim_deposit) {
+      if (data.tim_deposit !== (rsuInfo?.tim_deposit ?? false)) {
         patch.tim_deposit = data.tim_deposit
       }
 
       // Check if snmp_monitoring changed
-      if (data.snmp_monitoring !== rsuInfo?.snmp_monitoring) {
+      if (data.snmp_monitoring !== (rsuInfo?.snmp_monitoring ?? false)) {
         patch.snmp_monitoring = data.snmp_monitoring
       }
 
