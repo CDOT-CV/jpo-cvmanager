@@ -7,17 +7,21 @@ import org.mockito.*;
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -123,11 +127,48 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
-                .thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
+
+        assertEquals(responses, result);
+    }
+
+    @Test
+    void testSendMessageCounts() {
+        MessageCountEmailContents data = new MessageCountEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendMessageCounts(data);
+
+        assertEquals(responses, result);
+    }
+
+    @Test
+    void testSendFirmwareUpgradeFailure() throws UnknownHostException {
+        FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        data.setRsuIp("1.1.1.1");
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"), eq("IMMEDIATE"), eq(InetAddress.getByName("1.1.1.1"))))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
+        // assert emailProvider.sendBatchedEmails arguments
+        verify(emailProvider).sendBatchedEmails(
+                argThat(list -> list.size() == 1 && list.getFirst().getEmail().equals("test@example.com")),
+                eq(content));
 
         assertEquals(responses, result);
     }
@@ -140,8 +181,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
-                .thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
