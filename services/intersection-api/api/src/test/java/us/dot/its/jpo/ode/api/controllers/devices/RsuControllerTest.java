@@ -63,7 +63,9 @@ class RsuControllerTest {
                 "ssh-group-1",
                 "snmp-group-1",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         RsuInfoDto rsu2 = new RsuInfoDto(
                 "192.168.1.101",
@@ -76,7 +78,9 @@ class RsuControllerTest {
                 "ssh-group-2",
                 "snmp-group-2",
                 "v2c",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
         Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
@@ -127,7 +131,9 @@ class RsuControllerTest {
                 "ssh-group",
                 "snmp-group",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
@@ -159,7 +165,9 @@ class RsuControllerTest {
                 "ssh-group-1",
                 "snmp-group-1",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
 
