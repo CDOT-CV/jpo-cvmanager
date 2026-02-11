@@ -14,9 +14,19 @@ import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.emails.generators.ApiErrorEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.FirmwareUpgradeFailureEmailGenerator;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.MessageCountEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.RsuErrorSummaryEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.SupportRequestEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 
 @Slf4j
@@ -27,6 +37,11 @@ public class EmailService {
     private final EmailProvider emailProvider;
     private final UserEmailNotificationRepository userEmailNotificationRepository;
     private final IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    private final SupportRequestEmailGenerator supportRequestEmailGenerator;
+    private final MessageCountEmailGenerator messageCountEmailGenerator;
+    private final FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
+    private final ApiErrorEmailGenerator apiErrorEmailGenerator;
+    private final RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
     public void sendEmails(List<EmailRecipient> recipients, EmailContent content) {
         emailProvider.sendBatchedEmails(recipients, content);
@@ -68,6 +83,28 @@ public class EmailService {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.IMMEDIATE);
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendSupportRequest(SupportRequestEmailContents data) {
+        EmailContent content = supportRequestEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
+                EmailFrequency.IMMEDIATE);
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendApiError(ApiErrorEmailContents data) {
+        EmailContent content = apiErrorEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.CRITICAL_ERROR_MESSAGE,
+                EmailFrequency.IMMEDIATE);
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendRsuErrorSummary(RsuErrorSummaryEmailContents data) {
+        EmailContent content = rsuErrorSummaryEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = data.getRecipients().stream()
+                .map(email -> new EmailRecipient(email, ""))
+                .toList();
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 }

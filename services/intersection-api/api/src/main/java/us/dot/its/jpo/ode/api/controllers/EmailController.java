@@ -12,7 +12,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,5 +49,57 @@ public class EmailController {
 
         return EmailSendResponse
                 .getCombinedResponseEntity(emailService.sendIntersectionNotificationSummaryEmailSendResponses(body));
+    }
+
+    @Operation(summary = "Send Message Counts Emails", description = "Send message counts emails")
+    @RequestMapping(value = "/send-message-counts", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_MESSAGE_COUNTS_EMAILS')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendMessageCountsEmails(
+            @RequestBody MessageCountEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendMessageCounts(body));
+    }
+
+    @Operation(summary = "Send Firmware Upgrade Failure Emails", description = "Send firmware upgrade failure emails")
+    @RequestMapping(value = "/send-firmware-upgrade-failure", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_FIRMWARE_UPGRADE_EMAILS')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendFirmwareUpgradeFailureEmails(
+            @RequestBody FirmwareUpgradeFailureEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendFirmwareUpgradeFailure(body));
+    }
+
+    @Operation(summary = "API Error Summary", description = "Request access to an organization")
+    @RequestMapping(value = "/send-api-error", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendApiErrorEmails(
+            @RequestBody ApiErrorEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendApiError(body));
+    }
+
+    @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")
+    @RequestMapping(value = "/send-rsu-error-summary", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public @ResponseBody ResponseEntity<String> sendRsuErrorSummaryEmails(
+            @RequestBody RsuErrorSummaryEmailContents body) {
+
+        return EmailSendResponse.getCombinedResponseEntity(emailService.sendRsuErrorSummary(body));
     }
 }
