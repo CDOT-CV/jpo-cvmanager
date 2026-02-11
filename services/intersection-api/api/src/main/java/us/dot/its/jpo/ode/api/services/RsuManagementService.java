@@ -179,6 +179,8 @@ public class RsuManagementService {
                     RsuOption newOption = new RsuOption();
                     newOption.setId(rsu.getId());
                     newOption.setRsu(rsu);
+                    // Set the bidirectional association
+                    rsu.setRsuOption(newOption);
                     // Set defaults for new options
                     newOption.setTimDeposit(false);
                     newOption.setSnmpMonitoring(false);
@@ -193,8 +195,8 @@ public class RsuManagementService {
             rsuOption.setSnmpMonitoring(patch.getSnmpMonitoring());
         }
 
-        // Save the options and flush to database immediately
-        rsuOptionRepository.saveAndFlush(rsuOption);
+        // Save the options (flush happens at transaction commit)
+        rsuOptionRepository.save(rsuOption);
     }
 
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
