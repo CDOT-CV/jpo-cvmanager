@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.mappers;
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.locationtech.jts.geom.Point;
@@ -71,7 +72,7 @@ public interface RsuInfoMapper {
      * Returns a list of organization name strings
      */
     @Named("mapOrganizationNames")
-    default List<String> mapOrganizationNames(List<RsuOrganization> rsuOrganizations) {
+    default List<String> mapOrganizationNames(Set<RsuOrganization> rsuOrganizations) {
         if (rsuOrganizations == null) {
             return null;
         }
