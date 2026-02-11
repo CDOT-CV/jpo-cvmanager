@@ -22,6 +22,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
@@ -33,6 +34,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
@@ -85,6 +87,9 @@ class RsuManagementServiceTest {
 
     @Mock
     private RsuRepository rsuRepository;
+
+    @Mock
+    private RsuOptionRepository rsuOptionRepository;
 
     @Mock
     private ScmsHealthRepository scmsHealthRepository;
@@ -907,6 +912,173 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
 
     verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
 }
+
+    // ==================== RSU OPTIONS TESTS ====================
+
+    @Test
+    void testModifyRsu_CreateNewRsuOptions_BothFields() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        String username = "testuser@example.com";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setTimDeposit(true);
+        patch.setSnmpMonitoring(true);
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setId(1);
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOptionRepository.findById(1)).thenReturn(Optional.empty());
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+
+        rsuManagementService.modifyRsu(rsuIp, patch, username);
+
+        // Verify that RsuOption was created and saved with correct values
+        verify(rsuOptionRepository).findById(1);
+        verify(rsuOptionRepository).save(any(RsuOption.class));
+
+        // Verify the bidirectional association was set
+        assertNotNull(existingRsu.getRsuOption());
+        assertEquals(true, existingRsu.getRsuOption().getTimDeposit());
+        assertEquals(true, existingRsu.getRsuOption().getSnmpMonitoring());
+    }
+
+    @Test
+    void testModifyRsu_CreateNewRsuOptions_SingleField() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        String username = "testuser@example.com";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setTimDeposit(true);
+        // snmpMonitoring is not set
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setId(2);
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOptionRepository.findById(2)).thenReturn(Optional.empty());
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+
+        rsuManagementService.modifyRsu(rsuIp, patch, username);
+
+        // Verify that RsuOption was created with default for unset field
+        verify(rsuOptionRepository).findById(2);
+        verify(rsuOptionRepository).save(any(RsuOption.class));
+
+        // Verify the bidirectional association was set and defaults applied
+        assertNotNull(existingRsu.getRsuOption());
+        assertEquals(true, existingRsu.getRsuOption().getTimDeposit());
+        assertEquals(false, existingRsu.getRsuOption().getSnmpMonitoring()); // default value
+    }
+
+    @Test
+    void testModifyRsu_UpdateExistingRsuOptions_BothFields() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        String username = "testuser@example.com";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setTimDeposit(false);
+        patch.setSnmpMonitoring(true);
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setId(3);
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        RsuOption existingOption = new RsuOption();
+        existingOption.setId(3);
+        existingOption.setRsu(existingRsu);
+        existingOption.setTimDeposit(true); // old value
+        existingOption.setSnmpMonitoring(false); // old value
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOptionRepository.findById(3)).thenReturn(Optional.of(existingOption));
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+
+        rsuManagementService.modifyRsu(rsuIp, patch, username);
+
+        // Verify that existing RsuOption was updated
+        verify(rsuOptionRepository).findById(3);
+        verify(rsuOptionRepository).save(existingOption);
+        assertEquals(false, existingOption.getTimDeposit());
+        assertEquals(true, existingOption.getSnmpMonitoring());
+    }
+
+    @Test
+    void testModifyRsu_UpdateExistingRsuOptions_PartialUpdate() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        String username = "testuser@example.com";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setSnmpMonitoring(true);
+        // timDeposit is not set, should not change existing value
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setId(4);
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        RsuOption existingOption = new RsuOption();
+        existingOption.setId(4);
+        existingOption.setRsu(existingRsu);
+        existingOption.setTimDeposit(true); // should remain unchanged
+        existingOption.setSnmpMonitoring(false); // should be updated
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOptionRepository.findById(4)).thenReturn(Optional.of(existingOption));
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+
+        rsuManagementService.modifyRsu(rsuIp, patch, username);
+
+        // Verify that only snmpMonitoring was updated
+        verify(rsuOptionRepository).findById(4);
+        verify(rsuOptionRepository).save(existingOption);
+        assertEquals(true, existingOption.getTimDeposit()); // unchanged
+        assertEquals(true, existingOption.getSnmpMonitoring()); // updated
+    }
+
+    @Test
+    void testModifyRsu_NoRsuOptionsProvided_SkipsUpdate() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        String username = "testuser@example.com";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setMilepost(150.0);
+        // No timDeposit or snmpMonitoring set
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setId(5);
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+
+        rsuManagementService.modifyRsu(rsuIp, patch, username);
+
+        // Verify that RsuOption repository was never accessed
+        verify(rsuOptionRepository, never()).findById(any());
+        verify(rsuOptionRepository, never()).save(any());
+    }
 
 
     // ==================== DELETE RSU TESTS ====================
