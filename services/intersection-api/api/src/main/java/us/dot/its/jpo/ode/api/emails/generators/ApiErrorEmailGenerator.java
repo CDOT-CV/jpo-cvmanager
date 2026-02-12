@@ -28,7 +28,7 @@ public class ApiErrorEmailGenerator extends AbstractEmailGenerator<ApiErrorEmail
                 data.getTimestamp(), data.getLogsLink(), data.getErrorMessage(), data.getStackTrace()));
         context.setVariable("footer_address", "API Error Notification");
 
-        String htmlContent = templateEngine.process("emails/announcement", context);
+        String htmlContent = templateEngine.process("emails/email_template", context);
 
         return new EmailContent(
                 "CV-Manager API Error",
