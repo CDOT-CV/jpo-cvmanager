@@ -15,4 +15,6 @@ public interface SnmpCredentialRepository extends JpaRepository<SnmpCredential, 
     List<String> findAllNicknames();
 
     Optional<SnmpCredential> findByNickname(String nickname);
+
+    List<SnmpCredential> findByOwnerOrganizationId(Integer ownerOrganizationId);
 }
