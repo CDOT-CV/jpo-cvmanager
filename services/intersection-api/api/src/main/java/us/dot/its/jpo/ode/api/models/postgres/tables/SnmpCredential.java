@@ -1,6 +1,12 @@
 package us.dot.its.jpo.ode.api.models.postgres.tables;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -9,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "snmp_credentials")
+@Table(name = "snmp_credentials", schema = "public")
 public class SnmpCredential {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "snmp_credentials_id_gen")
@@ -36,5 +42,8 @@ public class SnmpCredential {
     @Column(name = "nickname", nullable = false, length = 128)
     private String nickname;
 
+    @NotNull
+    @Column(name = "owner_organization_id", nullable = false)
+    private Integer ownerOrganizationId;
 
 }

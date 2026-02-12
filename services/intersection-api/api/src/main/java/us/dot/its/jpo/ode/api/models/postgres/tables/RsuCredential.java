@@ -1,6 +1,12 @@
 package us.dot.its.jpo.ode.api.models.postgres.tables;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -9,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "rsu_credentials")
+@Table(name = "rsu_credentials", schema = "public")
 public class RsuCredential {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsu_credentials_id_gen")
@@ -32,5 +38,8 @@ public class RsuCredential {
     @Column(name = "nickname", nullable = false, length = 128)
     private String nickname;
 
+    @NotNull
+    @Column(name = "owner_organization_id", nullable = false)
+    private Integer ownerOrganizationId;
 
 }
