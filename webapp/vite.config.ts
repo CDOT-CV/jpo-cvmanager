@@ -9,6 +9,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig(({ mode }) => {
   setEnv(mode);
   const config = {
+    base: '/',
     plugins: [
       react(),
       tsconfigPaths(),
@@ -20,7 +21,7 @@ export default defineConfig(({ mode }) => {
       importPrefixPlugin(),
       htmlPlugin(mode),
     ],
-  };
+  }
 
   return mergeConfig(
     config,
