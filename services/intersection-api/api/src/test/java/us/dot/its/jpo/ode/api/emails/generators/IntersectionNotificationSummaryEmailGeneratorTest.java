@@ -87,6 +87,7 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
         notification.setKey("connection-of-travel-notification");
         notification.setNotificationText("Test notification text with special characters: ' \" < > &");
         notification.setNotificationHeading("Test Notification Heading");
+        notification.setNotificationGeneratedAt(1770830034000L); // 2025-02-11T10:30:34Z
 
         List<Notification> notifications = List.of(notification);
 
