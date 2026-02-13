@@ -115,6 +115,7 @@ public class RsuController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
         rsuManagementService.modifyRsu(rsuIp, body, username);
+        rsuManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
     }

@@ -3,7 +3,9 @@ package us.dot.its.jpo.ode.api.services;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Optional;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -44,6 +46,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RsuManagementService {
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
@@ -98,6 +101,7 @@ public class RsuManagementService {
 
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, String username) {
+        log.info("Modifying RSU with IP: {}", rsuIp);
         try {
             List<String> authorizedOrgs = permissionService.getQualifiedOrgList(username, "ADMIN");
 
@@ -122,10 +126,58 @@ public class RsuManagementService {
             Rsu savedRsu = rsuRepository.save(existingRsu);
 
             // 6. Return DTO
+            log.info("Done modifying RSU. Returning DTO");
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
+            log.error("RSU Modification failed due to unknown host exception: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
+        }
+    }
+
+    public void modifyRsuOption(String rsuIp, RsuPatch rsuPatch) {
+        log.info("Modifying Rsu option with IP: {}", rsuIp);
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getByName(rsuIp);
+        } catch (UnknownHostException e) {
+            log.error("RSU Modification failed due to unknown host exception: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
+        }
+        Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
+
+        if (existingRsu == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
+        }
+
+        Boolean proposedTimDepositValue = rsuPatch.getTimDeposit();
+        if (proposedTimDepositValue != null) {
+            log.info("Proposed tim_deposit value: {}", proposedTimDepositValue);
+
+            Optional<RsuOption> rsuOption = rsuOptionRepository.findByRsuId(existingRsu.getId());
+            if (rsuOption.isPresent()) {
+                log.info("Current tim_deposit value: {}", rsuOption.get().getTimDeposit());
+
+                if (rsuOption.get().getTimDeposit() != proposedTimDepositValue) {
+                    log.info("Proposed value is different than existing value.");
+                    rsuOption.get().setTimDeposit(proposedTimDepositValue);
+                    log.info("Saving modified rsu option entry with tim_deposit value: {}", rsuOption.get().getTimDeposit());
+                    rsuOptionRepository.save(rsuOption.get());
+                }
+            }
+            else {
+                log.info("No tim_deposit value found for RSU with ID: {}", existingRsu.getId());
+
+                RsuOption newRsuOption = new RsuOption();
+                newRsuOption.setRsu(existingRsu);
+                newRsuOption.setTimDeposit(proposedTimDepositValue);
+                log.info("Saving new rsu option entry with tim_deposit value: {}", newRsuOption.getTimDeposit());
+                rsuOptionRepository.save(newRsuOption);
+            }
+            log.info("Done modifying Rsu option with IP: {}", rsuIp);
+        }
+        else {
+            log.info("Patch does not contain tim_deposit value, no modification necessary");
         }
     }
 
