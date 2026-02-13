@@ -39,13 +39,13 @@ public class RsuOptionManagementService {
      * @throws ResponseStatusException if the RSU is not found or the IP is invalid
      */
     public void modifyRsuOption(String rsuIp, RsuPatch rsuPatch) {
-        log.info("Modifying Rsu option with IP: {}", rsuIp);
+        log.debug("Modifying Rsu option with IP: {}", rsuIp);
 
         Rsu existingRsu = findRsuByIp(rsuIp);
 
         // Early return if no option fields are provided
         if (rsuPatch.getTimDeposit() == null && rsuPatch.getSnmpMonitoring() == null) {
-            log.info("Patch does not contain tim_deposit or snmp_monitoring values, no modification necessary");
+            log.trace("Patch does not contain tim_deposit or snmp_monitoring values, no modification necessary");
             return;
         }
 
@@ -56,7 +56,7 @@ public class RsuOptionManagementService {
 
         saveRsuOptionIfModified(rsuOption, modified, isNewOption);
 
-        log.info("Done modifying Rsu option with IP: {}", rsuIp);
+        log.debug("Done modifying Rsu option with IP: {}", rsuIp);
     }
 
     /**
@@ -92,10 +92,10 @@ public class RsuOptionManagementService {
         Optional<RsuOption> rsuOptionOptional = rsuOptionRepository.findByRsuId(rsu.getId());
 
         if (rsuOptionOptional.isPresent()) {
-            log.info("Found existing rsu_option for RSU with ID: {}", rsu.getId());
+            log.trace("Found existing rsu_option for RSU with ID: {}", rsu.getId());
             return rsuOptionOptional.get();
         } else {
-            log.info("Creating new rsu_option for RSU with ID: {}", rsu.getId());
+            log.trace("Creating new rsu_option for RSU with ID: {}", rsu.getId());
             RsuOption newOption = new RsuOption();
             newOption.setRsu(rsu);
             return newOption;
@@ -132,17 +132,17 @@ public class RsuOptionManagementService {
             return false;
         }
 
-        log.info("Proposed tim_deposit value: {}", proposedValue);
+        log.trace("Proposed tim_deposit value: {}", proposedValue);
 
         if (isNewOption || !rsuOption.getTimDeposit().equals(proposedValue)) {
             if (!isNewOption) {
-                log.info("Current tim_deposit value: {}, changing to: {}",
+                log.trace("Current tim_deposit value: {}, changing to: {}",
                         rsuOption.getTimDeposit(), proposedValue);
             }
             rsuOption.setTimDeposit(proposedValue);
             return true;
         } else {
-            log.info("tim_deposit value unchanged: {}", proposedValue);
+            log.trace("tim_deposit value unchanged: {}", proposedValue);
             return false;
         }
     }
@@ -160,17 +160,17 @@ public class RsuOptionManagementService {
             return false;
         }
 
-        log.info("Proposed snmp_monitoring value: {}", proposedValue);
+        log.trace("Proposed snmp_monitoring value: {}", proposedValue);
 
         if (isNewOption || !rsuOption.getSnmpMonitoring().equals(proposedValue)) {
             if (!isNewOption) {
-                log.info("Current snmp_monitoring value: {}, changing to: {}",
+                log.trace("Current snmp_monitoring value: {}, changing to: {}",
                         rsuOption.getSnmpMonitoring(), proposedValue);
             }
             rsuOption.setSnmpMonitoring(proposedValue);
             return true;
         } else {
-            log.info("snmp_monitoring value unchanged: {}", proposedValue);
+            log.trace("snmp_monitoring value unchanged: {}", proposedValue);
             return false;
         }
     }
@@ -184,13 +184,13 @@ public class RsuOptionManagementService {
      */
     private void saveRsuOptionIfModified(RsuOption rsuOption, boolean modified, boolean isNewOption) {
         if (modified) {
-            log.info("Saving {} rsu_option entry - tim_deposit: {}, snmp_monitoring: {}",
+            log.debug("Saving {} rsu_option entry - tim_deposit: {}, snmp_monitoring: {}",
                     isNewOption ? "new" : "modified",
                     rsuOption.getTimDeposit(),
                     rsuOption.getSnmpMonitoring());
             rsuOptionRepository.save(rsuOption);
         } else {
-            log.info("No changes detected, skipping save");
+            log.trace("No changes detected, skipping save");
         }
     }
 }
