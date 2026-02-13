@@ -115,6 +115,7 @@ const AdminTable = (props: AdminTableProps) => {
         title={props.title}
         editable={props.editable}
         isLoading={props.isLoading}
+        tableRef={props.tableRef}
         options={{
           selection: props.selection === undefined ? true : props.selection,
           searchFieldAlignment: 'left',
