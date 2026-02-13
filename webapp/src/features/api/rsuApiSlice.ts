@@ -4,6 +4,7 @@ import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { getQueryString } from './intersectionApiSlice'
 import { AdminRsu, AdminRsuAllowedSelections } from '../../models/Rsu'
+import { PaginatedQueryParams } from '../../hooks/use-paginated-query'
 
 export interface PaginatedRsusResponse {
   content: AdminRsu[]
@@ -13,11 +14,8 @@ export interface PaginatedRsusResponse {
   number: number
 }
 
-export interface GetAllRsusParams {
+export interface GetAllRsusParams extends PaginatedQueryParams {
   organization: string
-  page?: number
-  size?: number
-  sort?: string
 }
 
 export const rsuApiSlice = createApi({
@@ -40,12 +38,12 @@ export const rsuApiSlice = createApi({
   tagTypes: ['Rsu', 'AllowedSelections'],
   endpoints: (builder) => ({
     getAllRsus: builder.query<PaginatedRsusResponse, GetAllRsusParams>({
-      query: ({ organization, page = 0, size = 100, sort = '' }) => {
+      query: ({ organization, page = 0, size = 100, orderBy = '', orderDirection = '' }) => {
         return {
           url: `${getQueryString({
             page: page.toString(),
             size: size.toString(),
-            sort: sort,
+            sort: `${orderBy},${orderDirection}`,
           })}`,
           headers: {
             Organization: organization,

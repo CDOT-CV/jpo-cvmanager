@@ -18,6 +18,7 @@ import { useTheme } from '@mui/material'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
 import { useGetAllRsusQuery } from '../api/rsuApiSlice'
 import { useDeleteRsuMutation, useDeleteMultipleRsusMutation } from '../api/rsuApiSlice'
+import { usePaginatedQuery } from '../../hooks/use-paginated-query'
 
 const AdminRsuTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -25,27 +26,9 @@ const AdminRsuTab = () => {
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
 
-  // Pagination and sorting state
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(100)
-  const [sortField, setSortField] = useState<string>('milepost')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
-
-  const {
-    data: paginatedData,
-    refetch,
-    isLoading,
-  } = useGetAllRsusQuery({
-    organization,
-    page,
-    size: pageSize,
-    sort: `${sortField},${sortDirection}`, // Spring Boot sort format
-  })
-  const [deleteRsuApi, { isLoading: isDeleting }] = useDeleteRsuMutation()
-  const [deleteMultipleRsusApi, { isLoading: isDeletingMultiple }] = useDeleteMultipleRsusMutation()
-
-  const tableData = paginatedData?.content ?? []
-  const totalElements = paginatedData?.totalElements ?? 0
+  const { fetchData, refetch, isLoading } = usePaginatedQuery(useGetAllRsusQuery, { organization })
+  const [deleteRsuApi] = useDeleteRsuMutation()
+  const [deleteMultipleRsusApi] = useDeleteMultipleRsusMutation()
 
   const [columns] = useState([
     { title: 'Milepost', field: 'milepost', id: 0 },
@@ -151,24 +134,6 @@ const AdminRsuTab = () => {
     }
   }
 
-  const handlePageChange = (newPage: number, newPageSize: number) => {
-    setPage(newPage)
-    setPageSize(newPageSize)
-  }
-
-  const handleOrderCollectionChange = (orderByCollection: OrderByCollection[]) => {
-    if (orderByCollection.length > 0) {
-      const order = orderByCollection[0] // Get the first sort order
-      const column = columns[order.orderBy]
-
-      if (column?.field) {
-        setSortField(column.field)
-        setSortDirection(order.orderDirection === 'desc' ? 'desc' : 'asc')
-        setPage(0) // Reset to first page when sorting changes
-      }
-    }
-  }
-
   return (
     <div>
       <Routes>
@@ -179,13 +144,10 @@ const AdminRsuTab = () => {
               <div className="scroll-div-tab">
                 <AdminTable
                   title={''}
-                  data={tableData}
                   columns={columns}
                   actions={tableActions}
-                  page={page}
-                  totalCount={totalElements}
-                  onPageChange={handlePageChange}
-                  onOrderCollectionChange={handleOrderCollectionChange}
+                  fetchData={fetchData}
+                  isLoading={isLoading}
                 />
               </div>
             )
