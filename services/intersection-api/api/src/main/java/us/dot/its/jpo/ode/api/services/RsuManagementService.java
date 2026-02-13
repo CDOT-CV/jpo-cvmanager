@@ -115,16 +115,13 @@ public class RsuManagementService {
             // 3. Update relationships that require database lookups
             updateRelationships(existingRsu, rsuPatch);
 
-            // 4. Handle RSU options (tim_deposit, snmp_monitoring)
-            updateRsuOptions(existingRsu, rsuPatch);
-
-            // 5. Handle organization additions/removals
+            // 4. Handle organization additions/removals
             handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
 
-            // 6. Save updated entity (JPA handles UPDATE SQL)
+            // 5. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
 
-            // 7. Return DTO
+            // 6. Return DTO
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
@@ -164,36 +161,6 @@ public class RsuManagementService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "SNMP protocol not found: " + patch.getSnmpVersionGroup()));
             rsu.setSnmpProtocol(snmpProtocol);
-        }
-    }
-
-    private void updateRsuOptions(Rsu rsu, RsuPatch patch) {
-        // Only update if at least one option field is provided
-        if (patch.getTimDeposit() != null || patch.getSnmpMonitoring() != null) {
-            // Find or create RsuOption
-            RsuOption rsuOption = rsuOptionRepository.findByRsuId(rsu.getId())
-                    .orElseGet(() -> {
-                        RsuOption newOption = new RsuOption();
-                        newOption.setId(rsu.getId());
-                        newOption.setRsu(rsu);
-                        // Set the bidirectional association
-                    rsu.setRsuOption(newOption);
-                    // Set defaults for new options
-                        newOption.setTimDeposit(false);
-                        newOption.setSnmpMonitoring(false);
-                        return newOption;
-                    });
-
-            // Update only provided fields
-            if (patch.getTimDeposit() != null) {
-                rsuOption.setTimDeposit(patch.getTimDeposit());
-            }
-            if (patch.getSnmpMonitoring() != null) {
-                rsuOption.setSnmpMonitoring(patch.getSnmpMonitoring());
-            }
-
-            // Save the options
-            rsuOptionRepository.save(rsuOption);
         }
     }
 
