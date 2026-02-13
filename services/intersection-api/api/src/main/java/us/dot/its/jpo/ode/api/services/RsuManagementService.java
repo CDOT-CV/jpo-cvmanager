@@ -151,34 +151,71 @@ public class RsuManagementService {
         }
 
         Boolean proposedTimDepositValue = rsuPatch.getTimDeposit();
+        Boolean proposedSnmpMonitoringValue = rsuPatch.getSnmpMonitoring();
+
+        // If neither field is present, no modification is necessary
+        if (proposedTimDepositValue == null && proposedSnmpMonitoringValue == null) {
+            log.info("Patch does not contain tim_deposit or snmp_monitoring values, no modification necessary");
+            return;
+        }
+
+        Optional<RsuOption> rsuOptionOptional = rsuOptionRepository.findByRsuId(existingRsu.getId());
+        RsuOption rsuOption;
+        boolean isNewOption = false;
+
+        if (rsuOptionOptional.isPresent()) {
+            rsuOption = rsuOptionOptional.get();
+            log.info("Found existing rsu_option for RSU with ID: {}", existingRsu.getId());
+        } else {
+            rsuOption = new RsuOption();
+            rsuOption.setRsu(existingRsu);
+            isNewOption = true;
+            log.info("Creating new rsu_option for RSU with ID: {}", existingRsu.getId());
+        }
+
+        boolean modified = false;
+
+        // Handle tim_deposit field
         if (proposedTimDepositValue != null) {
             log.info("Proposed tim_deposit value: {}", proposedTimDepositValue);
-
-            Optional<RsuOption> rsuOption = rsuOptionRepository.findByRsuId(existingRsu.getId());
-            if (rsuOption.isPresent()) {
-                log.info("Current tim_deposit value: {}", rsuOption.get().getTimDeposit());
-
-                if (rsuOption.get().getTimDeposit() != proposedTimDepositValue) {
-                    log.info("Proposed value is different than existing value.");
-                    rsuOption.get().setTimDeposit(proposedTimDepositValue);
-                    log.info("Saving modified rsu option entry with tim_deposit value: {}", rsuOption.get().getTimDeposit());
-                    rsuOptionRepository.save(rsuOption.get());
+            if (isNewOption || !rsuOption.getTimDeposit().equals(proposedTimDepositValue)) {
+                if (!isNewOption) {
+                    log.info("Current tim_deposit value: {}, changing to: {}",
+                            rsuOption.getTimDeposit(), proposedTimDepositValue);
                 }
+                rsuOption.setTimDeposit(proposedTimDepositValue);
+                modified = true;
+            } else {
+                log.info("tim_deposit value unchanged: {}", proposedTimDepositValue);
             }
-            else {
-                log.info("No tim_deposit value found for RSU with ID: {}", existingRsu.getId());
+        }
 
-                RsuOption newRsuOption = new RsuOption();
-                newRsuOption.setRsu(existingRsu);
-                newRsuOption.setTimDeposit(proposedTimDepositValue);
-                log.info("Saving new rsu option entry with tim_deposit value: {}", newRsuOption.getTimDeposit());
-                rsuOptionRepository.save(newRsuOption);
+        // Handle snmp_monitoring field
+        if (proposedSnmpMonitoringValue != null) {
+            log.info("Proposed snmp_monitoring value: {}", proposedSnmpMonitoringValue);
+            if (isNewOption || !rsuOption.getSnmpMonitoring().equals(proposedSnmpMonitoringValue)) {
+                if (!isNewOption) {
+                    log.info("Current snmp_monitoring value: {}, changing to: {}",
+                            rsuOption.getSnmpMonitoring(), proposedSnmpMonitoringValue);
+                }
+                rsuOption.setSnmpMonitoring(proposedSnmpMonitoringValue);
+                modified = true;
+            } else {
+                log.info("snmp_monitoring value unchanged: {}", proposedSnmpMonitoringValue);
             }
-            log.info("Done modifying Rsu option with IP: {}", rsuIp);
         }
-        else {
-            log.info("Patch does not contain tim_deposit value, no modification necessary");
+
+        if (modified) {
+            log.info("Saving {} rsu_option entry - tim_deposit: {}, snmp_monitoring: {}",
+                    isNewOption ? "new" : "modified",
+                    rsuOption.getTimDeposit(),
+                    rsuOption.getSnmpMonitoring());
+            rsuOptionRepository.save(rsuOption);
+        } else {
+            log.info("No changes detected, skipping save");
         }
+
+        log.info("Done modifying Rsu option with IP: {}", rsuIp);
     }
 
     private void updateRelationships(Rsu rsu, RsuPatch patch) {
