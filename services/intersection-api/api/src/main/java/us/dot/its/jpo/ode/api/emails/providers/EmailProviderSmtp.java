@@ -30,6 +30,10 @@ public class EmailProviderSmtp implements EmailProvider {
     @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
         try {
+            log.warn("Sending SMTP Batched Emails");
+            for (EmailRecipient recipient : recipients) {
+                log.warn(String.format("%s, %s", recipient.getEmail(), recipient.getName()));
+            }
             MimeMessage[] messages = recipients.stream().map(r -> getMessage(r, content)).filter((v) -> v != null)
                     .toArray(MimeMessage[]::new);
             mailSender.send(messages);
