@@ -33,6 +33,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
@@ -86,6 +87,8 @@ class RsuManagementServiceTest {
     @Mock
     private RsuRepository rsuRepository;
 
+    @Mock
+    private RsuOptionRepository rsuOptionRepository;
 
     @Mock
     private ScmsHealthRepository scmsHealthRepository;
@@ -928,6 +931,7 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
                 .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+        doNothing().when(rsuOptionRepository).removeRsuOptionByIpv4Address(inetAddress);
 
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
 
@@ -939,6 +943,7 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
         verify(consecutiveFirmwareUpgradeFailureRepository)
                 .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
         verify(maxRetryLimitReachedInstanceRepository).removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+        verify(rsuOptionRepository).removeRsuOptionByIpv4Address(inetAddress);
         verify(rsuRepository).removeRsuByIpv4Address(inetAddress);
     }
 
@@ -970,6 +975,7 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
+        doNothing().when(rsuOptionRepository).removeMultipleRsuOptionsByIpv4Address(anyList());
         doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
@@ -983,6 +989,7 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
         verify(consecutiveFirmwareUpgradeFailureRepository)
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         verify(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
+        verify(rsuOptionRepository).removeMultipleRsuOptionsByIpv4Address(anyList());
         verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 

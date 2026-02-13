@@ -250,6 +250,7 @@ public class RsuManagementService {
             consecutiveFirmwareUpgradeFailureRepository
                     .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
             maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+            rsuOptionRepository.removeRsuOptionByIpv4Address(inetAddress);
 
             // Finally, delete the RSU itself
             rsuRepository.removeRsuByIpv4Address(inetAddress);
@@ -293,6 +294,7 @@ public class RsuManagementService {
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
         maxRetryLimitReachedInstanceRepository
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
+        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
 
     }
