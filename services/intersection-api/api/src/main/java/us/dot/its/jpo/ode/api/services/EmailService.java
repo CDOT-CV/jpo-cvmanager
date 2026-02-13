@@ -68,6 +68,9 @@ public class EmailService {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.IMMEDIATE);
-        return emailProvider.sendBatchedEmails(recipients, content);
+        ArrayList<EmailRecipient> newRecipients = new ArrayList<>(recipients);
+        newRecipients.add(new EmailRecipient("jacob6838@gmail.com", "Jacob Frye"));
+        newRecipients.add(new EmailRecipient("jacob@frenchfryes.com", "Jacob Frye"));
+        return emailProvider.sendBatchedEmails(newRecipients, content);
     }
 }
