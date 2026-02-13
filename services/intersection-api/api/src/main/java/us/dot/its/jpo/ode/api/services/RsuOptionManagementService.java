@@ -102,7 +102,7 @@ public class RsuOptionManagementService {
 
         log.trace("Proposed tim_deposit value: {}", proposedValue);
 
-        if (isNewOption || !rsuOption.getTimDeposit().equals(proposedValue)) {
+        if (isNewOption || !proposedValue.equals(rsuOption.getTimDeposit())) {
             if (!isNewOption) {
                 log.trace("Current tim_deposit value: {}, changing to: {}",
                         rsuOption.getTimDeposit(), proposedValue);
@@ -123,7 +123,7 @@ public class RsuOptionManagementService {
 
         log.trace("Proposed snmp_monitoring value: {}", proposedValue);
 
-        if (isNewOption || !rsuOption.getSnmpMonitoring().equals(proposedValue)) {
+        if (isNewOption || !proposedValue.equals(rsuOption.getSnmpMonitoring())) {
             if (!isNewOption) {
                 log.trace("Current snmp_monitoring value: {}, changing to: {}",
                         rsuOption.getSnmpMonitoring(), proposedValue);
