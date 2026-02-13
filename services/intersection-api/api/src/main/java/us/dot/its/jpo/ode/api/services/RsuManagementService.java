@@ -4,7 +4,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -44,7 +43,6 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class RsuManagementService {
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
@@ -99,7 +97,6 @@ public class RsuManagementService {
 
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, String username) {
-        log.info("Modifying RSU with IP: {}", rsuIp);
         try {
             List<String> authorizedOrgs = permissionService.getQualifiedOrgList(username, "ADMIN");
 
@@ -124,11 +121,9 @@ public class RsuManagementService {
             Rsu savedRsu = rsuRepository.save(existingRsu);
 
             // 6. Return DTO
-            log.info("Done modifying RSU. Returning DTO");
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
-            log.error("RSU Modification failed due to unknown host exception: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
         }
     }
