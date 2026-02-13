@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 @Slf4j
 @RestController
@@ -46,6 +47,7 @@ import us.dot.its.jpo.ode.api.services.RsuManagementService;
 @RequiredArgsConstructor
 public class RsuController {
     private final RsuManagementService rsuManagementService;
+    private final RsuOptionManagementService rsuOptionManagementService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "ip", "ipv4Address",
@@ -115,7 +117,7 @@ public class RsuController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
         rsuManagementService.modifyRsu(rsuIp, body, username);
-        rsuManagementService.modifyRsuOption(rsuIp, body);
+        rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
     }

@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.services;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.Optional;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,7 +37,6 @@ import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
-import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
@@ -133,89 +131,6 @@ public class RsuManagementService {
             log.error("RSU Modification failed due to unknown host exception: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
         }
-    }
-
-    public void modifyRsuOption(String rsuIp, RsuPatch rsuPatch) {
-        log.info("Modifying Rsu option with IP: {}", rsuIp);
-        InetAddress inetAddress = null;
-        try {
-            inetAddress = InetAddress.getByName(rsuIp);
-        } catch (UnknownHostException e) {
-            log.error("RSU Modification failed due to unknown host exception: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
-        }
-        Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
-
-        if (existingRsu == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
-        }
-
-        Boolean proposedTimDepositValue = rsuPatch.getTimDeposit();
-        Boolean proposedSnmpMonitoringValue = rsuPatch.getSnmpMonitoring();
-
-        // If neither field is present, no modification is necessary
-        if (proposedTimDepositValue == null && proposedSnmpMonitoringValue == null) {
-            log.info("Patch does not contain tim_deposit or snmp_monitoring values, no modification necessary");
-            return;
-        }
-
-        Optional<RsuOption> rsuOptionOptional = rsuOptionRepository.findByRsuId(existingRsu.getId());
-        RsuOption rsuOption;
-        boolean isNewOption = false;
-
-        if (rsuOptionOptional.isPresent()) {
-            rsuOption = rsuOptionOptional.get();
-            log.info("Found existing rsu_option for RSU with ID: {}", existingRsu.getId());
-        } else {
-            rsuOption = new RsuOption();
-            rsuOption.setRsu(existingRsu);
-            isNewOption = true;
-            log.info("Creating new rsu_option for RSU with ID: {}", existingRsu.getId());
-        }
-
-        boolean modified = false;
-
-        // Handle tim_deposit field
-        if (proposedTimDepositValue != null) {
-            log.info("Proposed tim_deposit value: {}", proposedTimDepositValue);
-            if (isNewOption || !rsuOption.getTimDeposit().equals(proposedTimDepositValue)) {
-                if (!isNewOption) {
-                    log.info("Current tim_deposit value: {}, changing to: {}",
-                            rsuOption.getTimDeposit(), proposedTimDepositValue);
-                }
-                rsuOption.setTimDeposit(proposedTimDepositValue);
-                modified = true;
-            } else {
-                log.info("tim_deposit value unchanged: {}", proposedTimDepositValue);
-            }
-        }
-
-        // Handle snmp_monitoring field
-        if (proposedSnmpMonitoringValue != null) {
-            log.info("Proposed snmp_monitoring value: {}", proposedSnmpMonitoringValue);
-            if (isNewOption || !rsuOption.getSnmpMonitoring().equals(proposedSnmpMonitoringValue)) {
-                if (!isNewOption) {
-                    log.info("Current snmp_monitoring value: {}, changing to: {}",
-                            rsuOption.getSnmpMonitoring(), proposedSnmpMonitoringValue);
-                }
-                rsuOption.setSnmpMonitoring(proposedSnmpMonitoringValue);
-                modified = true;
-            } else {
-                log.info("snmp_monitoring value unchanged: {}", proposedSnmpMonitoringValue);
-            }
-        }
-
-        if (modified) {
-            log.info("Saving {} rsu_option entry - tim_deposit: {}, snmp_monitoring: {}",
-                    isNewOption ? "new" : "modified",
-                    rsuOption.getTimDeposit(),
-                    rsuOption.getSnmpMonitoring());
-            rsuOptionRepository.save(rsuOption);
-        } else {
-            log.info("No changes detected, skipping save");
-        }
-
-        log.info("Done modifying Rsu option with IP: {}", rsuIp);
     }
 
     private void updateRelationships(Rsu rsu, RsuPatch patch) {
