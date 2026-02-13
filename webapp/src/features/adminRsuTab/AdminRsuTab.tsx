@@ -1,32 +1,96 @@
-import React, { useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
-import { useSelector, useDispatch } from 'react-redux'
-
+import { useSelector } from 'react-redux'
 import './Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
-import { Action, OrderByCollection } from '@material-table/core'
+import { Action } from '@material-table/core'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import { useTheme } from '@mui/material'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
-import { useGetAllRsusQuery } from '../api/rsuApiSlice'
-import { useDeleteRsuMutation, useDeleteMultipleRsusMutation } from '../api/rsuApiSlice'
-import { usePaginatedQuery } from '../../hooks/use-paginated-query'
+import { useLazyGetAllRsusQuery, useDeleteRsuMutation, useDeleteMultipleRsusMutation } from '../api/rsuApiSlice'
 
 const AdminRsuTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
 
-  const { fetchData, refetch, isLoading } = usePaginatedQuery(useGetAllRsusQuery, { organization })
+  const tableRef = useRef<any>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  // Track current query to detect organization changes
+  const currentQueryRef = useRef(null)
+
+  // Use lazy query for on-demand fetching
+  const [trigger] = useLazyGetAllRsusQuery()
+
+  const handleQueryChange = useCallback(
+    async (query) => {
+      setIsRefreshing(true)
+
+      try {
+        // Extract order information from orderByCollection
+        let orderBy = 'id'
+        let orderDirection = 'asc'
+
+        if (query.orderByCollection && query.orderByCollection.length > 0) {
+          const firstOrder = query.orderByCollection[0]
+          if (firstOrder.orderBy && typeof firstOrder.orderBy.field === 'string') {
+            orderBy = firstOrder.orderBy.field
+          }
+          orderDirection = firstOrder.orderDirection || 'asc'
+        }
+
+        // Build query params including organization
+        const params = {
+          page: query.page,
+          size: query.pageSize,
+          sort: `${orderBy},${orderDirection}`,
+          search: query.search || '',
+          organization: organization || '', // Add organization parameter
+        }
+
+        // Check if organization changed - if so, reset to page 0
+        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
+          params.page = 0
+          query.page = 0
+        }
+
+        // Store current query for comparison
+        currentQueryRef.current = params
+
+        // Trigger the query and await the result
+        const result = await trigger(params, true).unwrap() // true = force refetch
+
+        return {
+          data: result.content || [],
+          page: params.page,
+          totalCount: result.totalElements || 0,
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+        return {
+          data: [],
+          page: query.page,
+          totalCount: 0,
+        }
+      } finally {
+        setIsRefreshing(false)
+      }
+    },
+    [trigger, organization]
+  ) // Dependency on organization - changes trigger new data function
+
+  const handleRefresh = () => {
+    if (tableRef.current && tableRef.current.onQueryChange) {
+      tableRef.current.onQueryChange()
+    }
+  }
+
   const [deleteRsuApi] = useDeleteRsuMutation()
   const [deleteMultipleRsusApi] = useDeleteMultipleRsusMutation()
 
@@ -88,16 +152,18 @@ const AdminRsuTab = () => {
     },
     {
       icon: () => null,
+      isFreeAction: true,
       iconProps: {
         title: 'Refresh',
         color: 'info',
         itemType: 'outlined',
       },
       position: 'toolbar',
-      onClick: refetch,
+      onClick: handleRefresh,
     },
     {
       icon: () => null,
+      isFreeAction: true,
       position: 'toolbar',
       iconProps: {
         title: 'New',
@@ -140,17 +206,16 @@ const AdminRsuTab = () => {
         <Route
           path="/"
           element={
-            isLoading === false && (
-              <div className="scroll-div-tab">
-                <AdminTable
-                  title={''}
-                  columns={columns}
-                  actions={tableActions}
-                  fetchData={fetchData}
-                  isLoading={isLoading}
-                />
-              </div>
-            )
+            <div className="scroll-div-tab">
+              <AdminTable
+                title={''}
+                columns={columns}
+                actions={tableActions}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
+              />
+            </div>
           }
         />
         <Route path="addRsu" element={<AdminAddRsu />} />

@@ -5,8 +5,8 @@ import { Query, QueryResult, OrderByCollection, Column } from '@material-table/c
 export interface PaginatedQueryParams {
   page?: number
   size?: number
-  orderBy?: string
-  orderDirection?: 'asc' | 'desc'
+  sortField?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 export const usePaginatedQuery = (

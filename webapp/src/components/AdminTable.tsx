@@ -25,10 +25,9 @@ interface AdminTableProps {
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
   // Server-side pagination props
-  fetchData?: (query: Query<any>) => Promise<QueryResult<any>>
-  totalCount?: number
+  handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
-  onOrderCollectionChange?: (orderByCollection: OrderByCollection[]) => void
+  tableRef?: React.MutableRefObject<any>
 }
 
 const useStyles = makeStyles({
@@ -88,7 +87,7 @@ const AdminTable = (props: AdminTableProps) => {
   }
 
   // Determine if server-side pagination is enabled
-  const isServerSidePagination = props.fetchData !== undefined
+  const isServerSidePagination = props.handleQueryChange !== undefined
 
   return (
     <Box
@@ -112,7 +111,7 @@ const AdminTable = (props: AdminTableProps) => {
           ...column,
         }))}
         // Use data function for server-side, data array for client-side
-        data={isServerSidePagination ? props.fetchData! : (props.data ?? [])}
+        data={isServerSidePagination ? props.handleQueryChange! : (props.data ?? [])}
         title={props.title}
         editable={props.editable}
         isLoading={props.isLoading}
@@ -132,10 +131,9 @@ const AdminTable = (props: AdminTableProps) => {
           pageSize: 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
-          search: !isServerSidePagination, // Disable client-side search for server-side pagination
+          search: true, // Disable client-side search for server-side pagination
           debounceInterval: 500,
         }}
-        onOrderCollectionChange={props.onOrderCollectionChange}
         components={{
           Cell: (cellProps) => {
             const rowData = cellProps.data
