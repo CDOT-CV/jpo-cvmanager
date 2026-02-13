@@ -22,12 +22,10 @@ const AdminRsuTab = () => {
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  // Track current query to detect organization changes
-  const currentQueryRef = useRef(null)
 
-  // Use lazy query for on-demand fetching
   const [trigger] = useLazyGetAllRsusQuery()
 
+  const currentQueryRef = useRef(null)
   const handleQueryChange = useCallback(
     async (query) => {
       setIsRefreshing(true)
@@ -83,7 +81,7 @@ const AdminRsuTab = () => {
       }
     },
     [trigger, organization]
-  ) // Dependency on organization - changes trigger new data function
+  )
 
   const handleRefresh = () => {
     if (tableRef.current && tableRef.current.onQueryChange) {
