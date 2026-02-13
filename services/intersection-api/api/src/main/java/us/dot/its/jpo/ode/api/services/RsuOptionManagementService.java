@@ -17,9 +17,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 /**
- * Service for managing RSU options including TIM deposit and SNMP monitoring settings.
- * This service handles the lifecycle of RSU option configurations independently from
- * core RSU management operations.
+ * Service for managing RSU options (TIM deposit and SNMP monitoring).
  */
 @Service
 @RequiredArgsConstructor
@@ -30,13 +28,8 @@ public class RsuOptionManagementService {
     private final RsuOptionRepository rsuOptionRepository;
 
     /**
-     * Modifies RSU options (tim_deposit and snmp_monitoring) for a given RSU.
-     * Creates a new RsuOption entry if one doesn't exist, or updates the existing one.
-     * Only saves to the database if actual changes are detected.
-     *
-     * @param rsuIp The IPv4 address of the RSU
-     * @param rsuPatch The patch object containing the new option values
-     * @throws ResponseStatusException if the RSU is not found or the IP is invalid
+     * Modifies RSU options for the given RSU IP. Creates a new entry if needed.
+     * Only saves if changes are detected.
      */
     public void modifyRsuOption(String rsuIp, RsuPatch rsuPatch) {
         log.debug("Modifying Rsu option with IP: {}", rsuIp);
@@ -59,13 +52,7 @@ public class RsuOptionManagementService {
         log.debug("Done modifying Rsu option with IP: {}", rsuIp);
     }
 
-    /**
-     * Finds an RSU by its IPv4 address.
-     *
-     * @param rsuIp The IPv4 address string
-     * @return The RSU entity
-     * @throws ResponseStatusException if the IP is invalid or RSU not found
-     */
+    // Finds RSU by IP address or throws NOT_FOUND/BAD_REQUEST
     private Rsu findRsuByIp(String rsuIp) {
         try {
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
@@ -82,12 +69,7 @@ public class RsuOptionManagementService {
         }
     }
 
-    /**
-     * Retrieves an existing RsuOption for the given RSU or creates a new one if it doesn't exist.
-     *
-     * @param rsu The RSU entity
-     * @return The existing or newly created RsuOption
-     */
+    // Gets existing RsuOption or creates a new one
     private RsuOption getOrCreateRsuOption(Rsu rsu) {
         Optional<RsuOption> rsuOptionOptional = rsuOptionRepository.findByRsuId(rsu.getId());
 
@@ -102,14 +84,7 @@ public class RsuOptionManagementService {
         }
     }
 
-    /**
-     * Updates the RSU option fields based on the patch values.
-     *
-     * @param rsuOption The RsuOption to update
-     * @param rsuPatch The patch containing new values
-     * @param isNewOption Whether this is a new option being created
-     * @return true if any changes were made, false otherwise
-     */
+    // Updates option fields from patch, returns true if any changes made
     private boolean updateRsuOptionFields(RsuOption rsuOption, RsuPatch rsuPatch, boolean isNewOption) {
         boolean modified = false;
 
@@ -119,14 +94,7 @@ public class RsuOptionManagementService {
         return modified;
     }
 
-    /**
-     * Updates the tim_deposit field if a new value is provided and different from current.
-     *
-     * @param rsuOption The RsuOption to update
-     * @param proposedValue The proposed new value (may be null)
-     * @param isNewOption Whether this is a new option being created
-     * @return true if the field was modified, false otherwise
-     */
+    // Updates tim_deposit if provided and different from current
     private boolean updateTimDepositField(RsuOption rsuOption, Boolean proposedValue, boolean isNewOption) {
         if (proposedValue == null) {
             return false;
@@ -147,14 +115,7 @@ public class RsuOptionManagementService {
         }
     }
 
-    /**
-     * Updates the snmp_monitoring field if a new value is provided and different from current.
-     *
-     * @param rsuOption The RsuOption to update
-     * @param proposedValue The proposed new value (may be null)
-     * @param isNewOption Whether this is a new option being created
-     * @return true if the field was modified, false otherwise
-     */
+    // Updates snmp_monitoring if provided and different from current
     private boolean updateSnmpMonitoringField(RsuOption rsuOption, Boolean proposedValue, boolean isNewOption) {
         if (proposedValue == null) {
             return false;
@@ -175,13 +136,7 @@ public class RsuOptionManagementService {
         }
     }
 
-    /**
-     * Saves the RsuOption to the database if modifications were detected.
-     *
-     * @param rsuOption The RsuOption to save
-     * @param modified Whether any modifications were made
-     * @param isNewOption Whether this is a new option being created
-     */
+    // Saves to database only if modifications were detected
     private void saveRsuOptionIfModified(RsuOption rsuOption, boolean modified, boolean isNewOption) {
         if (modified) {
             log.debug("Saving {} rsu_option entry - tim_deposit: {}, snmp_monitoring: {}",
