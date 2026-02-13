@@ -22,6 +22,7 @@ import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +36,9 @@ class RsuControllerTest {
 
     @Mock
     private RsuManagementService rsuManagementService;
+
+    @Mock
+    private RsuOptionManagementService rsuOptionManagementService;
 
     @Mock
     private PermissionService permissionService;
@@ -255,6 +259,7 @@ class RsuControllerTest {
         String username = "testuser@example.com";
 
         doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, username);
+        doNothing().when(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
@@ -265,6 +270,7 @@ class RsuControllerTest {
             assertNull(result.getBody());
 
             verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+            verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
         }
     }
 
@@ -279,13 +285,14 @@ class RsuControllerTest {
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-        assertThrows(
-                ResponseStatusException.class,
-                        () -> rsuController.modifyRsu(rsuIp, patch));
+            assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+            verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+        }
     }
-}
 
     @Test
     void testModifyRsu_InvalidPatch() {
@@ -299,13 +306,14 @@ class RsuControllerTest {
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-        assertThrows(
-                ResponseStatusException.class,
-                        () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+            assertThrows(
+                    ResponseStatusException.class,
+                    () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
+            verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+        }
     }
-}
 
     @Test
     void testModifyRsu_ServiceException() {
@@ -318,13 +326,14 @@ class RsuControllerTest {
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-        assertThrows(
-                RuntimeException.class,
-                () -> rsuController.modifyRsu(rsuIp, patch));
+            assertThrows(
+                    RuntimeException.class,
+                    () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+            verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+        }
     }
-}
 
     // ==================== DELETE SINGLE RSU TESTS ====================
 
