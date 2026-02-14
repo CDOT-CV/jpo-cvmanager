@@ -62,7 +62,7 @@ const AdminRsuTab = () => {
         currentQueryRef.current = params
 
         // Trigger the query and await the result
-        const result = await trigger(params, true).unwrap() // true = force refetch
+        const result = await trigger(params).unwrap()
 
         return {
           data: result.content || [],
@@ -70,7 +70,7 @@ const AdminRsuTab = () => {
           totalCount: result.totalElements || 0,
         }
       } catch (error) {
-        console.error('Failed to fetch users:', error)
+        console.error('Failed to fetch rsus:', error)
         return {
           data: [],
           page: query.page,

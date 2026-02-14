@@ -5,7 +5,6 @@ import MaterialTable, {
   MTableAction,
   MTableCell,
   MTableToolbar,
-  OrderByCollection,
   Query,
   QueryResult,
 } from '@material-table/core'

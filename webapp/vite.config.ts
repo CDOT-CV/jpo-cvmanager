@@ -9,7 +9,6 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig(({ mode }) => {
   setEnv(mode);
   const config = {
-    base: '/',
     plugins: [
       react(),
       tsconfigPaths(),
