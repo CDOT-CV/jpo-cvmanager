@@ -31,7 +31,7 @@ class RsuCredentialControllerTest {
     }
 
     @Test
-    void testCreateRsuCredential_Success() {
+    void testCreateRsuCredential_Success() throws RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";
@@ -65,7 +65,7 @@ class RsuCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testGetByNicknameByNickname_Success() {
+    void testGetByNicknameByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";
@@ -95,7 +95,7 @@ class RsuCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testUpdate_Success() {
+    void testUpdate_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";
@@ -129,7 +129,7 @@ class RsuCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testDelete_Success() {
+    void testDelete_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
         String nickname = "testNickname";
 

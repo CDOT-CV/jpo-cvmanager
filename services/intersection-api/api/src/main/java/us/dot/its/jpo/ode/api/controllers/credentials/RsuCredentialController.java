@@ -34,8 +34,10 @@ public class RsuCredentialController {
 
     @PostMapping("/create")
     public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
-        RsuCredential rsuCredential = rsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest);
-        if (rsuCredential == null) {
+        RsuCredential rsuCredential = null;
+        try {
+            rsuCredential = rsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest);
+        } catch (RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
             return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
         }
         return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredential)), Optional.empty());
@@ -43,8 +45,10 @@ public class RsuCredentialController {
 
     @GetMapping("/get-by-nickname")
     public Optional<RsuCredentialDTO> getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) {
-        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
-        if (rsuCredential == null) {
+        RsuCredential rsuCredential = null;
+        try {
+            rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
+        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
             return Optional.empty();
         }
         return Optional.of(rsuCredentialMapper.toDto(rsuCredential));
@@ -52,8 +56,10 @@ public class RsuCredentialController {
 
     @PostMapping("/update")
     public RsuCredentialUpdateResponse update(@RequestBody RsuCredentialPatch rsuCredentialPatch) {
-        RsuCredential updatedRsuCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
-        if (updatedRsuCredential == null) {
+        RsuCredential updatedRsuCredential = null;
+        try {
+            updatedRsuCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
+        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
             return new RsuCredentialUpdateResponse(false, Optional.empty(), Optional.of("RSU Credential not found"));
         }
         return new RsuCredentialUpdateResponse(true, Optional.of(rsuCredentialMapper.toDto(updatedRsuCredential)), Optional.empty());
@@ -61,8 +67,9 @@ public class RsuCredentialController {
 
     @PostMapping("/delete")
     public RsuCredentialDeleteResponse deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
-        boolean success = rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
-        if (!success) {
+        try {
+            rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
+        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
             return new RsuCredentialDeleteResponse(false, Optional.of("RSU Credential not found"));
         }
         return new RsuCredentialDeleteResponse(true, Optional.empty());
