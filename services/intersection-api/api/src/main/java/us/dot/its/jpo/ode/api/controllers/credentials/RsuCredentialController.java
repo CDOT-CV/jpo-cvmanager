@@ -33,15 +33,21 @@ public class RsuCredentialController {
     private final RsuCredentialMapper rsuCredentialMapper;
 
     @PostMapping("/create")
-    public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
+    public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
         RsuCredential rsuCredential = rsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest);
-        return rsuCredentialMapper.toDto(rsuCredential);
+        if (rsuCredential == null) {
+            return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
+        }
+        return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredential)), Optional.empty());
     }
 
     @GetMapping("/get-by-nickname")
-    public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) {
+    public Optional<RsuCredentialDTO> getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) {
         RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
-        return rsuCredentialMapper.toDto(rsuCredential);
+        if (rsuCredential == null) {
+            return Optional.empty();
+        }
+        return Optional.of(rsuCredentialMapper.toDto(rsuCredential));
     }
 
     @PostMapping("/update")
@@ -98,6 +104,15 @@ public class RsuCredentialController {
     }
 
     // responses
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    public static class RsuCredentialCreateResponse {
+        private final Boolean success;
+        private final Optional<RsuCredentialDTO> rsuCredential;
+        private final Optional<String> error;
+    }
+
     @Getter
     @Setter
     @RequiredArgsConstructor

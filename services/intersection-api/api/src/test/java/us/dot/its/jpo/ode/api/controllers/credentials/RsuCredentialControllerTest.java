@@ -10,6 +10,8 @@ import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
+import java.util.Optional;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,11 +52,14 @@ class RsuCredentialControllerTest {
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO actual = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
+        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
 
         // Assert
-        assert(actual != null);
-        assert(actual.equals(expected));
+        assert(response != null);
+        assert(response.getSuccess());
+        assert(response.getRsuCredential().isPresent());
+        assert(response.getError().isEmpty());
+        assert(response.getRsuCredential().get().equals(expected));
     }
 
     @Test
@@ -78,11 +83,11 @@ class RsuCredentialControllerTest {
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
+        Optional<RsuCredentialDTO> actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
 
         // Assert
-        assert(actual != null);
-        assert(actual.equals(expected));
+        assert(actual.isPresent());
+        assert(actual.get().equals(expected));
     }
 
     @Test
@@ -108,12 +113,13 @@ class RsuCredentialControllerTest {
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act
-        RsuCredentialController.RsuCredentialUpdateResponse RsuCredentialUpdateResponse = rsuCredentialController.update(rsuCredentialPatch);
+        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
 
         // Assert
-        assert(RsuCredentialUpdateResponse != null);
-        assert(RsuCredentialUpdateResponse.getUpdatedRsuCredential().isPresent());
-        assert(RsuCredentialUpdateResponse.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
+        assert(response != null);
+        assert(response.getUpdatedRsuCredential().isPresent());
+        assert(response.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
+        assert(response.getError().isEmpty());
     }
 
     @Test
@@ -128,12 +134,12 @@ class RsuCredentialControllerTest {
         RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
 
         // Act
-        RsuCredentialController.RsuCredentialDeleteResponse rsuCredentialDeleteResponse = rsuCredentialController.deleteByNickname(deleteRequest);
+        RsuCredentialController.RsuCredentialDeleteResponse response = rsuCredentialController.deleteByNickname(deleteRequest);
 
         // Assert
-        assert(rsuCredentialDeleteResponse != null);
-        assert(rsuCredentialDeleteResponse.getSuccess());
-        assert(rsuCredentialDeleteResponse.getError().isEmpty());
+        assert(response != null);
+        assert(response.getSuccess());
+        assert(response.getError().isEmpty());
     }
 
 }
