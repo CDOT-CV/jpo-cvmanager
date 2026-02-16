@@ -11,7 +11,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 public class RsuCredentialManagementService {
     private final RsuCredentialRepository rsuCredentialRepository;
 
-    public RsuCredential createRsuCredential(String nickname, String username, String password, String organization) {
+    public RsuCredential createRsuCredential(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) {
         throw new UnsupportedOperationException();
     }
 

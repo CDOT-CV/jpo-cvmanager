@@ -33,14 +33,14 @@ public class RsuCredentialController {
     private final RsuCredentialMapper rsuCredentialMapper;
 
     @PostMapping("/create")
-    public RsuCredentialDTO createRsuCredential(String nickname, String username, String password, String organization) {
-        RsuCredential rsuCredential = rsuCredentialManagementService.createRsuCredential(nickname, username, password, organization);
+    public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
+        RsuCredential rsuCredential = rsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest);
         return rsuCredentialMapper.toDto(rsuCredential);
     }
 
     @GetMapping("/get-by-nickname")
-    public RsuCredentialDTO getByNickname(String nickname) {
-        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(nickname);
+    public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) {
+        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
         return rsuCredentialMapper.toDto(rsuCredential);
     }
 
@@ -63,6 +63,23 @@ public class RsuCredentialController {
     }
 
     // requests
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    public static class RsuCredentialCreateRequest {
+        private final String nickname;
+        private final String username;
+        private final String password;
+        private final String organization;
+    }
+
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    public static class RsuCredentialGetRequest {
+        private final String nickname;
+    }
+
     @Getter
     @Setter
     @RequiredArgsConstructor

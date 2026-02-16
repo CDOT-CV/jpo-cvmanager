@@ -43,13 +43,14 @@ class RsuCredentialControllerTest {
         when(mockRsuCredential.getUsername()).thenReturn(username);
         when(mockRsuCredential.getPassword()).thenReturn(password);
         when(mockRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
-        when(mockRsuCredentialManagementService.createRsuCredential(nickname, username, password, organization)).thenReturn(mockRsuCredential);
+        RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        when(mockRsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO actual = rsuCredentialController.createRsuCredential(nickname, username, password, organization);
+        RsuCredentialDTO actual = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
 
         // Assert
         assert(actual != null);
@@ -73,10 +74,11 @@ class RsuCredentialControllerTest {
         when(mockRsuCredentialManagementService.getByNickname(nickname)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
+        RsuCredentialController.RsuCredentialGetRequest rsuCredentialGetRequest = new RsuCredentialController.RsuCredentialGetRequest(nickname);
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO actual = rsuCredentialController.getByNickname(nickname);
+        RsuCredentialDTO actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
 
         // Assert
         assert(actual != null);
