@@ -62,6 +62,8 @@ class RsuCredentialControllerTest {
         assert(response.getRsuCredential().get().equals(expected));
     }
 
+    // TODO: implement unit tests for unhappy paths
+
     @Test
     void testGetByNicknameByNickname_Success() {
         // Arrange
@@ -89,6 +91,8 @@ class RsuCredentialControllerTest {
         assert(actual.isPresent());
         assert(actual.get().equals(expected));
     }
+
+    // TODO: implement unit tests for unhappy paths
 
     @Test
     void testUpdate_Success() {
@@ -122,6 +126,8 @@ class RsuCredentialControllerTest {
         assert(response.getError().isEmpty());
     }
 
+    // TODO: implement unit tests for unhappy paths
+
     @Test
     void testDelete_Success() {
         // Arrange
@@ -141,5 +147,7 @@ class RsuCredentialControllerTest {
         assert(response.getSuccess());
         assert(response.getError().isEmpty());
     }
+
+    // TODO: implement unit tests for unhappy paths
 
 }
