@@ -46,7 +46,7 @@ class RsuCredentialControllerTest {
         when(mockRsuCredential.getPassword()).thenReturn(password);
         when(mockRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
         RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
-        when(mockRsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
+        when(mockRsuCredentialManagementService.create(rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);

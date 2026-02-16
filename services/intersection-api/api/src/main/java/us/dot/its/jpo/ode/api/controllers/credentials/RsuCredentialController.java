@@ -38,7 +38,7 @@ public class RsuCredentialController {
     public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
         RsuCredential rsuCredential = null;
         try {
-            rsuCredential = rsuCredentialManagementService.createRsuCredential(rsuCredentialCreateRequest);
+            rsuCredential = rsuCredentialManagementService.create(rsuCredentialCreateRequest);
         } catch (RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
             return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
         }

@@ -11,7 +11,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 public class RsuCredentialManagementService {
     private final RsuCredentialRepository rsuCredentialRepository;
 
-    public RsuCredential createRsuCredential(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialAlreadyExistsException {
+    public RsuCredential create(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialAlreadyExistsException {
         throw new UnsupportedOperationException();
     }
 
