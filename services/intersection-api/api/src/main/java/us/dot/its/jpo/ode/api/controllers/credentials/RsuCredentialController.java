@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,12 @@ public class RsuCredentialController {
     @PostMapping("/create")
     public RsuCredentialDTO createRsuCredential(String nickname, String username, String password, String organization) {
         RsuCredential rsuCredential = rsuCredentialManagementService.createRsuCredential(nickname, username, password, organization);
+        return rsuCredentialMapper.toDto(rsuCredential);
+    }
+
+    @GetMapping("/get-by-nickname")
+    public RsuCredentialDTO getByNickname(String nickname) {
+        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(nickname);
         return rsuCredentialMapper.toDto(rsuCredential);
     }
 

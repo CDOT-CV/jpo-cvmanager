@@ -14,5 +14,9 @@ public class RsuCredentialManagementService {
         throw new UnsupportedOperationException();
     }
 
+    public RsuCredential getByNickname(String nickname) {
+        throw new UnsupportedOperationException();
+    }
+
     // TODO: implement CRUD operations
 }

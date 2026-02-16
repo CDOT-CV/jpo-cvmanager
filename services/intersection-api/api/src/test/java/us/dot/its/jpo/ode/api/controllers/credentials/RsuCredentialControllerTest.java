@@ -56,6 +56,33 @@ class RsuCredentialControllerTest {
         assert(actual.equals(expected));
     }
 
+    @Test
+    void testGetByNicknameByNickname_Success() {
+        // Arrange
+        String nickname = "testNickname";
+        String username = "testUser";
+        String password = "testPassword";
+        int mockRsuCredentialId = 1;
+        int mockOrganizationId = 2;
+        RsuCredential mockRsuCredential = mock();
+        when(mockRsuCredential.getId()).thenReturn(mockRsuCredentialId);
+        when(mockRsuCredential.getNickname()).thenReturn(nickname);
+        when(mockRsuCredential.getUsername()).thenReturn(username);
+        when(mockRsuCredential.getPassword()).thenReturn(password);
+        when(mockRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
+        when(mockRsuCredentialManagementService.getByNickname(nickname)).thenReturn(mockRsuCredential);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
+
+        // Act
+        RsuCredentialDTO actual = rsuCredentialController.getByNickname(nickname);
+
+        // Assert
+        assert(actual != null);
+        assert(actual.equals(expected));
+    }
+
     // TODO: implement tests
 
 }
