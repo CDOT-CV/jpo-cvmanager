@@ -155,7 +155,7 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-docker-action@v4
         with:
-            version: v28.0
+            version: v27.4.0
 
       - name: Cache Maven packages
         uses: actions/cache@v4
