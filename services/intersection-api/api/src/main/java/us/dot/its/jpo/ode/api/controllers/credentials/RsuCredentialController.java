@@ -32,6 +32,8 @@ public class RsuCredentialController {
     private final RsuCredentialManagementService rsuCredentialManagementService;
     private final RsuCredentialMapper rsuCredentialMapper;
 
+    // TODO: update endpoints to use `@PreAuthorize` annotation
+
     @PostMapping("/create")
     public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
         RsuCredential rsuCredential = null;
