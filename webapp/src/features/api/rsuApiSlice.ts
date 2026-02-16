@@ -4,6 +4,7 @@ import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { getQueryString } from './intersectionApiSlice'
 import { AdminRsu, AdminRsuAllowedSelections } from '../../models/Rsu'
+import { AdminRsuCreationBody } from '../adminAddRsu/AdminAddRsu'
 
 export interface PaginatedRsusResponse {
   content: AdminRsu[]
@@ -80,6 +81,14 @@ export const rsuApiSlice = createApi({
       },
       providesTags: (result, error) => ['AllowedSelections'],
     }),
+    createRsu: builder.mutation<void, AdminRsuCreationBody>({
+      query: (rsu) => ({
+        url: '',
+        method: 'POST',
+        body: rsu,
+      }),
+      invalidatesTags: (result, error, vars) => [{ type: 'Rsu', id: 'LIST' }],
+    }),
     patchRsu: builder.mutation<void, { rsuIp: string; patch: Partial<AdminRsu> }>({
       query: ({ rsuIp, patch }) => ({
         url: `${getQueryString({
@@ -126,6 +135,7 @@ export const {
   useLazyGetRsuQuery,
   useGetRsuAllowedSelectionsQuery,
   useLazyGetRsuAllowedSelectionsQuery,
+  useCreateRsuMutation,
   usePatchRsuMutation,
   useDeleteRsuMutation,
   useDeleteMultipleRsusMutation,
