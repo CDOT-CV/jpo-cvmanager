@@ -21,6 +21,7 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     void removeRsuOrganizationByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
+    @Modifying
     @Transactional
     @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleRsuOrganizationsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
@@ -28,7 +29,10 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Query("SELECT ro FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     List<RsuOrganization> findAllByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
-    Optional<RsuOrganization> findByOrganizationName(String organizationName);
+    Optional<RsuOrganization> findByOrganization_Name(String organizationName);
+
+    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_Name(InetAddress ipv4Address,
+            String organizationName);
 
     @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.name = :organizationName")
     List<InetAddress> findAllRsuIpsByOrganizationName(@Param("organizationName") String organizationName);

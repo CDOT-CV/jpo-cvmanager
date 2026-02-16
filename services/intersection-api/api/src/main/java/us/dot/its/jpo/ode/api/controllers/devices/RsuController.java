@@ -89,15 +89,15 @@ public class RsuController {
         return rsuInfo;
     }
 
-    @Operation(summary = "Get Single RSU Management Data", description = "Get RSU data required for RSU modification page. "
+    @Operation(summary = "Get Allowed Selections for RSU Management", description = "Get RSU data required for RSU modification page. "
             + "Returns detailed data for the specified RSU along with allowed selections for modification.")
     @RequestMapping(method = RequestMethod.GET, path = "/allowed-selections", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
-    public ModifyRsuAllowedSelections getSingleRsuAllowedSelections() {
+    public ModifyRsuAllowedSelections getAllowedSelections() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = PermissionService.getUsername(auth);
         ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(username);
@@ -142,7 +142,9 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        rsuManagementService.modifyRsu(rsuIp, body);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = PermissionService.getUsername(auth);
+        rsuManagementService.modifyRsu(rsuIp, body, username);
 
         return ResponseEntity.noContent().build();
     }
@@ -160,9 +162,9 @@ public class RsuController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
+    @Operation(summary = "Delete Multiple RSUs", description = "Delete Multiple RSUs from management system")
     @RequestMapping(method = RequestMethod.DELETE, path = "/batch", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#rsuIps, 'OPERATOR') && @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
@@ -173,6 +175,11 @@ public class RsuController {
         return ResponseEntity.noContent().build();
     }
 
+    /*
+     * Maps API sort fields to database fields. If no mapping is found, the original
+     * field is used. This allows the API to use more user-friendly field names
+     * while still supporting sorting on database fields.
+     */
     private Pageable mapSortFields(Pageable pageable) {
         if (!pageable.getSort().isSorted()) {
             return pageable;

@@ -138,13 +138,17 @@ const AdminEditRsu = () => {
       const patch: Partial<AdminRsu> = {}
 
       if (data.ip !== rsuInfo?.ip) patch.ip = data.ip
-      if (data.geo_position.latitude !== rsuInfo?.geo_position.latitude.toString()) {
+      if (
+        data.geo_position.latitude !== rsuInfo?.geo_position.latitude.toString() ||
+        data.geo_position.longitude !== rsuInfo?.geo_position.longitude.toString()
+      ) {
         patch.geo_position = {
           latitude: data.geo_position.latitude,
           longitude: data.geo_position.longitude,
         }
       }
-      if (data.milepost !== rsuInfo?.milepost) patch.milepost = data.milepost
+      const formMilepost = Number(data.milepost)
+      if (formMilepost !== rsuInfo?.milepost) patch.milepost = formMilepost
       if (data.primary_route !== rsuInfo?.primary_route) {
         patch.primary_route = data.primary_route === 'Other' ? data.other_route : data.primary_route
       }

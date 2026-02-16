@@ -24,8 +24,7 @@ interface AdminTableProps {
   pageSizeOptions?: any
   page?: number
   totalCount?: number
-  onChangePage?: (page: number) => void
-  onChangeRowsPerPage?: (pageSize: number) => void
+  onPageChange?: (page: number, pageSize: number) => void
   onOrderCollectionChange?: (orderByCollection: OrderByCollection[]) => void
 }
 
@@ -86,7 +85,7 @@ const AdminTable = (props: AdminTableProps) => {
   }
 
   // Determine if server-side pagination is enabled
-  const isServerSidePagination = props.totalCount !== undefined && props.onChangePage !== undefined
+  const isServerSidePagination = props.totalCount !== undefined && props.onPageChange !== undefined
 
   return (
     <Box
@@ -135,9 +134,7 @@ const AdminTable = (props: AdminTableProps) => {
             emptyRowsWhenPaging: false,
           }),
         }}
-        // @ts-ignore - MaterialTable doesn't have these in type definitions but they work
-        onChangePage={props.onChangePage}
-        onChangeRowsPerPage={props.onChangeRowsPerPage}
+        onPageChange={props.onPageChange}
         onOrderCollectionChange={props.onOrderCollectionChange}
         components={{
           Cell: (cellProps) => {

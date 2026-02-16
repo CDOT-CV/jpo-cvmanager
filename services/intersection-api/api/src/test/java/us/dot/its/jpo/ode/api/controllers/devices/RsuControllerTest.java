@@ -31,11 +31,13 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RsuControllerTest {
+
+    @Mock
+    private Authentication authentication;
 
     @Mock
     private RsuManagementService rsuManagementService;
@@ -45,9 +47,6 @@ class RsuControllerTest {
 
     @Mock
     private SecurityContext securityContext;
-
-    @Mock
-    private Authentication authentication;
 
     @InjectMocks
     private RsuController rsuController;
@@ -201,11 +200,11 @@ class RsuControllerTest {
         String invalidRsuIp = "invalid-ip";
 
         when(rsuManagementService.getRsuInfo(invalidRsuIp))
-                .thenThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp));
+                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + invalidRsuIp));
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.getSingleRsuData(invalidRsuIp));
+                ResponseStatusException.class,
+                        () -> rsuController.getSingleRsuData(invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
     }
@@ -213,7 +212,7 @@ class RsuControllerTest {
     // ==================== GET ALLOWED SELECTIONS TESTS ====================
 
     @Test
-    void testGetSingleRsuAllowedSelections_Success() {
+    void testGetAllowedSelections_Success() {
         String username = "testuser@example.com";
 
         ModifyRsuAllowedSelections allowedSelections = new ModifyRsuAllowedSelections(
@@ -229,7 +228,7 @@ class RsuControllerTest {
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
 
-            ModifyRsuAllowedSelections result = rsuController.getSingleRsuAllowedSelections();
+            ModifyRsuAllowedSelections result = rsuController.getAllowedSelections();
 
             assertNotNull(result);
 
@@ -251,63 +250,79 @@ class RsuControllerTest {
         String rsuIp = "192.168.1.100";
         RsuPatch patch = new RsuPatch();
         patch.setIpv4Address("192.168.1.101");
+        String username = "testuser@example.com";
 
-        doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch);
+        doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
-        ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
+            ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
 
-        assertNotNull(result);
-        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-        assertNull(result.getBody());
+            assertNotNull(result);
+            assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+            assertNull(result.getBody());
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+            verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
+        }
     }
 
     @Test
     void testModifyRsu_RsuNotFound() {
         String rsuIp = "192.168.1.999";
         RsuPatch patch = new RsuPatch();
+        String username = "testuser@example.com";
 
-        doThrow(new IllegalArgumentException("RSU not found"))
-                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
+                .when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.modifyRsu(rsuIp, patch));
+                ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
     }
+}
 
     @Test
     void testModifyRsu_InvalidPatch() {
         String rsuIp = "192.168.1.100";
         RsuPatch invalidPatch = new RsuPatch();
         invalidPatch.setIpv4Address("invalid-ip");
+        String username = "testuser@example.com";
 
-        doThrow(new IllegalArgumentException("Invalid IP address"))
-                .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address"))
+                .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+                ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch);
+        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, username);
     }
+}
 
     @Test
     void testModifyRsu_ServiceException() {
         String rsuIp = "192.168.1.100";
         RsuPatch patch = new RsuPatch();
+        String username = "testuser@example.com";
 
         doThrow(new RuntimeException("Database error"))
-                .when(rsuManagementService).modifyRsu(rsuIp, patch);
+                .when(rsuManagementService).modifyRsu(rsuIp, patch, username);
 
+        try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
+            mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
         assertThrows(
                 RuntimeException.class,
                 () -> rsuController.modifyRsu(rsuIp, patch));
 
-        verify(rsuManagementService).modifyRsu(rsuIp, patch);
+        verify(rsuManagementService).modifyRsu(rsuIp, patch, username);
     }
+}
 
     // ==================== DELETE SINGLE RSU TESTS ====================
 
@@ -330,12 +345,12 @@ class RsuControllerTest {
     void testDeleteRsu_RsuNotFound() {
         String rsuIp = "192.168.1.999";
 
-        doThrow(new IllegalArgumentException("RSU not found"))
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
                 .when(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.deleteRsu(rsuIp));
+                ResponseStatusException.class,
+                        () -> rsuController.deleteRsu(rsuIp));
 
         verify(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
     }
@@ -344,12 +359,12 @@ class RsuControllerTest {
     void testDeleteRsu_InvalidIpAddress() {
         String invalidRsuIp = "invalid-ip";
 
-        doThrow(new IllegalArgumentException("Invalid IP address: " + invalidRsuIp))
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + invalidRsuIp))
                 .when(rsuManagementService).deleteRsuByIpv4Address(invalidRsuIp);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.deleteRsu(invalidRsuIp));
+                ResponseStatusException.class,
+                        () -> rsuController.deleteRsu(invalidRsuIp));
 
         verify(rsuManagementService).deleteRsuByIpv4Address(invalidRsuIp);
     }
@@ -417,12 +432,12 @@ class RsuControllerTest {
     void testDeleteRsus_SomeNotFound() {
         List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.999", "192.168.1.101");
 
-        doThrow(new IllegalArgumentException("Some RSUs not found"))
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Some RSUs not found"))
                 .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.deleteRsus(rsuIps));
+                ResponseStatusException.class,
+                        () -> rsuController.deleteRsus(rsuIps));
 
         verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
     }
@@ -431,12 +446,12 @@ class RsuControllerTest {
     void testDeleteRsus_InvalidIpInList() {
         List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
 
-        doThrow(new IllegalArgumentException("Invalid IP address: invalid-ip"))
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: invalid-ip"))
                 .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> rsuController.deleteRsus(rsuIps));
+                ResponseStatusException.class,
+                        () -> rsuController.deleteRsus(rsuIps));
 
         verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
     }

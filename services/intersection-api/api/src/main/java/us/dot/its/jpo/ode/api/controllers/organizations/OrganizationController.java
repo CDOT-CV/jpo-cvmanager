@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,10 +34,10 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 @RequestMapping("/organizations")
 @RequiredArgsConstructor
 public class OrganizationController {
-    RsuRepository rsuRepository;
-    RsuOrganizationRepository rsuOrganizationRepository;
+    final RsuRepository rsuRepository;
+    final RsuOrganizationRepository rsuOrganizationRepository;
 
-    @Operation(summary = "Get All RSU IPs for the Organization", description = "Get IPs of all RSUs the user has access to in the specified organization.")
+    @Operation(summary = "Get RSU IPs by Organization", description = "Retrieves a list of IP addresses for all RSUs belonging to the specified organization.")
     @RequestMapping(path = "rsus", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
@@ -47,20 +45,18 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getRsuIpsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @PageableDefault(size = 100) Pageable pageable) {
-
+            @RequestHeader(name = "Organization", required = true) String organization) {
         return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
                 .map(InetAddress::getHostAddress)
                 .collect(Collectors.toList());
     }
 
-    @Operation(summary = "Get Single RSU Management Data", description = "Get RSU data required for RSU modification page. "
-            + "Returns detailed data for the specified RSU along with allowed selections for modification.")
+    @Operation(summary = "Get RSU Organization Assignments", description = "Retrieves a list of organization names that the specified RSU is assigned to.")
     @RequestMapping(path = "rsus", method = RequestMethod.GET, produces = "application/json", params = "rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid RSU IP address format"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the RSU requested"),
     })
     public List<String> getRsuOrganizationAssignments(
@@ -68,7 +64,6 @@ public class OrganizationController {
         try {
             return rsuRepository.findAllOrganizationNamesByIpv4Address(InetAddress.getByName(rsuIp));
         } catch (UnknownHostException e) {
-            // return 400 Bad Request
             log.error("Invalid RSU IP address: {}", rsuIp, e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIp, e);
         }
