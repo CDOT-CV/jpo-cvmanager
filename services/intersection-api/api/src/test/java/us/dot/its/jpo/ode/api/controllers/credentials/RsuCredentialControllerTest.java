@@ -13,6 +13,7 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +61,7 @@ class RsuCredentialControllerTest {
         assert(response.getRsuCredential().isPresent());
         assert(response.getError().isEmpty());
         assert(response.getRsuCredential().get().equals(expected));
+        verify(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
     }
 
     // TODO: implement unit tests for unhappy paths
@@ -90,6 +92,7 @@ class RsuCredentialControllerTest {
         // Assert
         assert(actual.isPresent());
         assert(actual.get().equals(expected));
+        verify(mockRsuCredentialManagementService).getByNickname(nickname);
     }
 
     // TODO: implement unit tests for unhappy paths
@@ -124,6 +127,7 @@ class RsuCredentialControllerTest {
         assert(response.getUpdatedRsuCredential().isPresent());
         assert(response.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
         assert(response.getError().isEmpty());
+        verify(mockRsuCredentialManagementService).update(rsuCredentialPatch);
     }
 
     // TODO: implement unit tests for unhappy paths
@@ -146,6 +150,7 @@ class RsuCredentialControllerTest {
         assert(response != null);
         assert(response.getSuccess());
         assert(response.getError().isEmpty());
+        verify(mockRsuCredentialManagementService).deleteByNickname(nickname);
     }
 
     // TODO: implement unit tests for unhappy paths
