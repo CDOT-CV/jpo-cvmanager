@@ -123,7 +123,8 @@ public interface RsuInfoMapper {
     }
 
     /**
-     * Returns a list of organization name strings
+     * Extract organization names from RsuOrganization list.
+     * Returns a list of organization name strings.
      */
     @Named("mapOrganizationNames")
     default List<String> mapOrganizationNames(List<RsuOrganization> rsuOrganizations) {
