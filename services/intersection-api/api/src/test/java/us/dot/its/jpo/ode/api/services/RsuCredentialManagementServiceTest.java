@@ -65,8 +65,19 @@ class RsuCredentialManagementServiceTest {
     }
 
     @Test
-    void testGetByNickname_Success() {
-        // TODO: implement
+    void testGetByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        RsuCredential mockRsuCredential = new RsuCredential();
+        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(mockRsuCredential));
+
+        // Act
+        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(nickname);
+
+        // Assert
+        assertNotNull(rsuCredential);
+        assertEquals(mockRsuCredential, rsuCredential);
+        verify(mockRsuCredentialRepository).findByNickname(nickname);
     }
 
     @Test

@@ -36,7 +36,7 @@ public class RsuCredentialManagementService {
     }
 
     public RsuCredential getByNickname(String nickname) throws RsuCredentialNotFoundException {
-        throw new UnsupportedOperationException();
+        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
     }
 
     public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException {
