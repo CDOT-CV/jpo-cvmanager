@@ -32,7 +32,7 @@ const AdminRsuTab = () => {
 
       try {
         // Extract order information from orderByCollection
-        let orderBy = 'id'
+        let orderBy = 'ip'
         let orderDirection = 'asc'
 
         if (query.orderByCollection && query.orderByCollection.length > 0) {
