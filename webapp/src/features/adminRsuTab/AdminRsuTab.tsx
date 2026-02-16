@@ -71,6 +71,7 @@ const AdminRsuTab = () => {
         }
       } catch (error) {
         console.error('Failed to fetch rsus:', error)
+        toast.error('Failed to fetch RSUs')
         return {
           data: [],
           page: query.page,
