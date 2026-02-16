@@ -114,6 +114,24 @@ class RsuCredentialControllerTest {
         assert(RsuCredentialUpdateResponse.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
     }
 
-    // TODO: implement tests
+    @Test
+    void testDelete_Success() {
+        // Arrange
+        String nickname = "testNickname";
+
+        when(mockRsuCredentialManagementService.deleteByNickname(nickname)).thenReturn(true);
+
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
+
+        // Act
+        RsuCredentialController.RsuCredentialDeleteResponse rsuCredentialDeleteResponse = rsuCredentialController.deleteByNickname(deleteRequest);
+
+        // Assert
+        assert(rsuCredentialDeleteResponse != null);
+        assert(rsuCredentialDeleteResponse.getSuccess());
+        assert(rsuCredentialDeleteResponse.getError().isEmpty());
+    }
 
 }

@@ -53,6 +53,34 @@ public class RsuCredentialController {
         return new RsuCredentialUpdateResponse(true, Optional.of(rsuCredentialMapper.toDto(updatedRsuCredential)), Optional.empty());
     }
 
+    @PostMapping("/delete")
+    public RsuCredentialDeleteResponse deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
+        boolean success = rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
+        if (!success) {
+            return new RsuCredentialDeleteResponse(false, Optional.of("RSU Credential not found"));
+        }
+        return new RsuCredentialDeleteResponse(true, Optional.empty());
+    }
+
+    // requests
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    public static class RsuCredentialPatch {
+        private final String nickname;
+        private String username;
+        private String password;
+        private String organization;
+    }
+
+    @Getter
+    @Setter
+    @RequiredArgsConstructor
+    public static class RsuCredentialDeleteRequest {
+        private final String nickname;
+    }
+
+    // responses
     @Getter
     @Setter
     @RequiredArgsConstructor
@@ -65,10 +93,8 @@ public class RsuCredentialController {
     @Getter
     @Setter
     @RequiredArgsConstructor
-    public static class RsuCredentialPatch {
-        private final String nickname;
-        private String username;
-        private String password;
-        private String organization;
+    public static class RsuCredentialDeleteResponse {
+        private final Boolean success;
+        private final Optional<String> error;
     }
 }

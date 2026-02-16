@@ -23,5 +23,7 @@ public class RsuCredentialManagementService {
         throw new UnsupportedOperationException();
     }
 
-    // TODO: implement CRUD operations
+    public boolean deleteByNickname(String nickname) {
+        throw new UnsupportedOperationException();
+    }
 }
