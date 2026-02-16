@@ -41,6 +41,8 @@ public class RsuCredentialController {
             rsuCredential = rsuCredentialManagementService.create(rsuCredentialCreateRequest);
         } catch (RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
             return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
+        } catch (RsuCredentialManagementService.OrganizationNotFoundException e) {
+            return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("Organization not found"));
         }
         return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredential)), Optional.empty());
     }

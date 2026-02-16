@@ -17,4 +17,6 @@ public interface RsuCredentialRepository extends JpaRepository<RsuCredential, In
     Optional<RsuCredential> findByNickname(String nickname);
 
     List<RsuCredential> findByOwnerOrganizationId(Integer ownerOrganizationId);
+
+    boolean existsByNickname(String nickname);
 }

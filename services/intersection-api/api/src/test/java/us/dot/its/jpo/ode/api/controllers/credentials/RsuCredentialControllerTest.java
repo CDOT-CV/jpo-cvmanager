@@ -32,7 +32,7 @@ class RsuCredentialControllerTest {
     }
 
     @Test
-    void testCreateRsuCredential_Success() throws RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+    void testCreateRsuCredential_Success() throws RsuCredentialManagementService.RsuCredentialAlreadyExistsException, RsuCredentialManagementService.OrganizationNotFoundException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";
