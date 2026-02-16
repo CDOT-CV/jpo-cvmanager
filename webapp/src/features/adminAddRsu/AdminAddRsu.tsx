@@ -305,6 +305,7 @@ const AdminAddRsu = () => {
                         {route}
                       </MenuItem>
                     ))}
+                    <MenuItem value="Other">Other</MenuItem>
                   </Select>
                   {selectedRoute === 'Select Route (Required)' && submitAttempt && (
                     <ErrorMessageText role="alert">Must select a primary route</ErrorMessageText>

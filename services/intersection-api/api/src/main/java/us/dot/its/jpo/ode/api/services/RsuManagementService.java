@@ -104,12 +104,11 @@ public class RsuManagementService {
         Organization organization = organizationRepository.findByName(orgName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Organization not found: " + orgName));
-        if (organization != null) {
-            RsuOrganization rsuOrg = new RsuOrganization();
-            rsuOrg.setOrganization(organization);
-            rsuOrg.setRsu(rsu);
-            rsuOrganizationRepository.save(rsuOrg);
-        }
+
+        RsuOrganization rsuOrg = new RsuOrganization();
+        rsuOrg.setOrganization(organization);
+        rsuOrg.setRsu(rsu);
+        rsuOrganizationRepository.save(rsuOrg);
     }
 
     private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
