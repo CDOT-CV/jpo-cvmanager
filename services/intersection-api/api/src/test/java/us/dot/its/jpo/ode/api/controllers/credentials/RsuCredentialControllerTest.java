@@ -83,6 +83,37 @@ class RsuCredentialControllerTest {
         assert(actual.equals(expected));
     }
 
+    @Test
+    void testUpdate_Success() {
+        // Arrange
+        String nickname = "testNickname";
+        String username = "testUser";
+        String updatedPassword = "updatedPassword";
+        int mockRsuCredentialId = 1;
+        int mockOrganizationId = 2;
+        RsuCredential mockUpdatedRsuCredential = mock();
+        when(mockUpdatedRsuCredential.getId()).thenReturn(mockRsuCredentialId);
+        when(mockUpdatedRsuCredential.getNickname()).thenReturn(nickname);
+        when(mockUpdatedRsuCredential.getUsername()).thenReturn(username);
+        when(mockUpdatedRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
+        when(mockUpdatedRsuCredential.getPassword()).thenReturn(updatedPassword);
+
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        rsuCredentialPatch.setPassword(updatedPassword);
+
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenReturn(mockUpdatedRsuCredential);
+
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialUpdateResponse RsuCredentialUpdateResponse = rsuCredentialController.update(rsuCredentialPatch);
+
+        // Assert
+        assert(RsuCredentialUpdateResponse != null);
+        assert(RsuCredentialUpdateResponse.getUpdatedRsuCredential().isPresent());
+        assert(RsuCredentialUpdateResponse.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
+    }
+
     // TODO: implement tests
 
 }
