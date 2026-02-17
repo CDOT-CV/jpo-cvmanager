@@ -42,7 +42,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "LOWER(CAST(rsu.milepost AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.primaryRoute) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.model.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "LOWER(rsu.model.manufacturer) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(rsu.model.manufacturer.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.serialNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Rsu> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
             Pageable pageable);
