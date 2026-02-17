@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
 import java.util.Optional;
@@ -28,10 +30,19 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SnmpCredentialController {
     private final SnmpCredentialManagementService snmpCredentialManagementService;
+    private final SnmpCredentialMapper snmpCredentialMapper;
 
     @PostMapping("/create")
     public SnmpCredentialCreateResponse createSnmpCredential(SnmpCredentialCreateRequest request) {
-        throw new UnsupportedOperationException();
+        SnmpCredential snmpCredential;
+        try {
+            snmpCredential = snmpCredentialManagementService.create(request);
+        } catch(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
+            return new SnmpCredentialCreateResponse(false, Optional.empty(), Optional.of("SNMP Credential already exists"));
+        } catch(SnmpCredentialManagementService.OrganizationNotFoundException e) {
+            return new SnmpCredentialCreateResponse(false, Optional.empty(), Optional.of("Organization not found"));
+        }
+        return new SnmpCredentialCreateResponse(true, Optional.of(snmpCredentialMapper.toDto(snmpCredential)), Optional.empty());
     }
 
     @GetMapping("/get-by-nickname")
