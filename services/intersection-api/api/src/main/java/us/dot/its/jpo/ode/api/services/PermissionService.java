@@ -211,18 +211,28 @@ public class PermissionService {
     }
 
     /**
-     * Extracts the JWT token string from the Authorization header
-     * 
-     * @return The JWT token string, or null if not found
+     * Extracts the JWT token string from the Authorization header.
+     *
+     * @return The JWT token string (never {@code null}).
+     * @throws ResponseStatusException if the request context is unavailable or the
+     *                                 Authorization header is missing or invalid.
      */
     public static String getJwtTokenFromRequest() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            String authHeader = attributes.getRequest().getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                return authHeader.substring(7);
-            }
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "No request context available to extract JWT token");
         }
-        return null;
+
+        String authHeader = attributes.getRequest().getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Missing or invalid Authorization header");
+        }
+
+        return authHeader.substring(7);
     }
 }
