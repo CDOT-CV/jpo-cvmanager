@@ -34,17 +34,14 @@ const AdminRsuTab = () => {
         // Extract order information from orderByCollection
         let orderBy = 'ip'
         let orderDirection = 'asc'
-        console.log(query.orderByCollection)
         if (query.orderByCollection && query.orderByCollection.length > 0) {
           const firstOrder = query.orderByCollection[0]
-          if (firstOrder.orderBy) {
-            console.log(firstOrder.orderBy)
+          if (firstOrder.orderBy !== undefined) {
             if (typeof firstOrder.orderBy.field === 'string') {
               orderBy = firstOrder.orderBy.field
             } else if (typeof firstOrder.orderBy === 'number') {
               orderBy = columns[firstOrder.orderBy].field
             }
-            console.log(orderBy)
           }
           orderDirection = firstOrder.orderDirection || 'asc'
         }
