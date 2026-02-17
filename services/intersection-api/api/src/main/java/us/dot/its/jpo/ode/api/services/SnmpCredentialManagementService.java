@@ -19,6 +19,10 @@ public class SnmpCredentialManagementService {
         throw new UnsupportedOperationException();
     }
 
+    public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws SnmpCredentialNotFoundException, OrganizationNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
     // TODO: implement CRUD operations
 
     public static class SnmpCredentialNotFoundException extends Exception {

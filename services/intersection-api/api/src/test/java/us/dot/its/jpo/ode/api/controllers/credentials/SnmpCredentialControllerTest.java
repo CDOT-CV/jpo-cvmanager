@@ -100,8 +100,34 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testUpdate_Success() {
-        // TODO: implement
+    void testUpdate_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String updatedPassword = "updatedPassword";
+        String organization = "organization";
+        int mockRsuCredentialId = 1;
+        int mockOrganizationId = 2;
+       SnmpCredential snmpCredential = new SnmpCredential();
+       snmpCredential.setId(mockRsuCredentialId);
+       snmpCredential.setNickname(nickname);
+       snmpCredential.setUsername(username);
+       snmpCredential.setPassword(updatedPassword);
+       snmpCredential.setOwnerOrganizationId(mockOrganizationId);
+
+       SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+       patch.setPassword(updatedPassword);
+
+       when(mockSnmpCredentialManagementService.update(patch)).thenReturn(snmpCredential);
+       snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+       // Act
+       SnmpCredentialController.SnmpCredentialUpdateResponse response = snmpCredentialController.update(patch);
+
+       // Assert
+       assertNotNull(response);
+       assertTrue(response.getSuccess());
+       verify(mockSnmpCredentialManagementService).update(patch);
     }
 
     // TODO: implement unit tests for unhappy paths

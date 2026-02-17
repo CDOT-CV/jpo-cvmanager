@@ -58,7 +58,15 @@ public class SnmpCredentialController {
 
     @PostMapping("/update")
     public SnmpCredentialUpdateResponse update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) {
-        throw new UnsupportedOperationException();
+        SnmpCredential snmpCredential;
+        try {
+            snmpCredential = snmpCredentialManagementService.update(snmpCredentialPatch);
+        } catch (SnmpCredentialManagementService.OrganizationNotFoundException e) {
+            return new SnmpCredentialUpdateResponse(false, Optional.empty(), Optional.of("Organization not found"));
+        } catch (SnmpCredentialManagementService.SnmpCredentialNotFoundException e) {
+            return new SnmpCredentialUpdateResponse(false, Optional.empty(), Optional.of("SNMP Credential not found"));
+        }
+        return new SnmpCredentialUpdateResponse(true, Optional.of(snmpCredentialMapper.toDto(snmpCredential)), Optional.empty());
     }
 
     @PostMapping("/delete")
