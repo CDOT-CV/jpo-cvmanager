@@ -276,7 +276,6 @@ class SnmpCredentialManagementServiceTest {
         // Assert
         assertTrue(result);
         verify(mockSnmpCredentialRepository).delete(existingCredential);
-
     }
 
     @Test
