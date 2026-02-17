@@ -40,7 +40,21 @@ public class SnmpCredentialManagementService {
     }
 
     public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws SnmpCredentialNotFoundException, OrganizationNotFoundException {
-        throw new UnsupportedOperationException();
+        SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(() -> new SnmpCredentialNotFoundException("No credential found with nickname " + patch.getNickname()));
+        if (patch.getUsername() != null) {
+            credential.setUsername(patch.getUsername());
+        }
+        if (patch.getPassword() != null) {
+            credential.setPassword(patch.getPassword());
+        }
+        if (patch.getOrganization() != null) {
+            Optional<Organization> organization = organizationRepository.findByName(patch.getOrganization());
+            if (organization.isEmpty()) {
+                throw new OrganizationNotFoundException("Organization " + patch.getOrganization() + " not found.");
+            }
+            credential.setOwnerOrganizationId(organization.get().getId());
+        }
+        return snmpCredentialRepository.save(credential);
     }
 
     public boolean deleteByNickname(String nickname) throws SnmpCredentialNotFoundException {

@@ -86,8 +86,43 @@ class SnmpCredentialManagementServiceTest {
     // TODO: implement tests for unhappy paths
 
     @Test
-    void testUpdate_Success() {
-        // TODO: implement
+    void testUpdate_ChangePassword_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newPassword = "mynewpassword";
+        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+        patch.setPassword(newPassword);
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(1);
+
+        SnmpCredential expectedCredential = new SnmpCredential();
+        expectedCredential.setNickname(nickname);
+        expectedCredential.setUsername(username);
+        expectedCredential.setPassword(newPassword);
+        expectedCredential.setOwnerOrganizationId(1);
+
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockSnmpCredentialRepository.save(any())).thenReturn(expectedCredential);
+
+        // Act
+        SnmpCredential updatedCredential = snmpCredentialManagementService.update(patch);
+
+        // Assert
+        assertNotNull(updatedCredential);
+        assertEquals(nickname, updatedCredential.getNickname());
+        assertEquals(username, updatedCredential.getUsername());
+        assertEquals(newPassword, updatedCredential.getPassword());
+        assertEquals(organizationId, updatedCredential.getOwnerOrganizationId());
+        verify(mockSnmpCredentialRepository).findByNickname(nickname);
+        verify(mockSnmpCredentialRepository).save(any());
     }
 
     // TODO: implement tests for unhappy paths

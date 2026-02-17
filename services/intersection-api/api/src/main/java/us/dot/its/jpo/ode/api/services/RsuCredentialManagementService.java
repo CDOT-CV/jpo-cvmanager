@@ -41,11 +41,6 @@ public class RsuCredentialManagementService {
 
     public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException, OrganizationNotFoundException {
         RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
-        if (rsuCredentialPatch.getNickname() != null) {
-            if (!rsuCredentialPatch.getNickname().equals(rsuCredential.getNickname())) {
-                throw new UnsupportedOperationException("Changing RSU Credential nickname is not supported");
-            }
-        }
         if (rsuCredentialPatch.getUsername() != null) {
             rsuCredential.setUsername(rsuCredentialPatch.getUsername());
         }
