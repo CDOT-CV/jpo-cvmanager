@@ -71,7 +71,12 @@ public class SnmpCredentialController {
 
     @PostMapping("/delete")
     public SnmpCredentialDeleteResponse deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
-        throw new UnsupportedOperationException();
+        try {
+            snmpCredentialManagementService.deleteByNickname(request.getNickname());
+        } catch(SnmpCredentialManagementService.SnmpCredentialNotFoundException e) {
+            return new SnmpCredentialDeleteResponse(false, Optional.of("SNMP Credential not found"));
+        }
+        return new SnmpCredentialDeleteResponse(true, Optional.empty());
     }
 
     // requests

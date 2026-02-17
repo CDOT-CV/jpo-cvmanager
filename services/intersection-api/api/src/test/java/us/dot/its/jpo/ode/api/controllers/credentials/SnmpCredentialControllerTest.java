@@ -133,8 +133,22 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testDeleteByNickname_Success() {
-        // TODO: implement
+    void testDeleteByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+
+        SnmpCredentialController.SnmpCredentialDeleteRequest request = new SnmpCredentialController.SnmpCredentialDeleteRequest(nickname);
+
+        when(mockSnmpCredentialManagementService.deleteByNickname(nickname)).thenReturn(true);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act
+        SnmpCredentialController.SnmpCredentialDeleteResponse response = snmpCredentialController.deleteByNickname(request);
+
+        // Assert
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+        verify(mockSnmpCredentialManagementService).deleteByNickname(nickname);
     }
 
     // TODO: implement unit tests for unhappy paths
