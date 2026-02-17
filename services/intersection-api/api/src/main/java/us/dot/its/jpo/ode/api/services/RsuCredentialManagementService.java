@@ -63,7 +63,12 @@ public class RsuCredentialManagementService {
     }
 
     public boolean deleteByNickname(String nickname) throws RsuCredentialNotFoundException {
-        throw new UnsupportedOperationException();
+        Optional<RsuCredential> rsuCredential = rsuCredentialRepository.findByNickname(nickname);
+        if (rsuCredential.isEmpty()) {
+            return false;
+        }
+        rsuCredentialRepository.delete(rsuCredential.get());
+        return true;
     }
 
     public static class RsuCredentialNotFoundException extends Exception {

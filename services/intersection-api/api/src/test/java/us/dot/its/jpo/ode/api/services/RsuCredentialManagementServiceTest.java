@@ -164,9 +164,20 @@ class RsuCredentialManagementServiceTest {
        verify(mockRsuCredentialRepository).save(any());
     }
 
-        @Test
-    void testDeleteByNickname_Success() {
-        // TODO: implement
+    @Test
+    void testDeleteByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+
+        RsuCredential existingCredential = new RsuCredential();
+        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+
+        // Act
+        boolean result = rsuCredentialManagementService.deleteByNickname(nickname);
+
+        // Assert
+        assertTrue(result);
+        verify(mockRsuCredentialRepository).delete(existingCredential);
     }
 
 }
