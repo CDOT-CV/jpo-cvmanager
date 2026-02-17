@@ -71,7 +71,6 @@ class RsuCredentialManagementServiceTest {
         String username = "username";
         String password = "password";
         String organization = "organization";
-        int ownerOrganizationId = 1;
         RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
 
         when(mockRsuCredentialRepository.existsByNickname(nickname)).thenReturn(true);
@@ -87,7 +86,6 @@ class RsuCredentialManagementServiceTest {
         String username = "username";
         String password = "password";
         String organization = "organization";
-        int ownerOrganizationId = 1;
         RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
 
         when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
@@ -128,7 +126,6 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
         int organizationId = 1;
         String newPassword = "mynewpassword";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
@@ -167,7 +164,6 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
         int organizationId = 1;
         String newOrganization = "neworganization";
         int newOrganizationId = 2;
@@ -212,7 +208,6 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
         int organizationId = 1;
         String newUsername = "newUsername";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
@@ -251,10 +246,6 @@ class RsuCredentialManagementServiceTest {
     void testUpdate_ChangePassword_Failure_CredentialNotFound() {
         // Arrange
         String nickname = "nickname";
-        String username = "username";
-        String password = "password";
-        String organization = "organization";
-        int organizationId = 1;
         String newPassword = "mynewpassword";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setPassword(newPassword);
@@ -271,7 +262,6 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
         int organizationId = 1;
         String newOrganization = "newOrganization";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
