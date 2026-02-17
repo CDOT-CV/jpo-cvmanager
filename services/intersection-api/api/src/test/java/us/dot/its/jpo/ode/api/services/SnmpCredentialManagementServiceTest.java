@@ -5,9 +5,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SnmpCredentialManagementServiceTest {
@@ -15,12 +25,43 @@ class SnmpCredentialManagementServiceTest {
     @Mock
     SnmpCredentialRepository mockSnmpCredentialRepository;
 
+    @Mock
+    OrganizationRepository mockOrganizationRepository;
+
     @InjectMocks
     SnmpCredentialManagementService snmpCredentialManagementService;
 
     @Test
-    void testCreate_Success() {
-        // TODO: implement
+    void testCreate_Success() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int ownerOrganizationId = 1;
+        SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(ownerOrganizationId);
+        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
+
+        SnmpCredential expectedSnmpCredential = new SnmpCredential();
+        expectedSnmpCredential.setNickname(nickname);
+        expectedSnmpCredential.setUsername(username);
+        expectedSnmpCredential.setPassword(password);
+        expectedSnmpCredential.setOwnerOrganizationId(ownerOrganizationId);
+        when (mockSnmpCredentialRepository.save(any())).thenReturn(expectedSnmpCredential);
+
+        // Act
+        SnmpCredential snmpCredential = snmpCredentialManagementService.create(request);
+
+        // Assert
+        assertNotNull(snmpCredential);
+        assertEquals(nickname, snmpCredential.getNickname());
+        assertEquals(username, snmpCredential.getUsername());
+        assertEquals(password, snmpCredential.getPassword());
+        assertEquals(ownerOrganizationId, snmpCredential.getOwnerOrganizationId());
+        verify(mockSnmpCredentialRepository).save(any());
     }
 
     // TODO: implement tests for unhappy paths
