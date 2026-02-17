@@ -120,6 +120,51 @@ class RsuCredentialManagementServiceTest {
     }
 
     @Test
+    void testUpdate_ChangeOrganization_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newOrganization = "neworganization";
+        int newOrganizationId = 2;
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        rsuCredentialPatch.setOrganization(newOrganization);
+
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(newOrganizationId);
+        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.of(mockOrganization));
+
+        RsuCredential existingCredential = new RsuCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(organizationId);
+
+        RsuCredential expectedCredential = new RsuCredential();
+        expectedCredential.setNickname(nickname);
+        expectedCredential.setUsername(username);
+        expectedCredential.setPassword(password);
+        expectedCredential.setOwnerOrganizationId(newOrganizationId);
+
+        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
+
+       // Act
+       RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
+
+       // Assert
+       assertNotNull(updatedCredential);
+       assertEquals(nickname, updatedCredential.getNickname());
+       assertEquals(username, updatedCredential.getUsername());
+       assertEquals(password, updatedCredential.getPassword());
+       assertEquals(newOrganizationId, updatedCredential.getOwnerOrganizationId());
+       verify(mockRsuCredentialRepository).findByNickname(nickname);
+       verify(mockRsuCredentialRepository).save(any());
+    }
+
+        @Test
     void testDeleteByNickname_Success() {
         // TODO: implement
     }
