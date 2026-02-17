@@ -58,7 +58,12 @@ public class SnmpCredentialManagementService {
     }
 
     public boolean deleteByNickname(String nickname) throws SnmpCredentialNotFoundException {
-        throw new UnsupportedOperationException();
+        Optional<SnmpCredential> credential = snmpCredentialRepository.findByNickname(nickname);
+        if (credential.isEmpty()) {
+            return false;
+        }
+        snmpCredentialRepository.delete(credential.get());
+        return true;
     }
 
     public static class SnmpCredentialNotFoundException extends Exception {

@@ -166,8 +166,20 @@ class SnmpCredentialManagementServiceTest {
     // TODO: implement tests for unhappy paths
 
     @Test
-    void testDeleteByNickname_Success() {
-        // TODO: implement
+    void testDeleteByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+
+        // Act
+        boolean result = snmpCredentialManagementService.deleteByNickname(nickname);
+
+        // Assert
+        assertTrue(result);
+        verify(mockSnmpCredentialRepository).delete(existingCredential);
+
     }
 
     // TODO: implement tests for unhappy paths
