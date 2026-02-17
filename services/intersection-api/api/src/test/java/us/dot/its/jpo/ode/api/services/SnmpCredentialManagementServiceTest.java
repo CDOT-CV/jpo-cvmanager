@@ -65,7 +65,33 @@ class SnmpCredentialManagementServiceTest {
         verify(mockSnmpCredentialRepository).save(any());
     }
 
-    // TODO: implement tests for unhappy paths
+    @Test
+    void testCreate_Failure_AlreadyExists() {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+        when(mockSnmpCredentialRepository.existsByNickname(nickname)).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException.class, () -> snmpCredentialManagementService.create(request));
+    }
+
+    @Test
+    void testCreate_Failure_OrganizationNotFound() {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(SnmpCredentialManagementService.OrganizationNotFoundException.class, () -> snmpCredentialManagementService.create(request));
+    }
 
     @Test
     void testGetByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
@@ -83,7 +109,15 @@ class SnmpCredentialManagementServiceTest {
         verify(mockSnmpCredentialRepository).findByNickname(nickname);
     }
 
-    // TODO: implement tests for unhappy paths
+    @Test
+    void testGetByNickname_Failure_NotFound() {
+        // Arrange
+        String nickname = "nickname";
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(SnmpCredentialManagementService.SnmpCredentialNotFoundException.class, () -> snmpCredentialManagementService.getByNickname(nickname));
+    }
 
     @Test
     void testUpdate_ChangePassword_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
@@ -163,7 +197,70 @@ class SnmpCredentialManagementServiceTest {
         verify(mockSnmpCredentialRepository).findByNickname(nickname);
     }
 
-    // TODO: implement tests for unhappy paths
+    @Test
+    void testUpdate_ChangeUsername_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newUsername = "newUsername";
+        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+        patch.setUsername(newUsername);
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(1);
+
+        SnmpCredential expectedCredential = new SnmpCredential();
+        expectedCredential.setNickname(nickname);
+        expectedCredential.setUsername(newUsername);
+        expectedCredential.setPassword(password);
+        expectedCredential.setOwnerOrganizationId(1);
+
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockSnmpCredentialRepository.save(any())).thenReturn(expectedCredential);
+
+        // Act
+        SnmpCredential snmpCredential = snmpCredentialManagementService.update(patch);
+
+        // Assert
+        assertNotNull(snmpCredential);
+        assertEquals(nickname, snmpCredential.getNickname());
+        assertEquals(newUsername, snmpCredential.getUsername());
+        assertEquals(password, snmpCredential.getPassword());
+        assertEquals(organizationId, snmpCredential.getOwnerOrganizationId());
+        verify(mockSnmpCredentialRepository).findByNickname(nickname);
+        verify(mockSnmpCredentialRepository).save(any());
+    }
+
+    @Test
+    void testUpdate_ChangeOrganization_Failure_OrganizationNotFound() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newOrganization = "newOrganization";
+        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+        patch.setOrganization(newOrganization);
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(organizationId);
+
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(SnmpCredentialManagementService.OrganizationNotFoundException.class, () -> snmpCredentialManagementService.update(patch));
+    }
 
     @Test
     void testDeleteByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
@@ -182,6 +279,18 @@ class SnmpCredentialManagementServiceTest {
 
     }
 
-    // TODO: implement tests for unhappy paths
+    @Test
+    void testDeleteByNickname_Failure_CredentialNotFound() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
+
+        // Act
+        boolean result = snmpCredentialManagementService.deleteByNickname(nickname);
+
+        // Assert
+        assertFalse(result);
+        verify(mockSnmpCredentialRepository).findByNickname(nickname);
+    }
 
 }
