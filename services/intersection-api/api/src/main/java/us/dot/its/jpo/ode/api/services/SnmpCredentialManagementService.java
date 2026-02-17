@@ -15,6 +15,10 @@ public class SnmpCredentialManagementService {
         throw new UnsupportedOperationException();
     }
 
+    public SnmpCredential getByNickname(String nickname) throws SnmpCredentialNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
     // TODO: implement CRUD operations
 
     public static class SnmpCredentialNotFoundException extends Exception {

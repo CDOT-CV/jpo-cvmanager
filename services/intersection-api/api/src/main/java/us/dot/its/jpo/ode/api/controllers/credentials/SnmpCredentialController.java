@@ -47,7 +47,13 @@ public class SnmpCredentialController {
 
     @GetMapping("/get-by-nickname")
     public Optional<SnmpCredentialDTO> getByNickname(SnmpCredentialGetRequest request) {
-        throw new UnsupportedOperationException();
+        SnmpCredential snmpCredential;
+        try {
+            snmpCredential = snmpCredentialManagementService.getByNickname(request.getNickname());
+        } catch(SnmpCredentialManagementService.SnmpCredentialNotFoundException e) {
+            return Optional.empty();
+        }
+        return Optional.of(snmpCredentialMapper.toDto(snmpCredential));
     }
 
     @PostMapping("/update")

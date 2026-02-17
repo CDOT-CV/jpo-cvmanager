@@ -6,8 +6,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapperImpl;
+import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -61,8 +64,37 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testGetByNickname_Success() {
-        // TODO: implement
+    void testGetByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int mockRsuCredentialId = 1;
+        int mockOrganizationId = 1;
+
+        SnmpCredentialController.SnmpCredentialGetRequest request = new SnmpCredentialController.SnmpCredentialGetRequest(nickname);
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        existingCredential.setId(mockRsuCredentialId);
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(mockOrganizationId);
+
+        SnmpCredentialDTO expected = new SnmpCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
+
+        when(mockSnmpCredentialManagementService.getByNickname(nickname)).thenReturn(existingCredential);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act
+        Optional<SnmpCredentialDTO> actual = snmpCredentialController.getByNickname(request);
+
+        // Assert
+        assertNotNull(actual);
+        assertTrue(actual.isPresent());
+        assertEquals(expected, actual.get());
+        verify(mockSnmpCredentialManagementService).getByNickname(nickname);
     }
 
     // TODO: implement unit tests for unhappy paths
