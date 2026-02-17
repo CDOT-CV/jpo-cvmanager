@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.snmp4j.Snmp;
 import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
@@ -67,8 +68,19 @@ class SnmpCredentialManagementServiceTest {
     // TODO: implement tests for unhappy paths
 
     @Test
-    void testGetByNickname_Success() {
-        // TODO: implement
+    void testGetByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        SnmpCredential expectedSnmpCredential = new SnmpCredential();
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(expectedSnmpCredential));
+
+        // Act
+        SnmpCredential snmpCredential = snmpCredentialManagementService.getByNickname(nickname);
+
+        // Assert
+        assertNotNull(snmpCredential);
+        assertEquals(expectedSnmpCredential, snmpCredential);
+        verify(mockSnmpCredentialRepository).findByNickname(nickname);
     }
 
     // TODO: implement tests for unhappy paths

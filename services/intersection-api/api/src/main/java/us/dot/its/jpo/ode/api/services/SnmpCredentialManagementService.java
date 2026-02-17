@@ -36,7 +36,7 @@ public class SnmpCredentialManagementService {
     }
 
     public SnmpCredential getByNickname(String nickname) throws SnmpCredentialNotFoundException {
-        throw new UnsupportedOperationException();
+        return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new SnmpCredentialNotFoundException("No credential found with nickname " + nickname));
     }
 
     public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws SnmpCredentialNotFoundException, OrganizationNotFoundException {
