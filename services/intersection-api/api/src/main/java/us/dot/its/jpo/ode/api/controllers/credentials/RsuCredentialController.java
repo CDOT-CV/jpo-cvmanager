@@ -73,11 +73,7 @@ public class RsuCredentialController {
 
     @PostMapping("/delete")
     public RsuCredentialDeleteResponse deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
-        try {
-            rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
-        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
-            return new RsuCredentialDeleteResponse(false, Optional.of("RSU Credential not found"));
-        }
+        rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
         return new RsuCredentialDeleteResponse(true, Optional.empty());
     }
 
