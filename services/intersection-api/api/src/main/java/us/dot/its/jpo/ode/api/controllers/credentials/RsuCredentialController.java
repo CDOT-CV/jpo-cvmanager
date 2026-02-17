@@ -65,6 +65,8 @@ public class RsuCredentialController {
             updatedRsuCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
         } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
             return new RsuCredentialUpdateResponse(false, Optional.empty(), Optional.of("RSU Credential not found"));
+        } catch (RsuCredentialManagementService.OrganizationNotFoundException e) {
+            return new RsuCredentialUpdateResponse(false, Optional.empty(), Optional.of("Organization not found"));
         }
         return new RsuCredentialUpdateResponse(true, Optional.of(rsuCredentialMapper.toDto(updatedRsuCredential)), Optional.empty());
     }

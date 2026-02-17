@@ -98,7 +98,7 @@ class RsuCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testUpdate_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+    void testUpdate_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";

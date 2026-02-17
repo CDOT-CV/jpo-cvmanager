@@ -81,8 +81,42 @@ class RsuCredentialManagementServiceTest {
     }
 
     @Test
-    void testUpdate_Success() {
-        // TODO: implement
+    void testUpdate_ChangePassword_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newPassword = "mynewpassword";
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        rsuCredentialPatch.setPassword(newPassword);
+
+        RsuCredential existingCredential = new RsuCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(organizationId);
+
+        RsuCredential expectedCredential = new RsuCredential();
+        expectedCredential.setNickname(nickname);
+        expectedCredential.setUsername(username);
+        expectedCredential.setPassword(newPassword);
+        expectedCredential.setOwnerOrganizationId(organizationId);
+
+        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
+
+        // Act
+        RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
+
+        // Assert
+        assertNotNull(updatedCredential);
+        assertEquals(nickname, updatedCredential.getNickname());
+        assertEquals(username, updatedCredential.getUsername());
+        assertEquals(newPassword, updatedCredential.getPassword());
+        verify(mockRsuCredentialRepository).findByNickname(nickname);
+        verify(mockRsuCredentialRepository).save(any());
     }
 
     @Test

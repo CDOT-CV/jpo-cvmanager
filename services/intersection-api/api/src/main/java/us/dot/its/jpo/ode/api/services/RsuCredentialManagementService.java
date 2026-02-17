@@ -39,8 +39,27 @@ public class RsuCredentialManagementService {
         return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
     }
 
-    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException {
-        throw new UnsupportedOperationException();
+    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException, OrganizationNotFoundException {
+        RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
+        if (rsuCredentialPatch.getNickname() != null) {
+            if (!rsuCredentialPatch.getNickname().equals(rsuCredential.getNickname())) {
+                throw new UnsupportedOperationException("Changing RSU Credential nickname is not supported");
+            }
+        }
+        if (rsuCredentialPatch.getUsername() != null) {
+            rsuCredential.setUsername(rsuCredentialPatch.getUsername());
+        }
+        if (rsuCredentialPatch.getPassword() != null) {
+            rsuCredential.setPassword(rsuCredentialPatch.getPassword());
+        }
+        if (rsuCredentialPatch.getOrganization() != null) {
+            Optional<Organization> newOrganization = organizationRepository.findByName(rsuCredentialPatch.getOrganization());
+            if (newOrganization.isEmpty()) {
+                throw new OrganizationNotFoundException("Organization not found");
+            }
+            rsuCredential.setOwnerOrganizationId(newOrganization.get().getId());
+        }
+        return rsuCredentialRepository.save(rsuCredential);
     }
 
     public boolean deleteByNickname(String nickname) throws RsuCredentialNotFoundException {
