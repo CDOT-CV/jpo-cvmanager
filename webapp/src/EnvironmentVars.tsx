@@ -53,7 +53,6 @@ class EnvironmentVars {
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static adminAddRsu = `${this.getBaseApiUrl()}/admin-new-rsu`
-  static adminRsu = `${this.getBaseApiUrl()}/admin-rsu`
   static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
   static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`
   static adminAddUser = `${this.getBaseApiUrl()}/admin-new-user`

@@ -1,43 +1,101 @@
-import React, { useState, useEffect } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
-import {
-  selectLoading,
-  selectTableData,
-
-  // actions
-  updateTableData,
-  deleteMultipleRsus,
-  deleteRsu,
-  setEditRsuRowData,
-} from './adminRsuTabSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
-import { clear, getRsuInfo } from '../adminEditRsu/adminEditRsuSlice'
-import { useSelector, useDispatch } from 'react-redux'
-
+import { useSelector } from 'react-redux'
 import './Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import { Action } from '@material-table/core'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import { useTheme } from '@mui/material'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
+import { useLazyGetAllRsusQuery, useDeleteRsuMutation, useDeleteMultipleRsusMutation } from '../api/rsuApiSlice'
 
 const AdminRsuTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
-  useEffect(() =>{
-    dispatch(updateTableData())
-  }, [organization, dispatch])
 
-  const tableData = useSelector(selectTableData)
+  const tableRef = useRef<any>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const [trigger] = useLazyGetAllRsusQuery()
+
+  const currentQueryRef = useRef(null)
+  const handleQueryChange = useCallback(
+    async (query) => {
+      setIsRefreshing(true)
+
+      try {
+        // Extract order information from orderByCollection
+        let orderBy = 'ip'
+        let orderDirection = 'asc'
+        if (query.orderByCollection && query.orderByCollection.length > 0) {
+          const firstOrder = query.orderByCollection[0]
+          if (firstOrder.orderBy !== undefined) {
+            if (typeof firstOrder.orderBy.field === 'string') {
+              orderBy = firstOrder.orderBy.field
+            } else if (typeof firstOrder.orderBy === 'number') {
+              orderBy = columns[firstOrder.orderBy].field
+            }
+          }
+          orderDirection = firstOrder.orderDirection || 'asc'
+        }
+
+        // Build query params including organization
+        const params = {
+          page: query.page,
+          size: query.pageSize,
+          sort: `${orderBy},${orderDirection}`,
+          search: query.search || '',
+          organization: organization || '', // Add organization parameter
+        }
+
+        // Check if organization changed - if so, reset to page 0
+        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
+          params.page = 0
+          query.page = 0
+        }
+
+        // Store current query for comparison
+        currentQueryRef.current = params
+
+        // Trigger the query and await the result
+        const result = await trigger(params).unwrap()
+
+        return {
+          data: result.content || [],
+          page: params.page,
+          totalCount: result.totalElements || 0,
+        }
+      } catch (error) {
+        console.error('Failed to fetch rsus:', error)
+        toast.error('Failed to fetch RSUs')
+        return {
+          data: [],
+          page: query.page,
+          totalCount: 0,
+        }
+      } finally {
+        setIsRefreshing(false)
+      }
+    },
+    [trigger, organization]
+  )
+
+  const handleRefresh = () => {
+    if (tableRef.current && tableRef.current.onQueryChange) {
+      tableRef.current.onQueryChange()
+    }
+  }
+
+  const [deleteRsuApi] = useDeleteRsuMutation()
+  const [deleteMultipleRsusApi] = useDeleteMultipleRsusMutation()
+
   const [columns] = useState([
     { title: 'Milepost', field: 'milepost', id: 0 },
     { title: 'IP Address', field: 'ip', id: 1 },
@@ -45,8 +103,6 @@ const AdminRsuTab = () => {
     { title: 'RSU Model', field: 'model', id: 3 },
     { title: 'Serial Number', field: 'serial_number', id: 4 },
   ])
-
-  const loading = useSelector(selectLoading)
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
     {
@@ -98,18 +154,18 @@ const AdminRsuTab = () => {
     },
     {
       icon: () => null,
+      isFreeAction: true,
       iconProps: {
         title: 'Refresh',
         color: 'info',
         itemType: 'outlined',
       },
       position: 'toolbar',
-      onClick: () => {
-        dispatch(updateTableData())
-      },
+      onClick: handleRefresh,
     },
     {
       icon: () => null,
+      isFreeAction: true,
       position: 'toolbar',
       iconProps: {
         title: 'New',
@@ -123,32 +179,27 @@ const AdminRsuTab = () => {
   ]
 
   const onEdit = (row: AdminEditRsuFormType) => {
-    // Fetch RSU info before navigating to ensure updated menu state
-    dispatch(clear())
-    dispatch(getRsuInfo(row.ip))
-
-    dispatch(setEditRsuRowData(row))
     navigate('editRsu/' + row.ip)
   }
 
-  const onDelete = (row: AdminEditRsuFormType) => {
-    dispatch(deleteRsu({ rsu_ip: row.ip, shouldUpdateTableData: true })).then((data: any) => {
-      if (data.payload.success) {
-        toast.success('RSU Deleted Successfully')
-      } else {
-        toast.error('Failed to delete RSU due to error: ' + data.payload)
-      }
-    })
+  const onDelete = async (row: AdminEditRsuFormType) => {
+    const loadingToast = toast.loading(`Deleting RSU ${row.ip}...`)
+    try {
+      await deleteRsuApi(row.ip).unwrap()
+      toast.success('RSU Deleted Successfully', { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to delete RSU due to error: ' + error, { id: loadingToast })
+    }
   }
 
-  const multiDelete = (rows: AdminEditRsuFormType[]) => {
-    dispatch(deleteMultipleRsus(rows)).then((data: any) => {
-      if (data.payload.success) {
-        toast.success('RSUs Deleted Successfully')
-      } else {
-        toast.error(data.payload.message)
-      }
-    })
+  const multiDelete = async (rows: AdminEditRsuFormType[]) => {
+    const loadingToast = toast.loading(`Deleting ${rows.length} RSUs...`)
+    try {
+      await deleteMultipleRsusApi(rows.map((row) => row.ip)).unwrap()
+      toast.success('RSUs Deleted Successfully', { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to delete RSUs due to error: ' + error, { id: loadingToast })
+    }
   }
 
   return (
@@ -157,11 +208,16 @@ const AdminRsuTab = () => {
         <Route
           path="/"
           element={
-            loading === false && (
-              <div className="scroll-div-tab">
-                <AdminTable title={''} data={tableData} columns={columns} actions={tableActions} />
-              </div>
-            )
+            <div className="scroll-div-tab">
+              <AdminTable
+                title={''}
+                columns={columns}
+                actions={tableActions}
+                handleQueryChange={handleQueryChange}
+                isLoading={isRefreshing}
+                tableRef={tableRef}
+              />
+            </div>
           }
         />
         <Route path="addRsu" element={<AdminAddRsu />} />

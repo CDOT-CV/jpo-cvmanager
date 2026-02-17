@@ -450,7 +450,7 @@ exports[`snapshot rsu 1`] = `
                     <input
                       aria-label="Search"
                       class="MuiInputBase-input MuiInput-input MuiInputBase-inputAdornedStart MuiInputBase-inputAdornedEnd css-mocked-MuiInputBase-input-MuiInput-input"
-                      id="mui-11"
+                      id="mui-25"
                       placeholder="Search"
                       type="text"
                       value=""
@@ -832,7 +832,7 @@ exports[`snapshot rsu 1`] = `
                       >
                         <tr
                           class="MuiTableRow-root css-mocked-MuiTableRow-root"
-                          style="height: 245px;"
+                          style="height: 1225px;"
                         >
                           <td
                             class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
@@ -891,14 +891,14 @@ exports[`snapshot rsu 1`] = `
                           <div
                             class="MuiBox-root css-c8mw91"
                           >
-                            5 rows 
+                            25 rows 
                           </div>
                         </div>
                         <input
                           aria-hidden="true"
                           class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
                           tabindex="-1"
-                          value="5"
+                          value="25"
                         />
                         <svg
                           aria-hidden="true"
@@ -1032,6 +1032,37 @@ exports[`snapshot rsu 1`] = `
                 </tr>
               </tfoot>
             </table>
+            <div
+              style="position: absolute; top: 0px; left: 0px; height: 100%; width: 100%; z-index: 11;"
+            >
+              <div
+                style="display: table; width: 100%; height: 100%; background-color: rgb(255, 255, 255); opacity: 0.7;"
+              >
+                <div
+                  style="display: table-cell; width: 100%; height: 100%; vertical-align: middle; text-align: center;"
+                >
+                  <span
+                    class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary css-mocked-MuiCircularProgress-root"
+                    role="progressbar"
+                    style="width: 40px; height: 40px;"
+                  >
+                    <svg
+                      class="MuiCircularProgress-svg css-mocked-MuiCircularProgress-svg"
+                      viewBox="22 22 44 44"
+                    >
+                      <circle
+                        class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-mocked-MuiCircularProgress-circle"
+                        cx="44"
+                        cy="44"
+                        fill="none"
+                        r="20.2"
+                        stroke-width="3.6"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1094,7 +1125,7 @@ exports[`snapshot user 1`] = `
                     <input
                       aria-label="Search"
                       class="MuiInputBase-input MuiInput-input MuiInputBase-inputAdornedStart MuiInputBase-inputAdornedEnd css-mocked-MuiInputBase-input-MuiInput-input"
-                      id="mui-26"
+                      id="mui-58"
                       placeholder="Search"
                       type="text"
                       value=""
@@ -1434,7 +1465,7 @@ exports[`snapshot user 1`] = `
                       >
                         <tr
                           class="MuiTableRow-root css-mocked-MuiTableRow-root"
-                          style="height: 245px;"
+                          style="height: 1225px;"
                         >
                           <td
                             class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
@@ -1473,7 +1504,7 @@ exports[`snapshot user 1`] = `
                       />
                       <p
                         class="MuiTablePagination-selectLabel css-mocked-MuiTablePagination-selectLabel"
-                        id="mui-24"
+                        id="mui-56"
                       >
                         Rows per page:
                       </p>
@@ -1481,26 +1512,26 @@ exports[`snapshot user 1`] = `
                         class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-mocked-MuiInputBase-root-MuiTablePagination-select"
                       >
                         <div
-                          aria-controls="mui-18"
+                          aria-controls="mui-50"
                           aria-expanded="false"
                           aria-haspopup="listbox"
-                          aria-labelledby="mui-24 mui-23"
+                          aria-labelledby="mui-56 mui-55"
                           class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-mocked-MuiSelect-select-MuiInputBase-input"
-                          id="mui-23"
+                          id="mui-55"
                           role="combobox"
                           tabindex="0"
                         >
                           <div
                             class="MuiBox-root css-c8mw91"
                           >
-                            5 rows 
+                            25 rows 
                           </div>
                         </div>
                         <input
                           aria-hidden="true"
                           class="MuiSelect-nativeInput css-mocked-MuiSelect-nativeInput"
                           tabindex="-1"
-                          value="5"
+                          value="25"
                         />
                         <svg
                           aria-hidden="true"
