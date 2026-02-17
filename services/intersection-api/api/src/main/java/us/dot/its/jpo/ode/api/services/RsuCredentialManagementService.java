@@ -57,7 +57,7 @@ public class RsuCredentialManagementService {
         return rsuCredentialRepository.save(rsuCredential);
     }
 
-    public boolean deleteByNickname(String nickname) throws RsuCredentialNotFoundException {
+    public boolean deleteByNickname(String nickname) {
         Optional<RsuCredential> rsuCredential = rsuCredentialRepository.findByNickname(nickname);
         if (rsuCredential.isEmpty()) {
             return false;

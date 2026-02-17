@@ -133,7 +133,7 @@ class RsuCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testDelete_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+    void testDelete_Success() {
         // Arrange
         String nickname = "testNickname";
 
