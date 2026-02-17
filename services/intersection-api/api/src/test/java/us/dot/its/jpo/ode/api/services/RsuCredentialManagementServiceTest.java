@@ -123,8 +123,6 @@ class RsuCredentialManagementServiceTest {
         verify(mockRsuCredentialRepository).save(any());
     }
 
-    // TODO: implement unit tests for unhappy paths
-
     @Test
     void testUpdate_ChangeOrganization_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
         // Arrange

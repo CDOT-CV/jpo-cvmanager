@@ -125,6 +125,44 @@ class SnmpCredentialManagementServiceTest {
         verify(mockSnmpCredentialRepository).save(any());
     }
 
+    @Test
+    void testUpdate_ChangeOrganization_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        int organizationId = 1;
+        String newOrganization = "newOrganization";
+        int newOrganizationId = 2;
+        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+        patch.setOrganization(newOrganization);
+
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(newOrganizationId);
+        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.of(mockOrganization));
+
+        SnmpCredential existingCredential = new SnmpCredential();
+        existingCredential.setNickname(nickname);
+        existingCredential.setUsername(username);
+        existingCredential.setPassword(password);
+        existingCredential.setOwnerOrganizationId(1);
+
+        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
+        when(mockSnmpCredentialRepository.save(any())).thenReturn(existingCredential);
+
+        // Act
+        SnmpCredential updatedCredential = snmpCredentialManagementService.update(patch);
+
+        // Assert
+        assertNotNull(updatedCredential);
+        assertEquals(nickname, updatedCredential.getNickname());
+        assertEquals(username, updatedCredential.getUsername());
+        assertEquals(password, updatedCredential.getPassword());
+        assertEquals(newOrganizationId, updatedCredential.getOwnerOrganizationId());
+        verify(mockSnmpCredentialRepository).findByNickname(nickname);
+    }
+
     // TODO: implement tests for unhappy paths
 
     @Test
