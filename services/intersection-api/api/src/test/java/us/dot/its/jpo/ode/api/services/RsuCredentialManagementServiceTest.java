@@ -64,6 +64,8 @@ class RsuCredentialManagementServiceTest {
         verify(mockRsuCredentialRepository).save(any());
     }
 
+    // TODO: implement unit tests for unhappy paths
+
     @Test
     void testGetByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
@@ -79,6 +81,8 @@ class RsuCredentialManagementServiceTest {
         assertEquals(mockRsuCredential, rsuCredential);
         verify(mockRsuCredentialRepository).findByNickname(nickname);
     }
+
+    // TODO: implement unit tests for unhappy paths
 
     @Test
     void testUpdate_ChangePassword_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
@@ -118,6 +122,8 @@ class RsuCredentialManagementServiceTest {
         verify(mockRsuCredentialRepository).findByNickname(nickname);
         verify(mockRsuCredentialRepository).save(any());
     }
+
+    // TODO: implement unit tests for unhappy paths
 
     @Test
     void testUpdate_ChangeOrganization_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
@@ -164,6 +170,8 @@ class RsuCredentialManagementServiceTest {
        verify(mockRsuCredentialRepository).save(any());
     }
 
+    // TODO: implement unit tests for unhappy paths
+
     @Test
     void testDeleteByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
@@ -179,5 +187,7 @@ class RsuCredentialManagementServiceTest {
         assertTrue(result);
         verify(mockRsuCredentialRepository).delete(existingCredential);
     }
+
+    // TODO: implement unit tests for unhappy paths
 
 }
