@@ -9,7 +9,7 @@ vi.mock('jwt-decode')
 // Mock EnvironmentVars
 vi.mock('../EnvironmentVars', () => ({
   default: {
-    KEYCLOAK_HOST_URL: 'http://localhost:8084',
+    KEYCLOAK_HOST_URL: 'http://localhost:8084/',
     KEYCLOAK_REALM: 'cvmanager',
   },
 }))
@@ -84,7 +84,7 @@ describe('AuthApi', () => {
       const result = await AuthApi.verifyToken(mockToken)
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `${EnvironmentVars.KEYCLOAK_HOST_URL}realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+        `${EnvironmentVars.KEYCLOAK_HOST_URL}/realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
         {
           method: 'GET',
           headers: {
@@ -107,7 +107,7 @@ describe('AuthApi', () => {
       const result = await AuthApi.verifyToken(mockToken)
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `${EnvironmentVars.KEYCLOAK_HOST_URL}realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+        `${EnvironmentVars.KEYCLOAK_HOST_URL}/realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
         {
           method: 'GET',
           headers: {
@@ -172,6 +172,7 @@ describe('AuthApi', () => {
         email: 'test@gmail.com',
         first_name: 'Test',
         last_name: 'User',
+        name: 'Test User',
         super_user: true,
         organizations: [
           { name: 'Test Org', role: 'admin' },
@@ -287,7 +288,7 @@ describe('AuthApi', () => {
 
       expect(jwtDecode).toHaveBeenCalledWith(mockToken)
       expect(global.fetch).toHaveBeenCalledWith(
-        `${EnvironmentVars.KEYCLOAK_HOST_URL}realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+        `${EnvironmentVars.KEYCLOAK_HOST_URL}/realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
         {
           method: 'GET',
           headers: {
@@ -297,14 +298,15 @@ describe('AuthApi', () => {
       )
       expect(result).toEqual({
         token: mockToken,
-        expires_at: 1770396901000,
         data: {
           email: 'test@gmail.com',
           first_name: 'Test',
           last_name: 'User',
+          name: 'Test User',
           super_user: true,
           organizations: [{ name: 'Test Org', role: 'admin' }],
         },
+        expires_at: 1770396901000,
       })
     })
 
@@ -316,7 +318,7 @@ describe('AuthApi', () => {
 
       expect(jwtDecode).toHaveBeenCalledWith(mockToken)
       expect(global.fetch).toHaveBeenCalledWith(
-        `${EnvironmentVars.KEYCLOAK_HOST_URL}realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
+        `${EnvironmentVars.KEYCLOAK_HOST_URL}/realms/${EnvironmentVars.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,
         {
           method: 'GET',
           headers: {
