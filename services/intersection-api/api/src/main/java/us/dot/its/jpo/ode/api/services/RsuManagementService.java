@@ -17,6 +17,7 @@ import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
@@ -31,7 +32,6 @@ import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -47,7 +47,6 @@ public class RsuManagementService {
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final OrganizationRepository organizationRepository;
-    private final PermissionService permissionService;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuIntersectionRepository rsuIntersectionRepository;
@@ -58,7 +57,6 @@ public class RsuManagementService {
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
-    private final UserRepository userRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
 
@@ -76,7 +74,7 @@ public class RsuManagementService {
         return rsus.map(rsuMapper::toDto);
     }
 
-    public ModifyRsuAllowedSelections getAllowedSelections(String username) {
+    public ModifyRsuAllowedSelections getAllowedSelections(DecodedToken userToken) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
@@ -87,16 +85,15 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
-        allowed.setOrganizations(userRepository.findUserOrgRoles(username).stream()
-                .map(role -> role.getOrganizationName()).toList());
+        allowed.setOrganizations(userToken.getQualifiedOrgList("ADMIN"));
 
         return allowed;
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, String username) {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, DecodedToken userToken) {
         try {
-            List<String> authorizedOrgs = permissionService.getQualifiedOrgList(username, "ADMIN");
+            List<String> authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);

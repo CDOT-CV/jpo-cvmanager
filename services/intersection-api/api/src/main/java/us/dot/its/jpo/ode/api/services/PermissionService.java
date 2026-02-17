@@ -11,12 +11,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.postgres.tables.User;
+import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RoleRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
-import us.dot.its.jpo.ode.api.repositories.UserRepository;
-import us.dot.its.jpo.ode.api.repositories.UserRepository.UserOrgRoleProjection;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -32,8 +29,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PermissionService {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final IntersectionRepository intersectionRepository;
     private final RsuRepository rsuRepository;
 
@@ -53,18 +48,6 @@ public class PermissionService {
         return roles.indexOf(userRole.toUpperCase()) >= roles.indexOf(requiredRole.toUpperCase());
     }
 
-    public List<String> getQualifiedOrgList(String email, String requiredRole) {
-        List<UserOrgRoleProjection> organizationRoles = userRepository.findUserOrgRoles(email);
-        return getQualifiedOrgList(organizationRoles, requiredRole);
-    }
-
-    private List<String> getQualifiedOrgList(List<UserOrgRoleProjection> organizationRoles, String requiredRole) {
-        return organizationRoles.stream()
-                .filter(entry -> PermissionService.checkRoleAbove(entry.getRoleName(), requiredRole))
-                .map(UserOrgRoleProjection::getOrganizationName)
-                .collect(Collectors.toList());
-    }
-
     public List<Integer> getAllowedIntersectionIdsByEmail(String email) {
         return intersectionRepository.findAllowedIntersectionIdsByEmail(email).stream().map(Integer::parseInt)
                 .collect(Collectors.toList());
@@ -82,10 +65,10 @@ public class PermissionService {
             return false;
         }
 
-        String username = getUsername(auth);
-        User user = userRepository.findByEmail(username);
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
 
-        return user.getSuperUser();
+        // TODO: Handle eventual swap to boolean
+        return decodedToken.getCvManagerData().getSuperUser().equals("1");
     }
 
     // Allow Connection if the user is a part of at least one organization with a
@@ -100,15 +83,15 @@ public class PermissionService {
             return true;
         }
 
-        String username = getUsername(auth);
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
-            Optional<String> userRole = roleRepository.findUserRoleInOrg(username, organization);
+            Optional<String> userRole = decodedToken.findRoleInOrg(organization);
             return userRole.map(roleValue -> checkRoleAbove(roleValue, role)).orElse(false);
         }
 
-        return !getQualifiedOrgList(username, role).isEmpty();
+        return !decodedToken.getQualifiedOrgList(role).isEmpty();
     }
 
     // Allow Connection if the users organization controls the specified
@@ -128,15 +111,20 @@ public class PermissionService {
             return true;
         }
 
-        String username = getUsername(auth);
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
-            return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(), List.of(organization));
+            if (qualifiedOrgs.contains(organization)) {
+                return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(),
+                        List.of(organization));
+            } else {
+                return false;
+            }
         }
 
-        return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(),
-                getQualifiedOrgList(username, role));
+        return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(), qualifiedOrgs);
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
@@ -157,14 +145,19 @@ public class PermissionService {
             return true;
         }
 
-        String username = getUsername(auth);
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
+            if (qualifiedOrgs.contains(organization)) {
             return rsuRepository.existsByIpAndOrganizations(ipv4Address, List.of(organization));
+        } else {
+            return false;
+        }
         }
 
-        return rsuRepository.existsByIpAndOrganizations(ipv4Address, getQualifiedOrgList(username, role));
+        return rsuRepository.existsByIpAndOrganizations(ipv4Address, qualifiedOrgs);
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
@@ -187,10 +180,10 @@ public class PermissionService {
             return true;
         }
 
-        String username = getUsername(auth);
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
-        List<String> authorizedOrgs = getQualifiedOrgList(username, role);
-        List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(authorizedOrgs);
+        List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
     }
 
@@ -215,5 +208,21 @@ public class PermissionService {
             organization = attributes.getRequest().getHeader("Organization");
         }
         return organization;
+    }
+
+    /**
+     * Extracts the JWT token string from the Authorization header
+     * 
+     * @return The JWT token string, or null if not found
+     */
+    public static String getJwtTokenFromRequest() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            String authHeader = attributes.getRequest().getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                return authHeader.substring(7);
+            }
+        }
+        return null;
     }
 }
