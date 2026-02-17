@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.credentials;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -17,5 +18,32 @@ class SnmpCredentialControllerTest {
     @InjectMocks
     SnmpCredentialController snmpCredentialController;
 
-    // TODO: implement tests
+    @Test
+    void testCreateSnmpCredential_Success() {
+        // TODO: implement
+    }
+
+    // TODO: implement unit tests for unhappy paths
+
+    @Test
+    void testGetByNickname_Success() {
+        // TODO: implement
+    }
+
+    // TODO: implement unit tests for unhappy paths
+
+    @Test
+    void testUpdate_Success() {
+        // TODO: implement
+    }
+
+    // TODO: implement unit tests for unhappy paths
+
+    @Test
+    void testDeleteByNickname_Success() {
+        // TODO: implement
+    }
+
+    // TODO: implement unit tests for unhappy paths
+
 }
