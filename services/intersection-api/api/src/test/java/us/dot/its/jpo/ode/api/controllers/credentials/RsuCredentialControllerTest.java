@@ -12,6 +12,7 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,10 +65,50 @@ class RsuCredentialControllerTest {
         verify(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testCreateRsuCredential_Failure_AlreadyExists() throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        when(mockRsuCredentialManagementService.create(rsuCredentialCreateRequest)).thenThrow(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
+
+        // Assert
+        assert(response != null);
+        assert(!response.getSuccess());
+        assert(response.getError().isPresent());
+        assert(response.getError().get().equals("RSU Credential already exists"));
+    }
 
     @Test
-    void testGetByNicknameByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+    void testCreateRsuCredential_Failure_OrganizationNotFound() throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        doThrow(RsuCredentialManagementService.OrganizationNotFoundException.class).when(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
+
+        // Assert
+        assert(response != null);
+        assert(!response.getSuccess());
+        assert(response.getError().isPresent());
+        assert(response.getError().get().equals("Organization not found"));
+    }
+
+    @Test
+    void testGetByNickname_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
         // Arrange
         String nickname = "testNickname";
         String username = "testUser";
@@ -95,7 +136,20 @@ class RsuCredentialControllerTest {
         verify(mockRsuCredentialManagementService).getByNickname(nickname);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testGetByNickname_Failure_NotFound() throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        when(mockRsuCredentialManagementService.getByNickname(nickname)).thenThrow(RsuCredentialManagementService.RsuCredentialNotFoundException.class);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+        RsuCredentialController.RsuCredentialGetRequest rsuCredentialGetRequest = new RsuCredentialController.RsuCredentialGetRequest(nickname);
+
+        // Act
+        Optional<RsuCredentialDTO> actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
+
+        // Assert
+        assert(!actual.isPresent());
+    }
 
     @Test
     void testUpdate_Success() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
@@ -130,7 +184,42 @@ class RsuCredentialControllerTest {
         verify(mockRsuCredentialManagementService).update(rsuCredentialPatch);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testUpdate_Failure_CredentialNotFound() throws RsuCredentialManagementService.RsuCredentialNotFoundException, RsuCredentialManagementService.OrganizationNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        rsuCredentialPatch.setPassword("");
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(RsuCredentialManagementService.RsuCredentialNotFoundException.class);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
+
+        // Assert
+        assert(response != null);
+        assert(!response.getUpdatedRsuCredential().isPresent());
+        assert(response.getError().isPresent());
+        assert(response.getError().get().equals("RSU Credential not found"));
+    }
+
+    @Test
+    void testUpdate_Failure_OrganizationNotFound() throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(RsuCredentialManagementService.OrganizationNotFoundException.class);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
+
+        // Assert
+        assert(response != null);
+        assert(!response.getUpdatedRsuCredential().isPresent());
+        assert(response.getError().isPresent());
+        assert(response.getError().get().equals("Organization not found"));
+    }
 
     @Test
     void testDelete_Success() {
@@ -153,6 +242,21 @@ class RsuCredentialControllerTest {
         verify(mockRsuCredentialManagementService).deleteByNickname(nickname);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testDelete_Failure() {
+        // Arrange
+        String nickname = "nickname";
+        when(mockRsuCredentialManagementService.deleteByNickname(nickname)).thenReturn(false);
+        rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+
+        // Act
+        RsuCredentialController.RsuCredentialDeleteResponse response = rsuCredentialController.deleteByNickname(new RsuCredentialController.RsuCredentialDeleteRequest(nickname));
+
+        // Assert
+        assert(response != null);
+        assert(!response.getSuccess());
+        assert(response.getError().isPresent());
+        assert(response.getError().get().equals("RSU Credential not found"));
+    }
 
 }
