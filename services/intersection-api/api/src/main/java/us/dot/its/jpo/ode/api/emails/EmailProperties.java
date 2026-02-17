@@ -23,6 +23,11 @@ public class EmailProperties {
     private String unsubscribeSecretKey;
     private String cvmgrFrontEndUri;
 
+    private String smtpHost;
+    private String smtpPort;
+    private String smtpUsername;
+    private String smtpPassword;
+
     private SendgridProperties sendgrid;
     private PostmarkProperties postmark;
 

@@ -111,6 +111,10 @@ email:
   sender-address: ${INTERSECTION_SENDER_EMAIL:donotreply@cvmanager.com}
   unsubscribe-secret-key: ${UNSUBSCRIBE_SECRET_KEY}
   cvmgr-front-end-uri: ${CV_MANAGER_FRONT_END_URI:http://localhost:3000}
+  smtp-host: ${INTERSECTION_SMTP_SERVER_HOST}
+  smtp-port: ${INTERSECTION_SMTP_SERVER_PORT}
+  smtp-username: ${INTERSECTION_SMTP_USERNAME}
+  smtp-password: ${INTERSECTION_SMTP_PASSWORD}
 
   sendgrid:
     api-key: ${SENDGRID_API_KEY:}
