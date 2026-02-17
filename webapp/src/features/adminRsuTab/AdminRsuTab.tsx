@@ -32,13 +32,16 @@ const AdminRsuTab = () => {
 
       try {
         // Extract order information from orderByCollection
-        let orderBy = 'id'
+        let orderBy = 'ip'
         let orderDirection = 'asc'
-
         if (query.orderByCollection && query.orderByCollection.length > 0) {
           const firstOrder = query.orderByCollection[0]
-          if (firstOrder.orderBy && typeof firstOrder.orderBy.field === 'string') {
-            orderBy = firstOrder.orderBy.field
+          if (firstOrder.orderBy !== undefined) {
+            if (typeof firstOrder.orderBy.field === 'string') {
+              orderBy = firstOrder.orderBy.field
+            } else if (typeof firstOrder.orderBy === 'number') {
+              orderBy = columns[firstOrder.orderBy].field
+            }
           }
           orderDirection = firstOrder.orderDirection || 'asc'
         }
@@ -71,6 +74,7 @@ const AdminRsuTab = () => {
         }
       } catch (error) {
         console.error('Failed to fetch rsus:', error)
+        toast.error('Failed to fetch RSUs')
         return {
           data: [],
           page: query.page,

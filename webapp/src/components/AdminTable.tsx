@@ -131,7 +131,7 @@ const AdminTable = (props: AdminTableProps) => {
           pageSize: 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
-          search: true, // Disable client-side search for server-side pagination
+          search: true, // Enable search UI; search term is passed to handleQueryChange for server-side filtering
           debounceInterval: 500,
         }}
         components={{
