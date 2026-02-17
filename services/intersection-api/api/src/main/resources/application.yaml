@@ -20,6 +20,7 @@ spring.security.oauth2.resourceserver.jwt:
   jwk-set-uri: ${AUTH_SERVER_URL:http://cvmanager_keycloak:8084}/realms/cvmanager/protocol/openid-connect/certs
 
 spring.kafka.bootstrap-servers: ${KAFKA_BROKER_IP:kafka}:${KAFKA_BROKER_PORT:9092}
+logging.level.org.springframework.mail: DEBUG
 logging.level.org.apache.kafka: INFO
 logging.level: INFO
 
@@ -84,6 +85,8 @@ spring:
           starttls:
             enable: ${INTERSECTION_SMTP_STARTTLS:false}
             required: ${INTERSECTION_SMTP_STARTTLS:false}
+          debug: true
+        debug: true
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}

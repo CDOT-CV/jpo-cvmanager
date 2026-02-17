@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.emails.providers;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -29,32 +30,127 @@ public class EmailProviderSmtp implements EmailProvider {
 
     @Override
     public List<EmailSendResponse> sendBatchedEmails(List<EmailRecipient> recipients, EmailContent content) {
+        List<EmailSendResponse> responses = new ArrayList<>();
+
         try {
-            log.warn("Sending SMTP Batched Emails");
+            log.info("Starting SMTP batch email send for {} recipients", recipients.size());
+
             for (EmailRecipient recipient : recipients) {
-                log.warn(String.format("%s, %s", recipient.getEmail(), recipient.getName()));
+                try {
+                    MimeMessage message = getMessage(recipient, content);
+                    if (message == null) {
+                        log.error("Failed to create message for {}", recipient.getEmail());
+                        responses.add(new EmailSendResponse(500, "Failed to create message"));
+                        continue;
+                    }
+
+                    log.debug("Sending message to {} ({})", recipient.getEmail(), recipient.getName());
+
+                    // Send with detailed logging
+                    sendWithLogging(message, recipient.getEmail());
+
+                    log.info("Successfully sent email to {}", recipient.getEmail());
+                    responses.add(new EmailSendResponse(200, "Email sent successfully"));
+
+                } catch (org.springframework.mail.MailAuthenticationException e) {
+                    log.error("SMTP authentication failed for {}: {}", recipient.getEmail(), e.getMessage());
+                    responses.add(new EmailSendResponse(535, "SMTP authentication failed"));
+                } catch (org.springframework.mail.MailSendException e) {
+                    log.error("Failed to send email to {}: {}", recipient.getEmail(), e.getMessage());
+                    if (e.getFailedMessages() != null) {
+                        e.getFailedMessages()
+                                .forEach((msg, ex) -> log.error("Failed message details: {}", ex.getMessage()));
+                    }
+                    responses.add(new EmailSendResponse(500, "Failed to send: " + e.getMessage()));
+                } catch (Exception e) {
+                    log.error("Unexpected error sending email to {}: {}", recipient.getEmail(), e.getMessage(), e);
+                    responses.add(new EmailSendResponse(500, "Unexpected error: " + e.getMessage()));
+                }
             }
-            MimeMessage[] messages = recipients.stream().map(r -> getMessage(r, content)).filter((v) -> v != null)
-                    .toArray(MimeMessage[]::new);
-            mailSender.send(messages);
-            return List.of(new EmailSendResponse(200, "Emails sent successfully: " + recipients.size()));
+
+            long successCount = responses.stream().filter(r -> r.getStatusCode() == 200).count();
+            log.info("Batch send complete: {}/{} emails sent successfully", successCount, recipients.size());
+
+            return responses;
+
         } catch (IllegalStateException e) {
             // Unsubscribe URL generation failed - don't send any emails in batch
             log.error("Cannot send batch emails due to unsubscribe URL generation failure: {}", e.getMessage());
             return recipients.stream()
                     .map(r -> new EmailSendResponse(500, "Failed to generate unsubscribe URL"))
                     .toList();
-        } catch (org.springframework.mail.MailAuthenticationException e) {
-            log.error("SMTP authentication failed for batch: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "SMTP authentication failed"));
-        } catch (org.springframework.mail.MailSendException e) {
-            log.error("Failed to send batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Failed to send batch emails"));
         } catch (Exception e) {
-            log.error("Unexpected error sending batch emails: {}", e.getMessage());
-            return List.of(new EmailSendResponse(500, "Unknown error"));
+            log.error("Unexpected error in batch email send: {}", e.getMessage(), e);
+            return List.of(new EmailSendResponse(500, "Batch processing failed: " + e.getMessage()));
         }
     }
+
+    /**
+     * Sends a MimeMessage with detailed transport event logging
+     */
+    private void sendWithLogging(MimeMessage message, String recipientEmail) {
+        try {
+            // Use the standard mailSender which handles connection pooling
+            mailSender.send(message);
+
+            // Alternative: Send with custom transport listener for detailed SMTP response
+            // codes
+            // sendWithTransportListener(message, recipientEmail);
+
+        } catch (Exception e) {
+            log.error("Error sending to {}: {}", recipientEmail, e.getMessage());
+            throw e;
+        }
+    }
+
+    // /**
+    // * Alternative method to send with custom Transport for detailed SMTP response
+    // * codes
+    // * Note: This bypasses Spring's connection pooling, so use sparingly
+    // */
+    // @SuppressWarnings("unused")
+    // private void sendWithTransportListener(MimeMessage message, String
+    // recipientEmail) throws MessagingException {
+    // Session session = message.getSession();
+    // Transport transport = session.getTransport("smtp");
+
+    // // Add transport listener for detailed event logging
+    // transport.addTransportListener(new TransportListener() {
+    // @Override
+    // public void messageDelivered(TransportEvent e) {
+    // log.info("✓ Message delivered to {}: {} valid addresses",
+    // recipientEmail, e.getValidSentAddresses().length);
+    // }
+
+    // @Override
+    // public void messageNotDelivered(TransportEvent e) {
+    // log.error("✗ Message NOT delivered to {}: {} invalid addresses",
+    // recipientEmail, e.getInvalidAddresses().length);
+    // }
+
+    // @Override
+    // public void messagePartiallyDelivered(TransportEvent e) {
+    // log.warn("⚠ Message partially delivered to {}: {} valid, {} invalid",
+    // recipientEmail,
+    // e.getValidSentAddresses().length,
+    // e.getInvalidAddresses().length);
+    // }
+    // });
+
+    // try {
+    // transport.connect(
+    // emailProperties.get(),
+    // emailProperties.getSmtpPort(),
+    // emailProperties.getSmtpUsername(),
+    // emailProperties.getSmtpPassword());
+
+    // log.debug("SMTP connection established for {}", recipientEmail);
+    // transport.sendMessage(message, message.getAllRecipients());
+
+    // } finally {
+    // transport.close();
+    // }
+    // }
 
     /**
      * Constructs a MimeMessage for sending via SMTP.
@@ -90,9 +186,14 @@ public class EmailProviderSmtp implements EmailProvider {
             helper.setSubject(content.getSubject());
             helper.setText(htmlText, true); // true = HTML content
 
+            log.debug("Created email message: from={}, to={}, subject={}",
+                    emailProperties.getSenderAddress(),
+                    recipient.getEmail(),
+                    content.getSubject());
+
             return message;
         } catch (MessagingException e) {
-            log.error("Failed to create email message for {}: {}", recipient.getEmail(), e.getMessage());
+            log.error("Failed to create email message for {}: {}", recipient.getEmail(), e.getMessage(), e);
             return null;
         }
     }
