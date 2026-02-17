@@ -32,6 +32,8 @@ public class SnmpCredentialController {
     private final SnmpCredentialManagementService snmpCredentialManagementService;
     private final SnmpCredentialMapper snmpCredentialMapper;
 
+    // TODO: update endpoints to use `@PreAuthorize` annotation
+
     @PostMapping("/create")
     public SnmpCredentialCreateResponse createSnmpCredential(SnmpCredentialCreateRequest request) {
         SnmpCredential snmpCredential;
