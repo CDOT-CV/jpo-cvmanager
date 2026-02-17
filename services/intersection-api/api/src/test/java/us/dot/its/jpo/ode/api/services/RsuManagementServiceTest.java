@@ -16,6 +16,7 @@ import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -38,7 +39,6 @@ import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -99,13 +99,13 @@ class RsuManagementServiceTest {
     private SnmpProtocolRepository snmpProtocolRepository;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private RsuInfoMapper rsuMapper;
 
     @Mock
     private RsuPatchMapper rsuPatchMapper;
+
+    @Mock
+    private DecodedToken decodedToken;
 
     @InjectMocks
     private RsuManagementService rsuManagementService;
@@ -163,8 +163,8 @@ class RsuManagementServiceTest {
         String invalidIpAddress = "invalid-ip";
 
         ResponseStatusException exception = assertThrows(
-                        ResponseStatusException.class,
-                () -> rsuManagementService.getRsuInfo(invalidIpAddress));
+                ResponseStatusException.class,
+                        () -> rsuManagementService.getRsuInfo(invalidIpAddress));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
         assertInstanceOf(UnknownHostException.class, exception.getCause());
@@ -244,8 +244,6 @@ class RsuManagementServiceTest {
 
     @Test
     void testGetAllowedSelections_Success() {
-        String username = "testuser@example.com";
-
         List<String> primaryRoutes = Arrays.asList("I-25", "I-70", "US-36");
 
         List<RsuRepository.RsuModelProjection> rsuModels = Arrays.asList(
@@ -256,18 +254,14 @@ class RsuManagementServiceTest {
         List<String> snmpCredentials = Arrays.asList("snmp-group-1", "snmp-group-2");
         List<String> snmpVersions = Arrays.asList("v2c", "v3");
 
-        List<UserRepository.UserOrgRoleProjection> userOrgRoles = Arrays.asList(
-                createUserOrgRoleProjection("testuser@example.com", "Org1", "Admin"),
-                createUserOrgRoleProjection("testuser@example.com", "Org2", "User"));
-
         when(rsuRepository.findAllPrimaryRoutes()).thenReturn(primaryRoutes);
         when(rsuRepository.findAllRsuModels()).thenReturn(rsuModels);
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(sshCredentials);
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(snmpCredentials);
         when(snmpProtocolRepository.findAllNicknames()).thenReturn(snmpVersions);
-        when(userRepository.findUserOrgRoles(username)).thenReturn(userOrgRoles);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(Arrays.asList("Org1", "Org2"));
 
-        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(decodedToken);
 
         assertNotNull(result);
 
@@ -296,21 +290,18 @@ class RsuManagementServiceTest {
         verify(rsuCredentialRepository).findAllNicknames();
         verify(snmpCredentialRepository).findAllNicknames();
         verify(snmpProtocolRepository).findAllNicknames();
-        verify(userRepository).findUserOrgRoles(username);
     }
 
     @Test
     void testGetAllowedSelections_EmptyResults() {
-        String username = "newuser@example.com";
-
         when(rsuRepository.findAllPrimaryRoutes()).thenReturn(List.of());
         when(rsuRepository.findAllRsuModels()).thenReturn(List.of());
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(List.of());
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(List.of());
         when(snmpProtocolRepository.findAllNicknames()).thenReturn(List.of());
-        when(userRepository.findUserOrgRoles(username)).thenReturn(List.of());
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
 
-        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(decodedToken);
 
         assertNotNull(result);
         assertTrue(result.getPrimaryRoutes().isEmpty());
@@ -327,7 +318,6 @@ class RsuManagementServiceTest {
     void testModifyRsu_Success() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setMilepost(150.0);
@@ -356,9 +346,9 @@ class RsuManagementServiceTest {
         doNothing().when(rsuPatchMapper).updateRsuFromPatch(patch, existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(expectedDto);
-        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("Org1"));
 
-        RsuInfoDto result = rsuManagementService.modifyRsu(rsuIp, patch, username);
+        RsuInfoDto result = rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
 
         assertNotNull(result);
         assertEquals(150.0, result.getMilepost());
@@ -373,7 +363,6 @@ class RsuManagementServiceTest {
     void testModifyRsu_WithModelUpdate() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setModel("Yunex RSU-2X");
@@ -390,9 +379,9 @@ class RsuManagementServiceTest {
                 .thenReturn(Optional.of(newModel));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("Org1"));
 
-        rsuManagementService.modifyRsu(rsuIp, patch, username);
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
 
         verify(rsuModelRepository).findByNameAndManufacturerName("RSU-2X", "Yunex");
         verify(rsuRepository).save(existingRsu);
@@ -402,7 +391,6 @@ class RsuManagementServiceTest {
     void testModifyRsu_WithCredentialUpdates() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setSshCredentialGroup("ssh-group-new");
@@ -423,9 +411,9 @@ class RsuManagementServiceTest {
         when(snmpProtocolRepository.findByNickname("v3")).thenReturn(Optional.of(snmpProtocol));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-        when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of("Org1"));
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("Org1"));
 
-        rsuManagementService.modifyRsu(rsuIp, patch, username);
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
 
         verify(rsuCredentialRepository).findByNickname("ssh-group-new");
         verify(snmpCredentialRepository).findByNickname("snmp-group-new");
@@ -437,13 +425,12 @@ class RsuManagementServiceTest {
         String rsuIp = "192.168.1.123";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
         RsuPatch patch = new RsuPatch();
-        String username = "testuser@example.com";
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
 
         assertTrue(exception.getMessage().contains("RSU not found"));
         verify(rsuRepository, never()).save(any());
@@ -453,11 +440,10 @@ class RsuManagementServiceTest {
     void testModifyRsu_InvalidIpAddress() {
         String invalidIp = "invalid-ip";
         RsuPatch patch = new RsuPatch();
-        String username = "testuser@example.com";
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuManagementService.modifyRsu(invalidIp, patch, username));
+                () -> rsuManagementService.modifyRsu(invalidIp, patch, decodedToken));
 
         assertTrue(exception.getMessage().contains("Invalid IP address"));
         verify(rsuRepository, never()).save(any());
@@ -467,7 +453,6 @@ class RsuManagementServiceTest {
     void testModifyRsu_ModelNotFound() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setModel("Unknown Model");
@@ -481,7 +466,7 @@ class RsuManagementServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
 
         assertTrue(exception.getMessage().contains("Model not found"));
     }
@@ -490,7 +475,6 @@ class RsuManagementServiceTest {
     void testModifyRsu_InvalidModelFormat() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setModel("InvalidFormat");
@@ -502,7 +486,7 @@ class RsuManagementServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
 
         assertTrue(exception.getMessage().contains("Invalid model format"));
     }
@@ -515,391 +499,377 @@ class RsuManagementServiceTest {
     void testHandleOrganizationChanges_AddOrganizations_Success() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
-        String username = "testuser@example.com";
 
         RsuPatch patch = new RsuPatch();
         patch.setOrganizationsToAdd(Arrays.asList("Org1", "Org2"));
 
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    Organization org1 = new Organization();
-    org1.setName("Org1");
-    Organization org2 = new Organization();
-    org2.setName("Org2");
-
-    List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
-            .thenReturn(false);
-    when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org2")))
-            .thenReturn(false);
-    when(organizationRepository.findByName("Org1")).thenReturn(Optional.of(org1));
-    when(organizationRepository.findByName("Org2")).thenReturn(Optional.of(org2));
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, times(2)).save(any(RsuOrganization.class));
-    verify(organizationRepository).findByName("Org1");
-    verify(organizationRepository).findByName("Org2");
-}
-
-@Test
-void testHandleOrganizationChanges_AddOrganizations_AlreadyExists() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(Arrays.asList("Org1"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
-            .thenReturn(true);
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-    verify(organizationRepository, never()).findByName(anyString());
-}
-
-@Test
-void testHandleOrganizationChanges_AddOrganizations_Unauthorized() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(Arrays.asList("UnauthorizedOrg"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
-            () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
-
-    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-    assertTrue(exception.getMessage().contains("User does not have permission to add RSU to organization(s)"));
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_AddOrganizations_OrganizationNotFound() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(Arrays.asList("NonExistentOrg"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("NonExistentOrg");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NonExistentOrg")))
-            .thenReturn(false);
-    when(organizationRepository.findByName("NonExistentOrg")).thenReturn(Optional.empty());
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
-            () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
-
-    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-    assertTrue(exception.getMessage().contains("Organization not found: NonExistentOrg"));
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_RemoveOrganizations_Success() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToRemove(Arrays.asList("Org1", "Org2"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    Organization org1 = new Organization();
-    org1.setName("Org1");
-    Organization org2 = new Organization();
-    org2.setName("Org2");
-
-    RsuOrganization rsuOrg1 = new RsuOrganization();
-    rsuOrg1.setRsu(existingRsu);
-    rsuOrg1.setOrganization(org1);
-
-    RsuOrganization rsuOrg2 = new RsuOrganization();
-    rsuOrg2.setRsu(existingRsu);
-    rsuOrg2.setOrganization(org2);
-
-    List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
-            .thenReturn(Optional.of(rsuOrg1));
-    when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org2"))
-            .thenReturn(Optional.of(rsuOrg2));
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository).delete(rsuOrg1);
-    verify(rsuOrganizationRepository).delete(rsuOrg2);
-}
-
-@Test
-void testHandleOrganizationChanges_RemoveOrganizations_NotFound() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToRemove(Arrays.asList("Org1"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
-            .thenReturn(Optional.empty());
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_RemoveOrganizations_Unauthorized() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToRemove(Arrays.asList("UnauthorizedOrg"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    ResponseStatusException exception = assertThrows(
-            ResponseStatusException.class,
-            () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
-
-    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-    assertTrue(exception.getMessage().contains("User does not have permission to remove RSU from organization(s)"));
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
-    verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_AddAndRemoveOrganizations() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(Arrays.asList("NewOrg"));
-    patch.setOrganizationsToRemove(Arrays.asList("OldOrg"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    Organization newOrg = new Organization();
-    newOrg.setName("NewOrg");
-    Organization oldOrg = new Organization();
-    oldOrg.setName("OldOrg");
-
-    RsuOrganization rsuOrgToRemove = new RsuOrganization();
-    rsuOrgToRemove.setRsu(existingRsu);
-    rsuOrgToRemove.setOrganization(oldOrg);
-
-    List<String> authorizedOrgs = Arrays.asList("NewOrg", "OldOrg");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NewOrg")))
-            .thenReturn(false);
-    when(organizationRepository.findByName("NewOrg")).thenReturn(Optional.of(newOrg));
-    when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "OldOrg"))
-            .thenReturn(Optional.of(rsuOrgToRemove));
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository).save(any(RsuOrganization.class));
-    verify(rsuOrganizationRepository).delete(rsuOrgToRemove);
-}
-
-@Test
-void testHandleOrganizationChanges_AddMultipleOrganizations_PartiallyUnauthorized() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(Arrays.asList("Org1", "UnauthorizedOrg1", "UnauthorizedOrg2"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
-            () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
-
-    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_RemoveMultipleOrganizations_PartiallyUnauthorized() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToRemove(Arrays.asList("Org1", "UnauthorizedOrg1", "UnauthorizedOrg2"));
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    List<String> authorizedOrgs = Arrays.asList("Org1");
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(authorizedOrgs);
-
-    ResponseStatusException exception = assertThrows(
-                    ResponseStatusException.class,
-            () -> rsuManagementService.modifyRsu(rsuIp, patch, username));
-
-    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
-    assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
-    verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_NoOrganizationChanges() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    // No organization changes
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of());
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-    verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_EmptyAddList() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToAdd(List.of());
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of());
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-}
-
-@Test
-void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException {
-    String rsuIp = "192.168.1.100";
-    InetAddress inetAddress = InetAddress.getByName(rsuIp);
-    String username = "testuser@example.com";
-
-    RsuPatch patch = new RsuPatch();
-    patch.setOrganizationsToRemove(List.of());
-
-    Rsu existingRsu = new Rsu();
-    existingRsu.setIpv4Address(inetAddress);
-    existingRsu.setRsuOrganizations(new ArrayList<>());
-
-    when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-    when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-    when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-    when(permissionService.getQualifiedOrgList(username, "ADMIN")).thenReturn(List.of());
-
-    rsuManagementService.modifyRsu(rsuIp, patch, username);
-
-    verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
-}
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        Organization org1 = new Organization();
+        org1.setName("Org1");
+        Organization org2 = new Organization();
+        org2.setName("Org2");
+
+        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
+                .thenReturn(false);
+        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org2")))
+                .thenReturn(false);
+        when(organizationRepository.findByName("Org1")).thenReturn(Optional.of(org1));
+        when(organizationRepository.findByName("Org2")).thenReturn(Optional.of(org2));
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, times(2)).save(any(RsuOrganization.class));
+        verify(organizationRepository).findByName("Org1");
+        verify(organizationRepository).findByName("Org2");
+    }
+
+    @Test
+    void testHandleOrganizationChanges_AddOrganizations_AlreadyExists() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(Arrays.asList("Org1"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
+                .thenReturn(true);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+        verify(organizationRepository, never()).findByName(anyString());
+    }
+
+    @Test
+    void testHandleOrganizationChanges_AddOrganizations_Unauthorized() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(Arrays.asList("UnauthorizedOrg"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("User does not have permission to add RSU to organization(s)"));
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_AddOrganizations_OrganizationNotFound() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(Arrays.asList("NonExistentOrg"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("NonExistentOrg");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NonExistentOrg")))
+                .thenReturn(false);
+        when(organizationRepository.findByName("NonExistentOrg")).thenReturn(Optional.empty());
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
 
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("Organization not found: NonExistentOrg"));
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_RemoveOrganizations_Success() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(Arrays.asList("Org1", "Org2"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        Organization org1 = new Organization();
+        org1.setName("Org1");
+        Organization org2 = new Organization();
+        org2.setName("Org2");
+
+        RsuOrganization rsuOrg1 = new RsuOrganization();
+        rsuOrg1.setRsu(existingRsu);
+        rsuOrg1.setOrganization(org1);
+
+        RsuOrganization rsuOrg2 = new RsuOrganization();
+        rsuOrg2.setRsu(existingRsu);
+        rsuOrg2.setOrganization(org2);
+
+        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
+                .thenReturn(Optional.of(rsuOrg1));
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org2"))
+                .thenReturn(Optional.of(rsuOrg2));
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository).delete(rsuOrg1);
+        verify(rsuOrganizationRepository).delete(rsuOrg2);
+    }
+
+    @Test
+    void testHandleOrganizationChanges_RemoveOrganizations_NotFound() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(Arrays.asList("Org1"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
+                .thenReturn(Optional.empty());
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_RemoveOrganizations_Unauthorized() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(Arrays.asList("UnauthorizedOrg"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("User does not have permission to remove RSU from organization(s)"));
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_AddAndRemoveOrganizations() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(Arrays.asList("NewOrg"));
+        patch.setOrganizationsToRemove(Arrays.asList("OldOrg"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        Organization newOrg = new Organization();
+        newOrg.setName("NewOrg");
+        Organization oldOrg = new Organization();
+        oldOrg.setName("OldOrg");
+
+        RsuOrganization rsuOrgToRemove = new RsuOrganization();
+        rsuOrgToRemove.setRsu(existingRsu);
+        rsuOrgToRemove.setOrganization(oldOrg);
+
+        List<String> authorizedOrgs = Arrays.asList("NewOrg", "OldOrg");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NewOrg")))
+                .thenReturn(false);
+        when(organizationRepository.findByName("NewOrg")).thenReturn(Optional.of(newOrg));
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "OldOrg"))
+                .thenReturn(Optional.of(rsuOrgToRemove));
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository).save(any(RsuOrganization.class));
+        verify(rsuOrganizationRepository).delete(rsuOrgToRemove);
+    }
+
+    @Test
+    void testHandleOrganizationChanges_AddMultipleOrganizations_PartiallyUnauthorized() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(Arrays.asList("Org1", "UnauthorizedOrg1", "UnauthorizedOrg2"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_RemoveMultipleOrganizations_PartiallyUnauthorized() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(Arrays.asList("Org1", "UnauthorizedOrg1", "UnauthorizedOrg2"));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        List<String> authorizedOrgs = Arrays.asList("Org1");
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(authorizedOrgs);
+
+        ResponseStatusException exception = assertThrows(
+                        ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, decodedToken));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
+        assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_NoOrganizationChanges() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        // No organization changes
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_EmptyAddList() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(List.of());
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(List.of());
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new ArrayList<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+
+        rsuManagementService.modifyRsu(rsuIp, patch, decodedToken);
+
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
 
     // ==================== DELETE RSU TESTS ====================
 
@@ -1056,25 +1026,6 @@ void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException
             @Override
             public String getModel() {
                 return model;
-            }
-        };
-    }
-
-    private UserRepository.UserOrgRoleProjection createUserOrgRoleProjection(String email, String org, String role) {
-        return new UserRepository.UserOrgRoleProjection() {
-            @Override
-            public String getEmail() {
-                return email;
-            }
-
-            @Override
-            public String getOrganizationName() {
-                return org;
-            }
-
-            @Override
-            public String getRoleName() {
-                return role;
             }
         };
     }
