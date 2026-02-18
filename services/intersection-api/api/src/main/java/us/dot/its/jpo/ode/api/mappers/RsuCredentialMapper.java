@@ -1,12 +1,20 @@
 package us.dot.its.jpo.ode.api.mappers;
 
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = MappingConstants.ComponentModel.SPRING)
 public interface RsuCredentialMapper {
+    RsuCredential toEntity(RsuCredentialDTO rsuCredentialDTO);
 
     RsuCredentialDTO toDto(RsuCredential rsuCredential);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    RsuCredential partialUpdate(RsuCredentialDTO rsuCredentialDTO, @MappingTarget RsuCredential rsuCredential);
 }
