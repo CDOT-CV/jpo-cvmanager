@@ -29,7 +29,6 @@ import java.util.Optional;
 })
 @RequestMapping("/credentials/rsu")
 @RequiredArgsConstructor
-// TODO: rely on controller advice to handle exceptions
 public class RsuCredentialController {
     private final RsuCredentialManagementService rsuCredentialManagementService;
     private final RsuCredentialMapper rsuCredentialMapper;
