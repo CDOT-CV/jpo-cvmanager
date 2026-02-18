@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,24 +35,26 @@ public class SnmpCredentialController {
     private final SnmpCredentialManagementService snmpCredentialManagementService;
     private final SnmpCredentialMapper snmpCredentialMapper;
 
-    // TODO: update endpoints to use `@PreAuthorize` annotation
-
     @PostMapping("/create")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
     }
 
     @GetMapping("/get-by-nickname")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
     }
 
     @PostMapping("/update")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch));
     }
 
     @PostMapping("/delete")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
         snmpCredentialManagementService.deleteByNickname(request.getNickname());
     }

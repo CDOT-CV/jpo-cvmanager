@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,24 +32,26 @@ public class RsuCredentialController {
     private final RsuCredentialManagementService rsuCredentialManagementService;
     private final RsuCredentialMapper rsuCredentialMapper;
 
-    // TODO: update endpoints to use `@PreAuthorize` annotation
-
     @PostMapping("/create")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest));
     }
 
     @GetMapping("/get-by-nickname")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
     }
 
     @PostMapping("/update")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.update(rsuCredentialPatch));
     }
 
     @PostMapping("/delete")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
         rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
     }
