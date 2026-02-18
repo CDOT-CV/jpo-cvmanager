@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.controllers.credentials;
 
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -28,6 +29,7 @@ import java.util.Optional;
 })
 @RequestMapping("/credentials/rsu")
 @RequiredArgsConstructor
+// TODO: rely on controller advice to handle exceptions
 public class RsuCredentialController {
     private final RsuCredentialManagementService rsuCredentialManagementService;
     private final RsuCredentialMapper rsuCredentialMapper;
@@ -38,12 +40,13 @@ public class RsuCredentialController {
     public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
         RsuCredential rsuCredential = null;
         try {
-            rsuCredential = rsuCredentialManagementService.create(rsuCredentialCreateRequest);
+            rsuCredential = rsuCredentialManagementService.create(rsuCredentialCreateRequest); // TODO: return DTO directly from create()
         } catch (RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
             return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
         } catch (RsuCredentialManagementService.OrganizationNotFoundException e) {
             return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("Organization not found"));
         }
+        // TODO: return DTO directly
         return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredential)), Optional.empty());
     }
 
@@ -52,7 +55,7 @@ public class RsuCredentialController {
         RsuCredential rsuCredential = null;
         try {
             rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
-        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
+        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) { // TODO: just propagate not found exception from JPA
             return Optional.empty();
         }
         return Optional.of(rsuCredentialMapper.toDto(rsuCredential));

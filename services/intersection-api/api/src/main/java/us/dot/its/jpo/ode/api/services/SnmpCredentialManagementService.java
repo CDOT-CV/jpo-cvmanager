@@ -25,7 +25,7 @@ public class SnmpCredentialManagementService {
         snmpCredential.setUsername(request.getUsername());
         snmpCredential.setPassword(request.getPassword());
 
-        Optional<Organization> organization = organizationRepository.findByName(request.getOrganization());
+        Optional<Organization> organization = organizationRepository.findByName(request.getOrganization()); // TODO: use orElseThrow here
         if (organization.isEmpty()) {
             throw new OrganizationNotFoundException("Organization " + request.getOrganization() + " not found.");
         }

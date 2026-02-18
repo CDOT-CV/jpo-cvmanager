@@ -36,7 +36,7 @@ public class RsuCredentialManagementService {
     }
 
     public RsuCredential getByNickname(String nickname) throws RsuCredentialNotFoundException {
-        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
+        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found")); // TODO: use EntityNotFoundException from Jakarta
     }
 
     public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException, OrganizationNotFoundException {
