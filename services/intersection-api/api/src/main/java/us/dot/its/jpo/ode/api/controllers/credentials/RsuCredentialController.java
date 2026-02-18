@@ -37,41 +37,19 @@ public class RsuCredentialController {
     // TODO: update endpoints to use `@PreAuthorize` annotation
 
     @PostMapping("/create")
-    public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) {
-        RsuCredential rsuCredential = null;
-        try {
-            rsuCredential = rsuCredentialManagementService.create(rsuCredentialCreateRequest); // TODO: return DTO directly from create()
-        } catch (RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
-            return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("RSU Credential already exists"));
-        } catch (RsuCredentialManagementService.OrganizationNotFoundException e) {
-            return new RsuCredentialCreateResponse(false, Optional.empty(), Optional.of("Organization not found"));
-        }
+    public RsuCredentialCreateResponse createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         // TODO: return DTO directly
-        return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredential)), Optional.empty());
+        return new RsuCredentialCreateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest))), Optional.empty());
     }
 
     @GetMapping("/get-by-nickname")
-    public Optional<RsuCredentialDTO> getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) {
-        RsuCredential rsuCredential = null;
-        try {
-            rsuCredential = rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname());
-        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) { // TODO: just propagate not found exception from JPA
-            return Optional.empty();
-        }
-        return Optional.of(rsuCredentialMapper.toDto(rsuCredential));
+    public Optional<RsuCredentialDTO> getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+        return Optional.of(rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname())));
     }
 
     @PostMapping("/update")
-    public RsuCredentialUpdateResponse update(@RequestBody RsuCredentialPatch rsuCredentialPatch) {
-        RsuCredential updatedRsuCredential = null;
-        try {
-            updatedRsuCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
-        } catch (RsuCredentialManagementService.RsuCredentialNotFoundException e) {
-            return new RsuCredentialUpdateResponse(false, Optional.empty(), Optional.of("RSU Credential not found"));
-        } catch (RsuCredentialManagementService.OrganizationNotFoundException e) {
-            return new RsuCredentialUpdateResponse(false, Optional.empty(), Optional.of("Organization not found"));
-        }
-        return new RsuCredentialUpdateResponse(true, Optional.of(rsuCredentialMapper.toDto(updatedRsuCredential)), Optional.empty());
+    public RsuCredentialUpdateResponse update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialNotFoundException {
+        return new RsuCredentialUpdateResponse(true, Optional.of(rsuCredentialMapper.toDto(rsuCredentialManagementService.update(rsuCredentialPatch))), Optional.empty());
     }
 
     @PostMapping("/delete")

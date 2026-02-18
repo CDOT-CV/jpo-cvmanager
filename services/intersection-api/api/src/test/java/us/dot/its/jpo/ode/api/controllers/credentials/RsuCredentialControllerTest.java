@@ -12,6 +12,7 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -76,14 +77,8 @@ class RsuCredentialControllerTest {
         when(mockRsuCredentialManagementService.create(rsuCredentialCreateRequest)).thenThrow(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
-        // Act
-        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
-
-        // Assert
-        assert(response != null);
-        assert(!response.getSuccess());
-        assert(response.getError().isPresent());
-        assert(response.getError().get().equals("RSU Credential already exists"));
+        // Act & Assert
+        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest));
     }
 
     @Test
@@ -97,14 +92,8 @@ class RsuCredentialControllerTest {
         doThrow(RsuCredentialManagementService.OrganizationNotFoundException.class).when(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
-        // Act
-        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
-
-        // Assert
-        assert(response != null);
-        assert(!response.getSuccess());
-        assert(response.getError().isPresent());
-        assert(response.getError().get().equals("Organization not found"));
+        // Act & Assert
+        assertThrows(RsuCredentialManagementService.OrganizationNotFoundException.class, () -> rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest));
     }
 
     @Test
@@ -144,11 +133,8 @@ class RsuCredentialControllerTest {
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
         RsuCredentialController.RsuCredentialGetRequest rsuCredentialGetRequest = new RsuCredentialController.RsuCredentialGetRequest(nickname);
 
-        // Act
-        Optional<RsuCredentialDTO> actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
-
-        // Assert
-        assert(!actual.isPresent());
+        // Act & Assert
+        assertThrows(RsuCredentialManagementService.RsuCredentialNotFoundException.class, () -> rsuCredentialController.getByNickname(rsuCredentialGetRequest));
     }
 
     @Test
@@ -193,14 +179,8 @@ class RsuCredentialControllerTest {
         when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(RsuCredentialManagementService.RsuCredentialNotFoundException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
-        // Act
-        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
-
-        // Assert
-        assert(response != null);
-        assert(!response.getUpdatedRsuCredential().isPresent());
-        assert(response.getError().isPresent());
-        assert(response.getError().get().equals("RSU Credential not found"));
+        // Act & Assert
+        assertThrows(RsuCredentialManagementService.RsuCredentialNotFoundException.class, () -> rsuCredentialController.update(rsuCredentialPatch));
     }
 
     @Test
@@ -211,14 +191,8 @@ class RsuCredentialControllerTest {
         when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(RsuCredentialManagementService.OrganizationNotFoundException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
-        // Act
-        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
-
-        // Assert
-        assert(response != null);
-        assert(!response.getUpdatedRsuCredential().isPresent());
-        assert(response.getError().isPresent());
-        assert(response.getError().get().equals("Organization not found"));
+        // Act & Assert
+        assertThrows(RsuCredentialManagementService.OrganizationNotFoundException.class, () -> rsuCredentialController.update(rsuCredentialPatch));
     }
 
     @Test
