@@ -48,16 +48,17 @@ class SnmpCredentialControllerTest {
         snmpCredential.setPassword(password);
         snmpCredential.setOwnerOrganizationId(mockOrganizationId);
 
+        SnmpCredentialDTO expected = new SnmpCredentialDTO(null, nickname, username, password, mockOrganizationId);
+
         when(mockSnmpCredentialManagementService.create(request)).thenReturn(snmpCredential);
         snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
 
         // Act
-        SnmpCredentialController.SnmpCredentialCreateResponse response = snmpCredentialController.createSnmpCredential(request);
+        SnmpCredentialDTO response = snmpCredentialController.createSnmpCredential(request);
 
         // Assert
         assertNotNull(response);
-        assertTrue(response.getSuccess());
-        assertNotNull(response.getSnmpCredential());
+        assertEquals(expected, response);
         verify(mockSnmpCredentialManagementService).create(request);
     }
 
@@ -88,12 +89,11 @@ class SnmpCredentialControllerTest {
         snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
 
         // Act
-        Optional<SnmpCredentialDTO> actual = snmpCredentialController.getByNickname(request);
+        SnmpCredentialDTO actual = snmpCredentialController.getByNickname(request);
 
         // Assert
         assertNotNull(actual);
-        assertTrue(actual.isPresent());
-        assertEquals(expected, actual.get());
+        assertEquals(expected, actual);
         verify(mockSnmpCredentialManagementService).getByNickname(nickname);
     }
 
@@ -121,12 +121,14 @@ class SnmpCredentialControllerTest {
        when(mockSnmpCredentialManagementService.update(patch)).thenReturn(snmpCredential);
        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
 
+       SnmpCredentialDTO expected = new SnmpCredentialDTO(mockRsuCredentialId, nickname, username, updatedPassword, mockOrganizationId);
+
        // Act
-       SnmpCredentialController.SnmpCredentialUpdateResponse response = snmpCredentialController.update(patch);
+       SnmpCredentialDTO response = snmpCredentialController.update(patch);
 
        // Assert
        assertNotNull(response);
-       assertTrue(response.getSuccess());
+       assertEquals(expected, response);
        verify(mockSnmpCredentialManagementService).update(patch);
     }
 

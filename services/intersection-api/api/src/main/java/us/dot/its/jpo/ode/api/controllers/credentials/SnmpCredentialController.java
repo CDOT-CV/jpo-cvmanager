@@ -36,18 +36,18 @@ public class SnmpCredentialController {
     // TODO: update endpoints to use `@PreAuthorize` annotation
 
     @PostMapping("/create")
-    public SnmpCredentialCreateResponse createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
-        return new SnmpCredentialCreateResponse(true, Optional.of(snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request))), Optional.empty());
+    public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
     }
 
     @GetMapping("/get-by-nickname")
-    public Optional<SnmpCredentialDTO> getByNickname(SnmpCredentialGetRequest request) throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
-        return Optional.of(snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname())));
+    public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
     }
 
     @PostMapping("/update")
-    public SnmpCredentialUpdateResponse update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
-        return new SnmpCredentialUpdateResponse(true, Optional.of(snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch))), Optional.empty());
+    public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch));
     }
 
     @PostMapping("/delete")
@@ -89,20 +89,6 @@ public class SnmpCredentialController {
 
 
     // responses
-    @Data
-    public static class SnmpCredentialCreateResponse {
-        private final Boolean success;
-        private final Optional<SnmpCredentialDTO> snmpCredential;
-        private final Optional<String> error;
-    }
-
-    @Data
-    public static class SnmpCredentialUpdateResponse {
-        private final Boolean success;
-        private final Optional<SnmpCredentialDTO> updatedSnmpCredential;
-        private final Optional<String> error;
-    }
-
     @Data
     public static class SnmpCredentialDeleteResponse {
         private final Boolean success;

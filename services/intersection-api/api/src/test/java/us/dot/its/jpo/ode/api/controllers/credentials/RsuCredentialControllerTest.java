@@ -55,14 +55,11 @@ class RsuCredentialControllerTest {
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialController.RsuCredentialCreateResponse response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
+        RsuCredentialDTO response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
 
         // Assert
         assert(response != null);
-        assert(response.getSuccess());
-        assert(response.getRsuCredential().isPresent());
-        assert(response.getError().isEmpty());
-        assert(response.getRsuCredential().get().equals(expected));
+        assert(response.equals(expected));
         verify(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
     }
 
@@ -117,11 +114,11 @@ class RsuCredentialControllerTest {
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        Optional<RsuCredentialDTO> actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
+        RsuCredentialDTO actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
 
         // Assert
-        assert(actual.isPresent());
-        assert(actual.get().equals(expected));
+        assert(actual != null);
+        assert(actual.equals(expected));
         verify(mockRsuCredentialManagementService).getByNickname(nickname);
     }
 
@@ -160,13 +157,11 @@ class RsuCredentialControllerTest {
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act
-        RsuCredentialController.RsuCredentialUpdateResponse response = rsuCredentialController.update(rsuCredentialPatch);
+        RsuCredentialDTO response = rsuCredentialController.update(rsuCredentialPatch);
 
         // Assert
         assert(response != null);
-        assert(response.getUpdatedRsuCredential().isPresent());
-        assert(response.getUpdatedRsuCredential().get().getPassword().equals(updatedPassword));
-        assert(response.getError().isEmpty());
+        assert(response.getId().equals(mockRsuCredentialId));
         verify(mockRsuCredentialManagementService).update(rsuCredentialPatch);
     }
 
