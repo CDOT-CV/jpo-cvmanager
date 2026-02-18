@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.controllers.credentials;
 
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -60,9 +61,7 @@ public class SnmpCredentialController {
     }
 
     // requests
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialCreateRequest {
         private final String nickname;
         private final String username;
@@ -70,16 +69,12 @@ public class SnmpCredentialController {
         private final String organization;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialGetRequest {
         private final String nickname;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialPatch {
         private final String nickname;
         private String username;
@@ -87,36 +82,28 @@ public class SnmpCredentialController {
         private String organization;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialDeleteRequest {
         private final String nickname;
     }
 
 
     // responses
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialCreateResponse {
         private final Boolean success;
         private final Optional<SnmpCredentialDTO> snmpCredential;
         private final Optional<String> error;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialUpdateResponse {
         private final Boolean success;
         private final Optional<SnmpCredentialDTO> updatedSnmpCredential;
         private final Optional<String> error;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class SnmpCredentialDeleteResponse {
         private final Boolean success;
         private final Optional<String> error;

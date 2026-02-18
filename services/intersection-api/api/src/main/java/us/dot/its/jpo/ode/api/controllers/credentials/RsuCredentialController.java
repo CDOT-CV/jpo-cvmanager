@@ -62,9 +62,7 @@ public class RsuCredentialController {
     }
 
     // requests
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialCreateRequest {
         private final String nickname;
         private final String username;
@@ -72,16 +70,12 @@ public class RsuCredentialController {
         private final String organization;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialGetRequest {
         private final String nickname;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialPatch {
         private final String nickname;
         private String username;
@@ -89,35 +83,27 @@ public class RsuCredentialController {
         private String organization;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialDeleteRequest {
         private final String nickname;
     }
 
     // responses
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialCreateResponse {
         private final Boolean success;
         private final Optional<RsuCredentialDTO> rsuCredential;
         private final Optional<String> error;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialUpdateResponse {
         private final Boolean success;
         private final Optional<RsuCredentialDTO> updatedRsuCredential;
         private final Optional<String> error;
     }
 
-    @Getter
-    @Setter
-    @RequiredArgsConstructor
+    @Data
     public static class RsuCredentialDeleteResponse {
         private final Boolean success;
         private final Optional<String> error;
