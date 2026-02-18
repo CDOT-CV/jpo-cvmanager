@@ -212,11 +212,12 @@ class RsuCredentialControllerTest {
     void testDelete_Failure() {
         // Arrange
         String nickname = "nickname";
-        doNothing().when(mockRsuCredentialManagementService).deleteByNickname(nickname);
+        doThrow(EntityNotFoundException.class).when(mockRsuCredentialManagementService).deleteByNickname(nickname);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
+        RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class , () -> rsuCredentialController.deleteByNickname(new RsuCredentialController.RsuCredentialDeleteRequest(nickname)));
+        assertThrows(EntityNotFoundException.class , () -> rsuCredentialController.deleteByNickname(deleteRequest));
     }
 
 }
