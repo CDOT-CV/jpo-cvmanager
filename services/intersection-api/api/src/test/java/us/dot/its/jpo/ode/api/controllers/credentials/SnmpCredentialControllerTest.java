@@ -9,10 +9,12 @@ import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapperImpl;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
+import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,7 +64,35 @@ class SnmpCredentialControllerTest {
         verify(mockSnmpCredentialManagementService).create(request);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testCreateSnmpCredential_Failure_AlreadyExists() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+        when(mockSnmpCredentialManagementService.create(request)).thenThrow(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException.class);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act & Assert
+        assertThrows(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException.class, () -> snmpCredentialController.createSnmpCredential(request));
+    }
+
+    @Test
+    void testCreateSnmpCredential_Failure_OrganizationNotFound() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException {
+        // Arrange
+        String nickname = "nickname";
+        String username = "username";
+        String password = "password";
+        String organization = "organization";
+        SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+        when(mockSnmpCredentialManagementService.create(request)).thenThrow(EntityNotFoundException.class);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.createSnmpCredential(request));
+    }
 
     @Test
     void testGetByNickname_Success() throws EntityNotFoundException {
@@ -97,7 +127,17 @@ class SnmpCredentialControllerTest {
         verify(mockSnmpCredentialManagementService).getByNickname(nickname);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testGetByNickname_Failure_NotFound() throws EntityNotFoundException {
+        // Arrange
+        String nickname = "nickname";
+        SnmpCredentialController.SnmpCredentialGetRequest request = new SnmpCredentialController.SnmpCredentialGetRequest(nickname);
+        when(mockSnmpCredentialManagementService.getByNickname(nickname)).thenThrow(EntityNotFoundException.class);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.getByNickname(request));
+    }
 
     @Test
     void testUpdate_Success() throws EntityNotFoundException {
@@ -132,7 +172,18 @@ class SnmpCredentialControllerTest {
        verify(mockSnmpCredentialManagementService).update(patch);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testUpdate_Failure_EntityNotFound() {
+        // Arrange
+        String nickname = "nickname";
+        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
+        patch.setPassword("");
+        when(mockSnmpCredentialManagementService.update(patch)).thenThrow(EntityNotFoundException.class);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.update(patch));
+    }
 
     @Test
     void testDeleteByNickname_Success() throws EntityNotFoundException {
@@ -151,6 +202,17 @@ class SnmpCredentialControllerTest {
         verify(mockSnmpCredentialManagementService).deleteByNickname(nickname);
     }
 
-    // TODO: implement unit tests for unhappy paths
+    @Test
+    void testDelete_Failure() {
+        // Arrange
+        String nickname = "nickname";
+        doThrow(EntityNotFoundException.class).when(mockSnmpCredentialManagementService).deleteByNickname(nickname);
+        snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
+        SnmpCredentialController.SnmpCredentialDeleteRequest request = new SnmpCredentialController.SnmpCredentialDeleteRequest(nickname);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialController.deleteByNickname(request));
+
+    }
 
 }
