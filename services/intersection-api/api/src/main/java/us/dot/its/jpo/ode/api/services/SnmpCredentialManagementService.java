@@ -37,10 +37,12 @@ public class SnmpCredentialManagementService {
     }
 
     public SnmpCredential getByNickname(String nickname) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + nickname));
     }
 
     public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + patch.getNickname()));
         if (patch.getUsername() != null) {
             credential.setUsername(patch.getUsername());
@@ -59,6 +61,7 @@ public class SnmpCredentialManagementService {
     }
 
     public void deleteByNickname(String nickname) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         Optional<SnmpCredential> credential = snmpCredentialRepository.findByNickname(nickname);
         if (credential.isEmpty()) {
             throw new EntityNotFoundException("No credential found with nickname " + nickname);

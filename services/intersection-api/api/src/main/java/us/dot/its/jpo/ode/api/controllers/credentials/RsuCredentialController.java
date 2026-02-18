@@ -33,24 +33,28 @@ public class RsuCredentialController {
     private final RsuCredentialMapper rsuCredentialMapper;
 
     @PostMapping("/create")
+    // TODO: Update @PreAuthorize to check for organization-level permissions and ensure the Organization header is used and validated
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest));
     }
 
     @GetMapping("/get-by-nickname")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
     }
 
     @PostMapping("/update")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public RsuCredentialDTO update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.update(rsuCredentialPatch));
     }
 
     @PostMapping("/delete")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
         rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());

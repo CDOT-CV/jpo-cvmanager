@@ -111,6 +111,8 @@ public class PermissionService {
         return !getQualifiedOrgList(username, role).isEmpty();
     }
 
+    // TODO: Add hasOrganizationPermission(String organizationName, String role) to explicitly check if the current user has the required role within the specific organization
+
     // Allow Connection if the users organization controls the specified
     // intersection
     public boolean hasIntersection(Integer intersectionID, String role) {

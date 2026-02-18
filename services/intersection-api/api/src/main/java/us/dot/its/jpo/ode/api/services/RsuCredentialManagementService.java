@@ -37,10 +37,12 @@ public class RsuCredentialManagementService {
     }
 
     public RsuCredential getByNickname(String nickname) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found")); // TODO: use EntityNotFoundException from Jakarta
     }
 
     public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
         if (rsuCredentialPatch.getUsername() != null) {
             rsuCredential.setUsername(rsuCredentialPatch.getUsername());
@@ -59,6 +61,7 @@ public class RsuCredentialManagementService {
     }
 
     public void deleteByNickname(String nickname) throws EntityNotFoundException {
+        // TODO: Perform ownership check to verify that the ownerOrganizationId of the credential matches an organization the user is authorized to manage
         Optional<RsuCredential> rsuCredential = rsuCredentialRepository.findByNickname(nickname);
         if (rsuCredential.isEmpty()) {
             throw new EntityNotFoundException("RSU Credential not found");

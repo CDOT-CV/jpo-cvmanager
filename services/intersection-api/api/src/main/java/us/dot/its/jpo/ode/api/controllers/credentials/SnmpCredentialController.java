@@ -36,24 +36,28 @@ public class SnmpCredentialController {
     private final SnmpCredentialMapper snmpCredentialMapper;
 
     @PostMapping("/create")
+    // TODO: Update @PreAuthorize to check for organization-level permissions and ensure the Organization header is used and validated
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
     }
 
     @GetMapping("/get-by-nickname")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
     }
 
     @PostMapping("/update")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch));
     }
 
     @PostMapping("/delete")
+    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public void deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
         snmpCredentialManagementService.deleteByNickname(request.getNickname());
