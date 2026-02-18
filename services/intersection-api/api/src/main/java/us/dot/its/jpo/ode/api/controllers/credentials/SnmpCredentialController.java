@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.controllers.credentials;
 
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -36,17 +37,17 @@ public class SnmpCredentialController {
     // TODO: update endpoints to use `@PreAuthorize` annotation
 
     @PostMapping("/create")
-    public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
+    public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
     }
 
     @GetMapping("/get-by-nickname")
-    public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
     }
 
     @PostMapping("/update")
-    public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch));
     }
 
@@ -54,7 +55,7 @@ public class SnmpCredentialController {
     public SnmpCredentialDeleteResponse deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
         try {
             snmpCredentialManagementService.deleteByNickname(request.getNickname());
-        } catch(SnmpCredentialManagementService.SnmpCredentialNotFoundException e) {
+        } catch(EntityNotFoundException e) {
             return new SnmpCredentialDeleteResponse(false, Optional.of("SNMP Credential not found"));
         }
         return new SnmpCredentialDeleteResponse(true, Optional.empty());

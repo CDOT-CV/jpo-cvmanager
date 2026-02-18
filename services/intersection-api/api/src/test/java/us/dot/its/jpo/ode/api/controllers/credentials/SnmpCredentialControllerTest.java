@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.credentials;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,8 +10,6 @@ import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapperImpl;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
-
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -33,7 +32,7 @@ class SnmpCredentialControllerTest {
     }
 
     @Test
-    void testCreateSnmpCredential_Success() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
+    void testCreateSnmpCredential_Success() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -65,7 +64,7 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testGetByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testGetByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -100,7 +99,7 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testUpdate_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testUpdate_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -135,7 +134,7 @@ class SnmpCredentialControllerTest {
     // TODO: implement unit tests for unhappy paths
 
     @Test
-    void testDeleteByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testDeleteByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
 

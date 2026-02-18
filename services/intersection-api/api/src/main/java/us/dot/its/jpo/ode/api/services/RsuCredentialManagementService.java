@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.controllers.credentials.RsuCredentialController;
@@ -16,7 +17,7 @@ public class RsuCredentialManagementService {
     private final RsuCredentialRepository rsuCredentialRepository;
     private final OrganizationRepository organizationRepository;
 
-    public RsuCredential create(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialAlreadyExistsException, OrganizationNotFoundException {
+    public RsuCredential create(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialAlreadyExistsException, EntityNotFoundException {
         if (rsuCredentialRepository.existsByNickname(rsuCredentialCreateRequest.getNickname())) {
             throw new RsuCredentialAlreadyExistsException("RSU Credential already exists");
         }
@@ -27,7 +28,7 @@ public class RsuCredentialManagementService {
 
         Optional<Organization> organization = organizationRepository.findByName(rsuCredentialCreateRequest.getOrganization());
         if (organization.isEmpty()) {
-            throw new OrganizationNotFoundException("Organization not found");
+            throw new EntityNotFoundException("Organization not found");
         }
         int organizationId = organization.get().getId();
         rsuCredential.setOwnerOrganizationId(organizationId);
@@ -35,12 +36,12 @@ public class RsuCredentialManagementService {
         return rsuCredentialRepository.save(rsuCredential);
     }
 
-    public RsuCredential getByNickname(String nickname) throws RsuCredentialNotFoundException {
-        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found")); // TODO: use EntityNotFoundException from Jakarta
+    public RsuCredential getByNickname(String nickname) throws EntityNotFoundException {
+        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found")); // TODO: use EntityNotFoundException from Jakarta
     }
 
-    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialNotFoundException, OrganizationNotFoundException {
-        RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new RsuCredentialNotFoundException("RSU Credential not found"));
+    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
+        RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
         if (rsuCredentialPatch.getUsername() != null) {
             rsuCredential.setUsername(rsuCredentialPatch.getUsername());
         }
@@ -50,7 +51,7 @@ public class RsuCredentialManagementService {
         if (rsuCredentialPatch.getOrganization() != null) {
             Optional<Organization> newOrganization = organizationRepository.findByName(rsuCredentialPatch.getOrganization());
             if (newOrganization.isEmpty()) {
-                throw new OrganizationNotFoundException("Organization not found");
+                throw new EntityNotFoundException("Organization not found");
             }
             rsuCredential.setOwnerOrganizationId(newOrganization.get().getId());
         }
@@ -66,20 +67,8 @@ public class RsuCredentialManagementService {
         return true;
     }
 
-    public static class RsuCredentialNotFoundException extends Exception {
-        public RsuCredentialNotFoundException(String message) {
-            super(message);
-        }
-    }
-
     public static class RsuCredentialAlreadyExistsException extends Exception {
         public RsuCredentialAlreadyExistsException(String message) {
-            super(message);
-        }
-    }
-
-    public static class OrganizationNotFoundException extends Exception {
-        public OrganizationNotFoundException(String message) {
             super(message);
         }
     }

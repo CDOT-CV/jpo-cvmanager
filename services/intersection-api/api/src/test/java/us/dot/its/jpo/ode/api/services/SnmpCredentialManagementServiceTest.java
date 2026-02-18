@@ -1,11 +1,11 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.snmp4j.Snmp;
 import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
@@ -33,7 +33,7 @@ class SnmpCredentialManagementServiceTest {
     SnmpCredentialManagementService snmpCredentialManagementService;
 
     @Test
-    void testCreate_Success() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, SnmpCredentialManagementService.OrganizationNotFoundException {
+    void testCreate_Success() throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -90,11 +90,11 @@ class SnmpCredentialManagementServiceTest {
         when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(SnmpCredentialManagementService.OrganizationNotFoundException.class, () -> snmpCredentialManagementService.create(request));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.create(request));
     }
 
     @Test
-    void testGetByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testGetByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         SnmpCredential expectedSnmpCredential = new SnmpCredential();
@@ -116,11 +116,11 @@ class SnmpCredentialManagementServiceTest {
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(SnmpCredentialManagementService.SnmpCredentialNotFoundException.class, () -> snmpCredentialManagementService.getByNickname(nickname));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.getByNickname(nickname));
     }
 
     @Test
-    void testUpdate_ChangePassword_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testUpdate_ChangePassword_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -160,7 +160,7 @@ class SnmpCredentialManagementServiceTest {
     }
 
     @Test
-    void testUpdate_ChangeOrganization_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testUpdate_ChangeOrganization_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -198,7 +198,7 @@ class SnmpCredentialManagementServiceTest {
     }
 
     @Test
-    void testUpdate_ChangeUsername_Success() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testUpdate_ChangeUsername_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -238,7 +238,7 @@ class SnmpCredentialManagementServiceTest {
     }
 
     @Test
-    void testUpdate_ChangeOrganization_Failure_OrganizationNotFound() throws SnmpCredentialManagementService.OrganizationNotFoundException, SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testUpdate_ChangeOrganization_Failure_OrganizationNotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
@@ -259,11 +259,11 @@ class SnmpCredentialManagementServiceTest {
         when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(SnmpCredentialManagementService.OrganizationNotFoundException.class, () -> snmpCredentialManagementService.update(patch));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.update(patch));
     }
 
     @Test
-    void testDeleteByNickname_Success() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testDeleteByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
 
@@ -279,7 +279,7 @@ class SnmpCredentialManagementServiceTest {
     }
 
     @Test
-    void testDeleteByNickname_Failure_CredentialNotFound() throws SnmpCredentialManagementService.SnmpCredentialNotFoundException {
+    void testDeleteByNickname_Failure_CredentialNotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());

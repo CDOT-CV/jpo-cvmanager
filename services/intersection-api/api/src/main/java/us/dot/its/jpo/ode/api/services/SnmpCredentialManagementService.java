@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
@@ -16,7 +17,7 @@ public class SnmpCredentialManagementService {
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final OrganizationRepository organizationRepository;
 
-    public SnmpCredential create(SnmpCredentialController.SnmpCredentialCreateRequest request) throws SnmpCredentialAlreadyExistsException, OrganizationNotFoundException {
+    public SnmpCredential create(SnmpCredentialController.SnmpCredentialCreateRequest request) throws SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         if (snmpCredentialRepository.existsByNickname(request.getNickname())) {
             throw new SnmpCredentialAlreadyExistsException("A credential with nickname " + request.getNickname() + " already exists.");
         }
@@ -27,7 +28,7 @@ public class SnmpCredentialManagementService {
 
         Optional<Organization> organization = organizationRepository.findByName(request.getOrganization()); // TODO: use orElseThrow here
         if (organization.isEmpty()) {
-            throw new OrganizationNotFoundException("Organization " + request.getOrganization() + " not found.");
+            throw new EntityNotFoundException("Organization " + request.getOrganization() + " not found.");
         }
         int organizationId = organization.get().getId();
         snmpCredential.setOwnerOrganizationId(organizationId);
@@ -35,12 +36,12 @@ public class SnmpCredentialManagementService {
         return snmpCredentialRepository.save(snmpCredential);
     }
 
-    public SnmpCredential getByNickname(String nickname) throws SnmpCredentialNotFoundException {
-        return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new SnmpCredentialNotFoundException("No credential found with nickname " + nickname));
+    public SnmpCredential getByNickname(String nickname) throws EntityNotFoundException {
+        return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + nickname));
     }
 
-    public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws SnmpCredentialNotFoundException, OrganizationNotFoundException {
-        SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(() -> new SnmpCredentialNotFoundException("No credential found with nickname " + patch.getNickname()));
+    public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws EntityNotFoundException {
+        SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + patch.getNickname()));
         if (patch.getUsername() != null) {
             credential.setUsername(patch.getUsername());
         }
@@ -50,14 +51,14 @@ public class SnmpCredentialManagementService {
         if (patch.getOrganization() != null) {
             Optional<Organization> organization = organizationRepository.findByName(patch.getOrganization());
             if (organization.isEmpty()) {
-                throw new OrganizationNotFoundException("Organization " + patch.getOrganization() + " not found.");
+                throw new EntityNotFoundException("Organization " + patch.getOrganization() + " not found.");
             }
             credential.setOwnerOrganizationId(organization.get().getId());
         }
         return snmpCredentialRepository.save(credential);
     }
 
-    public boolean deleteByNickname(String nickname) throws SnmpCredentialNotFoundException {
+    public boolean deleteByNickname(String nickname) {
         Optional<SnmpCredential> credential = snmpCredentialRepository.findByNickname(nickname);
         if (credential.isEmpty()) {
             return false;
@@ -66,20 +67,8 @@ public class SnmpCredentialManagementService {
         return true;
     }
 
-    public static class SnmpCredentialNotFoundException extends Exception {
-        public SnmpCredentialNotFoundException(String message) {
-            super(message);
-        }
-    }
-
     public static class SnmpCredentialAlreadyExistsException extends Exception {
         public SnmpCredentialAlreadyExistsException(String message) {
-            super(message);
-        }
-    }
-
-    public static class OrganizationNotFoundException extends Exception {
-        public OrganizationNotFoundException(String message) {
             super(message);
         }
     }

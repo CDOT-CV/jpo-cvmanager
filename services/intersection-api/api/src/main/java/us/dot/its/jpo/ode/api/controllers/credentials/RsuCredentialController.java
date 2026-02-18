@@ -2,10 +2,9 @@ package us.dot.its.jpo.ode.api.controllers.credentials;
 
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.Data;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapper;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
-import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
 import java.util.Optional;
@@ -36,17 +34,17 @@ public class RsuCredentialController {
     // TODO: update endpoints to use `@PreAuthorize` annotation
 
     @PostMapping("/create")
-    public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+    public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest));
     }
 
     @GetMapping("/get-by-nickname")
-    public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws RsuCredentialManagementService.RsuCredentialNotFoundException {
+    public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
     }
 
     @PostMapping("/update")
-    public RsuCredentialDTO update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws RsuCredentialManagementService.OrganizationNotFoundException, RsuCredentialManagementService.RsuCredentialNotFoundException {
+    public RsuCredentialDTO update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.update(rsuCredentialPatch));
     }
 
