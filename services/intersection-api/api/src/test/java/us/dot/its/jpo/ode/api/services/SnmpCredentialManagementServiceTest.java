@@ -271,10 +271,9 @@ class SnmpCredentialManagementServiceTest {
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 
         // Act
-        boolean result = snmpCredentialManagementService.deleteByNickname(nickname);
+        snmpCredentialManagementService.deleteByNickname(nickname);
 
         // Assert
-        assertTrue(result);
         verify(mockSnmpCredentialRepository).delete(existingCredential);
     }
 
@@ -284,12 +283,8 @@ class SnmpCredentialManagementServiceTest {
         String nickname = "nickname";
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
-        // Act
-        boolean result = snmpCredentialManagementService.deleteByNickname(nickname);
-
-        // Assert
-        assertFalse(result);
-        verify(mockSnmpCredentialRepository).findByNickname(nickname);
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.deleteByNickname(nickname));
     }
 
 }

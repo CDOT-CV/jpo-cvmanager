@@ -12,6 +12,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -194,19 +195,16 @@ class RsuCredentialControllerTest {
         // Arrange
         String nickname = "testNickname";
 
-        when(mockRsuCredentialManagementService.deleteByNickname(nickname)).thenReturn(true);
+        doNothing().when(mockRsuCredentialManagementService).deleteByNickname(nickname);
 
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
 
         // Act
-        RsuCredentialController.RsuCredentialDeleteResponse response = rsuCredentialController.deleteByNickname(deleteRequest);
+        rsuCredentialController.deleteByNickname(deleteRequest);
 
         // Assert
-        assert(response != null);
-        assert(response.getSuccess());
-        assert(response.getError().isEmpty());
         verify(mockRsuCredentialManagementService).deleteByNickname(nickname);
     }
 
@@ -214,17 +212,11 @@ class RsuCredentialControllerTest {
     void testDelete_Failure() {
         // Arrange
         String nickname = "nickname";
-        when(mockRsuCredentialManagementService.deleteByNickname(nickname)).thenReturn(false);
+        doNothing().when(mockRsuCredentialManagementService).deleteByNickname(nickname);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
-        // Act
-        RsuCredentialController.RsuCredentialDeleteResponse response = rsuCredentialController.deleteByNickname(new RsuCredentialController.RsuCredentialDeleteRequest(nickname));
-
-        // Assert
-        assert(response != null);
-        assert(!response.getSuccess());
-        assert(response.getError().isPresent());
-        assert(response.getError().get().equals("RSU Credential not found"));
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class , () -> rsuCredentialController.deleteByNickname(new RsuCredentialController.RsuCredentialDeleteRequest(nickname)));
     }
 
 }

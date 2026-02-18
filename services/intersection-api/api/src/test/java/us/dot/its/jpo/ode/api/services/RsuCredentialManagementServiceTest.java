@@ -290,10 +290,9 @@ class RsuCredentialManagementServiceTest {
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 
         // Act
-        boolean result = rsuCredentialManagementService.deleteByNickname(nickname);
+        rsuCredentialManagementService.deleteByNickname(nickname);
 
         // Assert
-        assertTrue(result);
         verify(mockRsuCredentialRepository).delete(existingCredential);
     }
 
@@ -303,11 +302,8 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
-        // Act
-        boolean result = rsuCredentialManagementService.deleteByNickname(nickname);
-
-        // Assert
-        assertFalse(result);
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.deleteByNickname(nickname));
     }
 
 }

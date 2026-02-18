@@ -12,6 +12,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -140,15 +141,13 @@ class SnmpCredentialControllerTest {
 
         SnmpCredentialController.SnmpCredentialDeleteRequest request = new SnmpCredentialController.SnmpCredentialDeleteRequest(nickname);
 
-        when(mockSnmpCredentialManagementService.deleteByNickname(nickname)).thenReturn(true);
+        doNothing().when(mockSnmpCredentialManagementService).deleteByNickname(nickname);
         snmpCredentialController = new SnmpCredentialController(mockSnmpCredentialManagementService, snmpCredentialMapper);
 
         // Act
-        SnmpCredentialController.SnmpCredentialDeleteResponse response = snmpCredentialController.deleteByNickname(request);
+        snmpCredentialController.deleteByNickname(request);
 
         // Assert
-        assertNotNull(response);
-        assertTrue(response.getSuccess());
         verify(mockSnmpCredentialManagementService).deleteByNickname(nickname);
     }
 

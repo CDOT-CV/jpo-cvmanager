@@ -58,13 +58,12 @@ public class RsuCredentialManagementService {
         return rsuCredentialRepository.save(rsuCredential);
     }
 
-    public boolean deleteByNickname(String nickname) {
+    public void deleteByNickname(String nickname) throws EntityNotFoundException {
         Optional<RsuCredential> rsuCredential = rsuCredentialRepository.findByNickname(nickname);
         if (rsuCredential.isEmpty()) {
-            return false;
+            throw new EntityNotFoundException("RSU Credential not found");
         }
         rsuCredentialRepository.delete(rsuCredential.get());
-        return true;
     }
 
     public static class RsuCredentialAlreadyExistsException extends Exception {

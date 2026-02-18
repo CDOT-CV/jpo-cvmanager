@@ -58,13 +58,12 @@ public class SnmpCredentialManagementService {
         return snmpCredentialRepository.save(credential);
     }
 
-    public boolean deleteByNickname(String nickname) {
+    public void deleteByNickname(String nickname) throws EntityNotFoundException {
         Optional<SnmpCredential> credential = snmpCredentialRepository.findByNickname(nickname);
         if (credential.isEmpty()) {
-            return false;
+            throw new EntityNotFoundException("No credential found with nickname " + nickname);
         }
         snmpCredentialRepository.delete(credential.get());
-        return true;
     }
 
     public static class SnmpCredentialAlreadyExistsException extends Exception {

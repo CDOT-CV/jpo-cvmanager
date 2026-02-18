@@ -52,13 +52,8 @@ public class SnmpCredentialController {
     }
 
     @PostMapping("/delete")
-    public SnmpCredentialDeleteResponse deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
-        try {
-            snmpCredentialManagementService.deleteByNickname(request.getNickname());
-        } catch(EntityNotFoundException e) {
-            return new SnmpCredentialDeleteResponse(false, Optional.of("SNMP Credential not found"));
-        }
-        return new SnmpCredentialDeleteResponse(true, Optional.empty());
+    public void deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
+        snmpCredentialManagementService.deleteByNickname(request.getNickname());
     }
 
     // requests
@@ -86,13 +81,5 @@ public class SnmpCredentialController {
     @Data
     public static class SnmpCredentialDeleteRequest {
         private final String nickname;
-    }
-
-
-    // responses
-    @Data
-    public static class SnmpCredentialDeleteResponse {
-        private final Boolean success;
-        private final Optional<String> error;
     }
 }
