@@ -77,7 +77,11 @@ def test_entry_patch(mock_modify_org, app):
         status = admin_org.AdminOrg()
         (body, code, headers) = status.patch()
 
-        mock_modify_org.assert_called_once()
+        mock_modify_org.assert_called_once_with(
+            admin_org_data.request_json_good["orig_name"],
+            admin_org_data.request_json_good,
+            is_bulk_update=False,
+        )
         assert code == 200
         assert headers["Access-Control-Allow-Origin"] == "test.com"
         assert body == {}
@@ -227,7 +231,7 @@ def test_modify_organization_success(mock_pgquery, mock_check_safe_input, app):
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = user_valid
         actual_msg = admin_org.modify_org_authorized(
-            "Test Org", admin_org_data.request_json_good
+            "Test Org", admin_org_data.request_json_good, is_bulk_update=False
         )
 
     calls = [
@@ -380,15 +384,17 @@ def test_delete_org_failure_orphan_user(
 
 @patch("api.src.admin_org.pgquery.query_db")
 @patch("api.src.admin_org.check_orphan_rsus")
-def test_delete_org_failure_orphan_intersection(mock_orphan_rsus, mock_query_db):
+def test_delete_org_failure_orphan_intersection(mock_orphan_rsus, mock_query_db, app):
     mock_orphan_rsus.return_value = False
     mock_query_db.return_value = [
         [{"user_id": 1, "count": 2}],
         [{"user_id": 2, "count": 1}],
     ]
     expected_message = "409 Conflict: Cannot delete organization that has one or more Intersections only associated with this organization"
-    with pytest.raises(Conflict) as exc_info:
-        admin_org.delete_org_authorized("Test Org")
+    with app.test_request_context():
+        request.environ[ENVIRON_USER_KEY] = user_valid
+        with pytest.raises(Conflict) as exc_info:
+            admin_org.delete_org_authorized("Test Org")
 
     assert str(exc_info.value) == expected_message
 
@@ -413,33 +419,31 @@ def test_modify_org_bulk_tim_deposit_success(app, permission_result):
 
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = permission_result
-        with patch(
-            "flask.wrappers.Request.endpoint", new_callable=PropertyMock
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "adminorgtimdeposit"
-            with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
-                "api.src.admin_org.check_safe_input", return_value=True
-            ):
+        with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
+            "api.src.admin_org.check_safe_input", return_value=True
+        ):
 
-                result = admin_org.modify_org_authorized("Test Org", org_spec)
+            result = admin_org.modify_org_authorized(
+                "Test Org", org_spec, is_bulk_update=True
+            )
 
-                assert result == {"message": "Organization successfully modified"}
+            assert result == {"message": "Organization successfully modified"}
 
-                # Should have 2 write_db calls: 1 for org update, 1 for bulk RSU options update
-                assert mock_write_db.call_count == 2
+            # Should have 2 write_db calls: 1 for org update, 1 for bulk RSU options update
+            assert mock_write_db.call_count == 2
 
-                # Check bulk update call
-                bulk_query = (
-                    "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
-                    "SELECT ro.rsu_id, :tim_deposit "
-                    "FROM public.rsu_organization ro "
-                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                    "WHERE org.name = :name "
-                    "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
-                )
-                bulk_params = {"name": "Test Org", "tim_deposit": True}
+            # Check bulk update call
+            bulk_query = (
+                "INSERT INTO public.rsu_options (rsu_id, tim_deposit) "
+                "SELECT ro.rsu_id, :tim_deposit "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit"
+            )
+            bulk_params = {"name": "Test Org", "tim_deposit": True}
 
-                mock_write_db.assert_any_call(bulk_query, params=bulk_params)
+            mock_write_db.assert_any_call(bulk_query, params=bulk_params)
 
 
 def test_modify_org_bulk_snmp_monitoring_success(app, permission_result):
@@ -459,30 +463,28 @@ def test_modify_org_bulk_snmp_monitoring_success(app, permission_result):
 
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = permission_result
-        with patch(
-            "flask.wrappers.Request.endpoint", new_callable=PropertyMock
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "adminorgsnmpmonitoring"
-            with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
-                "api.src.admin_org.check_safe_input", return_value=True
-            ):
+        with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
+            "api.src.admin_org.check_safe_input", return_value=True
+        ):
 
-                result = admin_org.modify_org_authorized("Test Org", org_spec)
+            result = admin_org.modify_org_authorized(
+                "Test Org", org_spec, is_bulk_update=True
+            )
 
-                assert result == {"message": "Organization successfully modified"}
+            assert result == {"message": "Organization successfully modified"}
 
-                # Check bulk update call
-                bulk_query = (
-                    "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
-                    "SELECT ro.rsu_id, :snmp_monitoring "
-                    "FROM public.rsu_organization ro "
-                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                    "WHERE org.name = :name "
-                    "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
-                )
-                bulk_params = {"name": "Test Org", "snmp_monitoring": True}
+            # Check bulk update call
+            bulk_query = (
+                "INSERT INTO public.rsu_options (rsu_id, snmp_monitoring) "
+                "SELECT ro.rsu_id, :snmp_monitoring "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                "ON CONFLICT (rsu_id) DO UPDATE SET snmp_monitoring = EXCLUDED.snmp_monitoring"
+            )
+            bulk_params = {"name": "Test Org", "snmp_monitoring": True}
 
-                mock_write_db.assert_any_call(bulk_query, params=bulk_params)
+            mock_write_db.assert_any_call(bulk_query, params=bulk_params)
 
 
 def test_modify_org_bulk_both_success(app, permission_result):
@@ -503,35 +505,32 @@ def test_modify_org_bulk_both_success(app, permission_result):
 
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = permission_result
-        # Endpoint can be either for both to be updated
-        with patch(
-            "flask.wrappers.Request.endpoint", new_callable=PropertyMock
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "adminorgtimdeposit"
-            with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
-                "api.src.admin_org.check_safe_input", return_value=True
-            ):
+        with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
+            "api.src.admin_org.check_safe_input", return_value=True
+        ):
 
-                result = admin_org.modify_org_authorized("Test Org", org_spec)
+            result = admin_org.modify_org_authorized(
+                "Test Org", org_spec, is_bulk_update=True
+            )
 
-                assert result == {"message": "Organization successfully modified"}
+            assert result == {"message": "Organization successfully modified"}
 
-                # Check bulk update call
-                bulk_query = (
-                    "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
-                    "SELECT ro.rsu_id, :tim_deposit, :snmp_monitoring "
-                    "FROM public.rsu_organization ro "
-                    "JOIN public.organizations org ON ro.organization_id = org.organization_id "
-                    "WHERE org.name = :name "
-                    "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit, snmp_monitoring = EXCLUDED.snmp_monitoring"
-                )
-                bulk_params = {
-                    "name": "Test Org",
-                    "tim_deposit": True,
-                    "snmp_monitoring": False,
-                }
+            # Check bulk update call
+            bulk_query = (
+                "INSERT INTO public.rsu_options (rsu_id, tim_deposit, snmp_monitoring) "
+                "SELECT ro.rsu_id, :tim_deposit, :snmp_monitoring "
+                "FROM public.rsu_organization ro "
+                "JOIN public.organizations org ON ro.organization_id = org.organization_id "
+                "WHERE org.name = :name "
+                "ON CONFLICT (rsu_id) DO UPDATE SET tim_deposit = EXCLUDED.tim_deposit, snmp_monitoring = EXCLUDED.snmp_monitoring"
+            )
+            bulk_params = {
+                "name": "Test Org",
+                "tim_deposit": True,
+                "snmp_monitoring": False,
+            }
 
-                mock_write_db.assert_any_call(bulk_query, params=bulk_params)
+            mock_write_db.assert_any_call(bulk_query, params=bulk_params)
 
 
 def test_modify_org_no_bulk_endpoint(app, permission_result):
@@ -551,22 +550,20 @@ def test_modify_org_no_bulk_endpoint(app, permission_result):
 
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = permission_result
-        with patch(
-            "flask.wrappers.Request.endpoint", new_callable=PropertyMock
-        ) as mock_endpoint:
-            mock_endpoint.return_value = "adminorg"
-            with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
-                "api.src.admin_org.check_safe_input", return_value=True
-            ):
+        with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
+            "api.src.admin_org.check_safe_input", return_value=True
+        ):
 
-                admin_org.modify_org_authorized("Test Org", org_spec)
+            admin_org.modify_org_authorized(
+                "Test Org", org_spec, is_bulk_update=False
+            )
 
-                # Should only have 1 call (for org update)
-                assert mock_write_db.call_count == 1
-                assert (
-                    "INSERT INTO public.rsu_options"
-                    not in mock_write_db.call_args_list[0][0][0]
-                )
+            # Should only have 1 call (for org update)
+            assert mock_write_db.call_count == 1
+            assert (
+                "INSERT INTO public.rsu_options"
+                not in mock_write_db.call_args_list[0][0][0]
+            )
 
 
 def test_admin_org_tim_deposit_patch(app, permission_result):
@@ -591,7 +588,7 @@ def test_admin_org_tim_deposit_patch(app, permission_result):
             (body, code, headers) = resource.patch()
             assert code == 200
             assert body == {"message": "success"}
-            mock_modify.assert_called_once_with("Test Org", org_spec)
+            mock_modify.assert_called_once_with("Test Org", org_spec, is_bulk_update=True)
 
 
 def test_admin_org_snmp_monitoring_patch(app, permission_result):
@@ -616,4 +613,4 @@ def test_admin_org_snmp_monitoring_patch(app, permission_result):
             (body, code, headers) = resource.patch()
             assert code == 200
             assert body == {"message": "success"}
-            mock_modify.assert_called_once_with("Test Org", org_spec)
+            mock_modify.assert_called_once_with("Test Org", org_spec, is_bulk_update=True)

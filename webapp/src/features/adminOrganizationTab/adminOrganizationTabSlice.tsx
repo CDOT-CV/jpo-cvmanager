@@ -57,7 +57,6 @@ export type adminOrgPatch = {
   intersections_to_remove?: string[]
   tim_deposit?: boolean
   snmp_monitoring?: boolean
-  endpoint?: string
 }
 
 const initialState = {
@@ -133,12 +132,13 @@ export const deleteOrg = createAsyncThunk(
 
 export const editOrg = createAsyncThunk(
   'adminOrganizationTab/editOrg',
-  async (json: adminOrgPatch, { getState }) => {
+  async (json: adminOrgPatch & { url?: string }, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
+    const { url, ...jsonWithoutUrl } = json
     const jsonComplete: adminOrgPatch = {
-      orig_name: json.orig_name ?? json.name,
+      orig_name: jsonWithoutUrl.orig_name ?? jsonWithoutUrl.name,
       users_to_add: [],
       users_to_modify: [],
       users_to_remove: [],
@@ -146,11 +146,11 @@ export const editOrg = createAsyncThunk(
       rsus_to_remove: [],
       intersections_to_add: [],
       intersections_to_remove: [],
-      ...json,
+      ...jsonWithoutUrl,
     }
 
     const data = await apiHelper._patchData({
-      url: json.endpoint ?? EnvironmentVars.adminOrg,
+      url: url ?? EnvironmentVars.adminOrg,
       token,
       body: JSON.stringify(jsonComplete),
     })
@@ -175,10 +175,9 @@ export const updateOrgTimDeposit = createAsyncThunk(
       name: orgName,
       email: email,
       tim_deposit: timDeposit,
-      endpoint: EnvironmentVars.adminOrgTimDeposit,
     }
 
-    const res = await dispatch(editOrg(patchJson))
+    const res = await dispatch(editOrg({ ...patchJson, url: EnvironmentVars.adminOrgTimDeposit }))
     if ((res.payload as any).success) {
       dispatch(getOrgData({ orgName }))
       return { success: true, message: 'Successfully updated TIM deposit for all RSUs in ' + orgName }
@@ -198,10 +197,9 @@ export const updateOrgSnmpMonitoring = createAsyncThunk(
       name: orgName,
       email: email,
       snmp_monitoring: snmpMonitoring,
-      endpoint: EnvironmentVars.adminOrgSnmpMonitoring,
     }
 
-    const res = await dispatch(editOrg(patchJson))
+    const res = await dispatch(editOrg({ ...patchJson, url: EnvironmentVars.adminOrgSnmpMonitoring }))
     if ((res.payload as any).success) {
       dispatch(getOrgData({ orgName }))
       return { success: true, message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName }

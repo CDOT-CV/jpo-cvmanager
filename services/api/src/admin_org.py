@@ -216,7 +216,7 @@ def check_safe_input(org_spec):
     required_role=ORG_ROLE_LITERAL.ADMIN,
     resource_type=RESOURCE_TYPE.ORGANIZATION,
 )
-def modify_org_authorized(orig_name: str, org_spec: dict):
+def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool = False):
     # Check for special characters for potential SQL injection
     if not check_safe_input(org_spec):
         raise BadRequest(
@@ -237,17 +237,6 @@ def modify_org_authorized(orig_name: str, org_spec: dict):
             "orig_name": orig_name,
         }
         pgquery.write_db(query, params=params)
-
-        # Check if this is a bulk update for tim_deposit or snmp_monitoring
-        try:
-            endpoint = request.endpoint
-        except RuntimeError:
-            endpoint = None
-
-        is_bulk_update = endpoint in [
-            "adminorgtimdeposit",
-            "adminorgsnmpmonitoring",
-        ]
 
         # Handle bulk updates for tim_deposit and snmp_monitoring
         if is_bulk_update and ("tim_deposit" in org_spec or "snmp_monitoring" in org_spec):
@@ -558,7 +547,6 @@ class AdminOrgPatchSchema(Schema):
     intersections_to_remove = fields.List(fields.Integer, required=True)
     tim_deposit = fields.Bool(required=False)
     snmp_monitoring = fields.Bool(required=False)
-    endpoint = fields.Str(required=False)
 
 
 class AdminOrg(Resource):
@@ -602,7 +590,9 @@ class AdminOrg(Resource):
             logging.error(str(errors))
             abort(400, str(errors))
         return (
-            modify_org_authorized(request.json["orig_name"], request.json),
+            modify_org_authorized(
+                request.json["orig_name"], request.json, is_bulk_update=False
+            ),
             200,
             self.headers,
         )
@@ -649,7 +639,9 @@ class AdminOrgTimDeposit(Resource):
             logging.error(str(errors))
             abort(400, str(errors))
         return (
-            modify_org_authorized(request.json["orig_name"], request.json),
+            modify_org_authorized(
+                request.json["orig_name"], request.json, is_bulk_update=True
+            ),
             200,
             self.headers,
         )
@@ -683,7 +675,9 @@ class AdminOrgSnmpMonitoring(Resource):
             logging.error(str(errors))
             abort(400, str(errors))
         return (
-            modify_org_authorized(request.json["orig_name"], request.json),
+            modify_org_authorized(
+                request.json["orig_name"], request.json, is_bulk_update=True
+            ),
             200,
             self.headers,
         )
