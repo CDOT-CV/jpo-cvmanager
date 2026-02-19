@@ -4,27 +4,23 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.Data;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
-import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
-
-import java.util.Optional;
 
 @Slf4j
 @RestController
-@ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "enable.api", havingValue = "true")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
@@ -36,31 +32,35 @@ public class SnmpCredentialController {
     private final SnmpCredentialMapper snmpCredentialMapper;
 
     @PostMapping("/create")
-    // TODO: Update @PreAuthorize to check for organization-level permissions and ensure the Organization header is used and validated
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public SnmpCredentialDTO createSnmpCredential(SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
-        return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public SnmpCredentialDTO createSnmpCredential(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestBody SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(organization, request));
     }
 
     @GetMapping("/get-by-nickname")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public SnmpCredentialDTO getByNickname(SnmpCredentialGetRequest request) throws EntityNotFoundException {
-        return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(request.getNickname()));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public SnmpCredentialDTO getByNickname(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            SnmpCredentialGetRequest request) throws EntityNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.getByNickname(organization, request.getNickname()));
     }
 
     @PostMapping("/update")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public SnmpCredentialDTO update(@RequestBody SnmpCredentialPatch snmpCredentialPatch) throws EntityNotFoundException {
-        return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(snmpCredentialPatch));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public SnmpCredentialDTO update(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestBody SnmpCredentialPatch snmpCredentialPatch) throws EntityNotFoundException {
+        return snmpCredentialMapper.toDto(snmpCredentialManagementService.update(organization, snmpCredentialPatch));
     }
 
     @PostMapping("/delete")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public void deleteByNickname(@RequestBody SnmpCredentialDeleteRequest request) {
-        snmpCredentialManagementService.deleteByNickname(request.getNickname());
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public void deleteByNickname(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestBody SnmpCredentialDeleteRequest request) {
+        snmpCredentialManagementService.deleteByNickname(organization, request.getNickname());
     }
 
     // requests

@@ -88,8 +88,15 @@ public class PermissionService {
         return user.getSuperUser();
     }
 
-    // Allow Connection if the user is a part of at least one organization with a
-    // matching roll.
+    /**
+     * Checks if the currently authenticated user has the specified role in at least
+     * one organization. The method verifies the user's roles within the context of
+     * organizations they belong to and determines if the role criteria is satisfied.
+     *
+     * @param role the role to be checked against the user's permissions within organizations
+     * @return true if the user possesses the specified role in at least one organization,
+     *         or is a superuser; otherwise, false
+     */
     public boolean hasRole(String role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
@@ -111,7 +118,28 @@ public class PermissionService {
         return !getQualifiedOrgList(username, role).isEmpty();
     }
 
-    // TODO: Add hasOrganizationPermission(String organizationName, String role) to explicitly check if the current user has the required role within the specific organization
+    /**
+     * Determines if the authenticated user has a specific role in the given organization.
+     *
+     * @param organization the name of the organization to check the user's role in
+     * @param role the role to be validated within the specified organization
+     * @return true if the user has the specified role or a role above it in the organization,
+     *         or if the user is a superuser; false otherwise
+     */
+    public boolean hasRoleInOrg(String organization, String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        if (isSuperUser()) {
+            return true;
+        }
+
+        String username = getUsername(auth);
+        Optional<String> userRole = roleRepository.findUserRoleInOrg(username, organization);
+        return userRole.map(roleValue -> checkRoleAbove(roleValue, role)).orElse(false);
+    }
 
     // Allow Connection if the users organization controls the specified
     // intersection

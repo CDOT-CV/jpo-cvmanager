@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
@@ -52,5 +53,19 @@ class GlobalExceptionHandlerTest {
         assertNotNull(problemDetail);
         assertEquals("SNMP Credential already exists", problemDetail.getDetail());
         assertEquals(HttpStatus.CONFLICT.value(), problemDetail.getStatus());
+    }
+
+    @Test
+    void testHandleAccessDeniedException() {
+        // Arrange
+        AccessDeniedException exception = new AccessDeniedException("Access denied");
+
+        // Act
+        ProblemDetail problemDetail = handler.handleAccessDeniedException(exception);
+
+        // Assert
+        assertNotNull(problemDetail);
+        assertEquals("Access denied", problemDetail.getDetail());
+        assertEquals(HttpStatus.FORBIDDEN.value(), problemDetail.getStatus());
     }
 }

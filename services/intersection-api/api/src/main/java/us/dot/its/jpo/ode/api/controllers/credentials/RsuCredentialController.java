@@ -11,13 +11,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapper;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
-
-import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -33,31 +32,35 @@ public class RsuCredentialController {
     private final RsuCredentialMapper rsuCredentialMapper;
 
     @PostMapping("/create")
-    // TODO: Update @PreAuthorize to check for organization-level permissions and ensure the Organization header is used and validated
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public RsuCredentialDTO createRsuCredential(RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
-        return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public RsuCredentialDTO createRsuCredential(
+            @RequestHeader(name = "Organization") String organization,
+            @RequestBody RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+        return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(organization, rsuCredentialCreateRequest));
     }
 
     @GetMapping("/get-by-nickname")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public RsuCredentialDTO getByNickname(RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
-        return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public RsuCredentialDTO getByNickname(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
+        return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(organization, rsuCredentialGetRequest.getNickname()));
     }
 
     @PostMapping("/update")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public RsuCredentialDTO update(@RequestBody RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
-        return rsuCredentialMapper.toDto(rsuCredentialManagementService.update(rsuCredentialPatch));
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public RsuCredentialDTO update(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestBody RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
+        return rsuCredentialMapper.toDto(rsuCredentialManagementService.update(organization, rsuCredentialPatch));
     }
 
     @PostMapping("/delete")
-    // TODO: Update @PreAuthorize to check for organization-level permissions for the organization that owns this credential
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-    public void deleteByNickname(@RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
-        rsuCredentialManagementService.deleteByNickname(rsuCredentialDeleteRequest.getNickname());
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'ADMIN')")
+    public void deleteByNickname(
+            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestBody RsuCredentialDeleteRequest rsuCredentialDeleteRequest) {
+        rsuCredentialManagementService.deleteByNickname(organization, rsuCredentialDeleteRequest.getNickname());
     }
 
     // requests
