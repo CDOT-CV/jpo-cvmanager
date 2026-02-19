@@ -96,6 +96,13 @@ public class RsuManagementService {
     public Rsu createRsu(RsuInfoDto rsuInfoDto) {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
+
+        InetAddress ipv4Address = rsu.getIpv4Address();
+        if (ipv4Address != null && rsuRepository.findByIpv4Address(ipv4Address) != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "RSU with IP " + ipv4Address.getHostAddress() + " already exists");
+        }
         rsuRepository.save(rsu);
         return rsu;
     }
