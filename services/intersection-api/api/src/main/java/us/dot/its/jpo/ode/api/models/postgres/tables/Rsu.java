@@ -15,7 +15,7 @@ import org.locationtech.jts.geom.Point;
 @Getter
 @Setter
 @Entity
-@Table(name = "rsus", schema = "public")
+@Table(name = "rsus")
 public class Rsu {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsus_id_gen")

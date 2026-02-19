@@ -9,7 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @Entity
-@Table(name = "rsu_options", schema = "public")
+@Table(name = "rsu_options")
 public class RsuOption {
     @Id
     @Column(name = "rsu_id", nullable = false)
