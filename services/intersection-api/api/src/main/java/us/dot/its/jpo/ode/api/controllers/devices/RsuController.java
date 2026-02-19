@@ -65,7 +65,7 @@ public class RsuController {
     public Page<RsuInfoDto> getAllRsus(
             @RequestHeader(name = "Organization", required = true) String organization,
             @RequestParam(name = "search", required = false) String search,
-                    @PageableDefault(size = 100) Pageable pageable) {
+            @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);
 
         Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, search, mappedPageable);
