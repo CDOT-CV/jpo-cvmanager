@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpEntity;
@@ -17,9 +16,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,7 +69,6 @@ public class ConfigController {
     private final String defaultConfigAllTemplate = "%s/config/defaults";
     private final String intersectionConfigAllTemplate = "%s/config/intersections";
 
-    @Autowired
     public ConfigController(
             DefaultConfigRepository defaultConfigRepository,
             IntersectionConfigRepository intersectionConfigRepository,
@@ -94,7 +92,7 @@ public class ConfigController {
     })
     public @ResponseBody <T> ResponseEntity<DefaultConfig<?>> default_config(@RequestBody DefaultConfig<T> config) {
         try {
-            String resourceURL = String.format(defaultConfigTemplate, props.getCmServerURL(), config.getKey());
+            String resourceURL = defaultConfigTemplate.formatted(props.getCmServerURL(), config.getKey());
 
             // Request does not require authentication, ConflictMonitor API is only
             // accessible internally
@@ -118,8 +116,8 @@ public class ConfigController {
                         "Conflict Monitor API was unable to change setting on conflict monitor.");
             }
         } catch (Exception e) {
-            if (e instanceof ResponseStatusException) {
-                throw (ResponseStatusException) e; // rethrow, don't handle here
+            if (e instanceof ResponseStatusException exception) {
+                throw exception; // rethrow, don't handle here
             }
             log.error("Failed to set default config param", e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -142,7 +140,7 @@ public class ConfigController {
                     "User does not have permission to delete intersection configuration parameters");
         }
         try {
-            String resourceURL = String.format(intersectionConfigTemplate, props.getCmServerURL(),
+            String resourceURL = intersectionConfigTemplate.formatted(props.getCmServerURL(),
                     config.getIntersectionID(), config.getKey());
             @SuppressWarnings("rawtypes")
             ResponseEntity<IntersectionConfig> response = restTemplate.getForEntity(resourceURL,
@@ -173,13 +171,12 @@ public class ConfigController {
                         "Conflict Monitor API was unable to change setting on conflict monitor");
             }
         } catch (Exception e) {
-            if (e instanceof ResponseStatusException) {
-                throw (ResponseStatusException) e; // rethrow, don't handle here
+            if (e instanceof ResponseStatusException exception) {
+                throw exception; // rethrow, don't handle here
             }
             log.error("Failed to set intersection config param", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    String.format(
-                            "Exception updating intersection configuration parameter: %s", e.getMessage()),
+                    "Exception updating intersection configuration parameter: %s".formatted(e.getMessage()),
                     e);
         }
     }
@@ -201,21 +198,20 @@ public class ConfigController {
         Query query = intersectionConfigRepository.getQuery(config.getKey(), config.getIntersectionID());
 
         try {
-            String resourceURL = String.format(intersectionConfigTemplate, props.getCmServerURL(),
+            String resourceURL = intersectionConfigTemplate.formatted(props.getCmServerURL(),
                     config.getIntersectionID(), config.getKey());
             restTemplate.delete(resourceURL);
             intersectionConfigRepository.delete(query);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    String.format(
-                            "Exception deleting intersection configuration parameter: %s", e.getMessage()),
+                    "Exception deleting intersection configuration parameter: %s".formatted(e.getMessage()),
                     e);
         }
     }
 
     @Operation(summary = "Retrieve All Default Config Parameters", description = "Retrieve all default configuration parameters")
-    @RequestMapping(value = "/default/all", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/default/all", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -223,7 +219,7 @@ public class ConfigController {
     })
     public @ResponseBody ResponseEntity<List<DefaultConfig<?>>> default_config_all() {
 
-        String resourceURL = String.format(defaultConfigAllTemplate, props.getCmServerURL());
+        String resourceURL = defaultConfigAllTemplate.formatted(props.getCmServerURL());
         ResponseEntity<DefaultConfigMap> response = restTemplate.getForEntity(resourceURL, DefaultConfigMap.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -232,13 +228,13 @@ public class ConfigController {
             return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(results);
         } else {
             throw new ResponseStatusException(response.getStatusCode(),
-                    String.format("The ConflictMonitor API was unable to retrieve default configuration parameters: ",
+                    "The ConflictMonitor API was unable to retrieve default configuration parameters: ".formatted(
                             response.getBody()));
         }
     }
 
     @Operation(summary = "Retrieve All Overridden Intersection Config Parameters", description = "Retrieve all overridden intersection configuration parameters")
-    @RequestMapping(value = "/intersection/all", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection/all", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -247,7 +243,7 @@ public class ConfigController {
     public @ResponseBody ResponseEntity<List<IntersectionConfig<?>>> intersection_config_all(
             @RequestHeader(name = "Organization", required = false) String organization) {
 
-        String resourceURL = String.format(intersectionConfigAllTemplate, props.getCmServerURL());
+        String resourceURL = intersectionConfigAllTemplate.formatted(props.getCmServerURL());
         ResponseEntity<IntersectionConfigMap> response = restTemplate.getForEntity(resourceURL,
                 IntersectionConfigMap.class);
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -272,14 +268,13 @@ public class ConfigController {
             }
         } else {
             throw new ResponseStatusException(response.getStatusCode(),
-                    String.format(
-                            "The ConflictMonitor API was unable to retrieve overridden configuration parameters: ",
+                    "The ConflictMonitor API was unable to retrieve overridden configuration parameters: ".formatted(
                             response.getBody()));
         }
     }
 
     @Operation(summary = "Retrieve All Unique Intersection Config Parameters", description = "Retrieve all intersection configuration parameters, showing defaults where no override exists, otherwise showing the overridden parameter")
-    @RequestMapping(value = "/intersection/unique", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection/unique", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -289,7 +284,7 @@ public class ConfigController {
             @RequestParam(name = "intersection_id", required = true) int intersectionID) {
 
         // Query Default Configuration
-        String defaultResourceURL = String.format(defaultConfigAllTemplate, props.getCmServerURL());
+        String defaultResourceURL = defaultConfigAllTemplate.formatted(props.getCmServerURL());
         List<DefaultConfig<?>> defaultList = new ArrayList<>();
         ResponseEntity<DefaultConfigMap> defaultConfigResponse = restTemplate.getForEntity(defaultResourceURL,
                 DefaultConfigMap.class);
@@ -300,7 +295,7 @@ public class ConfigController {
 
         // Query Intersection Configuration
         List<IntersectionConfig<?>> intersectionList = new ArrayList<>();
-        String intersectionResourceURL = String.format(intersectionConfigAllTemplate, props.getCmServerURL());
+        String intersectionResourceURL = intersectionConfigAllTemplate.formatted(props.getCmServerURL());
         ResponseEntity<IntersectionConfigMap> intersectionConfigResponse = restTemplate
                 .getForEntity(intersectionResourceURL, IntersectionConfigMap.class);
         if (intersectionConfigResponse.getStatusCode().is2xxSuccessful()) {

@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.accessors.map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,7 +21,6 @@ public class OdeMapDataRepositoryImpl implements OdeMapDataRepository, PageableQ
 	private final String DATE_FIELD = "properties.timeStamp";
 	private final String INTERSECTION_ID_FIELD = "properties.intersectionId";
 
-	@Autowired
 	public OdeMapDataRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

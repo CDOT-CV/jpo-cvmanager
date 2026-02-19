@@ -4,18 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import tools.jackson.core.JacksonException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -25,7 +20,6 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 public class PsmDecoderTests {
@@ -37,7 +31,6 @@ public class PsmDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @Autowired
     public PsmDecoderTests(PsmDecoder psmDecoder) {
         this.psmDecoder = psmDecoder;
 
@@ -45,11 +38,11 @@ public class PsmDecoderTests {
 
         try {
             odePsmDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferencePsmXER.xml")));
+                    Files.readAllBytes(Path.of("src/test/resources/xml/Ode.ReferencePsmXER.xml")));
 
             odePsmDecodedJsonReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/psm/Ode.ReferencePsmJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/psm/Ode.ReferencePsmJson.json")));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -71,7 +64,7 @@ public class PsmDecoderTests {
                     .setSerialId(psm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
             assertThatJson(odePsmDecodedJsonReference).isEqualTo(psm.toJson());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }

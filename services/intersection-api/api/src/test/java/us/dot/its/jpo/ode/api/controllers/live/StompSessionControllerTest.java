@@ -5,8 +5,9 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.web.socket.messaging.AbstractSubProtocolEvent;
@@ -17,6 +18,7 @@ import us.dot.its.jpo.ode.api.kafka.KafkaListenerControlService;
 import java.util.HashMap;
 import java.util.Map;
 
+@ExtendWith(MockitoExtension.class)
 class StompSessionControllerTest {
 
     @Mock
@@ -26,7 +28,6 @@ class StompSessionControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         controller = new StompSessionController(listenerControlService);
     }
 

@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DatabindException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.dataformat.xml.XmlMapper;
 
 import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.asn.j2735.r2024.MapData.IntersectionGeometry;
@@ -25,7 +25,6 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata.Source;
 import us.dot.its.jpo.ode.model.OdeMessageFramePayload;
 import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata;
 import us.dot.its.jpo.ode.util.DateTimeUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.asn.j2735.r2024.MessageFrame.MessageFrame;
 import us.dot.its.jpo.geojsonconverter.converter.map.MapProcessedJsonConverter;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.connectinglanes.ConnectingLanesFeatureCollection;
@@ -56,7 +55,6 @@ public class MapDecoder implements Decoder {
      * @param codec            MessageFrameCodec for ASN.1 decoding
      * @param mapJsonValidator Validator for MAP JSON messages
      */
-    @Autowired
     MapDecoder(MessageFrameCodec codec, MapJsonValidator mapJsonValidator) {
         this.codec = codec;
         this.mapJsonValidator = mapJsonValidator;
@@ -78,7 +76,7 @@ public class MapDecoder implements Decoder {
             ProcessedMap<LineString> processedMap = convertMessageFrameToProcessedMap(odeMessageFrameData);
             return new MapDecodedMessage(processedMap, message.getAsn1Message(), "");
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return new MapDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         }
 
@@ -102,12 +100,12 @@ public class MapDecoder implements Decoder {
      *
      * @param encodedXml XER-encoded XML string
      * @return OdeMessageFrameData object
-     * @throws JsonMappingException    if XML mapping fails
-     * @throws JsonProcessingException if XML processing fails
+     * @throws DatabindException    if XML mapping fails
+     * @throws JacksonException if XML processing fails
      */
     @Override
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws JsonMappingException, JsonProcessingException {
+            throws DatabindException, JacksonException {
 
         OdeMessageFrameMetadata metadata = new OdeMessageFrameMetadata();
         metadata.setOdeReceivedAt(DateTimeUtils.now());

@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_as
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,7 +28,6 @@ public class LaneDirectionOfTravelAssessmentRepositoryImpl
 	private final String DATE_FIELD = "assessmentGeneratedAt";
 	private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-	@Autowired
 	public LaneDirectionOfTravelAssessmentRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

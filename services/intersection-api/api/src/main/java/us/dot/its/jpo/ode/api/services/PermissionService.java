@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -29,7 +28,6 @@ public class PermissionService {
         ROLE_HIERARCHY.put("USER", 1);
     }
 
-    @Autowired
     public PermissionService(PostgresService postgresService) {
         this.postgresService = postgresService;
     }

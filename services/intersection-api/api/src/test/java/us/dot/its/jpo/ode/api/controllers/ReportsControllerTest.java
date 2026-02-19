@@ -1,15 +1,15 @@
 package us.dot.its.jpo.ode.api.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.accessors.reports.ReportRepository;
 import us.dot.its.jpo.ode.api.models.ReportDocument;
 import us.dot.its.jpo.ode.api.services.ReportService;
 
+@ExtendWith(MockitoExtension.class)
 public class ReportsControllerTest {
 
     @Mock
@@ -32,7 +33,6 @@ public class ReportsControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         controller = new ReportsController(reportService, reportRepo);
     }
 

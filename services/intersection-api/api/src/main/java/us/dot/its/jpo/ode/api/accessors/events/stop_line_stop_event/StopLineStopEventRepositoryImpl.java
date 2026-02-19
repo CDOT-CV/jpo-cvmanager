@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.events.stop_line_stop_event;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,8 +33,6 @@ public class StopLineStopEventRepositoryImpl
     private final String collectionName = "CmStopLineStopEvent";
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
-
-    @Autowired
 
     public StopLineStopEventRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;

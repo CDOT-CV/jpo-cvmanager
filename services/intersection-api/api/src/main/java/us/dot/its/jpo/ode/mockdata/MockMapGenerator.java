@@ -2,17 +2,17 @@ package us.dot.its.jpo.ode.mockdata;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DatabindException;
+
 import us.dot.its.jpo.asn.j2735.r2024.MapData.MapData;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
@@ -25,18 +25,17 @@ public class MockMapGenerator {
 
     public static List<ProcessedMap<LineString>> getProcessedMaps() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<ProcessedMap<LineString>> maps = new ArrayList<>();
 
         try {
             String processedMapString = new String(
-                    Files.readAllBytes(Paths.get("src/main/resources/mockdata/processed_map.json")));
+                    Files.readAllBytes(Path.of("src/main/resources/mockdata/processed_map.json")));
             ProcessedMap<LineString> map = objectMapper.readValue(processedMapString, typeReference);
             maps.add(map);
-        } catch (JsonMappingException e) {
+        } catch (DatabindException e) {
             log.error("JsonMappingException", e);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -47,17 +46,16 @@ public class MockMapGenerator {
 
     public static List<MapData> getJsonMaps() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<MapData> maps = new ArrayList<>();
 
         try {
-            String mapString = new String(Files.readAllBytes(Paths.get("src/main/resources/mockdata/map.json")));
+            String mapString = new String(Files.readAllBytes(Path.of("src/main/resources/mockdata/map.json")));
             MapData map = objectMapper.readValue(mapString, MapData.class);
             maps.add(map);
-        } catch (JsonMappingException e) {
+        } catch (DatabindException e) {
             log.error("JsonMappingException", e);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block

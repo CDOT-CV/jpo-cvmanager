@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.events.signal_state_conflict_event;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -35,7 +34,6 @@ public class SignalStateConflictEventRepositoryImpl
 	private final String DATE_FIELD = "eventGeneratedAt";
 	private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-	@Autowired
 	public SignalStateConflictEventRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

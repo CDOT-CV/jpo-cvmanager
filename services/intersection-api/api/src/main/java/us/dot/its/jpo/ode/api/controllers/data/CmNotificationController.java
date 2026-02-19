@@ -10,15 +10,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
@@ -64,7 +63,6 @@ public class CmNotificationController {
     private final StopLineStopNotificationRepository stopLineStopNotificationRepo;
     private final StopLinePassageNotificationRepository stopLinePassageNotificationRepo;
 
-    @Autowired
     public CmNotificationController(
             IntersectionReferenceAlignmentNotificationRepository intersectionReferenceAlignmentNotificationRepo,
             LaneDirectionOfTravelNotificationRepository laneDirectionOfTravelNotificationRepo,
@@ -91,7 +89,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Connection of Travel Notifications", description = "Returns a list of Connection of Travel Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/connection-of-travel", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/connection-of-travel", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -123,7 +121,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Connection of Travel Notifications", description = "Returns the count of Connection of Travel Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/connection-of-travel/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/connection-of-travel/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -145,7 +143,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Intersection Reference Alignment Notifications", description = "Returns a list of Intersection Reference Alignment Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/intersection-reference-alignment", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection-reference-alignment", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -178,7 +176,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Intersection Reference Alignment Notifications", description = "Returns the count of Intersection Reference Alignment Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/intersection-reference-alignment/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection-reference-alignment/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -200,7 +198,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Lane Direction of Travel Notifications", description = "Returns a list of Lane Direction of Travel Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/lane-direction-of-travel", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/lane-direction-of-travel", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -233,7 +231,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Lane Direction of Travel Notifications", description = "Returns the count of Lane Direction of Travel Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/lane-direction-of-travel/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/lane-direction-of-travel/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -255,7 +253,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Map Broadcast Rate Notifications", description = "Returns a list of Map Broadcast Rate Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/map-broadcast-rate-notification", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/map-broadcast-rate-notification", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -288,7 +286,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Map Broadcast Rate Notifications", description = "Returns the count of Map Broadcast Rate Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/map-broadcast-rate-notification/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/map-broadcast-rate-notification/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -310,7 +308,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Signal Group Alignment Notifications", description = "Returns a list of Signal Group Alignment Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/signal-group-alignment-notification", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/signal-group-alignment-notification", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -343,7 +341,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Signal Group Alignment Notifications", description = "Returns the count of Signal Group Alignment Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/signal-group-alignment-notification/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/signal-group-alignment-notification/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -365,7 +363,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Signal State Conflict Notifications", description = "Returns a list of Signal State Conflict Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/signal-state-conflict-notification", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/signal-state-conflict-notification", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -398,7 +396,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Signal State Conflict Notifications", description = "Returns the count of Signal State Conflict Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/signal-state-conflict-notification/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/signal-state-conflict-notification/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -420,7 +418,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Spat Broadcast Rate Notifications", description = "Returns a list of Spat Broadcast Rate Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/spat-broadcast-rate-notification", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/spat-broadcast-rate-notification", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -453,7 +451,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Spat Broadcast Rate Notifications", description = "Returns the count of Spat Broadcast Rate Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/spat-broadcast-rate-notification/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/spat-broadcast-rate-notification/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -475,7 +473,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Stop Line Stop Notifications", description = "Returns a list of Stop Line Stop Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/stop-line-stop", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/stop-line-stop", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -508,7 +506,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Stop Line Stop Notifications", description = "Returns the count of Stop Line Stop Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/stop-line-stop/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/stop-line-stop/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -530,7 +528,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Stop Line Passage Notifications", description = "Returns a list of Stop Line Passage Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/stop-line-passage", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/stop-line-passage", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -563,7 +561,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Stop Line Passage Notifications", description = "Returns the count of Stop Line Passage Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/stop-line-passage/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/stop-line-passage/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -585,7 +583,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Find Time Change Details Notifications", description = "Returns a list of Time Change Details Notifications, filtered by intersection ID, start time, end time, and latest. The latest parameter will return the most recent message satisfying the query.")
-    @RequestMapping(value = "/time-change-details", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/time-change-details", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -618,7 +616,7 @@ public class CmNotificationController {
     }
 
     @Operation(summary = "Count Time Change Details Notifications", description = "Returns the count of Time Change Details Notifications, filtered by intersection ID, start time, end time")
-    @RequestMapping(value = "/time-change-details/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/time-change-details/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

@@ -49,15 +49,6 @@ conflict:
 
 # MongoDB Configuration
 spring:
-  data:
-    mongodb:
-      database: ${CM_DATABASE_NAME:CV}
-      host: ${DB_HOST_IP:localhost}
-      port: 27017
-      username: ${MONGO_READ_WRITE_USER:ode}
-      password: ${MONGO_READ_WRITE_PASS:replace_me}
-      authenticationDatabase: ${CM_MONGO_AUTH_DB:admin}
-      uri: ${CM_MONGO_URI:null}
   # Postgres Configuration
   datasource:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/postgres
@@ -77,6 +68,13 @@ spring:
           auth: false
           starttls:
             enable: true
+  mongodb.authentication-database: ${CM_MONGO_AUTH_DB:admin}
+  mongodb.database: ${CM_DATABASE_NAME:CV}
+  mongodb.host: ${DB_HOST_IP:localhost}
+  mongodb.password: ${MONGO_READ_WRITE_PASS:replace_me}
+  mongodb.port: 27017
+  mongodb.uri: ${CM_MONGO_URI:null}
+  mongodb.username: ${MONGO_READ_WRITE_USER:ode}
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}

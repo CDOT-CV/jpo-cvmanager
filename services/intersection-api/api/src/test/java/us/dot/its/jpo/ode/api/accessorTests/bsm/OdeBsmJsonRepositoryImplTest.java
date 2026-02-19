@@ -2,19 +2,19 @@ package us.dot.its.jpo.ode.api.accessorTests.bsm;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
@@ -45,16 +45,15 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@ExtendWith(MockitoExtension.class)
 public class OdeBsmJsonRepositoryImplTest {
 
     @MockitoSpyBean
@@ -83,9 +82,7 @@ public class OdeBsmJsonRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate);
-        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()); // Register
+        repository = new OdeBsmJsonRepositoryImpl(mongoTemplate); // Register
                                                                                                  // JavaTimeModule
     }
 
@@ -114,9 +111,8 @@ public class OdeBsmJsonRepositoryImplTest {
 
         // Assert the Match operation Criteria
         assertThat(capturedCriteria.getCriteriaObject().toJson())
-                .isEqualTo(String.format(
-                        "{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 99954795, \"$lte\": 100045204}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": 99954395, \"$lte\": 100045604}}",
-                        originIp, vehicleId, startTimeString, endTimeString));
+                .isEqualTo("{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 99954795, \"$lte\": 100045204}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": 99954395, \"$lte\": 100045604}}".formatted(
+                originIp, vehicleId, startTimeString, endTimeString));
     }
 
     @Test
@@ -144,9 +140,8 @@ public class OdeBsmJsonRepositoryImplTest {
 
         // Assert the Match operation Criteria
         assertThat(capturedCriteria.getCriteriaObject().toJson())
-                .isEqualTo(String.format(
-                        "{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 99954795, \"$lte\": 100045204}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": 99954395, \"$lte\": 100045604}}",
-                        originIp, vehicleId, startTimeString, endTimeString));
+                .isEqualTo("{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 99954795, \"$lte\": 100045204}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": 99954395, \"$lte\": 100045604}}".formatted(
+                originIp, vehicleId, startTimeString, endTimeString));
 
         // Verify the Criteria passed to findPage
         Mockito.verify(repo).findDocumentsWithPagination(
@@ -213,9 +208,8 @@ public class OdeBsmJsonRepositoryImplTest {
 
         // Assert the Match operation Criteria
         assertThat(capturedCriteria.getCriteriaObject().toJson())
-                .isEqualTo(String.format(
-                        "{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}}",
-                        originIp, vehicleId, startTimeString, endTimeString));
+                .isEqualTo("{\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}}".formatted(
+                originIp, vehicleId, startTimeString, endTimeString));
 
         // Verify the Criteria passed to findPage
         Mockito.verify(repo).findDocumentsWithPagination(
@@ -276,9 +270,8 @@ public class OdeBsmJsonRepositoryImplTest {
 
         // Assert the Match operation Criteria
         assertThat(capturedCriteria.getCriteriaObject().toJson())
-                .isEqualTo(String.format(
-                        "{\"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}}",
-                        startTimeString, endTimeString)); // Verify the Criteria passed to
+                .isEqualTo("{\"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}}".formatted(
+                startTimeString, endTimeString)); // Verify the Criteria passed to
                                                           // findPage
         Mockito.verify(repo).findDocumentsWithPagination(
                 any(),
@@ -319,7 +312,7 @@ public class OdeBsmJsonRepositoryImplTest {
         // Load sample JSON data
         String json = new String(
                 Files.readAllBytes(
-                        Paths.get("src/test/resources/json/ConflictMonitor.OdeBsmJson.json")));
+                        Path.of("src/test/resources/json/ConflictMonitor.OdeBsmJson.json")));
 
         List<Document> sampleDocuments = new ArrayList<>();
 
@@ -358,9 +351,8 @@ public class OdeBsmJsonRepositoryImplTest {
 
         // Assert the Match operation Criteria
         assertThat(pipeline.toJson())
-                .isEqualTo(String.format(
-                        "{\"$match\": {\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 367995494, \"$lte\": 368004505}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": -1041005602, \"$lte\": -1040994397}}}",
-                        originIp, vehicleId, startTimeString, endTimeString));
+                .isEqualTo("{\"$match\": {\"metadata.originIp\": \"%s\", \"payload.data.value.BasicSafetyMessage.coreData.id\": \"%s\", \"metadata.odeReceivedAt\": {\"$gte\": \"%s\", \"$lte\": \"%s\"}, \"payload.data.value.BasicSafetyMessage.coreData.lat\": {\"$gte\": 367995494, \"$lte\": 368004505}, \"payload.data.value.BasicSafetyMessage.coreData.long\": {\"$gte\": -1041005602, \"$lte\": -1040994397}}}".formatted(
+                originIp, vehicleId, startTimeString, endTimeString));
 
         // OdeMessageFrameData message = findResponse.getContent().get(0);
 

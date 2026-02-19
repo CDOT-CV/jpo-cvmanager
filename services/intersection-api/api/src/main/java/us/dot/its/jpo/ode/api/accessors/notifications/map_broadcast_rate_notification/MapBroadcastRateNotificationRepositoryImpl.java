@@ -7,7 +7,6 @@ import org.springframework.data.domain.Sort;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -25,7 +24,6 @@ public class MapBroadcastRateNotificationRepositoryImpl
         private final String DATE_FIELD = "notificationGeneratedAt";
         private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-        @Autowired
         public MapBroadcastRateNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
                 this.mongoTemplate = mongoTemplate;
         }

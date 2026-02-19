@@ -16,7 +16,6 @@ import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -45,7 +44,6 @@ public class ActiveNotificationRepositoryImpl
 	private final String NOTIFICATION_TYPE_FIELD = "notificationType";
 	private final String KEY_FIELD = "key";
 
-	@Autowired
 	public ActiveNotificationRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

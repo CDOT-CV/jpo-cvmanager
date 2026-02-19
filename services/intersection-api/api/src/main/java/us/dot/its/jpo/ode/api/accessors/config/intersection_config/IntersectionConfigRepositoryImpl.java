@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.accessors.config.intersection_config;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -20,7 +19,6 @@ public class IntersectionConfigRepositoryImpl implements IntersectionConfigRepos
 
     private final String collectionName = "CmIntersectionConfig";
 
-    @Autowired
     public IntersectionConfigRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

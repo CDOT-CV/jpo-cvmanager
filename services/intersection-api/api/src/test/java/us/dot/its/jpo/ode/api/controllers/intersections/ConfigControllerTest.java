@@ -16,10 +16,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,7 @@ import us.dot.its.jpo.ode.api.accessors.config.intersection_config.IntersectionC
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.PostgresService;
 
+@ExtendWith(MockitoExtension.class)
 public class ConfigControllerTest {
 
     private ConfigController controller;
@@ -64,7 +66,6 @@ public class ConfigControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         controller = new ConfigController(
                 defaultConfigRepository,
                 intersectionConfigRepository,

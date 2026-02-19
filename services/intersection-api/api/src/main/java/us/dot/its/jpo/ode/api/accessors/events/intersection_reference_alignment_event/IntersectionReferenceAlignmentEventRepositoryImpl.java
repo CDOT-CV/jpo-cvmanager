@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.events.intersection_reference_alignment
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -33,7 +32,6 @@ public class IntersectionReferenceAlignmentEventRepositoryImpl
 	private final String DATE_FIELD = "eventGeneratedAt";
 	private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-	@Autowired
 	public IntersectionReferenceAlignmentEventRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

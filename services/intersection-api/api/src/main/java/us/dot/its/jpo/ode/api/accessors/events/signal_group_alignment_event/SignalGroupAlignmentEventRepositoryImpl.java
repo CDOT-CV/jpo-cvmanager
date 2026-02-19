@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.events.signal_group_alignment_event;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -35,7 +34,6 @@ public class SignalGroupAlignmentEventRepositoryImpl
 	private final String DATE_FIELD = "eventGeneratedAt";
 	private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-	@Autowired
 	public SignalGroupAlignmentEventRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

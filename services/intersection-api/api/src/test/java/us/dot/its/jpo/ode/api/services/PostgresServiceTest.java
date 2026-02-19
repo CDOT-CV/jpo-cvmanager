@@ -1,8 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import us.dot.its.jpo.ode.api.models.postgres.derived.UserOrgRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Users;
 
@@ -18,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class PostgresServiceTest {
 
     @Mock
@@ -34,11 +39,6 @@ class PostgresServiceTest {
 
     @InjectMocks
     private PostgresService postgresService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void testFindUserOrgRoles() {

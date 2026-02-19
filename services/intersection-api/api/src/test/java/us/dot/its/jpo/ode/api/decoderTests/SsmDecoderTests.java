@@ -4,18 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import tools.jackson.core.JacksonException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -24,7 +19,6 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 public class SsmDecoderTests {
@@ -36,7 +30,6 @@ public class SsmDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @Autowired
     public SsmDecoderTests(SsmDecoder ssmDecoder) {
         this.ssmDecoder = ssmDecoder;
 
@@ -44,11 +37,11 @@ public class SsmDecoderTests {
 
         try {
             odeSsmDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceSsmXER.xml")));
+                    Files.readAllBytes(Path.of("src/test/resources/xml/Ode.ReferenceSsmXER.xml")));
 
             odeSsmDecodedJsonReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/ssm/Ode.ReferenceSsmJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/ssm/Ode.ReferenceSsmJson.json")));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -70,7 +63,7 @@ public class SsmDecoderTests {
                     .setSerialId(ssm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
             assertThatJson(odeSsmDecodedJsonReference).isEqualTo(ssm.toJson());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }

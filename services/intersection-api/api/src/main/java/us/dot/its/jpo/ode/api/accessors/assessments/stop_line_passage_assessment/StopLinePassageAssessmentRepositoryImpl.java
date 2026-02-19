@@ -1,7 +1,6 @@
 
 package us.dot.its.jpo.ode.api.accessors.assessments.stop_line_passage_assessment;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -23,7 +22,6 @@ public class StopLinePassageAssessmentRepositoryImpl implements StopLinePassageA
     private final String DATE_FIELD = "assessmentGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-    @Autowired
     public StopLinePassageAssessmentRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

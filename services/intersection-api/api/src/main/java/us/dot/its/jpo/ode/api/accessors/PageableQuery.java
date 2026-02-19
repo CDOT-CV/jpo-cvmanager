@@ -13,8 +13,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;

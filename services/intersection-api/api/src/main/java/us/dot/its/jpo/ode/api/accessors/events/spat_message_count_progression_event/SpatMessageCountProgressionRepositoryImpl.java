@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.accessors.events.spat_message_count_progression_event;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -25,7 +24,6 @@ public class SpatMessageCountProgressionRepositoryImpl
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-    @Autowired
     public SpatMessageCountProgressionRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

@@ -4,18 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import tools.jackson.core.JacksonException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -27,7 +22,6 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 public class BsmDecoderTests {
@@ -40,7 +34,6 @@ public class BsmDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @Autowired
     public BsmDecoderTests(BsmDecoder bsmDecoder) {
         this.bsmDecoder = bsmDecoder;
 
@@ -48,15 +41,15 @@ public class BsmDecoderTests {
 
         try {
             odeBsmDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceBsmXER.xml")));
+                    Files.readAllBytes(Path.of("src/test/resources/xml/Ode.ReferenceBsmXER.xml")));
 
             odeBsmDecodedJsonReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/bsm/Ode.ReferenceBsmJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/bsm/Ode.ReferenceBsmJson.json")));
 
             processedBsmReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/bsm/GJC.ReferenceProcessedBsmJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/bsm/GJC.ReferenceProcessedBsmJson.json")));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -77,7 +70,7 @@ public class BsmDecoderTests {
                     .setSerialId(bsm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
             assertThatJson(odeBsmDecodedJsonReference).isEqualTo(bsm.toJson());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }
@@ -99,7 +92,7 @@ public class BsmDecoderTests {
             bsm.getProperties().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
 
             assertThatJson(processedBsmReference).isEqualTo(bsm.toString());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }

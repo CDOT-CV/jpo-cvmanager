@@ -4,16 +4,14 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import tools.jackson.core.JacksonException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
@@ -31,12 +29,10 @@ public class StompController {
 
     private final ObjectMapper mapper;
 
-    @Autowired
     public StompController(SimpMessagingTemplate brokerMessagingTemplate) {
         this.brokerMessagingTemplate = brokerMessagingTemplate;
 
         mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
 
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_INSTANT;
         ZonedDateTimeSerializer zonedDateTimeSerializer = new ZonedDateTimeSerializer(dateTimeFormatter);
@@ -53,7 +49,7 @@ public class StompController {
     }
 
     public String buildTopicName(int intersectionID, String messageType) {
-        return String.format("/live/%d/%s", intersectionID, messageType);
+        return "/live/%d/%s".formatted(intersectionID, messageType);
     }
 
     public void broadcastProcessedSpat(ProcessedSpat spat) {
@@ -66,7 +62,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-spat"), mapper.writeValueAsString(spat));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding SPaT data to STOMP topic", e);
                 }
 
@@ -84,7 +80,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-map"), mapper.writeValueAsString(map));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding MAP data to STOMP topic", e);
                 }
             }
@@ -97,7 +93,7 @@ public class StompController {
                 try {
                     broadcastMessage(buildTopicName(intersectionId, "processed-bsm"),
                             mapper.writeValueAsString(bsm));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding BSM data to STOMP topic", e);
                 }
             }

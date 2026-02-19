@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.bson.Document;
 import org.locationtech.jts.geom.Envelope;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +14,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
@@ -28,8 +26,7 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQuery {
 
 	private final MongoTemplate mongoTemplate;
-	public static final ObjectMapper mapper = DateJsonMapper.getInstance()
-			.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	public static final ObjectMapper mapper =DateJsonMapper.getInstance();
 
 	private final String collectionName = "OdeBsmJson";
 	private final String DATE_FIELD = "metadata.odeReceivedAt";
@@ -39,7 +36,6 @@ public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQ
     private final String LATITUDE_FIELD = "payload.data.value.BasicSafetyMessage.coreData.lat";
 	private final String RECORD_GENERATED_AT_FIELD = "recordGeneratedAt";
 
-	@Autowired
 	public OdeBsmJsonRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

@@ -26,25 +26,25 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
     private List<Converter<?, ?>> converters = new ArrayList<Converter<?, ?>>();
 
-    @Value("${spring.data.mongodb.database}")
+    @Value("${spring.mongodb.database}")
     private String db;
 
-    @Value("${spring.data.mongodb.host}")
+    @Value("${spring.mongodb.host}")
     private String host;
 
-    @Value("${spring.data.mongodb.port}")
+    @Value("${spring.mongodb.port}")
     private String port;
 
-    @Value("${spring.data.mongodb.username}")
+    @Value("${spring.mongodb.username}")
     private String username;
 
-    @Value("${spring.data.mongodb.password}")
+    @Value("${spring.mongodb.password}")
     private String password;
 
     @Value("${spring.data.mongodb.authenticationDatabase}")
     private String authenticationDatabase;
 
-    @Value("${spring.data.mongodb.uri}")
+    @Value("${spring.mongodb.uri}")
     private String overrideURI;
 
     @Override

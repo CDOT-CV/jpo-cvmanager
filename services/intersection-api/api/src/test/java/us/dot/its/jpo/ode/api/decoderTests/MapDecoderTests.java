@@ -5,15 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import tools.jackson.core.JacksonException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -23,13 +19,12 @@ import us.dot.its.jpo.ode.api.asn1.MapDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 public class MapDecoderTests {
@@ -42,7 +37,6 @@ public class MapDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @Autowired
     public MapDecoderTests(MapDecoder mapDecoder) {
         this.mapDecoder = mapDecoder;
 
@@ -51,15 +45,15 @@ public class MapDecoderTests {
         try {
 
             odeMapDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceMapXER.xml")));
+                    Files.readAllBytes(Path.of("src/test/resources/xml/Ode.ReferenceMapXER.xml")));
 
             odeMapDecodedJsonReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/map/Ode.ReferenceMapJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/map/Ode.ReferenceMapJson.json")));
 
             processedMapReference = new String(
-                    Files.readAllBytes(Paths
-                            .get("src/test/resources/json/map/GJC.ReferenceProcessedMapJson.json")));
+                    Files.readAllBytes(Path
+                            .of("src/test/resources/json/map/GJC.ReferenceProcessedMapJson.json")));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -79,7 +73,7 @@ public class MapDecoderTests {
                     .setSerialId(spat.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
             assertThatJson(odeMapDecodedJsonReference).isEqualTo(spat.toJson());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }
@@ -101,7 +95,7 @@ public class MapDecoderTests {
             map.getProperties().setOdeReceivedAt(ZonedDateTime.parse("2025-08-29T16:09:34.416Z"));
 
             assertThatJson(processedMapReference).isEqualTo(map.toString());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             assertEquals(true, false);
         }
     }

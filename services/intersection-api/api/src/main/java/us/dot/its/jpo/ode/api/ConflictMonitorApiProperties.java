@@ -5,9 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.conflictmonitor.AlwaysContinueProductionExceptionHandler;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -38,7 +36,6 @@ import org.apache.kafka.streams.errors.LogAndContinueExceptionHandler;
 import org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -293,10 +290,8 @@ public class ConflictMonitorApiProperties {
     @Bean
     public ObjectMapper defaultMapper() {
         ObjectMapper objectMapper = DateJsonMapper.getInstance();
-        objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(null));
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        objectMapper.setSerializationInclusion(Include.NON_NULL);
+        objectMapper.setDefaultPropertyInclusion(Include.NON_NULL);
         return objectMapper;
     }
 
@@ -307,7 +302,7 @@ public class ConflictMonitorApiProperties {
         logger.info("artifactId: {}", buildProperties.getArtifact());
         logger.info("version: {}", version);
 
-        uploadLocations.add(Paths.get(uploadLocationRoot));
+        uploadLocations.add(Path.of(uploadLocationRoot));
 
         String hostname;
         try {
@@ -359,7 +354,7 @@ public class ConflictMonitorApiProperties {
                 dockerIp = "localhost";
             }
             dockerHostIP = dockerIp;
-            connectURL = String.format("http://%s:%s", dockerHostIP, DEFAULT_CONNECT_PORT);
+            connectURL = "http://%s:%s".formatted(dockerHostIP, DEFAULT_CONNECT_PORT);
         }
 
         List<String> asList = Arrays.asList(this.getKafkaTopicsDisabled());
