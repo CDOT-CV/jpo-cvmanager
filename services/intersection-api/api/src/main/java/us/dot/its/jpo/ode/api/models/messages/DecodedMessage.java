@@ -5,10 +5,10 @@ import java.time.Instant;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -48,7 +48,7 @@ public class DecodedMessage {
     public String toString() {
         try {
             return DateJsonMapper.getInstance().writeValueAsString(this);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             logger.debug("Error: Exception serializing {} Event to JSON", this, e);
         }
         return "";

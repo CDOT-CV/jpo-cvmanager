@@ -6,17 +6,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DatabindException;
-
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.ProcessedBsm;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-import tools.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @Slf4j
 public class MockBsmGenerator {
@@ -25,6 +25,7 @@ public class MockBsmGenerator {
 
     public static List<OdeMessageFrameData> getJsonBsms() {
         ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<OdeMessageFrameData> bsms = new ArrayList<>();
 
@@ -33,9 +34,9 @@ public class MockBsmGenerator {
             OdeMessageFrameData bsm = objectMapper.readValue(bsmString,
                     OdeMessageFrameData.class);
             bsms.add(bsm);
-        } catch (DatabindException e) {
+        } catch (JsonMappingException e) {
             log.error("JsonMappingException", e);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -46,6 +47,7 @@ public class MockBsmGenerator {
 
     public static List<ProcessedBsm<Point>> getProcessedBsms() {
         ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<ProcessedBsm<Point>> bsms = new ArrayList<>();
 
@@ -56,9 +58,9 @@ public class MockBsmGenerator {
                     processedBsmTypeReference);
 
             bsms.add(bsm);
-        } catch (DatabindException e) {
+        } catch (JsonMappingException e) {
             log.error("JsonMappingException", e);
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block

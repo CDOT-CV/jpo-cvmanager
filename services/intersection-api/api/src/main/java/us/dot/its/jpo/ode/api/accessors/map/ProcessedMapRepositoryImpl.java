@@ -23,8 +23,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.DistinctIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -52,7 +53,8 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
 
     TypeReference<ProcessedMap<LineString>> processedMapTypeReference = new TypeReference<>() {
     };
-    private ObjectMapper mapper =DateJsonMapper.getInstance();
+    private ObjectMapper mapper = DateJsonMapper.getInstance()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;

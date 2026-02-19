@@ -5,7 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import us.dot.its.jpo.conflictmonitor.AlwaysContinueProductionExceptionHandler;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -290,8 +292,10 @@ public class ConflictMonitorApiProperties {
     @Bean
     public ObjectMapper defaultMapper() {
         ObjectMapper objectMapper = DateJsonMapper.getInstance();
+        objectMapper.registerModule(new JavaTimeModule());
         objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(null));
-        objectMapper.setDefaultPropertyInclusion(Include.NON_NULL);
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.setSerializationInclusion(Include.NON_NULL);
         return objectMapper;
     }
 
@@ -354,7 +358,7 @@ public class ConflictMonitorApiProperties {
                 dockerIp = "localhost";
             }
             dockerHostIP = dockerIp;
-            connectURL = "http://%s:%s".formatted(dockerHostIP, DEFAULT_CONNECT_PORT);
+            connectURL = String.format("http://%s:%s", dockerHostIP, DEFAULT_CONNECT_PORT);
         }
 
         List<String> asList = Arrays.asList(this.getKafkaTopicsDisabled());

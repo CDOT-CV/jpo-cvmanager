@@ -7,9 +7,10 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import tools.jackson.core.JacksonException;
+import org.springframework.test.context.junit4.SpringRunner;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -73,7 +74,7 @@ public class MapDecoderTests {
                     .setSerialId(spat.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
             assertThatJson(odeMapDecodedJsonReference).isEqualTo(spat.toJson());
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }
     }
@@ -95,7 +96,7 @@ public class MapDecoderTests {
             map.getProperties().setOdeReceivedAt(ZonedDateTime.parse("2025-08-29T16:09:34.416Z"));
 
             assertThatJson(processedMapReference).isEqualTo(map.toString());
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }
     }

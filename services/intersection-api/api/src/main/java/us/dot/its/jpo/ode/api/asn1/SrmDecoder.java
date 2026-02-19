@@ -4,11 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DatabindException;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.ode.api.models.messages.SrmDecodedMessage;
@@ -62,7 +62,7 @@ public class SrmDecoder implements Decoder {
                     ((SignalRequestMessageMessageFrame) odeMessageFrameData.getPayload().getData()).getValue(),
                     message.getAsn1Message(), "");
 
-        } catch (JacksonException e) {
+        } catch (JsonProcessingException e) {
             return new SrmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         }
 
@@ -86,12 +86,12 @@ public class SrmDecoder implements Decoder {
      *
      * @param encodedXml XER-encoded XML string
      * @return OdeMessageFrameData object
-     * @throws DatabindException    if XML mapping fails
-     * @throws JacksonException if XML processing fails
+     * @throws JsonMappingException    if XML mapping fails
+     * @throws JsonProcessingException if XML processing fails
      */
     @Override
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws DatabindException, JacksonException {
+            throws JsonMappingException, JsonProcessingException {
         OdeMessageFrameMetadata metadata = new OdeMessageFrameMetadata();
         metadata.setOdeReceivedAt(DateTimeUtils.now());
         metadata.setRecordType(RecordType.srmTx);

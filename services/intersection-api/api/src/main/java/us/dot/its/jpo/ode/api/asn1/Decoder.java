@@ -1,10 +1,9 @@
 package us.dot.its.jpo.ode.api.asn1;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
-
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DatabindException;
-
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
@@ -36,6 +35,6 @@ public interface Decoder {
      *         XML
      */
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws DatabindException, JacksonException;
+            throws JsonMappingException, JsonProcessingException;
 
 }

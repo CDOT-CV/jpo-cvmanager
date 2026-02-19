@@ -7,11 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import tools.jackson.core.JacksonException;
 
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
@@ -62,7 +63,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-spat"), mapper.writeValueAsString(spat));
-                } catch (JacksonException e) {
+                } catch (JsonProcessingException e) {
                     log.error("Exception encoding SPaT data to STOMP topic", e);
                 }
 
@@ -80,7 +81,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-map"), mapper.writeValueAsString(map));
-                } catch (JacksonException e) {
+                } catch (JsonProcessingException e) {
                     log.error("Exception encoding MAP data to STOMP topic", e);
                 }
             }
@@ -93,7 +94,7 @@ public class StompController {
                 try {
                     broadcastMessage(buildTopicName(intersectionId, "processed-bsm"),
                             mapper.writeValueAsString(bsm));
-                } catch (JacksonException e) {
+                } catch (JsonProcessingException e) {
                     log.error("Exception encoding BSM data to STOMP topic", e);
                 }
             }

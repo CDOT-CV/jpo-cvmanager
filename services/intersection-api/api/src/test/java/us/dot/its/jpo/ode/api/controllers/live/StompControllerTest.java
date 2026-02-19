@@ -4,14 +4,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import tools.jackson.core.JacksonException;
-
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.ProcessedBsm;
@@ -45,7 +44,7 @@ public class StompControllerTest {
     }
 
     @Test
-    void testBroadcastSpat() throws JacksonException {
+    void testBroadcastSpat() throws JsonProcessingException {
         ProcessedSpat spat = mock(ProcessedSpat.class);
         when(spat.getIntersectionId()).thenReturn(42);
 
@@ -77,7 +76,7 @@ public class StompControllerTest {
     }
 
     @Test
-    void testBroadcastMap() throws JacksonException {
+    void testBroadcastMap() throws JsonProcessingException {
         ProcessedMap<LineString> map = mock(ProcessedMap.class);
         MapSharedProperties props = mock(MapSharedProperties.class);
         when(map.getProperties()).thenReturn(props);
@@ -101,7 +100,7 @@ public class StompControllerTest {
     }
 
     @Test
-    void testBroadcastBSM() throws JacksonException {
+    void testBroadcastBSM() throws JsonProcessingException {
         ProcessedBsm<Point> bsm = mock(ProcessedBsm.class);
 
         controller.broadcastBSM(77, bsm);

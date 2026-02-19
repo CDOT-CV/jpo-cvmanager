@@ -2,7 +2,7 @@ package us.dot.its.jpo.ode.api.models.haas.websocket;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.ode.api.models.haas.HaasLocation;
 
