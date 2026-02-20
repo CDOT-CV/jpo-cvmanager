@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
@@ -101,6 +102,24 @@ class RsuControllerTest {
         assertEquals("192.168.1.101", result.getContent().get(1).getIpv4Address());
 
         verify(rsuManagementService).getAllRsuInfo(organization, search, pageable);
+    }
+
+    @Test
+    void testGetAllRsus_Sorting_TimDeposit() {
+        String organization = "TestOrg";
+        String search = "";
+        Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "tim_deposit"));
+        Pageable expectedMappedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "rsuOption.timDeposit"));
+
+        Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
+
+        when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+                .thenReturn(emptyPage);
+
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+
+        assertNotNull(result);
+        verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
     }
 
     @Test
