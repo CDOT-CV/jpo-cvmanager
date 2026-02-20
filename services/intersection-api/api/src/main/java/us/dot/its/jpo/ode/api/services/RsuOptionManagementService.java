@@ -34,13 +34,13 @@ public class RsuOptionManagementService {
     public void modifyRsuOption(String rsuIp, RsuPatch rsuPatch) {
         log.debug("Modifying Rsu option with IP: {}", rsuIp);
 
-        Rsu existingRsu = findRsuByIp(rsuIp);
-
         // Early return if no option fields are provided
         if (rsuPatch.getTimDeposit() == null && rsuPatch.getSnmpMonitoring() == null) {
             log.trace("Patch does not contain tim_deposit or snmp_monitoring values, no modification necessary");
             return;
         }
+
+        Rsu existingRsu = findRsuByIp(rsuIp);
 
         RsuOption rsuOption = getOrCreateRsuOption(existingRsu);
         boolean isNewOption = rsuOption.getId() == null;
