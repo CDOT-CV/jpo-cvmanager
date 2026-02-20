@@ -537,7 +537,6 @@ class RsuControllerTest {
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
-                doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
 
@@ -547,7 +546,6 @@ class RsuControllerTest {
 
                 verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-                verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
             }
         }
 
@@ -583,7 +581,6 @@ class RsuControllerTest {
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
-                doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
 
@@ -591,10 +588,6 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-                verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
-                verify(rsuManagementService).createRsuOrgRelationship("OtherOrg", mockRsu);
-                verify(rsuManagementService).createRsuOrgRelationship("ThirdOrg", mockRsu);
-                verify(rsuManagementService, times(3)).createRsuOrgRelationship(anyString(), eq(mockRsu));
             }
         }
 
@@ -638,7 +631,6 @@ class RsuControllerTest {
 
                 verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
                 verify(rsuManagementService, never()).createRsu(any(), anyList());
-                verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
 
@@ -764,7 +756,6 @@ class RsuControllerTest {
                         () -> rsuController.createRsu(rsuInfoDto));
 
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-                verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
 
@@ -807,7 +798,6 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-                verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
 
@@ -870,7 +860,6 @@ class RsuControllerTest {
                     "v3",
                     orgsToAdd);
 
-            Rsu mockRsu = new Rsu();
             List<String> qualifiedOrgs = Arrays.asList("TestOrg");
 
             try (MockedStatic<SecurityContextHolder> mockedSecurityContext = Mockito
@@ -883,16 +872,14 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
                 doThrow(new RuntimeException("Failed to create organization relationship"))
-                        .when(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
+                        .when(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
 
                 assertThrows(
                         RuntimeException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-                verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
             }
         }
 
