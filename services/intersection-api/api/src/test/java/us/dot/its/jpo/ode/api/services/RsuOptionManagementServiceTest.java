@@ -259,20 +259,14 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_NoOptionsProvided_EarlyReturn() throws UnknownHostException {
         String rsuIp = "192.168.1.107";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         // No timDeposit or snmpMonitoring set
 
-        Rsu existingRsu = new Rsu();
-        existingRsu.setId(8);
-        existingRsu.setIpv4Address(inetAddress);
-
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
 
-        // Verify that RsuOption repository was never accessed
+        // Verify that repositories were never accessed due to early return
+        verify(rsuRepository, never()).findByIpv4Address(any());
         verify(rsuOptionRepository, never()).findByRsuId(any());
         verify(rsuOptionRepository, never()).save(any());
     }
