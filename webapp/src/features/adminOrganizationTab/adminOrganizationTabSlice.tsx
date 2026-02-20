@@ -132,7 +132,11 @@ export const deleteOrg = createAsyncThunk(
 
 export const editOrg = createAsyncThunk(
   'adminOrganizationTab/editOrg',
-  async (json: adminOrgPatch & { url?: string }, { getState }) => {
+  async (json: adminOrgPatch & { url?: string }, { getState }): Promise<{
+    success: boolean
+    message: string
+    data?: { org_data: AdminOrgSingle }
+  }> => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
 
@@ -158,7 +162,7 @@ export const editOrg = createAsyncThunk(
     switch (data.status) {
       case 200:
         console.debug('Successfully edited organization')
-        return { success: true, message: '' }
+        return { success: true, message: '', data: data.body }
       default:
         return { success: false, message: data.message }
     }
@@ -168,7 +172,14 @@ export const editOrg = createAsyncThunk(
 
 export const updateOrgTimDeposit = createAsyncThunk(
   'adminOrganizationTab/updateOrgTimDeposit',
-  async (payload: { orgName: string; email: string; timDeposit: boolean }, { getState, dispatch }) => {
+  async (
+    payload: { orgName: string; email: string; timDeposit: boolean },
+    { getState, dispatch }
+  ): Promise<{
+    success: boolean
+    message: string
+    data?: { org_data: AdminOrgSingle }
+  }> => {
     const { orgName, email, timDeposit } = payload
 
     const patchJson: adminOrgPatch = {
@@ -179,8 +190,11 @@ export const updateOrgTimDeposit = createAsyncThunk(
 
     const res = await dispatch(editOrg({ ...patchJson, url: EnvironmentVars.adminOrgTimDeposit }))
     if ((res.payload as any).success) {
-      dispatch(getOrgData({ orgName }))
-      return { success: true, message: 'Successfully updated TIM deposit for all RSUs in ' + orgName }
+      return {
+        success: true,
+        message: 'Successfully updated TIM deposit for all RSUs in ' + orgName,
+        data: (res.payload as any).data,
+      }
     } else {
       return { success: false, message: (res.payload as any).message }
     }
@@ -190,7 +204,14 @@ export const updateOrgTimDeposit = createAsyncThunk(
 
 export const updateOrgSnmpMonitoring = createAsyncThunk(
   'adminOrganizationTab/updateOrgSnmpMonitoring',
-  async (payload: { orgName: string; email: string; snmpMonitoring: boolean }, { getState, dispatch }) => {
+  async (
+    payload: { orgName: string; email: string; snmpMonitoring: boolean },
+    { getState, dispatch }
+  ): Promise<{
+    success: boolean
+    message: string
+    data?: { org_data: AdminOrgSingle }
+  }> => {
     const { orgName, email, snmpMonitoring } = payload
 
     const patchJson: adminOrgPatch = {
@@ -201,8 +222,11 @@ export const updateOrgSnmpMonitoring = createAsyncThunk(
 
     const res = await dispatch(editOrg({ ...patchJson, url: EnvironmentVars.adminOrgSnmpMonitoring }))
     if ((res.payload as any).success) {
-      dispatch(getOrgData({ orgName }))
-      return { success: true, message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName }
+      return {
+        success: true,
+        message: 'Successfully updated SNMP monitoring for all RSUs in ' + orgName,
+        data: (res.payload as any).data,
+      }
     } else {
       return { success: false, message: (res.payload as any).message }
     }
@@ -283,8 +307,35 @@ export const adminOrganizationTabSlice = createSlice({
       .addCase(editOrg.pending, (state) => {
         state.loading = true
       })
-      .addCase(editOrg.fulfilled, (state) => {
+      .addCase(editOrg.fulfilled, (state, action) => {
         state.loading = false
+        if (action.payload.success && action.payload.data) {
+          const data = action.payload.data
+          const org_data = data?.org_data as AdminOrgSingle
+          state.value.rsuTableData = org_data?.org_rsus
+          state.value.intersectionTableData = org_data?.org_intersections
+          state.value.userTableData = org_data?.org_users
+        }
+      })
+      .addCase(updateOrgTimDeposit.fulfilled, (state, action) => {
+        state.loading = false
+        if (action.payload.success && action.payload.data) {
+          const data = action.payload.data
+          const org_data = data?.org_data as AdminOrgSingle
+          state.value.rsuTableData = org_data?.org_rsus
+          state.value.intersectionTableData = org_data?.org_intersections
+          state.value.userTableData = org_data?.org_users
+        }
+      })
+      .addCase(updateOrgSnmpMonitoring.fulfilled, (state, action) => {
+        state.loading = false
+        if (action.payload.success && action.payload.data) {
+          const data = action.payload.data
+          const org_data = data?.org_data as AdminOrgSingle
+          state.value.rsuTableData = org_data?.org_rsus
+          state.value.intersectionTableData = org_data?.org_intersections
+          state.value.userTableData = org_data?.org_users
+        }
       })
       .addCase(editOrg.rejected, (state) => {
         state.loading = false

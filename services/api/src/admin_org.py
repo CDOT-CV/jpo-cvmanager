@@ -428,7 +428,7 @@ def modify_org_authorized(orig_name: str, org_spec: dict, is_bulk_update: bool =
         logging.error(f"SQL Exception encountered: {e}")
         raise InternalServerError("Encountered unknown issue executing query") from e
 
-    return {"message": "Organization successfully modified"}
+    return get_modify_org_data_authorized(org_spec["name"])
 
 
 @require_permission(

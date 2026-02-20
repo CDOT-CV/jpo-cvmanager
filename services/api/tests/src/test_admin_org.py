@@ -223,11 +223,15 @@ def test_check_safe_input_bad():
 
 
 # modify_org
+@patch("api.src.admin_org.get_modify_org_data_authorized")
 @patch("api.src.admin_org.check_safe_input")
 @patch("api.src.admin_org.pgquery.write_db")
-def test_modify_organization_success(mock_pgquery, mock_check_safe_input, app):
+def test_modify_organization_success(
+    mock_pgquery, mock_check_safe_input, mock_get_modify_org_data, app
+):
     mock_check_safe_input.return_value = True
-    expected_msg = {"message": "Organization successfully modified"}
+    mock_get_modify_org_data.return_value = {"org_data": "mocked_data"}
+    expected_msg = {"org_data": "mocked_data"}
     with app.test_request_context():
         request.environ[ENVIRON_USER_KEY] = user_valid
         actual_msg = admin_org.modify_org_authorized(
@@ -421,13 +425,16 @@ def test_modify_org_bulk_tim_deposit_success(app, permission_result):
         request.environ[ENVIRON_USER_KEY] = permission_result
         with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
             "api.src.admin_org.check_safe_input", return_value=True
+        ), patch(
+            "api.src.admin_org.get_modify_org_data_authorized",
+            return_value={"org_data": "mocked_data"},
         ):
 
             result = admin_org.modify_org_authorized(
                 "Test Org", org_spec, is_bulk_update=True
             )
 
-            assert result == {"message": "Organization successfully modified"}
+            assert result == {"org_data": "mocked_data"}
 
             # Should have 2 write_db calls: 1 for org update, 1 for bulk RSU options update
             assert mock_write_db.call_count == 2
@@ -465,13 +472,16 @@ def test_modify_org_bulk_snmp_monitoring_success(app, permission_result):
         request.environ[ENVIRON_USER_KEY] = permission_result
         with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
             "api.src.admin_org.check_safe_input", return_value=True
+        ), patch(
+            "api.src.admin_org.get_modify_org_data_authorized",
+            return_value={"org_data": "mocked_data"},
         ):
 
             result = admin_org.modify_org_authorized(
                 "Test Org", org_spec, is_bulk_update=True
             )
 
-            assert result == {"message": "Organization successfully modified"}
+            assert result == {"org_data": "mocked_data"}
 
             # Check bulk update call
             bulk_query = (
@@ -507,13 +517,16 @@ def test_modify_org_bulk_both_success(app, permission_result):
         request.environ[ENVIRON_USER_KEY] = permission_result
         with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
             "api.src.admin_org.check_safe_input", return_value=True
+        ), patch(
+            "api.src.admin_org.get_modify_org_data_authorized",
+            return_value={"org_data": "mocked_data"},
         ):
 
             result = admin_org.modify_org_authorized(
                 "Test Org", org_spec, is_bulk_update=True
             )
 
-            assert result == {"message": "Organization successfully modified"}
+            assert result == {"org_data": "mocked_data"}
 
             # Check bulk update call
             bulk_query = (
@@ -552,12 +565,16 @@ def test_modify_org_no_bulk_endpoint(app, permission_result):
         request.environ[ENVIRON_USER_KEY] = permission_result
         with patch("api.src.admin_org.pgquery.write_db") as mock_write_db, patch(
             "api.src.admin_org.check_safe_input", return_value=True
+        ), patch(
+            "api.src.admin_org.get_modify_org_data_authorized",
+            return_value={"org_data": "mocked_data"},
         ):
 
-            admin_org.modify_org_authorized(
+            result = admin_org.modify_org_authorized(
                 "Test Org", org_spec, is_bulk_update=False
             )
 
+            assert result == {"org_data": "mocked_data"}
             # Should only have 1 call (for org update)
             assert mock_write_db.call_count == 1
             assert (
