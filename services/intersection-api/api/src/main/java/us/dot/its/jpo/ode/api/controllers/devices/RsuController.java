@@ -54,7 +54,8 @@ public class RsuController {
             "primary_route", "primaryRoute",
             "serial_number", "serialNumber",
             "scms_id", "issScmsId",
-            "tim_deposit", "rsuOption.timDeposit");
+            "tim_deposit", "rsuOption.timDeposit",
+            "snmp_monitoring", "rsuOption.snmpMonitoring");
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")

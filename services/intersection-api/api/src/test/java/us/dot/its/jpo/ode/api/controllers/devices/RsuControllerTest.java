@@ -123,6 +123,24 @@ class RsuControllerTest {
     }
 
     @Test
+    void testGetAllRsus_Sorting_SnmpMonitoring() {
+        String organization = "TestOrg";
+        String search = "";
+        Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "snmp_monitoring"));
+        Pageable expectedMappedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "rsuOption.snmpMonitoring"));
+
+        Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
+
+        when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+                .thenReturn(emptyPage);
+
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+
+        assertNotNull(result);
+        verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
+    }
+
+    @Test
     void testGetAllRsus_EmptyResult() {
         String organization = "EmptyOrg";
         String search = "Search Term";

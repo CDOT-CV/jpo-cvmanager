@@ -118,6 +118,22 @@ const AdminRsuTab = () => {
         </Typography>
       ),
     },
+    {
+      title: 'SNMP Monitoring',
+      field: 'snmp_monitoring',
+      id: 6,
+      render: (rowData: any) => (
+        <Typography
+          variant="body2"
+          sx={{
+            color: rowData.snmp_monitoring ? theme.palette.success.light : theme.palette.error.light,
+            fontWeight: 'bold',
+          }}
+        >
+          {rowData.snmp_monitoring ? 'Enabled' : 'Disabled'}
+        </Typography>
+      ),
+    },
   ])
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
