@@ -508,6 +508,7 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_Success() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -520,7 +521,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"));
+                    orgsToAdd);
 
             Rsu mockRsu = new Rsu();
             List<String> qualifiedOrgs = Arrays.asList("TestOrg", "OtherOrg");
@@ -535,7 +536,7 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
                 doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
@@ -545,7 +546,7 @@ class RsuControllerTest {
                 assertNull(result.getBody());
 
                 verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
                 verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
             }
         }
@@ -553,6 +554,7 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_MultipleOrganizations() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList("TestOrg", "OtherOrg", "ThirdOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -580,7 +582,7 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
                 doNothing().when(rsuManagementService).createRsuOrgRelationship(anyString(), any(Rsu.class));
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
@@ -588,7 +590,7 @@ class RsuControllerTest {
                 assertNotNull(result);
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
                 verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
                 verify(rsuManagementService).createRsuOrgRelationship("OtherOrg", mockRsu);
                 verify(rsuManagementService).createRsuOrgRelationship("ThirdOrg", mockRsu);
@@ -635,7 +637,7 @@ class RsuControllerTest {
                 assertTrue(exception.getReason().contains("UnqualifiedOrg"));
 
                 verify(permissionService).getQualifiedOrgList(username, "OPERATOR");
-                verify(rsuManagementService, never()).createRsu(any());
+                verify(rsuManagementService, never()).createRsu(any(), anyList());
                 verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
@@ -679,7 +681,7 @@ class RsuControllerTest {
                 assertTrue(exception.getReason().contains("UnqualifiedOrg1"));
                 assertTrue(exception.getReason().contains("UnqualifiedOrg2"));
 
-                verify(rsuManagementService, never()).createRsu(any());
+                verify(rsuManagementService, never()).createRsu(any(), anyList());
             }
         }
 
@@ -720,13 +722,14 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
                 assertTrue(exception.getReason().contains("NonexistentOrg"));
 
-                verify(rsuManagementService, never()).createRsu(any());
+                verify(rsuManagementService, never()).createRsu(any(), anyList());
             }
         }
 
         @Test
         void testCreateRsu_DuplicateIpAddress() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -739,7 +742,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"));
+                    orgsToAdd);
 
             List<String> qualifiedOrgs = Arrays.asList("TestOrg");
 
@@ -753,14 +756,14 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto))
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
                         .thenThrow(new IllegalArgumentException("RSU with IP 192.168.1.100 already exists"));
 
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
                 verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
@@ -768,6 +771,7 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_EmptyOrganizationsList() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList();
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -780,7 +784,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList());
+                    orgsToAdd);
 
             Rsu mockRsu = new Rsu();
             List<String> qualifiedOrgs = Arrays.asList("TestOrg");
@@ -795,14 +799,14 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
 
                 assertNotNull(result);
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
                 verify(rsuManagementService, never()).createRsuOrgRelationship(anyString(), any());
             }
         }
@@ -810,6 +814,7 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_ServiceException() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -822,7 +827,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"));
+                    orgsToAdd);
 
             List<String> qualifiedOrgs = Arrays.asList("TestOrg");
 
@@ -836,20 +841,21 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto))
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
                         .thenThrow(new RuntimeException("Database connection failed"));
 
                 assertThrows(
                         RuntimeException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
             }
         }
 
         @Test
         void testCreateRsu_OrgRelationshipCreationFails() {
             String username = "testuser@example.com";
+            List<String> orgsToAdd = Arrays.asList("TestOrg");
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -862,7 +868,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"));
+                    orgsToAdd);
 
             Rsu mockRsu = new Rsu();
             List<String> qualifiedOrgs = Arrays.asList("TestOrg");
@@ -877,7 +883,7 @@ class RsuControllerTest {
                 mockedPermissionService.when(() -> PermissionService.getUsername(authentication)).thenReturn(username);
 
                 when(permissionService.getQualifiedOrgList(username, "OPERATOR")).thenReturn(qualifiedOrgs);
-                when(rsuManagementService.createRsu(rsuInfoDto)).thenReturn(mockRsu);
+                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
                 doThrow(new RuntimeException("Failed to create organization relationship"))
                         .when(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
 
@@ -885,7 +891,7 @@ class RsuControllerTest {
                         RuntimeException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
-                verify(rsuManagementService).createRsu(rsuInfoDto);
+                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
                 verify(rsuManagementService).createRsuOrgRelationship("TestOrg", mockRsu);
             }
         }
@@ -924,7 +930,7 @@ class RsuControllerTest {
                         NullPointerException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
-                verify(rsuManagementService, never()).createRsu(any());
+                verify(rsuManagementService, never()).createRsu(any(), anyList());
             }
         }
     }

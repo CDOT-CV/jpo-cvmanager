@@ -32,7 +32,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
@@ -126,10 +125,7 @@ public class RsuController {
                     "User not qualified to modify organizations: " + String.join(", ", unqualifiedOrgs));
         }
 
-        Rsu rsu = rsuManagementService.createRsu(body);
-        for (String orgName : body.getOrganizations()) {
-            rsuManagementService.createRsuOrgRelationship(orgName, rsu);
-        }
+        rsuManagementService.createRsu(body, body.getOrganizations());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

@@ -93,7 +93,8 @@ public class RsuManagementService {
         return allowed;
     }
 
-    public Rsu createRsu(RsuInfoDto rsuInfoDto) {
+    @Transactional
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
@@ -104,6 +105,11 @@ public class RsuManagementService {
                     "RSU with IP " + ipv4Address.getHostAddress() + " already exists");
         }
         rsuRepository.save(rsu);
+
+        for (String orgName : orgsToAdd) {
+            createRsuOrgRelationship(orgName, rsu);
+        }
+
         return rsu;
     }
 

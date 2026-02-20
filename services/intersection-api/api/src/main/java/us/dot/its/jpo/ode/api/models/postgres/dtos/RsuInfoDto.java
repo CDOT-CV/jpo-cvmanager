@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * DTO for {@link Rsu}
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class RsuInfoDto implements Serializable {
     @JsonProperty("ip")
