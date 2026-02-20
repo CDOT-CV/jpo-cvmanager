@@ -67,8 +67,7 @@ public class PermissionService {
 
         DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
 
-        // TODO: Handle eventual swap to boolean
-        return decodedToken.getCvManagerData().getSuperUser().equals("1");
+        return decodedToken.isSuperUser();
     }
 
     // Allow Connection if the user is a part of at least one organization with a
@@ -79,11 +78,10 @@ public class PermissionService {
             return false;
         }
 
-        if (isSuperUser()) {
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        if (decodedToken.isSuperUser()) {
             return true;
         }
-
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -107,11 +105,11 @@ public class PermissionService {
             return true;
         }
 
-        if (isSuperUser()) {
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        if (decodedToken.isSuperUser()) {
             return true;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
         List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
@@ -141,20 +139,20 @@ public class PermissionService {
             return false;
         }
 
-        if (isSuperUser()) {
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        if (decodedToken.isSuperUser()) {
             return true;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
         List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
             if (qualifiedOrgs.contains(organization)) {
-            return rsuRepository.existsByIpAndOrganizations(ipv4Address, List.of(organization));
-        } else {
-            return false;
-        }
+                return rsuRepository.existsByIpAndOrganizations(ipv4Address, List.of(organization));
+            } else {
+                return false;
+            }
         }
 
         return rsuRepository.existsByIpAndOrganizations(ipv4Address, qualifiedOrgs);
@@ -176,11 +174,11 @@ public class PermissionService {
             return false;
         }
 
-        if (isSuperUser()) {
+        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        if (decodedToken.isSuperUser()) {
             return true;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
         List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
@@ -218,8 +216,7 @@ public class PermissionService {
      *                                 Authorization header is missing or invalid.
      */
     public static String getJwtTokenFromRequest() {
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
