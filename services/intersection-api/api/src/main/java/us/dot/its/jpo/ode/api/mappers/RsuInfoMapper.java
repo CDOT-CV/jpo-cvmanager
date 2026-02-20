@@ -31,8 +31,8 @@ public interface RsuInfoMapper {
     @Mapping(source = "snmpCredential.nickname", target = "snmpCredentialGroup")
     @Mapping(source = "snmpProtocol.nickname", target = "snmpVersionGroup")
     @Mapping(source = "rsuOrganizations", target = "organizations", qualifiedByName = "mapOrganizationNames")
-    @Mapping(source = "rsuOption.timDeposit", target = "timDeposit")
-    @Mapping(source = "rsuOption.snmpMonitoring", target = "snmpMonitoring")
+    @Mapping(source = "rsuOption", target = "timDeposit", qualifiedByName = "mapTimDeposit")
+    @Mapping(source = "rsuOption", target = "snmpMonitoring", qualifiedByName = "mapSnmpMonitoring")
     RsuInfoDto toDto(Rsu rsu);
 
     /**
@@ -82,5 +82,29 @@ public interface RsuInfoMapper {
                 .filter(ro -> ro != null && ro.getOrganization() != null && ro.getOrganization().getName() != null)
                 .map(ro -> ro.getOrganization().getName())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Extract timDeposit flag from RsuOption
+     * Returns null if rsuOption is not loaded
+     */
+    @Named("mapTimDeposit")
+    default Boolean mapTimDeposit(us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption rsuOption) {
+        if (rsuOption == null) {
+            return null;
+        }
+        return rsuOption.getTimDeposit();
+    }
+
+    /**
+     * Extract snmpMonitoring flag from RsuOption
+     * Returns null if rsuOption is not loaded
+     */
+    @Named("mapSnmpMonitoring")
+    default Boolean mapSnmpMonitoring(us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption rsuOption) {
+        if (rsuOption == null) {
+            return null;
+        }
+        return rsuOption.getSnmpMonitoring();
     }
 }
