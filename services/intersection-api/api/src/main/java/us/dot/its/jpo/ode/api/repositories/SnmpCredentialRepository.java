@@ -16,8 +16,6 @@ public interface SnmpCredentialRepository extends JpaRepository<SnmpCredential, 
 
     Optional<SnmpCredential> findByNickname(String nickname);
 
-    List<SnmpCredential> findByOwnerOrganizationId(Integer ownerOrganizationId);
-
     @Query("select (count(s) > 0) from SnmpCredential s where s.nickname = ?1")
     boolean existsByNickname(String nickname);
 }
