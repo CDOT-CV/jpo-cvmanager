@@ -15,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "snmp_credentials", schema = "public")
+@Table(name = "snmp_credentials")
 public class SnmpCredential {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "snmp_credentials_id_gen")

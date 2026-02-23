@@ -15,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "rsu_credentials", schema = "public")
+@Table(name = "rsu_credentials")
 public class RsuCredential {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsu_credentials_id_gen")
