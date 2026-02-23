@@ -14,6 +14,9 @@ SET owner_organization_id = (
     LIMIT 1
 );
 
+DELETE FROM public.rsu_credentials
+WHERE owner_organization_id IS NULL;
+
 ALTER TABLE public.rsu_credentials
     ALTER COLUMN owner_organization_id SET NOT NULL;
 
@@ -33,6 +36,9 @@ SET owner_organization_id = (
     ORDER BY r.rsu_id ASC
     LIMIT 1
 );
+
+DELETE FROM public.snmp_credentials
+WHERE owner_organization_id IS NULL;
 
 ALTER TABLE public.snmp_credentials
     ALTER COLUMN owner_organization_id SET NOT NULL;
