@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.services;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.controllers.credentials.RsuCredentialController;
@@ -37,8 +36,7 @@ public class RsuCredentialManagementService {
         if (organization.isEmpty()) {
             throw new EntityNotFoundException("Organization not found");
         }
-        int organizationId = organization.get().getId();
-        rsuCredential.setOwnerOrganizationId(organizationId);
+        rsuCredential.setOwnerOrganization(organization.get());
 
         return rsuCredentialRepository.save(rsuCredential);
     }
@@ -51,7 +49,7 @@ public class RsuCredentialManagementService {
             throw new EntityNotFoundException("Organization not found");
         }
 
-        if (!Objects.equals(rsuCredential.getOwnerOrganizationId(), organization.get().getId())) {
+        if (!Objects.equals(rsuCredential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 
@@ -66,7 +64,7 @@ public class RsuCredentialManagementService {
             throw new EntityNotFoundException("Organization not found");
         }
 
-        if (!Objects.equals(rsuCredential.getOwnerOrganizationId(), organization.get().getId())) {
+        if (!Objects.equals(rsuCredential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 
@@ -85,7 +83,7 @@ public class RsuCredentialManagementService {
             if (newOrganization.isEmpty()) {
                 throw new EntityNotFoundException("Organization not found");
             }
-            rsuCredential.setOwnerOrganizationId(newOrganization.get().getId());
+            rsuCredential.setOwnerOrganization(newOrganization.get());
         }
         return rsuCredentialRepository.save(rsuCredential);
     }
@@ -102,7 +100,7 @@ public class RsuCredentialManagementService {
             throw new EntityNotFoundException("Organization not found");
         }
 
-        if (!Objects.equals(rsuCredential.getOwnerOrganizationId(), organization.get().getId())) {
+        if (!Objects.equals(rsuCredential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 

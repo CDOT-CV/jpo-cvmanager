@@ -9,7 +9,6 @@ import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.SnmpCredentialMapperImpl;
 import us.dot.its.jpo.ode.api.models.credentials.SnmpCredentialDTO;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
-import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,7 +47,9 @@ class SnmpCredentialControllerTest {
         snmpCredential.setNickname(nickname);
         snmpCredential.setUsername(username);
         snmpCredential.setPassword(password);
-        snmpCredential.setOwnerOrganizationId(mockOrganizationId);
+        us.dot.its.jpo.ode.api.models.postgres.tables.Organization mockOrganization = mock(us.dot.its.jpo.ode.api.models.postgres.tables.Organization.class);
+        when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+        snmpCredential.setOwnerOrganization(mockOrganization);
 
         SnmpCredentialDTO expected = new SnmpCredentialDTO(null, nickname, username, password, mockOrganizationId);
 
@@ -111,7 +112,9 @@ class SnmpCredentialControllerTest {
         existingCredential.setNickname(nickname);
         existingCredential.setUsername(username);
         existingCredential.setPassword(password);
-        existingCredential.setOwnerOrganizationId(mockOrganizationId);
+        us.dot.its.jpo.ode.api.models.postgres.tables.Organization mockOrganization = mock(us.dot.its.jpo.ode.api.models.postgres.tables.Organization.class);
+        when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+        existingCredential.setOwnerOrganization(mockOrganization);
 
         SnmpCredentialDTO expected = new SnmpCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
@@ -154,7 +157,9 @@ class SnmpCredentialControllerTest {
        snmpCredential.setNickname(nickname);
        snmpCredential.setUsername(username);
        snmpCredential.setPassword(updatedPassword);
-       snmpCredential.setOwnerOrganizationId(mockOrganizationId);
+       us.dot.its.jpo.ode.api.models.postgres.tables.Organization mockOrganization = mock(us.dot.its.jpo.ode.api.models.postgres.tables.Organization.class);
+       when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+       snmpCredential.setOwnerOrganization(mockOrganization);
 
        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
        patch.setPassword(updatedPassword);

@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.services;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
@@ -11,6 +10,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -36,8 +36,7 @@ public class SnmpCredentialManagementService {
         if (organization.isEmpty()) {
             throw new EntityNotFoundException("Organization " + request.getOrganization() + " not found.");
         }
-        int organizationId = organization.get().getId();
-        snmpCredential.setOwnerOrganizationId(organizationId);
+        snmpCredential.setOwnerOrganization(organization.get());
 
         return snmpCredentialRepository.save(snmpCredential);
     }
@@ -50,7 +49,7 @@ public class SnmpCredentialManagementService {
             throw new EntityNotFoundException("Organization " + organizationName + " not found.");
         }
 
-        if (credential.getOwnerOrganizationId() != organization.get().getId()) {
+        if (!Objects.equals(credential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 
@@ -65,7 +64,7 @@ public class SnmpCredentialManagementService {
             throw new EntityNotFoundException("Organization " + organizationName + " not found.");
         }
 
-        if (credential.getOwnerOrganizationId() != organization.get().getId()) {
+        if (!Objects.equals(credential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 
@@ -84,7 +83,7 @@ public class SnmpCredentialManagementService {
             if (newOrganization.isEmpty()) {
                 throw new EntityNotFoundException("Organization " + patch.getOrganization() + " not found.");
             }
-            credential.setOwnerOrganizationId(newOrganization.get().getId());
+            credential.setOwnerOrganization(newOrganization.get());
         }
         return snmpCredentialRepository.save(credential);
     }
@@ -101,7 +100,7 @@ public class SnmpCredentialManagementService {
             throw new EntityNotFoundException("Organization " + organizationName + " not found.");
         }
 
-        if (credential.getOwnerOrganizationId() != organization.get().getId()) {
+        if (!Objects.equals(credential.getOwnerOrganization().getId(), organization.get().getId())) {
             throw new AccessDeniedException("User does not have permission to access this credential");
         }
 

@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuCredentialMapperImpl;
 import us.dot.its.jpo.ode.api.models.credentials.RsuCredentialDTO;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 
@@ -47,7 +48,11 @@ class RsuCredentialControllerTest {
         when(mockRsuCredential.getNickname()).thenReturn(nickname);
         when(mockRsuCredential.getUsername()).thenReturn(username);
         when(mockRsuCredential.getPassword()).thenReturn(password);
-        when(mockRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
+        
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+        when(mockRsuCredential.getOwnerOrganization()).thenReturn(mockOrganization);
+        
         RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
         when(mockRsuCredentialManagementService.create(organization, rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
@@ -107,7 +112,10 @@ class RsuCredentialControllerTest {
         when(mockRsuCredential.getNickname()).thenReturn(nickname);
         when(mockRsuCredential.getUsername()).thenReturn(username);
         when(mockRsuCredential.getPassword()).thenReturn(password);
-        when(mockRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
+        
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+        when(mockRsuCredential.getOwnerOrganization()).thenReturn(mockOrganization);
         when(mockRsuCredentialManagementService.getByNickname(organization, nickname)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
@@ -149,7 +157,11 @@ class RsuCredentialControllerTest {
         when(mockUpdatedRsuCredential.getId()).thenReturn(mockRsuCredentialId);
         when(mockUpdatedRsuCredential.getNickname()).thenReturn(nickname);
         when(mockUpdatedRsuCredential.getUsername()).thenReturn(username);
-        when(mockUpdatedRsuCredential.getOwnerOrganizationId()).thenReturn(mockOrganizationId);
+        
+        Organization mockOrganization = mock(Organization.class);
+        when(mockOrganization.getId()).thenReturn(mockOrganizationId);
+        when(mockUpdatedRsuCredential.getOwnerOrganization()).thenReturn(mockOrganization);
+        
         when(mockUpdatedRsuCredential.getPassword()).thenReturn(updatedPassword);
 
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
