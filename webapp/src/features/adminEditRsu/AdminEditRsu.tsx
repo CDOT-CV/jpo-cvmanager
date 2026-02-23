@@ -194,6 +194,8 @@ const AdminEditRsu = () => {
 
       await patchRsu({ rsuIp: data.orig_ip, patch }).unwrap()
       toast.success('RSU updated successfully', { id: loadingToast })
+      // Add a small delay to allow backend to finalize changes
+      await new Promise((resolve) => setTimeout(resolve, 500))
       setOpen(false)
       navigate('/dashboard/admin/rsus')
     } catch (error: any) {
@@ -501,6 +503,9 @@ const AdminEditRsu = () => {
                           {...register('tim_deposit')}
                           checked={watch('tim_deposit')}
                           color="primary"
+                          onChange={(event) => {
+                            setValue('tim_deposit', event.target.checked)
+                          }}
                         />
                       }
                       label="TIM Deposit"
@@ -515,6 +520,9 @@ const AdminEditRsu = () => {
                           {...register('snmp_monitoring')}
                           checked={watch('snmp_monitoring')}
                           color="primary"
+                          onChange={(event) => {
+                            setValue('snmp_monitoring', event.target.checked)
+                          }}
                         />
                       }
                       label="SNMP Monitoring"
