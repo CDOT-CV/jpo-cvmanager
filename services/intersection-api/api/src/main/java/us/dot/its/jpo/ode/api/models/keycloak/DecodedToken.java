@@ -123,7 +123,7 @@ public class DecodedToken {
             return Optional.empty();
         }
         for (DecodedToken.CvManagerData.Organization org : cvManagerData.getOrganizations()) {
-            if (org.getOrg().equalsIgnoreCase(orgName)) {
+            if (orgName != null && org != null && org.getOrg() != null && org.getOrg().equalsIgnoreCase(orgName)) {
                 return Optional.of(org.getRole());
             }
         }
