@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.services;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -51,6 +52,8 @@ class PermissionServiceTest {
     @InjectMocks
     private PermissionService permissionService;
 
+    private String tokenString = "mock-token";
+
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
@@ -70,6 +73,27 @@ class PermissionServiceTest {
     private void setupSecurityContext(JwtAuthenticationToken token) {
         SecurityContextHolder.setContext(securityContext);
         when(securityContext.getAuthentication()).thenReturn(token);
+    }
+
+    /**
+     * Sets up the Authorization header in the mock request
+     */
+    private void setupAuthorizationHeader(String bearerToken) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + bearerToken);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+    }
+
+    /**
+     * Sets up both Authorization and Organization headers
+     */
+    private void setupRequestWithHeaders(String bearerToken, String organization) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + bearerToken);
+        if (organization != null) {
+            request.addHeader("Organization", organization);
+        }
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 
     // ==================== checkRoleAbove Tests ====================
@@ -147,13 +171,18 @@ class PermissionServiceTest {
     void testIsSuperUser_WhenUserIsSuperUser() {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
+        setupAuthorizationHeader(tokenString);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("1");
+        when(decodedToken.isSuperUser()).thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.isSuperUser());
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.isSuperUser());
+            }
         }
     }
 
@@ -161,13 +190,18 @@ class PermissionServiceTest {
     void testIsSuperUser_WhenUserIsNotSuperUser() {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
+        setupAuthorizationHeader(tokenString);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertFalse(permissionService.isSuperUser());
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertFalse(permissionService.isSuperUser());
+            }
         }
     }
 
@@ -187,34 +221,41 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("1");
+        when(decodedToken.isSuperUser()).thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRole("ADMIN"));
-            assertTrue(permissionService.hasRole("OPERATOR"));
-            assertTrue(permissionService.hasRole("USER"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasRole("ADMIN"));
+                assertTrue(permissionService.hasRole("OPERATOR"));
+                assertTrue(permissionService.hasRole("USER"));
+            }
         }
     }
 
     @Test
     void testHasRole_WithOrganizationHeader_HasSufficientRole() {
+        System.out.println("HAS_ROLE Starting HasSufficientRole")
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
+        setupRequestWithHeaders(tokenString, "TestOrg");
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.findRoleInOrg("TestOrg")).thenReturn(Optional.of("ADMIN"));
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRole("OPERATOR"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(anyString())).thenReturn(decodedToken);
+
+                assertTrue(permissionService.hasRole("OPERATOR"));
+            }
         }
     }
 
@@ -222,19 +263,20 @@ class PermissionServiceTest {
     void testHasRole_WithOrganizationHeader_InsufficientRole() {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
+        setupRequestWithHeaders(tokenString, "TestOrg");
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.findRoleInOrg("TestOrg")).thenReturn(Optional.of("USER"));
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertFalse(permissionService.hasRole("ADMIN"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertFalse(permissionService.hasRole("ADMIN"));
+            }
         }
     }
 
@@ -243,14 +285,18 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRole("OPERATOR"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasRole("OPERATOR"));
+            }
         }
     }
 
@@ -259,14 +305,18 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertFalse(permissionService.hasRole("ADMIN"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertFalse(permissionService.hasRole("ADMIN"));
+            }
         }
     }
 
@@ -304,13 +354,17 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("1");
+        when(decodedToken.isSuperUser()).thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasIntersection(123, "USER"));
-            verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasIntersection(123, "USER"));
+                verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
+            }
         }
     }
 
@@ -319,8 +373,7 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Organization", "TestOrg");
@@ -330,9 +383,14 @@ class PermissionServiceTest {
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
                 .thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasIntersection(123, "USER"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasIntersection(123, "USER"));
+            }
         }
     }
 
@@ -341,8 +399,7 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Organization", "TestOrg");
@@ -352,10 +409,15 @@ class PermissionServiceTest {
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
                 .thenReturn(false);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertFalse(permissionService.hasIntersection(123, "USER"));
-            verify(intersectionRepository).existsByIdAndOrganizations("123", List.of("TestOrg"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertFalse(permissionService.hasIntersection(123, "USER"));
+                verify(intersectionRepository).existsByIdAndOrganizations("123", List.of("TestOrg"));
+            }
         }
     }
 
@@ -364,16 +426,20 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
         when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
                 .thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasIntersection(123, "OPERATOR"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasIntersection(123, "OPERATOR"));
+            }
         }
     }
 
@@ -384,13 +450,17 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("1");
+        when(decodedToken.isSuperUser()).thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
-            verify(rsuRepository, never()).existsByIpAndOrganizations(any(), anyList());
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
+                verify(rsuRepository, never()).existsByIpAndOrganizations(any(), anyList());
+            }
         }
     }
 
@@ -399,8 +469,7 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Organization", "TestOrg");
@@ -410,9 +479,14 @@ class PermissionServiceTest {
         when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
                 .thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
+            }
         }
     }
 
@@ -421,8 +495,7 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -431,10 +504,16 @@ class PermissionServiceTest {
         when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
                 .thenReturn(false);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
-            verify(rsuRepository).existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
+                verify(rsuRepository).existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"),
+                        List.of("TestOrg"));
+            }
         }
     }
 
@@ -443,16 +522,20 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
 
-        when(decodedToken.getCvManagerData()).thenReturn(tokenCvManagerData);
-        when(tokenCvManagerData.getSuperUser()).thenReturn("0");
+        when(decodedToken.isSuperUser()).thenReturn(false);
 
         when(decodedToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
         when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
                 .thenReturn(true);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
+            }
         }
     }
 

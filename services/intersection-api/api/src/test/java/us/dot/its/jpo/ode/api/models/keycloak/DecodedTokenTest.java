@@ -190,9 +190,9 @@ class DecodedTokenTest {
         List<String> qualifiedOrgs = token.getQualifiedOrgList("OPERATOR");
 
         assertNotNull(qualifiedOrgs);
-        assertEquals(2, qualifiedOrgs.size());
+        assertEquals(1, qualifiedOrgs.size());
         assertTrue(qualifiedOrgs.contains("Test Org"));
-        assertTrue(qualifiedOrgs.contains("Test Org 2"));
+        assertFalse(qualifiedOrgs.contains("Test Org 2"));
     }
 
     @Test

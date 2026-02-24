@@ -54,6 +54,8 @@ class RsuControllerTest {
     @InjectMocks
     private RsuController rsuController;
 
+    private String tokenString = "token";
+
     // ==================== GET ALL RSUS TESTS ====================
 
     @Test
@@ -131,7 +133,8 @@ class RsuControllerTest {
         String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "snmp_monitoring"));
-        Pageable expectedMappedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "rsuOption.snmpMonitoring"));
+        Pageable expectedMappedPageable = PageRequest.of(0, 100,
+                Sort.by(Sort.Direction.ASC, "rsuOption.snmpMonitoring"));
 
         Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
 
@@ -254,7 +257,7 @@ class RsuControllerTest {
 
         assertThrows(
                 ResponseStatusException.class,
-                        () -> rsuController.getSingleRsuData(invalidRsuIp));
+                () -> rsuController.getSingleRsuData(invalidRsuIp));
 
         verify(rsuManagementService).getRsuInfo(invalidRsuIp);
     }
@@ -272,21 +275,26 @@ class RsuControllerTest {
                 Arrays.asList("TestOrg", "OtherOrg"));
 
         when(rsuManagementService.getAllowedSelections(any(DecodedToken.class))).thenReturn(allowedSelections);
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
 
-            ModifyRsuAllowedSelections result = rsuController.getAllowedSelections();
+                ModifyRsuAllowedSelections result = rsuController.getAllowedSelections();
 
-            assertNotNull(result);
+                assertNotNull(result);
 
-            assertEquals(2, result.getPrimaryRoutes().size());
-            assertEquals(2, result.getRsuModels().size());
-            assertEquals(2, result.getSshCredentialGroups().size());
-            assertEquals(2, result.getSnmpCredentialGroups().size());
-            assertEquals(2, result.getSnmpVersionGroups().size());
-            assertEquals(2, result.getOrganizations().size());
+                assertEquals(2, result.getPrimaryRoutes().size());
+                assertEquals(2, result.getRsuModels().size());
+                assertEquals(2, result.getSshCredentialGroups().size());
+                assertEquals(2, result.getSnmpCredentialGroups().size());
+                assertEquals(2, result.getSnmpVersionGroups().size());
+                assertEquals(2, result.getOrganizations().size());
 
-            verify(rsuManagementService).getAllowedSelections(any(DecodedToken.class));
+                verify(rsuManagementService).getAllowedSelections(any(DecodedToken.class));
+            }
         }
     }
 
@@ -301,16 +309,21 @@ class RsuControllerTest {
         doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
         doNothing().when(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
 
-            assertNotNull(result);
-            assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-            assertNull(result.getBody());
+                assertNotNull(result);
+                assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+                assertNull(result.getBody());
 
-            verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-            verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
+            }
         }
     }
 
@@ -322,14 +335,19 @@ class RsuControllerTest {
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
                 .when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertThrows(
-                    ResponseStatusException.class,
-                    () -> rsuController.modifyRsu(rsuIp, patch));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, patch));
 
-            verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+            }
         }
     }
 
@@ -342,14 +360,19 @@ class RsuControllerTest {
         doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address"))
                 .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertThrows(
-                    ResponseStatusException.class,
-                    () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStaticDecodedToken = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStaticDecodedToken.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
-            verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
-            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+                verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+            }
         }
     }
 
@@ -361,14 +384,19 @@ class RsuControllerTest {
         doThrow(new RuntimeException("Database error"))
                 .when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
 
-        try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-            mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
-            assertThrows(
-                    RuntimeException.class,
-                    () -> rsuController.modifyRsu(rsuIp, patch));
+        try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
+                .mockStatic(PermissionService.class)) {
+            mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
+                    .thenReturn(tokenString);
+            try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
+                mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+                assertThrows(
+                        RuntimeException.class,
+                        () -> rsuController.modifyRsu(rsuIp, patch));
 
-            verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
+            }
         }
     }
 
@@ -398,7 +426,7 @@ class RsuControllerTest {
 
         assertThrows(
                 ResponseStatusException.class,
-                        () -> rsuController.deleteRsu(rsuIp));
+                () -> rsuController.deleteRsu(rsuIp));
 
         verify(rsuManagementService).deleteRsuByIpv4Address(rsuIp);
     }
@@ -412,7 +440,7 @@ class RsuControllerTest {
 
         assertThrows(
                 ResponseStatusException.class,
-                        () -> rsuController.deleteRsu(invalidRsuIp));
+                () -> rsuController.deleteRsu(invalidRsuIp));
 
         verify(rsuManagementService).deleteRsuByIpv4Address(invalidRsuIp);
     }
@@ -485,7 +513,7 @@ class RsuControllerTest {
 
         assertThrows(
                 ResponseStatusException.class,
-                        () -> rsuController.deleteRsus(rsuIps));
+                () -> rsuController.deleteRsus(rsuIps));
 
         verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
     }
@@ -499,7 +527,7 @@ class RsuControllerTest {
 
         assertThrows(
                 ResponseStatusException.class,
-                        () -> rsuController.deleteRsus(rsuIps));
+                () -> rsuController.deleteRsus(rsuIps));
 
         verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
     }
