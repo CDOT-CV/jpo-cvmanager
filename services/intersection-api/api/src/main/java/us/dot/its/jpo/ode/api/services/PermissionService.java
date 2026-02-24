@@ -73,29 +73,23 @@ public class PermissionService {
     // Allow Connection if the user is a part of at least one organization with a
     // matching roll.
     public boolean hasRole(String role) {
-        System.out.println("HAS_ROLE role: " + role);
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
-            System.out.println("- HAS_ROLE auth invalid");
             return false;
         }
 
         DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
         if (decodedToken.isSuperUser()) {
-            System.out.println("- HAS_ROLE is super user");
             return true;
         }
 
         String organization = getOrganizationFromHeader();
+
         if (organization != null) {
             Optional<String> userRole = decodedToken.findRoleInOrg(organization);
-            System.out.println("- HAS_ROLE org header specified");
-            System.out.println("  - HAS_ROLE userRole: " + userRole.orElse("NULL"));
-            System.out.println("  - HAS_ROLE checkRoleAbove " + checkRoleAbove(userRole.orElse(""), role));
-            return userRole.map(roleValue -> checkRoleAbove(roleValue, role)).orElse(false);
+            return userRole.map(roleValue -> checkRoleAbove(roleValue,
+                    role)).orElse(false);
         }
-        System.out.println("- HAS_ROLE no org header");
-        System.out.println("  - HAS_ROLE qualified orgs: " + String.join(", ", decodedToken.getQualifiedOrgList(role)));
         return !decodedToken.getQualifiedOrgList(role).isEmpty();
     }
 

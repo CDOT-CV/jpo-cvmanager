@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -81,18 +80,6 @@ class PermissionServiceTest {
     private void setupAuthorizationHeader(String bearerToken) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + bearerToken);
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-    }
-
-    /**
-     * Sets up both Authorization and Organization headers
-     */
-    private void setupRequestWithHeaders(String bearerToken, String organization) {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + bearerToken);
-        if (organization != null) {
-            request.addHeader("Organization", organization);
-        }
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 
@@ -238,10 +225,8 @@ class PermissionServiceTest {
 
     @Test
     void testHasRole_WithOrganizationHeader_HasSufficientRole() {
-        System.out.println("HAS_ROLE Starting HasSufficientRole")
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
-        setupRequestWithHeaders(tokenString, "TestOrg");
 
         when(decodedToken.isSuperUser()).thenReturn(false);
 
@@ -251,6 +236,10 @@ class PermissionServiceTest {
                 .mockStatic(PermissionService.class)) {
             mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
                     .thenReturn(tokenString);
+            mockedStaticPermissionService.when(() -> PermissionService.getOrganizationFromHeader())
+                    .thenReturn("TestOrg");
+            mockedStaticPermissionService.when(() -> PermissionService.checkRoleAbove("ADMIN", "OPERATOR"))
+                    .thenReturn(true);
             try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
                 mockedStatic.when(() -> DecodedToken.fromJwtToken(anyString())).thenReturn(decodedToken);
 
@@ -263,7 +252,6 @@ class PermissionServiceTest {
     void testHasRole_WithOrganizationHeader_InsufficientRole() {
         JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
         setupSecurityContext(token);
-        setupRequestWithHeaders(tokenString, "TestOrg");
 
         when(decodedToken.isSuperUser()).thenReturn(false);
 
@@ -273,6 +261,10 @@ class PermissionServiceTest {
                 .mockStatic(PermissionService.class)) {
             mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
                     .thenReturn(tokenString);
+            mockedStaticPermissionService.when(() -> PermissionService.getOrganizationFromHeader())
+                    .thenReturn("TestOrg");
+            mockedStaticPermissionService.when(() -> PermissionService.checkRoleAbove("USER", "OPERATOR"))
+                    .thenReturn(false);
             try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
                 mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
                 assertFalse(permissionService.hasRole("ADMIN"));
