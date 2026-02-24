@@ -126,7 +126,7 @@ public class IntersectionControllerTest {
 
             ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation(null, 5.0,
                     6.0, false);
-            assertThat(response.getStatusCodeValue()).isEqualTo(200);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).contains(intersection);
         }
     }
