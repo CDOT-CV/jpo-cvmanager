@@ -122,9 +122,16 @@ public class DecodedToken {
         if (cvManagerData == null || cvManagerData.getOrganizations() == null) {
             return Optional.empty();
         }
+        if (orgName == null) {
+            return Optional.empty();
+        }
         for (DecodedToken.CvManagerData.Organization org : cvManagerData.getOrganizations()) {
-            if (orgName != null && org != null && org.getOrg() != null && org.getOrg().equalsIgnoreCase(orgName)) {
-                return Optional.of(org.getRole());
+            if (org == null) {
+                continue;
+            }
+            String organizationName = org.getOrg();
+            if (organizationName != null && organizationName.equalsIgnoreCase(orgName)) {
+                return Optional.ofNullable(org.getRole());
             }
         }
         return Optional.empty();
