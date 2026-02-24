@@ -131,7 +131,11 @@ public class DecodedToken {
     }
 
     public boolean isSuperUser() {
-        return cvManagerData != null && "1".equals(cvManagerData.getSuperUser());
+        if (cvManagerData == null) {
+            return false;
+        }
+        String superUser = cvManagerData.getSuperUser();
+        return "1".equals(superUser);
     }
 
     @Data
