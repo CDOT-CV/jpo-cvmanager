@@ -52,7 +52,7 @@ public class StompHandshakeInterceptor implements HandshakeInterceptor {
     private String getToken(ServerHttpRequest req) {
 
         HttpHeaders headers = req.getHeaders();
-        if (headers.containsKey("Token")) {
+        if (headers.containsHeader("Token") ) {
 
             // Parse Token from Token Header
             var token = headers.get("Token");
@@ -60,7 +60,7 @@ public class StompHandshakeInterceptor implements HandshakeInterceptor {
                 return token.getFirst();
             }
 
-        } else if (headers.containsKey("sec-websocket-protocol")) {
+        } else if (headers.containsHeader("sec-websocket-protocol")) {
 
             // Parse Token From Cookie
             List<String> cookies = req.getHeaders().get("sec-websocket-protocol");
