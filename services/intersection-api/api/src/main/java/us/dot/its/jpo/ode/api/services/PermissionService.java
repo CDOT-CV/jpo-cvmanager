@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.RequestScopedDecodedToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
@@ -31,6 +32,7 @@ public class PermissionService {
 
     private final IntersectionRepository intersectionRepository;
     private final RsuRepository rsuRepository;
+    private final RequestScopedDecodedToken requestScopedToken;
 
     private static final Map<String, Integer> ROLE_HIERARCHY = new HashMap<>();
 
@@ -58,6 +60,11 @@ public class PermissionService {
                 .collect(Collectors.toList());
     }
 
+    public DecodedToken getDecodedToken() {
+        String jwtToken = getJwtTokenFromRequest();
+        return requestScopedToken.getToken(jwtToken);
+    }
+
     // Allow Connection if the user is a SuperUser
     public boolean isSuperUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -65,9 +72,7 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
-
-        return decodedToken.isSuperUser();
+        return getDecodedToken().isSuperUser();
     }
 
     // Allow Connection if the user is a part of at least one organization with a
@@ -78,7 +83,7 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        DecodedToken decodedToken = getDecodedToken();
         if (decodedToken.isSuperUser()) {
             return true;
         }
@@ -87,8 +92,7 @@ public class PermissionService {
 
         if (organization != null) {
             Optional<String> userRole = decodedToken.findRoleInOrg(organization);
-            return userRole.map(roleValue -> checkRoleAbove(roleValue,
-                    role)).orElse(false);
+            return userRole.map(roleValue -> checkRoleAbove(roleValue, role)).orElse(false);
         }
         return !decodedToken.getQualifiedOrgList(role).isEmpty();
     }
@@ -106,7 +110,7 @@ public class PermissionService {
             return true;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        DecodedToken decodedToken = getDecodedToken();
         if (decodedToken.isSuperUser()) {
             return true;
         }
@@ -116,14 +120,17 @@ public class PermissionService {
         String organization = getOrganizationFromHeader();
         if (organization != null) {
             if (qualifiedOrgs.contains(organization)) {
-                return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(),
+                return intersectionRepository.existsByIdAndOrganizations(
+                        intersectionID.toString(),
                         List.of(organization));
             } else {
                 return false;
             }
         }
 
-        return intersectionRepository.existsByIdAndOrganizations(intersectionID.toString(), qualifiedOrgs);
+        return intersectionRepository.existsByIdAndOrganizations(
+                intersectionID.toString(),
+                qualifiedOrgs);
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
@@ -140,7 +147,7 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        DecodedToken decodedToken = getDecodedToken();
         if (decodedToken.isSuperUser()) {
             return true;
         }
@@ -175,7 +182,7 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = DecodedToken.fromJwtToken(getJwtTokenFromRequest());
+        DecodedToken decodedToken = getDecodedToken();
         if (decodedToken.isSuperUser()) {
             return true;
         }
