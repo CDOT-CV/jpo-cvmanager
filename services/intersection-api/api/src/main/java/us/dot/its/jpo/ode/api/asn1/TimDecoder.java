@@ -4,11 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.ode.api.models.messages.TimDecodedMessage;
@@ -23,6 +20,8 @@ import us.dot.its.jpo.ode.model.OdeMessageFramePayload;
 import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata;
 import us.dot.its.jpo.ode.util.DateTimeUtils;
 import us.dot.its.jpo.asn.j2735.r2024.MessageFrame.MessageFrame;
+
+import tools.jackson.databind.DatabindException;
 import us.dot.its.jpo.asn.j2735.r2024.TravelerInformation.TravelerInformationMessageFrame;
 
 /**
@@ -62,7 +61,7 @@ public class TimDecoder implements Decoder {
                     ((TravelerInformationMessageFrame) odeMessageFrameData.getPayload().getData()).getValue(),
                     message.getAsn1Message(), "");
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return new TimDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         }
 
@@ -86,12 +85,12 @@ public class TimDecoder implements Decoder {
      *
      * @param encodedXml XER-encoded XML string
      * @return OdeMessageFrameData object
-     * @throws JsonMappingException    if XML mapping fails
-     * @throws JsonProcessingException if XML processing fails
+     * @throws DatabindException    if XML mapping fails
+     * @throws JacksonException if XML processing fails
      */
     @Override
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws JsonMappingException, JsonProcessingException {
+            throws DatabindException, JacksonException {
         OdeMessageFrameMetadata metadata = new OdeMessageFrameMetadata();
         metadata.setOdeReceivedAt(DateTimeUtils.now());
         metadata.setRecordType(RecordType.timMsg);

@@ -6,14 +6,15 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+
 import us.dot.its.jpo.asn.j2735.r2024.SPAT.SPAT;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
+
+import tools.jackson.databind.DatabindException;
 
 @Slf4j
 public class MockSpatGenerator {
@@ -29,9 +30,9 @@ public class MockSpatGenerator {
                     Files.readAllBytes(Path.of("src/main/resources/mockdata/processed_spat.json")));
             ProcessedSpat spat = objectMapper.readValue(processedSpatString, ProcessedSpat.class);
             spats.add(spat);
-        } catch (JsonMappingException e) {
+        } catch (DatabindException e) {
             log.error("JsonMappingException", e);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -50,9 +51,9 @@ public class MockSpatGenerator {
             String spatString = new String(Files.readAllBytes(Path.of("src/main/resources/mockdata/spat.json")));
             SPAT spat = objectMapper.readValue(spatString, SPAT.class);
             spats.add(spat);
-        } catch (JsonMappingException e) {
+        } catch (DatabindException e) {
             log.error("JsonMappingException", e);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block

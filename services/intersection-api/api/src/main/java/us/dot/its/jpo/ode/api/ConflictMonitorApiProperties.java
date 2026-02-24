@@ -5,9 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
+import org.springframework.boot.jackson.autoconfigure.XmlMapperBuilderCustomizer;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import tools.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.conflictmonitor.AlwaysContinueProductionExceptionHandler;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
@@ -358,7 +359,7 @@ public class ConflictMonitorApiProperties {
                 dockerIp = "localhost";
             }
             dockerHostIP = dockerIp;
-            connectURL = String.format("http://%s:%s", dockerHostIP, DEFAULT_CONNECT_PORT);
+            connectURL = "http://%s:%s".formatted(dockerHostIP, DEFAULT_CONNECT_PORT);
         }
 
         List<String> asList = Arrays.asList(this.getKafkaTopicsDisabled());

@@ -4,11 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.asn.j2735.r2024.BasicSafetyMessage.BasicSafetyMessageMessageFrame;
@@ -24,6 +21,8 @@ import us.dot.its.jpo.ode.model.OdeMessageFramePayload;
 import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata;
 import us.dot.its.jpo.ode.util.DateTimeUtils;
 import us.dot.its.jpo.asn.j2735.r2024.MessageFrame.MessageFrame;
+
+import tools.jackson.databind.DatabindException;
 import us.dot.its.jpo.geojsonconverter.converter.bsm.BsmProcessedJsonConverter;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.DeserializedRawBsm;
@@ -72,7 +71,7 @@ public class BsmDecoder implements Decoder {
             ProcessedBsm<Point> processedBsm = convertMessageFrameToProcessedBsm(odeMessageFrameData);
             return new BsmDecodedMessage(processedBsm, message.getAsn1Message(), "");
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return new BsmDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         }
 
@@ -96,12 +95,12 @@ public class BsmDecoder implements Decoder {
      *
      * @param encodedXml XER-encoded XML string
      * @return OdeMessageFrameData object
-     * @throws JsonMappingException    if XML mapping fails
-     * @throws JsonProcessingException if XML processing fails
+     * @throws DatabindException    if XML mapping fails
+     * @throws JacksonException if XML processing fails
      */
     @Override
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws JsonMappingException, JsonProcessingException {
+            throws DatabindException, JacksonException {
         OdeMessageFrameMetadata metadata = new OdeMessageFrameMetadata();
         metadata.setOdeReceivedAt(DateTimeUtils.now());
         metadata.setRecordType(RecordType.bsmTx);

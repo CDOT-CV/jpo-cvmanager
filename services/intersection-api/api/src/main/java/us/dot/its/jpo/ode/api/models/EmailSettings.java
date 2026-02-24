@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 @Slf4j
 public class EmailSettings {
@@ -41,7 +41,7 @@ public class EmailSettings {
             try {
                 settings = mapper.readValue(notifications.getFirst(), EmailSettings.class);
                 return settings;
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 log.error("Failed to deserialize email settings", e);
             }
 
@@ -66,7 +66,7 @@ public class EmailSettings {
         ObjectMapper mapper = DateJsonMapper.getInstance();
         try {
             return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             logger.error("Exception serializing JSON", e);
         }
         return "";

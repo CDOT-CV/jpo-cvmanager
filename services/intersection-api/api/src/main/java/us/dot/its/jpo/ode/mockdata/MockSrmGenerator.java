@@ -6,13 +6,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+
 import us.dot.its.jpo.asn.j2735.r2024.SignalRequestMessage.SignalRequestMessage;
+
+import tools.jackson.databind.DatabindException;
 
 @Slf4j
 public class MockSrmGenerator {
@@ -28,9 +29,9 @@ public class MockSrmGenerator {
             SignalRequestMessage srm = objectMapper.readValue(srmString,
                     SignalRequestMessage.class);
             srms.add(srm);
-        } catch (JsonMappingException e) {
+        } catch (DatabindException e) {
             log.error("JsonMappingException", e);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("JsonProcessingException", e);
         } catch (IOException e) {
             // TODO Auto-generated catch block
