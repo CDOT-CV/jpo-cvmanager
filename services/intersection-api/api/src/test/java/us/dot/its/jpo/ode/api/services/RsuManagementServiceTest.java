@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
@@ -42,7 +43,7 @@ import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -87,6 +88,9 @@ class RsuManagementServiceTest {
     private RsuRepository rsuRepository;
 
     @Mock
+    private RsuOptionRepository rsuOptionRepository;
+
+    @Mock
     private ScmsHealthRepository scmsHealthRepository;
 
     @Mock
@@ -129,7 +133,9 @@ class RsuManagementServiceTest {
                 "ssh-group",
                 "snmp-group",
                 "v3",
-                Arrays.asList("Org1", "Org2"));
+                Arrays.asList("Org1", "Org2"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(mockRsu);
         when(rsuMapper.toDto(mockRsu)).thenReturn(mockDto);
@@ -195,7 +201,9 @@ class RsuManagementServiceTest {
                 "ssh1",
                 "snmp1",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
         RsuInfoDto dto2 = new RsuInfoDto(
                 "192.168.1.101",
                 new SimplePosition(39.7400, -105.0850),
@@ -207,7 +215,9 @@ class RsuManagementServiceTest {
                 "ssh2",
                 "snmp2",
                 "v2c",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         when(rsuRepository.findAllByOrganization(orgName, search, pageable)).thenReturn(rsuPage);
         when(rsuMapper.toDto(rsu1)).thenReturn(dto1);
@@ -329,7 +339,7 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setMilepost(123.4);
         existingRsu.setPrimaryRoute("I-25");
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuInfoDto expectedDto = new RsuInfoDto(
                 rsuIp,
@@ -342,7 +352,9 @@ class RsuManagementServiceTest {
                 "ssh-group",
                 "snmp-group",
                 "v3",
-                Arrays.asList("Org1"));
+                Arrays.asList("Org1"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         doNothing().when(rsuPatchMapper).updateRsuFromPatch(patch, existingRsu);
@@ -371,7 +383,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuModel newModel = new RsuModel();
         newModel.setName("RSU-2X");
@@ -401,7 +413,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuCredential sshCred = new RsuCredential();
         SnmpCredential snmpCred = new SnmpCredential();
@@ -460,7 +472,7 @@ class RsuManagementServiceTest {
         patch.setModel("Unknown Model");
 
         Rsu existingRsu = new Rsu();
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuModelRepository.findByNameAndManufacturerName(anyString(), anyString()))
@@ -482,7 +494,7 @@ class RsuManagementServiceTest {
         patch.setModel("InvalidFormat");
 
         Rsu existingRsu = new Rsu();
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
@@ -507,7 +519,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         Organization org1 = new Organization();
         org1.setName("Org1");
@@ -544,7 +556,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1");
 
@@ -571,7 +583,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
 
@@ -598,7 +610,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("NonExistentOrg");
 
@@ -627,7 +639,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         Organization org1 = new Organization();
         org1.setName("Org1");
@@ -669,7 +681,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1");
 
@@ -695,7 +707,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
 
@@ -723,7 +735,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         Organization newOrg = new Organization();
         newOrg.setName("NewOrg");
@@ -762,7 +774,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1");
 
@@ -789,7 +801,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<String> authorizedOrgs = Arrays.asList("Org1");
 
@@ -816,7 +828,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
@@ -839,7 +851,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
@@ -861,7 +873,7 @@ class RsuManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(new ArrayList<>());
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
@@ -891,6 +903,7 @@ class RsuManagementServiceTest {
                 .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+        doNothing().when(rsuOptionRepository).removeRsuOptionByIpv4Address(inetAddress);
 
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
 
@@ -902,6 +915,7 @@ class RsuManagementServiceTest {
         verify(consecutiveFirmwareUpgradeFailureRepository)
                 .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
         verify(maxRetryLimitReachedInstanceRepository).removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+        verify(rsuOptionRepository).removeRsuOptionByIpv4Address(inetAddress);
         verify(rsuRepository).removeRsuByIpv4Address(inetAddress);
     }
 
@@ -933,6 +947,7 @@ class RsuManagementServiceTest {
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         doNothing().when(maxRetryLimitReachedInstanceRepository)
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(anyList());
+        doNothing().when(rsuOptionRepository).removeMultipleRsuOptionsByIpv4Address(anyList());
         doNothing().when(rsuRepository).removeByIpv4AddressIn(anyList());
 
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
@@ -946,6 +961,7 @@ class RsuManagementServiceTest {
         verify(consecutiveFirmwareUpgradeFailureRepository)
                 .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(anyList());
         verify(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(anyList());
+        verify(rsuOptionRepository).removeMultipleRsuOptionsByIpv4Address(anyList());
         verify(rsuRepository).removeByIpv4AddressIn(anyList());
     }
 

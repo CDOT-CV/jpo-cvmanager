@@ -33,6 +33,7 @@ import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 @Slf4j
 @RestController
@@ -45,12 +46,15 @@ import us.dot.its.jpo.ode.api.services.RsuManagementService;
 @RequiredArgsConstructor
 public class RsuController {
     private final RsuManagementService rsuManagementService;
+    private final RsuOptionManagementService rsuOptionManagementService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "ip", "ipv4Address",
             "primary_route", "primaryRoute",
             "serial_number", "serialNumber",
-            "scms_id", "issScmsId");
+            "scms_id", "issScmsId",
+            "tim_deposit", "rsuOption.timDeposit",
+            "snmp_monitoring", "rsuOption.snmpMonitoring");
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
@@ -62,7 +66,7 @@ public class RsuController {
     public Page<RsuInfoDto> getAllRsus(
             @RequestHeader(name = "Organization", required = true) String organization,
             @RequestParam(name = "search", required = false) String search,
-                    @PageableDefault(size = 100) Pageable pageable) {
+            @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);
 
         Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, search, mappedPageable);
@@ -113,6 +117,7 @@ public class RsuController {
             @Validated @RequestBody RsuPatch body) {
         DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
         rsuManagementService.modifyRsu(rsuIp, body, token);
+        rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
     }

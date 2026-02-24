@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
@@ -23,6 +24,7 @@ import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +38,9 @@ class RsuControllerTest {
 
     @Mock
     private RsuManagementService rsuManagementService;
+
+    @Mock
+    private RsuOptionManagementService rsuOptionManagementService;
 
     @Mock
     private PermissionService permissionService;
@@ -68,7 +73,9 @@ class RsuControllerTest {
                 "ssh-group-1",
                 "snmp-group-1",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         RsuInfoDto rsu2 = new RsuInfoDto(
                 "192.168.1.101",
@@ -81,7 +88,9 @@ class RsuControllerTest {
                 "ssh-group-2",
                 "snmp-group-2",
                 "v2c",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
         Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
@@ -97,6 +106,42 @@ class RsuControllerTest {
         assertEquals("192.168.1.101", result.getContent().get(1).getIpv4Address());
 
         verify(rsuManagementService).getAllRsuInfo(organization, search, pageable);
+    }
+
+    @Test
+    void testGetAllRsus_Sorting_TimDeposit() {
+        String organization = "TestOrg";
+        String search = "";
+        Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "tim_deposit"));
+        Pageable expectedMappedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "rsuOption.timDeposit"));
+
+        Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
+
+        when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+                .thenReturn(emptyPage);
+
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+
+        assertNotNull(result);
+        verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
+    }
+
+    @Test
+    void testGetAllRsus_Sorting_SnmpMonitoring() {
+        String organization = "TestOrg";
+        String search = "";
+        Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "snmp_monitoring"));
+        Pageable expectedMappedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "rsuOption.snmpMonitoring"));
+
+        Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
+
+        when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+                .thenReturn(emptyPage);
+
+        Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+
+        assertNotNull(result);
+        verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
     }
 
     @Test
@@ -134,7 +179,9 @@ class RsuControllerTest {
                 "ssh-group",
                 "snmp-group",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
@@ -166,7 +213,9 @@ class RsuControllerTest {
                 "ssh-group-1",
                 "snmp-group-1",
                 "v3",
-                Arrays.asList("TestOrg"));
+                Arrays.asList("TestOrg"),
+                Boolean.TRUE,
+                Boolean.TRUE);
 
         when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
 
@@ -250,6 +299,7 @@ class RsuControllerTest {
         patch.setIpv4Address("192.168.1.101");
 
         doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+        doNothing().when(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
 
         try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
             mockedStatic.when(() -> DecodedToken.fromJwtToken(null)).thenReturn(decodedToken);
@@ -260,6 +310,7 @@ class RsuControllerTest {
             assertNull(result.getBody());
 
             verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+            verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
         }
     }
 
@@ -278,6 +329,7 @@ class RsuControllerTest {
                     () -> rsuController.modifyRsu(rsuIp, patch));
 
             verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
         }
     }
 
@@ -297,6 +349,7 @@ class RsuControllerTest {
                     () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
             verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
         }
     }
 
@@ -315,6 +368,7 @@ class RsuControllerTest {
                     () -> rsuController.modifyRsu(rsuIp, patch));
 
             verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+            verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
         }
     }
 
