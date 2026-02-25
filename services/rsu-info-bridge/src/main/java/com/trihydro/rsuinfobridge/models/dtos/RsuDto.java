@@ -26,10 +26,10 @@ public class RsuDto {
     private String snmpPassword;
 
     @Schema(description = "Authentication protocol used", example = "SHA")
-    private String authenticationProtocol; // optional
+    private String authenticationProtocol;
 
     @Schema(description = "Privacy protocol used", example = "AES")
-    private String privacyProtocol; // optional
+    private String privacyProtocol;
 
     @Schema(description = "Latitude coordinate of the RSU location", example = "39.73915")
     private Double latitude;
