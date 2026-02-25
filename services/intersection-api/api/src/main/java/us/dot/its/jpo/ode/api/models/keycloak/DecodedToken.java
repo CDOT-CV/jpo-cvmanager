@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.utils.AuthUtils;
 import lombok.AllArgsConstructor;
 
 import java.nio.charset.StandardCharsets;
@@ -113,7 +113,7 @@ public class DecodedToken {
             return List.of();
         }
         return cvManagerData.getOrganizations().stream()
-                .filter(entry -> PermissionService.checkRoleAbove(entry.getRole(), requiredRole))
+                .filter(entry -> entry != null && AuthUtils.checkRoleAbove(entry.getRole(), requiredRole))
                 .map(DecodedToken.CvManagerData.Organization::getOrg)
                 .collect(Collectors.toList());
     }
@@ -122,16 +122,27 @@ public class DecodedToken {
         if (cvManagerData == null || cvManagerData.getOrganizations() == null) {
             return Optional.empty();
         }
+        if (orgName == null) {
+            return Optional.empty();
+        }
         for (DecodedToken.CvManagerData.Organization org : cvManagerData.getOrganizations()) {
-            if (org.getOrg().equalsIgnoreCase(orgName)) {
-                return Optional.of(org.getRole());
+            if (org == null) {
+                continue;
+            }
+            String organizationName = org.getOrg();
+            if (organizationName != null && organizationName.equalsIgnoreCase(orgName)) {
+                return Optional.ofNullable(org.getRole());
             }
         }
         return Optional.empty();
     }
 
     public boolean isSuperUser() {
-        return cvManagerData != null && "1".equals(cvManagerData.getSuperUser());
+        if (cvManagerData == null) {
+            return false;
+        }
+        String superUser = cvManagerData.getSuperUser();
+        return "1".equals(superUser);
     }
 
     @Data
