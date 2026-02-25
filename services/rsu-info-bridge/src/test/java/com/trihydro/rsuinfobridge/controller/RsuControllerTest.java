@@ -63,7 +63,7 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
 
-    private List<RsuDto> getMockData() {
+    List<RsuDto> getMockData() {
         String AUTHENTICATION_PROTOCOL = "SHA";
         String PRIVACY_PROTOCOL = "AES";
 
@@ -100,7 +100,7 @@ class RsuControllerTest {
         return rsus;
     }
 
-    private MockMvc initializeMockMvc() {
+    MockMvc initializeMockMvc() {
         return MockMvcBuilders.standaloneSetup(new RsuController(rsuService)).build();
     }
 }
