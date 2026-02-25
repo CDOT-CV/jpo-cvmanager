@@ -15,13 +15,12 @@ import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.keycloak.RequestScopedDecodedToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.utils.AuthUtils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,22 +32,6 @@ public class PermissionService {
     private final IntersectionRepository intersectionRepository;
     private final RsuRepository rsuRepository;
     private final RequestScopedDecodedToken requestScopedToken;
-
-    private static final Map<String, Integer> ROLE_HIERARCHY = new HashMap<>();
-
-    static {
-        ROLE_HIERARCHY.put("ADMIN", 3);
-        ROLE_HIERARCHY.put("OPERATOR", 2);
-        ROLE_HIERARCHY.put("USER", 1);
-    }
-
-    public static boolean checkRoleAbove(String userRole, String requiredRole) {
-        if (userRole == null) {
-            return false;
-        }
-        List<String> roles = List.of("USER", "OPERATOR", "ADMIN");
-        return roles.indexOf(userRole.toUpperCase()) >= roles.indexOf(requiredRole.toUpperCase());
-    }
 
     public List<Integer> getAllowedIntersectionIdsByEmail(String email) {
         return intersectionRepository.findAllowedIntersectionIdsByEmail(email).stream().map(Integer::parseInt)
@@ -92,7 +75,7 @@ public class PermissionService {
 
         if (organization != null) {
             Optional<String> userRole = decodedToken.findRoleInOrg(organization);
-            return userRole.map(roleValue -> checkRoleAbove(roleValue, role)).orElse(false);
+            return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
         }
         return !decodedToken.getQualifiedOrgList(role).isEmpty();
     }

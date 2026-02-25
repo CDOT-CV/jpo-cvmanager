@@ -99,51 +99,6 @@ class PermissionServiceTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 
-    // ==================== checkRoleAbove Tests ====================
-
-    @Test
-    void testCheckRoleAbove_AdminAboveOperator() {
-        assertTrue(PermissionService.checkRoleAbove("ADMIN", "OPERATOR"));
-    }
-
-    @Test
-    void testCheckRoleAbove_AdminAboveUser() {
-        assertTrue(PermissionService.checkRoleAbove("ADMIN", "USER"));
-    }
-
-    @Test
-    void testCheckRoleAbove_OperatorAboveUser() {
-        assertTrue(PermissionService.checkRoleAbove("OPERATOR", "USER"));
-    }
-
-    @Test
-    void testCheckRoleAbove_SameRole() {
-        assertTrue(PermissionService.checkRoleAbove("ADMIN", "ADMIN"));
-        assertTrue(PermissionService.checkRoleAbove("OPERATOR", "OPERATOR"));
-        assertTrue(PermissionService.checkRoleAbove("USER", "USER"));
-    }
-
-    @Test
-    void testCheckRoleAbove_UserNotAboveOperator() {
-        assertFalse(PermissionService.checkRoleAbove("USER", "OPERATOR"));
-    }
-
-    @Test
-    void testCheckRoleAbove_OperatorNotAboveAdmin() {
-        assertFalse(PermissionService.checkRoleAbove("OPERATOR", "ADMIN"));
-    }
-
-    @Test
-    void testCheckRoleAbove_NullRole() {
-        assertFalse(PermissionService.checkRoleAbove(null, "ADMIN"));
-    }
-
-    @Test
-    void testCheckRoleAbove_CaseInsensitive() {
-        assertTrue(PermissionService.checkRoleAbove("admin", "user"));
-        assertTrue(PermissionService.checkRoleAbove("Admin", "User"));
-    }
-
     // ==================== getAllowedIntersectionIds Tests ====================
 
     @Test

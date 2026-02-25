@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.utils.AuthUtils;
 import lombok.AllArgsConstructor;
 
 import java.nio.charset.StandardCharsets;
@@ -113,7 +113,7 @@ public class DecodedToken {
             return List.of();
         }
         return cvManagerData.getOrganizations().stream()
-                .filter(entry -> PermissionService.checkRoleAbove(entry.getRole(), requiredRole))
+                .filter(entry -> AuthUtils.checkRoleAbove(entry.getRole(), requiredRole))
                 .map(DecodedToken.CvManagerData.Organization::getOrg)
                 .collect(Collectors.toList());
     }
