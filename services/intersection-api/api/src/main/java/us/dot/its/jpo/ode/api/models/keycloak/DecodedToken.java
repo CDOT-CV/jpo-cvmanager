@@ -6,8 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import us.dot.its.jpo.ode.api.utils.AuthUtils;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
  * Note: This class only decodes the token payload. Signature verification
  * should be handled by Spring Security's JWT authentication filters.
  */
+@Slf4j
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -250,7 +253,7 @@ public class DecodedToken {
     private String email;
 
     /**
-     * Decodes a JWT token string into a DecodedToken object.
+     * Decodes a JWT token string into a DecodedToken object, and verifies expiration
      * 
      * ⚠️ SECURITY NOTE: This method does NOT verify the signature - it only decodes
      * the payload.
@@ -260,12 +263,28 @@ public class DecodedToken {
      * 
      * @param token The JWT token string (format: header.payload.signature)
      * @return DecodedToken object containing the parsed JWT payload
-     * @throws IllegalArgumentException if the token format is invalid
+     * @throws IllegalArgumentException if the token format is invalid or expired
      * @throws RuntimeException         if JSON parsing fails
      * @see <a href="https://datatracker.ietf.org/doc/html/rfc7519">RFC 7519 - JSON
      *      Web Token</a>
      */
     public static DecodedToken fromJwtToken(String token) {
+        return fromJwtToken(token, true);
+    }
+
+    /**
+     * Decodes a JWT token string into a DecodedToken object with optional signature
+     * verification.
+     * 
+     * @param token           The JWT token string (format:
+     *                        header.payload.signature)
+     * @param checkExpiration Whether to check if the token is expired
+     * @return DecodedToken object containing the parsed JWT payload
+     * @throws IllegalArgumentException if the token format is invalid, expired, or
+     *                                  signature is invalid
+     * @throws RuntimeException         if JSON parsing fails
+     */
+    public static DecodedToken fromJwtToken(String token, boolean checkExpiration) {
         if (token == null || token.trim().isEmpty()) {
             throw new IllegalArgumentException("Token cannot be null or empty");
         }
@@ -285,17 +304,51 @@ public class DecodedToken {
         String payload = parts[1];
 
         try {
-            // Base64 decode
+            // Decode and parse the payload
             byte[] decodedBytes = Base64.getUrlDecoder().decode(payload);
             String decodedPayload = new String(decodedBytes, StandardCharsets.UTF_8);
 
-            // Parse JSON to DecodedToken object
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(decodedPayload, DecodedToken.class);
+            DecodedToken decodedToken = objectMapper.readValue(decodedPayload, DecodedToken.class);
 
+            // Check expiration
+            if (checkExpiration) {
+                validateExpiration(decodedToken);
+            }
+
+            return decodedToken;
+
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation exceptions
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode JWT token: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Validates that the token has not expired.
+     * 
+     * @param token The decoded token
+     * @throws IllegalArgumentException if the token is expired
+     */
+    private static void validateExpiration(DecodedToken token) {
+        if (token.getExp() == null) {
+            log.warn("Token does not have an expiration claim (exp)");
+            return;
+        }
+
+        long expirationTime = token.getExp();
+        long currentTime = Instant.now().getEpochSecond();
+
+        if (currentTime >= expirationTime) {
+            long expiredSeconds = currentTime - expirationTime;
+            throw new IllegalArgumentException(
+                    String.format("Token has expired %d seconds ago (exp: %d, now: %d)",
+                            expiredSeconds, expirationTime, currentTime));
+        }
+
+        log.debug("Token is valid, expires in {} seconds", expirationTime - currentTime);
     }
 
     /**
