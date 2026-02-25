@@ -15,6 +15,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @Value
 public class UserDto implements Serializable {
+
+    @NotNull
+    private Integer id;
+
     @Size(max = 128)
     @NotNull
     private String email;

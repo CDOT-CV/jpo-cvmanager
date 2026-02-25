@@ -14,6 +14,10 @@ import jakarta.validation.constraints.Size;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserOrganizationDto {
+
+    @NotNull
+    private Integer id;
+
     @Size(max = 128)
     @NotNull
     private String organization;
@@ -26,7 +30,8 @@ public class UserOrganizationDto {
         if (userOrganization == null || userOrganization.getOrganization() == null) {
             return null;
         }
-        return new UserOrganizationDto(userOrganization.getOrganization().getName(),
+        return new UserOrganizationDto(userOrganization.getId(),
+                userOrganization.getOrganization().getName(),
                 userOrganization.getRole().getName());
     }
 }

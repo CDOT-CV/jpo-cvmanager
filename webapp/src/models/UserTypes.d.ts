@@ -14,16 +14,21 @@ type AuthLoginData = {
   expires_at: number
 }
 
+type UserRole = 'ADMIN' | 'OPERATOR' | 'USER'
+
+type UserOrganization = {
+  id: number
+  role: UserRole
+  organization: string
+}
+
 type UserAuthResponse = {
   email: string
   first_name: string
   last_name: string
   name: string
   super_user: boolean
-  organizations: Array<{
-    name: string
-    role: string
-  }>
+  organizations: UserOrganization[]
 }
 
 type AdminUser = {
@@ -31,10 +36,7 @@ type AdminUser = {
   first_name: string
   last_name: string
   super_user: boolean
-  organizations: Array<{
-    name: string
-    role: string
-  }>
+  organizations: UserOrganization[]
 }
 
 type AdminUserWithId = AdminUser & {
@@ -42,10 +44,15 @@ type AdminUserWithId = AdminUser & {
 }
 
 type AdminUserWithRole = AdminUser & {
-  role: string
+  role: UserRole
 }
 
 type AvailableRoles = {
   organizations: string[]
-  roles: string[]
+  roles: UserRole[]
+}
+
+type AdminUserAllowedSelections = {
+  roles: UserRole[]
+  organizations: string[]
 }
