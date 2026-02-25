@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.controller;
 
+import com.trihydro.rsuinfobridge.models.dtos.RsuDto;
 import com.trihydro.rsuinfobridge.service.RsuService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.List;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -18,25 +24,83 @@ class RsuControllerTest {
 
     @BeforeEach
     void setup() {
-        rsuService = new RsuService();
-        mockMvc = MockMvcBuilders.standaloneSetup(new RsuController(rsuService)).build();
+        rsuService = mock(RsuService.class);
     }
 
     @Test
     void testGetAllRsus_Success() throws Exception {
+        // Arrange
+        List<RsuDto> rsus = getMockData();
+        when(rsuService.getAllRsus()).thenReturn(rsus);
+        mockMvc = initializeMockMvc();
+
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus/all"));
 
         // Assert
-        resultActions.andExpect(status().isOk());
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value("myid"))
+                .andExpect(jsonPath("$[0].ipv4Address").value("10.10.10.10"))
+                .andExpect(jsonPath("$[1].id").value("myid2"))
+                .andExpect(jsonPath("$[1].ipv4Address").value("10.10.10.11"));
     }
 
     @Test
     void testGetAllRsusWithTimDepositEnabled_Success() throws Exception {
+        // Arrange
+        List<RsuDto> rsus = getMockData();
+        when(rsuService.getAllRsusWithTimDepositEnabled()).thenReturn(rsus);
+        mockMvc = initializeMockMvc();
+
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus/all-tim-deposit-enabled"));
 
         // Assert
-        resultActions.andExpect(status().isOk());
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
+                .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
+    }
+
+    private List<RsuDto> getMockData() {
+        String AUTHENTICATION_PROTOCOL = "SHA";
+        String PRIVACY_PROTOCOL = "AES";
+
+        List<RsuDto> rsus = new java.util.ArrayList<>();
+
+        RsuDto rsu1 = RsuDto.builder()
+                .id("myid")
+                .ipv4Address("10.10.10.10")
+                .snmpProtocol("NTCIP1218")
+                .snmpUsername("myusername")
+                .snmpPassword("mypassword")
+                .authenticationProtocol(AUTHENTICATION_PROTOCOL)
+                .privacyProtocol(PRIVACY_PROTOCOL)
+                .latitude(39.73915)
+                .longitude(-104.9847)
+                .timDepositEnabled(true)
+                .build();
+        rsus.add(rsu1);
+
+        RsuDto rsu2 = RsuDto.builder()
+                .id("myid2")
+                .ipv4Address("10.10.10.11")
+                .snmpProtocol("NTCIP1218")
+                .snmpUsername("myusername2")
+                .snmpPassword("mypassword2")
+                .authenticationProtocol(AUTHENTICATION_PROTOCOL)
+                .privacyProtocol(PRIVACY_PROTOCOL)
+                .latitude(40.0)
+                .longitude(105.0)
+                .timDepositEnabled(true)
+                .build();
+        rsus.add(rsu2);
+
+        return rsus;
+    }
+
+    private MockMvc initializeMockMvc() {
+        return MockMvcBuilders.standaloneSetup(new RsuController(rsuService)).build();
     }
 }
