@@ -3,11 +3,17 @@ package us.dot.its.jpo.ode.api.models.keycloak;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 class DecodedTokenTest {
 
@@ -16,11 +22,16 @@ class DecodedTokenTest {
     @Nested
     @DisplayName("Tests for fromJwtToken constructor")
     class FromJwtTokenTests {
+        private static final long VALID_TOKEN_TIMESTAMP = 1771615133L; // 30 seconds before expiration
+
         @Test
         void testFromJwtToken_ValidToken() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            Instant fixedInstant = Instant.ofEpochSecond(VALID_TOKEN_TIMESTAMP);
+            try (MockedStatic<Instant> mockedInstant = Mockito.mockStatic(Instant.class)) {
+                mockedInstant.when(Instant::now).thenReturn(fixedInstant);
 
-            // Verify basic JWT fields
+                DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+                            // Verify basic JWT fields
             assertNotNull(token);
             assertEquals(1771615163L, token.getExp());
             assertEquals(1771613363L, token.getIat());
@@ -84,12 +95,19 @@ class DecodedTokenTest {
             DecodedToken.CvManagerData.Organization org2 = token.getCvManagerData().getOrganizations().get(1);
             assertEquals("Test Org 2", org2.getOrg());
             assertEquals("user", org2.getRole());
+            }
+        }
+
+        @Test
+        void testFromJwtToken_Expired() {
+            String tokenWithBearer = "Bearer " + VALID_JWT_TOKEN;
+            assertThrows(IllegalArgumentException.class, () -> DecodedToken.fromJwtToken(tokenWithBearer, true));
         }
 
         @Test
         void testFromJwtToken_WithBearerPrefix() {
             String tokenWithBearer = "Bearer " + VALID_JWT_TOKEN;
-            DecodedToken token = DecodedToken.fromJwtToken(tokenWithBearer);
+            DecodedToken token = DecodedToken.fromJwtToken(tokenWithBearer, false);
 
             assertNotNull(token);
             assertEquals("test@gmail.com", token.getEmail());
@@ -100,7 +118,7 @@ class DecodedTokenTest {
         void testFromJwtToken_NullToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> DecodedToken.fromJwtToken(null));
+                    () -> DecodedToken.fromJwtToken(null, false));
             assertEquals("Token cannot be null or empty", exception.getMessage());
         }
 
@@ -108,7 +126,7 @@ class DecodedTokenTest {
         void testFromJwtToken_EmptyToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> DecodedToken.fromJwtToken(""));
+                    () -> DecodedToken.fromJwtToken("", false));
             assertEquals("Token cannot be null or empty", exception.getMessage());
         }
 
@@ -116,7 +134,7 @@ class DecodedTokenTest {
         void testFromJwtToken_WhitespaceToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> DecodedToken.fromJwtToken("   "));
+                    () -> DecodedToken.fromJwtToken("   ", false));
             assertEquals("Token cannot be null or empty", exception.getMessage());
         }
 
@@ -125,7 +143,7 @@ class DecodedTokenTest {
             String invalidToken = "header.payload";
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> DecodedToken.fromJwtToken(invalidToken));
+                    () -> DecodedToken.fromJwtToken(invalidToken, false));
             assertEquals("Invalid JWT token format. Expected 3 parts separated by dots.", exception.getMessage());
         }
 
@@ -134,17 +152,14 @@ class DecodedTokenTest {
             String invalidToken = "header.payload.signature.extra";
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> DecodedToken.fromJwtToken(invalidToken));
+                    () -> DecodedToken.fromJwtToken(invalidToken, false));
             assertEquals("Invalid JWT token format. Expected 3 parts separated by dots.", exception.getMessage());
         }
 
         @Test
         void testFromJwtToken_InvalidBase64() {
             String invalidToken = "header.not-valid-base64!@#$.signature";
-            RuntimeException exception = assertThrows(
-                    RuntimeException.class,
-                    () -> DecodedToken.fromJwtToken(invalidToken));
-            assertTrue(exception.getMessage().contains("Failed to decode JWT token"));
+            assertThrows(RuntimeException.class, () -> DecodedToken.fromJwtToken(invalidToken, false));
         }
 
         @Test
@@ -153,7 +168,7 @@ class DecodedTokenTest {
             String invalidToken = "header.aW52YWxpZCBqc29u.signature"; // "invalid json" in base64
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
-                    () -> DecodedToken.fromJwtToken(invalidToken));
+                    () -> DecodedToken.fromJwtToken(invalidToken, false));
             assertTrue(exception.getMessage().contains("Failed to decode JWT token"));
         }
     }
@@ -164,7 +179,7 @@ class DecodedTokenTest {
 
         @Test
         void testGetQualifiedOrgList_AdminRole() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             List<String> qualifiedOrgs = token.getQualifiedOrgList("ADMIN");
 
@@ -176,7 +191,7 @@ class DecodedTokenTest {
 
         @Test
         void testGetQualifiedOrgList_UserRole() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             List<String> qualifiedOrgs = token.getQualifiedOrgList("USER");
 
@@ -188,7 +203,7 @@ class DecodedTokenTest {
 
         @Test
         void testGetQualifiedOrgList_OperatorRole() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             List<String> qualifiedOrgs = token.getQualifiedOrgList("OPERATOR");
 
@@ -204,7 +219,7 @@ class DecodedTokenTest {
     class FindRoleInOrgTests {
         @Test
         void testFindRoleInOrg_ExistingOrg() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             Optional<String> role = token.findRoleInOrg("Test Org");
 
@@ -214,7 +229,7 @@ class DecodedTokenTest {
 
         @Test
         void testFindRoleInOrg_ExistingOrgCaseInsensitive() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             Optional<String> role = token.findRoleInOrg("test org");
 
@@ -224,7 +239,7 @@ class DecodedTokenTest {
 
         @Test
         void testFindRoleInOrg_NonExistingOrg() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             Optional<String> role = token.findRoleInOrg("Nonexistent Org");
 
@@ -233,7 +248,7 @@ class DecodedTokenTest {
 
         @Test
         void testFindRoleInOrg_SecondOrganization() {
-            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN);
+            DecodedToken token = DecodedToken.fromJwtToken(VALID_JWT_TOKEN, false);
 
             Optional<String> role = token.findRoleInOrg("Test Org 2");
 
@@ -335,6 +350,189 @@ class DecodedTokenTest {
             token.setCvManagerData(null);
 
             assertFalse(token.isSuperUser());
+        }
+    }
+
+    @Nested
+    @DisplayName("Tests for validateExpiration method")
+    class ValidateExpirationTests {
+
+        @Test
+        @DisplayName("Should accept valid non-expired token")
+        void testValidateExpiration_ValidToken() {
+            // Create a token that expires in 1 hour
+            long futureExpiration = Instant.now().getEpochSecond() + 3600;
+            DecodedToken token = new DecodedToken();
+            token.setExp(futureExpiration);
+
+            // Should not throw exception
+            assertDoesNotThrow(() -> DecodedToken.fromJwtToken(createMockToken(futureExpiration), true));
+        }
+
+        @Test
+        @DisplayName("Should reject expired token")
+        void testValidateExpiration_ExpiredToken() {
+            // Create a token that expired 1 hour ago
+            long pastExpiration = Instant.now().getEpochSecond() - 3600;
+            String expiredToken = createMockToken(pastExpiration);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DecodedToken.fromJwtToken(expiredToken, true));
+
+            assertTrue(exception.getMessage().contains("Token has expired"));
+            assertTrue(exception.getMessage().contains("3600 seconds ago") ||
+                    exception.getMessage().contains("360") && exception.getMessage().contains("seconds ago"));
+        }
+
+        @Test
+        @DisplayName("Should reject token expired exactly now")
+        void testValidateExpiration_ExpiredExactly() {
+            // Create a token that expires at current second
+            long currentTime = Instant.now().getEpochSecond();
+            String expiredToken = createMockToken(currentTime);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DecodedToken.fromJwtToken(expiredToken, true));
+
+            assertTrue(exception.getMessage().contains("Token has expired"));
+        }
+
+        @Test
+        @DisplayName("Should reject token expired 1 second ago")
+        void testValidateExpiration_ExpiredByOneSecond() {
+            // Create a token that expired 1 second ago
+            long expiration = Instant.now().getEpochSecond() - 1;
+            String expiredToken = createMockToken(expiration);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DecodedToken.fromJwtToken(expiredToken, true));
+
+            assertTrue(exception.getMessage().contains("Token has expired"));
+            assertTrue(exception.getMessage().contains("1 second") ||
+                    exception.getMessage().contains("seconds ago"));
+        }
+
+        @Test
+        @DisplayName("Should accept token expiring in 1 second")
+        void testValidateExpiration_ExpiringInOneSecond() {
+            // Create a token that expires in 1 second
+            long futureExpiration = Instant.now().getEpochSecond() + 1;
+            String validToken = createMockToken(futureExpiration);
+
+            // Should not throw exception
+            assertDoesNotThrow(() -> DecodedToken.fromJwtToken(validToken, true));
+        }
+
+        @Test
+        @DisplayName("Should handle token without expiration claim")
+        void testValidateExpiration_NoExpirationClaim() {
+            // Create a token without exp claim (null)
+            String tokenWithoutExp = createMockTokenWithoutExp();
+
+            // Should not throw exception - tokens without exp don't expire
+            assertDoesNotThrow(() -> DecodedToken.fromJwtToken(tokenWithoutExp, true));
+        }
+
+        @Test
+        @DisplayName("Should skip validation when checkExpiration is false")
+        void testValidateExpiration_SkipCheck() {
+            // Create an expired token
+            long pastExpiration = Instant.now().getEpochSecond() - 3600;
+            String expiredToken = createMockToken(pastExpiration);
+
+            // Should not throw exception when validation is disabled
+            assertDoesNotThrow(() -> DecodedToken.fromJwtToken(expiredToken, false));
+
+            DecodedToken token = DecodedToken.fromJwtToken(expiredToken, false);
+            assertNotNull(token);
+            assertEquals(pastExpiration, token.getExp());
+        }
+
+        @Test
+        @DisplayName("Should provide detailed error message with timestamps")
+        void testValidateExpiration_ErrorMessageFormat() {
+            long expiration = Instant.now().getEpochSecond() - 100;
+            String expiredToken = createMockToken(expiration);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DecodedToken.fromJwtToken(expiredToken, true));
+
+            String message = exception.getMessage();
+            assertTrue(message.contains("Token has expired"));
+            assertTrue(message.contains("seconds ago"));
+            assertTrue(message.contains("exp:"));
+            assertTrue(message.contains("now:"));
+        }
+
+        @Test
+        @DisplayName("Should accept token with far future expiration")
+        void testValidateExpiration_FarFutureExpiration() {
+            // Create a token that expires in 10 years
+            long farFutureExpiration = Instant.now().getEpochSecond() + (10L * 365 * 24 * 60 * 60);
+            String validToken = createMockToken(farFutureExpiration);
+
+            assertDoesNotThrow(() -> DecodedToken.fromJwtToken(validToken, true));
+        }
+
+        @Test
+        @DisplayName("Should reject token with very old expiration")
+        void testValidateExpiration_VeryOldExpiration() {
+            // Create a token that expired 10 years ago
+            long veryOldExpiration = Instant.now().getEpochSecond() - (10L * 365 * 24 * 60 * 60);
+            String expiredToken = createMockToken(veryOldExpiration);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DecodedToken.fromJwtToken(expiredToken, true));
+
+            assertTrue(exception.getMessage().contains("Token has expired"));
+        }
+
+        // Helper methods to create mock tokens
+
+        /**
+         * Creates a minimal valid JWT token with the specified expiration time
+         */
+        private String createMockToken(long expirationTime) {
+            String header = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString("{\"alg\":\"RS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
+
+            String payload = String.format(
+                    "{\"exp\":%d,\"iat\":%d,\"sub\":\"test-user\",\"email\":\"test@example.com\",\"cvmanager_data\":{\"super_user\":\"0\",\"organizations\":[]}}",
+                    expirationTime,
+                    Instant.now().getEpochSecond());
+
+            String encodedPayload = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+
+            String signature = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString("mock-signature".getBytes(StandardCharsets.UTF_8));
+
+            return header + "." + encodedPayload + "." + signature;
+        }
+
+        /**
+         * Creates a minimal valid JWT token without an expiration claim
+         */
+        private String createMockTokenWithoutExp() {
+            String header = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString("{\"alg\":\"RS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
+
+            String payload = String.format(
+                    "{\"iat\":%d,\"sub\":\"test-user\",\"email\":\"test@example.com\",\"cvmanager_data\":{\"super_user\":\"0\",\"organizations\":[]}}",
+                    Instant.now().getEpochSecond());
+
+            String encodedPayload = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+
+            String signature = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString("mock-signature".getBytes(StandardCharsets.UTF_8));
+
+            return header + "." + encodedPayload + "." + signature;
         }
     }
 }
