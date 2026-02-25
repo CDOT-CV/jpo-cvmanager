@@ -45,10 +45,9 @@ public class UserController {
     private final UserManagementService userManagementService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
-            "ip", "ipv4Address",
-            "primary_route", "primaryRoute",
-            "serial_number", "serialNumber",
-            "scms_id", "issScmsId");
+            "first_name", "firstName",
+            "last_name", "lastName",
+            "super_user", "superUser");
 
     @Operation(summary = "Get All Users for Organization", description = "Get summary data for all Users the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!email")

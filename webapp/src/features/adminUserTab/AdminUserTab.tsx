@@ -78,8 +78,8 @@ const AdminUserTab = () => {
           totalCount: result.totalElements || 0,
         }
       } catch (error) {
-        console.error('Failed to fetch rsus:', error)
-        toast.error('Failed to fetch RSUs')
+        console.error('Failed to fetch users:', error)
+        toast.error('Failed to fetch Users')
         return {
           data: [],
           page: query.page,

@@ -23,12 +23,15 @@ public class UserDto implements Serializable {
     @NotNull
     private String email;
 
+    @JsonProperty("first_name")
     @Size(max = 128)
     private String firstName;
 
+    @JsonProperty("last_name")
     @Size(max = 128)
     private String lastName;
 
+    @JsonProperty("super_user")
     @NotNull
     private Boolean superUser;
 

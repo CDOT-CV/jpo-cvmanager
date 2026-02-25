@@ -17,9 +17,12 @@ type AuthLoginData = {
 type UserRole = 'ADMIN' | 'OPERATOR' | 'USER'
 
 type UserOrganization = {
-  id: number
   role: UserRole
   organization: string
+}
+
+type UserOrganizationWithId = UserOrganization & {
+  id: number
 }
 
 type UserAuthResponse = {
@@ -37,6 +40,17 @@ type AdminUser = {
   last_name: string
   super_user: boolean
   organizations: UserOrganization[]
+}
+
+type AdminUserCreate = {
+  email: string
+  first_name: string
+  last_name: string
+  super_user: boolean
+  organizations: Array<{
+    name: string
+    role: string
+  }>
 }
 
 type AdminUserWithId = AdminUser & {
