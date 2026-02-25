@@ -113,7 +113,7 @@ public class DecodedToken {
             return List.of();
         }
         return cvManagerData.getOrganizations().stream()
-                .filter(entry -> AuthUtils.checkRoleAbove(entry.getRole(), requiredRole))
+                .filter(entry -> entry != null && AuthUtils.checkRoleAbove(entry.getRole(), requiredRole))
                 .map(DecodedToken.CvManagerData.Organization::getOrg)
                 .collect(Collectors.toList());
     }
