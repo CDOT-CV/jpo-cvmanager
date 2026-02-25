@@ -25,6 +25,19 @@ You can run the application using the Spring Boot Maven plugin:
 
 The service will be available at `http://localhost:16543` (default port).
 
+### Accessing the API Documentation
+Once the application is running, you can access the Swagger UI to view and interact with the OpenAPI documentation:
+
+```
+http://localhost:16543/swagger-ui.html
+```
+
+The OpenAPI specification is also available in JSON format at:
+
+```
+http://localhost:16543/v3/api-docs
+```
+
 ## Configuration
 Configuration is managed via `src/main/resources/application.yaml`.
 
