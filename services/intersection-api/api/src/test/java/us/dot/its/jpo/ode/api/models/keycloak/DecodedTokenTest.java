@@ -97,7 +97,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_NullToken() {
+        void testFromJwtToken_NullToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
                     () -> DecodedToken.fromJwtToken(null));
@@ -105,7 +105,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_EmptyToken() {
+        void testFromJwtToken_EmptyToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
                     () -> DecodedToken.fromJwtToken(""));
@@ -113,7 +113,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_WhitespaceToken() {
+        void testFromJwtToken_WhitespaceToken() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
                     () -> DecodedToken.fromJwtToken("   "));
@@ -121,7 +121,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_InvalidFormat_TwoParts() {
+        void testFromJwtToken_InvalidFormat_TwoParts() {
             String invalidToken = "header.payload";
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -130,7 +130,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_InvalidFormat_FourParts() {
+        void testFromJwtToken_InvalidFormat_FourParts() {
             String invalidToken = "header.payload.signature.extra";
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
@@ -139,7 +139,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_InvalidBase64() {
+        void testFromJwtToken_InvalidBase64() {
             String invalidToken = "header.not-valid-base64!@#$.signature";
             RuntimeException exception = assertThrows(
                     RuntimeException.class,
@@ -148,7 +148,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testFromJwtToken_InvalidJson() {
+        void testFromJwtToken_InvalidJson() {
             // Valid Base64 but invalid JSON
             String invalidToken = "header.aW52YWxpZCBqc29u.signature"; // "invalid json" in base64
             RuntimeException exception = assertThrows(
@@ -252,11 +252,11 @@ class DecodedTokenTest {
                     Arrays.asList("role1", "role2"));
 
             DecodedToken.CvManagerData.Organization org = new DecodedToken.CvManagerData.Organization(
-                            "Test Org",
+                    "Test Org",
                     "admin");
 
             DecodedToken.CvManagerData cvManagerData = new DecodedToken.CvManagerData(
-                            "1",
+                    "1",
                     Arrays.asList(org),
                     1746773527283L);
 
@@ -294,7 +294,7 @@ class DecodedTokenTest {
         }
 
         @Test
-                void testGetQualifiedOrgList_EmptyOrganizations() {
+        void testGetQualifiedOrgList_EmptyOrganizations() {
             DecodedToken token = new DecodedToken();
             DecodedToken.CvManagerData cvManagerData = new DecodedToken.CvManagerData(
                     "0",
