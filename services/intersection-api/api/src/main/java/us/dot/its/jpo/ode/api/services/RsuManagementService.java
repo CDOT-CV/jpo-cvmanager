@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
@@ -36,12 +36,14 @@ import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RsuManagementService {
 
@@ -106,7 +108,14 @@ public class RsuManagementService {
                     HttpStatus.BAD_REQUEST,
                     "RSU with IP " + ipv4Address.getHostAddress() + " already exists");
         }
-        rsuRepository.save(rsu);
+
+        Rsu createdRsu = rsuRepository.save(rsu);
+
+        RsuOption rsuOption = new RsuOption();
+        rsuOption.setRsu(createdRsu);
+        rsuOption.setTimDeposit(rsuInfoDto.getTimDeposit());
+        rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
+        rsuOptionRepository.save(rsuOption);
 
         for (String orgName : orgsToAdd) {
             createRsuOrgRelationship(orgName, rsu);
@@ -174,19 +183,29 @@ public class RsuManagementService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
             }
 
-            // 2. Update only non-null fields using MapStruct
+            // 2. If IP is being changed, check for conflicts
+            if (rsuPatch.getIpv4Address() != null && !rsuPatch.getIpv4Address().equals(rsuIp)) {
+                InetAddress newIp = InetAddress.getByName(rsuPatch.getIpv4Address());
+                Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
+                if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "RSU with IP " + rsuPatch.getIpv4Address() + " already exists");
+                }
+            }
+
+            // 3. Update only non-null fields using MapStruct
             rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
 
-            // 3. Update relationships that require database lookups
+            // 4. Update relationships that require database lookups
             updateRelationships(existingRsu, rsuPatch);
 
-            // 4. Handle organization additions/removals
+            // 5. Handle organization additions/removals
             handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
 
-            // 5. Save updated entity (JPA handles UPDATE SQL)
+            // 6. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
 
-            // 6. Return DTO
+            // 7. Return DTO
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
@@ -361,6 +380,5 @@ public class RsuManagementService {
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
         rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
-
     }
 }

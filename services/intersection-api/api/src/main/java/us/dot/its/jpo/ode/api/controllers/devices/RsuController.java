@@ -129,7 +129,11 @@ public class RsuController {
                     "User not qualified to modify organizations: " + String.join(", ", unqualifiedOrgs));
         }
 
-        rsuManagementService.createRsu(body, body.getOrganizations());
+        try {
+            rsuManagementService.createRsu(body, body.getOrganizations());
+        } catch (Exception e) {
+            handleQueryExceptions(e);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -199,5 +203,43 @@ public class RsuController {
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 mappedSort);
+    }
+
+    /**
+     * Handles DataIntegrityViolationException and throws a user-friendly error
+     * message
+     */
+    public void handleQueryExceptions(Exception e) {
+        String message = e.getMessage();
+        log.error("Exception occurred during query for RSU", e);
+
+        // Check for specific constraint violations
+        if (message != null) {
+            // Duplicate key on IPv4 address
+            if (message.contains("rsu_ipv4_address")) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "IP Address must be unique");
+            }
+
+            // Duplicate milepost
+            if (message.contains("rsu_milepost_primary_route")) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Milepost and primary route must be unique");
+            }
+
+            // Duplicate serial number
+            if (message.contains("rsu_serial_number")) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Serial number must be unique");
+            }
+
+            // Duplicate ISS SCMS ID
+            if (message.contains("rsu_iss_scms_id")) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "ISS SCMS ID must be unique");
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", e);
     }
 }

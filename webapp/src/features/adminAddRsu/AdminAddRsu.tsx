@@ -57,6 +57,8 @@ export type AdminRsuCreationBody = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
+  tim_deposit: boolean
+  snmp_monitoring: boolean
   organizations: string[]
 }
 
@@ -84,12 +86,7 @@ const AdminAddRsu = () => {
     reset,
     formState: { errors },
     watch,
-  } = useForm<AdminAddRsuForm>({
-    defaultValues: {
-      tim_deposit: false,
-      snmp_monitoring: false,
-    },
-  })
+  } = useForm<AdminAddRsuForm>()
 
   const handleClose = () => {
     setOpen(false)
@@ -121,6 +118,8 @@ const AdminAddRsu = () => {
       ssh_credential_group: selectedSshGroup,
       snmp_credential_group: selectedSnmpGroup,
       snmp_version_group: selectedSnmpVersion,
+      tim_deposit: data.tim_deposit ?? false,
+      snmp_monitoring: data.snmp_monitoring ?? false,
       organizations: selectedOrganizations,
     }
   }
@@ -409,13 +408,7 @@ const AdminAddRsu = () => {
             <Grid2 size={6}>
               <Form.Group controlId="tim_deposit">
                 <FormControlLabel
-                  control={
-                    <Checkbox
-                      {...register('tim_deposit')}
-                      checked={watch('tim_deposit')}
-                      color="primary"
-                    />
-                  }
+                  control={<Checkbox {...register('tim_deposit')} checked={watch('tim_deposit')} color="primary" />}
                   label="TIM Deposit"
                 />
               </Form.Group>
@@ -424,11 +417,7 @@ const AdminAddRsu = () => {
               <Form.Group controlId="snmp_monitoring">
                 <FormControlLabel
                   control={
-                    <Checkbox
-                      {...register('snmp_monitoring')}
-                      checked={watch('snmp_monitoring')}
-                      color="primary"
-                    />
+                    <Checkbox {...register('snmp_monitoring')} checked={watch('snmp_monitoring')} color="primary" />
                   }
                   label="SNMP Monitoring"
                 />
