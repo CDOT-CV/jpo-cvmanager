@@ -28,12 +28,7 @@ The service will be available at `http://localhost:16543` (default port).
 ## Configuration
 Configuration is managed via `src/main/resources/application.yaml`.
 
-## API Endpoints
-(TBD)
-
-## Development
-
-### Running Tests
+## Running Tests
 
 ```bash
 ./mvnw test
