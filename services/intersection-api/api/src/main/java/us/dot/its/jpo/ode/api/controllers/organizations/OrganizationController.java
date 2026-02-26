@@ -74,7 +74,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get User Emails by Organization", description = "Retrieves a list of user emails for all users belonging to the specified organization.")
-    @RequestMapping(path = "users", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
+    @RequestMapping(path = "users", method = RequestMethod.GET, produces = "application/json", params = "!email")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
