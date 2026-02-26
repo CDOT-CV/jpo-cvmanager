@@ -53,7 +53,6 @@ api = Api(app)
 
 api.add_resource(HealthCheck, "/")
 api.add_resource(AdminNewUser, "/admin-new-user")
-api.add_resource(AdminUser, "/admin-user")
 api.add_resource(AdminNewOrg, "/admin-new-org")
 api.add_resource(AdminOrg, "/admin-org")
 api.add_resource(AdminOrgTimDeposit, "/admin-org-tim-deposit")
