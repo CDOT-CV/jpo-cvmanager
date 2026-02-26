@@ -20,7 +20,6 @@ public class MockSsmGenerator {
 
     public static List<SignalStatusMessage> getJsonSsms() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<SignalStatusMessage> ssms = new ArrayList<>();
 

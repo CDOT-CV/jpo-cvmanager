@@ -26,7 +26,6 @@ public class MockBsmGenerator {
 
     public static List<OdeMessageFrameData> getJsonBsms() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<OdeMessageFrameData> bsms = new ArrayList<>();
 
@@ -48,7 +47,6 @@ public class MockBsmGenerator {
 
     public static List<ProcessedBsm<Point>> getProcessedBsms() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<ProcessedBsm<Point>> bsms = new ArrayList<>();
 

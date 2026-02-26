@@ -21,7 +21,6 @@ public class MockSpatGenerator {
 
     public static List<ProcessedSpat> getProcessedSpats() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<ProcessedSpat> spats = new ArrayList<>();
 
@@ -43,7 +42,6 @@ public class MockSpatGenerator {
 
     public static List<SPAT> getJsonSpats() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<SPAT> spats = new ArrayList<>();
 

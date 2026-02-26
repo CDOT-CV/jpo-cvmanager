@@ -8,6 +8,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
+import tools.jackson.dataformat.xml.XmlMapper;
 import us.dot.its.jpo.asn.j2735.r2024.BasicSafetyMessage.BasicSafetyMessageMessageFrame;
 import us.dot.its.jpo.ode.api.models.messages.BsmDecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
@@ -42,7 +43,7 @@ public class BsmDecoder implements Decoder {
     MessageFrameCodec codec;
     BsmJsonValidator bsmJsonValidator;
     public static final BsmProcessedJsonConverter converter = new BsmProcessedJsonConverter();
-    public static final XmlMapper xmlMapper = new XmlMapper();
+    public final XmlMapper xmlMapper;
 
     /**
      * Constructs a BsmDecoder with required dependencies.
@@ -50,9 +51,10 @@ public class BsmDecoder implements Decoder {
      * @param codec            MessageFrameCodec for ASN.1 decoding
      * @param bsmJsonValidator Validator for BSM JSON messages
      */
-    BsmDecoder(MessageFrameCodec codec, BsmJsonValidator bsmJsonValidator) {
+    BsmDecoder(MessageFrameCodec codec, BsmJsonValidator bsmJsonValidator, XmlMapper xmlMapper) {
         this.codec = codec;
         this.bsmJsonValidator = bsmJsonValidator;
+        this.xmlMapper = xmlMapper;
     }
 
     /**

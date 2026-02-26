@@ -8,6 +8,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
+import tools.jackson.dataformat.xml.XmlMapper;
 import us.dot.its.jpo.ode.api.models.messages.SsmDecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
@@ -33,15 +34,16 @@ import us.dot.its.jpo.asn.j2735.r2024.SignalStatusMessage.SignalStatusMessageMes
 public class SsmDecoder implements Decoder {
 
     MessageFrameCodec codec;
-    public static final XmlMapper xmlMapper = new XmlMapper();
+    public final XmlMapper xmlMapper;
 
     /**
      * Constructs a SsmDecoder with required dependencies.
      *
      * @param codec MessageFrameCodec for ASN.1 decoding
      */
-    SsmDecoder(MessageFrameCodec codec) {
+    SsmDecoder(MessageFrameCodec codec, XmlMapper xmlMapper) {
         this.codec = codec;
+        this.xmlMapper = xmlMapper;
     }
 
     /**

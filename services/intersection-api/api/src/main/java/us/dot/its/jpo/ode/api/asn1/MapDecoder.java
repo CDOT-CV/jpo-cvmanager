@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.asn1;
 
+import tools.jackson.dataformat.xml.XmlMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
@@ -7,7 +8,6 @@ import java.util.HexFormat;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.asn.j2735.r2024.MapData.IntersectionGeometry;
@@ -47,7 +47,7 @@ public class MapDecoder implements Decoder {
     MessageFrameCodec codec;
     MapJsonValidator mapJsonValidator;
     public static final MapProcessedJsonConverter converter = new MapProcessedJsonConverter();
-    public static final XmlMapper xmlMapper = new XmlMapper();
+    private final XmlMapper xmlMapper;
 
     /**
      * Constructs a MapDecoder with required dependencies.
@@ -55,9 +55,10 @@ public class MapDecoder implements Decoder {
      * @param codec            MessageFrameCodec for ASN.1 decoding
      * @param mapJsonValidator Validator for MAP JSON messages
      */
-    MapDecoder(MessageFrameCodec codec, MapJsonValidator mapJsonValidator) {
+    MapDecoder(MessageFrameCodec codec, MapJsonValidator mapJsonValidator, XmlMapper xmlMapper) {
         this.codec = codec;
         this.mapJsonValidator = mapJsonValidator;
+        this.xmlMapper = xmlMapper;
     }
 
     /**

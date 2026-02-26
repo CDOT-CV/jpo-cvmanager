@@ -19,7 +19,6 @@ public class MockTimGenerator {
 
     public static List<TravelerInformation> getJsonTims() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<TravelerInformation> tims = new ArrayList<>();
 

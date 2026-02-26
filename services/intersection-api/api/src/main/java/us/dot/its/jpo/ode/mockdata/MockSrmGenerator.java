@@ -20,7 +20,6 @@ public class MockSrmGenerator {
 
     public static List<SignalRequestMessage> getJsonSrms() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<SignalRequestMessage> srms = new ArrayList<>();
 

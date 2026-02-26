@@ -8,6 +8,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
+import tools.jackson.dataformat.xml.XmlMapper;
 import us.dot.its.jpo.ode.api.models.messages.SpatDecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
@@ -41,7 +42,7 @@ public class SpatDecoder implements Decoder {
     MessageFrameCodec codec;
     SpatJsonValidator spatJsonValidator;
     public static final SpatProcessedJsonConverter converter = new SpatProcessedJsonConverter();
-    public static final XmlMapper xmlMapper = new XmlMapper();
+    public final XmlMapper xmlMapper;
 
     /**
      * Constructs a SpatDecoder with required dependencies.
@@ -49,9 +50,10 @@ public class SpatDecoder implements Decoder {
      * @param codec             MessageFrameCodec for ASN.1 decoding
      * @param spatJsonValidator Validator for SPAT JSON messages
      */
-    SpatDecoder(MessageFrameCodec codec, SpatJsonValidator spatJsonValidator) {
+    SpatDecoder(MessageFrameCodec codec, SpatJsonValidator spatJsonValidator, XmlMapper xmlMapper) {
         this.codec = codec;
         this.spatJsonValidator = spatJsonValidator;
+        this.xmlMapper = xmlMapper;
     }
 
     /**

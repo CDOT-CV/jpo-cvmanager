@@ -26,7 +26,6 @@ public class MockMapGenerator {
 
     public static List<ProcessedMap<LineString>> getProcessedMaps() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<ProcessedMap<LineString>> maps = new ArrayList<>();
 
@@ -48,7 +47,6 @@ public class MockMapGenerator {
 
     public static List<MapData> getJsonMaps() {
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         ArrayList<MapData> maps = new ArrayList<>();
 
