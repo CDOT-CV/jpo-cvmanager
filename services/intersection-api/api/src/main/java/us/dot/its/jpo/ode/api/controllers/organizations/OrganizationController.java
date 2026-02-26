@@ -23,6 +23,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
 @Slf4j
 @RestController
@@ -35,7 +37,9 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 @RequiredArgsConstructor
 public class OrganizationController {
     final RsuRepository rsuRepository;
+    final UserRepository userRepository;
     final RsuOrganizationRepository rsuOrganizationRepository;
+    final UserOrganizationRepository userOrganizationRepository;
 
     @Operation(summary = "Get RSU IPs by Organization", description = "Retrieves a list of IP addresses for all RSUs belonging to the specified organization.")
     @RequestMapping(path = "rsus", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
@@ -67,5 +71,29 @@ public class OrganizationController {
             log.error("Invalid RSU IP address: {}", rsuIp, e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIp, e);
         }
+    }
+
+    @Operation(summary = "Get User Emails by Organization", description = "Retrieves a list of user emails for all users belonging to the specified organization.")
+    @RequestMapping(path = "users", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
+    })
+    public List<String> getUserEmailsByOrganization(
+            @RequestHeader(name = "Organization", required = true) String organization) {
+        return userOrganizationRepository.findAllUserEmailsByOrganizationName(organization);
+    }
+
+    @Operation(summary = "Get User Organization Assignments", description = "Retrieves a list of organization names that the specified user is assigned to.")
+    @RequestMapping(path = "users", method = RequestMethod.GET, produces = "application/json", params = "email")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the user requested"),
+    })
+    public List<String> getUserOrganizationAssignments(
+            @RequestParam(name = "email", required = true) String email) {
+        return userRepository.findAllOrganizationNamesByEmail(email);
     }
 }

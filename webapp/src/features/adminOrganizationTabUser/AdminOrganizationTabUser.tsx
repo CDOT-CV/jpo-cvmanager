@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import AdminTable from '../../components/AdminTable'
 import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -9,13 +9,11 @@ import { DropdownList, Multiselect } from 'react-widgets'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import {
-  selectAvailableUserList,
   selectSelectedUserList,
   selectAvailableRoles,
 
   // actions
   getAvailableRoles,
-  getAvailableUsers,
   userDeleteSingle,
   userDeleteMultiple,
   userAddMultiple,
@@ -27,6 +25,7 @@ import {
   selectAuthLoginData,
   selectEmail,
   selectLoadingGlobal,
+  selectOrganizationName,
   setOrganizationList,
 } from '../../generalSlices/userSlice'
 import { useSelector, useDispatch } from 'react-redux'
@@ -40,6 +39,7 @@ import toast from 'react-hot-toast'
 
 import { useTheme } from '@mui/material'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
+import { useGetUsersQuery } from '../api/userApiSlice'
 
 interface AdminOrganizationTabUserProps {
   selectedOrg: string
@@ -49,10 +49,25 @@ interface AdminOrganizationTabUserProps {
 }
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
+  const { selectedOrg } = props
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
-  const { selectedOrg } = props
-  const availableUserList = useSelector(selectAvailableUserList)
+  const organizationName = useSelector(selectOrganizationName)
+
+  const { data: allUserData } = useGetUsersQuery({ organization: organizationName })
+
+  const availableUserList = useMemo(() => {
+    // TODO: Pull this from a separate endpoint based on organization not RSUs
+    if (!allUserData?.content) return []
+
+    return allUserData.content
+      .filter((user) => !user.organizations?.map((org) => org.organization).includes(organizationName))
+      .map((user, index) => ({
+        id: index,
+        email: user.email,
+      }))
+  }, [allUserData, organizationName])
+
   const selectedUserList = useSelector(selectSelectedUserList)
   const availableRoles = useSelector(selectAvailableRoles)
   const loadingGlobal = useSelector(selectLoadingGlobal)
@@ -189,7 +204,6 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   useEffect(() => {
     dispatch(setSelectedUserList([]))
-    dispatch(getAvailableUsers(selectedOrg))
   }, [selectedOrg, dispatch])
 
   const userOnDelete = async (row: AdminOrgUser) => {

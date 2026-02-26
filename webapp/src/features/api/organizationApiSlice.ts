@@ -21,7 +21,7 @@ export const organizationApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: ['RsuList', 'Rsu'],
+  tagTypes: ['RsuList', 'Rsu', 'UserList', 'User'],
   endpoints: (builder) => ({
     getAllRsuIps: builder.query<string[], string>({
       query: (organization) => {
@@ -44,6 +44,27 @@ export const organizationApiSlice = createApi({
       },
       providesTags: (result, error, rsuIp) => [{ type: 'Rsu', id: rsuIp }],
     }),
+    getAllUserEmails: builder.query<string[], string>({
+      query: (organization) => {
+        return {
+          url: 'users',
+          headers: {
+            Organization: organization,
+          },
+        }
+      },
+      providesTags: ['UserList'],
+    }),
+    getUserOrganizations: builder.query<string[], string>({
+      query: (email) => {
+        return {
+          url: `users${getQueryString({
+            email: email,
+          })}`,
+        }
+      },
+      providesTags: (result, error, email) => [{ type: 'User', id: email }],
+    }),
   }),
 })
 
@@ -52,4 +73,8 @@ export const {
   useLazyGetAllRsuIpsQuery,
   useGetRsuOrganizationsQuery,
   useLazyGetRsuOrganizationsQuery,
+  useGetAllUserEmailsQuery,
+  useLazyGetAllUserEmailsQuery,
+  useGetUserOrganizationsQuery,
+  useLazyGetUserOrganizationsQuery,
 } = organizationApiSlice

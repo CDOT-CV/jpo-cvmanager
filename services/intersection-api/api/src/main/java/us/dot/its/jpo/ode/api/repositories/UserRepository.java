@@ -42,4 +42,12 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "LOWER(CAST(user.superUser AS string)) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<User> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
             Pageable pageable);
+
+    @Query("SELECT o.name " +
+            "FROM User u " +
+            "JOIN u.userOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE u.email = :email " +
+            "ORDER BY o.name ASC")
+    List<String> findAllOrganizationNamesByEmail(@Param("email") String email);
 }
