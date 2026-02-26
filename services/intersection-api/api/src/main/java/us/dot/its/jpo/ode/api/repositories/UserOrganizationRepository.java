@@ -35,4 +35,9 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
 
     @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.name = :organizationName")
     List<String> findAllUserEmailsByOrganizationName(@Param("organizationName") String organizationName);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE NOT EXISTS " +
+            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.name = :organizationName)")
+    List<User> findAllUserEmailsNotInOrganizationName(
+            @Param("organizationName") String organizationName);
 }

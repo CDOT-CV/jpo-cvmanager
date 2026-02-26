@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { selectToken, setOrganizationList } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
@@ -51,8 +51,6 @@ export const userDeleteSingle = createAsyncThunk(
     { getState, dispatch }
   ) => {
     const { user, selectedOrg, selectedOrgEmail, updateTableData } = payload
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
 
     const promises = []
     const userData =
@@ -75,6 +73,11 @@ export const userDeleteSingle = createAsyncThunk(
           ' because they must belong to at least one organization.'
       )
     }
+    // Invalidate RTK Query cache
+    dispatch(
+      organizationApiSlice.util.invalidateTags(['UserList', 'AvailableUserList', { type: 'User', id: user.email }])
+    )
+
     const res = await Promise.all(promises)
     dispatch(refresh({ selectedOrg, updateTableData }))
 
@@ -91,8 +94,6 @@ export const userDeleteMultiple = createAsyncThunk(
   'adminOrganizationTabUser/userDeleteMultiple',
   async (payload: AdminOrgUserDeleteMultiple, { getState, dispatch }) => {
     const { users, selectedOrg, selectedOrgEmail, updateTableData } = payload
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
 
     const invalidUsers = []
     const patchJson: adminOrgPatch = {
@@ -114,6 +115,8 @@ export const userDeleteMultiple = createAsyncThunk(
       const res = await dispatch(editOrg(patchJson))
       dispatch(refresh({ selectedOrg, updateTableData }))
       if ((res.payload as any).success) {
+        const userTags = users.map((user) => ({ type: 'User' as const, id: user.email }))
+        dispatch(organizationApiSlice.util.invalidateTags(['UserList', 'AvailableUserList', ...userTags]))
         return { success: true, message: 'User(s) deleted successfully' }
       } else {
         return { success: false, message: 'Failed to delete user(s)' }
@@ -148,6 +151,8 @@ export const userAddMultiple = createAsyncThunk(
     const res = await dispatch(editOrg(patchJson))
     dispatch(refresh({ selectedOrg, updateTableData }))
     if ((res.payload as any).success) {
+      const userTags = userList.map((user) => ({ type: 'User' as const, id: user.email }))
+      dispatch(organizationApiSlice.util.invalidateTags(['UserList', 'AvailableUserList', ...userTags]))
       return { success: true, message: 'User(s) added successfully' }
     } else {
       return { success: false, message: 'Failed to add user(s)' }
@@ -217,8 +222,12 @@ export const adminOrganizationTabUserSlice = createSlice({
     value: initialState,
   },
   reducers: {
-    setSelectedUserList: (state, action) => {
-      state.value.selectedUserList = action.payload
+    setSelectedUserList: (state, action: PayloadAction<AdminUser[]>) => {
+      state.value.selectedUserList = action.payload.map((user) => ({
+        ...user,
+        role: undefined,
+        organizations: user.organizations.map((org) => ({ name: org.organization, role: org.role })),
+      }))
     },
     setSelectedUserRole: (state, action) => {
       const { email, role } = action.payload

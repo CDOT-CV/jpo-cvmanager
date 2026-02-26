@@ -35,7 +35,7 @@ export const rsuDeleteSingle = createAsyncThunk(
       )
     }
     // Invalidate RTK Query cache
-    dispatch(organizationApiSlice.util.invalidateTags(['RsuList', { type: 'Rsu', id: rsu.ip }]))
+    dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', { type: 'Rsu', id: rsu.ip }]))
 
     const res = await Promise.all(promises)
     dispatch(refresh({ selectedOrg, updateTableData }))
@@ -74,7 +74,7 @@ export const rsuDeleteMultiple = createAsyncThunk(
       dispatch(refresh({ selectedOrg, updateTableData }))
       if ((res.payload as any).success) {
         const rsuTags = rows.map((row) => ({ type: 'Rsu' as const, id: row.ip }))
-        dispatch(organizationApiSlice.util.invalidateTags(['RsuList', ...rsuTags]))
+        dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', ...rsuTags]))
         return { success: true, message: 'RSU(s) deleted successfully' }
       } else {
         return { success: false, message: 'Failed to delete RSU(s)' }
@@ -108,6 +108,8 @@ export const rsuAddMultiple = createAsyncThunk(
     const res = await dispatch(editOrg(patchJson))
     dispatch(refresh({ selectedOrg, updateTableData }))
     if ((res.payload as any).success) {
+      const rsuTags = rsuList.map((rsu) => ({ type: 'Rsu' as const, id: rsu.ip }))
+      dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', ...rsuTags]))
       return { success: true, message: 'RSU(s) added successfully' }
     } else {
       return { success: false, message: 'Failed to add RSU(s)' }

@@ -21,6 +21,10 @@ import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
+import us.dot.its.jpo.ode.api.mappers.UserMapper;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
@@ -36,7 +40,9 @@ import us.dot.its.jpo.ode.api.repositories.UserRepository;
 @RequestMapping("/organizations")
 @RequiredArgsConstructor
 public class OrganizationController {
+    final RsuInfoMapper rsuInfoMapper;
     final RsuRepository rsuRepository;
+    final UserMapper userMapper;
     final UserRepository userRepository;
     final RsuOrganizationRepository rsuOrganizationRepository;
     final UserOrganizationRepository userOrganizationRepository;
@@ -52,6 +58,20 @@ public class OrganizationController {
             @RequestHeader(name = "Organization", required = true) String organization) {
         return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
                 .map(InetAddress::getHostAddress)
+                .collect(Collectors.toList());
+    }
+
+    @Operation(summary = "Get RSU IPs not in Organization", description = "Retrieves a list of IP addresses for all RSUs not belonging to the specified organization.")
+    @RequestMapping(path = "rsus/available", method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
+    })
+    public List<RsuInfoDto> getRsuIpsNotInOrganization(
+            @RequestHeader(name = "Organization", required = true) String organization) {
+        return rsuOrganizationRepository.findAllRsusNotInOrganizationName(organization).stream()
+                .map(rsuInfoMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -83,6 +103,20 @@ public class OrganizationController {
     public List<String> getUserEmailsByOrganization(
             @RequestHeader(name = "Organization", required = true) String organization) {
         return userOrganizationRepository.findAllUserEmailsByOrganizationName(organization);
+    }
+
+    @Operation(summary = "Get Users Not In Organization", description = "Retrieves a list of user emails for all users not belonging to the specified organization.")
+    @RequestMapping(path = "users/available", method = RequestMethod.GET, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
+    })
+    public List<UserDto> getUserEmailsNotInOrganization(
+            @RequestHeader(name = "Organization", required = true) String organization) {
+        return userOrganizationRepository.findAllUserEmailsNotInOrganizationName(organization).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Operation(summary = "Get User Organization Assignments", description = "Retrieves a list of organization names that the specified user is assigned to.")

@@ -25,7 +25,6 @@ import {
   selectAuthLoginData,
   selectEmail,
   selectLoadingGlobal,
-  selectOrganizationName,
   setOrganizationList,
 } from '../../generalSlices/userSlice'
 import { useSelector, useDispatch } from 'react-redux'
@@ -34,12 +33,12 @@ import '../adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
 import { Action, Column } from '@material-table/core'
-import { AdminOrgUser } from '../adminOrganizationTab/adminOrganizationTabSlice'
+import { AdminOrgUser, selectSelectedOrgName } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 
 import { useTheme } from '@mui/material'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
-import { useGetUsersQuery } from '../api/userApiSlice'
+import { useGetAllUsersNotInOrganizationQuery } from '../api/organizationApiSlice'
 
 interface AdminOrganizationTabUserProps {
   selectedOrg: string
@@ -52,21 +51,9 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const { selectedOrg } = props
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
-  const organizationName = useSelector(selectOrganizationName)
+  const organizationName = useSelector(selectSelectedOrgName)
 
-  const { data: allUserData } = useGetUsersQuery({ organization: organizationName })
-
-  const availableUserList = useMemo(() => {
-    // TODO: Pull this from a separate endpoint based on organization not RSUs
-    if (!allUserData?.content) return []
-
-    return allUserData.content
-      .filter((user) => !user.organizations?.map((org) => org.organization).includes(organizationName))
-      .map((user, index) => ({
-        id: index,
-        email: user.email,
-      }))
-  }, [allUserData, organizationName])
+  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(organizationName)
 
   const selectedUserList = useSelector(selectSelectedUserList)
   const availableRoles = useSelector(selectAvailableRoles)

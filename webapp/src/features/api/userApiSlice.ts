@@ -29,7 +29,7 @@ export const userApiSlice = createApi({
   tagTypes: ['User', 'AllowedSelections'],
   endpoints: (builder) => ({
     getUsers: builder.query<PaginatedResponse<AdminUser>, GetUsersParams>({
-      query: ({ organization, page = 0, size = 100, sort = 'ip,asc', search = '' }) => {
+      query: ({ organization, page = 0, size = 100, sort = 'first_name,asc', search = '' }) => {
         return {
           url: `${getQueryString({
             page: page.toString(),

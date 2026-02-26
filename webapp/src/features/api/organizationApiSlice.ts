@@ -3,6 +3,7 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { getQueryString } from './intersectionApiSlice'
+import { AdminRsu } from '../../models/Rsu'
 
 export const organizationApiSlice = createApi({
   reducerPath: 'organizationApi',
@@ -21,9 +22,9 @@ export const organizationApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: ['RsuList', 'Rsu', 'UserList', 'User'],
+  tagTypes: ['RsuList', 'AvailableRsuList', 'Rsu', 'UserList', 'AvailableUserList', 'User'],
   endpoints: (builder) => ({
-    getAllRsuIps: builder.query<string[], string>({
+    getAllRsuIpsInOrganization: builder.query<string[], string>({
       query: (organization) => {
         return {
           url: 'rsus',
@@ -33,6 +34,17 @@ export const organizationApiSlice = createApi({
         }
       },
       providesTags: ['RsuList'],
+    }),
+    getAllRsusNotInOrganization: builder.query<AdminRsu[], string>({
+      query: (organization) => {
+        return {
+          url: 'rsus/available',
+          headers: {
+            Organization: organization,
+          },
+        }
+      },
+      providesTags: ['AvailableRsuList'],
     }),
     getRsuOrganizations: builder.query<string[], string>({
       query: (rsuIp) => {
@@ -44,7 +56,7 @@ export const organizationApiSlice = createApi({
       },
       providesTags: (result, error, rsuIp) => [{ type: 'Rsu', id: rsuIp }],
     }),
-    getAllUserEmails: builder.query<string[], string>({
+    getAllUserEmailsInOrganization: builder.query<string[], string>({
       query: (organization) => {
         return {
           url: 'users',
@@ -54,6 +66,17 @@ export const organizationApiSlice = createApi({
         }
       },
       providesTags: ['UserList'],
+    }),
+    getAllUsersNotInOrganization: builder.query<AdminUser[], string>({
+      query: (organization) => {
+        return {
+          url: 'users/available',
+          headers: {
+            Organization: organization,
+          },
+        }
+      },
+      providesTags: ['AvailableUserList'],
     }),
     getUserOrganizations: builder.query<string[], string>({
       query: (email) => {
@@ -69,12 +92,16 @@ export const organizationApiSlice = createApi({
 })
 
 export const {
-  useGetAllRsuIpsQuery,
-  useLazyGetAllRsuIpsQuery,
+  useGetAllRsuIpsInOrganizationQuery,
+  useLazyGetAllRsuIpsInOrganizationQuery,
+  useGetAllRsusNotInOrganizationQuery,
+  useLazyGetAllRsusNotInOrganizationQuery,
   useGetRsuOrganizationsQuery,
   useLazyGetRsuOrganizationsQuery,
-  useGetAllUserEmailsQuery,
-  useLazyGetAllUserEmailsQuery,
+  useGetAllUserEmailsInOrganizationQuery,
+  useLazyGetAllUserEmailsInOrganizationQuery,
+  useGetAllUsersNotInOrganizationQuery,
+  useLazyGetAllUsersNotInOrganizationQuery,
   useGetUserOrganizationsQuery,
   useLazyGetUserOrganizationsQuery,
 } = organizationApiSlice
