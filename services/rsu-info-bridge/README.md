@@ -6,7 +6,7 @@ The RSU Info Bridge is a Spring Boot-based microservice designed to provide a st
 ## Getting Started
 
 ### Prerequisites
-- Java 21 JDK
+- Java 25 JDK
 - Maven 3.9+
 
 ### Building the Project
