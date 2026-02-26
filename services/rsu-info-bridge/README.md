@@ -39,8 +39,6 @@ Then, start the service using Docker Compose:
 docker compose up -d
 ```
 
-The service uses the port `16543` by default, which can be configured using the `RSU_INFO_BRIDGE_PORT` environment variable in a `.env` file. A `sample.env` file is provided for reference.
-
 ## Configuration
 Configuration is managed via `src/main/resources/application.yaml`.
 
