@@ -15,7 +15,7 @@ public class RsuDto {
     private String snmpPassword;
     private String authenticationProtocol; // optional
     private String privacyProtocol; // optional
-    private Double latitude;
-    private Double longitude;
+    private double latitude;
+    private double longitude;
     private boolean timDepositEnabled;
 }
