@@ -1,7 +1,7 @@
 -- alter rsu_credentials table
 ALTER TABLE public.rsu_credentials
     ADD COLUMN owner_organization_id INTEGER,
-    ADD CONSTRAINT fk_owner_organization_id FOREIGN KEY (owner_organization_id)
+    ADD CONSTRAINT fk_rsu_credential_owner_organization_id FOREIGN KEY (owner_organization_id)
         REFERENCES public.organizations (organization_id);
 
 UPDATE public.rsu_credentials rc
@@ -19,7 +19,7 @@ SET owner_organization_id = (
 -- alter snmp_credentials table
 ALTER TABLE public.snmp_credentials
     ADD COLUMN owner_organization_id INTEGER,
-    ADD CONSTRAINT fk_owner_organization_id FOREIGN KEY (owner_organization_id)
+    ADD CONSTRAINT fk_snmp_credential_owner_organization_id FOREIGN KEY (owner_organization_id)
         REFERENCES public.organizations (organization_id);
 
 UPDATE public.snmp_credentials sc
