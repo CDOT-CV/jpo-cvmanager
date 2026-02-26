@@ -14,8 +14,10 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTest
 class RsuControllerTest {
@@ -61,6 +63,26 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
+    }
+
+    @Test
+    void testGetRsusByIds_Success() throws Exception {
+        // Arrange
+        List<RsuDto> rsus = getMockData();
+        List<Long> rsuIds = List.of(1L, 2L);
+        when(rsuService.getByIds(rsuIds)).thenReturn(rsus);
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/rsus/query")
+                .contentType(APPLICATION_JSON)
+                .content("[1, 2]"));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value("myid"))
+                .andExpect(jsonPath("$[1].id").value("myid2"));
     }
 
     List<RsuDto> getMockData() {

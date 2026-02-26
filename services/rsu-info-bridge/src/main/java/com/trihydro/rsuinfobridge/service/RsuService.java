@@ -16,6 +16,10 @@ public class RsuService {
         return getMockData();
     }
 
+    public List<RsuDto> getByIds(List<Long> rsuIds) {
+        return getMockData();
+    }
+
     private List<RsuDto> getMockData() {
         List<RsuDto> rsus = new java.util.ArrayList<>();
 
