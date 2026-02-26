@@ -6,7 +6,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 import us.dot.its.jpo.ode.api.controllers.credentials.RsuCredentialController;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
@@ -17,6 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,6 +30,9 @@ class RsuCredentialManagementServiceTest {
 
     @Mock
     OrganizationRepository mockOrganizationRepository;
+
+    @Mock
+    PermissionService mockPermissionService;
 
     @InjectMocks
     RsuCredentialManagementService rsuCredentialManagementService;
@@ -56,7 +59,7 @@ class RsuCredentialManagementServiceTest {
         when(mockRsuCredentialRepository.save(any())).thenReturn(mockRsuCredential);
 
         // Act
-        RsuCredential rsuCredential = rsuCredentialManagementService.create(organization, request);
+        RsuCredential rsuCredential = rsuCredentialManagementService.create(request);
 
         // Assert
         assertNotNull(rsuCredential);
@@ -79,7 +82,7 @@ class RsuCredentialManagementServiceTest {
         when(mockRsuCredentialRepository.existsByNickname(nickname)).thenReturn(true);
 
         // Act & Assert
-        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialManagementService.create(organization, request));
+        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialManagementService.create(request));
     }
 
     @Test
@@ -94,7 +97,7 @@ class RsuCredentialManagementServiceTest {
         when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.create(organization, request));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.create(request));
     }
 
     @Test
@@ -105,14 +108,13 @@ class RsuCredentialManagementServiceTest {
         int organizationId = 1;
         RsuCredential mockRsuCredential = new RsuCredential();
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         mockRsuCredential.setOwnerOrganization(mockOrganization);
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(mockRsuCredential));
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         // Act
-        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(organization, nickname);
+        RsuCredential rsuCredential = rsuCredentialManagementService.getByNickname(nickname);
 
         // Assert
         assertNotNull(rsuCredential);
@@ -124,11 +126,10 @@ class RsuCredentialManagementServiceTest {
     void testGetByNickname_Failure_NotFound() {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.getByNickname(organization, nickname));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.getByNickname(nickname));
     }
 
     @Test
@@ -149,7 +150,8 @@ class RsuCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
@@ -158,13 +160,11 @@ class RsuCredentialManagementServiceTest {
         expectedCredential.setPassword(newPassword);
         expectedCredential.setOwnerOrganization(mockOrganization);
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
 
         // Act
-        RsuCredential updatedCredential = rsuCredentialManagementService.update(organization, rsuCredentialPatch);
+        RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
 
         // Assert
         assertNotNull(updatedCredential);
@@ -181,10 +181,10 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
-        int organizationId = 1;
-        String newOrganization = "organization";
-        int newOrganizationId = 1;
+        String oldOrganization = "oldOrganization";
+        int oldOrganizationId = 1;
+        String newOrganization = "newOrganization";
+        int newOrganizationId = 2;
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setOrganization(newOrganization);
 
@@ -194,7 +194,8 @@ class RsuCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOldOrganization = mock(Organization.class);
-        when(mockOldOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOldOrganization.getId()).thenReturn(oldOrganizationId);
+        lenient().when(mockOldOrganization.getName()).thenReturn(oldOrganization);
         existingCredential.setOwnerOrganization(mockOldOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
@@ -203,18 +204,17 @@ class RsuCredentialManagementServiceTest {
         expectedCredential.setPassword(password);
         
         Organization mockNewOrganization = mock(Organization.class);
-        when(mockNewOrganization.getId()).thenReturn(newOrganizationId);
+        lenient().when(mockNewOrganization.getId()).thenReturn(newOrganizationId);
+        lenient().when(mockNewOrganization.getName()).thenReturn(newOrganization);
         expectedCredential.setOwnerOrganization(mockNewOrganization);
 
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
 
-        Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
+        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.of(mockNewOrganization));
 
        // Act
-       RsuCredential updatedCredential = rsuCredentialManagementService.update(organization, rsuCredentialPatch);
+       RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
 
        // Assert
        assertNotNull(updatedCredential);
@@ -244,7 +244,8 @@ class RsuCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
@@ -253,14 +254,12 @@ class RsuCredentialManagementServiceTest {
         expectedCredential.setPassword(password);
         expectedCredential.setOwnerOrganization(mockOrganization);
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 
         when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
 
         // Act
-        RsuCredential updatedCredential = rsuCredentialManagementService.update(organization, rsuCredentialPatch);
+        RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
 
         // Assert
         assertNotNull(updatedCredential);
@@ -276,7 +275,6 @@ class RsuCredentialManagementServiceTest {
     void testUpdate_ChangePassword_Failure_CredentialNotFound() {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
         String newPassword = "mynewpassword";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setPassword(newPassword);
@@ -284,7 +282,7 @@ class RsuCredentialManagementServiceTest {
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.update(organization, rsuCredentialPatch));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.update(rsuCredentialPatch));
     }
 
     @Test
@@ -295,7 +293,7 @@ class RsuCredentialManagementServiceTest {
         String password = "password";
         String organization = "organization";
         int organizationId = 1;
-        String newOrganization = "organization";
+        String newOrganization = "newOrganization";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setOrganization(newOrganization);
 
@@ -306,15 +304,14 @@ class RsuCredentialManagementServiceTest {
         
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
-
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
 
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.update(organization, rsuCredentialPatch));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.update(rsuCredentialPatch));
     }
 
     @Test
@@ -326,14 +323,13 @@ class RsuCredentialManagementServiceTest {
 
         RsuCredential existingCredential = new RsuCredential();
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         // Act
-        rsuCredentialManagementService.deleteByNickname(organization, nickname);
+        rsuCredentialManagementService.deleteByNickname(nickname);
 
         // Assert
         verify(mockRsuCredentialRepository).delete(existingCredential);
@@ -343,84 +339,9 @@ class RsuCredentialManagementServiceTest {
     void testDeleteByNickname_Failure_NotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.deleteByNickname(organization, nickname));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.deleteByNickname(nickname));
     }
-
-    @Test
-    void testGetByNickname_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-
-        RsuCredential credential = new RsuCredential();
-        credential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        credential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(credential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> rsuCredentialManagementService.getByNickname(requestingOrganization, nickname));
-    }
-
-    @Test
-    void testUpdate_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-        String newPassword = "newPassword";
-
-        RsuCredentialController.RsuCredentialPatch patch = new RsuCredentialController.RsuCredentialPatch(nickname);
-        patch.setPassword(newPassword);
-
-        RsuCredential existingCredential = new RsuCredential();
-        existingCredential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        existingCredential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> rsuCredentialManagementService.update(requestingOrganization, patch));
-    }
-
-    @Test
-    void testDeleteByNickname_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-
-        RsuCredential existingCredential = new RsuCredential();
-        existingCredential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        existingCredential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> rsuCredentialManagementService.deleteByNickname(requestingOrganization, nickname));
-    }
-
 }

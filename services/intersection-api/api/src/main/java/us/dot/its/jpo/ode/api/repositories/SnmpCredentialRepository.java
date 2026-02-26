@@ -18,4 +18,10 @@ public interface SnmpCredentialRepository extends JpaRepository<SnmpCredential, 
 
     @Query("select (count(s) > 0) from SnmpCredential s where s.nickname = ?1")
     boolean existsByNickname(String nickname);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
+            "FROM SnmpCredential s " +
+            "JOIN s.ownerOrganization ro " +
+            "WHERE s.nickname = :nickname AND ro.name IN :organizations")
+    boolean existsByNicknameAndOrganizations(String nickname, List<String> qualifiedOrgList);
 }

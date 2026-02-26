@@ -54,18 +54,18 @@ class RsuCredentialControllerTest {
         when(mockRsuCredential.getOwnerOrganization()).thenReturn(mockOrganization);
         
         RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
-        when(mockRsuCredentialManagementService.create(organization, rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
+        when(mockRsuCredentialManagementService.create(rsuCredentialCreateRequest)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO response = rsuCredentialController.createRsuCredential(organization, rsuCredentialCreateRequest);
+        RsuCredentialDTO response = rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest);
 
         // Assert
         assert(response != null);
         assert(response.equals(expected));
-        verify(mockRsuCredentialManagementService).create(organization, rsuCredentialCreateRequest);
+        verify(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
     }
 
     @Test
@@ -76,11 +76,11 @@ class RsuCredentialControllerTest {
         String password = "password";
         String organization = "organization";
         RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
-        when(mockRsuCredentialManagementService.create(organization, rsuCredentialCreateRequest)).thenThrow(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class);
+        when(mockRsuCredentialManagementService.create(rsuCredentialCreateRequest)).thenThrow(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act & Assert
-        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialController.createRsuCredential(organization, rsuCredentialCreateRequest));
+        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest));
     }
 
     @Test
@@ -91,11 +91,11 @@ class RsuCredentialControllerTest {
         String password = "password";
         String organization = "organization";
         RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
-        doThrow(EntityNotFoundException.class).when(mockRsuCredentialManagementService).create(organization, rsuCredentialCreateRequest);
+        doThrow(EntityNotFoundException.class).when(mockRsuCredentialManagementService).create(rsuCredentialCreateRequest);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.createRsuCredential(organization, rsuCredentialCreateRequest));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.createRsuCredential(rsuCredentialCreateRequest));
     }
 
     @Test
@@ -104,7 +104,6 @@ class RsuCredentialControllerTest {
         String nickname = "testNickname";
         String username = "testUser";
         String password = "testPassword";
-        String organization = "testOrg";
         int mockRsuCredentialId = 1;
         int mockOrganizationId = 2;
         RsuCredential mockRsuCredential = mock();
@@ -116,32 +115,31 @@ class RsuCredentialControllerTest {
         Organization mockOrganization = mock(Organization.class);
         when(mockOrganization.getId()).thenReturn(mockOrganizationId);
         when(mockRsuCredential.getOwnerOrganization()).thenReturn(mockOrganization);
-        when(mockRsuCredentialManagementService.getByNickname(organization, nickname)).thenReturn(mockRsuCredential);
+        when(mockRsuCredentialManagementService.getByNickname(nickname)).thenReturn(mockRsuCredential);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialController.RsuCredentialGetRequest rsuCredentialGetRequest = new RsuCredentialController.RsuCredentialGetRequest(nickname);
         RsuCredentialDTO expected = new RsuCredentialDTO(mockRsuCredentialId, nickname, username, password, mockOrganizationId);
 
         // Act
-        RsuCredentialDTO actual = rsuCredentialController.getByNickname(organization, rsuCredentialGetRequest);
+        RsuCredentialDTO actual = rsuCredentialController.getByNickname(rsuCredentialGetRequest);
 
         // Assert
         assert(actual != null);
         assert(actual.equals(expected));
-        verify(mockRsuCredentialManagementService).getByNickname(organization, nickname);
+        verify(mockRsuCredentialManagementService).getByNickname(nickname);
     }
 
     @Test
     void testGetByNickname_Failure_NotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "testOrg";
-        when(mockRsuCredentialManagementService.getByNickname(organization, nickname)).thenThrow(EntityNotFoundException.class);
+        when(mockRsuCredentialManagementService.getByNickname(nickname)).thenThrow(EntityNotFoundException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
         RsuCredentialController.RsuCredentialGetRequest rsuCredentialGetRequest = new RsuCredentialController.RsuCredentialGetRequest(nickname);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.getByNickname(organization, rsuCredentialGetRequest));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.getByNickname(rsuCredentialGetRequest));
     }
 
     @Test
@@ -150,7 +148,6 @@ class RsuCredentialControllerTest {
         String nickname = "testNickname";
         String username = "testUser";
         String updatedPassword = "updatedPassword";
-        String organization = "testOrg";
         int mockRsuCredentialId = 1;
         int mockOrganizationId = 2;
         RsuCredential mockUpdatedRsuCredential = mock();
@@ -167,76 +164,72 @@ class RsuCredentialControllerTest {
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setPassword(updatedPassword);
 
-        when(mockRsuCredentialManagementService.update(organization, rsuCredentialPatch)).thenReturn(mockUpdatedRsuCredential);
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenReturn(mockUpdatedRsuCredential);
 
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act
-        RsuCredentialDTO response = rsuCredentialController.update(organization, rsuCredentialPatch);
+        RsuCredentialDTO response = rsuCredentialController.update(rsuCredentialPatch);
 
         // Assert
         assert(response != null);
         assert(response.getId().equals(mockRsuCredentialId));
-        verify(mockRsuCredentialManagementService).update(organization, rsuCredentialPatch);
+        verify(mockRsuCredentialManagementService).update(rsuCredentialPatch);
     }
 
     @Test
     void testUpdate_Failure_CredentialNotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "testOrg";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
         rsuCredentialPatch.setPassword("");
-        when(mockRsuCredentialManagementService.update(organization, rsuCredentialPatch)).thenThrow(EntityNotFoundException.class);
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(EntityNotFoundException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.update(organization, rsuCredentialPatch));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.update(rsuCredentialPatch));
     }
 
     @Test
     void testUpdate_Failure_OrganizationNotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "testOrg";
         RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
-        when(mockRsuCredentialManagementService.update(organization, rsuCredentialPatch)).thenThrow(EntityNotFoundException.class);
+        when(mockRsuCredentialManagementService.update(rsuCredentialPatch)).thenThrow(EntityNotFoundException.class);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.update(organization, rsuCredentialPatch));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.update(rsuCredentialPatch));
     }
 
     @Test
     void testDelete_Success() {
         // Arrange
         String nickname = "testNickname";
-        String organization = "testOrg";
 
-        doNothing().when(mockRsuCredentialManagementService).deleteByNickname(organization, nickname);
+        doNothing().when(mockRsuCredentialManagementService).deleteByNickname(nickname);
 
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
 
         RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
 
         // Act
-        rsuCredentialController.deleteByNickname(organization, deleteRequest);
+        rsuCredentialController.deleteByNickname(deleteRequest);
 
         // Assert
-        verify(mockRsuCredentialManagementService).deleteByNickname(organization, nickname);
+        verify(mockRsuCredentialManagementService).deleteByNickname(nickname);
     }
 
     @Test
     void testDelete_Failure() {
         // Arrange
         String nickname = "nickname";
-        String organization = "testOrg";
-        doThrow(EntityNotFoundException.class).when(mockRsuCredentialManagementService).deleteByNickname(organization, nickname);
+        doThrow(EntityNotFoundException.class).when(mockRsuCredentialManagementService).deleteByNickname(nickname);
         rsuCredentialController = new RsuCredentialController(mockRsuCredentialManagementService, rsuCredentialMapper);
         RsuCredentialController.RsuCredentialDeleteRequest deleteRequest = new RsuCredentialController.RsuCredentialDeleteRequest(nickname);
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.deleteByNickname(organization, deleteRequest));
+        assertThrows(EntityNotFoundException.class, () -> rsuCredentialController.deleteByNickname(deleteRequest));
     }
 
 }

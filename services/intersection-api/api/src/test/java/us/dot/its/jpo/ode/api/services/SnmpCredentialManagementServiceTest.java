@@ -6,7 +6,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 import us.dot.its.jpo.ode.api.controllers.credentials.SnmpCredentialController;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
@@ -30,6 +29,9 @@ class SnmpCredentialManagementServiceTest {
 
     @Mock
     OrganizationRepository mockOrganizationRepository;
+
+    @Mock
+    PermissionService mockPermissionService;
 
     @InjectMocks
     SnmpCredentialManagementService snmpCredentialManagementService;
@@ -56,7 +58,7 @@ class SnmpCredentialManagementServiceTest {
         when(mockSnmpCredentialRepository.save(any())).thenReturn(expectedSnmpCredential);
 
         // Act
-        SnmpCredential snmpCredential = snmpCredentialManagementService.create(organization, request);
+        SnmpCredential snmpCredential = snmpCredentialManagementService.create(request);
 
         // Assert
         assertEquals(nickname, snmpCredential.getNickname());
@@ -74,10 +76,11 @@ class SnmpCredentialManagementServiceTest {
         String password = "password";
         String organization = "organization";
         SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+
         when(mockSnmpCredentialRepository.existsByNickname(nickname)).thenReturn(true);
 
         // Act & Assert
-        assertThrows(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException.class, () -> snmpCredentialManagementService.create(organization, request));
+        assertThrows(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException.class, () -> snmpCredentialManagementService.create(request));
     }
 
     @Test
@@ -88,10 +91,11 @@ class SnmpCredentialManagementServiceTest {
         String password = "password";
         String organization = "organization";
         SnmpCredentialController.SnmpCredentialCreateRequest request = new SnmpCredentialController.SnmpCredentialCreateRequest(nickname, username, password, organization);
+
         when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.create(organization, request));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.create(request));
     }
 
     @Test
@@ -101,15 +105,15 @@ class SnmpCredentialManagementServiceTest {
         String organization = "organization";
         int organizationId = 1;
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
 
         SnmpCredential expectedSnmpCredential = new SnmpCredential();
         expectedSnmpCredential.setOwnerOrganization(mockOrganization);
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(expectedSnmpCredential));
 
         // Act
-        SnmpCredential snmpCredential = snmpCredentialManagementService.getByNickname(organization, nickname);
+        SnmpCredential snmpCredential = snmpCredentialManagementService.getByNickname(nickname);
 
         // Assert
         assertNotNull(snmpCredential);
@@ -121,11 +125,10 @@ class SnmpCredentialManagementServiceTest {
     void testGetByNickname_Failure_NotFound() {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.getByNickname(organization, nickname));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.getByNickname(nickname));
     }
 
     @Test
@@ -146,7 +149,8 @@ class SnmpCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         SnmpCredential expectedCredential = new SnmpCredential();
@@ -155,13 +159,11 @@ class SnmpCredentialManagementServiceTest {
         expectedCredential.setPassword(newPassword);
         expectedCredential.setOwnerOrganization(mockOrganization);
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockSnmpCredentialRepository.save(any())).thenReturn(expectedCredential);
 
         // Act
-        SnmpCredential updatedCredential = snmpCredentialManagementService.update(organization, patch);
+        SnmpCredential updatedCredential = snmpCredentialManagementService.update(patch);
 
         // Assert
         assertNotNull(updatedCredential);
@@ -179,10 +181,10 @@ class SnmpCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
-        int organizationId = 1;
-        String newOrganization = "organization";
-        int newOrganizationId = 1;
+        String oldOrganization = "oldOrganization";
+        int oldOrganizationId = 1;
+        String newOrganization = "newOrganization";
+        int newOrganizationId = 2;
         SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
         patch.setOrganization(newOrganization);
 
@@ -192,18 +194,21 @@ class SnmpCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOldOrganization = mock(Organization.class);
-        when(mockOldOrganization.getId()).thenReturn(1);
+        lenient().when(mockOldOrganization.getId()).thenReturn(oldOrganizationId);
+        lenient().when(mockOldOrganization.getName()).thenReturn(oldOrganization);
         existingCredential.setOwnerOrganization(mockOldOrganization);
+
+        Organization mockNewOrganization = mock(Organization.class);
+        lenient().when(mockNewOrganization.getId()).thenReturn(newOrganizationId);
+        lenient().when(mockNewOrganization.getName()).thenReturn(newOrganization);
 
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockSnmpCredentialRepository.save(any())).thenReturn(existingCredential);
 
-        Organization mockNewOrganization = mock(Organization.class);
-        when(mockNewOrganization.getId()).thenReturn(newOrganizationId);
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockNewOrganization));
+        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.of(mockNewOrganization));
 
         // Act
-        SnmpCredential updatedCredential = snmpCredentialManagementService.update(organization, patch);
+        SnmpCredential updatedCredential = snmpCredentialManagementService.update(patch);
 
         // Assert
         assertNotNull(updatedCredential);
@@ -232,7 +237,8 @@ class SnmpCredentialManagementServiceTest {
         existingCredential.setPassword(password);
         
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         SnmpCredential expectedCredential = new SnmpCredential();
@@ -241,13 +247,11 @@ class SnmpCredentialManagementServiceTest {
         expectedCredential.setPassword(password);
         expectedCredential.setOwnerOrganization(mockOrganization);
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockSnmpCredentialRepository.save(any())).thenReturn(expectedCredential);
 
         // Act
-        SnmpCredential snmpCredential = snmpCredentialManagementService.update(organization, patch);
+        SnmpCredential snmpCredential = snmpCredentialManagementService.update(patch);
 
         // Assert
         assertNotNull(snmpCredential);
@@ -267,7 +271,7 @@ class SnmpCredentialManagementServiceTest {
         String password = "password";
         String organization = "organization";
         int organizationId = 1;
-        String newOrganization = "organization";
+        String newOrganization = "newOrganization";
         SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
         patch.setOrganization(newOrganization);
 
@@ -278,15 +282,14 @@ class SnmpCredentialManagementServiceTest {
         
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
-
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
 
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.update(organization, patch));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.update(patch));
     }
 
     @Test
@@ -298,14 +301,13 @@ class SnmpCredentialManagementServiceTest {
 
         SnmpCredential existingCredential = new SnmpCredential();
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getId()).thenReturn(organizationId);
+        lenient().when(mockOrganization.getName()).thenReturn(organization);
         existingCredential.setOwnerOrganization(mockOrganization);
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
-
         // Act
-        snmpCredentialManagementService.deleteByNickname(organization, nickname);
+        snmpCredentialManagementService.deleteByNickname(nickname);
 
         // Assert
         verify(mockSnmpCredentialRepository).delete(existingCredential);
@@ -315,84 +317,9 @@ class SnmpCredentialManagementServiceTest {
     void testDeleteByNickname_Failure_CredentialNotFound() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
         when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.deleteByNickname(organization, nickname));
+        assertThrows(EntityNotFoundException.class, () -> snmpCredentialManagementService.deleteByNickname(nickname));
     }
-
-    @Test
-    void testGetByNickname_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-
-        SnmpCredential credential = new SnmpCredential();
-        credential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        credential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(credential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> snmpCredentialManagementService.getByNickname(requestingOrganization, nickname));
-    }
-
-    @Test
-    void testUpdate_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-        String newPassword = "newPassword";
-
-        SnmpCredentialController.SnmpCredentialPatch patch = new SnmpCredentialController.SnmpCredentialPatch(nickname);
-        patch.setPassword(newPassword);
-
-        SnmpCredential existingCredential = new SnmpCredential();
-        existingCredential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        existingCredential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> snmpCredentialManagementService.update(requestingOrganization, patch));
-    }
-
-    @Test
-    void testDeleteByNickname_Failure_DifferentOrganization() {
-        // Arrange
-        String nickname = "nickname";
-        String requestingOrganization = "org1";
-        int requestingOrgId = 1;
-        int credentialOrgId = 2; // Different organization
-
-        SnmpCredential existingCredential = new SnmpCredential();
-        existingCredential.setNickname(nickname);
-        Organization mockCredentialOrganization = mock(Organization.class);
-        when(mockCredentialOrganization.getId()).thenReturn(credentialOrgId);
-        existingCredential.setOwnerOrganization(mockCredentialOrganization);
-        when(mockSnmpCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
-
-        Organization mockRequestOrganization = mock(Organization.class);
-        when(mockRequestOrganization.getId()).thenReturn(requestingOrgId);
-        when(mockOrganizationRepository.findByName(requestingOrganization)).thenReturn(Optional.of(mockRequestOrganization));
-
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> snmpCredentialManagementService.deleteByNickname(requestingOrganization, nickname));
-    }
-
 }
