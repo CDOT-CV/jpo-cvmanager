@@ -5,6 +5,7 @@ import com.trihydro.rsuinfobridge.service.RsuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -15,13 +16,8 @@ import java.util.List;
 public class RsuController {
     private final RsuService rsuService;
 
-    @GetMapping("/all")
-    public List<RsuDto> getAllRsus() {
-        return rsuService.getAllRsus();
-    }
-
-    @GetMapping("/all-tim-deposit-enabled")
-    public List<RsuDto> getAllRsusWithTimDepositEnabled() {
-        return rsuService.getAllRsusWithTimDepositEnabled();
+    @GetMapping
+    public List<RsuDto> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
+        return rsuService.getAll(timDepositEnabled);
     }
 }
