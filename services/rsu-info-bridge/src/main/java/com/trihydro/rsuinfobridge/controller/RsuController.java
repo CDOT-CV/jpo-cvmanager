@@ -20,8 +20,9 @@ public class RsuController {
     private final RsuService rsuService;
 
     @GetMapping
-    public List<RsuDto> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
-        return rsuService.getAll(timDepositEnabled);
+    public ResponseEntity<List<RsuDto>> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
+        List<RsuDto> rsus = rsuService.getAll(timDepositEnabled);
+        return ResponseEntity.ok(rsus);
     }
 
     @PostMapping("/query")
