@@ -10,7 +10,7 @@ import lombok.Data;
 @Builder
 @Schema(description = "Roadside Unit information")
 public class RsuDto {
-    @Schema(description = "Unique identifier for the RSU", example = "myid")
+    @Schema(description = "Unique identifier for the RSU", example = "1")
     private String id;
 
     @Schema(description = "IPv4 address of the RSU", example = "10.10.10.10")
