@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.rsu_credentials
    owner_organization_id integer NOT NULL,
    CONSTRAINT rsu_credentials_pkey PRIMARY KEY (credential_id),
    CONSTRAINT rsu_credentials_nickname UNIQUE (nickname),
-   CONSTRAINT fk_owner_organization_id FOREIGN KEY (owner_organization_id)
+   CONSTRAINT fk_rsu_credential_owner_organization_id FOREIGN KEY (owner_organization_id)
       REFERENCES organizations (organization_id) MATCH SIMPLE
       ON UPDATE NO ACTION
       ON DELETE NO ACTION
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS public.snmp_credentials
    owner_organization_id integer NOT NULL,
    CONSTRAINT snmp_credentials_pkey PRIMARY KEY (snmp_credential_id),
    CONSTRAINT snmp_credentials_nickname UNIQUE (nickname),
-   CONSTRAINT fk_owner_organization_id FOREIGN KEY (owner_organization_id)
+   CONSTRAINT fk_snmp_credential_owner_organization_id FOREIGN KEY (owner_organization_id)
    REFERENCES organizations (organization_id) MATCH SIMPLE
    ON UPDATE NO ACTION
    ON DELETE NO ACTION
