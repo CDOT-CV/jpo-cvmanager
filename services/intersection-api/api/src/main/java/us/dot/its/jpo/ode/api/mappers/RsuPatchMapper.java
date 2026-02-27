@@ -10,7 +10,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = { MapperUtils.class })
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = { INetMapper.class,
+        SimplePositionMapper.class })
 public interface RsuPatchMapper {
 
     /**
@@ -20,14 +21,23 @@ public interface RsuPatchMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(source = "ipv4Address", target = "ipv4Address")
     @Mapping(source = "geoPosition", target = "geography")
-    @Mapping(target = "model", ignore = true) // Set in service layer
-    @Mapping(target = "credential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpCredential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpProtocol", ignore = true) // Set in service layer
-    @Mapping(target = "rsuOrganizations", ignore = true) // Set in service layer
     @Mapping(target = "id", ignore = true) // Never update ID
+
+    // Joined fields are ignored here and should be handled in the service layer
+    @Mapping(target = "model", ignore = true)
+    @Mapping(target = "credential", ignore = true)
+    @Mapping(target = "snmpCredential", ignore = true)
+    @Mapping(target = "snmpProtocol", ignore = true)
+    @Mapping(target = "rsuOrganizations", ignore = true)
     @Mapping(target = "firmwareVersion", ignore = true)
     @Mapping(target = "targetFirmwareVersion", ignore = true)
+    @Mapping(target = "consecutiveFirmwareUpgradeFailure", ignore = true)
+    @Mapping(target = "maxRetryLimitReachedInstances", ignore = true)
+    @Mapping(target = "pings", ignore = true)
+    @Mapping(target = "rsuIntersections", ignore = true)
+    @Mapping(target = "rsuOption", ignore = true)
+    @Mapping(target = "scmsHealths", ignore = true)
+    @Mapping(target = "snmpMsgfwdConfigs", ignore = true)
     void updateRsuFromPatch(RsuPatch patch, @MappingTarget Rsu rsu);
 
     /**
@@ -35,13 +45,22 @@ public interface RsuPatchMapper {
      */
     @Mapping(source = "ipv4Address", target = "ipv4Address")
     @Mapping(source = "geoPosition", target = "geography")
-    @Mapping(target = "model", ignore = true) // Set in service layer
-    @Mapping(target = "credential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpCredential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpProtocol", ignore = true) // Set in service layer
-    @Mapping(target = "rsuOrganizations", ignore = true) // Set in service layer
-    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "id", ignore = true) // ID will be auto-generated
+
+    // Joined fields are ignored here and should be handled in the service layer
+    @Mapping(target = "model", ignore = true)
+    @Mapping(target = "credential", ignore = true)
+    @Mapping(target = "snmpCredential", ignore = true)
+    @Mapping(target = "snmpProtocol", ignore = true)
+    @Mapping(target = "rsuOrganizations", ignore = true)
     @Mapping(target = "firmwareVersion", ignore = true)
     @Mapping(target = "targetFirmwareVersion", ignore = true)
+    @Mapping(target = "consecutiveFirmwareUpgradeFailure", ignore = true)
+    @Mapping(target = "maxRetryLimitReachedInstances", ignore = true)
+    @Mapping(target = "pings", ignore = true)
+    @Mapping(target = "rsuIntersections", ignore = true)
+    @Mapping(target = "rsuOption", ignore = true)
+    @Mapping(target = "scmsHealths", ignore = true)
+    @Mapping(target = "snmpMsgfwdConfigs", ignore = true)
     Rsu toRsu(RsuPatch rsuPatch);
 }

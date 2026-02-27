@@ -14,7 +14,8 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = { MapperUtils.class })
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = { INetMapper.class,
+        SimplePositionMapper.class })
 public interface RsuInfoMapper {
 
     /**
@@ -40,13 +41,22 @@ public interface RsuInfoMapper {
     @Mapping(source = "ipv4Address", target = "ipv4Address")
     @Mapping(source = "geoPosition", target = "geography")
     @Mapping(target = "id", ignore = true) // Auto-generated
-    @Mapping(target = "model", ignore = true) // Set in service layer
-    @Mapping(target = "credential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpCredential", ignore = true) // Set in service layer
-    @Mapping(target = "snmpProtocol", ignore = true) // Set in service layer
-    @Mapping(target = "rsuOrganizations", ignore = true) // Set in service layer
+
+    // Joined fields are ignored here and should be handled in the service layer
+    @Mapping(target = "model", ignore = true)
+    @Mapping(target = "credential", ignore = true)
+    @Mapping(target = "snmpCredential", ignore = true)
+    @Mapping(target = "snmpProtocol", ignore = true)
+    @Mapping(target = "rsuOrganizations", ignore = true)
     @Mapping(target = "firmwareVersion", ignore = true)
     @Mapping(target = "targetFirmwareVersion", ignore = true)
+    @Mapping(target = "consecutiveFirmwareUpgradeFailure", ignore = true)
+    @Mapping(target = "maxRetryLimitReachedInstances", ignore = true)
+    @Mapping(target = "pings", ignore = true)
+    @Mapping(target = "rsuIntersections", ignore = true)
+    @Mapping(target = "rsuOption", ignore = true)
+    @Mapping(target = "scmsHealths", ignore = true)
+    @Mapping(target = "snmpMsgfwdConfigs", ignore = true)
     Rsu toEntity(RsuInfoDto dto);
 
     /**
