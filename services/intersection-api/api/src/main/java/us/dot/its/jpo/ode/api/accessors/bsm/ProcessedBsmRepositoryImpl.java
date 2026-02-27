@@ -10,7 +10,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
+
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.ProcessedBsm;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
@@ -23,7 +25,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class ProcessedBsmRepositoryImpl implements ProcessedBsmRepository, PageableQuery {
@@ -41,10 +42,11 @@ public class ProcessedBsmRepositoryImpl implements ProcessedBsmRepository, Pagea
 	TypeReference<ProcessedBsm<Point>> processedBsmTypeReference = new TypeReference<>() {
 	};
 
-	public static final ObjectMapper mapper = DateJsonMapper.getInstance()
-			.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	public static final JsonMapper mapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
-	public ProcessedBsmRepositoryImpl(MongoTemplate mongoTemplate) {
+    public ProcessedBsmRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}
 

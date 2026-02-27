@@ -14,9 +14,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
 
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import tools.jackson.databind.json.JsonMapper;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.api.utils.GeographyCalculator;
@@ -26,8 +26,9 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 public class OdeBsmJsonRepositoryImpl implements OdeBsmJsonRepository, PageableQuery {
 
 	private final MongoTemplate mongoTemplate;
-	public static final ObjectMapper mapper = DateJsonMapper.getInstance()
-			.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+	public static final JsonMapper mapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
 	private final String collectionName = "OdeBsmJson";
 	private final String DATE_FIELD = "metadata.odeReceivedAt";

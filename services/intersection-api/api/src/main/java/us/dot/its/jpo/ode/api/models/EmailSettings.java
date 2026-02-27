@@ -5,13 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.core.JacksonException;
 
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 
 @Slf4j
 public class EmailSettings {
@@ -20,6 +22,13 @@ public class EmailSettings {
     private boolean receiveCriticalErrorMessages;
     private boolean receiveNewUserRequests;
     private EmailFrequency notificationFrequency;
+    private static final JsonMapper mapper = JsonMapper.builder()
+            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .changeDefaultPropertyInclusion(incl ->
+                    incl.withValueInclusion(JsonInclude.Include.NON_NULL)
+            )
+            .build();
 
     private static final Logger logger = LoggerFactory.getLogger(EmailSettings.class);
 
@@ -36,7 +45,6 @@ public class EmailSettings {
         List<String> notifications = attributes.get("NotificationSettings");
 
         if (notifications != null && !notifications.isEmpty()) {
-            ObjectMapper mapper = DateJsonMapper.getInstance();
             EmailSettings settings;
             try {
                 settings = mapper.readValue(notifications.getFirst(), EmailSettings.class);
@@ -63,7 +71,6 @@ public class EmailSettings {
 
     @Override
     public String toString() {
-        ObjectMapper mapper = DateJsonMapper.getInstance();
         try {
             return mapper.writeValueAsString(this);
         } catch (JacksonException e) {

@@ -24,11 +24,12 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
 import com.mongodb.client.DistinctIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
+import tools.jackson.databind.json.JsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
@@ -36,7 +37,6 @@ import us.dot.its.jpo.ode.api.models.IDCount;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 import us.dot.its.jpo.conflictmonitor.monitor.models.map.MapBoundingBox;
 import us.dot.its.jpo.conflictmonitor.monitor.models.map.MapIndex;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 
 @Component
@@ -52,8 +52,10 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
 
     TypeReference<ProcessedMap<LineString>> processedMapTypeReference = new TypeReference<>() {
     };
-    private ObjectMapper mapper = DateJsonMapper.getInstance()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final JsonMapper mapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     public ProcessedMapRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
@@ -271,31 +273,31 @@ public class ProcessedMapRepositoryImpl implements ProcessedMapRepository, Pagea
         AggregationOptions options = AggregationOptions.builder().allowDiskUse(true).build();
 
         Aggregation aggregation = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where(INTERSECTION_ID_FIELD).is(intersectionID)),
-                Aggregation.match(Criteria.where(DATE_FIELD).gte(startTimeString).lte(endTimeString)),
-                Aggregation.project(DATE_FIELD),
+                        Aggregation.match(Criteria.where(INTERSECTION_ID_FIELD).is(intersectionID)),
+                        Aggregation.match(Criteria.where(DATE_FIELD).gte(startTimeString).lte(endTimeString)),
+                        Aggregation.project(DATE_FIELD),
 
-                // Convert string timestamp to date type
-                Aggregation.project()
-                        .and(DateOperators.DateFromString.fromStringOf("timeStamp")).as("date"),
+                        // Convert string timestamp to date type
+                        Aggregation.project()
+                                .and(DateOperators.DateFromString.fromStringOf("timeStamp")).as("date"),
 
-                // Convert date to milliseconds since epoch
-                Aggregation.project()
-                        .and(ConvertOperators.ToLong.toLong("$date")).as("utcmillisecond"),
+                        // Convert date to milliseconds since epoch
+                        Aggregation.project()
+                                .and(ConvertOperators.ToLong.toLong("$date")).as("utcmillisecond"),
 
-                // Convert milliseconds to integer deciseconds since epoch
-                Aggregation.project()
-                        .and(ArithmeticOperators.Divide.valueOf("utcmillisecond").divideBy(10 * 1000)).as("decisecond"),
-                Aggregation.project()
-                        .and(ArithmeticOperators.Round.roundValueOf("decisecond")).as("decisecond"),
+                        // Convert milliseconds to integer deciseconds since epoch
+                        Aggregation.project()
+                                .and(ArithmeticOperators.Divide.valueOf("utcmillisecond").divideBy(10 * 1000)).as("decisecond"),
+                        Aggregation.project()
+                                .and(ArithmeticOperators.Round.roundValueOf("decisecond")).as("decisecond"),
 
-                // Aggregate message counts per unique decisecond and count number in each
-                // bucket from 0-20 per decisecond
-                Aggregation.group("decisecond").count().as("msgPerDecisecond"),
-                Aggregation.bucket("msgPerDecisecond")
-                        .withBoundaries(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
-                        .withDefaultBucket(20)
-                        .andOutputCount().as("count"))
+                        // Aggregate message counts per unique decisecond and count number in each
+                        // bucket from 0-20 per decisecond
+                        Aggregation.group("decisecond").count().as("msgPerDecisecond"),
+                        Aggregation.bucket("msgPerDecisecond")
+                                .withBoundaries(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+                                .withDefaultBucket(20)
+                                .andOutputCount().as("count"))
                 .withOptions(options);
 
         AggregationResults<IDCount> result = mongoTemplate.aggregate(aggregation, collectionName, IDCount.class);

@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.models.messages;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -12,7 +13,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 import us.dot.its.jpo.ode.api.models.MessageType;
 
 @Setter
@@ -35,6 +38,13 @@ public class DecodedMessage {
     private long decodeTime;
     private String decodeErrors;
     private String type;
+    private final JsonMapper mapper = JsonMapper.builder()
+            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .changeDefaultPropertyInclusion(incl ->
+                    incl.withValueInclusion(JsonInclude.Include.NON_NULL)
+            )
+            .build();;
 
     public DecodedMessage(String asn1Text, MessageType type, String decodeErrors) {
         this.asn1Text = asn1Text;
@@ -46,7 +56,7 @@ public class DecodedMessage {
     @Override
     public String toString() {
         try {
-            return DateJsonMapper.getInstance().writeValueAsString(this);
+            return mapper.writeValueAsString(this);
         } catch (JacksonException e) {
             logger.debug("Error: Exception serializing {} Event to JSON", this, e);
         }
