@@ -29,7 +29,7 @@ public class RsuController {
     })
     public List<RsuDto> getAll(
             @Parameter(description = "Filter RSUs by TIM deposit enabled status", example = "false")
-            @RequestParam(defaultValue = "false") boolean timDepositEnabled) {
-        return rsuService.getAll(timDepositEnabled);
+            @RequestParam(defaultValue = "false") boolean timDepositEnabledOnly) {
+        return rsuService.getAll(timDepositEnabledOnly);
     }
 }
