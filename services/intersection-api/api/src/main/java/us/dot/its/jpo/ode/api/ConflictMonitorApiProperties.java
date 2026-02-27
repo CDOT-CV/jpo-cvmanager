@@ -1,19 +1,18 @@
 package us.dot.its.jpo.ode.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
-import org.springframework.boot.jackson.autoconfigure.XmlMapperBuilderCustomizer;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import tools.jackson.databind.ObjectMapper;
-
-import us.dot.its.jpo.conflictmonitor.AlwaysContinueProductionExceptionHandler;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+import us.dot.its.jpo.conflictmonitor.AlwaysContinueProductionExceptionHandler;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,7 +43,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.springframework.boot.info.BuildProperties;
-import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 
 @Configuration
 @ConfigurationProperties("conflict.monitor.api")
@@ -134,7 +132,7 @@ public class ConflictMonitorApiProperties {
     /**
      * Returns the Conflict Monitor REST server URL. This URL is unauthenticated,
      * and only accessible internally.
-     * 
+     *
      * @return
      */
     public String getCmServerURL() {
@@ -292,12 +290,12 @@ public class ConflictMonitorApiProperties {
 
     @Bean
     public ObjectMapper defaultMapper() {
-        ObjectMapper objectMapper = DateJsonMapper.getInstance();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(null));
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        objectMapper.setSerializationInclusion(Include.NON_NULL);
-        return objectMapper;
+        return JsonMapper.builder()
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .changeDefaultPropertyInclusion(incl ->
+                        incl.withValueInclusion(JsonInclude.Include.NON_NULL)
+                )
+                .build();
     }
 
     @PostConstruct
