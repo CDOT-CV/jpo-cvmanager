@@ -28,14 +28,14 @@ class RsuControllerTest {
     }
 
     @Test
-    void testGetAllRsus_Success() throws Exception {
+    void testGetAll_Success() throws Exception {
         // Arrange
         List<RsuDto> rsus = getMockData();
-        when(rsuService.getAllRsus()).thenReturn(rsus);
+        when(rsuService.getAll(false)).thenReturn(rsus);
         mockMvc = initializeMockMvc();
 
         // Act
-        ResultActions resultActions = mockMvc.perform(get("/rsus/all"));
+        ResultActions resultActions = mockMvc.perform(get("/rsus"));
 
         // Assert
         resultActions.andExpect(status().isOk())
@@ -47,14 +47,14 @@ class RsuControllerTest {
     }
 
     @Test
-    void testGetAllRsusWithTimDepositEnabled_Success() throws Exception {
+    void testGetAllWithTimDepositEnabled_Success() throws Exception {
         // Arrange
         List<RsuDto> rsus = getMockData();
-        when(rsuService.getAllRsusWithTimDepositEnabled()).thenReturn(rsus);
+        when(rsuService.getAll(true)).thenReturn(rsus);
         mockMvc = initializeMockMvc();
 
         // Act
-        ResultActions resultActions = mockMvc.perform(get("/rsus/all-tim-deposit-enabled"));
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=true"));
 
         // Assert
         resultActions.andExpect(status().isOk())

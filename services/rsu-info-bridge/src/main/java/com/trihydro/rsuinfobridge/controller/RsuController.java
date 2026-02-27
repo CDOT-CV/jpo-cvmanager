@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -20,21 +21,12 @@ import java.util.List;
 public class RsuController {
     private final RsuService rsuService;
 
-    @GetMapping("/all")
+    @GetMapping
     @Operation(summary = "Get all RSUs", description = "Retrieves a list of all Roadside Units in the system")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved list of RSUs")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of RSUs")
     })
-    public List<RsuDto> getAllRsus() {
-        return rsuService.getAllRsus();
-    }
-
-    @GetMapping("/all-tim-deposit-enabled")
-    @Operation(summary = "Get all RSUs with TIM deposit enabled", description = "Retrieves a list of all Roadside Units that have Traveler Information Message (TIM) deposit capability enabled")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved list of TIM-enabled RSUs")
-    })
-    public List<RsuDto> getAllRsusWithTimDepositEnabled() {
-        return rsuService.getAllRsusWithTimDepositEnabled();
+    public List<RsuDto> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
+        return rsuService.getAll(timDepositEnabled);
     }
 }

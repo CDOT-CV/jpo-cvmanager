@@ -12,11 +12,7 @@ public class RsuService {
     private final static String AUTHENTICATION_PROTOCOL = "SHA";
     private final static String PRIVACY_PROTOCOL = "AES";
 
-    public List<RsuDto> getAllRsus() {
-        return getMockData();
-    }
-
-    public List<RsuDto> getAllRsusWithTimDepositEnabled() {
+    public List<RsuDto> getAll(boolean timDepositEnabledOnly) {
         return getMockData();
     }
 

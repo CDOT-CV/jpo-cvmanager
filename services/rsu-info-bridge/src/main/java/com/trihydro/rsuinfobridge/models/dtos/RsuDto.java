@@ -32,10 +32,10 @@ public class RsuDto {
     private String privacyProtocol;
 
     @Schema(description = "Latitude coordinate of the RSU location", example = "39.73915")
-    private Double latitude;
+    private double latitude;
 
     @Schema(description = "Longitude coordinate of the RSU location", example = "-104.9847")
-    private Double longitude;
+    private double longitude;
 
     @Schema(description = "Indicates whether TIM (Traveler Information Message) deposit is enabled", example = "true")
     private boolean timDepositEnabled;
