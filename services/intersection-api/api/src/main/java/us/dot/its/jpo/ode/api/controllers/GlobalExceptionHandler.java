@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,45 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleEntityNotFound(EntityNotFoundException ex) {
         log.warn("Resource requested not found: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        var errorRes = ErrorResponse.builder(ex, problemDetail);
+        return errorRes.build();
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Invalid argument: {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        var errorRes = ErrorResponse.builder(ex, problemDetail);
+        return errorRes.build();
+    }
+
+    /**
+     * Handles ResponseStatusException thrown by controllers.
+     * Allows controllers to throw exceptions with specific HTTP status codes and
+     * messages.
+     * 
+     * Example: throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not
+     * found");
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    @ResponseBody
+    public ErrorResponse handleResponseStatusException(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+
+        // Log at different levels based on status code
+        if (status.is5xxServerError()) {
+            log.error("Server error ({}): {}", status.value(), ex.getReason(), ex);
+        } else if (status.is4xxClientError()) {
+            log.warn("Client error ({}): {}", status.value(), ex.getReason());
+        } else {
+            log.info("Response status exception ({}): {}", status.value(), ex.getReason());
+        }
+
+        String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, message);
+
         var errorRes = ErrorResponse.builder(ex, problemDetail);
         return errorRes.build();
     }
@@ -173,8 +213,6 @@ public class GlobalExceptionHandler {
         var errorRes = ErrorResponse.builder(ex, problemDetail);
         return errorRes.build();
     }
-
-    // ... (rest of the helper methods from previous response)
 
     private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
         if (message == null) {

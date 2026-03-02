@@ -151,7 +151,11 @@ const AdminAddRsu = () => {
 
       handleClose()
     } catch (error: any) {
-      toast.error('Failed to add RSU due to error: ' + (error?.data?.message || error?.message || 'Unknown error'))
+      console.log('Error creating RSU:', error)
+      toast.error(
+        'Failed to add RSU due to error: ' +
+          (error?.data?.message || error?.data?.detail || error?.message || 'Unknown error')
+      )
     }
   }
 
