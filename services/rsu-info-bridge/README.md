@@ -27,13 +27,19 @@ You can run the application using the Spring Boot Maven plugin:
 The service will be available at `http://localhost:16543` (default port).
 
 ### Using Docker Compose
-First, build the Docker image using the Spring Boot Maven plugin:
+First, copy the sample environment file:
+
+```bash
+cp sample.env .env
+```
+
+Then, build the Docker image using the Spring Boot Maven plugin:
 
 ```bash
 ./mvnw spring-boot:build-image
 ```
 
-Then, start the service using Docker Compose:
+Finally, start the service using Docker Compose:
 
 ```bash
 docker compose up -d
