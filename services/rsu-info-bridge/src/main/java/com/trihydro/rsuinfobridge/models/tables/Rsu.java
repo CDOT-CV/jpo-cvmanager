@@ -3,8 +3,10 @@ package com.trihydro.rsuinfobridge.models.tables;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.net.InetAddress;
@@ -16,6 +18,8 @@ import org.locationtech.jts.geom.Point;
 @Entity
 @Table(name = "rsus")
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Rsu {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rsus_id_gen")
