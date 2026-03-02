@@ -51,10 +51,28 @@ class RsuControllerTest {
         // Assert
         resultActions.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
+                // RSU 1
                 .andExpect(jsonPath("$[0].id").value("1"))
                 .andExpect(jsonPath("$[0].ipv4Address").value("10.10.10.10"))
+                .andExpect(jsonPath("$[0].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[0].snmpUsername").value("myusername"))
+                .andExpect(jsonPath("$[0].snmpPassword").value("mypassword"))
+                .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
+                .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
+                .andExpect(jsonPath("$[0].latitude").value(-104.9847))
+                .andExpect(jsonPath("$[0].longitude").value(39.73915))
+                .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
+                // RSU 2
                 .andExpect(jsonPath("$[1].id").value("2"))
-                .andExpect(jsonPath("$[1].ipv4Address").value("10.10.10.11"));
+                .andExpect(jsonPath("$[1].ipv4Address").value("10.10.10.11"))
+                .andExpect(jsonPath("$[1].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[1].snmpUsername").value("myusername2"))
+                .andExpect(jsonPath("$[1].snmpPassword").value("mypassword2"))
+                .andExpect(jsonPath("$[1].authenticationProtocol").value("SHA"))
+                .andExpect(jsonPath("$[1].privacyProtocol").value("AES"))
+                .andExpect(jsonPath("$[1].latitude").value(105.0))
+                .andExpect(jsonPath("$[1].longitude").value(40.0))
+                .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
 
     @Test
@@ -70,7 +88,27 @@ class RsuControllerTest {
         // Assert
         resultActions.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
+                // RSU 1
+                .andExpect(jsonPath("$[0].id").value("1"))
+                .andExpect(jsonPath("$[0].ipv4Address").value("10.10.10.10"))
+                .andExpect(jsonPath("$[0].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[0].snmpUsername").value("myusername"))
+                .andExpect(jsonPath("$[0].snmpPassword").value("mypassword"))
+                .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
+                .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
+                .andExpect(jsonPath("$[0].latitude").value(-104.9847))
+                .andExpect(jsonPath("$[0].longitude").value(39.73915))
                 .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
+                // RSU 2
+                .andExpect(jsonPath("$[1].id").value("2"))
+                .andExpect(jsonPath("$[1].ipv4Address").value("10.10.10.11"))
+                .andExpect(jsonPath("$[1].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[1].snmpUsername").value("myusername2"))
+                .andExpect(jsonPath("$[1].snmpPassword").value("mypassword2"))
+                .andExpect(jsonPath("$[1].authenticationProtocol").value("SHA"))
+                .andExpect(jsonPath("$[1].privacyProtocol").value("AES"))
+                .andExpect(jsonPath("$[1].latitude").value(105.0))
+                .andExpect(jsonPath("$[1].longitude").value(40.0))
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
 
@@ -83,12 +121,12 @@ class RsuControllerTest {
 
         SnmpCredential snmpCredential1 = new SnmpCredential();
         snmpCredential1.setId(1);
-        snmpCredential1.setNickname("myusername");
+        snmpCredential1.setUsername("myusername");
         snmpCredential1.setPassword("mypassword");
 
         SnmpCredential snmpCredential2 = new SnmpCredential();
         snmpCredential2.setId(2);
-        snmpCredential2.setNickname("myusername2");
+        snmpCredential2.setUsername("myusername2");
         snmpCredential2.setPassword("mypassword2");
 
         Point point1 = mock(Point.class);
