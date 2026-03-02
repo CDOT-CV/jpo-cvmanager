@@ -28,11 +28,14 @@ class RsuServiceTest {
     private RsuService rsuService;
 
     @Autowired
-    private TestDatabaseHelper dbHelper;
+    private TestDatabaseHelper db;
+
+    private TestPrerequisites prereqs;
 
     @BeforeEach
     void setup() {
-        dbHelper.clearAllTables();
+        db.clearAllTables();
+        prereqs = db.insertStandardPrerequisites();
     }
 
     // ==================== Happy path tests ====================
@@ -40,16 +43,8 @@ class RsuServiceTest {
     @Test
     void testGetAll_returnsAllRsus() {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.10.10.10", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, true, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.10.10.11", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, false, true);
+        db.createRsuWithOptions("10.10.10.10", 1.0, "SN001", true, prereqs);
+        db.createRsuWithOptions("10.10.10.11", 2.0, "SN002", false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(false);
@@ -61,16 +56,8 @@ class RsuServiceTest {
     @Test
     void testGetAll_withTimDepositEnabledOnly_returnsOnlyTimDepositEnabled() throws UnknownHostException {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.10.10.10", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, true, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.10.10.11", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, false, true);
+        db.createRsuWithOptions("10.10.10.10", 1.0, "SN001", true, prereqs);
+        db.createRsuWithOptions("10.10.10.11", 2.0, "SN002", false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(true);
@@ -83,21 +70,9 @@ class RsuServiceTest {
     @Test
     void testGetAll_withMultipleTimDepositEnabled_returnsAll() {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.10.10.10", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, true, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.10.10.11", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, true, false);
-
-        int rsuId3 = dbHelper.insertRsu("10.10.10.12", 3.0,
-                "SN003", "SCMS003", "I-76",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId3, true, true);
+        db.createRsuWithOptions("10.10.10.10", 1.0, "SN001", true, prereqs);
+        db.createRsuWithOptions("10.10.10.11", 2.0, "SN002", true, prereqs);
+        db.createRsuWithOptions("10.10.10.12", 3.0, "SN003", true, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(true);
@@ -109,28 +84,24 @@ class RsuServiceTest {
     @Test
     void testGetAll_returnsRsuWithCorrectFields() throws UnknownHostException {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId = dbHelper.insertRsu("10.10.10.10", 5.5,
-                "SN-ABC", "SCMS-XYZ", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId, true, false);
+        db.createRsuWithOptions("10.10.10.10", 5.5, "SN-ABC", "SCMS-XYZ", "I-70", true, false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(false);
 
         // Assert
         assertEquals(1, result.size());
-        Rsu returned = result.getFirst();
-        assertEquals(InetAddress.getByName("10.10.10.10"), returned.getIpv4Address());
-        assertEquals("NTCIP1218", returned.getSnmpProtocol().getProtocolCode());
-        assertEquals("snmpUser", returned.getSnmpCredential().getUsername());
-        assertEquals("snmpPass", returned.getSnmpCredential().getPassword());
-        assertEquals(5.5, returned.getMilepost());
-        assertEquals("SN-ABC", returned.getSerialNumber());
-        assertEquals("SCMS-XYZ", returned.getIssScmsId());
-        assertEquals("I-70", returned.getPrimaryRoute());
-        assertTrue(returned.getRsuOption().getTimDeposit());
-        assertFalse(returned.getRsuOption().getSnmpMonitoring());
+        Rsu rsu = result.getFirst();
+        assertEquals(InetAddress.getByName("10.10.10.10"), rsu.getIpv4Address());
+        assertEquals("NTCIP1218", rsu.getSnmpProtocol().getProtocolCode());
+        assertEquals("snmpUser", rsu.getSnmpCredential().getUsername());
+        assertEquals("snmpPass", rsu.getSnmpCredential().getPassword());
+        assertEquals(5.5, rsu.getMilepost());
+        assertEquals("SN-ABC", rsu.getSerialNumber());
+        assertEquals("SCMS-XYZ", rsu.getIssScmsId());
+        assertEquals("I-70", rsu.getPrimaryRoute());
+        assertTrue(rsu.getRsuOption().getTimDeposit());
+        assertFalse(rsu.getRsuOption().getSnmpMonitoring());
     }
 
     // ==================== Edge case tests ====================
@@ -156,16 +127,8 @@ class RsuServiceTest {
     @Test
     void testGetAll_withTimDepositEnabled_noneEnabled_returnsEmptyList() {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.10.10.10", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, false, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.10.10.11", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, false, true);
+        db.createRsuWithOptions("10.10.10.10", 1.0, "SN001", false, prereqs);
+        db.createRsuWithOptions("10.10.10.11", 2.0, "SN002", false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(true);
@@ -175,18 +138,10 @@ class RsuServiceTest {
     }
 
     @Test
-    void testGetAll_timDepositEnabledFalse_returnsAllIncludingDisabled() {
+    void testGetAll_timDepositFalse_returnsAllIncludingDisabled() {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.10.10.10", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, true, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.10.10.11", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, false, false);
+        db.createRsuWithOptions("10.10.10.10", 1.0, "SN001", true, prereqs);
+        db.createRsuWithOptions("10.10.10.11", 2.0, "SN002", false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(false);
@@ -198,11 +153,7 @@ class RsuServiceTest {
     @Test
     void testGetAll_singleRsu_returnsSingleElement() throws UnknownHostException {
         // Arrange
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId = dbHelper.insertRsu("192.168.1.1", 10.0,
-                "SINGLE", "SCMS-SINGLE", "US-36",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId, false, false);
+        db.createRsuWithOptions("192.168.1.1", 10.0, "SINGLE", false, prereqs);
 
         // Act
         List<Rsu> result = rsuService.getAll(false);
@@ -213,18 +164,10 @@ class RsuServiceTest {
     }
 
     @Test
-    void testGetAll_sharedCredentials_returnsAllRsus() {
+    void testGetAll_multipleRsusWithSharedCredentials_returnsAll() {
         // Arrange - multiple RSUs sharing the same credentials
-        TestPrerequisites prereqs = dbHelper.insertStandardPrerequisites();
-        int rsuId1 = dbHelper.insertRsu("10.0.0.1", 1.0,
-                "SN001", "SCMS001", "I-70",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId1, true, false);
-
-        int rsuId2 = dbHelper.insertRsu("10.0.0.2", 2.0,
-                "SN002", "SCMS002", "I-25",
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-        dbHelper.insertRsuOption(rsuId2, true, false);
+        db.createRsuWithOptions("10.0.0.1", 1.0, "SN001", true, prereqs);
+        db.createRsuWithOptions("10.0.0.2", 2.0, "SN002", true, prereqs);
 
         // Act
         List<Rsu> resultAll = rsuService.getAll(false);

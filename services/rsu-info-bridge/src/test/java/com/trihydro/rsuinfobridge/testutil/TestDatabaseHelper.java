@@ -86,34 +86,6 @@ public class TestDatabaseHelper {
                 "SELECT snmp_protocol_id FROM snmp_protocols WHERE nickname = ?", Integer.class, nickname);
     }
 
-    /**
-     * Inserts an RSU record into the database.
-     * Uses PostGIS ST_MakePoint for geography column.
-     */
-    public int insertRsu(String ipv4Address, double milepost,
-                         String serialNumber, String issScmsId, String primaryRoute,
-                         int modelId, int credentialId, int snmpCredentialId, int snmpProtocolId) {
-        return insertRsu(ipv4Address, 0.0, 0.0, milepost, serialNumber, issScmsId, primaryRoute,
-                modelId, credentialId, snmpCredentialId, snmpProtocolId);
-    }
-
-    /**
-     * Inserts an RSU record into the database with specific coordinates.
-     * Uses PostGIS ST_MakePoint for geography column.
-     */
-    public int insertRsu(String ipv4Address, double longitude, double latitude, double milepost,
-                         String serialNumber, String issScmsId, String primaryRoute,
-                         int modelId, int credentialId, int snmpCredentialId, int snmpProtocolId) {
-        jdbcTemplate.update(
-                "INSERT INTO rsus (geography, milepost, ipv4_address, serial_number, iss_scms_id, " +
-                        "primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id) " +
-                        "VALUES (ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?)",
-                longitude, latitude, milepost, ipv4Address, serialNumber, issScmsId,
-                primaryRoute, modelId, credentialId, snmpCredentialId, snmpProtocolId);
-        return jdbcTemplate.queryForObject(
-                "SELECT rsu_id FROM rsus WHERE ipv4_address = ?::inet", Integer.class, ipv4Address);
-    }
-
     public void insertRsuOption(int rsuId, boolean timDeposit, boolean snmpMonitoring) {
         jdbcTemplate.update(
                 "INSERT INTO rsu_options (rsu_id, tim_deposit, snmp_monitoring) VALUES (?, ?, ?)",
@@ -137,6 +109,60 @@ public class TestDatabaseHelper {
         int snmpProtocolId = insertSnmpProtocol("NTCIP1218", "NTCIP1218");
 
         return new TestPrerequisites(orgId, modelId, credentialId, snmpCredentialId, snmpProtocolId);
+    }
+
+    /**
+     * Creates an RSU with its options in one call. Uses standard prerequisites.
+     *
+     * @param ipv4Address   The RSU IP address
+     * @param milepost      The milepost location
+     * @param serialNumber  Unique serial number
+     * @param timDeposit    Whether TIM deposit is enabled
+     * @param prereqs       The prerequisites (model, credentials, etc.)
+     * @return The created RSU ID
+     */
+    public int createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
+                                    boolean timDeposit, TestPrerequisites prereqs) {
+        return createRsuWithOptions(ipv4Address, milepost, serialNumber, "SCMS-" + serialNumber,
+                "Route-" + serialNumber, timDeposit, false, prereqs);
+    }
+
+    /**
+     * Creates an RSU with its options in one call with full control over all fields.
+     */
+    public int createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
+                                    String issScmsId, String primaryRoute,
+                                    boolean timDeposit, boolean snmpMonitoring,
+                                    TestPrerequisites prereqs) {
+        int rsuId = insertRsu(ipv4Address, milepost, serialNumber, issScmsId, primaryRoute, prereqs);
+        insertRsuOption(rsuId, timDeposit, snmpMonitoring);
+        return rsuId;
+    }
+
+    /**
+     * Inserts an RSU using standard prerequisites.
+     */
+    public int insertRsu(String ipv4Address, double milepost, String serialNumber,
+                         String issScmsId, String primaryRoute, TestPrerequisites prereqs) {
+        return insertRsu(ipv4Address, 0.0, 0.0, milepost, serialNumber, issScmsId, primaryRoute,
+                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
+    }
+
+    /**
+     * Inserts an RSU record into the database with specific coordinates.
+     * Uses PostGIS ST_MakePoint for geography column.
+     */
+    public int insertRsu(String ipv4Address, double longitude, double latitude, double milepost,
+                         String serialNumber, String issScmsId, String primaryRoute,
+                         int modelId, int credentialId, int snmpCredentialId, int snmpProtocolId) {
+        jdbcTemplate.update(
+                "INSERT INTO rsus (geography, milepost, ipv4_address, serial_number, iss_scms_id, " +
+                        "primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id) " +
+                        "VALUES (ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?)",
+                longitude, latitude, milepost, ipv4Address, serialNumber, issScmsId,
+                primaryRoute, modelId, credentialId, snmpCredentialId, snmpProtocolId);
+        return jdbcTemplate.queryForObject(
+                "SELECT rsu_id FROM rsus WHERE ipv4_address = ?::inet", Integer.class, ipv4Address);
     }
 
     /**
