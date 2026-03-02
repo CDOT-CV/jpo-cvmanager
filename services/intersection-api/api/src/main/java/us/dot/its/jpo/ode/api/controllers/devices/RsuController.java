@@ -129,11 +129,7 @@ public class RsuController {
                     "User not qualified to modify organizations: " + String.join(", ", unqualifiedOrgs));
         }
 
-        try {
-            rsuManagementService.createRsu(body, body.getOrganizations());
-        } catch (Exception e) {
-            handleQueryExceptions(e);
-        }
+        rsuManagementService.createRsu(body, body.getOrganizations());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
