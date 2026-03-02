@@ -18,6 +18,8 @@ public class RsuController {
 
     @GetMapping
     public List<RsuDto> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
-        return rsuService.getAll(timDepositEnabled);
+        // TODO: map with mapstruct
+//        return rsuService.getAll(timDepositEnabled);
+        throw new UnsupportedOperationException();
     }
 }
