@@ -7,6 +7,8 @@ import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
 import com.trihydro.rsuinfobridge.repository.RsuRepository;
 import com.trihydro.rsuinfobridge.service.RsuService;
+import jakarta.servlet.ServletException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
@@ -17,11 +19,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +41,8 @@ class RsuControllerTest {
         rsuService = new RsuService(rsuRepository);
         rsuDtoMapper = Mappers.getMapper(RsuDtoMapper.class);
     }
+
+    // ==================== Happy path tests ====================
 
     @Test
     void testGetAll_Success() throws Exception {
@@ -111,6 +117,138 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[1].longitude").value(40.0))
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
+
+    // ==================== Unhappy path tests ====================
+
+    @Test
+    void testGetAll_EmptyList() throws Exception {
+        // Arrange
+        when(rsuRepository.findAll()).thenReturn(Collections.emptyList());
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/rsus"));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void testGetAllWithTimDepositEnabled_EmptyList() throws Exception {
+        // Arrange
+        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenReturn(Collections.emptyList());
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=true"));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void testGetAll_RepositoryThrowsException() {
+        // Arrange
+        when(rsuRepository.findAll()).thenThrow(new RuntimeException("Database connection failed"));
+        mockMvc = initializeMockMvc();
+
+        // Act & Assert
+        Assertions.assertThrows(ServletException.class, () -> {
+            mockMvc.perform(get("/rsus"));
+        });
+    }
+
+    @Test
+    void testGetAllWithTimDepositEnabled_RepositoryThrowsException() {
+        // Arrange
+        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenThrow(new RuntimeException("Database connection failed"));
+        mockMvc = initializeMockMvc();
+
+        // Act & Assert
+        Assertions.assertThrows(ServletException.class, () -> {
+            mockMvc.perform(get("/rsus?timDepositEnabled=true"));
+        });
+    }
+
+    @Test
+    void testGetAll_RsuWithNullOptionalRelations() throws Exception {
+        // Arrange - RSU with null snmpCredential, snmpProtocol, geography, and rsuOption
+        Rsu rsu = Rsu.builder()
+                .id(1)
+                .ipv4Address(InetAddress.getByName("10.0.0.1"))
+                .snmpCredential(null)
+                .snmpProtocol(null)
+                .geography(null)
+                .rsuOption(null)
+                .build();
+        when(rsuRepository.findAll()).thenReturn(List.of(rsu));
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/rsus"));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value("1"))
+                .andExpect(jsonPath("$[0].ipv4Address").value("10.0.0.1"))
+                .andExpect(jsonPath("$[0].snmpProtocol").doesNotExist())
+                .andExpect(jsonPath("$[0].snmpUsername").doesNotExist())
+                .andExpect(jsonPath("$[0].snmpPassword").doesNotExist())
+                .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
+                .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
+                .andExpect(jsonPath("$[0].latitude").value(0.0))
+                .andExpect(jsonPath("$[0].longitude").value(0.0))
+                .andExpect(jsonPath("$[0].timDepositEnabled").value(false));
+    }
+
+    @Test
+    void testGetAll_RsuWithNullIpv4Address() throws Exception {
+        // Arrange
+        Rsu rsu = Rsu.builder()
+                .id(1)
+                .ipv4Address(null)
+                .build();
+        when(rsuRepository.findAll()).thenReturn(List.of(rsu));
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/rsus"));
+
+        // Assert
+        resultActions.andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value("1"))
+                .andExpect(jsonPath("$[0].ipv4Address").doesNotExist());
+    }
+
+    @Test
+    void testPostNotAllowed() throws Exception {
+        // Arrange
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(post("/rsus"));
+
+        // Assert
+        resultActions.andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void testGetAll_InvalidTimDepositEnabledParam() throws Exception {
+        // Arrange - non-boolean value should fail type conversion
+        mockMvc = initializeMockMvc();
+
+        // Act
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=notaboolean"));
+
+        // Assert
+        resultActions.andExpect(status().isBadRequest());
+    }
+
+    // ==================== Test helpers ====================
 
     List<Rsu> getMockData() throws UnknownHostException {
         List<Rsu> rsus = new java.util.ArrayList<>();
