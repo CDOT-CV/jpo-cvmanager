@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 
 /**
  * Test configuration that provides a PostGIS-enabled PostgreSQL container
- * initialized with the production CVManager_CreateTables.sql schema.
+ * initialized with production schema and sample data.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
@@ -26,40 +26,42 @@ public class TestcontainersConfiguration {
     @ServiceConnection
     @SuppressWarnings("resource")
     public PostgreSQLContainer<?> postgisContainer() {
-        Path schemaPath = findSchemaFile();
+        Path sqlScriptsDir = findSqlScriptsDir();
 
         return new PostgreSQLContainer<>(POSTGIS_IMAGE)
                 .withCopyFileToContainer(
-                        MountableFile.forHostPath(schemaPath),
+                        MountableFile.forHostPath(sqlScriptsDir.resolve("CVManager_CreateTables.sql")),
                         "/docker-entrypoint-initdb.d/01-schema.sql"
+                )
+                .withCopyFileToContainer(
+                        MountableFile.forHostPath(sqlScriptsDir.resolve("CVManager_SampleData.sql")),
+                        "/docker-entrypoint-initdb.d/02-sample-data.sql"
                 );
     }
 
     /**
-     * Finds the CVManager_CreateTables.sql file by searching from the current working directory.
-     * Handles both running from module directory (rsu-info-bridge) and from project root.
+     * Finds the sql_scripts directory containing CVManager_CreateTables.sql.
      */
-    private Path findSchemaFile() {
+    private Path findSqlScriptsDir() {
         Path currentDir = Paths.get("").toAbsolutePath();
 
-        // Try different possible locations
         Path[] possiblePaths = {
                 // Running from rsu-info-bridge directory
-                currentDir.resolve("../../resources/sql_scripts/CVManager_CreateTables.sql").normalize(),
+                currentDir.resolve("../../resources/sql_scripts").normalize(),
                 // Running from services directory
-                currentDir.resolve("../resources/sql_scripts/CVManager_CreateTables.sql").normalize(),
+                currentDir.resolve("../resources/sql_scripts").normalize(),
                 // Running from project root
-                currentDir.resolve("resources/sql_scripts/CVManager_CreateTables.sql").normalize(),
+                currentDir.resolve("resources/sql_scripts").normalize(),
         };
 
         for (Path path : possiblePaths) {
-            if (Files.exists(path)) {
+            if (Files.exists(path.resolve("CVManager_CreateTables.sql"))) {
                 return path;
             }
         }
 
         throw new IllegalStateException(
-                "Could not find CVManager_CreateTables.sql. Current directory: " + currentDir +
+                "Could not find sql_scripts directory. Current directory: " + currentDir +
                         ". Searched paths: " + java.util.Arrays.toString(possiblePaths));
     }
 }

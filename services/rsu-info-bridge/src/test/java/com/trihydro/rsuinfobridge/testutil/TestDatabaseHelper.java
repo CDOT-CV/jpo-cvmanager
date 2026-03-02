@@ -4,176 +4,62 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Test utility class for embedded database operations.
- * Provides helper methods for inserting and cleaning up test data.
+ * Test utility class for database operations.
+ *
+ * Sample data from CVManager_SampleData.sql is pre-loaded and includes:
+ * - RSU 1: IP 10.0.0.180, tim_deposit=true
+ * - RSU 2: IP 10.0.0.78, tim_deposit=false
  */
 @Component
 public class TestDatabaseHelper {
 
     private final JdbcTemplate jdbcTemplate;
 
+    // IDs from CVManager_SampleData.sql
+    public static final int MODEL_ID = 1;
+    public static final int CREDENTIAL_ID = 1;
+    public static final int SNMP_CREDENTIAL_ID = 1;
+    public static final int SNMP_PROTOCOL_ID = 2;  // NTCIP 1218
+
     public TestDatabaseHelper(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
-     * Clears all data from the database tables in the correct FK dependency order.
+     * Clears RSU data while preserving prerequisites from sample data.
      */
-    public void clearAllTables() {
-        jdbcTemplate.execute("DELETE FROM consecutive_firmware_upgrade_failures");
-        jdbcTemplate.execute("DELETE FROM max_retry_limit_reached_instances");
+    public void clearRsuData() {
         jdbcTemplate.execute("DELETE FROM rsu_intersection");
         jdbcTemplate.execute("DELETE FROM snmp_msgfwd_config");
-        jdbcTemplate.execute("DELETE FROM scms_health");
         jdbcTemplate.execute("DELETE FROM rsu_organization");
-        jdbcTemplate.execute("DELETE FROM ping");
         jdbcTemplate.execute("DELETE FROM rsu_options");
         jdbcTemplate.execute("DELETE FROM rsus");
-        jdbcTemplate.execute("DELETE FROM snmp_credentials");
-        jdbcTemplate.execute("DELETE FROM rsu_credentials");
-        jdbcTemplate.execute("DELETE FROM snmp_protocols");
-        jdbcTemplate.execute("DELETE FROM firmware_images");
-        jdbcTemplate.execute("DELETE FROM rsu_models");
-        jdbcTemplate.execute("DELETE FROM manufacturers");
-        jdbcTemplate.execute("DELETE FROM user_organization");
-        jdbcTemplate.execute("DELETE FROM intersection_organization");
-        jdbcTemplate.execute("DELETE FROM organizations");
-    }
-
-    // ==================== Insert methods ====================
-
-    public int insertOrganization(String name) {
-        jdbcTemplate.update("INSERT INTO organizations (name) VALUES (?)", name);
-        return jdbcTemplate.queryForObject(
-                "SELECT organization_id FROM organizations WHERE name = ?", Integer.class, name);
-    }
-
-    public int insertManufacturer(String name) {
-        jdbcTemplate.update("INSERT INTO manufacturers (name) VALUES (?)", name);
-        return jdbcTemplate.queryForObject(
-                "SELECT manufacturer_id FROM manufacturers WHERE name = ?", Integer.class, name);
-    }
-
-    public int insertRsuModel(String name, String supportedRadio, int manufacturerId) {
-        jdbcTemplate.update(
-                "INSERT INTO rsu_models (name, supported_radio, manufacturer) VALUES (?, ?, ?)",
-                name, supportedRadio, manufacturerId);
-        return jdbcTemplate.queryForObject(
-                "SELECT rsu_model_id FROM rsu_models WHERE name = ?", Integer.class, name);
-    }
-
-    public int insertRsuCredential(String username, String password, String nickname, int orgId) {
-        jdbcTemplate.update(
-                "INSERT INTO rsu_credentials (username, password, nickname, owner_organization_id) VALUES (?, ?, ?, ?)",
-                username, password, nickname, orgId);
-        return jdbcTemplate.queryForObject(
-                "SELECT credential_id FROM rsu_credentials WHERE nickname = ?", Integer.class, nickname);
-    }
-
-    public int insertSnmpCredential(String username, String password, String nickname, int orgId) {
-        jdbcTemplate.update(
-                "INSERT INTO snmp_credentials (username, password, nickname, owner_organization_id) VALUES (?, ?, ?, ?)",
-                username, password, nickname, orgId);
-        return jdbcTemplate.queryForObject(
-                "SELECT snmp_credential_id FROM snmp_credentials WHERE nickname = ?", Integer.class, nickname);
-    }
-
-    public int insertSnmpProtocol(String protocolCode, String nickname) {
-        jdbcTemplate.update(
-                "INSERT INTO snmp_protocols (protocol_code, nickname) VALUES (?, ?)",
-                protocolCode, nickname);
-        return jdbcTemplate.queryForObject(
-                "SELECT snmp_protocol_id FROM snmp_protocols WHERE nickname = ?", Integer.class, nickname);
-    }
-
-    public void insertRsuOption(int rsuId, boolean timDeposit, boolean snmpMonitoring) {
-        jdbcTemplate.update(
-                "INSERT INTO rsu_options (rsu_id, tim_deposit, snmp_monitoring) VALUES (?, ?, ?)",
-                rsuId, timDeposit, snmpMonitoring);
-    }
-
-    // ==================== Convenience methods ====================
-
-    /**
-     * Sets up common prerequisite rows needed for RSU tests.
-     * Creates: organization, manufacturer, model, rsu credential, snmp credential, snmp protocol.
-     *
-     * @return TestPrerequisites containing the IDs of all created records
-     */
-    public TestPrerequisites insertStandardPrerequisites() {
-        int orgId = insertOrganization("TestOrg");
-        int mfgId = insertManufacturer("TestManufacturer");
-        int modelId = insertRsuModel("TestModel", "DSRC", mfgId);
-        int credentialId = insertRsuCredential("user", "pass", "cred1", orgId);
-        int snmpCredentialId = insertSnmpCredential("snmpUser", "snmpPass", "snmpCred1", orgId);
-        int snmpProtocolId = insertSnmpProtocol("NTCIP1218", "NTCIP1218");
-
-        return new TestPrerequisites(orgId, modelId, credentialId, snmpCredentialId, snmpProtocolId);
     }
 
     /**
-     * Creates an RSU with its options in one call. Uses standard prerequisites.
-     *
-     * @param ipv4Address   The RSU IP address
-     * @param milepost      The milepost location
-     * @param serialNumber  Unique serial number
-     * @param timDeposit    Whether TIM deposit is enabled
-     * @param prereqs       The prerequisites (model, credentials, etc.)
-     * @return The created RSU ID
+     * Creates an RSU with options using sample data prerequisites.
      */
-    public int createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
-                                    boolean timDeposit, TestPrerequisites prereqs) {
-        return createRsuWithOptions(ipv4Address, milepost, serialNumber, "SCMS-" + serialNumber,
-                "Route-" + serialNumber, timDeposit, false, prereqs);
+    public void createRsuWithOptions(String ipv4Address, double milepost, String serialNumber, boolean timDeposit) {
+        createRsuWithOptions(ipv4Address, milepost, serialNumber,
+                "SCMS-" + serialNumber, "Route-" + serialNumber, timDeposit, false);
     }
 
     /**
-     * Creates an RSU with its options in one call with full control over all fields.
+     * Creates an RSU with options using full control over fields.
      */
-    public int createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
-                                    String issScmsId, String primaryRoute,
-                                    boolean timDeposit, boolean snmpMonitoring,
-                                    TestPrerequisites prereqs) {
-        int rsuId = insertRsu(ipv4Address, milepost, serialNumber, issScmsId, primaryRoute, prereqs);
-        insertRsuOption(rsuId, timDeposit, snmpMonitoring);
-        return rsuId;
-    }
-
-    /**
-     * Inserts an RSU using standard prerequisites.
-     */
-    public int insertRsu(String ipv4Address, double milepost, String serialNumber,
-                         String issScmsId, String primaryRoute, TestPrerequisites prereqs) {
-        return insertRsu(ipv4Address, 0.0, 0.0, milepost, serialNumber, issScmsId, primaryRoute,
-                prereqs.modelId(), prereqs.credentialId(), prereqs.snmpCredentialId(), prereqs.snmpProtocolId());
-    }
-
-    /**
-     * Inserts an RSU record into the database with specific coordinates.
-     * Uses PostGIS ST_MakePoint for geography column.
-     */
-    public int insertRsu(String ipv4Address, double longitude, double latitude, double milepost,
-                         String serialNumber, String issScmsId, String primaryRoute,
-                         int modelId, int credentialId, int snmpCredentialId, int snmpProtocolId) {
+    public void createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
+                                     String issScmsId, String primaryRoute,
+                                     boolean timDeposit, boolean snmpMonitoring) {
         jdbcTemplate.update(
                 "INSERT INTO rsus (geography, milepost, ipv4_address, serial_number, iss_scms_id, " +
                         "primary_route, model, credential_id, snmp_credential_id, snmp_protocol_id) " +
-                        "VALUES (ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?)",
-                longitude, latitude, milepost, ipv4Address, serialNumber, issScmsId,
-                primaryRoute, modelId, credentialId, snmpCredentialId, snmpProtocolId);
-        return jdbcTemplate.queryForObject(
-                "SELECT rsu_id FROM rsus WHERE ipv4_address = ?::inet", Integer.class, ipv4Address);
+                        "VALUES (ST_SetSRID(ST_MakePoint(0, 0), 4326)::geography, ?, ?::inet, ?, ?, ?, ?, ?, ?, ?)",
+                milepost, ipv4Address, serialNumber, issScmsId, primaryRoute,
+                MODEL_ID, CREDENTIAL_ID, SNMP_CREDENTIAL_ID, SNMP_PROTOCOL_ID);
+
+        jdbcTemplate.update(
+                "INSERT INTO rsu_options (rsu_id, tim_deposit, snmp_monitoring) " +
+                        "SELECT rsu_id, ?, ? FROM rsus WHERE ipv4_address = ?::inet",
+                timDeposit, snmpMonitoring, ipv4Address);
     }
-
-    /**
-     * Holds IDs of prerequisite database records created for tests.
-     */
-    public record TestPrerequisites(
-            int organizationId,
-            int modelId,
-            int credentialId,
-            int snmpCredentialId,
-            int snmpProtocolId
-    ) {}
 }
-
