@@ -24,9 +24,11 @@ import java.util.stream.Collectors;
 
 /**
  * Global exception handler for REST API endpoints.
- * Provides standardized, user-friendly error responses following RFC 7807 Problem Details.
+ * Provides standardized, user-friendly error responses following RFC 7807
+ * Problem Details.
  * 
- * @see <a href="https://datatracker.ietf.org/doc/html/rfc7807">RFC 7807 - Problem Details for HTTP APIs</a>
+ * @see <a href="https://datatracker.ietf.org/doc/html/rfc7807">RFC 7807 -
+ *      Problem Details for HTTP APIs</a>
  */
 @Slf4j
 @RestControllerAdvice
@@ -34,7 +36,7 @@ public class GlobalExceptionHandler {
 
     // Pattern to extract constraint name from PostgreSQL error messages
     private static final Pattern CONSTRAINT_PATTERN = Pattern.compile("constraint \\[([^\\]]+)\\]");
-    
+
     // Pattern to extract duplicate key details from PostgreSQL error messages
     private static final Pattern DUPLICATE_KEY_PATTERN = Pattern.compile("Key \\(([^)]+)\\)=\\(([^)]+)\\)");
 
@@ -49,7 +51,8 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles validation errors for @Validated method parameters (path variables, request params).
+     * Handles validation errors for @Validated method parameters (path variables,
+     * request params).
      * Thrown when @Validated constraints on method parameters fail.
      * 
      * Example: @PathVariable @Min(1) Integer id
@@ -59,35 +62,34 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
         log.warn("Constraint violation: {}", ex.getMessage());
-        
+
         // Build user-friendly validation error message
         String validationErrors = ex.getConstraintViolations().stream()
                 .map(violation -> {
                     // Extract just the property name (remove method path prefix)
                     String propertyPath = violation.getPropertyPath().toString();
-                    String propertyName = propertyPath.contains(".") 
-                        ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
-                        : propertyPath;
+                    String propertyName = propertyPath.contains(".")
+                            ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
+                            : propertyPath;
                     return String.format("%s: %s", propertyName, violation.getMessage());
                 })
                 .collect(Collectors.joining("; "));
-        
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST, 
-            "Validation failed: " + validationErrors
-        );
-        
+                HttpStatus.BAD_REQUEST,
+                "Validation failed: " + validationErrors);
+
         // Add detailed violations as additional property
         Map<String, String> violations = new HashMap<>();
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             String propertyPath = violation.getPropertyPath().toString();
-            String propertyName = propertyPath.contains(".") 
-                ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
-                : propertyPath;
+            String propertyName = propertyPath.contains(".")
+                    ? propertyPath.substring(propertyPath.lastIndexOf('.') + 1)
+                    : propertyPath;
             violations.put(propertyName, violation.getMessage());
         }
         problemDetail.setProperty("violations", violations);
-        
+
         var errorRes = ErrorResponse.builder(ex, problemDetail);
         return errorRes.build();
     }
@@ -103,24 +105,23 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         log.warn("Method argument validation failed: {}", ex.getMessage());
-        
+
         // Build user-friendly validation error message
         String validationErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage()))
                 .collect(Collectors.joining("; "));
-        
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            "Validation failed: " + validationErrors
-        );
-        
+                HttpStatus.BAD_REQUEST,
+                "Validation failed: " + validationErrors);
+
         // Add detailed field errors as additional property
         Map<String, String> fieldErrors = new HashMap<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.put(error.getField(), error.getDefaultMessage());
         }
         problemDetail.setProperty("fieldErrors", fieldErrors);
-        
+
         var errorRes = ErrorResponse.builder(ex, problemDetail);
         return errorRes.build();
     }
@@ -144,13 +145,13 @@ public class GlobalExceptionHandler {
         log.warn("Data integrity violation: {}", originalMessage);
 
         String userFriendlyMessage = buildUserFriendlyMessage(originalMessage, ex);
-        
-        // Use HTTP 409 Conflict for constraint violations (more appropriate than 400 Bad Request)
+
+        // Use HTTP 409 Conflict for constraint violations (more appropriate than 400
+        // Bad Request)
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.CONFLICT, 
-            userFriendlyMessage
-        );
-        
+                HttpStatus.CONFLICT,
+                userFriendlyMessage);
+
         // Add constraint name as additional property if available
         String constraintName = extractConstraintName(originalMessage);
         if (constraintName != null) {
@@ -167,15 +168,14 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleException(Exception ex) {
         log.error("Unexpected server error:", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "An unexpected error occurred. Please try again later."
-        );
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An unexpected error occurred. Please try again later.");
         var errorRes = ErrorResponse.builder(ex, problemDetail);
         return errorRes.build();
     }
 
     // ... (rest of the helper methods from previous response)
-    
+
     private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
         if (message == null) {
             return "A database constraint was violated. Please check your input and try again.";
@@ -198,8 +198,8 @@ public class GlobalExceptionHandler {
 
         String constraintName = extractConstraintName(message);
         if (constraintName != null) {
-            return String.format("The operation violates the '%s' constraint. Please verify your input.", 
-                formatConstraintName(constraintName));
+            return String.format("The operation violates the '%s' constraint. Please verify your input.",
+                    formatConstraintName(constraintName));
         }
 
         return "A database constraint was violated. Please check your input and try again.";
@@ -207,29 +207,29 @@ public class GlobalExceptionHandler {
 
     private String buildDuplicateKeyMessage(String message) {
         Matcher matcher = DUPLICATE_KEY_PATTERN.matcher(message);
-        
+
         if (matcher.find()) {
             String fields = matcher.group(1);
             String values = matcher.group(2);
-            
+
             String[] fieldArray = fields.split(",\\s*");
             String[] valueArray = values.split(",\\s*");
-            
+
             StringBuilder details = new StringBuilder();
             for (int i = 0; i < Math.min(fieldArray.length, valueArray.length); i++) {
                 if (i > 0) {
                     details.append(" and ");
                 }
                 details.append(formatFieldName(fieldArray[i].trim()))
-                       .append(" '")
-                       .append(valueArray[i].trim())
-                       .append("'");
+                        .append(" '")
+                        .append(valueArray[i].trim())
+                        .append("'");
             }
-            
+
             String resourceType = determineResourceType(message);
             return String.format("A %s with %s already exists.", resourceType, details.toString());
         }
-        
+
         return "A record with these values already exists. Please use different values.";
     }
 
@@ -239,37 +239,37 @@ public class GlobalExceptionHandler {
         } else if (message.contains("still referenced")) {
             return "This item cannot be deleted because it is being used by other records.";
         }
-        
+
         String constraintName = extractConstraintName(message);
         if (constraintName != null) {
-            return String.format("Foreign key constraint '%s' was violated. Please verify related records exist.", 
-                formatConstraintName(constraintName));
+            return String.format("Foreign key constraint '%s' was violated. Please verify related records exist.",
+                    formatConstraintName(constraintName));
         }
-        
+
         return "A foreign key constraint was violated. Please verify that all related records exist.";
     }
 
     private String buildNotNullMessage(String message) {
         Pattern columnPattern = Pattern.compile("column \"([^\"]+)\"");
         Matcher matcher = columnPattern.matcher(message);
-        
+
         if (matcher.find()) {
             String columnName = matcher.group(1);
-            return String.format("The field '%s' is required and cannot be empty.", 
-                formatFieldName(columnName));
+            return String.format("The field '%s' is required and cannot be empty.",
+                    formatFieldName(columnName));
         }
-        
+
         return "A required field is missing. Please provide all required information.";
     }
 
     private String buildCheckConstraintMessage(String message) {
         String constraintName = extractConstraintName(message);
-        
+
         if (constraintName != null) {
-            return String.format("The value violates the '%s' validation rule. Please check your input.", 
-                formatConstraintName(constraintName));
+            return String.format("The value violates the '%s' validation rule. Please check your input.",
+                    formatConstraintName(constraintName));
         }
-        
+
         return "The provided value does not meet the validation requirements.";
     }
 
@@ -280,7 +280,7 @@ public class GlobalExceptionHandler {
 
     private String determineResourceType(String message) {
         String lowerMessage = message.toLowerCase();
-        
+
         if (lowerMessage.contains("rsu") || lowerMessage.contains("rsus")) {
             return "RSU";
         } else if (lowerMessage.contains("user")) {
@@ -290,7 +290,7 @@ public class GlobalExceptionHandler {
         } else if (lowerMessage.contains("credential")) {
             return "credential";
         }
-        
+
         return "record";
     }
 
@@ -298,14 +298,14 @@ public class GlobalExceptionHandler {
         if (fieldName == null) {
             return "";
         }
-        
+
         if (fieldName.equalsIgnoreCase("ipv4_address")) {
             return "IPv4 address";
         }
         if (fieldName.equalsIgnoreCase("ipv6_address")) {
             return "IPv6 address";
         }
-        
+
         return fieldName.replace("_", " ");
     }
 
@@ -313,7 +313,7 @@ public class GlobalExceptionHandler {
         if (constraintName == null) {
             return "";
         }
-        
+
         String formatted = constraintName.replaceAll("^(rsu|user|org)_", "");
         return formatted.replace("_", " ");
     }

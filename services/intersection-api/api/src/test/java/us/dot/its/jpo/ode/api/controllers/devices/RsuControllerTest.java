@@ -824,7 +824,7 @@ class RsuControllerTest {
                         .thenThrow(new IllegalArgumentException("RSU with IP 192.168.1.100 already exists"));
 
                 assertThrows(
-                        ResponseStatusException.class,
+                        IllegalArgumentException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
