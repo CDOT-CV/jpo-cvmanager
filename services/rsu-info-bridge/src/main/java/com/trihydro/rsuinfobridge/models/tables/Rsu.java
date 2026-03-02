@@ -61,4 +61,7 @@ public class Rsu {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "snmp_protocol_id", nullable = false)
     private SnmpProtocol snmpProtocol;
+
+    @OneToOne(mappedBy = "rsu")
+    private RsuOption rsuOption;
 }
