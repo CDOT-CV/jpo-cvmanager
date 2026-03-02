@@ -4,11 +4,11 @@ import com.trihydro.rsuinfobridge.models.tables.Rsu;
 import com.trihydro.rsuinfobridge.models.tables.RsuOption;
 import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
+import com.trihydro.rsuinfobridge.repository.RsuRepository;
 import com.trihydro.rsuinfobridge.service.RsuService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -23,21 +23,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
 class RsuControllerTest {
+    RsuRepository rsuRepository;
     RsuService rsuService;
     MockMvc mockMvc;
 
     @BeforeEach
     void setup() {
-        rsuService = mock(RsuService.class);
+        rsuRepository = mock(RsuRepository.class);
+        rsuService = new RsuService(rsuRepository);
     }
 
     @Test
     void testGetAll_Success() throws Exception {
         // Arrange
         List<Rsu> rsus = getMockData();
-        when(rsuService.getAll(false)).thenReturn(rsus);
+        when(rsuRepository.findAll()).thenReturn(rsus);
         mockMvc = initializeMockMvc();
 
         // Act
@@ -56,7 +57,7 @@ class RsuControllerTest {
     void testGetAllWithTimDepositEnabled_Success() throws Exception {
         // Arrange
         List<Rsu> rsus = getMockData();
-        when(rsuService.getAll(true)).thenReturn(rsus);
+        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenReturn(rsus);
         mockMvc = initializeMockMvc();
 
         // Act
