@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.controller;
 
+import com.trihydro.rsuinfobridge.mapper.RsuDtoMapper;
 import com.trihydro.rsuinfobridge.models.tables.Rsu;
 import com.trihydro.rsuinfobridge.models.tables.RsuOption;
 import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
@@ -9,6 +10,7 @@ import com.trihydro.rsuinfobridge.service.RsuService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
+import org.mapstruct.factory.Mappers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -26,12 +28,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RsuControllerTest {
     RsuRepository rsuRepository;
     RsuService rsuService;
+    RsuDtoMapper rsuDtoMapper;
     MockMvc mockMvc;
 
     @BeforeEach
     void setup() {
         rsuRepository = mock(RsuRepository.class);
         rsuService = new RsuService(rsuRepository);
+        rsuDtoMapper = Mappers.getMapper(RsuDtoMapper.class);
     }
 
     @Test
@@ -47,9 +51,9 @@ class RsuControllerTest {
         // Assert
         resultActions.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value("myid"))
+                .andExpect(jsonPath("$[0].id").value("1"))
                 .andExpect(jsonPath("$[0].ipv4Address").value("10.10.10.10"))
-                .andExpect(jsonPath("$[1].id").value("myid2"))
+                .andExpect(jsonPath("$[1].id").value("2"))
                 .andExpect(jsonPath("$[1].ipv4Address").value("10.10.10.11"));
     }
 
@@ -122,6 +126,6 @@ class RsuControllerTest {
     }
 
     MockMvc initializeMockMvc() {
-        return MockMvcBuilders.standaloneSetup(new RsuController(rsuService)).build();
+        return MockMvcBuilders.standaloneSetup(new RsuController(rsuService, rsuDtoMapper)).build();
     }
 }

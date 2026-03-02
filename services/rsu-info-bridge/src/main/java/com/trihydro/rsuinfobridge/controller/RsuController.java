@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.controller;
 
+import com.trihydro.rsuinfobridge.mapper.RsuDtoMapper;
 import com.trihydro.rsuinfobridge.models.dtos.RsuDto;
 import com.trihydro.rsuinfobridge.service.RsuService;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +16,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RsuController {
     private final RsuService rsuService;
+    private final RsuDtoMapper rsuDtoMapper;
 
     @GetMapping
     public List<RsuDto> getAll(@RequestParam(defaultValue = "false") boolean timDepositEnabled) {
-        // TODO: map with mapstruct
-//        return rsuService.getAll(timDepositEnabled);
-        throw new UnsupportedOperationException();
+        return rsuDtoMapper.toDtoList(rsuService.getAll(timDepositEnabled));
     }
 }
