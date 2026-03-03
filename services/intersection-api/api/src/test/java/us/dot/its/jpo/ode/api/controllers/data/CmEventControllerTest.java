@@ -59,7 +59,6 @@ import us.dot.its.jpo.ode.api.accessors.events.time_change_details_event.TimeCha
 import us.dot.its.jpo.ode.api.models.IDCount;
 import us.dot.its.jpo.ode.api.models.MinuteCount;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.PostgresService;
 import us.dot.its.jpo.ode.mockdata.MockBsmGenerator;
 import us.dot.its.jpo.ode.mockdata.MockEventGenerator;
 import us.dot.its.jpo.ode.plugin.j2735.J2735Bsm;
@@ -119,9 +118,6 @@ public class CmEventControllerTest {
 
         @MockitoBean
         BsmEventRepository bsmEventRepo;
-
-        @MockitoBean
-        PostgresService postgresService;
 
         @MockitoBean
         PermissionService permissionService;

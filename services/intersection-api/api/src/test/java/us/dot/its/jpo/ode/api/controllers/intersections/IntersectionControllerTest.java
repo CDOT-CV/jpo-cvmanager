@@ -21,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.PostgresService;
 
 @ExtendWith(MockitoExtension.class)
 public class IntersectionControllerTest {
@@ -32,13 +31,13 @@ public class IntersectionControllerTest {
     ProcessedMapRepository processedMapRepo;
 
     @Mock
-    PostgresService postgresService;
+    PermissionService permissionService;
 
     @BeforeEach
     void setUp() {
         controller = new IntersectionController(
                 processedMapRepo,
-                postgresService);
+                permissionService);
     }
 
     @Test
@@ -56,7 +55,7 @@ public class IntersectionControllerTest {
         List<IntersectionReferenceData> allIntersections = Collections.singletonList(intersection);
 
         when(processedMapRepo.getIntersectionIDs()).thenReturn(allIntersections);
-        when(postgresService.getAllowedIntersectionIdsByOrganization("org"))
+        when(permissionService.getAllowedIntersectionIdsByOrganization("org"))
                 .thenReturn(Collections.singletonList(1));
 
         ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersections("org", false);
@@ -75,7 +74,7 @@ public class IntersectionControllerTest {
         String username = "testuser";
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-            when(postgresService.getAllowedIntersectionIdsByEmail(username))
+            when(permissionService.getAllowedIntersectionIdsByEmail(username))
                     .thenReturn(Collections.singletonList(2));
 
             ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersections(null, false);
@@ -101,7 +100,7 @@ public class IntersectionControllerTest {
         List<IntersectionReferenceData> allIntersections = Collections.singletonList(intersection);
 
         when(processedMapRepo.getIntersectionsContainingPoint(1.0, 2.0)).thenReturn(allIntersections);
-        when(postgresService.getAllowedIntersectionIdsByOrganization("org"))
+        when(permissionService.getAllowedIntersectionIdsByOrganization("org"))
                 .thenReturn(Collections.singletonList(3));
 
         ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation("org", 1.0,
@@ -121,7 +120,7 @@ public class IntersectionControllerTest {
         String username = "testuser2";
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
             mockedStatic.when(() -> PermissionService.getUsername(any())).thenReturn(username);
-            when(postgresService.getAllowedIntersectionIdsByEmail(username))
+            when(permissionService.getAllowedIntersectionIdsByEmail(username))
                     .thenReturn(Collections.singletonList(4));
 
             ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation(null, 5.0,

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import { updateTableData as updateRsuTableData } from '../features/adminRsuTab/adminRsuTabSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectOrganizationName } from '../generalSlices/userSlice'
 import { updateTableData as updateIntersectionTableData } from '../features/adminIntersectionTab/adminIntersectionTabSlice'
 import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 import '../features/adminRsuTab/Admin.css'
@@ -19,13 +19,16 @@ import { evaluateFeatureFlags } from '../feature-flags'
 
 function Admin() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const organization = useSelector(selectOrganizationName)
 
   useEffect(() => {
-    if (evaluateFeatureFlags('rsu')) dispatch(updateRsuTableData())
+    // This preloads data for the admin pages
+    // Preload it with changes in dispatch and organization since it needs to be updated every time the organization is switched
+    // in order to show only RSUs, Intersections, and Users of selected organization
     if (evaluateFeatureFlags('intersection')) dispatch(updateIntersectionTableData())
     dispatch(getAvailableUsers())
     dispatch(getUserNotifications())
-  }, [dispatch])
+  }, [dispatch, organization])
 
   return (
     <>

@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.PostgresService;
 
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
@@ -30,17 +30,11 @@ import us.dot.its.jpo.ode.api.services.PostgresService;
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
 @RequestMapping("/intersections")
+@RequiredArgsConstructor
 public class IntersectionController {
 
     private final ProcessedMapRepository processedMapRepo;
-    private final PostgresService postgresService;
-
-    public IntersectionController(
-            ProcessedMapRepository processedMapRepo,
-            PostgresService postgresService) {
-        this.processedMapRepo = processedMapRepo;
-        this.postgresService = postgresService;
-    }
+    private final PermissionService permissionService;
 
     @Operation(summary = "List Intersections", description = "Returns a list of intersections")
     @GetMapping( produces = "application/json")
@@ -67,12 +61,12 @@ public class IntersectionController {
             if (organization == null) {
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String username = PermissionService.getUsername(auth);
-                List<Integer> allowedIntersectionIds = postgresService.getAllowedIntersectionIdsByEmail(username);
+                List<Integer> allowedIntersectionIds = permissionService.getAllowedIntersectionIdsByEmail(username);
                 return ResponseEntity.ok(allIntersections.stream()
                         .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))
                         .collect(Collectors.toList()));
             } else {
-                List<Integer> allowedIntersectionIds = postgresService
+                List<Integer> allowedIntersectionIds = permissionService
                         .getAllowedIntersectionIdsByOrganization(organization);
                 return ResponseEntity.ok(allIntersections.stream()
                         .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))
@@ -110,12 +104,13 @@ public class IntersectionController {
             if (organization == null) {
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String username = PermissionService.getUsername(auth);
-                List<Integer> allowedIntersectionIds = postgresService.getAllowedIntersectionIdsByEmail(username);
+                List<Integer> allowedIntersectionIds = permissionService
+                        .getAllowedIntersectionIdsByEmail(username);
                 return ResponseEntity.ok(allIntersections.stream()
                         .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))
                         .collect(Collectors.toList()));
             } else {
-                List<Integer> allowedIntersectionIds = postgresService
+                List<Integer> allowedIntersectionIds = permissionService
                         .getAllowedIntersectionIdsByOrganization(organization);
                 return ResponseEntity.ok(allIntersections.stream()
                         .filter(intersection -> allowedIntersectionIds.contains(intersection.getIntersectionID()))

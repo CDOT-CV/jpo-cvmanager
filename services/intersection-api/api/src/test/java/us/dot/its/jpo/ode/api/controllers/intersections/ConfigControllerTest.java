@@ -34,7 +34,6 @@ import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.config.default_config.DefaultConfigRepository;
 import us.dot.its.jpo.ode.api.accessors.config.intersection_config.IntersectionConfigRepository;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.PostgresService;
 
 @ExtendWith(MockitoExtension.class)
 public class ConfigControllerTest {
@@ -51,9 +50,6 @@ public class ConfigControllerTest {
     ConflictMonitorApiProperties props;
 
     @Mock
-    PostgresService postgresService;
-
-    @Mock
     PermissionService permissionService;
 
     @Mock
@@ -65,8 +61,7 @@ public class ConfigControllerTest {
                 defaultConfigRepository,
                 intersectionConfigRepository,
                 props,
-                postgresService,
-                permissionService);
+                        permissionService);
 
         ReflectionTestUtils.setField(controller, "restTemplate", restTemplate);
         lenient().when(props.getCmServerURL()).thenReturn("http://localhost");
@@ -315,7 +310,7 @@ public class ConfigControllerTest {
         String resourceURL = "http://localhost/config/intersections";
         when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
                 .thenReturn(new ResponseEntity<>(configMap, HttpStatus.OK));
-        when(postgresService.getAllowedIntersectionIdsByEmail(eq(username)))
+        when(permissionService.getAllowedIntersectionIdsByEmail(eq(username)))
                 .thenReturn(Collections.singletonList(1));
 
         try (MockedStatic<PermissionService> mockedStatic = Mockito.mockStatic(PermissionService.class)) {
@@ -340,7 +335,7 @@ public class ConfigControllerTest {
         String resourceURL = "http://localhost/config/intersections";
         when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
                 .thenReturn(new ResponseEntity<>(configMap, HttpStatus.OK));
-        when(postgresService.getAllowedIntersectionIdsByOrganization(eq("org")))
+        when(permissionService.getAllowedIntersectionIdsByOrganization(eq("org")))
                 .thenReturn(Collections.singletonList(1));
 
         ResponseEntity<List<IntersectionConfig<?>>> response = controller.intersection_config_all("org");

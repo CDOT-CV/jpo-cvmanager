@@ -78,8 +78,6 @@
     "MESSAGETYPE",
     "millis",
     "mongosh",
-    "moove",
-    "mooveai",
     "msgfwd",
     "multidict",
     "Multivalued",
@@ -88,6 +86,7 @@
     "OIDC",
     "OIDCID",
     "pgdb",
+    "pgquery",
     "PGSQL",
     "postgis",
     "pythjon",
@@ -126,7 +125,6 @@
     "upgrader",
     "usdot",
     "usdotjpoode",
-    "userauth",
     "utctimestamp",
     "writedb",
     "WSMP",
@@ -153,5 +151,6 @@
     "json",
     "jsonc",
     "markdown"
-  ]
+  ],
+  "java.debug.settings.onBuildFailureProceed": true
 }
