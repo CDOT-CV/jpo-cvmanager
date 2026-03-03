@@ -65,8 +65,8 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[0].snmpPassword").value("mypassword"))
                 .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
                 .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
-                .andExpect(jsonPath("$[0].latitude").value(-104.9847))
-                .andExpect(jsonPath("$[0].longitude").value(39.73915))
+                .andExpect(jsonPath("$[0].latitude").value(39.73915))
+                .andExpect(jsonPath("$[0].longitude").value(-104.9847))
                 .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
                 // RSU 2
                 .andExpect(jsonPath("$[1].id").value("2"))
@@ -76,8 +76,8 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[1].snmpPassword").value("mypassword2"))
                 .andExpect(jsonPath("$[1].authenticationProtocol").value("SHA"))
                 .andExpect(jsonPath("$[1].privacyProtocol").value("AES"))
-                .andExpect(jsonPath("$[1].latitude").value(105.0))
-                .andExpect(jsonPath("$[1].longitude").value(40.0))
+                .andExpect(jsonPath("$[1].latitude").value(40.0))
+                .andExpect(jsonPath("$[1].longitude").value(105.0))
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
 
@@ -102,8 +102,8 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[0].snmpPassword").value("mypassword"))
                 .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
                 .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
-                .andExpect(jsonPath("$[0].latitude").value(-104.9847))
-                .andExpect(jsonPath("$[0].longitude").value(39.73915))
+                .andExpect(jsonPath("$[0].latitude").value(39.73915))
+                .andExpect(jsonPath("$[0].longitude").value(-104.9847))
                 .andExpect(jsonPath("$[0].timDepositEnabled").value(true))
                 // RSU 2
                 .andExpect(jsonPath("$[1].id").value("2"))
@@ -113,8 +113,8 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$[1].snmpPassword").value("mypassword2"))
                 .andExpect(jsonPath("$[1].authenticationProtocol").value("SHA"))
                 .andExpect(jsonPath("$[1].privacyProtocol").value("AES"))
-                .andExpect(jsonPath("$[1].latitude").value(105.0))
-                .andExpect(jsonPath("$[1].longitude").value(40.0))
+                .andExpect(jsonPath("$[1].latitude").value(40.0))
+                .andExpect(jsonPath("$[1].longitude").value(105.0))
                 .andExpect(jsonPath("$[1].timDepositEnabled").value(true));
     }
 
@@ -268,12 +268,12 @@ class RsuControllerTest {
         snmpCredential2.setPassword("mypassword2");
 
         Point point1 = mock(Point.class);
-        when(point1.getX()).thenReturn(39.73915);
-        when(point1.getY()).thenReturn(-104.9847);
+        when(point1.getX()).thenReturn(-104.9847);
+        when(point1.getY()).thenReturn(39.73915);
 
         Point point2 = mock(Point.class);
-        when(point2.getX()).thenReturn(40.0);
-        when(point2.getY()).thenReturn(105.0);
+        when(point2.getX()).thenReturn(105.0);
+        when(point2.getY()).thenReturn(40.0);
 
         RsuOption rsuOption = new RsuOption();
         rsuOption.setTimDeposit(true);
