@@ -9,6 +9,5 @@ import java.util.List;
 
 @Repository
 public interface RsuRepository extends JpaRepository<Rsu, Integer> {
-    @Query("SELECT rsu FROM Rsu rsu WHERE rsu.rsuOption.timDeposit = :rsuOptionTimDeposit")
     List<Rsu> findByRsuOption_TimDeposit(Boolean rsuOptionTimDeposit);
 }
