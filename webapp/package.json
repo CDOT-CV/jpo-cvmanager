@@ -39,7 +39,7 @@
     "react-bootstrap": "^2.7.0",
     "react-confirm-alert": "^2.8.0",
     "react-dom": "^17.0.2",
-    "react-hook-form": "^7.41.5",
+    "react-hook-form": "^7.71.2",
     "react-hot-toast": "^2.4.1",
     "react-map-gl": "^7.0.21",
     "react-perfect-scrollbar": "^1.5.8",
@@ -57,14 +57,16 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build",
+    "build": "tsc -b && vite build",
     "build:dev": "env-cmd -f .env.development npm run build",
     "build:test": "env-cmd -f .env.test npm run build",
     "build:prod": "env-cmd -f .env.production npm run build",
     "build:all": "npm run build:dev && npm run build:test && npm run build:prod",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "dev": "vite"
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
@@ -84,6 +86,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@testing-library/jest-dom": "^6.6.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.19",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
