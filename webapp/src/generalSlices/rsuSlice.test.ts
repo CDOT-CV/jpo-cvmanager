@@ -106,7 +106,6 @@ describe('async thunks', () => {
       selectedRsu: null,
       rsuData: null,
       rsuOnlineStatus: null,
-      countsMsgType: null,
       geoMsgType: null,
       rsuMapData: null,
       mapList: null,

@@ -2,6 +2,7 @@ import { jwtDecode } from 'jwt-decode'
 import AuthApi from './auth-api'
 import EnvironmentVars from '../EnvironmentVars'
 import { AuthToken } from '../models/AuthToken'
+import { vi } from 'vitest'
 
 // Mock jwt-decode
 vi.mock('jwt-decode')

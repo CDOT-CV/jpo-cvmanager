@@ -211,8 +211,9 @@ describe('functions', () => {
   it('getUserData', async () => {
     const user_email = 'test@gmail.com'
     const token = 'token'
+    const organization = 'org'
     apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ data: 'data' })
-    const resp = await getUserData(user_email, token)
+    const resp = await getUserData(user_email, token, organization)
     expect(resp).toEqual({ data: 'data' })
     expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
       url: EnvironmentVars.adminUser,

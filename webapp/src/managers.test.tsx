@@ -1,33 +1,5 @@
 import { UserManager, LocalStorageManager } from './managers'
 
-class LocalStorageMock {
-  store: { [key: string]: any } = {}
-  length = 0
-  constructor() {
-    this.store = undefined
-  }
-
-  clear() {
-    this.store = undefined
-  }
-
-  getItem(key: string) {
-    return this.store[key] || null
-  }
-
-  setItem(key: string, value: any) {
-    this.store[key] = String(value)
-  }
-
-  removeItem(key: string) {
-    delete this.store[key]
-  }
-
-  key(index: number) {
-    return Object.keys(this.store)[index]
-  }
-}
-
 test('UserManager correctly checks if login is active', () => {
   let authLoginData: AuthLoginData = undefined
   expect(UserManager.isLoginActive(authLoginData)).toBe(false)
@@ -48,6 +20,8 @@ test('UserManager correctly gets the organization', () => {
       name: undefined,
       email: undefined,
       super_user: undefined,
+      first_name: undefined,
+      last_name: undefined,
       organizations: [
         {
           name: 'test1',
