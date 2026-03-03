@@ -34,7 +34,6 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.bsm.BsmEvent;
 import us.dot.its.jpo.ode.api.accessors.events.bsm_event.BsmEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")

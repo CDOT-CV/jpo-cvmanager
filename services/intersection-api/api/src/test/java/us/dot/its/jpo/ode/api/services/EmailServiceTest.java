@@ -52,7 +52,7 @@ class EmailServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(props.getEmailFromAddress()).thenReturn("test@example.com");
+        lenient().when(props.getEmailFromAddress()).thenReturn("test@example.com");
     }
 
     @Test
