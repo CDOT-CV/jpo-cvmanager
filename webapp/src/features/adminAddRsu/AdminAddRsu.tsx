@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import {
@@ -361,13 +361,7 @@ const AdminAddRsu = () => {
             <Grid2 size={6}>
               <Form.Group controlId="tim_deposit">
                 <FormControlLabel
-                  control={
-                    <Checkbox
-                      {...register('tim_deposit')}
-                      checked={watch('tim_deposit')}
-                      color="primary"
-                    />
-                  }
+                  control={<Checkbox {...register('tim_deposit')} checked={watch('tim_deposit')} color="primary" />}
                   label="TIM Deposit"
                 />
               </Form.Group>
@@ -376,11 +370,7 @@ const AdminAddRsu = () => {
               <Form.Group controlId="snmp_monitoring">
                 <FormControlLabel
                   control={
-                    <Checkbox
-                      {...register('snmp_monitoring')}
-                      checked={watch('snmp_monitoring')}
-                      color="primary"
-                    />
+                    <Checkbox {...register('snmp_monitoring')} checked={watch('snmp_monitoring')} color="primary" />
                   }
                   label="SNMP Monitoring"
                 />

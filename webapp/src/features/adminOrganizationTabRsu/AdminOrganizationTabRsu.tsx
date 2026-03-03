@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AdminTable from '../../components/AdminTable'
 import { Button, Typography, useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
@@ -291,15 +291,15 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
                   timDepositStatus === 'Enabled'
                     ? theme.palette.success.main
                     : timDepositStatus === 'Disabled'
-                    ? theme.palette.error.main
-                    : theme.palette.warning.main,
+                      ? theme.palette.error.main
+                      : theme.palette.warning.main,
                 fontWeight: 'bold',
                 bgcolor:
                   timDepositStatus === 'Enabled'
                     ? 'rgba(46, 125, 50, 0.1)'
                     : timDepositStatus === 'Disabled'
-                    ? 'rgba(211, 47, 47, 0.1)'
-                    : 'rgba(237, 108, 2, 0.1)',
+                      ? 'rgba(211, 47, 47, 0.1)'
+                      : 'rgba(237, 108, 2, 0.1)',
                 px: 1,
                 borderRadius: 1,
               }}
@@ -313,19 +313,19 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
                   snmpMonitoringStatus === 'Enabled'
                     ? theme.palette.success.main
                     : snmpMonitoringStatus === 'Disabled'
-                    ? theme.palette.error.main
-                    : snmpMonitoringStatus === 'Mixed'
-                    ? theme.palette.warning.main
-                    : theme.palette.text.secondary,
+                      ? theme.palette.error.main
+                      : snmpMonitoringStatus === 'Mixed'
+                        ? theme.palette.warning.main
+                        : theme.palette.text.secondary,
                 fontWeight: 'bold',
                 bgcolor:
                   snmpMonitoringStatus === 'Enabled'
                     ? 'rgba(46, 125, 50, 0.1)'
                     : snmpMonitoringStatus === 'Disabled'
-                    ? 'rgba(211, 47, 47, 0.1)'
-                    : snmpMonitoringStatus === 'Mixed'
-                    ? 'rgba(237, 108, 2, 0.1)'
-                    : 'transparent',
+                      ? 'rgba(211, 47, 47, 0.1)'
+                      : snmpMonitoringStatus === 'Mixed'
+                        ? 'rgba(237, 108, 2, 0.1)'
+                        : 'transparent',
                 px: 1,
                 borderRadius: 1,
               }}

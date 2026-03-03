@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import AdminAddUser from '../adminAddUser/AdminAddUser'
 import AdminEditUser from '../adminEditUser/AdminEditUser'
 import AdminTable from '../../components/AdminTable'
@@ -35,7 +35,7 @@ const AdminUserTab = () => {
   const location = useLocation()
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
-  useEffect(() =>{
+  useEffect(() => {
     dispatch(getAvailableUsers())
   }, [organization, dispatch])
 
