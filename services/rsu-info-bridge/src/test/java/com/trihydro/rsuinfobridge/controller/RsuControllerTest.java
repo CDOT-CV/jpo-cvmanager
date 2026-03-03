@@ -173,13 +173,23 @@ class RsuControllerTest {
     }
 
     @Test
-    void testGetAll_RsuWithNullOptionalRelations() throws Exception {
-        // Arrange - RSU with null snmpCredential, snmpProtocol, geography, and rsuOption
+    void testGetAll_RsuWithNullGeographyAndRsuOption() throws Exception {
+        // Arrange - RSU with null geography and rsuOption (optional relations)
+        // Note: snmpCredential and snmpProtocol are required by RsuDto validation, so they must be provided
+        SnmpProtocol snmpProtocol = new SnmpProtocol();
+        snmpProtocol.setId(1);
+        snmpProtocol.setProtocolCode("NTCIP1218");
+
+        SnmpCredential snmpCredential = new SnmpCredential();
+        snmpCredential.setId(1);
+        snmpCredential.setUsername("testuser");
+        snmpCredential.setPassword("testpass");
+
         Rsu rsu = Rsu.builder()
                 .id(1)
                 .ipv4Address(InetAddress.getByName("10.0.0.1"))
-                .snmpCredential(null)
-                .snmpProtocol(null)
+                .snmpCredential(snmpCredential)
+                .snmpProtocol(snmpProtocol)
                 .geography(null)
                 .rsuOption(null)
                 .build();
@@ -194,22 +204,45 @@ class RsuControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value("1"))
                 .andExpect(jsonPath("$[0].ipv4Address").value("10.0.0.1"))
-                .andExpect(jsonPath("$[0].snmpProtocol").doesNotExist())
-                .andExpect(jsonPath("$[0].snmpUsername").doesNotExist())
-                .andExpect(jsonPath("$[0].snmpPassword").doesNotExist())
+                .andExpect(jsonPath("$[0].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[0].snmpUsername").value("testuser"))
+                .andExpect(jsonPath("$[0].snmpPassword").value("testpass"))
                 .andExpect(jsonPath("$[0].authenticationProtocol").value("SHA"))
                 .andExpect(jsonPath("$[0].privacyProtocol").value("AES"))
+                // When geography is null, mapper returns 0.0 for latitude and longitude
                 .andExpect(jsonPath("$[0].latitude").value(0.0))
                 .andExpect(jsonPath("$[0].longitude").value(0.0))
+                // When rsuOption is null, mapper returns false for timDepositEnabled
                 .andExpect(jsonPath("$[0].timDepositEnabled").value(false));
     }
 
     @Test
-    void testGetAll_RsuWithNullIpv4Address() throws Exception {
-        // Arrange
+    void testGetAll_RsuWithMinimalRequiredFields() throws Exception {
+        // Arrange - RSU with all required fields for RsuDto validation
+        // id and ipv4Address are @NotBlank, so they must be provided
+        SnmpProtocol snmpProtocol = new SnmpProtocol();
+        snmpProtocol.setId(1);
+        snmpProtocol.setProtocolCode("NTCIP1218");
+
+        SnmpCredential snmpCredential = new SnmpCredential();
+        snmpCredential.setId(1);
+        snmpCredential.setUsername("user");
+        snmpCredential.setPassword("pass");
+
+        Point point = mock(Point.class);
+        when(point.getX()).thenReturn(-100.0);
+        when(point.getY()).thenReturn(40.0);
+
+        RsuOption rsuOption = new RsuOption();
+        rsuOption.setTimDeposit(true);
+
         Rsu rsu = Rsu.builder()
                 .id(1)
-                .ipv4Address(null)
+                .ipv4Address(InetAddress.getByName("192.168.1.1"))
+                .snmpProtocol(snmpProtocol)
+                .snmpCredential(snmpCredential)
+                .geography(point)
+                .rsuOption(rsuOption)
                 .build();
         when(rsuRepository.findAll()).thenReturn(List.of(rsu));
         mockMvc = initializeMockMvc();
@@ -217,11 +250,17 @@ class RsuControllerTest {
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus"));
 
-        // Assert
+        // Assert - all required fields are present per RsuDto validation
         resultActions.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value("1"))
-                .andExpect(jsonPath("$[0].ipv4Address").doesNotExist());
+                .andExpect(jsonPath("$[0].ipv4Address").value("192.168.1.1"))
+                .andExpect(jsonPath("$[0].snmpProtocol").value("NTCIP1218"))
+                .andExpect(jsonPath("$[0].snmpUsername").value("user"))
+                .andExpect(jsonPath("$[0].snmpPassword").value("pass"))
+                .andExpect(jsonPath("$[0].latitude").value(40.0))
+                .andExpect(jsonPath("$[0].longitude").value(-100.0))
+                .andExpect(jsonPath("$[0].timDepositEnabled").value(true));
     }
 
     @Test
