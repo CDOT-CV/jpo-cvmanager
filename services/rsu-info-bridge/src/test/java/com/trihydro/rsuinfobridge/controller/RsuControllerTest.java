@@ -141,7 +141,7 @@ class RsuControllerTest {
         mockMvc = initializeMockMvc();
 
         // Act
-        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=true"));
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
 
         // Assert
         resultActions.andExpect(status().isOk())
@@ -168,7 +168,7 @@ class RsuControllerTest {
 
         // Act & Assert
         Assertions.assertThrows(ServletException.class, () -> {
-            mockMvc.perform(get("/rsus?timDepositEnabled=true"));
+            mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
         });
     }
 
@@ -242,7 +242,7 @@ class RsuControllerTest {
         mockMvc = initializeMockMvc();
 
         // Act
-        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=notaboolean"));
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=notaboolean"));
 
         // Assert
         resultActions.andExpect(status().isBadRequest());
