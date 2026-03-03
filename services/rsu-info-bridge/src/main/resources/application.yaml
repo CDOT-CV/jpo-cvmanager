@@ -2,7 +2,7 @@ spring:
   application:
     name: rsu-info-bridge
   datasource:
-    url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/postgres
+    url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/${POSTGRES_DB:postgres}
     username: ${PG_DB_USER:postgres}
     password: ${PG_DB_PASS:postgres}
     driver-class-name: org.postgresql.Driver
