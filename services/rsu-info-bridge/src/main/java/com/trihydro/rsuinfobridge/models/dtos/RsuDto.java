@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.models.dtos;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,6 +8,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RsuDto {
     private String id;
     private String ipv4Address;
