@@ -55,6 +55,11 @@ public class Rsu {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "model", nullable = false)
+    private RsuModel model;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "credential_id", nullable = false)
     private RsuCredential credential;
 
