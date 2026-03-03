@@ -37,11 +37,7 @@ import us.dot.its.jpo.ode.api.models.IDCount;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
-
-@SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
 @ExtendWith(MockitoExtension.class)
 public class BsmEventRepositoryImplTest {
 
