@@ -52,7 +52,7 @@ public interface RsuDtoMapper {
     }
 
     @Named("mapLatitude")
-    default double mapLatitude(Point geography) {
+    default Double mapLatitude(Point geography) {
         if (geography == null) {
             return 0.0;
         }
@@ -60,7 +60,7 @@ public interface RsuDtoMapper {
     }
 
     @Named("mapLongitude")
-    default double mapLongitude(Point geography) {
+    default Double mapLongitude(Point geography) {
         if (geography == null) {
             return 0.0;
         }
@@ -68,7 +68,7 @@ public interface RsuDtoMapper {
     }
 
     @Named("mapTimDepositEnabled")
-    default boolean mapTimDepositEnabled(RsuOption rsuOption) {
+    default Boolean mapTimDepositEnabled(RsuOption rsuOption) {
         if (rsuOption == null) {
             return false;
         }
