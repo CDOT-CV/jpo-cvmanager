@@ -18,7 +18,15 @@ To build the project and run tests, use the following command:
 
 ## Running the Application
 ### Using Maven
-You can run the application using the Spring Boot Maven plugin:
+First, start the `cvmanager_postgres` service from the root of the repository. This is required as the RSU Info Bridge depends on the PostgreSQL database:
+
+```bash
+cd ../..
+docker compose up -d cvmanager_postgres
+cd services/rsu-info-bridge
+```
+
+Then, run the application using the Spring Boot Maven plugin:
 
 ```bash
 ./mvnw spring-boot:run
@@ -37,6 +45,14 @@ Then, build the Docker image using the Spring Boot Maven plugin:
 
 ```bash
 ./mvnw spring-boot:build-image
+```
+
+Next, start the `cvmanager_postgres` service from the root of the repository. This is required as the RSU Info Bridge depends on the PostgreSQL database:
+
+```bash
+cd ../..
+docker compose up -d cvmanager_postgres
+cd services/rsu-info-bridge
 ```
 
 Finally, start the service using Docker Compose:
