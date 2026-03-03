@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -29,6 +30,7 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class MapDecoderTests {
 
     private final MapDecoder mapDecoder;

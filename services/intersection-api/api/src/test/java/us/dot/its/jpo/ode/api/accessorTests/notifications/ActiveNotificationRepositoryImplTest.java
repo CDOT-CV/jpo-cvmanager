@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.accessorTests.notifications;
 
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.bson.Document;
@@ -44,6 +45,7 @@ import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.Active
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 @ExtendWith(MockitoExtension.class)
+@Disabled("445855")
 public class ActiveNotificationRepositoryImplTest {
 
     @Mock

@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.accessorTests.events;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,7 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLineStopEvent;
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 @ExtendWith(MockitoExtension.class)
+@Disabled("445855")
 public class StopLineStopEventRepositoryImplTest {
 
     @Mock

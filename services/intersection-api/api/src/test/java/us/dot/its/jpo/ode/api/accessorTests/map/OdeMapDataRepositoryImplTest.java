@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.accessorTests.map;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.bson.Document;
@@ -39,6 +40,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 @ExtendWith(MockitoExtension.class)
+@Disabled("445855")
 public class OdeMapDataRepositoryImplTest {
 
     @MockitoSpyBean

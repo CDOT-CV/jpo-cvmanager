@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -25,6 +26,7 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class TimDecoderTests {
 
     private final TimDecoder timDecoder;

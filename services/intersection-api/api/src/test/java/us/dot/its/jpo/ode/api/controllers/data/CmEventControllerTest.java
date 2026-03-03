@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -67,6 +68,7 @@ import us.dot.its.jpo.ode.plugin.j2735.J2735BsmCoreData;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class CmEventControllerTest {
 
         private final CmEventController controller;

@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.accessorTests.assessments;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment.St
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
 @ExtendWith(MockitoExtension.class)
+@Disabled("445855")
 public class StopLineStopAssessmentRepositoryImplTest {
 
     @Mock

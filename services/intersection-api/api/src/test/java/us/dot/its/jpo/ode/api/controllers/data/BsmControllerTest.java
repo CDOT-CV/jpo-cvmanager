@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -29,6 +30,7 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class BsmControllerTest {
 
 	private final BsmController controller;

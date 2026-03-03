@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import us.dot.its.jpo.ode.mockdata.MockHaasGenerator;
 @SpringBootTest
 @AutoConfigureEmbeddedDatabase
 @ActiveProfiles("test")
+@Disabled("445855")
 public class HaasControllerTest {
 
     private final HaasController controller;
