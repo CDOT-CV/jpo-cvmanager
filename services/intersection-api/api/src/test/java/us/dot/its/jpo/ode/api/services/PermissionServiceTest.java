@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,18 +40,18 @@ public class PermissionServiceTest {
     @Mock
     private Jwt jwtToken;
 
+    @Spy
     @InjectMocks
     private PermissionService permissionService;
 
     @BeforeEach
     public void setUp() {
         SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getName()).thenReturn("user@example.com");
-        when(authentication.getToken()).thenReturn(jwtToken);
-        when(jwtToken.getClaimAsString("preferred_username")).thenReturn("user@example.com");
-        permissionService = spy(permissionService);
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(authentication.isAuthenticated()).thenReturn(true);
+        lenient().when(authentication.getName()).thenReturn("user@example.com");
+        lenient().when(authentication.getToken()).thenReturn(jwtToken);
+        lenient().when(jwtToken.getClaimAsString("preferred_username")).thenReturn("user@example.com");
     }
 
     @Test
@@ -65,7 +66,7 @@ public class PermissionServiceTest {
     @Test
     public void testIsSuperUserWhenUserIsNull() {
         when(permissionService.isAuthValid(authentication)).thenReturn(true);
-        when(postgresService.findUser("testUser")).thenReturn(null);
+        when(postgresService.findUser("user@example.com")).thenReturn(null);
 
         boolean result = permissionService.isSuperUser();
 
@@ -78,7 +79,7 @@ public class PermissionServiceTest {
         user.setSuper_user(false);
 
         when(permissionService.isAuthValid(authentication)).thenReturn(true);
-        when(postgresService.findUser("testUser")).thenReturn(user);
+        when(postgresService.findUser("user@example.com")).thenReturn(user);
 
         boolean result = permissionService.isSuperUser();
 
@@ -121,7 +122,6 @@ public class PermissionServiceTest {
             mockedStatic.when(PermissionService::getOrganizationFromHeader).thenReturn("org1");
 
             List<String> organizations = Arrays.asList("org1");
-            when(postgresService.getQualifiedOrgList("user@example.com", "USER")).thenReturn(organizations);
             when(postgresService.checkIntersectionWithOrg(eq("2"), anyList())).thenReturn(true);
 
             boolean result = permissionService.hasIntersection(2, "USER");
@@ -137,7 +137,6 @@ public class PermissionServiceTest {
             mockedStatic.when(PermissionService::getOrganizationFromHeader).thenReturn("TestOrg");
 
             List<String> organizations = Arrays.asList("org1");
-            when(postgresService.getQualifiedOrgList("user@example.com", "USER")).thenReturn(organizations);
             when(postgresService.checkIntersectionWithOrg(eq("2"), anyList())).thenReturn(false);
 
             boolean result = permissionService.hasIntersection(2, "USER");
@@ -161,7 +160,7 @@ public class PermissionServiceTest {
         when(postgresService.getQualifiedOrgList("user@example.com", "USER")).thenReturn(organizations);
         when(postgresService.checkIntersectionWithOrg("2", organizations)).thenReturn(false);
 
-        boolean result = permissionService.hasIntersection(4, "USER");
+        boolean result = permissionService.hasIntersection(2, "USER");
 
         assertFalse(result);
     }
@@ -201,7 +200,6 @@ public class PermissionServiceTest {
             mockedStatic.when(PermissionService::getOrganizationFromHeader).thenReturn("org1");
 
             List<String> organizations = Arrays.asList("org1");
-            when(postgresService.getQualifiedOrgList("user@example.com", "USER")).thenReturn(organizations);
             when(postgresService.checkRsuWithOrg("192.168.1.1", organizations)).thenReturn(true);
 
             boolean result = permissionService.hasRSU("192.168.1.1", "USER");
@@ -216,8 +214,7 @@ public class PermissionServiceTest {
         try (MockedStatic<PermissionService> mockedStatic = mockStatic(PermissionService.class)) {
             mockedStatic.when(PermissionService::getOrganizationFromHeader).thenReturn("TestOrg");
 
-            List<String> organizations = Arrays.asList("org1");
-            when(postgresService.getQualifiedOrgList("user@example.com", "USER")).thenReturn(organizations);
+            List<String> organizations = Arrays.asList("TestOrg");
             when(postgresService.checkRsuWithOrg("192.168.1.1", organizations)).thenReturn(false);
 
             boolean result = permissionService.hasRSU("192.168.1.1", "USER");
