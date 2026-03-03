@@ -89,7 +89,7 @@ class RsuControllerTest {
         mockMvc = initializeMockMvc();
 
         // Act
-        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabled=true"));
+        ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
 
         // Assert
         resultActions.andExpect(status().isOk())
