@@ -219,7 +219,7 @@ describe('functions', () => {
       url: EnvironmentVars.adminUser,
       token,
       query_params: { user_email },
-      additional_headers: { 'Content-Type': 'application/json' },
+      additional_headers: { 'Content-Type': 'application/json', Organization: organization },
     })
   })
 

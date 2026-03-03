@@ -304,7 +304,7 @@ describe('selectors', () => {
   })
 
   it('selectCountsMsgType returns the correct value', () => {
-    expect(selectCountsMsgType(initialState)).toBe('SPaT')
+    expect(selectCountsMsgType(initialState)).toBe('SPAT')
 
     const bsmState = {
       ...initialState,
