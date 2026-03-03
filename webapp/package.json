@@ -39,7 +39,7 @@
     "react-bootstrap": "^2.7.0",
     "react-confirm-alert": "^2.8.0",
     "react-dom": "^17.0.2",
-    "react-hook-form": "^7.71.2",
+    "react-hook-form": "^7.41.5",
     "react-hot-toast": "^2.4.1",
     "react-map-gl": "^7.0.21",
     "react-perfect-scrollbar": "^1.5.8",
