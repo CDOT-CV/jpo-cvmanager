@@ -41,7 +41,7 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     @Value("${spring.mongodb.password}")
     private String password;
 
-    @Value("${spring.data.mongodb.authenticationDatabase}")
+    @Value("${spring.mongodb.authenticationDatabase}")
     private String authenticationDatabase;
 
     @Value("${spring.mongodb.uri}")
