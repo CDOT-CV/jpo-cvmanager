@@ -117,14 +117,16 @@ public class RsuManagementService {
         rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
         rsuOptionRepository.save(rsuOption);
 
+        var toCreate = new ArrayList<RsuOrganization>();
         for (String orgName : orgsToAdd) {
-            createRsuOrgRelationship(orgName, rsu);
+            toCreate.add(createRsuOrgRelationship(orgName, rsu));
         }
+        rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
     }
 
-    public void createRsuOrgRelationship(String orgName, Rsu rsu) {
+    public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
         Organization organization = organizationRepository.findByName(orgName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Organization not found: " + orgName));
@@ -132,7 +134,7 @@ public class RsuManagementService {
         RsuOrganization rsuOrg = new RsuOrganization();
         rsuOrg.setOrganization(organization);
         rsuOrg.setRsu(rsu);
-        rsuOrganizationRepository.save(rsuOrg);
+        return rsuOrg;
     }
 
     private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
