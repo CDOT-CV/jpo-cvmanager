@@ -1,43 +1,30 @@
 package com.trihydro.rsuinfobridge.exception;
 
-import com.trihydro.rsuinfobridge.controller.RsuController;
-import com.trihydro.rsuinfobridge.mapper.RsuDtoMapper;
 import com.trihydro.rsuinfobridge.service.RsuService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest
+@AutoConfigureMockMvc
 class GlobalExceptionHandlerTest {
+    @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
     private RsuService rsuService;
-
-    /**
-     * Manual MockMvc setup as a workaround.
-     * Ideally, this would be a @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
-     * but @AutoConfigureMockMvc is not recognized in the project's current configuration,
-     * so we use standalone MockMvc setup instead of loading the full Spring context.
-     */
-    @BeforeEach
-    void setUp() {
-        rsuService = mock(RsuService.class);
-        RsuDtoMapper rsuDtoMapper = mock(RsuDtoMapper.class);
-        RsuController rsuController = new RsuController(rsuService, rsuDtoMapper);
-
-        mockMvc = MockMvcBuilders.standaloneSetup(rsuController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
-    }
 
     @Test
     void handleMethodArgumentTypeMismatchException_returnsBadRequest() throws Exception {

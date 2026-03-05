@@ -7,15 +7,15 @@ import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
 import com.trihydro.rsuinfobridge.repository.RsuRepository;
 import com.trihydro.rsuinfobridge.service.RsuService;
-import jakarta.servlet.ServletException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
-import org.mapstruct.factory.Mappers;
+import org.mockito.InjectMocks;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,28 +29,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest
+@AutoConfigureMockMvc
 class RsuControllerTest {
+    @MockitoBean
     RsuRepository rsuRepository;
+
+    @InjectMocks
     RsuService rsuService;
+
+    @InjectMocks
     RsuDtoMapper rsuDtoMapper;
+
+    @Autowired
     MockMvc mockMvc;
-
-    /**
-     * Manual dependency setup as a workaround.
-     * Ideally, this would be a @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
-     * but @AutoConfigureMockMvc is not recognized in the project's current configuration,
-     * so we use standalone MockMvc setup instead of loading the full Spring context.
-     */
-    @BeforeEach
-    void setup() {
-        rsuRepository = mock(RsuRepository.class);
-        rsuService = new RsuService(rsuRepository);
-        rsuDtoMapper = Mappers.getMapper(RsuDtoMapper.class);
-        RsuController rsuController = new RsuController(rsuService, rsuDtoMapper);
-
-        mockMvc = MockMvcBuilders.standaloneSetup(rsuController)
-                .build();
-    }
 
     // ==================== Happy path tests ====================
 
@@ -152,28 +144,6 @@ class RsuControllerTest {
         // Assert
         resultActions.andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
-    }
-
-    @Test
-    void testGetAll_RepositoryThrowsException() {
-        // Arrange
-        when(rsuRepository.findAll()).thenThrow(new RuntimeException("Database connection failed"));
-
-        // Act & Assert
-        Assertions.assertThrows(ServletException.class, () -> {
-            mockMvc.perform(get("/rsus"));
-        });
-    }
-
-    @Test
-    void testGetAllWithTimDepositEnabled_RepositoryThrowsException() {
-        // Arrange
-        when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenThrow(new RuntimeException("Database connection failed"));
-
-        // Act & Assert
-        Assertions.assertThrows(ServletException.class, () -> {
-            mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
-        });
     }
 
     @Test
