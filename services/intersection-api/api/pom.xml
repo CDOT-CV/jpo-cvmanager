@@ -399,24 +399,6 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
-            <plugin>
-                <groupId>org.openrewrite.maven</groupId>
-                <artifactId>rewrite-maven-plugin</artifactId>
-                <version>6.29.0</version>
-                <configuration>
-                    <exportDatatables>true</exportDatatables>
-                    <activeRecipes>
-                        <recipe>org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0</recipe>
-                    </activeRecipes>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.openrewrite.recipe</groupId>
-                        <artifactId>rewrite-spring</artifactId>
-                        <version>6.24.1</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
 		</plugins>
 	</build>
 	<!-- profile to output only source code and not include any spring boot dependencies in
