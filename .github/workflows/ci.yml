@@ -170,7 +170,6 @@ jobs:
           mvn clean verify
 
       - name: Archive Test Results
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rsu-info-bridge-test-results
