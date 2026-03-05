@@ -7,6 +7,8 @@ import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.mapstruct.factory.Mappers;
 
@@ -15,8 +17,6 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class RsuDtoMapperTest {
 
@@ -37,9 +37,10 @@ class RsuDtoMapperTest {
         snmpCredential.setUsername("testuser");
         snmpCredential.setPassword("testpass");
 
-        Point point = mock(Point.class);
-        when(point.getY()).thenReturn(39.73915);
-        when(point.getX()).thenReturn(-104.9847);
+
+        GeometryFactory geometryFactory = new GeometryFactory();
+        Coordinate coordinate = new Coordinate(-104.9847, 39.73915);
+        Point point = geometryFactory.createPoint(coordinate);
 
         RsuOption rsuOption = new RsuOption();
         rsuOption.setTimDeposit(true);
