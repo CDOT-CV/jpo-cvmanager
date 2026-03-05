@@ -24,8 +24,9 @@ class GlobalExceptionHandlerTest {
 
     /**
      * Manual MockMvc setup as a workaround.
-     * Ideally, this would use @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
-     * but @AutoConfigureMockMvc is not recognized in the project's current configuration.
+     * Ideally, this would be a @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
+     * but @AutoConfigureMockMvc is not recognized in the project's current configuration,
+     * so we use standalone MockMvc setup instead of loading the full Spring context.
      */
     @BeforeEach
     void setUp() {

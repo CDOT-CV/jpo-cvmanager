@@ -46,6 +46,10 @@ class RsuControllerTest {
         rsuRepository = mock(RsuRepository.class);
         rsuService = new RsuService(rsuRepository);
         rsuDtoMapper = Mappers.getMapper(RsuDtoMapper.class);
+        RsuController rsuController = new RsuController(rsuService, rsuDtoMapper);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(rsuController)
+                .build();
     }
 
     // ==================== Happy path tests ====================
@@ -55,7 +59,6 @@ class RsuControllerTest {
         // Arrange
         List<Rsu> rsus = getMockData();
         when(rsuRepository.findAll()).thenReturn(rsus);
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus"));
@@ -92,7 +95,6 @@ class RsuControllerTest {
         // Arrange
         List<Rsu> rsus = getMockData();
         when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenReturn(rsus);
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
@@ -130,7 +132,6 @@ class RsuControllerTest {
     void testGetAll_EmptyList() throws Exception {
         // Arrange
         when(rsuRepository.findAll()).thenReturn(Collections.emptyList());
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus"));
@@ -144,7 +145,6 @@ class RsuControllerTest {
     void testGetAllWithTimDepositEnabled_EmptyList() throws Exception {
         // Arrange
         when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenReturn(Collections.emptyList());
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=true"));
@@ -158,7 +158,6 @@ class RsuControllerTest {
     void testGetAll_RepositoryThrowsException() {
         // Arrange
         when(rsuRepository.findAll()).thenThrow(new RuntimeException("Database connection failed"));
-        mockMvc = initializeMockMvc();
 
         // Act & Assert
         Assertions.assertThrows(ServletException.class, () -> {
@@ -170,7 +169,6 @@ class RsuControllerTest {
     void testGetAllWithTimDepositEnabled_RepositoryThrowsException() {
         // Arrange
         when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenThrow(new RuntimeException("Database connection failed"));
-        mockMvc = initializeMockMvc();
 
         // Act & Assert
         Assertions.assertThrows(ServletException.class, () -> {
@@ -200,7 +198,6 @@ class RsuControllerTest {
                 .rsuOption(null)
                 .build();
         when(rsuRepository.findAll()).thenReturn(List.of(rsu));
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus"));
@@ -251,7 +248,6 @@ class RsuControllerTest {
                 .rsuOption(rsuOption)
                 .build();
         when(rsuRepository.findAll()).thenReturn(List.of(rsu));
-        mockMvc = initializeMockMvc();
 
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus"));
@@ -271,9 +267,6 @@ class RsuControllerTest {
 
     @Test
     void testPostNotAllowed() throws Exception {
-        // Arrange
-        mockMvc = initializeMockMvc();
-
         // Act
         ResultActions resultActions = mockMvc.perform(post("/rsus"));
 
@@ -283,9 +276,6 @@ class RsuControllerTest {
 
     @Test
     void testGetAll_InvalidTimDepositEnabledParam() throws Exception {
-        // Arrange - non-boolean value should fail type conversion
-        mockMvc = initializeMockMvc();
-
         // Act
         ResultActions resultActions = mockMvc.perform(get("/rsus?timDepositEnabledOnly=notaboolean"));
 
@@ -344,13 +334,5 @@ class RsuControllerTest {
         rsus.add(rsu2);
 
         return rsus;
-    }
-
-    /**
-     * Manual MockMvc initialization as part of the workaround.
-     * With @AutoConfigureMockMvc, MockMvc would be auto-wired instead.
-     */
-    MockMvc initializeMockMvc() {
-        return MockMvcBuilders.standaloneSetup(new RsuController(rsuService, rsuDtoMapper)).build();
     }
 }
