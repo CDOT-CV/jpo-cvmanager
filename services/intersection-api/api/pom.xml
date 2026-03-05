@@ -148,7 +148,7 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.0.1</version>
+			<version>3.0.2</version>
 		</dependency>
         <dependency>
             <groupId>tools.jackson.dataformat</groupId>
@@ -241,7 +241,7 @@
 		<dependency>
 			<groupId>com.postmarkapp</groupId>
 			<artifactId>postmark</artifactId>
-			<version>1.11.1</version>
+			<version>1.13.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
