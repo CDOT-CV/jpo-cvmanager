@@ -35,12 +35,6 @@ class RsuControllerTest {
     @MockitoBean
     RsuRepository rsuRepository;
 
-    @InjectMocks
-    RsuService rsuService;
-
-    @InjectMocks
-    RsuDtoMapper rsuDtoMapper;
-
     @Autowired
     MockMvc mockMvc;
 
