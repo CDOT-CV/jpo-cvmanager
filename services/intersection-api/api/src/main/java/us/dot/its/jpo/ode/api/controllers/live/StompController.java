@@ -25,7 +25,7 @@ public class StompController {
 
     private final JsonMapper mapper = JsonMapper.builder()
             .enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .build();;
+            .build();
 
     public StompController(SimpMessagingTemplate brokerMessagingTemplate) {
         this.brokerMessagingTemplate = brokerMessagingTemplate;

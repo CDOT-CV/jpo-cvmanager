@@ -17,7 +17,6 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaAdmin.NewTopics;
 import org.springframework.stereotype.Component;
 
-@Component
 @Configuration
 @ConfigurationProperties(prefix = "kafka.topics")
 public class KafkaConfiguration {
