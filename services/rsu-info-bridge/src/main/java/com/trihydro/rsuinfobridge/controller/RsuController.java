@@ -8,9 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,7 +20,6 @@ import java.util.List;
 @RequestMapping("/rsus")
 @RequiredArgsConstructor
 @Tag(name = "RSU", description = "Roadside Unit information endpoints")
-@Validated
 public class RsuController {
     private final RsuService rsuService;
     private final RsuDtoMapper rsuDtoMapper;
@@ -32,7 +29,7 @@ public class RsuController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of RSUs")
     })
-    public List<@Valid RsuDto> getAll(
+    public List<RsuDto> getAll(
             @Parameter(description = "Filter RSUs by TIM deposit enabled status", example = "false")
             @RequestParam(defaultValue = "false") boolean timDepositEnabledOnly) {
         return rsuDtoMapper.toDtoList(rsuService.getAll(timDepositEnabledOnly));
