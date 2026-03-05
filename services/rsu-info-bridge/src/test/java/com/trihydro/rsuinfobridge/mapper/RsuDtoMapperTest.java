@@ -87,8 +87,8 @@ class RsuDtoMapperTest {
         RsuDto dto = mapper.toDto(rsu);
 
         // Assert
-        assertEquals(0.0, dto.getLatitude());
-        assertEquals(0.0, dto.getLongitude());
+        assertNull(dto.getLatitude());
+        assertNull(dto.getLongitude());
     }
 
     @Test
@@ -104,7 +104,7 @@ class RsuDtoMapperTest {
         RsuDto dto = mapper.toDto(rsu);
 
         // Assert
-        assertFalse(dto.getTimDepositEnabled());
+        assertNull(dto.getTimDepositEnabled());
     }
 
     @Test
