@@ -14,7 +14,7 @@ public class RsuService {
 
     public List<Rsu> getAll(boolean timDepositEnabledOnly) {
         if (timDepositEnabledOnly) {
-            return rsuRepository.findByRsuOption_TimDeposit(true);
+            return rsuRepository.findByRsuOptionTimDepositIsTrue();
         } else {
             return rsuRepository.findAll();
         }

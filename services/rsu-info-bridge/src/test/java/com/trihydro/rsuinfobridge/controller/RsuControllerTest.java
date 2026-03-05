@@ -85,7 +85,7 @@ class RsuControllerTest {
     void testGetAllWithTimDepositEnabled_Success() throws Exception {
         // Arrange
         List<Rsu> rsus = getMockData();
-        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenReturn(rsus);
+        when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenReturn(rsus);
         mockMvc = initializeMockMvc();
 
         // Act
@@ -137,7 +137,7 @@ class RsuControllerTest {
     @Test
     void testGetAllWithTimDepositEnabled_EmptyList() throws Exception {
         // Arrange
-        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenReturn(Collections.emptyList());
+        when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenReturn(Collections.emptyList());
         mockMvc = initializeMockMvc();
 
         // Act
@@ -163,7 +163,7 @@ class RsuControllerTest {
     @Test
     void testGetAllWithTimDepositEnabled_RepositoryThrowsException() {
         // Arrange
-        when(rsuRepository.findByRsuOption_TimDeposit(true)).thenThrow(new RuntimeException("Database connection failed"));
+        when(rsuRepository.findByRsuOptionTimDepositIsTrue()).thenThrow(new RuntimeException("Database connection failed"));
         mockMvc = initializeMockMvc();
 
         // Act & Assert

@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface RsuRepository extends JpaRepository<Rsu, Integer> {
-    List<Rsu> findByRsuOption_TimDeposit(Boolean rsuOptionTimDeposit);
+    List<Rsu> findByRsuOptionTimDepositIsTrue();
 }
