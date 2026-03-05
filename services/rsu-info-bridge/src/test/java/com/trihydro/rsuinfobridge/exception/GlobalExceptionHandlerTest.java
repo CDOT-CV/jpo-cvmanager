@@ -22,6 +22,11 @@ class GlobalExceptionHandlerTest {
     private MockMvc mockMvc;
     private RsuService rsuService;
 
+    /**
+     * Manual MockMvc setup as a workaround.
+     * Ideally, this would use @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
+     * but @AutoConfigureMockMvc is not recognized in the project's current configuration.
+     */
     @BeforeEach
     void setUp() {
         rsuService = mock(RsuService.class);

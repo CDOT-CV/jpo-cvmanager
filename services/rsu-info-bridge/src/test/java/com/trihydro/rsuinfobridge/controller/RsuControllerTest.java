@@ -35,6 +35,12 @@ class RsuControllerTest {
     RsuDtoMapper rsuDtoMapper;
     MockMvc mockMvc;
 
+    /**
+     * Manual dependency setup as a workaround.
+     * Ideally, this would be a @SpringBootTest with @AutoConfigureMockMvc and @MockitoBean,
+     * but @AutoConfigureMockMvc is not recognized in the project's current configuration,
+     * so we use standalone MockMvc setup instead of loading the full Spring context.
+     */
     @BeforeEach
     void setup() {
         rsuRepository = mock(RsuRepository.class);
@@ -340,6 +346,10 @@ class RsuControllerTest {
         return rsus;
     }
 
+    /**
+     * Manual MockMvc initialization as part of the workaround.
+     * With @AutoConfigureMockMvc, MockMvc would be auto-wired instead.
+     */
     MockMvc initializeMockMvc() {
         return MockMvcBuilders.standaloneSetup(new RsuController(rsuService, rsuDtoMapper)).build();
     }
