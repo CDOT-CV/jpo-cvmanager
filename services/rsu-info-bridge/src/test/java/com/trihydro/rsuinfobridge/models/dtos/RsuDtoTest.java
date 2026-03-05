@@ -149,45 +149,6 @@ class RsuDtoTest {
     }
 
     @Test
-    void latitude_whenNull_shouldFailValidation() {
-        RsuDto dto = validRsuDtoBuilder()
-                .latitude(null)
-                .build();
-
-        Set<ConstraintViolation<RsuDto>> violations = validator.validate(dto);
-
-        assertFalse(violations.isEmpty(), "Null latitude should fail validation");
-        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("latitude")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("latitude is required")));
-    }
-
-    @Test
-    void longitude_whenNull_shouldFailValidation() {
-        RsuDto dto = validRsuDtoBuilder()
-                .longitude(null)
-                .build();
-
-        Set<ConstraintViolation<RsuDto>> violations = validator.validate(dto);
-
-        assertFalse(violations.isEmpty(), "Null longitude should fail validation");
-        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("longitude")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("longitude is required")));
-    }
-
-    @Test
-    void timDepositEnabled_whenNull_shouldFailValidation() {
-        RsuDto dto = validRsuDtoBuilder()
-                .timDepositEnabled(null)
-                .build();
-
-        Set<ConstraintViolation<RsuDto>> violations = validator.validate(dto);
-
-        assertFalse(violations.isEmpty(), "Null timDepositEnabled should fail validation");
-        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("timDepositEnabled")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("timDepositEnabled is required")));
-    }
-
-    @Test
     void multipleFieldsInvalid_shouldReturnMultipleViolations() {
         RsuDto dto = RsuDto.builder()
                 .id(null)
@@ -195,14 +156,11 @@ class RsuDtoTest {
                 .snmpProtocol("   ")
                 .snmpUsername(null)
                 .snmpPassword(null)
-                .latitude(null)
-                .longitude(null)
-                .timDepositEnabled(null)
                 .build();
 
         Set<ConstraintViolation<RsuDto>> violations = validator.validate(dto);
 
-        assertEquals(8, violations.size(), "All 8 required fields should have violations");
+        assertEquals(5, violations.size(), "All 5 required fields should have violations");
     }
 
     @Test
@@ -216,9 +174,6 @@ class RsuDtoTest {
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("snmpProtocol is required")));
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("snmpUsername is required")));
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("snmpPassword is required")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("latitude is required")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("longitude is required")));
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals("timDepositEnabled is required")));
     }
 }
 

@@ -66,7 +66,7 @@ class RsuDtoMapperTest {
         assertEquals("AES", dto.getPrivacyProtocol());
         assertEquals(39.73915, dto.getLatitude());
         assertEquals(-104.9847, dto.getLongitude());
-        assertTrue(dto.getTimDepositEnabled());
+        assertTrue(dto.isTimDepositEnabled());
     }
 
     @Test
@@ -87,8 +87,8 @@ class RsuDtoMapperTest {
         RsuDto dto = mapper.toDto(rsu);
 
         // Assert
-        assertNull(dto.getLatitude());
-        assertNull(dto.getLongitude());
+        assertEquals(0.0, dto.getLatitude());
+        assertEquals(0.0, dto.getLongitude());
     }
 
     @Test
@@ -104,7 +104,7 @@ class RsuDtoMapperTest {
         RsuDto dto = mapper.toDto(rsu);
 
         // Assert
-        assertNull(dto.getTimDepositEnabled());
+        assertFalse(dto.isTimDepositEnabled());
     }
 
     @Test
@@ -185,7 +185,7 @@ class RsuDtoMapperTest {
         RsuDto dto = mapper.toDto(rsu);
 
         // Assert
-        assertFalse(dto.getTimDepositEnabled());
+        assertFalse(dto.isTimDepositEnabled());
     }
 
     @Test

@@ -3,7 +3,6 @@ package com.trihydro.rsuinfobridge.models.dtos;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -41,14 +40,11 @@ public class RsuDto {
     private String privacyProtocol;
 
     @Schema(description = "Latitude coordinate of the RSU location", example = "39.73915")
-    @NotNull(message = "latitude is required")
-    private Double latitude;
+    private double latitude;
 
     @Schema(description = "Longitude coordinate of the RSU location", example = "-104.9847")
-    @NotNull(message = "longitude is required")
-    private Double longitude;
+    private double longitude;
 
     @Schema(description = "Indicates whether TIM (Traveler Information Message) deposit is enabled", example = "true")
-    @NotNull(message = "timDepositEnabled is required")
-    private Boolean timDepositEnabled;
+    private boolean timDepositEnabled;
 }
