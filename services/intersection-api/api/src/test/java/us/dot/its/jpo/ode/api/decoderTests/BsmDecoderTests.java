@@ -43,7 +43,7 @@ public class BsmDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public BsmDecoderTests(BsmDecoder bsmDecoder) {
         this.bsmDecoder = bsmDecoder;

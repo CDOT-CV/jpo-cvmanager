@@ -39,7 +39,7 @@ public class SsmDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public SsmDecoderTests(SsmDecoder ssmDecoder) {
         this.ssmDecoder = ssmDecoder;

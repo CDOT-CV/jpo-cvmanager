@@ -40,7 +40,7 @@ public class TimDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public TimDecoderTests(TimDecoder timDecoder) {
         this.timDecoder = timDecoder;

@@ -44,7 +44,7 @@ public class DecodedMessage {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public DecodedMessage(String asn1Text, MessageType type, String decodeErrors) {
         this.asn1Text = asn1Text;

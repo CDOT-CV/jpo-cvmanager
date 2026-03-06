@@ -43,7 +43,7 @@ public class SpatDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public SpatDecoderTests(SpatDecoder spatDecoder) {
         this.spatDecoder = spatDecoder;

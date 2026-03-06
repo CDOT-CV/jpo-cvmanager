@@ -40,7 +40,7 @@ public class SrmDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public SrmDecoderTests(SrmDecoder srmDecoder) {
         this.srmDecoder = srmDecoder;

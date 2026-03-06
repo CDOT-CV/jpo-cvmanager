@@ -40,7 +40,7 @@ public class PsmDecoderTests {
             .changeDefaultPropertyInclusion(incl ->
                     incl.withValueInclusion(JsonInclude.Include.NON_NULL)
             )
-            .build();;
+            .build();
 
     public PsmDecoderTests(PsmDecoder psmDecoder) {
         this.psmDecoder = psmDecoder;
