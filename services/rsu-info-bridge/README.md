@@ -41,19 +41,13 @@ Then, build the Docker image using the Spring Boot Maven plugin:
 ./mvnw spring-boot:build-image
 ```
 
-Next, start the `cvmanager_postgres` service from the root of the repository. This is required as the RSU Info Bridge depends on the PostgreSQL database:
-
-```bash
-cd ../..
-docker compose up -d cvmanager_postgres
-cd services/rsu-info-bridge
-```
-
 Finally, start the service using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
+
+This will start both the PostgreSQL database (from the root docker-compose.yml) and the RSU Info Bridge service. The required profiles are configured in the `.env` file via `COMPOSE_PROFILES`.
 
 ### Accessing the API Documentation
 Once the application is running, you can access the Swagger UI to view and interact with the OpenAPI documentation:
