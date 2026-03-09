@@ -1,4 +1,4 @@
-package com.trihydro.rsuinfobridge.models.tables;
+package com.trihydro.rsuinfobridge.testutil.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

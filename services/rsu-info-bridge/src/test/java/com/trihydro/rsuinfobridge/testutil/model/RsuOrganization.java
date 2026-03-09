@@ -1,5 +1,7 @@
-package com.trihydro.rsuinfobridge.models.tables;
+package com.trihydro.rsuinfobridge.testutil.model;
 
+import com.trihydro.rsuinfobridge.models.tables.Organization;
+import com.trihydro.rsuinfobridge.models.tables.Rsu;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

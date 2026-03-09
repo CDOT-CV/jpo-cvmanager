@@ -1,4 +1,4 @@
-package com.trihydro.rsuinfobridge.models.tables;
+package com.trihydro.rsuinfobridge.testutil.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
