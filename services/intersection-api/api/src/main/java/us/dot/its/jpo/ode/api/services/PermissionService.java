@@ -80,6 +80,21 @@ public class PermissionService {
         return !decodedToken.getQualifiedOrgList(role).isEmpty();
     }
 
+    public boolean hasRoleInOrgs(String role, List<String> organizations) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        DecodedToken decodedToken = getDecodedToken();
+        if (decodedToken.isSuperUser()) {
+            return true;
+        }
+
+        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
+        return qualifiedOrgs.containsAll(organizations);
+    }
+
     // Allow Connection if the users organization controls the specified
     // intersection
     public boolean hasIntersection(Integer intersectionID, String role) {
