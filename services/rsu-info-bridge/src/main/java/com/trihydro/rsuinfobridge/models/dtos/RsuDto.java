@@ -1,7 +1,6 @@
 package com.trihydro.rsuinfobridge.models.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +9,6 @@ import lombok.Data;
 @AllArgsConstructor
 @Builder
 @Schema(description = "Roadside Unit information")
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RsuDto {
     @Schema(description = "Unique identifier for the RSU", example = "1")
     private String id;
