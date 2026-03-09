@@ -6,6 +6,8 @@ import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
 import com.trihydro.rsuinfobridge.repository.RsuRepository;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,7 +21,6 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -193,9 +194,9 @@ class RsuControllerTest {
         snmpCredential.setUsername("user");
         snmpCredential.setPassword("pass");
 
-        Point point = mock(Point.class);
-        when(point.getX()).thenReturn(-100.0);
-        when(point.getY()).thenReturn(40.0);
+        GeometryFactory geometryFactory = new GeometryFactory();
+        Coordinate coordinate = new Coordinate(-100.0, 40.0);
+        Point point = geometryFactory.createPoint(coordinate);
 
         RsuOption rsuOption = new RsuOption();
         rsuOption.setTimDeposit(true);
@@ -263,13 +264,12 @@ class RsuControllerTest {
         snmpCredential2.setUsername("myusername2");
         snmpCredential2.setPassword("mypassword2");
 
-        Point point1 = mock(Point.class);
-        when(point1.getX()).thenReturn(-104.9847);
-        when(point1.getY()).thenReturn(39.73915);
+        GeometryFactory geometryFactory = new GeometryFactory();
+        Coordinate coordinate1 = new Coordinate(-104.9847, 39.73915);
+        Point point1 = geometryFactory.createPoint(coordinate1);
 
-        Point point2 = mock(Point.class);
-        when(point2.getX()).thenReturn(105.0);
-        when(point2.getY()).thenReturn(40.0);
+        Coordinate coordinate2 = new Coordinate(105.0, 40.0);
+        Point point2 = geometryFactory.createPoint(coordinate2);
 
         RsuOption rsuOption = new RsuOption();
         rsuOption.setTimDeposit(true);
