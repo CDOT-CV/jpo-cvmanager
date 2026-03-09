@@ -1,15 +1,12 @@
 package com.trihydro.rsuinfobridge.controller;
 
-import com.trihydro.rsuinfobridge.mapper.RsuDtoMapper;
 import com.trihydro.rsuinfobridge.models.tables.Rsu;
 import com.trihydro.rsuinfobridge.models.tables.RsuOption;
 import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
 import com.trihydro.rsuinfobridge.repository.RsuRepository;
-import com.trihydro.rsuinfobridge.service.RsuService;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
