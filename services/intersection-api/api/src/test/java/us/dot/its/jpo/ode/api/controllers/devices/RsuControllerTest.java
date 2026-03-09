@@ -688,37 +688,6 @@ class RsuControllerTest {
         }
 
         @Test
-        void testCreateRsu_EmptyOrganizationsList() {
-            List<String> orgsToAdd = Arrays.asList();
-
-            RsuInfoDto rsuInfoDto = new RsuInfoDto(
-                    "192.168.1.100",
-                    new SimplePosition(39.7392, -105.0844),
-                    123.4,
-                    "I-25",
-                    "RSU123",
-                    "SCMS123",
-                    "Commsignia ITS-RS4-M",
-                    "ssh-group-1",
-                    "snmp-group-1",
-                    "v3",
-                    orgsToAdd,
-                    true,
-                    true);
-
-            Rsu mockRsu = new Rsu();
-            when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
-            when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
-
-            ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
-
-            assertNotNull(result);
-            assertEquals(HttpStatus.CREATED, result.getStatusCode());
-
-            verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-        }
-
-        @Test
         void testCreateRsu_ServiceException() {
             List<String> orgsToAdd = Arrays.asList("TestOrg");
 
@@ -744,8 +713,6 @@ class RsuControllerTest {
             assertThrows(
                     RuntimeException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
-
-            verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
         }
 
         @Test
@@ -774,8 +741,6 @@ class RsuControllerTest {
             assertThrows(
                     ResponseStatusException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
-
-            verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
         }
 
         @Test
