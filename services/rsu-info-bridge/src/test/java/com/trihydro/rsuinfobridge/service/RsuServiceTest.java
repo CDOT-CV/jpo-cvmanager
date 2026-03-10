@@ -27,6 +27,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -42,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @Transactional
+@Testcontainers
 class RsuServiceTest {
     // IDs from CVManager_SampleData.sql
     static final int MODEL_ID = 1;
