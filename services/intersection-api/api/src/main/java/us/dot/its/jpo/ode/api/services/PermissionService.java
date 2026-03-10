@@ -11,8 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
-import us.dot.its.jpo.ode.api.models.keycloak.RequestScopedDecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.utils.AuthUtils;
@@ -33,7 +32,6 @@ public class PermissionService {
 
     private final IntersectionRepository intersectionRepository;
     private final RsuRepository rsuRepository;
-    private final RequestScopedDecodedToken requestScopedToken;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
 
@@ -47,19 +45,23 @@ public class PermissionService {
                 .collect(Collectors.toList());
     }
 
-    public DecodedToken getDecodedToken() {
-        String jwtToken = getJwtTokenFromRequest();
-        return requestScopedToken.getToken(jwtToken);
-    }
-
-    // Allow Connection if the user is a SuperUser
-    public boolean isSuperUser() {
+    /**
+     * Gets the decoded token from the current security context.
+     * 
+     * @return CvManagerAuthToken containing user claims
+     * @throws IllegalStateException if authentication is not valid
+     */
+    public CvManagerAuthToken getCvManagerAuthToken() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
-            return false;
+            throw new IllegalStateException("Invalid authentication context");
         }
 
-        return getDecodedToken().isSuperUser();
+        if (auth instanceof CvManagerAuthToken cvManagerAuthToken) {
+            return cvManagerAuthToken;
+        }
+
+        throw new IllegalStateException("Authentication is not a CvManagerAuthToken");
     }
 
     /**
@@ -80,18 +82,18 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
         String organization = getOrganizationFromHeader();
 
         if (organization != null) {
-            Optional<String> userRole = decodedToken.findRoleInOrg(organization);
+            Optional<String> userRole = CvManagerAuthToken.findRoleInOrg(organization);
             return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
         }
-        return !decodedToken.getQualifiedOrgList(role).isEmpty();
+        return !CvManagerAuthToken.getQualifiedOrgList(role).isEmpty();
     }
 
     public boolean hasRoleInOrgs(String role, List<String> organizations) {
@@ -100,12 +102,12 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
         return qualifiedOrgs.containsAll(organizations);
     }
 
@@ -126,12 +128,12 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
-        Optional<String> userRole = decodedToken.findRoleInOrg(organization);
+        Optional<String> userRole = CvManagerAuthToken.findRoleInOrg(organization);
         return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
     }
 
@@ -148,12 +150,12 @@ public class PermissionService {
             return true;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -185,12 +187,12 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -220,12 +222,12 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = decodedToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
@@ -255,13 +257,13 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
         return rsuCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                decodedToken.getQualifiedOrgList(role));
+                CvManagerAuthToken.getQualifiedOrgList(role));
     }
 
     /**
@@ -288,13 +290,13 @@ public class PermissionService {
             return false;
         }
 
-        DecodedToken decodedToken = getDecodedToken();
-        if (decodedToken.isSuperUser()) {
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
             return true;
         }
 
         return snmpCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                decodedToken.getQualifiedOrgList(role));
+                CvManagerAuthToken.getQualifiedOrgList(role));
     }
 
     // helper method to make sure authentication is valid
@@ -318,30 +320,5 @@ public class PermissionService {
             organization = attributes.getRequest().getHeader("Organization");
         }
         return organization;
-    }
-
-    /**
-     * Extracts the JWT token string from the Authorization header.
-     *
-     * @return The JWT token string (never {@code null}).
-     * @throws ResponseStatusException if the request context is unavailable or the
-     *                                 Authorization header is missing or invalid.
-     */
-    public static String getJwtTokenFromRequest() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "No request context available to extract JWT token");
-        }
-
-        String authHeader = attributes.getRequest().getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Missing or invalid Authorization header");
-        }
-
-        return authHeader.substring(7);
     }
 }

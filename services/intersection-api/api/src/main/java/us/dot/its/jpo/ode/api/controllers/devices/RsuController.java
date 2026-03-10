@@ -29,7 +29,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
@@ -101,8 +100,8 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(token);
+        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
+                .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
     }
@@ -135,8 +134,7 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        rsuManagementService.modifyRsu(rsuIp, body, token);
+        rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();

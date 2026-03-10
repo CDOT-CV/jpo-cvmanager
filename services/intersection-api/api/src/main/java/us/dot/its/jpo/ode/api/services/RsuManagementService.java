@@ -18,7 +18,7 @@ import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
@@ -79,7 +79,7 @@ public class RsuManagementService {
         return rsus.map(rsuMapper::toDto);
     }
 
-    public ModifyRsuAllowedSelections getAllowedSelections(DecodedToken userToken) {
+    public ModifyRsuAllowedSelections getAllowedSelections(CvManagerAuthToken userToken) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
@@ -171,7 +171,7 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, DecodedToken userToken) {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
             List<String> authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
 

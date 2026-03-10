@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -22,7 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
@@ -58,12 +56,10 @@ class RsuControllerTest {
     private SecurityContext securityContext;
 
     @Mock
-    private DecodedToken decodedToken;
+    private CvManagerAuthToken authToken;
 
     @InjectMocks
     private RsuController rsuController;
-
-    private String tokenString = "token";
 
     @Nested
     @DisplayName("Tests for getAllRsus endpoint")
@@ -291,28 +287,23 @@ class RsuControllerTest {
                     Arrays.asList("v2c", "v3"),
                     Arrays.asList("TestOrg", "OtherOrg"));
 
-            when(rsuManagementService.getAllowedSelections(any(DecodedToken.class))).thenReturn(allowedSelections);
-            try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
-                    .mockStatic(PermissionService.class)) {
-                mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
-                        .thenReturn(tokenString);
-                try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-                    mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
+            when(rsuManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
+                    .thenReturn(allowedSelections);
 
-                    ModifyRsuAllowedSelections result = rsuController.getAllowedSelections();
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-                    assertNotNull(result);
+            ModifyRsuAllowedSelections result = rsuController.getAllowedSelections();
 
-                    assertEquals(2, result.getPrimaryRoutes().size());
-                    assertEquals(2, result.getRsuModels().size());
-                    assertEquals(2, result.getSshCredentialGroups().size());
-                    assertEquals(2, result.getSnmpCredentialGroups().size());
-                    assertEquals(2, result.getSnmpVersionGroups().size());
-                    assertEquals(2, result.getOrganizations().size());
+            assertNotNull(result);
 
-                    verify(rsuManagementService).getAllowedSelections(any(DecodedToken.class));
-                }
-            }
+            assertEquals(2, result.getPrimaryRoutes().size());
+            assertEquals(2, result.getRsuModels().size());
+            assertEquals(2, result.getSshCredentialGroups().size());
+            assertEquals(2, result.getSnmpCredentialGroups().size());
+            assertEquals(2, result.getSnmpVersionGroups().size());
+            assertEquals(2, result.getOrganizations().size());
+
+            verify(rsuManagementService).getAllowedSelections(any(CvManagerAuthToken.class));
         }
 
         @Nested
@@ -324,25 +315,19 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
                 patch.setIpv4Address("192.168.1.101");
 
-                doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
                 doNothing().when(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
 
-                try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
-                        .mockStatic(PermissionService.class)) {
-                    mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
-                            .thenReturn(tokenString);
-                    try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-                        mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
-                        ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-                        assertNotNull(result);
-                        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-                        assertNull(result.getBody());
+                ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
 
-                        verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-                        verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
-                    }
-                }
+                assertNotNull(result);
+                assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+                assertNull(result.getBody());
+
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
             }
 
             @Test
@@ -351,22 +336,15 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
 
                 doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
 
-                try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
-                        .mockStatic(PermissionService.class)) {
-                    mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
-                            .thenReturn(tokenString);
-                    try (MockedStatic<DecodedToken> mockedStatic = Mockito.mockStatic(DecodedToken.class)) {
-                        mockedStatic.when(() -> DecodedToken.fromJwtToken(tokenString)).thenReturn(decodedToken);
-                        assertThrows(
-                                ResponseStatusException.class,
-                                () -> rsuController.modifyRsu(rsuIp, patch));
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, patch));
 
-                        verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-                        verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
-                    }
-                }
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
 
             @Test
@@ -376,23 +354,16 @@ class RsuControllerTest {
                 invalidPatch.setIpv4Address("invalid-ip");
 
                 doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, authToken);
 
-                try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
-                        .mockStatic(PermissionService.class)) {
-                    mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
-                            .thenReturn(tokenString);
-                    try (MockedStatic<DecodedToken> mockedStaticDecodedToken = Mockito.mockStatic(DecodedToken.class)) {
-                        mockedStaticDecodedToken.when(() -> DecodedToken.fromJwtToken(tokenString))
-                                .thenReturn(decodedToken);
-                        assertThrows(
-                                ResponseStatusException.class,
-                                () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-                        verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, decodedToken);
-                        verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
-                    }
-                }
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.modifyRsu(rsuIp, invalidPatch));
+
+                verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, authToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
 
             @Test
@@ -401,23 +372,15 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
 
                 doThrow(new RuntimeException("Database error"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
 
-                try (MockedStatic<PermissionService> mockedStaticPermissionService = Mockito
-                        .mockStatic(PermissionService.class)) {
-                    mockedStaticPermissionService.when(() -> PermissionService.getJwtTokenFromRequest())
-                            .thenReturn(tokenString);
-                    try (MockedStatic<DecodedToken> mockedStaticDecodedToken = Mockito.mockStatic(DecodedToken.class)) {
-                        mockedStaticDecodedToken.when(() -> DecodedToken.fromJwtToken(tokenString))
-                                .thenReturn(decodedToken);
-                        assertThrows(
-                                RuntimeException.class,
-                                () -> rsuController.modifyRsu(rsuIp, patch));
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                assertThrows(
+                        RuntimeException.class,
+                        () -> rsuController.modifyRsu(rsuIp, patch));
 
-                        verify(rsuManagementService).modifyRsu(rsuIp, patch, decodedToken);
-                        verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
-                    }
-                }
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
         }
 
