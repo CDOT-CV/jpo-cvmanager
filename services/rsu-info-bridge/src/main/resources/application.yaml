@@ -3,9 +3,7 @@ spring:
     name: rsu-info-bridge
   docker:
     compose:
-      file: ../../docker-compose.yml
-      profiles:
-        active: cvmanager_postgres
+      enabled: false
   datasource:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/${POSTGRES_DB:postgres}
     username: ${PG_DB_USER:postgres}
