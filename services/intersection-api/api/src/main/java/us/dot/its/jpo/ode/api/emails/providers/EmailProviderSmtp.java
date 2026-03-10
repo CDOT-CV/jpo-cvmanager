@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.emails.providers;
 import java.util.List;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Properties;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,10 +10,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.Transport;
-import jakarta.mail.event.TransportEvent;
-import jakarta.mail.event.TransportListener;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -93,17 +88,15 @@ public class EmailProviderSmtp implements EmailProvider {
 
     /**
      * Sends a MimeMessage with detailed transport event logging
-     * 
-     * @throws Exception
      */
-    private void sendWithLogging(MimeMessage message, String recipientEmail) throws Exception {
+    private void sendWithLogging(MimeMessage message, String recipientEmail) {
         try {
             // Use the standard mailSender which handles connection pooling
-            // mailSender.send(message);
+            mailSender.send(message);
 
             // Alternative: Send with custom transport listener for detailed SMTP response
             // codes
-            sendWithTransportListener(message, recipientEmail);
+            // sendWithTransportListener(message, recipientEmail);
 
         } catch (Exception e) {
             log.error("Error sending to {}: {}", recipientEmail, e.getMessage());
@@ -111,93 +104,54 @@ public class EmailProviderSmtp implements EmailProvider {
         }
     }
 
-    /**
-     * Alternative method to send with custom Transport for detailed SMTP response
-     * codes
-     * with STARTTLS and SSL/TLS support
-     * Note: This bypasses Spring's connection pooling, so use sparingly
-     * 
-     * @throws IOException
-     */
-    private void sendWithTransportListener(MimeMessage message, String recipientEmail)
-            throws MessagingException, IOException {
-        // Create session with STARTTLS and SSL properties
-        Properties props = new Properties();
+    // /**
+    // * Alternative method to send with custom Transport for detailed SMTP response
+    // * codes
+    // * Note: This bypasses Spring's connection pooling, so use sparingly
+    // */
+    // @SuppressWarnings("unused")
+    // private void sendWithTransportListener(MimeMessage message, String
+    // recipientEmail) throws MessagingException {
+    // Session session = message.getSession();
+    // Transport transport = session.getTransport("smtp");
 
-        // Basic SMTP settings
-        props.put("mail.smtp.host", emailProperties.getSmtpHost());
-        props.put("mail.smtp.port", emailProperties.getSmtpPort());
-        props.put("mail.smtp.auth", "true");
+    // // Add transport listener for detailed event logging
+    // transport.addTransportListener(new TransportListener() {
+    // @Override
+    // public void messageDelivered(TransportEvent e) {
+    // log.info("✓ Message delivered to {}: {} valid addresses",
+    // recipientEmail, e.getValidSentAddresses().length);
+    // }
 
-        // STARTTLS settings (for port 587)
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.starttls.required", "true");
+    // @Override
+    // public void messageNotDelivered(TransportEvent e) {
+    // log.error("✗ Message NOT delivered to {}: {} invalid addresses",
+    // recipientEmail, e.getInvalidAddresses().length);
+    // }
 
-        // SSL/TLS settings (for port 465)
-        props.put("mail.smtp.ssl.enable", String.valueOf(emailProperties.getSmtpPort() == 465));
-        props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+    // @Override
+    // public void messagePartiallyDelivered(TransportEvent e) {
+    // log.warn("⚠ Message partially delivered to {}: {} valid, {} invalid",
+    // recipientEmail,
+    // e.getValidSentAddresses().length,
+    // e.getInvalidAddresses().length);
+    // }
+    // });
 
-        // Additional security settings
-        props.put("mail.smtp.ssl.trust", emailProperties.getSmtpHost());
-        props.put("mail.smtp.ssl.checkserveridentity", "true");
+    // try {
+    // transport.connect(
+    // emailProperties.get(),
+    // emailProperties.getSmtpPort(),
+    // emailProperties.getSmtpUsername(),
+    // emailProperties.getSmtpPassword());
 
-        // Connection timeout settings
-        props.put("mail.smtp.connectiontimeout", "10000"); // 10 seconds
-        props.put("mail.smtp.timeout", "10000");
-        props.put("mail.smtp.writetimeout", "10000");
+    // log.debug("SMTP connection established for {}", recipientEmail);
+    // transport.sendMessage(message, message.getAllRecipients());
 
-        // Enable debug output
-        props.put("mail.debug", "true");
-
-        Session session = Session.getInstance(props);
-        session.setDebug(true); // Enable JavaMail debug output
-
-        Transport transport = session.getTransport("smtp");
-
-        // Add transport listener for detailed event logging
-        transport.addTransportListener(new TransportListener() {
-            @Override
-            public void messageDelivered(TransportEvent e) {
-                log.info("✓ Message delivered to {}: {} valid addresses",
-                        recipientEmail, e.getValidSentAddresses().length);
-            }
-
-            @Override
-            public void messageNotDelivered(TransportEvent e) {
-                log.error("✗ Message NOT delivered to {}: {} invalid addresses",
-                        recipientEmail, e.getInvalidAddresses().length);
-            }
-
-            @Override
-            public void messagePartiallyDelivered(TransportEvent e) {
-                log.warn("⚠ Message partially delivered to {}: {} valid, {} invalid",
-                        recipientEmail,
-                        e.getValidSentAddresses().length,
-                        e.getInvalidAddresses().length);
-            }
-        });
-
-        try {
-            log.debug("Connecting to SMTP server {}:{} with TLS/SSL",
-                    emailProperties.getSmtpHost(),
-                    emailProperties.getSmtpPort());
-
-            transport.connect(
-                    emailProperties.getSmtpHost(),
-                    emailProperties.getSmtpPort(),
-                    emailProperties.getSmtpUsername(),
-                    emailProperties.getSmtpPassword());
-
-            log.debug("SMTP connection established for {} (TLS/SSL enabled)", recipientEmail);
-
-            // Update message session to use the new session with SSL properties
-            MimeMessage secureMessage = new MimeMessage(session, message.getInputStream());
-            transport.sendMessage(secureMessage, secureMessage.getAllRecipients());
-
-        } finally {
-            transport.close();
-        }
-    }
+    // } finally {
+    // transport.close();
+    // }
+    // }
 
     /**
      * Constructs a MimeMessage for sending via SMTP.
