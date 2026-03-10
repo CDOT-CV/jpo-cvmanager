@@ -707,8 +707,6 @@ class RsuControllerTest {
                     true);
 
             when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
-            when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
-                    .thenThrow(new RuntimeException("Database connection failed"));
 
             assertThrows(
                     RuntimeException.class,
@@ -735,8 +733,6 @@ class RsuControllerTest {
                     true);
 
             when(permissionService.hasRoleInOrgs("OPERATOR", orgsToAdd)).thenReturn(false);
-            doThrow(new RuntimeException("Failed to create organization relationship"))
-                    .when(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
 
             assertThrows(
                     ResponseStatusException.class,
