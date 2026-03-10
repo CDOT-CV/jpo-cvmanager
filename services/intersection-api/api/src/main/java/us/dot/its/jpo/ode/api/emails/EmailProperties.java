@@ -24,7 +24,7 @@ public class EmailProperties {
     private String cvmgrFrontEndUri;
 
     private String smtpHost;
-    private String smtpPort;
+    private Integer smtpPort;
     private String smtpUsername;
     private String smtpPassword;
 

@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.emails.providers;
 
 import java.util.List;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -115,8 +116,11 @@ public class EmailProviderSmtp implements EmailProvider {
      * codes
      * with STARTTLS and SSL/TLS support
      * Note: This bypasses Spring's connection pooling, so use sparingly
+     * 
+     * @throws IOException
      */
-    private void sendWithTransportListener(MimeMessage message, String recipientEmail) throws MessagingException {
+    private void sendWithTransportListener(MimeMessage message, String recipientEmail)
+            throws MessagingException, IOException {
         // Create session with STARTTLS and SSL properties
         Properties props = new Properties();
 
@@ -227,6 +231,7 @@ public class EmailProviderSmtp implements EmailProvider {
             helper.setFrom(emailProperties.getSenderAddress());
             helper.setTo(recipient.getEmail());
             helper.setSubject(content.getSubject());
+            helper.setSentDate(new java.util.Date());
             helper.setText(htmlText, true); // true = HTML content
 
             log.debug("Created email message: from={}, to={}, subject={}",

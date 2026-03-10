@@ -9,8 +9,6 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class RsuCredentialManagementService {
