@@ -43,17 +43,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
 import us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_assessment.LaneDirectionOfTravelAssessmentRepositoryImpl;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class LaneDirectionOfTravelAssessmentRepositoryImplTest {
+public class LaneDirectionOfTravelAssessmentRepositoryImplTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

@@ -19,7 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.accessors.spat.ProcessedSpatRepository;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -27,9 +27,8 @@ import us.dot.its.jpo.ode.mockdata.MockSpatGenerator;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase
 @ActiveProfiles("test")
-public class SpatControllerTest {
+public class SpatControllerTest extends AbstractIntegrationTest {
 
     private final SpatController controller;
 

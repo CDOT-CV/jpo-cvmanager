@@ -30,13 +30,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class IntersectionReferenceAlignmentNotificationRepositoryImplTest {
+public class IntersectionReferenceAlignmentNotificationRepositoryImplTest extends AbstractIntegrationTest {
 
     @Mock
     private MongoTemplate mongoTemplate;

@@ -50,13 +50,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class ConnectionOfTravelNotificationRepositoryImplTest {
+public class ConnectionOfTravelNotificationRepositoryImplTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

@@ -43,7 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.StopLinePassageNotification;
 import us.dot.its.jpo.ode.api.accessors.notifications.stop_line_passage_notification.StopLinePassageNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
@@ -52,8 +52,7 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class StopLinePassageNotificationRepositoryImplTest {
+public class StopLinePassageNotificationRepositoryImplTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

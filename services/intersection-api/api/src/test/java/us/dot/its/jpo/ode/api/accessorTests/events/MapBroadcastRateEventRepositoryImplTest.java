@@ -49,15 +49,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.broadcast_rate.MapBroadcastRateEvent;
 import us.dot.its.jpo.ode.api.accessors.events.map_broadcast_rate_event.MapBroadcastRateEventRepositoryImpl;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class MapBroadcastRateEventRepositoryImplTest {
+public class MapBroadcastRateEventRepositoryImplTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

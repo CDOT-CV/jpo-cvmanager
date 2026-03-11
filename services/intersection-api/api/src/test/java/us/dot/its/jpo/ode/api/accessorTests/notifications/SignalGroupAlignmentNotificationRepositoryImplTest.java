@@ -27,15 +27,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalGroupAlignmentNotification;
 import us.dot.its.jpo.ode.api.accessors.notifications.signal_group_alignment_notification.SignalGroupAlignmentNotificationRepositoryImpl;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class SignalGroupAlignmentNotificationRepositoryImplTest {
+public class SignalGroupAlignmentNotificationRepositoryImplTest extends AbstractIntegrationTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
