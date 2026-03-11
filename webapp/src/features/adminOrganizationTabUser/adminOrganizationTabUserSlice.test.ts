@@ -197,8 +197,8 @@ describe('async thunks', () => {
       }
     })
   })
-  describe('rsuDeleteMultiple', () => {
-    it('returns and calls the api correctly when all RSUs have multiple organizations', async () => {
+  describe('userDeleteMultiple', () => {
+    it('returns and calls the api correctly when all users have multiple organizations', async () => {
       const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
@@ -238,7 +238,7 @@ describe('async thunks', () => {
       }
     })
 
-    it('shows alert when some RSUs have only one organization', async () => {
+    it('shows alert when some users have only one organization', async () => {
       const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
@@ -276,7 +276,7 @@ describe('async thunks', () => {
       }
     })
 
-    it('handles mixed valid and invalid RSUs', async () => {
+    it('handles mixed valid and invalid users', async () => {
       const dispatch = jest.fn()
       const getState = jest.fn().mockReturnValue({
         user: {
