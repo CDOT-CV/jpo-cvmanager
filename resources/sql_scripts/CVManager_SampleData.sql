@@ -15,13 +15,17 @@ INSERT INTO public.firmware_upgrade_rules(
 	from_id, to_id)
 	VALUES (1, 2);
 
+INSERT INTO public.organizations(
+    name)
+VALUES ('Test Org'), ('Test Org 2');
+
 INSERT INTO public.rsu_credentials(
-	username, password, nickname)
-	VALUES ('username', 'password', 'cred1');
+	username, password, nickname, owner_organization_id)
+	VALUES ('username', 'password', 'cred1', 1);
 
 INSERT INTO public.snmp_credentials(
-	username, password, encrypt_password, nickname)
-	VALUES ('username', 'password', 'encryption-pw', 'snmp1');
+	username, password, encrypt_password, nickname, owner_organization_id)
+	VALUES ('username', 'password', 'encryption-pw', 'snmp1', 1);
 
 INSERT INTO public.snmp_protocols(
 	protocol_code, nickname)
@@ -38,10 +42,6 @@ INSERT INTO public.rsus(
 INSERT INTO public.rsu_options(
 	rsu_id, tim_deposit, snmp_monitoring)
 	VALUES (1, TRUE, TRUE), (2, FALSE, TRUE);
-
-INSERT INTO public.organizations(
-	name)
-	VALUES ('Test Org'), ('Test Org 2');
 
 INSERT INTO public.roles(
 	name)

@@ -29,7 +29,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
@@ -46,6 +45,7 @@ import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 @RequiredArgsConstructor
 public class RsuController {
     private final RsuManagementService rsuManagementService;
+    private final PermissionService permissionService;
     private final RsuOptionManagementService rsuOptionManagementService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
@@ -100,10 +100,29 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(token);
+        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
+                .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
+    }
+
+    @Operation(summary = "Create RSU", description = "Create a new RSU")
+    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
+    })
+    public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
+        if (!permissionService.hasRoleInOrgs("OPERATOR", body.getOrganizations())) {
+            // This catches unqualified orgs or nonexistent orgs
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "User not qualified to modify all specified organizations");
+        }
+
+        rsuManagementService.createRsu(body, body.getOrganizations());
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
@@ -115,8 +134,7 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        rsuManagementService.modifyRsu(rsuIp, body, token);
+        rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
