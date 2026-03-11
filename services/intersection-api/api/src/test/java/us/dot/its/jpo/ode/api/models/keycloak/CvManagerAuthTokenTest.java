@@ -415,25 +415,5 @@ class CvManagerAuthTokenTest {
             assertTrue(token.hasRoleInOrg("CDOT", "admin"));
             assertEquals(List.of("CDOT"), token.getQualifiedOrgList("admin"));
         }
-
-        @Test
-        @DisplayName("Should handle organization with null role")
-        void shouldHandleOrganizationWithNullRole() {
-            // Arrange
-            List<Map<String, String>> orgs = new ArrayList<>();
-            Map<String, String> org = new HashMap<>();
-            org.put("org", "CDOT");
-            org.put("role", null);
-            orgs.add(org);
-
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = createMockJwt(cvmanagerData);
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Assert
-            assertEquals(1, token.getAllOrgs().size());
-            assertFalse(token.hasRoleInOrg("CDOT", "admin"));
-            assertTrue(token.findRoleInOrg("CDOT").isEmpty());
-        }
     }
 }

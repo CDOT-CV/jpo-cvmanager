@@ -212,7 +212,7 @@ class PermissionServiceTest {
         setupSecurityContext(token);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn("ADMIN").when(authToken).findRoleInOrg("OPERATOR");
+        doReturn(Optional.of("OPERATOR")).when(authToken).findRoleInOrg("TestOrg");
 
         assertTrue(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
     }
@@ -223,7 +223,7 @@ class PermissionServiceTest {
         setupSecurityContext(token);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn("ADMIN").when(authToken).findRoleInOrg("ADMIN");
+        doReturn(Optional.of("ADMIN")).when(authToken).findRoleInOrg("TestOrg");
 
         assertTrue(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
         assertTrue(permissionService.hasRoleInOrg("TestOrg", "USER"));
@@ -235,7 +235,7 @@ class PermissionServiceTest {
         setupSecurityContext(token);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn("ADMIN").when(authToken).findRoleInOrg("USER");
+        doReturn(Optional.of("USER")).when(authToken).findRoleInOrg("TestOrg");
 
         assertFalse(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
         assertFalse(permissionService.hasRoleInOrg("TestOrg", "ADMIN"));
@@ -247,7 +247,7 @@ class PermissionServiceTest {
         setupSecurityContext(token);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn(Optional.empty()).when(authToken).findRoleInOrg("USER");
+        doReturn(Optional.empty()).when(authToken).findRoleInOrg("TestOrg");
 
         assertFalse(permissionService.hasRoleInOrg("TestOrg", "USER"));
     }

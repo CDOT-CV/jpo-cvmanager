@@ -64,6 +64,17 @@ public class PermissionService {
         throw new IllegalStateException("Authentication is not a CvManagerAuthToken");
     }
 
+    // Allow Connection if the user is a SuperUser
+    public boolean isSuperUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        return CvManagerAuthToken.isSuperUser();
+    }
+
     /**
      * Checks if the currently authenticated user has the specified role in at least
      * one organization. The method verifies the user's roles within the context of
