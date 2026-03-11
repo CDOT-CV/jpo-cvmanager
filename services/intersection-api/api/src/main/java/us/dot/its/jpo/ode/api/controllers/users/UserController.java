@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -43,6 +42,7 @@ import us.dot.its.jpo.ode.api.services.UserManagementService;
 @RequiredArgsConstructor
 public class UserController {
     private final UserManagementService userManagementService;
+    private final PermissionService permissionService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "first_name", "firstName",
@@ -87,8 +87,8 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the User requested"),
     })
     public ModifyUserAllowedSelections getAllowedSelections() {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        ModifyUserAllowedSelections allowedSelections = userManagementService.getAllowedSelections(token);
+        ModifyUserAllowedSelections allowedSelections = userManagementService
+                .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
     }
@@ -102,8 +102,7 @@ public class UserController {
     })
     public ResponseEntity<Void> modifyUser(@RequestParam(name = "email", required = true) String email,
             @Validated @RequestBody UserPatch body) {
-        DecodedToken token = DecodedToken.fromJwtToken(PermissionService.getJwtTokenFromRequest());
-        userManagementService.modifyUser(email, body, token);
+        userManagementService.modifyUser(email, body, permissionService.getCvManagerAuthToken());
 
         return ResponseEntity.noContent().build();
     }

@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -58,12 +58,14 @@ class UserManagementServiceTest {
     @Mock
     private UserPatchMapper userPatchMapper;
 
+    @Mock
+    private CvManagerAuthToken authToken;
+
     @InjectMocks
     private UserManagementService userManagementService;
 
     private User testUser;
     private UserDto testUserDto;
-    private DecodedToken testToken;
     private Organization testOrganization;
     private Role testRole;
 
@@ -91,9 +93,6 @@ class UserManagementServiceTest {
         testRole = new Role();
         testRole.setId(1);
         testRole.setName("admin");
-
-        // Set up decoded token
-        testToken = mock(DecodedToken.class);
     }
 
     // ==================== getUser Tests ====================
@@ -181,23 +180,23 @@ class UserManagementServiceTest {
         List<String> organizations = List.of("TestOrg", "AnotherOrg");
 
         when(roleRepository.findAllRoleNames()).thenReturn(roles);
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(organizations);
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(organizations);
 
-        ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(testToken);
+        ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(authToken);
 
         assertNotNull(result);
         assertEquals(roles, result.getRoles());
         assertEquals(organizations, result.getOrganizations());
         verify(roleRepository).findAllRoleNames();
-        verify(testToken).getQualifiedOrgList("ADMIN");
+        verify(authToken).getQualifiedOrgList("ADMIN");
     }
 
     @Test
     void testGetAllowedSelections_EmptyLists() {
         when(roleRepository.findAllRoleNames()).thenReturn(List.of());
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
 
-        ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(testToken);
+        ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(authToken);
 
         assertNotNull(result);
         assertTrue(result.getRoles().isEmpty());
@@ -213,11 +212,11 @@ class UserManagementServiceTest {
         patch.setLastName("Name");
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        UserDto result = userManagementService.modifyUser("test@example.com", patch, testToken);
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
         verify(userRepository).findByEmail("test@example.com");
@@ -231,10 +230,10 @@ class UserManagementServiceTest {
         UserPatch patch = new UserPatch();
 
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> userManagementService.modifyUser("nonexistent@example.com", patch, testToken));
+                () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         verify(userRepository).findByEmail("nonexistent@example.com");
@@ -250,14 +249,14 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByName("admin")).thenReturn(Optional.of(testRole));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        UserDto result = userManagementService.modifyUser("test@example.com", patch, testToken);
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
         verify(organizationRepository).findByName("TestOrg");
@@ -274,10 +273,10 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> userManagementService.modifyUser("test@example.com", patch, testToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertTrue(exception.getReason().contains("does not have permission"));
@@ -293,12 +292,12 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(true);
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        UserDto result = userManagementService.modifyUser("test@example.com", patch, testToken);
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
         // Should not create a new association since it already exists
@@ -314,13 +313,13 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("NonexistentOrg")))
                 .thenReturn(false);
         when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> userManagementService.modifyUser("test@example.com", patch, testToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         assertTrue(exception.getReason().contains("Organization not found"));
@@ -336,13 +335,13 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByName("nonexistent_role")).thenReturn(Optional.empty());
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> userManagementService.modifyUser("test@example.com", patch, testToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         assertTrue(exception.getReason().contains("Role not found"));
@@ -363,13 +362,13 @@ class UserManagementServiceTest {
         userOrg.setRole(testRole);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.of(userOrg));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        UserDto result = userManagementService.modifyUser("test@example.com", patch, testToken);
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
         verify(userOrganizationRepository).delete(userOrg);
@@ -384,10 +383,10 @@ class UserManagementServiceTest {
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> userManagementService.modifyUser("test@example.com", patch, testToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertTrue(exception.getReason().contains("does not have permission to remove"));
@@ -403,13 +402,13 @@ class UserManagementServiceTest {
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(testToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.empty());
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        UserDto result = userManagementService.modifyUser("test@example.com", patch, testToken);
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
         // Should not throw exception, just skip deletion

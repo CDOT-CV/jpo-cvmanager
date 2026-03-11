@@ -15,7 +15,7 @@ import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
@@ -48,18 +48,18 @@ public class UserManagementService {
         return users.map(userMapper::toDto);
     }
 
-    public ModifyUserAllowedSelections getAllowedSelections(DecodedToken userToken) {
+    public ModifyUserAllowedSelections getAllowedSelections(CvManagerAuthToken authToken) {
         ModifyUserAllowedSelections allowed = new ModifyUserAllowedSelections();
 
         allowed.setRoles(roleRepository.findAllRoleNames());
-        allowed.setOrganizations(userToken.getQualifiedOrgList("ADMIN"));
+        allowed.setOrganizations(authToken.getQualifiedOrgList("ADMIN"));
 
         return allowed;
     }
 
     @Transactional
-    public UserDto modifyUser(String email, UserPatch userPatch, DecodedToken userToken) {
-        List<String> authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
+    public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
+        List<String> authorizedOrgs = authToken.getQualifiedOrgList("ADMIN");
 
         // 1. Find existing User by email
         User existingUser = userRepository.findByEmail(email).orElseThrow(

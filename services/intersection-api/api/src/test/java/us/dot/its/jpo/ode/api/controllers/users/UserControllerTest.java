@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -18,7 +17,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import us.dot.its.jpo.ode.api.models.keycloak.DecodedToken;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -38,20 +37,22 @@ class UserControllerTest {
     @Mock
     private UserManagementService userManagementService;
 
+    @Mock
+    private PermissionService permissionService;
+
+    @Mock
+    private CvManagerAuthToken authToken;
+
     @InjectMocks
     private UserController userController;
 
     private UserDto testUserDto;
-    private DecodedToken mockDecodedToken;
     private String testToken = "Bearer mock-jwt-token";
 
     @BeforeEach
     void setUp() {
         // Set up test user DTO
         testUserDto = new UserDto(1, "test@example.com", "Test", "User", false, List.of());
-
-        // Mock decoded token
-        mockDecodedToken = mock(DecodedToken.class);
 
         // Set up mock request context
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -302,29 +303,21 @@ class UserControllerTest {
         allowedSelections.setRoles(List.of("admin", "operator", "user"));
         allowedSelections.setOrganizations(List.of("TestOrg", "AnotherOrg"));
 
-        try (MockedStatic<PermissionService> mockedPermissionService = mockStatic(PermissionService.class)) {
-            mockedPermissionService.when(PermissionService::getJwtTokenFromRequest)
-                    .thenReturn(testToken);
+        when(userManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
+                .thenReturn(allowedSelections);
 
-            try (MockedStatic<DecodedToken> mockedDecodedToken = mockStatic(DecodedToken.class)) {
-                mockedDecodedToken.when(() -> DecodedToken.fromJwtToken(testToken))
-                        .thenReturn(mockDecodedToken);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-                when(userManagementService.getAllowedSelections(mockDecodedToken))
-                        .thenReturn(allowedSelections);
+        // Act
+        ModifyUserAllowedSelections result = userController.getAllowedSelections();
 
-                // Act
-                ModifyUserAllowedSelections result = userController.getAllowedSelections();
-
-                // Assert
-                assertNotNull(result);
-                assertEquals(3, result.getRoles().size());
-                assertEquals(2, result.getOrganizations().size());
-                assertTrue(result.getRoles().contains("admin"));
-                assertTrue(result.getOrganizations().contains("TestOrg"));
-                verify(userManagementService).getAllowedSelections(mockDecodedToken);
-            }
-        }
+        // Assert
+        assertNotNull(result);
+        assertEquals(3, result.getRoles().size());
+        assertEquals(2, result.getOrganizations().size());
+        assertTrue(result.getRoles().contains("admin"));
+        assertTrue(result.getOrganizations().contains("TestOrg"));
+        verify(userManagementService).getAllowedSelections(authToken);
     }
 
     @Test
@@ -334,26 +327,18 @@ class UserControllerTest {
         allowedSelections.setRoles(new ArrayList<>());
         allowedSelections.setOrganizations(new ArrayList<>());
 
-        try (MockedStatic<PermissionService> mockedPermissionService = mockStatic(PermissionService.class)) {
-            mockedPermissionService.when(PermissionService::getJwtTokenFromRequest)
-                    .thenReturn(testToken);
+        when(userManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
+                .thenReturn(allowedSelections);
 
-            try (MockedStatic<DecodedToken> mockedDecodedToken = mockStatic(DecodedToken.class)) {
-                mockedDecodedToken.when(() -> DecodedToken.fromJwtToken(testToken))
-                        .thenReturn(mockDecodedToken);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-                when(userManagementService.getAllowedSelections(mockDecodedToken))
-                        .thenReturn(allowedSelections);
+        // Act
+        ModifyUserAllowedSelections result = userController.getAllowedSelections();
 
-                // Act
-                ModifyUserAllowedSelections result = userController.getAllowedSelections();
-
-                // Assert
-                assertNotNull(result);
-                assertTrue(result.getRoles().isEmpty());
-                assertTrue(result.getOrganizations().isEmpty());
-            }
-        }
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.getRoles().isEmpty());
+        assertTrue(result.getOrganizations().isEmpty());
     }
 
     // ==================== modifyUser Tests ====================
@@ -366,26 +351,17 @@ class UserControllerTest {
         userPatch.setFirstName("Updated");
         userPatch.setLastName("Name");
 
-        try (MockedStatic<PermissionService> mockedPermissionService = mockStatic(PermissionService.class)) {
-            mockedPermissionService.when(PermissionService::getJwtTokenFromRequest)
-                    .thenReturn(testToken);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+        when(userManagementService.modifyUser(email, userPatch, authToken))
+                .thenReturn(testUserDto);
 
-            try (MockedStatic<DecodedToken> mockedDecodedToken = mockStatic(DecodedToken.class)) {
-                mockedDecodedToken.when(() -> DecodedToken.fromJwtToken(testToken))
-                        .thenReturn(mockDecodedToken);
+        // Act
+        ResponseEntity<Void> result = userController.modifyUser(email, userPatch);
 
-                when(userManagementService.modifyUser(email, userPatch, mockDecodedToken))
-                        .thenReturn(testUserDto);
-
-                // Act
-                ResponseEntity<Void> result = userController.modifyUser(email, userPatch);
-
-                // Assert
-                assertNotNull(result);
-                assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-                verify(userManagementService).modifyUser(email, userPatch, mockDecodedToken);
-            }
-        }
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+        verify(userManagementService).modifyUser(email, userPatch, authToken);
     }
 
     @Test
@@ -396,26 +372,17 @@ class UserControllerTest {
         userPatch.setOrganizationsToAdd(List.of());
         userPatch.setOrganizationsToRemove(List.of());
 
-        try (MockedStatic<PermissionService> mockedPermissionService = mockStatic(PermissionService.class)) {
-            mockedPermissionService.when(PermissionService::getJwtTokenFromRequest)
-                    .thenReturn(testToken);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+        when(userManagementService.modifyUser(email, userPatch, authToken))
+                .thenReturn(testUserDto);
 
-            try (MockedStatic<DecodedToken> mockedDecodedToken = mockStatic(DecodedToken.class)) {
-                mockedDecodedToken.when(() -> DecodedToken.fromJwtToken(testToken))
-                        .thenReturn(mockDecodedToken);
+        // Act
+        ResponseEntity<Void> result = userController.modifyUser(email, userPatch);
 
-                when(userManagementService.modifyUser(email, userPatch, mockDecodedToken))
-                        .thenReturn(testUserDto);
-
-                // Act
-                ResponseEntity<Void> result = userController.modifyUser(email, userPatch);
-
-                // Assert
-                assertNotNull(result);
-                assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
-                verify(userManagementService).modifyUser(email, userPatch, mockDecodedToken);
-            }
-        }
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
+        verify(userManagementService).modifyUser(email, userPatch, authToken);
     }
 
     // ==================== deleteUser Tests ====================
