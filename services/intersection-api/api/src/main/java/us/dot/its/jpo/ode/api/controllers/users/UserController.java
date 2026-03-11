@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
@@ -50,7 +52,7 @@ public class UserController {
             "super_user", "superUser");
 
     @Operation(summary = "Get All Users for Organization", description = "Get summary data for all Users the user has access to in the specified organization.")
-    @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!email")
+    @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -67,14 +69,14 @@ public class UserController {
 
     @Operation(summary = "Get Single User Management Data", description = "Get User data required for User modification page. "
             + "Returns detailed data for the specified User along with allowed selections for modification.")
-    @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "email")
+    @RequestMapping(method = RequestMethod.GET, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role with access to the User requested"),
     })
     public UserDto getSingleUser(
-            @RequestParam(name = "email", required = true) String email) {
+            @Parameter(description = "User email address", example = "user@example.com", required = true) @PathVariable(name = "email") String email) {
         return userManagementService.getUser(email);
     }
 
@@ -94,13 +96,14 @@ public class UserController {
     }
 
     @Operation(summary = "Modify User", description = "Modify User information")
-    @RequestMapping(method = RequestMethod.PATCH, produces = "application/json", params = "email")
+    @RequestMapping(method = RequestMethod.PATCH, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the User requested"),
     })
-    public ResponseEntity<Void> modifyUser(@RequestParam(name = "email", required = true) String email,
+    public ResponseEntity<Void> modifyUser(
+            @Parameter(description = "User email address", example = "user@example.com", required = true) @PathVariable(name = "email") String email,
             @Validated @RequestBody UserPatch body) {
         userManagementService.modifyUser(email, body, permissionService.getCvManagerAuthToken());
 
@@ -108,13 +111,14 @@ public class UserController {
     }
 
     @Operation(summary = "Delete User", description = "Delete User from management system")
-    @RequestMapping(method = RequestMethod.DELETE, produces = "application/json", params = "email")
+    @RequestMapping(method = RequestMethod.DELETE, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the User requested"),
     })
-    public ResponseEntity<Void> deleteUser(@RequestParam(name = "email", required = true) String email) {
+    public ResponseEntity<Void> deleteUser(
+            @Parameter(description = "User email address", example = "user@example.com", required = true) @PathVariable(name = "email") String email) {
         userManagementService.deleteUserByEmail(email);
 
         return ResponseEntity.noContent().build();

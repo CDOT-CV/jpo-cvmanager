@@ -43,6 +43,14 @@ export const organizationApiSlice = createApi({
       },
       providesTags: [RSU_LIST_TAG],
     }),
+    getRsuOrganizations: builder.query<string[], string>({
+      query: (rsuIp) => {
+        return {
+          url: `rsus/${rsuIp}`,
+        }
+      },
+      providesTags: (result, error, rsuIp) => [{ type: RSU_TAG, id: rsuIp }],
+    }),
     getAllRsusNotInOrganization: builder.query<AdminRsu[], string>({
       query: (organization) => {
         return {
@@ -53,16 +61,6 @@ export const organizationApiSlice = createApi({
         }
       },
       providesTags: [AVAILABLE_RSU_LIST_TAG],
-    }),
-    getRsuOrganizations: builder.query<string[], string>({
-      query: (rsuIp) => {
-        return {
-          url: `rsus${getQueryString({
-            rsu_ip: rsuIp,
-          })}`,
-        }
-      },
-      providesTags: (result, error, rsuIp) => [{ type: RSU_TAG, id: rsuIp }],
     }),
     getAllUserEmailsInOrganization: builder.query<string[], string>({
       query: (organization) => {
@@ -75,6 +73,14 @@ export const organizationApiSlice = createApi({
       },
       providesTags: [USER_LIST_TAG],
     }),
+    getUserOrganizations: builder.query<string[], string>({
+      query: (email) => {
+        return {
+          url: `users/${email}`,
+        }
+      },
+      providesTags: (result, error, email) => [{ type: USER_TAG, id: email }],
+    }),
     getAllUsersNotInOrganization: builder.query<AdminUser[], string>({
       query: (organization) => {
         return {
@@ -85,16 +91,6 @@ export const organizationApiSlice = createApi({
         }
       },
       providesTags: [AVAILABLE_USER_LIST_TAG],
-    }),
-    getUserOrganizations: builder.query<string[], string>({
-      query: (email) => {
-        return {
-          url: `users${getQueryString({
-            email: email,
-          })}`,
-        }
-      },
-      providesTags: (result, error, email) => [{ type: USER_TAG, id: email }],
     }),
   }),
 })

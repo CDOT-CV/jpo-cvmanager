@@ -58,9 +58,7 @@ export const userApiSlice = createApi({
     getUser: builder.query<AdminUser, string>({
       query: (email) => {
         return {
-          url: `${getQueryString({
-            email,
-          })}`,
+          url: `${email}`,
         }
       },
       providesTags: (result, error, email) => [{ type: USER_TAG, id: email }],
@@ -75,9 +73,7 @@ export const userApiSlice = createApi({
     }),
     patchUser: builder.mutation<void, { email: string; patch: Partial<AdminUser> }>({
       query: ({ email, patch }) => ({
-        url: `${getQueryString({
-          email,
-        })}`,
+        url: `${email}`,
         method: 'PATCH',
         body: { origin_ip: email, ...patch },
       }),
@@ -88,9 +84,7 @@ export const userApiSlice = createApi({
     }),
     deleteUser: builder.mutation<void, string>({
       query: (email) => ({
-        url: `${getQueryString({
-          email,
-        })}`,
+        url: `${email}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, email) => [
