@@ -53,7 +53,6 @@ const AdminEditUser = () => {
     control,
     formState: { errors },
     reset,
-    watch,
   } = useForm<UserFormData>({
     defaultValues: {
       orig_email: '',

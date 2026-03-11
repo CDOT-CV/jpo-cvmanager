@@ -1,34 +1,54 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import AdminAddUser from '../adminAddUser/AdminAddUser'
 import AdminEditUser from '../adminEditUser/AdminEditUser'
 import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import { Action } from '@material-table/core'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
 import { useTheme } from '@mui/material'
-import { useDeleteMultipleUsersMutation, useDeleteUserMutation, useLazyGetUsersQuery } from '../api/userApiSlice'
+import {
+  useDeleteMultipleUsersMutation,
+  useDeleteUserMutation,
+  useGetUsersQuery,
+  useLazyGetUsersQuery,
+} from '../api/userApiSlice'
 
 const AdminUserTab = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const navigate = useNavigate()
-  const location = useLocation()
   const theme = useTheme()
   const organization = useSelector(selectOrganizationName)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [currentParams, setCurrentParams] = useState({
+    page: 0,
+    size: 20,
+    sort: 'first_name,asc',
+    search: '',
+    organization: organization || '',
+  })
 
   const [trigger] = useLazyGetUsersQuery()
+
+  // Subscribe to query - this will trigger when cache is invalidated
+  const { data: subscribedData } = useGetUsersQuery(currentParams, {
+    skip: !organization, // Skip if no organization selected
+  })
+
+  // When subscribed data changes (due to cache invalidation), refresh table
+  useEffect(() => {
+    if (subscribedData) {
+      handleRefresh()
+    }
+  }, [subscribedData])
 
   const currentQueryRef = useRef(null)
   const handleQueryChange = useCallback(
@@ -68,9 +88,12 @@ const AdminUserTab = () => {
 
         // Store current query for comparison
         currentQueryRef.current = params
+        setCurrentParams(params) // Update params for subscription
 
         // Trigger the query and await the result
         const result = await trigger(params).unwrap()
+
+        console.log(result.content[0])
 
         return {
           data: result.content || [],
@@ -93,6 +116,7 @@ const AdminUserTab = () => {
   )
 
   const handleRefresh = () => {
+    console.log('Refreshing table data...')
     if (tableRef.current && tableRef.current.onQueryChange) {
       tableRef.current.onQueryChange()
     }
@@ -197,6 +221,7 @@ const AdminUserTab = () => {
     const loadingToast = toast.loading(`Deleting User ${row.email}...`)
     try {
       await deleteUserApi(row.email).unwrap()
+      handleRefresh()
       toast.success('User Deleted Successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete User due to error: ' + error, { id: loadingToast })
@@ -207,6 +232,7 @@ const AdminUserTab = () => {
     const loadingToast = toast.loading(`Deleting ${rows.length} Users...`)
     try {
       await deleteMultipleUsersApi(rows.map((row) => row.email)).unwrap()
+      handleRefresh()
       toast.success('Users Deleted Successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete Users due to error: ' + error, { id: loadingToast })
