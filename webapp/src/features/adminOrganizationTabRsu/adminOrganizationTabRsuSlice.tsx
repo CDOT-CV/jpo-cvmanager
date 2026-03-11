@@ -8,7 +8,7 @@ import {
   AdminOrgTabRsuAddMultiple,
 } from './AdminOrganizationTabRsuTypes'
 import { adminOrgPatch, editOrg } from '../adminOrganizationTab/adminOrganizationTabSlice'
-import { organizationApiSlice } from '../api/organizationApiSlice'
+import { AVAILABLE_RSU_LIST_TAG, organizationApiSlice, RSU_LIST_TAG, RSU_TAG } from '../api/organizationApiSlice'
 
 const initialState = {
   selectedRsuList: [] as AdminOrgRsuWithId[],
@@ -35,7 +35,9 @@ export const rsuDeleteSingle = createAsyncThunk(
       )
     }
     // Invalidate RTK Query cache
-    dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', { type: 'Rsu', id: rsu.ip }]))
+    dispatch(
+      organizationApiSlice.util.invalidateTags([RSU_LIST_TAG, AVAILABLE_RSU_LIST_TAG, { type: RSU_TAG, id: rsu.ip }])
+    )
 
     const res = await Promise.all(promises)
     dispatch(refresh({ selectedOrg, updateTableData }))
@@ -73,8 +75,8 @@ export const rsuDeleteMultiple = createAsyncThunk(
       const res = await dispatch(editOrg(patchJson))
       dispatch(refresh({ selectedOrg, updateTableData }))
       if ((res.payload as any).success) {
-        const rsuTags = rows.map((row) => ({ type: 'Rsu' as const, id: row.ip }))
-        dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', ...rsuTags]))
+        const rsuTags = rows.map((row) => ({ type: RSU_TAG, id: row.ip }))
+        dispatch(organizationApiSlice.util.invalidateTags([RSU_LIST_TAG, AVAILABLE_RSU_LIST_TAG, ...rsuTags]))
         return { success: true, message: 'RSU(s) deleted successfully' }
       } else {
         return { success: false, message: 'Failed to delete RSU(s)' }
@@ -108,8 +110,8 @@ export const rsuAddMultiple = createAsyncThunk(
     const res = await dispatch(editOrg(patchJson))
     dispatch(refresh({ selectedOrg, updateTableData }))
     if ((res.payload as any).success) {
-      const rsuTags = rsuList.map((rsu) => ({ type: 'Rsu' as const, id: rsu.ip }))
-      dispatch(organizationApiSlice.util.invalidateTags(['RsuList', 'AvailableRsuList', ...rsuTags]))
+      const rsuTags = rsuList.map((rsu) => ({ type: RSU_TAG, id: rsu.ip }))
+      dispatch(organizationApiSlice.util.invalidateTags([RSU_LIST_TAG, AVAILABLE_RSU_LIST_TAG, ...rsuTags]))
       return { success: true, message: 'RSU(s) added successfully' }
     } else {
       return { success: false, message: 'Failed to add RSU(s)' }

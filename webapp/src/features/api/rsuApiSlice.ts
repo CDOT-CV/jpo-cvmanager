@@ -11,6 +11,11 @@ export interface GetAllRsusParams extends PaginatedQueryParams {
   organization: string
 }
 
+// Tag type constants
+export const RSU_TAG = 'Rsu' as const
+export const RSU_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
+export const RSU_LIST_ID = 'LIST' as const
+
 export const rsuApiSlice = createApi({
   reducerPath: 'rsuApi',
   baseQuery: fetchBaseQuery({
@@ -30,7 +35,7 @@ export const rsuApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: ['Rsu', 'AllowedSelections'],
+  tagTypes: [RSU_TAG, RSU_ALLOWED_SELECTIONS_TAG],
   endpoints: (builder) => ({
     getAllRsus: builder.query<PaginatedResponse<AdminRsu>, GetAllRsusParams>({
       query: ({ organization, page = 0, size = 100, sort = 'ip,asc', search = '' }) => {
@@ -48,8 +53,8 @@ export const rsuApiSlice = createApi({
       },
       providesTags: (result) =>
         result
-          ? [...result.content.map(({ ip }) => ({ type: 'Rsu' as const, id: ip })), { type: 'Rsu', id: 'LIST' }]
-          : [{ type: 'Rsu', id: 'LIST' }],
+          ? [...result.content.map(({ ip }) => ({ type: RSU_TAG, id: ip })), { type: RSU_TAG, id: RSU_LIST_ID }]
+          : [{ type: RSU_TAG, id: RSU_LIST_ID }],
     }),
     getRsu: builder.query<AdminRsu, string>({
       query: (rsuIp) => {
@@ -59,7 +64,7 @@ export const rsuApiSlice = createApi({
           })}`,
         }
       },
-      providesTags: (result, error, rsuIp) => [{ type: 'Rsu', id: rsuIp }],
+      providesTags: (result, error, rsuIp) => [{ type: RSU_TAG, id: rsuIp }],
     }),
     getRsuAllowedSelections: builder.query<AdminRsuAllowedSelections, void>({
       query: () => {
@@ -67,7 +72,7 @@ export const rsuApiSlice = createApi({
           url: 'allowed-selections',
         }
       },
-      providesTags: (result, error) => ['AllowedSelections'],
+      providesTags: (result, error) => [RSU_ALLOWED_SELECTIONS_TAG],
     }),
     createRsu: builder.mutation<void, AdminRsuCreationBody>({
       query: (rsu) => ({
@@ -75,7 +80,7 @@ export const rsuApiSlice = createApi({
         method: 'POST',
         body: rsu,
       }),
-      invalidatesTags: (result, error, vars) => [{ type: 'Rsu', id: 'LIST' }],
+      invalidatesTags: (result, error, vars) => [{ type: RSU_TAG, id: RSU_LIST_ID }],
     }),
     patchRsu: builder.mutation<void, { rsuIp: string; patch: Partial<AdminRsu> }>({
       query: ({ rsuIp, patch }) => ({
@@ -86,8 +91,8 @@ export const rsuApiSlice = createApi({
         body: { origin_ip: rsuIp, ...patch },
       }),
       invalidatesTags: (result, error, { rsuIp }) => [
-        { type: 'Rsu', id: rsuIp },
-        { type: 'Rsu', id: 'LIST' },
+        { type: RSU_TAG, id: rsuIp },
+        { type: RSU_TAG, id: RSU_LIST_ID },
       ],
     }),
     deleteRsu: builder.mutation<void, string>({
@@ -98,8 +103,8 @@ export const rsuApiSlice = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, rsuIp) => [
-        { type: 'Rsu', id: rsuIp },
-        { type: 'Rsu', id: 'LIST' },
+        { type: RSU_TAG, id: rsuIp },
+        { type: RSU_TAG, id: RSU_LIST_ID },
       ],
     }),
     deleteMultipleRsus: builder.mutation<void, string[]>({
@@ -109,8 +114,8 @@ export const rsuApiSlice = createApi({
         body: rsuIps,
       }),
       invalidatesTags: (result, error, rsuIps) => [
-        ...rsuIps.map((rsuIp) => ({ type: 'Rsu' as const, id: rsuIp })),
-        { type: 'Rsu', id: 'LIST' },
+        ...rsuIps.map((rsuIp) => ({ type: RSU_TAG, id: rsuIp })),
+        { type: RSU_TAG, id: RSU_LIST_ID },
       ],
     }),
   }),
