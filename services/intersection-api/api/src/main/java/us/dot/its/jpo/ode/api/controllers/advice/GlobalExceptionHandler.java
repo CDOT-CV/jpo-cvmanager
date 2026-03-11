@@ -44,9 +44,8 @@ public class GlobalExceptionHandler {
     // Pattern to extract duplicate key details from PostgreSQL error messages
     private static final Pattern DUPLICATE_KEY_PATTERN = Pattern.compile("Key \\(([^)]+)\\)=\\(([^)]+)\\)");
 
-    @ExceptionHandler(EntityNotFoundException.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    @ResponseBody
     public ErrorResponse handleEntityNotFound(EntityNotFoundException ex) {
         log.warn("Resource requested not found: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -56,7 +55,8 @@ public class GlobalExceptionHandler {
 
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler()
-    public ProblemDetail handleRsuCredentialAlreadyExistsException(RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
+    public ProblemDetail handleRsuCredentialAlreadyExistsException(
+            RsuCredentialManagementService.RsuCredentialAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
@@ -64,7 +64,8 @@ public class GlobalExceptionHandler {
 
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler()
-    public ProblemDetail handleSnmpCredentialAlreadyExistsException(SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
+    public ProblemDetail handleSnmpCredentialAlreadyExistsException(
+            SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
@@ -78,9 +79,8 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, message);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ResponseBody
     public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Invalid argument: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -96,8 +96,7 @@ public class GlobalExceptionHandler {
      * Example: throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not
      * found");
      */
-    @ExceptionHandler(ResponseStatusException.class)
-    @ResponseBody
+    @ExceptionHandler()
     public ErrorResponse handleResponseStatusException(ResponseStatusException ex) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
 
@@ -124,9 +123,8 @@ public class GlobalExceptionHandler {
      * 
      * Example: @PathVariable @Min(1) Integer id
      */
-    @ExceptionHandler(ConstraintViolationException.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ResponseBody
     public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
         log.warn("Constraint violation: {}", ex.getMessage());
 
@@ -167,9 +165,8 @@ public class GlobalExceptionHandler {
      * 
      * Example: public void create(@Valid @RequestBody UserDto user)
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ResponseBody
     public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         log.warn("Method argument validation failed: {}", ex.getMessage());
 
@@ -204,9 +201,8 @@ public class GlobalExceptionHandler {
      * - Not null violations
      * - Check constraint violations
      */
-    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.CONFLICT)
-    @ResponseBody
     public ErrorResponse handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         String originalMessage = ex.getMessage();
         log.warn("Data integrity violation: {}", originalMessage);
@@ -229,9 +225,8 @@ public class GlobalExceptionHandler {
         return errorRes.build();
     }
 
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ResponseBody
     public ErrorResponse handleException(Exception ex) {
         log.error("Unexpected server error:", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
@@ -246,18 +241,18 @@ public class GlobalExceptionHandler {
             return "A database constraint was violated. Please check your input and try again.";
         }
 
-        String lowerMessage = message.toLowerCase();
+        String lowerCaseMessage = message.toLowerCase();
 
-        if (lowerMessage.contains("duplicate key")) {
+        if (lowerCaseMessage.contains("duplicate key")) {
             return buildDuplicateKeyMessage(message);
         }
-        if (lowerMessage.contains("foreign key")) {
+        if (lowerCaseMessage.contains("foreign key")) {
             return buildForeignKeyMessage(message);
         }
-        if (lowerMessage.contains("not null") || lowerMessage.contains("violates not-null")) {
+        if (lowerCaseMessage.contains("not null") || lowerCaseMessage.contains("violates not-null")) {
             return buildNotNullMessage(message);
         }
-        if (lowerMessage.contains("check constraint")) {
+        if (lowerCaseMessage.contains("check constraint")) {
             return buildCheckConstraintMessage(message);
         }
 
