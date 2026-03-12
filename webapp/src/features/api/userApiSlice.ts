@@ -10,9 +10,9 @@ export interface GetUsersParams extends PaginatedQueryParams {
 }
 
 // Tag type constants
-const USER_TAG = 'User' as const
-const ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
-const USER_LIST_ID = 'LIST' as const
+const USER_API_USER_TAG = 'User' as const
+const USER_API_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
+const USER_API_USER_LIST_ID = 'LIST' as const
 
 export const userApiSlice = createApi({
   reducerPath: 'userApi',
@@ -31,7 +31,7 @@ export const userApiSlice = createApi({
       return headers
     },
   }),
-  tagTypes: [USER_TAG, ALLOWED_SELECTIONS_TAG],
+  tagTypes: [USER_API_USER_TAG, USER_API_ALLOWED_SELECTIONS_TAG],
   endpoints: (builder) => ({
     getUsers: builder.query<PaginatedResponse<AdminUser>, GetUsersParams>({
       query: ({ organization, page = 0, size = 100, sort = 'first_name,asc', search = '' }) => {
@@ -50,10 +50,10 @@ export const userApiSlice = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.content.map(({ email }) => ({ type: USER_TAG, id: email })),
-              { type: USER_TAG, id: USER_LIST_ID },
+              ...result.content.map(({ email }) => ({ type: USER_API_USER_TAG, id: email })),
+              { type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID },
             ]
-          : [{ type: USER_TAG, id: USER_LIST_ID }],
+          : [{ type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID }],
     }),
     getUser: builder.query<AdminUser, string>({
       query: (email) => {
@@ -61,7 +61,7 @@ export const userApiSlice = createApi({
           url: `${email}`,
         }
       },
-      providesTags: (result, error, email) => [{ type: USER_TAG, id: email }],
+      providesTags: (result, error, email) => [{ type: USER_API_USER_TAG, id: email }],
     }),
     getUserAllowedSelections: builder.query<AdminUserAllowedSelections, void>({
       query: () => {
@@ -69,7 +69,7 @@ export const userApiSlice = createApi({
           url: 'allowed-selections',
         }
       },
-      providesTags: (result, error) => [ALLOWED_SELECTIONS_TAG],
+      providesTags: (result, error) => [USER_API_ALLOWED_SELECTIONS_TAG],
     }),
     patchUser: builder.mutation<void, { email: string; patch: Partial<AdminUser> }>({
       query: ({ email, patch }) => ({
@@ -78,8 +78,8 @@ export const userApiSlice = createApi({
         body: { origin_ip: email, ...patch },
       }),
       invalidatesTags: (result, error, { email }) => [
-        { type: USER_TAG, id: email },
-        { type: USER_TAG, id: USER_LIST_ID },
+        { type: USER_API_USER_TAG, id: email },
+        { type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID },
       ],
     }),
     deleteUser: builder.mutation<void, string>({
@@ -88,8 +88,8 @@ export const userApiSlice = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, email) => [
-        { type: USER_TAG, id: email },
-        { type: USER_TAG, id: USER_LIST_ID },
+        { type: USER_API_USER_TAG, id: email },
+        { type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID },
       ],
     }),
     deleteMultipleUsers: builder.mutation<void, string[]>({
@@ -99,8 +99,8 @@ export const userApiSlice = createApi({
         body: emails,
       }),
       invalidatesTags: (result, error, emails) => [
-        ...emails.map((email) => ({ type: USER_TAG, id: email })),
-        { type: USER_TAG, id: USER_LIST_ID },
+        ...emails.map((email) => ({ type: USER_API_USER_TAG, id: email })),
+        { type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID },
       ],
     }),
   }),

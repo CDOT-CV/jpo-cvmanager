@@ -10,7 +10,12 @@ import {
 } from './AdminOrganizationTabUserTypes'
 
 import { adminOrgPatch, AdminOrgUser, editOrg } from '../adminOrganizationTab/adminOrganizationTabSlice'
-import { AVAILABLE_USER_LIST_TAG, organizationApiSlice, USER_LIST_TAG, USER_TAG } from '../api/organizationApiSlice'
+import {
+  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+  ORGANIZATION_API_USER_LIST_TAG,
+  ORGANIZATION_API_USER_TAG,
+  organizationApiSlice,
+} from '../api/organizationApiSlice'
 
 const initialState = {
   selectedUserList: [] as AdminOrgUser[],
@@ -76,9 +81,9 @@ export const userDeleteSingle = createAsyncThunk(
     // Invalidate RTK Query cache
     dispatch(
       organizationApiSlice.util.invalidateTags([
-        USER_LIST_TAG,
-        AVAILABLE_USER_LIST_TAG,
-        { type: USER_TAG, id: user.email },
+        ORGANIZATION_API_USER_LIST_TAG,
+        ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+        { type: ORGANIZATION_API_USER_TAG, id: user.email },
       ])
     )
 
@@ -119,8 +124,14 @@ export const userDeleteMultiple = createAsyncThunk(
       const res = await dispatch(editOrg(patchJson))
       dispatch(refresh({ selectedOrg, updateTableData }))
       if ((res.payload as any).success) {
-        const userTags = users.map((user) => ({ type: USER_TAG, id: user.email }))
-        dispatch(organizationApiSlice.util.invalidateTags([USER_LIST_TAG, AVAILABLE_USER_LIST_TAG, ...userTags]))
+        const userTags = users.map((user) => ({ type: ORGANIZATION_API_USER_TAG, id: user.email }))
+        dispatch(
+          organizationApiSlice.util.invalidateTags([
+            ORGANIZATION_API_USER_LIST_TAG,
+            ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+            ...userTags,
+          ])
+        )
         return { success: true, message: 'User(s) deleted successfully' }
       } else {
         return { success: false, message: 'Failed to delete user(s)' }
@@ -155,8 +166,14 @@ export const userAddMultiple = createAsyncThunk(
     const res = await dispatch(editOrg(patchJson))
     dispatch(refresh({ selectedOrg, updateTableData }))
     if ((res.payload as any).success) {
-      const userTags = userList.map((user) => ({ type: USER_TAG, id: user.email }))
-      dispatch(organizationApiSlice.util.invalidateTags([USER_LIST_TAG, AVAILABLE_USER_LIST_TAG, ...userTags]))
+      const userTags = userList.map((user) => ({ type: ORGANIZATION_API_USER_TAG, id: user.email }))
+      dispatch(
+        organizationApiSlice.util.invalidateTags([
+          ORGANIZATION_API_USER_LIST_TAG,
+          ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+          ...userTags,
+        ])
+      )
       return { success: true, message: 'User(s) added successfully' }
     } else {
       return { success: false, message: 'Failed to add user(s)' }
