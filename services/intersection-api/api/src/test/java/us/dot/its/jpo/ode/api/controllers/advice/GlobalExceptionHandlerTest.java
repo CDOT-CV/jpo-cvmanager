@@ -77,7 +77,6 @@ class GlobalExceptionHandlerTest {
 
     @Nested
     class HandleSnmpCredentialAlreadyExistsExceptionTests {
-
         @Test
         void testHandleSnmpCredentialAlreadyExistsException() {
             // Arrange
@@ -102,8 +101,8 @@ class GlobalExceptionHandlerTest {
             // Arrange
             AccessDeniedException exception = new AccessDeniedException("Access denied");
 
-            // Act
-            ProblemDetail problemDetail = handler.handleAccessDeniedException(exception);
+                // Act
+                ProblemDetail problemDetail = handler.handleAccessDeniedException(exception);
 
             // Assert
             assertNotNull(problemDetail);
