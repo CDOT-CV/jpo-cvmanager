@@ -16,6 +16,8 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
 
+    final UserOrganizationDtoMapper userOrganizationDtoMapper = new UserOrganizationDtoMapperImpl();
+
     /**
      * Convert User entity to UserDto
      * MapStruct will automatically map fields with the same name
@@ -34,7 +36,7 @@ public interface UserMapper {
         }
         return userOrganizations.stream()
                 .filter(ro -> ro != null && ro.getOrganization() != null && ro.getOrganization().getName() != null)
-                .map(UserOrganizationDto::fromUserOrganization)
+                .map(userOrganizationDtoMapper::toDto)
                 .collect(Collectors.toList());
     }
 }
