@@ -19,7 +19,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
 
     public CvManagerAuthToken(Jwt jwt, Collection<? extends GrantedAuthority> authorities, String username) {
         super(jwt, authorities, username);
-        Map<String, Object> cvmanagerClaims = jwt.getClaimAsMap("cvmanager_data");
+        Map<String, Object> cvmanagerClaims = Optional.ofNullable(jwt.getClaimAsMap("cvmanager_data")).orElse(Map.of());
         this.orgRoles = getOrgRolesFrom(cvmanagerClaims);
         this.isSuperUser = getIsSuperUserFrom(cvmanagerClaims);
     }
@@ -35,6 +35,10 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
     protected Map<String, String> getOrgRolesFrom(Map<String, Object> claims) {
         @SuppressWarnings("unchecked")
         List<Map<String, String>> orgList = (List<Map<String, String>>) claims.get("organizations");
+
+        if (orgList == null) {
+            return Map.of();
+        }
 
         return orgList.stream()
                 .collect(Collectors.toMap(m -> m.get("org"), m -> m.get("role")));
