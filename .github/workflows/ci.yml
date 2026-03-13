@@ -167,7 +167,7 @@ jobs:
       - name: Build and Test with Maven
         run: |
           cd $GITHUB_WORKSPACE/services/rsu-info-bridge
-          mvn clean verify
+          ./mvnw clean verify
 
       - name: Archive Test Results
         uses: actions/upload-artifact@v4
