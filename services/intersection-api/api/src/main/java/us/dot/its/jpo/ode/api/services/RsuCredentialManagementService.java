@@ -15,7 +15,8 @@ public class RsuCredentialManagementService {
     private final RsuCredentialRepository rsuCredentialRepository;
     private final OrganizationRepository organizationRepository;
 
-    public RsuCredential create(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest) throws RsuCredentialAlreadyExistsException, EntityNotFoundException {
+    public RsuCredential create(RsuCredentialController.RsuCredentialCreateRequest rsuCredentialCreateRequest)
+            throws RsuCredentialAlreadyExistsException, EntityNotFoundException {
         if (rsuCredentialRepository.existsByNickname(rsuCredentialCreateRequest.getNickname())) {
             throw new RsuCredentialAlreadyExistsException("RSU Credential already exists");
         }
@@ -32,11 +33,14 @@ public class RsuCredentialManagementService {
     }
 
     public RsuCredential getByNickname(String nickname) throws EntityNotFoundException {
-        return rsuCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
+        return rsuCredentialRepository.findByNickname(nickname)
+                .orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
     }
 
-    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch) throws EntityNotFoundException {
-        RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname()).orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
+    public RsuCredential update(RsuCredentialController.RsuCredentialPatch rsuCredentialPatch)
+            throws EntityNotFoundException {
+        RsuCredential rsuCredential = rsuCredentialRepository.findByNickname(rsuCredentialPatch.getNickname())
+                .orElseThrow(() -> new EntityNotFoundException("RSU Credential not found"));
 
         if (rsuCredentialPatch.getUsername() != null) {
             rsuCredential.setUsername(rsuCredentialPatch.getUsername());
