@@ -25,27 +25,18 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public class TestcontainersConfiguration {
 
-    @Container
-    protected static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>(
-            DockerImageName.parse("postgis/postgis:15-master").asCompatibleSubstituteFor("postgres"))
-            .withDatabaseName("test_db")
-            .withUsername("test_user")
-            .withPassword("test_password")
-            .withReuse(true); // Reuse container across test runs for faster execution
+      @Bean
+      @ServiceConnection
+      PostgreSQLContainer<?> postgresContainer() {
+          return new PostgreSQLContainer<>(
+                  DockerImageName.parse("postgis/postgis:15-master")
+                          .asCompatibleSubstituteFor("postgres"));
+      }
 
-    @Container
-    protected static final MongoDBContainer MONGO_CONTAINER = new MongoDBContainer(DockerImageName.parse("mongo:8"))
-            .withReuse(true); // Reuse container across test runs for faster execution
+      @Bean
+      @ServiceConnection
+      MongoDBContainer mongoDbContainer() {
+          return new MongoDBContainer(DockerImageName.parse("mongo:8"));
+      }
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // PostgreSQL configuration
-        registry.add("spring.datasource.url", POSTGRES_CONTAINER::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES_CONTAINER::getUsername);
-        registry.add("spring.datasource.password", POSTGRES_CONTAINER::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-
-        // MongoDB configuration
-        registry.add("spring.data.mongodb.uri", MONGO_CONTAINER::getReplicaSetUrl);
-    }
 }
