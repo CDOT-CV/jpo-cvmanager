@@ -205,7 +205,7 @@ class CvManagerAuthTokenTest {
         @Test
         @DisplayName("Should be case-insensitive for role comparison")
         void shouldBeCaseInsensitiveForRole() {
-            assertTrue(token.hasRoleInOrg("CDOT", "ADMIN"));
+            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
             assertTrue(token.hasRoleInOrg("CDOT", "Admin"));
             assertTrue(token.hasRoleInOrg("CDOT", "aDmIn"));
         }

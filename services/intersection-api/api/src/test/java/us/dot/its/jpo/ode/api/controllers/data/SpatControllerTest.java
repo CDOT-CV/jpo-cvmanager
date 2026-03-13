@@ -22,6 +22,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.accessors.spat.ProcessedSpatRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockSpatGenerator;
 
@@ -52,7 +53,7 @@ public class SpatControllerTest {
         spats.add(spat);
 
         when(permissionService.hasIntersection(spat.getIntersectionId(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         PageRequest page = PageRequest.of(1, 1);
         when(processedSpatRepo.find(spat.getIntersectionId(),

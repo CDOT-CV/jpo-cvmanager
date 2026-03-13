@@ -61,6 +61,7 @@ import us.dot.its.jpo.ode.api.accessors.events.stop_line_stop_event.StopLineStop
 import us.dot.its.jpo.ode.api.accessors.events.time_change_details_event.TimeChangeDetailsEventRepository;
 import us.dot.its.jpo.ode.api.models.IDCount;
 import us.dot.its.jpo.ode.api.models.MinuteCount;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockBsmGenerator;
 import us.dot.its.jpo.ode.mockdata.MockEventGenerator;
@@ -140,7 +141,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 PageRequest page = PageRequest.of(1, 1);
                 when(intersectionReferenceAlignmentEventRepo.find(event.getIntersectionID(),
@@ -165,7 +166,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<IntersectionReferenceAlignmentEvent>> response = controller
@@ -185,7 +186,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<IntersectionReferenceAlignmentEvent> mockPage = new PageImpl<>(events);
@@ -211,7 +212,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<IntersectionReferenceAlignmentEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -236,7 +237,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countIntersectionReferenceAlignmentEvents(intersectionID,
                                 null, null, testData);
@@ -253,7 +254,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(intersectionReferenceAlignmentEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -273,7 +274,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<ConnectionOfTravelEvent>> response = controller
@@ -293,7 +294,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<ConnectionOfTravelEvent> mockPage = new PageImpl<>(events);
@@ -319,7 +320,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<ConnectionOfTravelEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -344,7 +345,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countConnectionOfTravelEvents(intersectionID,
                                 null, null, testData);
@@ -361,7 +362,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(connectionOfTravelEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -379,7 +380,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailyConnectionOfTravelEventCounts(
                                 intersectionID,
@@ -397,7 +398,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(connectionOfTravelEventRepo.getAggregatedDailyConnectionOfTravelEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -420,7 +421,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<LaneDirectionOfTravelEvent>> response = controller
@@ -440,7 +441,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<LaneDirectionOfTravelEvent> mockPage = new PageImpl<>(events);
@@ -466,7 +467,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<LaneDirectionOfTravelEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -491,7 +492,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countLaneDirectionOfTravelEvents(intersectionID,
                                 null, null, testData);
@@ -508,7 +509,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(laneDirectionOfTravelRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -526,7 +527,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailyLaneDirectionOfTravelEventCounts(
                                 intersectionID,
@@ -544,7 +545,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(laneDirectionOfTravelRepo.getAggregatedDailyLaneDirectionOfTravelEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -567,7 +568,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<SignalGroupAlignmentEvent>> response = controller
@@ -587,7 +588,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<SignalGroupAlignmentEvent> mockPage = new PageImpl<>(events);
@@ -613,7 +614,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<SignalGroupAlignmentEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -638,7 +639,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countSignalGroupAlignmentEvents(intersectionID,
                                 null, null, testData);
@@ -655,7 +656,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(signalGroupAlignmentEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -673,7 +674,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailySignalGroupAlignmentEventCounts(
                                 intersectionID,
@@ -691,7 +692,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(signalGroupAlignmentEventRepo.getAggregatedDailySignalGroupAlignmentEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -714,7 +715,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<SignalStateConflictEvent>> response = controller
@@ -734,7 +735,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<SignalStateConflictEvent> mockPage = new PageImpl<>(events);
@@ -760,7 +761,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<SignalStateConflictEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -785,7 +786,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countSignalStateConflictEvents(intersectionID,
                                 null, null, testData);
@@ -802,7 +803,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(signalStateConflictEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -820,7 +821,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailySignalStateConflictEventCounts(
                                 intersectionID,
@@ -838,7 +839,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(signalStateConflictEventRepo.getAggregatedDailySignalStateConflictEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -861,7 +862,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<StopLinePassageEvent>> response = controller
@@ -881,7 +882,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<StopLinePassageEvent> mockPage = new PageImpl<>(events);
@@ -907,7 +908,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<StopLinePassageEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -932,7 +933,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countStopLinePassageEvents(intersectionID,
                                 null, null, testData);
@@ -949,7 +950,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLinePassageEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -967,7 +968,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailyStopLinePassageEventCounts(
                                 intersectionID,
@@ -985,7 +986,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLinePassageEventRepo.getAggregatedDailyStopLinePassageEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -1008,7 +1009,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<StopLineStopEvent>> response = controller
@@ -1028,7 +1029,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<StopLineStopEvent> mockPage = new PageImpl<>(events);
@@ -1054,7 +1055,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<StopLineStopEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1079,7 +1080,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countStopLineStopEvents(intersectionID,
                                 null, null, testData);
@@ -1096,7 +1097,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLineStopEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1114,7 +1115,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailyStopLineStopEventCounts(
                                 intersectionID,
@@ -1132,7 +1133,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLineStopEventRepo.getAggregatedDailyStopLineStopEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -1155,7 +1156,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<TimeChangeDetailsEvent>> response = controller
@@ -1175,7 +1176,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<TimeChangeDetailsEvent> mockPage = new PageImpl<>(events);
@@ -1201,7 +1202,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<TimeChangeDetailsEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1226,7 +1227,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countTimeChangeDetailsEvents(intersectionID,
                                 null, null, testData);
@@ -1243,7 +1244,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(timeChangeDetailsEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1261,7 +1262,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<List<IDCount>> response = controller.getDailyTimeChangeDetailsEventCounts(
                                 intersectionID,
@@ -1279,7 +1280,7 @@ public class CmEventControllerTest {
                 List<IDCount> expectedCounts = List.of(new IDCount("1", 5.0));
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(timeChangeDetailsEventRepo.getAggregatedDailyTimeChangeDetailsEventCounts(intersectionID,
                                 startTime, endTime))
                                 .thenReturn(expectedCounts);
@@ -1302,7 +1303,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<SpatMinimumDataEvent>> response = controller
@@ -1322,7 +1323,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<SpatMinimumDataEvent> mockPage = new PageImpl<>(events);
@@ -1348,7 +1349,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<SpatMinimumDataEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1373,7 +1374,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countSpatMinimumDataEvents(intersectionID,
                                 null, null, testData);
@@ -1390,7 +1391,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(spatMinimumDataEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1410,7 +1411,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<MapMinimumDataEvent>> response = controller
@@ -1430,7 +1431,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<MapMinimumDataEvent> mockPage = new PageImpl<>(events);
@@ -1456,7 +1457,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<MapMinimumDataEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1481,7 +1482,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countMapMinimumDataEvents(intersectionID,
                                 null, null, testData);
@@ -1498,7 +1499,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(mapMinimumDataEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1518,7 +1519,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<MapBroadcastRateEvent>> response = controller
@@ -1538,7 +1539,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<MapBroadcastRateEvent> mockPage = new PageImpl<>(events);
@@ -1564,7 +1565,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<MapBroadcastRateEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1589,7 +1590,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countMapBroadcastRateEvents(intersectionID,
                                 null, null, testData);
@@ -1606,7 +1607,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(mapBroadcastRateEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1626,7 +1627,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<SpatBroadcastRateEvent>> response = controller
@@ -1646,7 +1647,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<SpatBroadcastRateEvent> mockPage = new PageImpl<>(events);
@@ -1672,7 +1673,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<SpatBroadcastRateEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1697,7 +1698,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countSpatBroadcastRateEvents(intersectionID,
                                 null, null, testData);
@@ -1714,7 +1715,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(spatBroadcastRateEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1734,7 +1735,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<SpatMessageCountProgressionEvent>> response = controller
@@ -1754,7 +1755,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<SpatMessageCountProgressionEvent> mockPage = new PageImpl<>(events);
@@ -1780,7 +1781,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<SpatMessageCountProgressionEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1805,7 +1806,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countSpatMessageCountProgressionEvents(intersectionID,
                                 null, null, testData);
@@ -1822,7 +1823,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(spatMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1841,7 +1842,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<MapMessageCountProgressionEvent>> response = controller
@@ -1861,7 +1862,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<MapMessageCountProgressionEvent> mockPage = new PageImpl<>(events);
@@ -1887,7 +1888,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<MapMessageCountProgressionEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1912,7 +1913,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countMapMessageCountProgressionEvents(intersectionID,
                                 null, null, testData);
@@ -1929,7 +1930,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(mapMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -1949,7 +1950,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<BsmMessageCountProgressionEvent>> response = controller
@@ -1969,7 +1970,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<BsmMessageCountProgressionEvent> mockPage = new PageImpl<>(events);
@@ -1995,7 +1996,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<BsmMessageCountProgressionEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -2020,7 +2021,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countBsmMessageCountProgressionEvents(intersectionID,
                                 null, null, testData);
@@ -2037,7 +2038,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(bsmMessageCountProgressionEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -2057,7 +2058,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<BsmEvent>> response = controller
@@ -2077,7 +2078,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<BsmEvent> mockPage = new PageImpl<>(events);
@@ -2103,7 +2104,7 @@ public class CmEventControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<BsmEvent> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -2128,7 +2129,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countBsmEvents(intersectionID,
                                 null, null, testData);
@@ -2145,7 +2146,7 @@ public class CmEventControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(bsmEventRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -2165,7 +2166,7 @@ public class CmEventControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Page<MinuteCount>> response = controller.getBsmActivityByMinuteInRange(
                                 intersectionID, startTime, endTime, false, 0, 10, testData);
@@ -2184,7 +2185,7 @@ public class CmEventControllerTest {
                 boolean testData = false;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 Page<BsmEvent> mockPage = new PageImpl<>(Collections.emptyList());
                 when(bsmEventRepo.findLatest(intersectionID, startTime, endTime)).thenReturn(mockPage);
 
@@ -2209,7 +2210,7 @@ public class CmEventControllerTest {
                 bsm.setCoreData(coreData);
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 BsmEvent mockEvent = new BsmEvent();
                 // mockEvent.setStartingBsm(new OdeBsmData(new OdeMsgMetadata(), new
                 // OdeMsgPayload(bsm)));

@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.accessors.assessments.connection_of_travel_assessm
 import us.dot.its.jpo.ode.api.accessors.assessments.lane_direction_of_travel_assessment.LaneDirectionOfTravelAssessmentRepository;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_passage_assessment.StopLinePassageAssessmentRepository;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment.StopLineStopAssessmentRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockAssessmentGenerator;
 
@@ -73,7 +74,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<ConnectionOfTravelAssessment>> response = controller
@@ -93,7 +94,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<ConnectionOfTravelAssessment> mockPage = new PageImpl<>(events);
@@ -119,7 +120,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<ConnectionOfTravelAssessment> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -144,7 +145,7 @@ public class CmAssessmentControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countConnectionOfTravelAssessments(intersectionID,
                                 null, null, testData);
@@ -161,7 +162,7 @@ public class CmAssessmentControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(connectionOfTravelAssessmentRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -181,7 +182,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<LaneDirectionOfTravelAssessment>> response = controller
@@ -201,7 +202,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<LaneDirectionOfTravelAssessment> mockPage = new PageImpl<>(events);
@@ -227,7 +228,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<LaneDirectionOfTravelAssessment> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -252,7 +253,7 @@ public class CmAssessmentControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countLaneDirectionOfTravelAssessments(intersectionID,
                                 null, null, testData);
@@ -269,7 +270,7 @@ public class CmAssessmentControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(laneDirectionOfTravelAssessmentRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -289,7 +290,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<StopLineStopAssessment>> response = controller
@@ -309,7 +310,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<StopLineStopAssessment> mockPage = new PageImpl<>(events);
@@ -335,7 +336,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<StopLineStopAssessment> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -360,7 +361,7 @@ public class CmAssessmentControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countStopLineStopAssessments(intersectionID,
                                 null, null, testData);
@@ -377,7 +378,7 @@ public class CmAssessmentControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLineStopAssessmentRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 
@@ -397,7 +398,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean testData = true;
 
                 ResponseEntity<Page<StopLinePassageAssessment>> response = controller
@@ -417,7 +418,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = true;
 
                 Page<StopLinePassageAssessment> mockPage = new PageImpl<>(events);
@@ -443,7 +444,7 @@ public class CmAssessmentControllerTest {
                 events.add(event);
 
                 when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 boolean latest = false;
 
                 Page<StopLinePassageAssessment> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -468,7 +469,7 @@ public class CmAssessmentControllerTest {
                 boolean testData = true;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
                 ResponseEntity<Long> response = controller.countStopLinePassageAssessments(intersectionID,
                                 null, null, testData);
@@ -485,7 +486,7 @@ public class CmAssessmentControllerTest {
                 Long expectedCount = 5L;
 
                 when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-                when(permissionService.hasRole("USER")).thenReturn(true);
+                when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
                 when(stopLinePassageAssessmentRepo.count(intersectionID, startTime, endTime))
                                 .thenReturn(expectedCount);
 

@@ -45,6 +45,7 @@ import us.dot.its.jpo.ode.api.accessors.notifications.spat_broadcast_rate_notifi
 import us.dot.its.jpo.ode.api.accessors.notifications.stop_line_passage_notification.StopLinePassageNotificationRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.stop_line_stop_notification.StopLineStopNotificationRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.time_change_details_notification.TimeChangeDetailsNotificationRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockNotificationGenerator;
 
@@ -102,7 +103,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<ConnectionOfTravelNotification>> response = controller
@@ -122,7 +123,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<ConnectionOfTravelNotification> mockPage = new PageImpl<>(events);
@@ -148,7 +149,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<ConnectionOfTravelNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -173,7 +174,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countConnectionOfTravelNotifications(intersectionID,
                 null, null, testData);
@@ -190,7 +191,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(connectionOfTravelNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -211,7 +212,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<IntersectionReferenceAlignmentNotification>> response = controller
@@ -233,7 +234,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<IntersectionReferenceAlignmentNotification> mockPage = new PageImpl<>(events);
@@ -263,7 +264,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<IntersectionReferenceAlignmentNotification> mockPage = new PageImpl<>(events,
@@ -290,7 +291,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countIntersectionReferenceAlignmentNotifications(
                 intersectionID,
@@ -308,7 +309,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(intersectionReferenceAlignmentNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -331,7 +332,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<LaneDirectionOfTravelNotification>> response = controller
@@ -352,7 +353,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<LaneDirectionOfTravelNotification> mockPage = new PageImpl<>(events);
@@ -379,7 +380,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<LaneDirectionOfTravelNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -404,7 +405,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countLaneDirectionOfTravelNotifications(intersectionID,
                 null, null, testData);
@@ -421,7 +422,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(laneDirectionOfTravelNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -441,7 +442,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<MapBroadcastRateNotification>> response = controller
@@ -461,7 +462,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<MapBroadcastRateNotification> mockPage = new PageImpl<>(events);
@@ -487,7 +488,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<MapBroadcastRateNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -512,7 +513,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countMapBroadcastRateNotifications(intersectionID,
                 null, null, testData);
@@ -529,7 +530,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(mapBroadcastRateNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -550,7 +551,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<SignalGroupAlignmentNotification>> response = controller
@@ -571,7 +572,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<SignalGroupAlignmentNotification> mockPage = new PageImpl<>(events);
@@ -598,7 +599,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<SignalGroupAlignmentNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -623,7 +624,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countSignalGroupAlignmentNotifications(intersectionID,
                 null, null, testData);
@@ -640,7 +641,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(signalGroupAlignmentNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -660,7 +661,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<SignalStateConflictNotification>> response = controller
@@ -680,7 +681,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<SignalStateConflictNotification> mockPage = new PageImpl<>(events);
@@ -706,7 +707,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<SignalStateConflictNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -731,7 +732,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countSignalStateConflictNotifications(intersectionID,
                 null, null, testData);
@@ -748,7 +749,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(signalStateConflictNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -768,7 +769,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<SpatBroadcastRateNotification>> response = controller
@@ -788,7 +789,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<SpatBroadcastRateNotification> mockPage = new PageImpl<>(events);
@@ -814,7 +815,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<SpatBroadcastRateNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -839,7 +840,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countSpatBroadcastRateNotifications(intersectionID,
                 null, null, testData);
@@ -856,7 +857,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(spatBroadcastRateNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -876,7 +877,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<StopLineStopNotification>> response = controller
@@ -896,7 +897,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<StopLineStopNotification> mockPage = new PageImpl<>(events);
@@ -922,7 +923,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<StopLineStopNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -947,7 +948,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countStopLineStopNotifications(intersectionID,
                 null, null, testData);
@@ -964,7 +965,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(stopLineStopNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -984,7 +985,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<StopLinePassageNotification>> response = controller
@@ -1004,7 +1005,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<StopLinePassageNotification> mockPage = new PageImpl<>(events);
@@ -1030,7 +1031,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<StopLinePassageNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1055,7 +1056,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countStopLinePassageNotifications(intersectionID,
                 null, null, testData);
@@ -1072,7 +1073,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(stopLinePassageNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 
@@ -1092,7 +1093,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean testData = true;
 
         ResponseEntity<Page<TimeChangeDetailsNotification>> response = controller
@@ -1112,7 +1113,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = true;
 
         Page<TimeChangeDetailsNotification> mockPage = new PageImpl<>(events);
@@ -1138,7 +1139,7 @@ public class CmNotificationControllerTest {
         events.add(event);
 
         when(permissionService.hasIntersection(event.getIntersectionID(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         boolean latest = false;
 
         Page<TimeChangeDetailsNotification> mockPage = new PageImpl<>(events, PageRequest.of(0, 10), 1);
@@ -1163,7 +1164,7 @@ public class CmNotificationControllerTest {
         boolean testData = true;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         ResponseEntity<Long> response = controller.countTimeChangeDetailsNotifications(intersectionID,
                 null, null, testData);
@@ -1180,7 +1181,7 @@ public class CmNotificationControllerTest {
         Long expectedCount = 5L;
 
         when(permissionService.hasIntersection(intersectionID, "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
         when(timeChangeDetailsNotificationRepo.count(intersectionID, startTime, endTime))
                 .thenReturn(expectedCount);
 

@@ -23,6 +23,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockMapGenerator;
 
@@ -52,8 +53,9 @@ public class MapControllerTest {
         List<ProcessedMap<LineString>> maps = new ArrayList<>();
         maps.add(map);
 
-        when(permissionService.hasIntersection(map.getProperties().getIntersectionId(), "USER")).thenReturn(true);
-        when(permissionService.hasRole("USER")).thenReturn(true);
+        when(permissionService.hasIntersection(map.getProperties().getIntersectionId(), "USER"))
+                .thenReturn(true);
+        when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
         PageRequest page = PageRequest.of(1, 1);
         when(processedMapRepo.find(map.getProperties().getIntersectionId(),
