@@ -21,7 +21,9 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers
-public abstract class AbstractIntegrationTest {
+@TestConfiguration
+@Testcontainers
+public class TestcontainersConfiguration {
 
     @Container
     protected static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>(
