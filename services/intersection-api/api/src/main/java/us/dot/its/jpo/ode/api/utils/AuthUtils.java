@@ -14,6 +14,11 @@ public class AuthUtils {
         if (userRole == null || requiredRole == null) {
             return false;
         }
-        return ROLE_HIERARCHY.getOrDefault(userRole.toUpperCase(), 0) >= ROLE_HIERARCHY.getOrDefault(requiredRole.toUpperCase(), 0);
+        Integer userRoleValue = ROLE_HIERARCHY.get(userRole.toUpperCase());
+        Integer requiredRoleValue = ROLE_HIERARCHY.get(requiredRole.toUpperCase());
+        if (userRoleValue == null || requiredRoleValue == null) {
+            throw new IllegalArgumentException("Unknown role: " + userRole + ", " + requiredRole);
+        }
+        return userRoleValue >= requiredRoleValue;
     }
 }
