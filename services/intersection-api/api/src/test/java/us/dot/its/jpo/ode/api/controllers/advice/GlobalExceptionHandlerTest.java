@@ -1,35 +1,35 @@
-package us.dot.its.jpo.ode.api.controllers;
+package us.dot.its.jpo.ode.api.controllers.advice;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 
+import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Nested;
 
 class GlobalExceptionHandlerTest {
-
-    private GlobalExceptionHandler handler;
-
-    @BeforeEach
-    void setUp() {
-        handler = new GlobalExceptionHandler();
-    }
+    GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Nested
     class HandleEntityNotFoundTests {
@@ -53,6 +53,61 @@ class GlobalExceptionHandlerTest {
 
             assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
             assertTrue(response.getBody().getDetail().contains("192.168.1.1"));
+        }
+    }
+
+    @Nested
+    class HandleRsuCredentialAlreadyExistsExceptionTests {
+
+        @Test
+        void testHandleRsuCredentialAlreadyExistsException() {
+            // Arrange
+            RsuCredentialManagementService.RsuCredentialAlreadyExistsException exception = new RsuCredentialManagementService.RsuCredentialAlreadyExistsException(
+                    "RSU Credential already exists");
+
+            // Act
+            ProblemDetail problemDetail = handler.handleRsuCredentialAlreadyExistsException(exception);
+
+            // Assert
+            assertNotNull(problemDetail);
+            assertEquals("RSU Credential already exists", problemDetail.getDetail());
+            assertEquals(HttpStatus.CONFLICT.value(), problemDetail.getStatus());
+        }
+    }
+
+    @Nested
+    class HandleSnmpCredentialAlreadyExistsExceptionTests {
+        @Test
+        void testHandleSnmpCredentialAlreadyExistsException() {
+            // Arrange
+            SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException exception = new SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException(
+                    "SNMP Credential already exists");
+
+            // Act
+            ProblemDetail problemDetail = handler.handleSnmpCredentialAlreadyExistsException(exception);
+
+            // Assert
+            assertNotNull(problemDetail);
+            assertEquals("SNMP Credential already exists", problemDetail.getDetail());
+            assertEquals(HttpStatus.CONFLICT.value(), problemDetail.getStatus());
+        }
+    }
+
+    @Nested
+    class HandleAccessDeniedExceptionTests {
+
+        @Test
+        void testHandleAccessDeniedException() {
+            // Arrange
+            AccessDeniedException exception = new AccessDeniedException("Access denied");
+
+                // Act
+                ProblemDetail problemDetail = handler.handleAccessDeniedException(exception);
+
+            // Assert
+            assertNotNull(problemDetail);
+            assertEquals("Access denied", problemDetail.getDetail());
+            assertEquals(HttpStatus.FORBIDDEN.value(), problemDetail.getStatus());
         }
     }
 
