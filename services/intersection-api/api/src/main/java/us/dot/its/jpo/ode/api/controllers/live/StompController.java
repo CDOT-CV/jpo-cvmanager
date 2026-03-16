@@ -1,20 +1,14 @@
 package us.dot.its.jpo.ode.api.controllers.live;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
@@ -29,23 +23,12 @@ public class StompController {
 
     private final SimpMessagingTemplate brokerMessagingTemplate;
 
-    private final ObjectMapper mapper;
+    private final JsonMapper mapper = JsonMapper.builder()
+            .enable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .build();
 
-    @Autowired
     public StompController(SimpMessagingTemplate brokerMessagingTemplate) {
         this.brokerMessagingTemplate = brokerMessagingTemplate;
-
-        mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_INSTANT;
-        ZonedDateTimeSerializer zonedDateTimeSerializer = new ZonedDateTimeSerializer(dateTimeFormatter);
-
-        SimpleModule module = new SimpleModule();
-        module.addSerializer(ZonedDateTime.class, zonedDateTimeSerializer);
-        mapper.registerModule(module);
-
-        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true);
     }
 
     public void broadcastMessage(String topic, String message) {
@@ -53,7 +36,7 @@ public class StompController {
     }
 
     public String buildTopicName(int intersectionID, String messageType) {
-        return String.format("/live/%d/%s", intersectionID, messageType);
+        return "/live/%d/%s".formatted(intersectionID, messageType);
     }
 
     public void broadcastProcessedSpat(ProcessedSpat spat) {
@@ -66,7 +49,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-spat"), mapper.writeValueAsString(spat));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding SPaT data to STOMP topic", e);
                 }
 
@@ -84,7 +67,7 @@ public class StompController {
             if (intersectionID != -1) {
                 try {
                     broadcastMessage(buildTopicName(intersectionID, "processed-map"), mapper.writeValueAsString(map));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding MAP data to STOMP topic", e);
                 }
             }
@@ -97,7 +80,7 @@ public class StompController {
                 try {
                     broadcastMessage(buildTopicName(intersectionId, "processed-bsm"),
                             mapper.writeValueAsString(bsm));
-                } catch (JsonProcessingException e) {
+                } catch (JacksonException e) {
                     log.error("Exception encoding BSM data to STOMP topic", e);
                 }
             }

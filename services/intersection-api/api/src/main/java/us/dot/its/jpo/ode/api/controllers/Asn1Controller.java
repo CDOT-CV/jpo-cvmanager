@@ -2,10 +2,8 @@ package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import us.dot.its.jpo.ode.api.asn1.DecoderManager;
@@ -37,14 +36,13 @@ public class Asn1Controller {
 
         private final DecoderManager decoderManager;
 
-        @Autowired
         public Asn1Controller(
                         DecoderManager decoderManager) {
                 this.decoderManager = decoderManager;
         }
 
         @Operation(summary = "Decode an Uploaded ASN.1-Encoded Message", description = "Decodes an uploaded ASN.1 encoded message and returns the decoded message")
-        @RequestMapping(value = "/decoder/raw", method = RequestMethod.POST, produces = "application/json")
+        @PostMapping(value = "/decoder/raw", produces = "application/json")
         @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Success"),
@@ -86,8 +84,8 @@ public class Asn1Controller {
                                                         .body("Not Implemented");
                                         case null ->
                                                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                                                String.format("No test data available for Message Type %s",
-                                                                                encodedMessage.getType()));
+                                                        "No test data available for Message Type %s".formatted(
+                                                                encodedMessage.getType()));
                                 };
                         } else {
                                 if (encodedMessage.getType() == MessageType.UNKNOWN) {
@@ -111,7 +109,7 @@ public class Asn1Controller {
                 } catch (Exception e) {
                         log.warn("Failed to decode data: {}", e.getMessage(), e);
                         throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                                        String.format("Exception handling encoded data: %s", e.getMessage()), e);
+                                "Exception handling encoded data: %s".formatted(e.getMessage()), e);
                 }
         }
 }

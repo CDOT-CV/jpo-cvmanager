@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -62,7 +61,6 @@ public class ReportService {
         private final ReportRepository reportRepo;
         private final int maximumResponseSize;
 
-        @Autowired
         public ReportService(ProcessedMapRepository processedMapRepo,
                         StopLinePassageEventRepository stopLinePassageEventRepo,
                         StopLineStopEventRepository stopLineStopEventRepo,

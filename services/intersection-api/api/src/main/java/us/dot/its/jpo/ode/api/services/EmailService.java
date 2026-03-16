@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.*;
 
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.postmarkapp.postmark.client.ApiClient;
@@ -34,7 +33,6 @@ public class EmailService {
     private final ApiClient postmark;
     private final ConflictMonitorApiProperties props;
 
-    @Autowired
     public EmailService(JavaMailSender mailSender, SendGrid sendGrid, ApiClient postmark,
             ConflictMonitorApiProperties props) {
         this.mailSender = mailSender;

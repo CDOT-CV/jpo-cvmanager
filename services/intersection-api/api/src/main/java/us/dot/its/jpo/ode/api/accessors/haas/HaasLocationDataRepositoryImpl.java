@@ -9,7 +9,6 @@ import us.dot.its.jpo.ode.api.models.haas.HaasLocationResult;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -29,7 +28,6 @@ public class HaasLocationDataRepositoryImpl
         private final String IS_ACTIVE_FIELD = "is_active";
         private final String ID_FIELD = "id";
 
-        @Autowired
         public HaasLocationDataRepositoryImpl(MongoTemplate mongoTemplate) {
                 this.mongoTemplate = mongoTemplate;
         }

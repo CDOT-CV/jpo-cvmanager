@@ -2,7 +2,11 @@ package us.dot.its.jpo.ode.api.accessorTests.events;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -12,9 +16,9 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.events.SpatMessageCountProg
 import us.dot.its.jpo.ode.api.accessors.events.spat_message_count_progression_event.SpatMessageCountProgressionRepositoryImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class SpatMessageCountProgressionRepositoryImplTest {
 
     @Mock
@@ -29,7 +33,6 @@ class SpatMessageCountProgressionRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         repository = new SpatMessageCountProgressionRepositoryImpl(mongoTemplate);
     }
 

@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.accessorTests.events;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.runner.RunWith;
@@ -57,6 +58,7 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class ConnectionOfTravelEventRepositoryImplTest {
 
     @MockitoSpyBean

@@ -4,7 +4,6 @@ package us.dot.its.jpo.ode.api.accessors.config.default_config;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -21,7 +20,6 @@ public class DefaultConfigRepositoryImpl implements DefaultConfigRepository {
 
     private final MongoTemplate mongoTemplate;
 
-    @Autowired
     public DefaultConfigRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

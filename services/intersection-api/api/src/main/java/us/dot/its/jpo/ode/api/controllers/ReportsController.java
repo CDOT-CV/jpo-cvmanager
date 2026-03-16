@@ -1,15 +1,14 @@
 package us.dot.its.jpo.ode.api.controllers;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,7 +32,6 @@ public class ReportsController {
     private final ReportService reportService;
     private final ReportRepository reportRepo;
 
-    @Autowired
     public ReportsController(
             ReportService reportService,
             ReportRepository reportRepo) {
@@ -42,7 +40,7 @@ public class ReportsController {
     }
 
     @Operation(summary = "Generate a Report", description = "Generates a new report for the intersection specified, within the start and end time. This can take upwards of 15 minutes to complete for longer reports")
-    @RequestMapping(value = "/intersection/generate", method = RequestMethod.GET, produces = "application/octet-stream")
+    @GetMapping(value = "/intersection/generate", produces = "application/octet-stream")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER')) ")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -60,7 +58,7 @@ public class ReportsController {
     }
 
     @Operation(summary = "List Reports", description = "Returns a list of existing intersection reports, as aggregated data, filtered by name, intersection ID, start time, and end time. The latest parameter will return the most recent report.")
-    @RequestMapping(value = "/intersection", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -87,7 +85,7 @@ public class ReportsController {
     }
 
     @Operation(summary = "Download a Report", description = "Returns the a report by name, as aggregated data")
-    @RequestMapping(value = "/intersection/download", method = RequestMethod.GET, produces = "application/octet-stream")
+    @GetMapping(value = "/intersection/download", produces = "application/octet-stream")
     @PreAuthorize("@PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

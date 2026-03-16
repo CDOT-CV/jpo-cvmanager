@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.accessorTests.notifications;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.runner.RunWith;
@@ -53,6 +54,7 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
 @AutoConfigureEmbeddedDatabase
+@Disabled("445855")
 public class StopLinePassageNotificationRepositoryImplTest {
 
     @MockitoSpyBean

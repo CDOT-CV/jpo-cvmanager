@@ -4,22 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -39,6 +35,7 @@ import us.dot.its.jpo.ode.api.accessors.config.default_config.DefaultConfigRepos
 import us.dot.its.jpo.ode.api.accessors.config.intersection_config.IntersectionConfigRepository;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
+@ExtendWith(MockitoExtension.class)
 public class ConfigControllerTest {
 
     private ConfigController controller;
@@ -60,7 +57,6 @@ public class ConfigControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         controller = new ConfigController(
                 defaultConfigRepository,
                 intersectionConfigRepository,
@@ -68,7 +64,7 @@ public class ConfigControllerTest {
                         permissionService);
 
         ReflectionTestUtils.setField(controller, "restTemplate", restTemplate);
-        when(props.getCmServerURL()).thenReturn("http://localhost");
+        lenient().when(props.getCmServerURL()).thenReturn("http://localhost");
     }
 
     @Test
@@ -106,7 +102,7 @@ public class ConfigControllerTest {
         String resourceURL = "http://localhost/config/default/testKey";
         when(props.getCmServerURL()).thenReturn("http://localhost");
         when(restTemplate.getForEntity(eq(resourceURL), eq(DefaultConfig.class)))
-                .thenReturn(new ResponseEntity(null, HttpStatus.NOT_FOUND));
+                .thenReturn(ResponseEntity.notFound().build());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             controller.default_config(inputConfig);
@@ -293,7 +289,7 @@ public class ConfigControllerTest {
     void testDefaultConfigAllApiError() {
         String resourceURL = "http://localhost/config/defaults";
         when(restTemplate.getForEntity(resourceURL, DefaultConfigMap.class))
-                .thenReturn(new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                .thenReturn(ResponseEntity.notFound().build());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             controller.default_config_all();
@@ -352,7 +348,7 @@ public class ConfigControllerTest {
     void testIntersectionConfigAllApiError() {
         String resourceURL = "http://localhost/config/intersections";
         when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
-                .thenReturn(new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                .thenReturn(ResponseEntity.notFound().build());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> {
             controller.intersection_config_all(null);
@@ -393,9 +389,9 @@ public class ConfigControllerTest {
         String defaultResourceURL = "http://localhost/config/defaults";
         String intersectionResourceURL = "http://localhost/config/intersections";
         when(restTemplate.getForEntity(eq(defaultResourceURL), eq(DefaultConfigMap.class)))
-                .thenReturn(new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                .thenReturn(ResponseEntity.notFound().build());
         when(restTemplate.getForEntity(eq(intersectionResourceURL), eq(IntersectionConfigMap.class)))
-                .thenReturn(new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
+                .thenReturn(ResponseEntity.notFound().build());
 
         ResponseEntity<List<Config<?>>> response = controller.intersection_config_unique(1);
 

@@ -4,13 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HexFormat;
 
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 import j2735ffm.MessageFrameCodec;
+import tools.jackson.dataformat.xml.XmlMapper;
 import us.dot.its.jpo.ode.api.models.messages.SpatDecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
@@ -22,8 +20,9 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata.Source;
 import us.dot.its.jpo.ode.model.OdeMessageFramePayload;
 import us.dot.its.jpo.ode.model.OdeMessageFrameMetadata;
 import us.dot.its.jpo.ode.util.DateTimeUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.asn.j2735.r2024.MessageFrame.MessageFrame;
+
+import tools.jackson.databind.DatabindException;
 import us.dot.its.jpo.asn.j2735.r2024.SPAT.SPATMessageFrame;
 import us.dot.its.jpo.geojsonconverter.converter.spat.SpatProcessedJsonConverter;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.DeserializedRawSpat;
@@ -43,7 +42,7 @@ public class SpatDecoder implements Decoder {
     MessageFrameCodec codec;
     SpatJsonValidator spatJsonValidator;
     public static final SpatProcessedJsonConverter converter = new SpatProcessedJsonConverter();
-    public static final XmlMapper xmlMapper = new XmlMapper();
+    public final XmlMapper xmlMapper;
 
     /**
      * Constructs a SpatDecoder with required dependencies.
@@ -51,10 +50,10 @@ public class SpatDecoder implements Decoder {
      * @param codec             MessageFrameCodec for ASN.1 decoding
      * @param spatJsonValidator Validator for SPAT JSON messages
      */
-    @Autowired
-    SpatDecoder(MessageFrameCodec codec, SpatJsonValidator spatJsonValidator) {
+    SpatDecoder(MessageFrameCodec codec, SpatJsonValidator spatJsonValidator, XmlMapper xmlMapper) {
         this.codec = codec;
         this.spatJsonValidator = spatJsonValidator;
+        this.xmlMapper = xmlMapper;
     }
 
     /**
@@ -73,7 +72,7 @@ public class SpatDecoder implements Decoder {
             ProcessedSpat processedSpat = convertMessageFrameToProcessedSpat(odeMessageFrameData);
             return new SpatDecodedMessage(processedSpat, message.getAsn1Message(), "");
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return new SpatDecodedMessage(null, message.getAsn1Message(), e.getMessage());
         }
 
@@ -97,12 +96,12 @@ public class SpatDecoder implements Decoder {
      *
      * @param encodedXml XER-encoded XML string
      * @return OdeMessageFrameData object
-     * @throws JsonMappingException    if XML mapping fails
-     * @throws JsonProcessingException if XML processing fails
+     * @throws DatabindException    if XML mapping fails
+     * @throws JacksonException if XML processing fails
      */
     @Override
     public OdeMessageFrameData convertXERToMessageFrame(String encodedXml)
-            throws JsonMappingException, JsonProcessingException {
+            throws DatabindException, JacksonException {
         OdeMessageFrameMetadata metadata = new OdeMessageFrameMetadata();
         metadata.setOdeReceivedAt(DateTimeUtils.now());
         metadata.setRecordType(RecordType.spatTx);

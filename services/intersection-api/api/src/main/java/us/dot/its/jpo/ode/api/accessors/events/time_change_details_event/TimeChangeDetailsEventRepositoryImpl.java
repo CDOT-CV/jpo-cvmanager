@@ -3,7 +3,6 @@ package us.dot.its.jpo.ode.api.accessors.events.time_change_details_event;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import java.util.Date;
 
@@ -35,7 +34,6 @@ public class TimeChangeDetailsEventRepositoryImpl
     private final String DATE_FIELD = "eventGeneratedAt";
     private final String INTERSECTION_ID_FIELD = "intersectionID";
 
-    @Autowired
     public TimeChangeDetailsEventRepositoryImpl(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

@@ -3,18 +3,15 @@ package us.dot.its.jpo.ode.api.accessors;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,7 +107,8 @@ public interface PageableQuery {
         if (latest != null) {
             resultList.add(latest);
         }
-        return new PageImpl<>(resultList);
+        Pageable pageable = PageRequest.of(0, 1);
+        return new PageImpl<>(resultList, pageable, resultList.size());
     }
 
     private static AggregationResult getAggregationResult(@Nonnull MongoTemplate mongoTemplate,

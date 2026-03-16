@@ -49,15 +49,14 @@ conflict:
 
 # MongoDB Configuration
 spring:
-  data:
-    mongodb:
-      database: ${CM_DATABASE_NAME:CV}
-      host: ${DB_HOST_IP:localhost}
-      port: 27017
-      username: ${MONGO_READ_WRITE_USER:api}
-      password: ${MONGO_READ_WRITE_PASS:api}
-      authenticationDatabase: ${CM_MONGO_AUTH_DB:admin}
-      uri: ${CM_MONGO_URI:null}
+  mongodb:
+    database: ${CM_DATABASE_NAME:CV}
+    host: ${DB_HOST_IP:localhost}
+    port: 27017
+    username: ${MONGO_READ_WRITE_USER:ode}
+    password: ${MONGO_READ_WRITE_PASS:replace_me}
+    authenticationDatabase: ${CM_MONGO_AUTH_DB:admin}
+    uri: ${CM_MONGO_URI:null}
   # Postgres Configuration
   datasource:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://localhost:5432}/postgres

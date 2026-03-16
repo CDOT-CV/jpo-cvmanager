@@ -7,7 +7,6 @@ import us.dot.its.jpo.ode.api.accessors.IntersectionCriteria;
 import us.dot.its.jpo.ode.api.accessors.PageableQuery;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -23,7 +22,6 @@ public class OdeSpatDataRepositoryImpl
 	private final String DATE_FIELD = "properties.timeStamp";
 	private final String INTERSECTION_ID_FIELD = "properties.intersectionId";
 
-	@Autowired
 	public OdeSpatDataRepositoryImpl(MongoTemplate mongoTemplate) {
 		this.mongoTemplate = mongoTemplate;
 	}

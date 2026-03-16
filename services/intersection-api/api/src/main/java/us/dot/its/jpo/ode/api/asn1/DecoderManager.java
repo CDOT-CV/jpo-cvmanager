@@ -5,7 +5,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import us.dot.its.jpo.ode.api.models.MessageType;
 import us.dot.its.jpo.ode.api.models.messages.DecodedMessage;
 import us.dot.its.jpo.ode.api.models.messages.EncodedMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -37,7 +36,6 @@ public class DecoderManager {
     private final TimDecoder timDecoder;
     private final PsmDecoder psmDecoder;
 
-    @Autowired
     public DecoderManager(
             BsmDecoder bsmDecoder,
             MapDecoder mapDecoder,
