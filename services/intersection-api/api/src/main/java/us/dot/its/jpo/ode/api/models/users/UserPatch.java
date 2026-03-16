@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.models.users;
 
 import lombok.Getter;
 import lombok.Setter;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.UserOrganizationDto;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 

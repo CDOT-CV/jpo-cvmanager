@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.models.postgres.dtos;
+package us.dot.its.jpo.ode.api.models.users;
 
 import lombok.Getter;
 import lombok.Setter;

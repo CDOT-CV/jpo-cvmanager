@@ -8,10 +8,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
 
-import us.dot.its.jpo.ode.api.models.postgres.dtos.UserDto;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
+import us.dot.its.jpo.ode.api.models.users.UserDto;
+import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UserMapper {
