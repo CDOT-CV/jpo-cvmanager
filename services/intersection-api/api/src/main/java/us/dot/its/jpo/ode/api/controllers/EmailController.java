@@ -76,8 +76,7 @@ public class EmailController {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendFirmwareUpgradeFailure(body));
     }
-
-    @Operation(summary = "API Error Summary", description = "Request access to an organization")
+    @Operation(summary = "API Error Summary", description = "Sends an email with a summary of API errors.")
     @RequestMapping(value = "/send-api-error", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS')")
     @ApiResponses(value = {
@@ -90,7 +89,7 @@ public class EmailController {
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendApiError(body));
     }
 
-    @Operation(summary = "Rsu Error Summary", description = "Request access to an organization")
+    @Operation(summary = "Rsu Error Summary", description = "Sends an email with a summary of RSU errors.")
     @RequestMapping(value = "/send-rsu-error-summary", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {

@@ -129,6 +129,7 @@ class EmailApi:
             logging.error(
                 f"Failed to send message counts email: {response.status_code} - {response.text}"
             )
+            return response.status_code, {"error": response.text}
         return response.status_code, response.json()
 
     def send_firmware_upgrade_failure(

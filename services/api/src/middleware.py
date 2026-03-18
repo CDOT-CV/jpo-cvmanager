@@ -52,7 +52,6 @@ def get_user_role(token) -> UserInfo | None:
 
 
 organization_required = {
-    "/user-auth": False,
     "/rsuinfo": True,
     "/rsu-online-status": True,
     "/rsucounts": True,
@@ -63,13 +62,14 @@ organization_required = {
     "/rsu-geo-msg-data": False,
     "/rsu-ssm-srm-data": False,
     "/admin-new-rsu": False,
-    "/admin-rsu": False,
     "/admin-new-intersection": False,
     "/admin-intersection": False,
     "/admin-new-user": False,
     "/admin-user": False,
     "/admin-new-org": False,
     "/admin-org": False,
+    "/admin-org-tim-deposit": False,
+    "/admin-org-snmp-monitoring": False,
     "/rsu-config-geo-query": True,
     "/rsu-geo-query": True,
     "/admin-new-notification": False,
@@ -82,7 +82,6 @@ organization_required = {
 # Dictionary: Method specific feature required (e.g. {"GET": "rsu", "POST": "intersection"})
 feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/": None,
-    "/user-auth": None,
     "/rsuinfo": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-online-status": FEATURE_KEYS_LITERAL.RSU,
     "/rsucounts": FEATURE_KEYS_LITERAL.RSU,
@@ -94,13 +93,14 @@ feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/rsu-geo-msg-data": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-ssm-srm-data": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-rsu": FEATURE_KEYS_LITERAL.RSU,
-    "/admin-rsu": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-intersection": FEATURE_KEYS_LITERAL.INTERSECTION,
     "/admin-intersection": FEATURE_KEYS_LITERAL.INTERSECTION,
     "/admin-new-user": None,
     "/admin-user": None,
     "/admin-new-org": None,
     "/admin-org": None,
+    "/admin-org-tim-deposit": None,
+    "/admin-org-snmp-monitoring": None,
     "/rsu-config-geo-query": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-geo-query": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-notification": None,
