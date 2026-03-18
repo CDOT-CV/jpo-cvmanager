@@ -63,13 +63,10 @@
       "request": "launch",
       "mainClass": "us.dot.its.jpo.ode.api.ConflictApiApplication",
       "projectName": "intersection-api",
-      "env": {
-        "AUTH_SERVER_URL": "http://172.26.97.25:8084"
-      },
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "run-intersection-no-api",
       "env": {
-        "AUTH_SERVER_URL": "http://192.168.110.147:8084",
+        "AUTH_SERVER_URL": "http://localhost:8084",
         "KAFKA_BROKER_IP": "localhost",
         "DB_HOST_IP": "localhost",
         "PG_DB_PASS": "postgres",
