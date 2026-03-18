@@ -28,8 +28,9 @@
     "html-to-image": "^1.11.11",
     "jest-fetch-mock": "^3.0.3",
     "js-sha256": "^0.11.0",
-    "jspdf": "4.0.0",
+    "jspdf": "^4.1.0",
     "jszip": "^3.10.1",
+    "jwt-decode": "^4.0.0",
     "keycloak-js": "26.0.5",
     "luxon": "^3.5.0",
     "mapbox-gl": "^2.9.1",
@@ -63,7 +64,10 @@
     "build:all": "npm run build:dev && npm run build:test && npm run build:prod",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "dev": "vite"
+    "typecheck": "tsc --noEmit",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
@@ -83,6 +87,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@testing-library/jest-dom": "^6.6.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.15.19",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",

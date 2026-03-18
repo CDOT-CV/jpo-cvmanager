@@ -29,7 +29,7 @@ public class RsuErrorSummaryEmailGenerator extends AbstractEmailGenerator<RsuErr
         context.setVariable("unsubscribe_link_text", "");
         context.setVariable("unsubscribe_href", "");
 
-        String htmlContent = templateEngine.process("emails/announcement", context);
+        String htmlContent = templateEngine.process("emails/email_template", context);
 
         return new EmailContent(
                 data.getSubject(),

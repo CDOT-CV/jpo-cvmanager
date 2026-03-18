@@ -30,7 +30,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class UserController {
     private final EmailService emailService;
 
-    // TODO: Remove all authentication for send-support-request-email
     @Operation(summary = "Send Support Request Email", description = "Send a support request email")
     @RequestMapping(value = "/submit-support-request", method = RequestMethod.POST, produces = "application/json")
     @ApiResponses(value = {

@@ -52,8 +52,6 @@ class EnvironmentVars {
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
-  static authEndpoint = `${this.getBaseApiUrl()}/user-auth`
-  static adminAddRsu = `${this.getBaseApiUrl()}/admin-new-rsu`
   static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
   static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`
   static adminAddUser = `${this.getBaseApiUrl()}/admin-new-user`
@@ -62,6 +60,8 @@ class EnvironmentVars {
   static adminAddNotification = `${this.getBaseApiUrl()}/admin-new-notification`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
   static adminOrg = `${this.getBaseApiUrl()}/admin-org`
+  static adminOrgTimDeposit = `${this.getBaseApiUrl()}/admin-org-tim-deposit`
+  static adminOrgSnmpMonitoring = `${this.getBaseApiUrl()}/admin-org-snmp-monitoring`
   static contactSupport = `${this.getBaseApiUrl()}/contact-support`
   static rsuErrorSummary = `${this.getBaseApiUrl()}/rsu-error-summary`
 }
