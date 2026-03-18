@@ -15,8 +15,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -34,6 +32,7 @@ import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 @Slf4j
 @RestController
@@ -46,12 +45,16 @@ import us.dot.its.jpo.ode.api.services.RsuManagementService;
 @RequiredArgsConstructor
 public class RsuController {
     private final RsuManagementService rsuManagementService;
+    private final PermissionService permissionService;
+    private final RsuOptionManagementService rsuOptionManagementService;
 
     private static final Map<String, String> SORT_FIELD_MAPPING = Map.of(
             "ip", "ipv4Address",
             "primary_route", "primaryRoute",
             "serial_number", "serialNumber",
-            "scms_id", "issScmsId");
+            "scms_id", "issScmsId",
+            "tim_deposit", "rsuOption.timDeposit",
+            "snmp_monitoring", "rsuOption.snmpMonitoring");
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
     @RequestMapping(method = RequestMethod.GET, produces = "application/json", params = "!rsu_ip")
@@ -62,10 +65,11 @@ public class RsuController {
     })
     public Page<RsuInfoDto> getAllRsus(
             @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);
 
-        Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, mappedPageable);
+        Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, search, mappedPageable);
         return allRsuInfo;
     }
 
@@ -96,11 +100,29 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = PermissionService.getUsername(auth);
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService.getAllowedSelections(username);
+        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
+                .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
+    }
+
+    @Operation(summary = "Create RSU", description = "Create a new RSU")
+    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
+    })
+    public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
+        if (!permissionService.hasRoleInOrgs("OPERATOR", body.getOrganizations())) {
+            // This catches unqualified orgs or nonexistent orgs
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "User not qualified to modify all specified organizations");
+        }
+
+        rsuManagementService.createRsu(body, body.getOrganizations());
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
@@ -112,9 +134,8 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = PermissionService.getUsername(auth);
-        rsuManagementService.modifyRsu(rsuIp, body, username);
+        rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
+        rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
     }

@@ -4,6 +4,7 @@ import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { getQueryString } from './intersectionApiSlice'
 import { AdminRsu, AdminRsuAllowedSelections } from '../../models/Rsu'
+import { AdminRsuCreationBody } from '../adminAddRsu/AdminAddRsu'
 
 export interface PaginatedRsusResponse {
   content: AdminRsu[]
@@ -13,11 +14,15 @@ export interface PaginatedRsusResponse {
   number: number
 }
 
-export interface GetAllRsusParams {
-  organization: string
+export interface PaginatedQueryParams {
   page?: number
   size?: number
   sort?: string
+  search?: string
+}
+
+export interface GetAllRsusParams extends PaginatedQueryParams {
+  organization: string
 }
 
 export const rsuApiSlice = createApi({
@@ -27,6 +32,8 @@ export const rsuApiSlice = createApi({
     prepareHeaders: (headers, { getState, endpoint }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
+
+      headers.set('Accept', 'application/json')
 
       // Endpoint names must match the keys in the endpoints objects below
       const endpointsWithoutToken = []
@@ -40,12 +47,13 @@ export const rsuApiSlice = createApi({
   tagTypes: ['Rsu', 'AllowedSelections'],
   endpoints: (builder) => ({
     getAllRsus: builder.query<PaginatedRsusResponse, GetAllRsusParams>({
-      query: ({ organization, page = 0, size = 100, sort = '' }) => {
+      query: ({ organization, page = 0, size = 100, sort = 'ip,asc', search = '' }) => {
         return {
           url: `${getQueryString({
             page: page.toString(),
             size: size.toString(),
             sort: sort,
+            search: search,
           })}`,
           headers: {
             Organization: organization,
@@ -56,16 +64,6 @@ export const rsuApiSlice = createApi({
         result
           ? [...result.content.map(({ ip }) => ({ type: 'Rsu' as const, id: ip })), { type: 'Rsu', id: 'LIST' }]
           : [{ type: 'Rsu', id: 'LIST' }],
-      // When getAllRsus loads, populate individual RSU caches
-      async onQueryStarted(args, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled
-          // Populate each individual RSU cache entry
-          data.content.forEach((rsu) => {
-            dispatch(rsuApiSlice.util.upsertQueryData('getRsu', rsu.ip, rsu))
-          })
-        } catch {}
-      },
     }),
     getRsu: builder.query<AdminRsu, string>({
       query: (rsuIp) => {
@@ -76,32 +74,6 @@ export const rsuApiSlice = createApi({
         }
       },
       providesTags: (result, error, rsuIp) => [{ type: 'Rsu', id: rsuIp }],
-      // When getRsu loads, update the corresponding item in getAllRsus
-      async onQueryStarted(rsuIp, { dispatch, queryFulfilled, getState }) {
-        try {
-          const { data: updatedRsu } = await queryFulfilled
-
-          // Update the getAllRsus cache for all organizations
-          const state = getState() as RootState
-
-          // Get all active getAllRsus queries across all organizations
-          Object.keys(state.rsuApi.queries).forEach((queryKey) => {
-            const query = state.rsuApi.queries[queryKey]
-            if (query?.endpointName === 'getAllRsus' && query?.status === 'fulfilled') {
-              const args = query.originalArgs as GetAllRsusParams
-
-              dispatch(
-                rsuApiSlice.util.updateQueryData('getAllRsus', args, (draft) => {
-                  const index = draft.content.findIndex((rsu) => rsu.ip === rsuIp)
-                  if (index !== -1) {
-                    draft.content[index] = updatedRsu
-                  }
-                })
-              )
-            }
-          })
-        } catch {}
-      },
     }),
     getRsuAllowedSelections: builder.query<AdminRsuAllowedSelections, void>({
       query: () => {
@@ -110,6 +82,14 @@ export const rsuApiSlice = createApi({
         }
       },
       providesTags: (result, error) => ['AllowedSelections'],
+    }),
+    createRsu: builder.mutation<void, AdminRsuCreationBody>({
+      query: (rsu) => ({
+        url: '',
+        method: 'POST',
+        body: rsu,
+      }),
+      invalidatesTags: (result, error, vars) => [{ type: 'Rsu', id: 'LIST' }],
     }),
     patchRsu: builder.mutation<void, { rsuIp: string; patch: Partial<AdminRsu> }>({
       query: ({ rsuIp, patch }) => ({
@@ -157,6 +137,7 @@ export const {
   useLazyGetRsuQuery,
   useGetRsuAllowedSelectionsQuery,
   useLazyGetRsuAllowedSelectionsQuery,
+  useCreateRsuMutation,
   usePatchRsuMutation,
   useDeleteRsuMutation,
   useDeleteMultipleRsusMutation,
