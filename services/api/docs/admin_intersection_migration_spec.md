@@ -147,12 +147,16 @@ PATCH and DELETE use two layers of permission checks (defense-in-depth):
 
 Both checks must pass. The new implementation must preserve this two-layer pattern.
 
+> **Migration note:** In the Spring Boot implementation both checks belong in the **controller/auth layer**, not in the service. The outer role check and the inner intersection resource check are combined into a single `@PreAuthorize` expression using `PermissionService.hasIntersection(id, 'OPERATOR')`. The service layer is responsible only for database operations.
+
 ### Organization Restriction Enforcement (PATCH only)
 
 After permission checks pass, PATCH enforces that the user is allowed to modify the specific organizations listed in `organizations_to_add` and `organizations_to_remove`. For non-superusers, each
 organization in those lists must appear in the user's `qualified_orgs`. If any organization is not in the user's qualified list, the request is rejected with **403**.
 
 Superusers skip this check.
+
+> **Migration note:** In the Spring Boot implementation this enforcement belongs in the **controller layer** (method body), using `PermissionService` to retrieve the user's qualified orgs and validating the request's org lists before delegating to the service. The service layer receives a pre-authorized request and performs only database writes.
 
 ---
 

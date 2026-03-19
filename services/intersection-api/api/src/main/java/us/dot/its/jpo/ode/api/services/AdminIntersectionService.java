@@ -8,9 +8,11 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleRespon
 /**
  * Service stub for admin intersection management.
  *
+ * This service is responsible only for database operations. All authorization
+ * (role checks, intersection resource access, and org restriction enforcement)
+ * is handled by AdminIntersectionController before this service is called.
+ *
  * TODO: Implement each method. The service is responsible for:
- *   - Inner permission checks (OPERATOR + INTERSECTION resource type) on patch/delete
- *   - Organization restriction enforcement on patch (qualified_orgs check)
  *   - All database reads and writes described in admin_intersection_migration_spec.md
  *   - Wrapping patch/delete writes in a single transaction (fixes known issue #1)
  *   - Returning 404 (throw EntityNotFoundException) when deleting a nonexistent intersection (fixes known issue #2)
@@ -43,11 +45,7 @@ public class AdminIntersectionService {
 
     /**
      * Updates an intersection's properties and modifies its org/RSU relationships.
-     *
-     * Must perform:
-     *   1. Inner permission check: OPERATOR + INTERSECTION resource type
-     *   2. Org restriction enforcement (non-superusers only)
-     *   3. Up to 5 sequential DB writes wrapped in a single transaction
+     * All authorization has already been enforced by the controller before this is called.
      *
      * @param patch the patch request body
      * @return success message
@@ -58,11 +56,11 @@ public class AdminIntersectionService {
 
     /**
      * Deletes an intersection and all its relationship records.
+     * All authorization has already been enforced by the controller before this is called.
      *
      * Must perform:
-     *   1. Inner permission check: OPERATOR + INTERSECTION resource type
-     *   2. Delete in order: intersection_organization → rsu_intersection → intersections
-     *   3. Throw EntityNotFoundException if the intersection does not exist (fixes known issue #2)
+     *   1. Delete in order: intersection_organization → rsu_intersection → intersections
+     *   2. Throw EntityNotFoundException if the intersection does not exist (fixes known issue #2)
      *
      * @param intersectionId the intersection_number to delete
      * @return success message

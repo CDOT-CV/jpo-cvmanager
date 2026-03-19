@@ -21,16 +21,19 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
+import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import java.util.Map;
 
 /**
  * REST controller for admin intersection management.
  * Migrated from the Python Flask AdminIntersection resource at /admin-intersection.
- * Authorization notes:
- *   - @PreAuthorize on each method is the OUTER permission check (role only).
- *   - PATCH and DELETE also require an INNER permission check (OPERATOR + INTERSECTION resource type)
- *     performed inside AdminIntersectionService, after request body validation.
+ *
+ * All authorization is handled in this layer (controller/auth), not in the service:
+ *   - Role checks and intersection resource access are enforced via @PreAuthorize expressions.
+ *   - Org restriction enforcement on PATCH (organizations_to_add/remove must be within the
+ *     user's qualified orgs) is enforced in the method body via PermissionService.
+ *   - AdminIntersectionService is responsible only for database operations.
  */
 @Slf4j
 @RestController
@@ -46,6 +49,7 @@ import java.util.Map;
 public class AdminIntersectionController {
 
     private final AdminIntersectionService adminIntersectionService;
+    private final PermissionService permissionService;
 
     /**
      * Returns intersection data filtered by the requesting user's organization context.
@@ -88,29 +92,35 @@ public class AdminIntersectionController {
      * PATCH /admin-intersection
      *
      * Updates an intersection's properties and modifies its organization/RSU relationships.
-     * Request body validation runs after the outer permission check.
-     * The service performs the inner permission check (OPERATOR + INTERSECTION resource type)
-     * and enforces org restrictions on organizations_to_add/remove.
+     * Request body validation runs after the permission checks.
+     *
+     * Authorization (all enforced in this layer):
+     *   1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
+     *   2. Method body: each org in organizations_to_add/remove must be in the user's
+     *      qualified orgs (superusers exempt). Returns 403 if any org is not allowed.
      */
     @Operation(
             summary = "Update an intersection",
             description = """
                     Updates an existing intersection record and its organization/RSU associations.
-                    Outer check: OPERATOR role required.
-                    Inner check (in service): OPERATOR + INTERSECTION resource type access.
-                    Org enforcement (in service): organizations_to_add and organizations_to_remove must
-                    each be within the user's qualified organizations (superusers exempt).
+                    Role check: OPERATOR required.
+                    Intersection access check: user must have access to the specified intersection.
+                    Org enforcement: organizations_to_add and organizations_to_remove must each be
+                    within the user's qualified organizations (superusers exempt).
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Intersection successfully modified"),
             @ApiResponse(responseCode = "400", description = "Missing or invalid required fields"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, or org restriction violation"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, intersection access, or org restriction violation"),
     })
     @RequestMapping(method = RequestMethod.PATCH, produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
     public ResponseEntity<Map<String, String>> patchIntersection(
             @RequestBody @Validated IntersectionPatch patch) {
+        // TODO: enforce org restriction — verify each org in patch.organizationsToAdd and
+        // patch.organizationsToRemove is within permissionService.getCvManagerAuthToken().getQualifiedOrgList("OPERATOR").
+        // Return 403 (ResponseStatusException) if any org is not in the qualified list (superusers exempt).
         String message = adminIntersectionService.patchIntersection(patch);
         return ResponseEntity.ok(Map.of("message", message));
     }
@@ -119,26 +129,28 @@ public class AdminIntersectionController {
      * DELETE /admin-intersection?intersection_id={id}
      *
      * Removes an intersection and all its relationship records in dependency order.
-     * Request parameter validation runs after the outer permission check.
-     * The service performs the inner permission check (OPERATOR + INTERSECTION resource type).
+     * Request parameter validation runs after the permission check.
+     *
+     * Authorization (enforced in this layer):
+     *   @PreAuthorize: OPERATOR role AND access to the specific intersection.
      */
     @Operation(
             summary = "Delete an intersection",
             description = """
                     Removes an intersection and its intersection_organization and rsu_intersection records.
-                    Outer check: OPERATOR role required.
-                    Inner check (in service): OPERATOR + INTERSECTION resource type access.
+                    Role check: OPERATOR required.
+                    Intersection access check: user must have access to the specified intersection.
                     Returns 404 if the intersection does not exist (fixed from Python behavior).
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Intersection successfully deleted"),
             @ApiResponse(responseCode = "400", description = "Missing or blank intersection_id parameter"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, or no access to this intersection"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role or no access to this intersection"),
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @RequestMapping(method = RequestMethod.DELETE, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#intersectionId, 'OPERATOR'))")
     public ResponseEntity<Map<String, String>> deleteIntersection(
             @RequestParam(name = "intersection_id")
             @NotBlank(message = "intersection_id must not be blank")
