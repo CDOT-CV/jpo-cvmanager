@@ -128,6 +128,24 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
               will be skipped. If the RSU is offline, it will be marked for an upgrade and will be upgraded when it
               comes back online.
             </p>
+            {firmwareUpgradeMsg !== '' && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  fontWeight: 500,
+                }}
+              >
+                {firmwareUpgradeErr ? (
+                  <Typography color={theme.palette.error.light} role="alert" variant="subtitle1">
+                    {firmwareUpgradeMsg}
+                  </Typography>
+                ) : (
+                  <Typography color={theme.palette.success.light} role="status">
+                    {firmwareUpgradeMsg}
+                  </Typography>
+                )}
+              </div>
+            )}
           </div>
           <Button
             className="museo-slab capital-case"

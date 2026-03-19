@@ -93,6 +93,11 @@ export type RsuCommandPostBody = {
   args: object
 }
 
+export type RsuUpgradePostBody = {
+  rsu_ip: string[]
+  args: object
+}
+
 export type ApiMsgResp = { message: string }
 export type ApiMsgRespWithCodes<T> = {
   body: T
