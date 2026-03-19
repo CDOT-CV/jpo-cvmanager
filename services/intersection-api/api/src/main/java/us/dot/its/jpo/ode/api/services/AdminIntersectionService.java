@@ -57,6 +57,7 @@ public class AdminIntersectionService {
     private final RsuRepository rsuRepository;
     private final IntersectionMapper intersectionMapper;
     private final INetMapper inetMapper;
+    private final GeometryMapper geometryMapper;
 
     /**
      * Returns a single intersection by intersection_number, plus allowed_selections for UI dropdowns.
@@ -151,9 +152,9 @@ public class AdminIntersectionService {
 
         // Step 1: Update the intersection record
         intersection.setIntersectionNumber(newNumber);
-        intersection.setRefPt(GeometryMapper.toPoint(patch.getRefPt()));
+        intersection.setRefPt(geometryMapper.toPoint(patch.getRefPt()));
         if (patch.getBbox() != null) {
-            intersection.setBbox(GeometryMapper.toPolygon(patch.getBbox()));
+            intersection.setBbox(geometryMapper.toPolygon(patch.getBbox()));
         }
         if (patch.getIntersectionName() != null) {
             intersection.setIntersectionName(patch.getIntersectionName());
