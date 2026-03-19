@@ -259,7 +259,7 @@ public class AdminIntersectionService {
         Map<String, List<String>> result = new HashMap<>();
         for (RsuIntersectionRepository.IntersectionRsuProjection proj : projections) {
             String ip = inetMapper.mapInetAddressToString(proj.getRsuIp());
-            result.computeIfAbsent(proj.getIntersectionNumber(), k -> new ArrayList<>()).add(ip);
+            result.computeIfAbsent(proj.getIntersectionNumber(), _ -> new ArrayList<>()).add(ip);
         }
         return result;
     }

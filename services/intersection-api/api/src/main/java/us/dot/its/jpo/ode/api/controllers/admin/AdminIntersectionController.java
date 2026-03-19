@@ -137,8 +137,8 @@ public class AdminIntersectionController {
                     ? token.getQualifiedOrgList("OPERATOR")
                     : Collections.emptyList();
             Set<String> qualifiedOrgSet = new java.util.HashSet<>(qualifiedOrgs);
-            boolean allOrgsAllowed = patch.getOrganizationsToAdd().stream().allMatch(qualifiedOrgSet::contains)
-                    && patch.getOrganizationsToRemove().stream().allMatch(qualifiedOrgSet::contains);
+            boolean allOrgsAllowed = qualifiedOrgSet.containsAll(patch.getOrganizationsToAdd())
+                    && qualifiedOrgSet.containsAll(patch.getOrganizationsToRemove());
             if (!allOrgsAllowed) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Not authorized to modify one or more of the specified organizations");
@@ -155,7 +155,7 @@ public class AdminIntersectionController {
      * Request parameter validation runs after the permission check.
      *
      * Authorization (enforced in this layer):
-     *   @PreAuthorize: OPERATOR role AND access to the specific intersection.
+     *   1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
      */
     @Operation(
             summary = "Delete an intersection",
