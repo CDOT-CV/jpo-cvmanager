@@ -24,4 +24,14 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleRsuIntersectionsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
+    @Modifying
+    @Transactional
+    void deleteByIntersection_IntersectionNumber(String intersectionNumber);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM RsuIntersection ri WHERE ri.intersection.intersectionNumber = :intersectionNumber AND ri.rsu.ipv4Address IN :ipv4Addresses")
+    void deleteByIntersectionNumberAndRsuIpv4AddressIn(@Param("intersectionNumber") String intersectionNumber,
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 }
