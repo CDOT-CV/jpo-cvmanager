@@ -15,6 +15,38 @@ import java.util.List;
 @Repository
 public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection, Integer> {
 
+    /**
+     * Projection for fetching RSU IPs alongside the intersection number they belong to.
+     * Used by getAllIntersections to load all RSU IPs in a single batch query.
+     */
+    interface IntersectionRsuProjection {
+        String getIntersectionNumber();
+
+        InetAddress getRsuIp();
+    }
+
+    /**
+     * Fetches RSU IPs for a batch of intersection numbers in one query.
+     * Used by getAllIntersections to avoid N+1 RSU IP lookups.
+     */
+    @Query("SELECT ri.intersection.intersectionNumber AS intersectionNumber, " +
+            "ri.rsu.ipv4Address AS rsuIp " +
+            "FROM RsuIntersection ri " +
+            "WHERE ri.intersection.intersectionNumber IN :intersectionNumbers")
+    List<IntersectionRsuProjection> findRsuIpsByIntersectionNumbers(
+            @Param("intersectionNumbers") List<String> intersectionNumbers);
+
+    /**
+     * Fetches RSU IPs for a single intersection number.
+     * Used by getIntersection (single GET).
+     */
+    @Query("SELECT ri.rsu.ipv4Address FROM RsuIntersection ri " +
+            "WHERE ri.intersection.intersectionNumber = :intersectionNumber")
+    List<InetAddress> findRsuIpsByIntersectionNumber(
+            @Param("intersectionNumber") String intersectionNumber);
+
+
+
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address = :ipv4Address")
