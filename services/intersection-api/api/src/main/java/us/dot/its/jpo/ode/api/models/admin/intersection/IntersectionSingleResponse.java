@@ -19,7 +19,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class IntersectionSingleResponse {
     @JsonProperty("intersection_data")
-    private IntersectionData intersectionData;
+    private IntersectionDto intersectionDto;
 
     @JsonProperty("allowed_selections")
     private AllowedSelections allowedSelections;

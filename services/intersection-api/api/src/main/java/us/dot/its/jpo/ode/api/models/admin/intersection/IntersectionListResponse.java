@@ -18,5 +18,5 @@ import java.util.List;
 @AllArgsConstructor
 public class IntersectionListResponse {
     @JsonProperty("intersection_data")
-    private List<IntersectionData> intersectionData;
+    private List<IntersectionDto> intersectionData;
 }

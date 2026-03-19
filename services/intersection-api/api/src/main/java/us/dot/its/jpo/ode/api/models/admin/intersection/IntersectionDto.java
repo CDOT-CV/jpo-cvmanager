@@ -20,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class IntersectionData {
+public class IntersectionDto {
     @JsonProperty("intersection_id")
     private String intersectionId;
 
