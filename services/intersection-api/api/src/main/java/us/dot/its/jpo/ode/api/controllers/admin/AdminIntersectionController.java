@@ -8,8 +8,10 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -20,10 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * REST controller for admin intersection management.
@@ -79,11 +85,18 @@ public class AdminIntersectionController {
             String intersectionId,
             @RequestHeader(name = "Organization", required = false) String organization) {
 
+        boolean isSuperUser = permissionService.isSuperUser();
+        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
+        List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
+        List<String> operatorOrgs = token != null ? token.getQualifiedOrgList("OPERATOR") : Collections.emptyList();
+
         if ("all".equals(intersectionId)) {
-            IntersectionListResponse response = adminIntersectionService.getAllIntersections(organization);
+            IntersectionListResponse response = adminIntersectionService.getAllIntersections(
+                    organization, isSuperUser, userOrgs);
             return ResponseEntity.ok(response);
         } else {
-            IntersectionSingleResponse response = adminIntersectionService.getIntersection(intersectionId, organization);
+            IntersectionSingleResponse response = adminIntersectionService.getIntersection(
+                    intersectionId, organization, isSuperUser, userOrgs, operatorOrgs);
             return ResponseEntity.ok(response);
         }
     }
@@ -118,9 +131,19 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
     public ResponseEntity<Map<String, String>> patchIntersection(
             @RequestBody @Validated IntersectionPatch patch) {
-        // TODO: enforce org restriction — verify each org in patch.organizationsToAdd and
-        // patch.organizationsToRemove is within permissionService.getCvManagerAuthToken().getQualifiedOrgList("OPERATOR").
-        // Return 403 (ResponseStatusException) if any org is not in the qualified list (superusers exempt).
+        if (!permissionService.isSuperUser()) {
+            CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
+            List<String> qualifiedOrgs = token != null
+                    ? token.getQualifiedOrgList("OPERATOR")
+                    : Collections.emptyList();
+            Set<String> qualifiedOrgSet = new java.util.HashSet<>(qualifiedOrgs);
+            boolean allOrgsAllowed = patch.getOrganizationsToAdd().stream().allMatch(qualifiedOrgSet::contains)
+                    && patch.getOrganizationsToRemove().stream().allMatch(qualifiedOrgSet::contains);
+            if (!allOrgsAllowed) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Not authorized to modify one or more of the specified organizations");
+            }
+        }
         String message = adminIntersectionService.patchIntersection(patch);
         return ResponseEntity.ok(Map.of("message", message));
     }
