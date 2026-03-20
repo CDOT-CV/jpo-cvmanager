@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.config;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -22,11 +24,9 @@ import org.testcontainers.utility.DockerImageName;
 @ActiveProfiles("test")
 @Testcontainers
 @TestConfiguration
-@Testcontainers
-public class TestcontainersConfiguration {
+public class AbstractIntegrationTest {
 
       @Bean
-      @ServiceConnection
       PostgreSQLContainer<?> postgresContainer() {
           return new PostgreSQLContainer<>(
                   DockerImageName.parse("postgis/postgis:15-master")
@@ -34,7 +34,6 @@ public class TestcontainersConfiguration {
       }
 
       @Bean
-      @ServiceConnection
       MongoDBContainer mongoDbContainer() {
           return new MongoDBContainer(DockerImageName.parse("mongo:8"));
       }
