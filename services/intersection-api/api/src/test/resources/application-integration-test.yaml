@@ -1,0 +1,106 @@
+# Integration test profile
+#
+# PostgreSQL (PostGIS) is provided automatically by Testcontainers via the tc: JDBC URL
+# scheme — no container code required. Testcontainers intercepts the URL, pulls the
+# postgis/postgis:17-3.5 image, and wires the connection before Hibernate runs DDL.
+#
+# MongoDB has no equivalent tc: URL scheme. Set a placeholder URI here; test classes
+# override it via @DynamicPropertySource (which has higher precedence than profile YAML).
+#
+# Usage in tests:
+#   @SpringBootTest
+#   @ActiveProfiles("integration-test")
+#   @Testcontainers
+#   class MyIntegrationTest {
+#       @Container
+#       static MongoDBContainer mongo = new MongoDBContainer("mongo:8");
+#
+#       @DynamicPropertySource
+#       static void mongoProperties(DynamicPropertyRegistry r) {
+#           r.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+#       }
+#   }
+
+server:
+  port: 8089
+
+### Keycloak — not needed for service-layer integration tests (no HTTP requests)
+keycloak:
+  realm: cvmanager
+  auth-server-url: http://localhost:8084
+  client-id: cvmanager-api
+  client-secret: test-secret
+
+spring.security.oauth2.resourceserver.jwt:
+  issuer-uri: http://localhost:8084/realms/cvmanager
+  jwk-set-uri: http://localhost:8084/realms/cvmanager/protocol/openid-connect/certs
+
+spring.kafka.bootstrap-servers: localhost:9092
+
+kafka.linger_ms: 50
+
+kafka.topics:
+  autoCreateTopics: false
+  numPartitions: 1
+  numReplicas: 1
+  createTopics:
+    - name: topic.ProcessedSpat
+      cleanupPolicy: delete
+      retentionMs: 300000
+    - name: topic.ProcessedMap
+      cleanupPolicy: delete
+      retentionMs: 300000
+
+conflict:
+  monitor:
+    api:
+      kafka-consumers-always-on: false
+
+spring:
+  data:
+    mongodb:
+      # Placeholder — overridden at runtime by @DynamicPropertySource in each test class
+      uri: mongodb://localhost:27017/testdb
+  # PostgreSQL — Testcontainers starts a postgis/postgis:17-3.5 container automatically
+  datasource:
+    url: jdbc:tc:postgis:17-3.5:///testdb
+    username: postgres
+    password: postgres
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+      ddl-auto: create
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+enable:
+  api: true
+  email: false
+  report: false
+  haas: false
+  asn1-decoder: false
+
+cmServerURL: http://localhost:8082
+mongoTimeoutMs: 5000
+cors: '*'
+maximumResponseSize: 10000
+
+spring.main.allow-circular-references: true
+
+email:
+  broker: SMTP
+  sender-address: donotreply@cvmanager.com
+  unsubscribe-secret-key: b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52
+  cvmgr-front-end-uri: http://localhost
+  sendgrid:
+    api-key:
+  postmark:
+    api-key:
