@@ -1,221 +1,316 @@
 package us.dot.its.jpo.ode.api.services;
 
+import j2735ffm.MessageFrameCodec;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-import us.dot.its.jpo.ode.api.mappers.INetMapper;
-import us.dot.its.jpo.ode.api.mappers.IntersectionMapper;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.Bbox;
-import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuIntersection;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
+import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@ActiveProfiles("integration-test")
+@Testcontainers
+@Transactional
 class AdminIntersectionServiceTest {
 
-    @Mock
-    private IntersectionRepository intersectionRepository;
+    // PostgreSQL (PostGIS) is provided by the jdbc:tc:postgis:17-3.5:///testdb URL
+    // configured in application-integration-test.yaml — no @Container needed here.
 
-    @Mock
-    private IntersectionOrganizationRepository intersectionOrganizationRepository;
+    @Container
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
 
-    @Mock
-    private RsuIntersectionRepository rsuIntersectionRepository;
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+    }
 
-    @Mock
-    private OrganizationRepository organizationRepository;
+    // ==================== Injected Beans ====================
 
-    @Mock
-    private RsuRepository rsuRepository;
-
-    @Mock
-    private IntersectionMapper intersectionMapper;
-
-    @Mock
-    private INetMapper inetMapper;
-
-    @InjectMocks
+    @Autowired
     private AdminIntersectionService adminIntersectionService;
 
-    private Intersection makeIntersection(String number) {
-        Intersection i = new Intersection();
-        i.setId(1);
-        i.setIntersectionNumber(number);
-        i.setIntersectionOrganizations(Collections.emptyList());
-        i.setRsuIntersections(Collections.emptyList());
-        return i;
+    @Autowired
+    private IntersectionRepository intersectionRepository;
+
+    @Autowired
+    private IntersectionOrganizationRepository intersectionOrganizationRepository;
+
+    @Autowired
+    private RsuIntersectionRepository rsuIntersectionRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private RsuRepository rsuRepository;
+
+    @Autowired
+    private RsuOrganizationRepository rsuOrganizationRepository;
+
+    @Autowired
+    private RsuCredentialRepository rsuCredentialRepository;
+
+    @Autowired
+    private SnmpCredentialRepository snmpCredentialRepository;
+
+    @Autowired
+    private SnmpProtocolRepository snmpProtocolRepository;
+
+    @Autowired
+    private RsuModelRepository rsuModelRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @MockitoBean
+    @SuppressWarnings("unused")
+    MessageFrameCodec messageFrameCodec;
+
+    // ==================== Entity Factories ====================
+
+    private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
+
+    private static Point point(double lon, double lat) {
+        return GF.createPoint(new Coordinate(lon, lat));
     }
 
-    private Intersection makeIntersectionWithOrg(String number, String orgName) {
-        Organization org = new Organization();
-        org.setName(orgName);
-        IntersectionOrganization io = new IntersectionOrganization();
-        io.setOrganization(org);
-        Intersection i = makeIntersection(number);
-        i.setIntersectionOrganizations(List.of(io));
-        return i;
-    }
-
-    private IntersectionDto makeDto(String id) {
-        IntersectionDto dto = new IntersectionDto();
-        dto.setIntersectionId(id);
-        dto.setOrganizations(Collections.emptyList());
-        return dto;
-    }
-
-    private RsuIntersectionRepository.IntersectionRsuProjection makeRsuProjection(
-            String intersectionNumber, InetAddress ip) {
-        RsuIntersectionRepository.IntersectionRsuProjection proj =
-                mock(RsuIntersectionRepository.IntersectionRsuProjection.class);
-        when(proj.getIntersectionNumber()).thenReturn(intersectionNumber);
-        when(proj.getRsuIp()).thenReturn(ip);
-        return proj;
-    }
-
-    private Organization makeOrg(String name) {
+    private Organization saveOrg(String name) {
         Organization org = new Organization();
         org.setName(name);
-        return org;
+        return organizationRepository.save(org);
     }
 
-    private Rsu makeRsu(InetAddress ip) {
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(ip);
-        return rsu;
+    private Intersection saveIntersection(String number) {
+        Intersection i = new Intersection();
+        i.setIntersectionNumber(number);
+        i.setRefPt(point(-105.0, 40.0));
+        return intersectionRepository.save(i);
     }
+
+    private IntersectionOrganization linkIntersectionToOrg(Intersection intersection, Organization org) {
+        IntersectionOrganization io = new IntersectionOrganization();
+        io.setIntersection(intersection);
+        io.setOrganization(org);
+        return intersectionOrganizationRepository.save(io);
+    }
+
+    /**
+     * Builds and persists a minimal Rsu with all required FK dependencies.
+     * Manufacturer is persisted via EntityManager since no dedicated repository exists.
+     */
+    private Rsu saveRsu(String ip, Organization credentialOwner) throws UnknownHostException {
+        Manufacturer mfr = new Manufacturer();
+        mfr.setName("Mfr-" + uuid());
+        entityManager.persist(mfr);
+
+        RsuModel model = new RsuModel();
+        model.setName("Model-" + uuid());
+        model.setSupportedRadio("DSRC");
+        model.setManufacturer(mfr);
+        rsuModelRepository.save(model);
+
+        RsuCredential cred = new RsuCredential();
+        cred.setUsername("user-" + uuid());
+        cred.setPassword("pass");
+        cred.setNickname("cred-" + uuid());
+        cred.setOwnerOrganization(credentialOwner);
+        rsuCredentialRepository.save(cred);
+
+        SnmpCredential snmpCred = new SnmpCredential();
+        snmpCred.setUsername("snmpuser-" + uuid());
+        snmpCred.setPassword("snmppass");
+        snmpCred.setNickname("snmp-" + uuid());
+        snmpCred.setOwnerOrganization(credentialOwner);
+        snmpCredentialRepository.save(snmpCred);
+
+        SnmpProtocol proto = new SnmpProtocol();
+        proto.setProtocolCode("NTCIP1218");
+        proto.setNickname("NTCIP-" + uuid());
+        snmpProtocolRepository.save(proto);
+
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
+        rsu.setGeography(point(-105.0, 40.0));
+        rsu.setMilepost(0.0);
+        rsu.setSerialNumber("SN-" + uuid());
+        rsu.setIssScmsId("ISS-" + uuid());
+        rsu.setPrimaryRoute("CO-470");
+        rsu.setModel(model);
+        rsu.setCredential(cred);
+        rsu.setSnmpCredential(snmpCred);
+        rsu.setSnmpProtocol(proto);
+        return rsuRepository.save(rsu);
+    }
+
+    private RsuIntersection linkRsuToIntersection(Rsu rsu, Intersection intersection) {
+        RsuIntersection ri = new RsuIntersection();
+        ri.setRsu(rsu);
+        ri.setIntersection(intersection);
+        return rsuIntersectionRepository.save(ri);
+    }
+
+    private RsuOrganization linkRsuToOrg(Rsu rsu, Organization org) {
+        RsuOrganization ro = new RsuOrganization();
+        ro.setRsu(rsu);
+        ro.setOrganization(org);
+        return rsuOrganizationRepository.save(ro);
+    }
+
+    /** Flush pending SQL to the DB and clear the first-level cache. */
+    private void flushAndClear() {
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    private static String uuid() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    // ==================== Tests ====================
 
     @Nested
     class GetAllIntersections {
-        @Test
-        void getAllIntersections_superuser_noOrgScope_usesUnfilteredQuery() {
-            Intersection i = makeIntersection("1123");
-            IntersectionDto dto = makeDto("1123");
 
-            when(intersectionRepository.findAllWithOrgs()).thenReturn(List.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumbers(List.of("1123")))
-                    .thenReturn(Collections.emptyList());
+        @Test
+        void superuser_noOrgScope_returnsAllIntersections() {
+            Organization org = saveOrg("OrgA-" + uuid());
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            flushAndClear();
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
 
-            verify(intersectionRepository).findAllWithOrgs();
-            verify(intersectionRepository, never()).findAllByOrgNameWithOrgs(any());
-            verify(intersectionRepository, never()).findAllByOrgNamesWithOrgs(any());
             assertNotNull(result.getIntersectionData());
             assertEquals(1, result.getIntersectionData().size());
+            assertEquals("1123", result.getIntersectionData().getFirst().getIntersectionId());
         }
 
         @Test
-        void getAllIntersections_withScopedOrg_usesSingleOrgQuery() {
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-            IntersectionDto dto = makeDto("1123");
+        void withScopedOrg_returnsScopedIntersections() {
+            String orgName = "OrgA-" + uuid();
+            Organization org = saveOrg(orgName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            flushAndClear();
 
-            when(intersectionRepository.findAllByOrgNameWithOrgs("OrgA")).thenReturn(List.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumbers(any()))
-                    .thenReturn(Collections.emptyList());
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgName, false, List.of(orgName));
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections("OrgA", false, List.of("OrgA"));
-
-            verify(intersectionRepository).findAllByOrgNameWithOrgs("OrgA");
             assertEquals(1, result.getIntersectionData().size());
+            assertEquals("1123", result.getIntersectionData().getFirst().getIntersectionId());
         }
 
         @Test
-        void getAllIntersections_nonSuperuserNoScope_usesQualifiedOrgsQuery() {
-            List<String> userOrgs = List.of("OrgA", "OrgB");
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-            IntersectionDto dto = makeDto("1123");
+        void nonSuperuser_multipleQualifiedOrgs_returnsMatchingIntersections() {
+            String orgAName = "OrgA-" + uuid();
+            String orgBName = "OrgB-" + uuid();
+            Organization orgA = saveOrg(orgAName);
+            Organization orgB = saveOrg(orgBName);
 
-            when(intersectionRepository.findAllByOrgNamesWithOrgs(userOrgs)).thenReturn(List.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumbers(any()))
-                    .thenReturn(Collections.emptyList());
+            Intersection i1 = saveIntersection("1001");
+            linkIntersectionToOrg(i1, orgA);
+            Intersection i2 = saveIntersection("1002");
+            linkIntersectionToOrg(i2, orgB);
+            saveIntersection("1003"); // no org — should be excluded
+            flushAndClear();
 
-            IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, userOrgs);
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, List.of(orgAName, orgBName));
 
-            verify(intersectionRepository).findAllByOrgNamesWithOrgs(userOrgs);
-            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(2, result.getIntersectionData().size());
         }
 
         @Test
-        void getAllIntersections_noResults_returnsEmptyList() {
-            when(intersectionRepository.findAllWithOrgs()).thenReturn(Collections.emptyList());
-
+        void noResults_returnsEmptyList() {
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
 
             assertNotNull(result.getIntersectionData());
             assertTrue(result.getIntersectionData().isEmpty());
-            verify(rsuIntersectionRepository, never()).findRsuIpsByIntersectionNumbers(any());
         }
 
         @Test
-        void getAllIntersections_attachesRsuIpsToCorrectIntersection() throws UnknownHostException {
-            Intersection i = makeIntersection("1123");
-            IntersectionDto dto = makeDto("1123");
-            InetAddress ip = InetAddress.getByName("192.168.1.1");
-
-            // Create projection before nesting inside thenReturn to avoid UnfinishedStubbing
-            RsuIntersectionRepository.IntersectionRsuProjection proj = makeRsuProjection("1123", ip);
-
-            when(intersectionRepository.findAllWithOrgs()).thenReturn(List.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumbers(List.of("1123")))
-                    .thenReturn(List.of(proj));
-            when(inetMapper.mapInetAddressToString(ip)).thenReturn("192.168.1.1");
+        void attachesRsuIpsToCorrectIntersection() throws UnknownHostException {
+            Organization org = saveOrg("OrgA-" + uuid());
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            linkRsuToIntersection(rsu, i);
+            flushAndClear();
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
 
+            assertEquals(1, result.getIntersectionData().size());
             assertEquals(List.of("192.168.1.1"), result.getIntersectionData().getFirst().getRsus());
         }
 
         @Test
-        void getAllIntersections_nonSuperuserEmptyQualifiedOrgs_returnsEmptyList() {
+        void nonSuperuser_emptyQualifiedOrgs_returnsEmptyList() {
+            saveIntersection("1123");
+            flushAndClear();
+
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, List.of());
 
             assertNotNull(result.getIntersectionData());
             assertTrue(result.getIntersectionData().isEmpty());
-            verify(intersectionRepository, never()).findAllByOrgNamesWithOrgs(any());
         }
     }
 
     @Nested
     class GetIntersection {
+
         @Test
-        void getIntersection_notFound_returnsEmptyDataWithAllowedSelections() {
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("9999")).thenReturn(Optional.empty());
-            when(organizationRepository.findAll()).thenReturn(List.of(makeOrg("OrgA")));
-            when(rsuRepository.findAll()).thenReturn(Collections.emptyList());
+        void notFound_returnsEmptyDtoWithAllowedSelections() {
+            saveOrg("OrgA-" + uuid());
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "9999", null, true, List.of(), List.of());
@@ -223,278 +318,252 @@ class AdminIntersectionServiceTest {
             assertNotNull(result.getIntersectionDto());
             assertNull(result.getIntersectionDto().getIntersectionId());
             assertNotNull(result.getAllowedSelections());
-            verify(intersectionMapper, never()).toDto(any());
         }
 
         @Test
-        void getIntersection_foundAsSuperuser_returnsFullDataAndAllOrgs() throws UnknownHostException {
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-            IntersectionDto dto = makeDto("1123");
-            InetAddress rsuIp = InetAddress.getByName("192.168.1.1");
-            Organization org = makeOrg("OrgA");
-            Rsu rsu = makeRsu(rsuIp);
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123")).thenReturn(List.of(rsuIp));
-            when(inetMapper.mapInetAddressToString(rsuIp)).thenReturn("192.168.1.1");
-            when(organizationRepository.findAll()).thenReturn(List.of(org));
-            when(inetMapper.mapInetAddressToString(rsuIp)).thenReturn("192.168.1.1");
-            when(rsuRepository.findAll()).thenReturn(List.of(rsu));
+        void foundAsSuperuser_returnsFullDataWithAllOrgs() throws UnknownHostException {
+            String orgName = "OrgA-" + uuid();
+            Organization org = saveOrg(orgName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            linkRsuToIntersection(rsu, i);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", null, true, List.of(), List.of());
 
             assertEquals("1123", result.getIntersectionDto().getIntersectionId());
             assertNotNull(result.getAllowedSelections());
-            assertEquals(List.of("OrgA"), result.getAllowedSelections().getOrganizations());
+            assertTrue(result.getAllowedSelections().getOrganizations().contains(orgName));
+            assertEquals(List.of("192.168.1.1"), result.getIntersectionDto().getRsus());
         }
 
         @Test
-        void getIntersection_scopedOrgMatches_returnsFilteredOrgList() {
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-            IntersectionDto dto = makeDto("1123");
-            dto.setOrganizations(List.of("OrgA"));
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123"))
-                    .thenReturn(Collections.emptyList());
-            when(rsuRepository.findAllowedRsuIpsInOrganizations(any())).thenReturn(Collections.emptyList());
+        void scopedOrgMatches_returnsFilteredOrgList() {
+            String orgName = "OrgA-" + uuid();
+            Organization org = saveOrg(orgName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-                    "1123", "OrgA", false, List.of("OrgA"), List.of("OrgA"));
+                    "1123", orgName, false, List.of(orgName), List.of(orgName));
 
             assertEquals("1123", result.getIntersectionDto().getIntersectionId());
-            assertEquals(List.of("OrgA"), result.getIntersectionDto().getOrganizations());
+            assertEquals(List.of(orgName), result.getIntersectionDto().getOrganizations());
         }
 
         @Test
-        void getIntersection_scopedOrgDoesNotMatch_returnsEmptyData() {
-            // Intersection belongs to "OrgA", user is scoped to "OrgB"
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(rsuRepository.findAllowedRsuIpsInOrganizations(any())).thenReturn(Collections.emptyList());
+        void scopedOrgDoesNotMatch_returnsEmptyDto() {
+            String orgAName = "OrgA-" + uuid();
+            String orgBName = "OrgB-" + uuid();
+            Organization orgA = saveOrg(orgAName);
+            saveOrg(orgBName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, orgA);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-                    "1123", "OrgB", false, List.of("OrgB"), List.of("OrgB"));
+                    "1123", orgBName, false, List.of(orgBName), List.of(orgBName));
 
             assertNull(result.getIntersectionDto().getIntersectionId());
-            verify(intersectionMapper, never()).toDto(any());
         }
 
         @Test
-        void getIntersection_qualifiedOrgsMatch_returnsFilteredData() {
-            // Intersection belongs to OrgA and OrgB; user qualifies for OrgA only
-            Organization orgA = makeOrg("OrgA");
-            Organization orgB = makeOrg("OrgB");
-            IntersectionOrganization ioA = new IntersectionOrganization();
-            ioA.setOrganization(orgA);
-            IntersectionOrganization ioB = new IntersectionOrganization();
-            ioB.setOrganization(orgB);
-            Intersection i = makeIntersection("1123");
-            i.setIntersectionOrganizations(List.of(ioA, ioB));
-
-            IntersectionDto dto = makeDto("1123");
-            dto.setOrganizations(List.of("OrgA", "OrgB"));
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123"))
-                    .thenReturn(Collections.emptyList());
-            when(rsuRepository.findAllowedRsuIpsInOrganizations(any())).thenReturn(Collections.emptyList());
+        void qualifiedOrgsMatch_returnsOnlyUserQualifiedOrgs() {
+            String orgAName = "OrgA-" + uuid();
+            String orgBName = "OrgB-" + uuid();
+            Organization orgA = saveOrg(orgAName);
+            Organization orgB = saveOrg(orgBName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, orgA);
+            linkIntersectionToOrg(i, orgB);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-                    "1123", null, false, List.of("OrgA"), List.of("OrgA"));
+                    "1123", null, false, List.of(orgAName), List.of(orgAName));
 
             assertEquals("1123", result.getIntersectionDto().getIntersectionId());
-            // Only the user's qualified org should appear
-            assertEquals(List.of("OrgA"), result.getIntersectionDto().getOrganizations());
+            assertEquals(List.of(orgAName), result.getIntersectionDto().getOrganizations());
         }
 
         @Test
-        void getIntersection_qualifiedOrgsNoMatch_returnsEmptyData() {
-            // Intersection belongs to OrgB; user qualifies for OrgA only
-            Intersection i = makeIntersectionWithOrg("1123", "OrgB");
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(rsuRepository.findAllowedRsuIpsInOrganizations(any())).thenReturn(Collections.emptyList());
+        void qualifiedOrgsNoMatch_returnsEmptyDto() {
+            String orgAName = "OrgA-" + uuid();
+            String orgBName = "OrgB-" + uuid();
+            saveOrg(orgAName);
+            Organization orgB = saveOrg(orgBName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, orgB);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-                    "1123", null, false, List.of("OrgA"), List.of("OrgA"));
+                    "1123", null, false, List.of(orgAName), List.of(orgAName));
 
             assertNull(result.getIntersectionDto().getIntersectionId());
-            verify(intersectionMapper, never()).toDto(any());
         }
 
         @Test
-        void getIntersection_allowedSelectionsForNonSuperuser_usesOperatorOrgs() throws UnknownHostException {
-            Intersection i = makeIntersectionWithOrg("1123", "OrgA");
-            IntersectionDto dto = makeDto("1123");
-            InetAddress rsuIp = InetAddress.getByName("10.0.0.1");
-
-            when(intersectionRepository.findByIntersectionNumberWithOrgs("1123")).thenReturn(Optional.of(i));
-            when(intersectionMapper.toDto(i)).thenReturn(dto);
-            when(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123"))
-                    .thenReturn(Collections.emptyList());
-            when(rsuRepository.findAllowedRsuIpsInOrganizations(List.of("OrgA"))).thenReturn(List.of(rsuIp));
-            when(inetMapper.mapInetAddressToString(rsuIp)).thenReturn("10.0.0.1");
+        void nonSuperuser_allowedSelectionsUsesOperatorOrgs() throws UnknownHostException {
+            String orgName = "OrgA-" + uuid();
+            Organization org = saveOrg(orgName);
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            Rsu rsu = saveRsu("10.0.0.1", org);
+            linkRsuToOrg(rsu, org);
+            flushAndClear();
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-                    "1123", "OrgA", false, List.of("OrgA"), List.of("OrgA"));
+                    "1123", orgName, false, List.of(orgName), List.of(orgName));
 
             AllowedSelections allowed = result.getAllowedSelections();
-            assertEquals(List.of("OrgA"), allowed.getOrganizations());
+            assertEquals(List.of(orgName), allowed.getOrganizations());
             assertEquals(List.of("10.0.0.1"), allowed.getRsus());
-            verify(rsuRepository).findAllowedRsuIpsInOrganizations(List.of("OrgA"));
         }
     }
 
     @Nested
     class PatchIntersection {
+
         @Test
-        void patchIntersection_basicUpdate_savesIntersectionWithNewNumber() {
-            Intersection existing = makeIntersection("1000");
+        void basicUpdate_renumbersIntersection() {
+            saveIntersection("1000");
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1001, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-
             String result = adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
             assertEquals("Intersection successfully modified", result);
-            verify(intersectionRepository).save(existing);
-            assertEquals("1001", existing.getIntersectionNumber());
+            assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
+            assertFalse(intersectionRepository.findByIntersectionNumber("1000").isPresent());
         }
 
         @Test
-        void patchIntersection_withOptionalFields_updatesWhenNonNull() {
-            Intersection existing = makeIntersection("1000");
+        void withOptionalFields_updatesNonNullFields() {
+            saveIntersection("1000");
+            flushAndClear();
+
             Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
             IntersectionPatch patch = new IntersectionPatch(
-                    1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", "10.0.0.1",
+                    1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-            when(inetMapper.mapStringToInetAddress("10.0.0.1")).thenReturn(null);
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            assertEquals("Main St", existing.getIntersectionName());
-            verify(inetMapper).mapStringToInetAddress("10.0.0.1");
-            // bbox is set via GeometryMapper (not mocked here — static method)
+            Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
+            assertEquals("Main St", updated.getIntersectionName());
+            assertNotNull(updated.getBbox());
         }
 
         @Test
-        void patchIntersection_nullOptionalFields_doesNotOverwriteExistingValues() {
-            Intersection existing = makeIntersection("1000");
+        void nullOptionalFields_preservesExistingValues() {
+            Intersection existing = saveIntersection("1000");
             existing.setIntersectionName("Existing Name");
+            intersectionRepository.save(existing);
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            assertEquals("Existing Name", existing.getIntersectionName());
+            Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
+            assertEquals("Existing Name", updated.getIntersectionName());
         }
 
         @Test
-        void patchIntersection_orgsToAdd_loadsOrgsAndSavesAssociations() {
-            Intersection existing = makeIntersection("1000");
-            Organization org = makeOrg("OrgA");
+        void orgsToAdd_createsAssociations() {
+            String orgName = "OrgA-" + uuid();
+            saveOrg(orgName);
+            saveIntersection("1000");
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    List.of("OrgA"), Collections.emptyList(),
+                    List.of(orgName), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-            when(organizationRepository.findByNameIn(List.of("OrgA"))).thenReturn(List.of(org));
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<IntersectionOrganization>> captor = ArgumentCaptor.forClass(List.class);
-            verify(intersectionOrganizationRepository).saveAll(captor.capture());
-            List<IntersectionOrganization> saved = captor.getValue();
-            assertEquals(1, saved.size());
-            assertEquals(org, saved.getFirst().getOrganization());
-            assertEquals(existing, saved.getFirst().getIntersection());
+            List<Intersection> result = intersectionRepository.findAllByOrgNameWithOrgs(orgName);
+            assertEquals(1, result.size());
+            assertEquals("1000", result.getFirst().getIntersectionNumber());
         }
 
         @Test
-        void patchIntersection_orgsToRemove_callsDeleteByIntersectionAndOrgNames() {
-            Intersection existing = makeIntersection("1000");
+        void orgsToRemove_deletesAssociations() {
+            String orgName = "OrgA-" + uuid();
+            Organization org = saveOrg(orgName);
+            Intersection i = saveIntersection("1000");
+            linkIntersectionToOrg(i, org);
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), List.of("OrgA"),
+                    Collections.emptyList(), List.of(orgName),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            verify(intersectionOrganizationRepository)
-                    .deleteByIntersectionNumberAndOrganizationNameIn("1000", List.of("OrgA"));
+            assertTrue(intersectionRepository.findAllByOrgNameWithOrgs(orgName).isEmpty());
         }
 
         @Test
-        void patchIntersection_rsusToAdd_loadsRsusAndSavesAssociations() throws UnknownHostException {
-            Intersection existing = makeIntersection("1000");
-            InetAddress ip = InetAddress.getByName("192.168.1.1");
-            Rsu rsu = makeRsu(ip);
+        void rsusToAdd_createsAssociations() throws UnknownHostException {
+            Organization org = saveOrg("OrgA-" + uuid());
+            saveIntersection("1000");
+            saveRsu("192.168.1.1", org);
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     List.of("192.168.1.1"), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-            when(inetMapper.mapStringToInetAddress("192.168.1.1")).thenReturn(ip);
-            when(rsuRepository.findByIpv4AddressIn(List.of(ip))).thenReturn(List.of(rsu));
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<RsuIntersection>> captor = ArgumentCaptor.forClass(List.class);
-            verify(rsuIntersectionRepository).saveAll(captor.capture());
-            List<RsuIntersection> saved = captor.getValue();
-            assertEquals(1, saved.size());
-            assertEquals(rsu, saved.getFirst().getRsu());
-            assertEquals(existing, saved.getFirst().getIntersection());
+            assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1000").size());
         }
 
         @Test
-        void patchIntersection_rsusToRemove_callsDeleteByIntersectionAndIps() throws UnknownHostException {
-            Intersection existing = makeIntersection("1000");
-            InetAddress ip = InetAddress.getByName("192.168.1.1");
+        void rsusToRemove_deletesAssociations() throws UnknownHostException {
+            Organization org = saveOrg("OrgA-" + uuid());
+            Intersection intersection = saveIntersection("1000");
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            linkRsuToIntersection(rsu, intersection);
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), List.of("192.168.1.1"));
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-            when(inetMapper.mapStringToInetAddress("192.168.1.1")).thenReturn(ip);
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            verify(rsuIntersectionRepository)
-                    .deleteByIntersectionNumberAndRsuIpv4AddressIn("1000", List.of(ip));
+            assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1000").isEmpty());
         }
 
         @Test
-        void patchIntersection_intersectionNotFound_throws404() {
+        void intersectionNotFound_throws404() {
             IntersectionPatch patch = new IntersectionPatch(
                     9999, 9999, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
-
-            when(intersectionRepository.findByIntersectionNumber("9999")).thenReturn(Optional.empty());
 
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> adminIntersectionService.patchIntersection(patch));
@@ -502,55 +571,48 @@ class AdminIntersectionServiceTest {
         }
 
         @Test
-        void patchIntersection_emptyRelationshipLists_skipsAllAssociationSteps() {
-            Intersection existing = makeIntersection("1000");
+        void emptyRelationshipLists_noAssociationsCreatedOrRemoved() {
+            saveIntersection("1000");
+            flushAndClear();
+
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
                     Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
-            when(intersectionRepository.findByIntersectionNumber("1000")).thenReturn(Optional.of(existing));
-
             adminIntersectionService.patchIntersection(patch);
+            flushAndClear();
 
-            verify(organizationRepository, never()).findByNameIn(any());
-            verify(intersectionOrganizationRepository, never()).saveAll(any());
-            verify(intersectionOrganizationRepository, never())
-                    .deleteByIntersectionNumberAndOrganizationNameIn(any(), any());
-            verify(rsuRepository, never()).findByIpv4AddressIn(any());
-            verify(rsuIntersectionRepository, never()).saveAll(any());
-            verify(rsuIntersectionRepository, never())
-                    .deleteByIntersectionNumberAndRsuIpv4AddressIn(any(), any());
+            assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
+            assertTrue(rsuIntersectionRepository.findAll().isEmpty());
         }
     }
 
     @Nested
     class DeleteIntersection {
+
         @Test
-        void deleteIntersection_existingIntersection_deletesInOrderAndReturnsMessage() {
-            Intersection existing = makeIntersection("1123");
-            when(intersectionRepository.findByIntersectionNumber("1123")).thenReturn(Optional.of(existing));
+        void existingIntersection_deletesRelationshipsAndReturnsMessage() throws UnknownHostException {
+            Organization org = saveOrg("OrgA-" + uuid());
+            Intersection i = saveIntersection("1123");
+            linkIntersectionToOrg(i, org);
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            linkRsuToIntersection(rsu, i);
+            flushAndClear();
 
             String result = adminIntersectionService.deleteIntersection("1123");
+            flushAndClear();
 
             assertEquals("Intersection successfully deleted", result);
-            verify(intersectionOrganizationRepository)
-                    .deleteIntersectionOrganizationByIntersection_IntersectionNumber("1123");
-            verify(rsuIntersectionRepository).deleteByIntersection_IntersectionNumber("1123");
-            verify(intersectionRepository).delete(existing);
+            assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
+            assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123").isEmpty());
         }
 
         @Test
-        void deleteIntersection_notFound_throws404() {
-            when(intersectionRepository.findByIntersectionNumber("9999")).thenReturn(Optional.empty());
-
+        void notFound_throws404() {
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> adminIntersectionService.deleteIntersection("9999"));
             assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-            verify(intersectionOrganizationRepository, never())
-                    .deleteIntersectionOrganizationByIntersection_IntersectionNumber(any());
-            verify(rsuIntersectionRepository, never()).deleteByIntersection_IntersectionNumber(any());
-            verify(intersectionRepository, never()).delete(any(Intersection.class));
         }
     }
 }
