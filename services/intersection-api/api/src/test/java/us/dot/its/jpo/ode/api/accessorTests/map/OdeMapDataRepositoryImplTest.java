@@ -34,13 +34,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class OdeMapDataRepositoryImplTest {
+public class OdeMapDataRepositoryImplTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;
@@ -107,12 +106,12 @@ public class OdeMapDataRepositoryImplTest {
         OdeMessageFrameData event = new OdeMessageFrameData();
 
         doReturn(event).when(mongoTemplate).findOne(any(Query.class), eq(OdeMessageFrameData.class),
-                        anyString());
+                anyString());
 
         Page<OdeMessageFrameData> page = repository.findLatest(intersectionID, startTime, endTime);
 
         assertThat(page.getContent()).hasSize(1);
         verify(mongoTemplate).findOne(any(Query.class), eq(OdeMessageFrameData.class),
-                        eq("OdeMapJson"));
+                eq("OdeMapJson"));
     }
 }

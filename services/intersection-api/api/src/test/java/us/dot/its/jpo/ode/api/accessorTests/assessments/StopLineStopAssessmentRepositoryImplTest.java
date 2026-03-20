@@ -27,15 +27,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLineStopAssessment;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_stop_assessment.StopLineStopAssessmentRepositoryImpl;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
-public class StopLineStopAssessmentRepositoryImplTest {
+public class StopLineStopAssessmentRepositoryImplTest extends AbstractIntegrationTest {
 
     @Mock
     private MongoTemplate mongoTemplate;

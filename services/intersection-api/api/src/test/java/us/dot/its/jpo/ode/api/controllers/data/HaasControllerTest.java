@@ -18,7 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
 import us.dot.its.jpo.ode.api.accessors.haas.HaasLocationDataRepository;
 import us.dot.its.jpo.ode.api.models.LimitedGeoJsonResponse;
 import us.dot.its.jpo.ode.api.models.haas.HaasLocation;
@@ -29,9 +29,8 @@ import us.dot.its.jpo.ode.mockdata.MockHaasGenerator;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
-@AutoConfigureEmbeddedDatabase
 @ActiveProfiles("test")
-public class HaasControllerTest {
+public class HaasControllerTest extends AbstractIntegrationTest {
 
     private final HaasController controller;
 
