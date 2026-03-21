@@ -84,6 +84,7 @@ enable:
   api: true
   email: false
   report: false
+  asn1-decoder: false
 
 cmServerURL: http://localhost:8082
 mongoTimeoutMs: 5000
