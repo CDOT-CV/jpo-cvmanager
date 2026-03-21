@@ -5,7 +5,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -28,9 +27,12 @@ import static org.mockito.Mockito.when;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.IntersectionReferenceAlignmentNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.LaneDirectionOfTravelNotification;
@@ -42,9 +44,18 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.app_health.Ka
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepositoryImpl;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
-@ActiveProfiles("test")
-public class ActiveNotificationRepositoryImplTest extends AbstractIntegrationTest {
+@ActiveProfiles("integration-test")
+@Testcontainers
+public class ActiveNotificationRepositoryImplTest {
+
+    @Container
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+    }
+
 
     @Mock
     private MongoTemplate mongoTemplate;

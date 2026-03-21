@@ -69,7 +69,6 @@ spring:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
       ddl-auto: create
   mail:
     host: localhost
@@ -85,22 +84,8 @@ enable:
   api: true
   email: false
   report: false
-  haas: false
-  asn1-decoder: false
 
 cmServerURL: http://localhost:8082
 mongoTimeoutMs: 5000
 cors: '*'
 maximumResponseSize: 10000
-
-spring.main.allow-circular-references: true
-
-email:
-  broker: SMTP
-  sender-address: donotreply@cvmanager.com
-  unsubscribe-secret-key: b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52
-  cvmgr-front-end-uri: http://localhost
-  sendgrid:
-    api-key:
-  postmark:
-    api-key:

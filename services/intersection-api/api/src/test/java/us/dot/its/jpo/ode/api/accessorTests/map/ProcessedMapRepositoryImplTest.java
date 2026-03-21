@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.accessorTests.map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.runner.RunWith;
 import org.locationtech.jts.geom.CoordinateXY;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -54,19 +53,31 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.DistinctIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
-@ActiveProfiles("test")
-public class ProcessedMapRepositoryImplTest extends AbstractIntegrationTest {
+@ActiveProfiles("integration-test")
+@Testcontainers
+public class ProcessedMapRepositoryImplTest {
+
+    @Container
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+    }
+
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;
