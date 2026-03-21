@@ -69,7 +69,6 @@ spring:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
       ddl-auto: create
   mail:
     host: localhost
@@ -85,8 +84,6 @@ enable:
   api: true
   email: false
   report: false
-  haas: false
-  asn1-decoder: false
 
 cmServerURL: http://localhost:8082
 mongoTimeoutMs: 5000
