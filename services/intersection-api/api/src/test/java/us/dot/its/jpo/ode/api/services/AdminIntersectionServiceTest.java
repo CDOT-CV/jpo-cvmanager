@@ -1,8 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import j2735ffm.MessageFrameCodec;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -13,13 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
@@ -61,22 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("integration-test")
 @Testcontainers
-@Transactional
 class AdminIntersectionServiceTest {
-
-    // PostgreSQL (PostGIS) is provided by the jdbc:tc:postgis:17-3.5:///testdb URL
-    // configured in application-integration-test.yaml — no @Container needed here.
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
-    // ==================== Injected Beans ====================
-
     @Autowired
     private AdminIntersectionService adminIntersectionService;
 
@@ -109,14 +85,6 @@ class AdminIntersectionServiceTest {
 
     @Autowired
     private RsuModelRepository rsuModelRepository;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    @MockitoBean
-    @SuppressWarnings("unused")
-    MessageFrameCodec messageFrameCodec;
-
     // ==================== Entity Factories ====================
 
     private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
@@ -151,8 +119,6 @@ class AdminIntersectionServiceTest {
      */
     private Rsu saveRsu(String ip, Organization credentialOwner) throws UnknownHostException {
         Manufacturer mfr = new Manufacturer();
-        mfr.setName("Mfr-" + uuid());
-        entityManager.persist(mfr);
 
         RsuModel model = new RsuModel();
         model.setName("Model-" + uuid());
@@ -207,13 +173,7 @@ class AdminIntersectionServiceTest {
         return rsuOrganizationRepository.save(ro);
     }
 
-    /** Flush pending SQL to the DB and clear the first-level cache. */
-    private void flushAndClear() {
-        entityManager.flush();
-        entityManager.clear();
-    }
-
-    private static String uuid() {
+  private static String uuid() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
@@ -227,7 +187,6 @@ class AdminIntersectionServiceTest {
             Organization org = saveOrg("OrgA-" + uuid());
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, org);
-            flushAndClear();
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
 
@@ -242,7 +201,7 @@ class AdminIntersectionServiceTest {
             Organization org = saveOrg(orgName);
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, org);
-            flushAndClear();
+            
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgName, false, List.of(orgName));
 
@@ -262,7 +221,7 @@ class AdminIntersectionServiceTest {
             Intersection i2 = saveIntersection("1002");
             linkIntersectionToOrg(i2, orgB);
             saveIntersection("1003"); // no org — should be excluded
-            flushAndClear();
+            
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, List.of(orgAName, orgBName));
 
@@ -284,7 +243,7 @@ class AdminIntersectionServiceTest {
             linkIntersectionToOrg(i, org);
             Rsu rsu = saveRsu("192.168.1.1", org);
             linkRsuToIntersection(rsu, i);
-            flushAndClear();
+            
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
 
@@ -295,7 +254,7 @@ class AdminIntersectionServiceTest {
         @Test
         void nonSuperuser_emptyQualifiedOrgs_returnsEmptyList() {
             saveIntersection("1123");
-            flushAndClear();
+            
 
             IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, List.of());
 
@@ -310,7 +269,7 @@ class AdminIntersectionServiceTest {
         @Test
         void notFound_returnsEmptyDtoWithAllowedSelections() {
             saveOrg("OrgA-" + uuid());
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "9999", null, true, List.of(), List.of());
@@ -328,7 +287,7 @@ class AdminIntersectionServiceTest {
             linkIntersectionToOrg(i, org);
             Rsu rsu = saveRsu("192.168.1.1", org);
             linkRsuToIntersection(rsu, i);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", null, true, List.of(), List.of());
@@ -345,7 +304,7 @@ class AdminIntersectionServiceTest {
             Organization org = saveOrg(orgName);
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, org);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", orgName, false, List.of(orgName), List.of(orgName));
@@ -362,7 +321,7 @@ class AdminIntersectionServiceTest {
             saveOrg(orgBName);
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, orgA);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", orgBName, false, List.of(orgBName), List.of(orgBName));
@@ -379,7 +338,7 @@ class AdminIntersectionServiceTest {
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, orgA);
             linkIntersectionToOrg(i, orgB);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", null, false, List.of(orgAName), List.of(orgAName));
@@ -396,7 +355,7 @@ class AdminIntersectionServiceTest {
             Organization orgB = saveOrg(orgBName);
             Intersection i = saveIntersection("1123");
             linkIntersectionToOrg(i, orgB);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", null, false, List.of(orgAName), List.of(orgAName));
@@ -412,7 +371,7 @@ class AdminIntersectionServiceTest {
             linkIntersectionToOrg(i, org);
             Rsu rsu = saveRsu("10.0.0.1", org);
             linkRsuToOrg(rsu, org);
-            flushAndClear();
+            
 
             IntersectionSingleResponse result = adminIntersectionService.getIntersection(
                     "1123", orgName, false, List.of(orgName), List.of(orgName));
@@ -429,7 +388,7 @@ class AdminIntersectionServiceTest {
         @Test
         void basicUpdate_renumbersIntersection() {
             saveIntersection("1000");
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1001, new RefPt(40.0, -105.0), null, null, null,
@@ -437,7 +396,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             String result = adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             assertEquals("Intersection successfully modified", result);
             assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
@@ -447,7 +406,7 @@ class AdminIntersectionServiceTest {
         @Test
         void withOptionalFields_updatesNonNullFields() {
             saveIntersection("1000");
-            flushAndClear();
+            
 
             Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
             IntersectionPatch patch = new IntersectionPatch(
@@ -456,7 +415,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
             assertEquals("Main St", updated.getIntersectionName());
@@ -468,7 +427,7 @@ class AdminIntersectionServiceTest {
             Intersection existing = saveIntersection("1000");
             existing.setIntersectionName("Existing Name");
             intersectionRepository.save(existing);
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -476,7 +435,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
             assertEquals("Existing Name", updated.getIntersectionName());
@@ -487,7 +446,7 @@ class AdminIntersectionServiceTest {
             String orgName = "OrgA-" + uuid();
             saveOrg(orgName);
             saveIntersection("1000");
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -495,7 +454,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             List<Intersection> result = intersectionRepository.findAllByOrgNameWithOrgs(orgName);
             assertEquals(1, result.size());
@@ -508,7 +467,7 @@ class AdminIntersectionServiceTest {
             Organization org = saveOrg(orgName);
             Intersection i = saveIntersection("1000");
             linkIntersectionToOrg(i, org);
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -516,7 +475,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             assertTrue(intersectionRepository.findAllByOrgNameWithOrgs(orgName).isEmpty());
         }
@@ -526,7 +485,7 @@ class AdminIntersectionServiceTest {
             Organization org = saveOrg("OrgA-" + uuid());
             saveIntersection("1000");
             saveRsu("192.168.1.1", org);
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -534,7 +493,7 @@ class AdminIntersectionServiceTest {
                     List.of("192.168.1.1"), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1000").size());
         }
@@ -545,7 +504,7 @@ class AdminIntersectionServiceTest {
             Intersection intersection = saveIntersection("1000");
             Rsu rsu = saveRsu("192.168.1.1", org);
             linkRsuToIntersection(rsu, intersection);
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -553,7 +512,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), List.of("192.168.1.1"));
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1000").isEmpty());
         }
@@ -573,7 +532,7 @@ class AdminIntersectionServiceTest {
         @Test
         void emptyRelationshipLists_noAssociationsCreatedOrRemoved() {
             saveIntersection("1000");
-            flushAndClear();
+            
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
@@ -581,7 +540,7 @@ class AdminIntersectionServiceTest {
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch);
-            flushAndClear();
+            
 
             assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
             assertTrue(rsuIntersectionRepository.findAll().isEmpty());
@@ -598,10 +557,10 @@ class AdminIntersectionServiceTest {
             linkIntersectionToOrg(i, org);
             Rsu rsu = saveRsu("192.168.1.1", org);
             linkRsuToIntersection(rsu, i);
-            flushAndClear();
+            
 
             String result = adminIntersectionService.deleteIntersection("1123");
-            flushAndClear();
+            
 
             assertEquals("Intersection successfully deleted", result);
             assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
