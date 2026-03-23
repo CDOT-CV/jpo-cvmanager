@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import j2735ffm.MessageFrameCodec;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
@@ -24,9 +26,7 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Import(TestcontainersConfiguration.class)
+@SpringBootTest(properties = {"enable.asn1-decoder=true"})
 public class BsmDecoderTests {
 
     private final BsmDecoder bsmDecoder;
@@ -36,6 +36,9 @@ public class BsmDecoderTests {
     private String processedBsmReference = "";
 
     ObjectMapper objectMapper;
+    @MockitoBean
+    @SuppressWarnings("unused") // needed to satisfy @ConditionalOnBean without loading the native library
+    MessageFrameCodec messageFrameCodec;
 
     @Autowired
     public BsmDecoderTests(BsmDecoder bsmDecoder) {

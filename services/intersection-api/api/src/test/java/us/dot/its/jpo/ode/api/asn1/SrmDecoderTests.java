@@ -9,22 +9,19 @@ import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import j2735ffm.MessageFrameCodec;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.context.annotation.Import;
-import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Import(TestcontainersConfiguration.class)
+@SpringBootTest(properties = {"enable.asn1-decoder=true"})
 public class SrmDecoderTests {
 
     private final SrmDecoder srmDecoder;
@@ -33,6 +30,9 @@ public class SrmDecoderTests {
     private String odeSrmDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
+    @MockitoBean
+    @SuppressWarnings("unused") // needed to satisfy @ConditionalOnBean without loading the native library
+    MessageFrameCodec messageFrameCodec;
 
     @Autowired
     public SrmDecoderTests(SrmDecoder srmDecoder) {
