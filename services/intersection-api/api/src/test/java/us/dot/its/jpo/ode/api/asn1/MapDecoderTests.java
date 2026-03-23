@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -16,50 +16,50 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Import;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
-import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
-import us.dot.its.jpo.ode.api.asn1.SpatDecoder;
+import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
+import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.ZonedDateTime;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
 @Import(TestcontainersConfiguration.class)
-public class SpatDecoderTests {
+public class MapDecoderTests {
 
-    private final SpatDecoder spatDecoder;
+    private final MapDecoder mapDecoder;
 
-    private String odeSpatDecodedXmlReference = "";
-    private String odeSpatDecodedJsonReference = "";
-    private String processedSpatReference = "";
+    private String odeMapDecodedXmlReference = "";
+    private String odeMapDecodedJsonReference = "";
+    private String processedMapReference = "";
 
     ObjectMapper objectMapper;
 
     @Autowired
-    public SpatDecoderTests(SpatDecoder spatDecoder) {
-        this.spatDecoder = spatDecoder;
+    public MapDecoderTests(MapDecoder mapDecoder) {
+        this.mapDecoder = mapDecoder;
 
         objectMapper = DateJsonMapper.getInstance();
 
         try {
 
-            odeSpatDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceSpatXER.xml")));
+            odeMapDecodedXmlReference = new String(
+                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceMapXER.xml")));
 
-            odeSpatDecodedJsonReference = new String(
+            odeMapDecodedJsonReference = new String(
                     Files.readAllBytes(Paths
-                            .get("src/test/resources/json/spat/Ode.ReferenceSpatJson.json")));
+                            .get("src/test/resources/json/map/Ode.ReferenceMapJson.json")));
 
-            processedSpatReference = new String(
+            processedMapReference = new String(
                     Files.readAllBytes(Paths
-                            .get("src/test/resources/json/spat/GJC.ReferenceProcessedSpatJson.json")));
+                            .get("src/test/resources/json/map/GJC.ReferenceProcessedMapJson.json")));
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**
@@ -69,36 +69,35 @@ public class SpatDecoderTests {
     @Test
     public void testGetAsMessageFrame() {
         try {
-            OdeMessageFrameData spat = spatDecoder.convertXERToMessageFrame(odeSpatDecodedXmlReference);
+            OdeMessageFrameData spat = mapDecoder.convertXERToMessageFrame(odeMapDecodedXmlReference);
 
             spat.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
             spat.getMetadata()
                     .setSerialId(spat.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
-            assertThatJson(odeSpatDecodedJsonReference).isEqualTo(spat.toJson());
+            assertThatJson(odeMapDecodedJsonReference).isEqualTo(spat.toJson());
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }
     }
 
     /**
-     * Test to verify Conversion from a OdeMessageFrame object to a ProcessedSPAT
+     * Test to verify Conversion from a OdeMessageFrame object to a ProcessedMAP
      * Object
      */
     @Test
-    public void testConvertMessageFrameToProcessedSpat() {
+    public void testConvertMessageFrameToProcessedMap() {
+        ObjectMapper objectMapper = DateJsonMapper.getInstance();
 
         try {
-            OdeMessageFrameData spatMessageFrame = objectMapper.readValue(odeSpatDecodedJsonReference,
+            OdeMessageFrameData mapMessageFrame = objectMapper.readValue(odeMapDecodedJsonReference,
                     OdeMessageFrameData.class);
 
-            spatMessageFrame.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
+            ProcessedMap<LineString> map = mapDecoder.convertMessageFrameToProcessedMap(mapMessageFrame);
 
-            ProcessedSpat spat = spatDecoder.convertMessageFrameToProcessedSpat(spatMessageFrame);
+            map.getProperties().setOdeReceivedAt(ZonedDateTime.parse("2025-08-29T16:09:34.416Z"));
 
-            spat.setOdeReceivedAt("2025-08-29T16:09:34.416Z");
-
-            assertThatJson(processedSpatReference).isEqualTo(spat.toString());
+            assertThatJson(processedMapReference).isEqualTo(map.toString());
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }

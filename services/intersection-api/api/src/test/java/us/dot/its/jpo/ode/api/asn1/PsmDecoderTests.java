@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,35 +18,35 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Import;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
-import us.dot.its.jpo.ode.api.asn1.SsmDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
+
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
 @Import(TestcontainersConfiguration.class)
-public class SsmDecoderTests {
+public class PsmDecoderTests {
 
-    private final SsmDecoder ssmDecoder;
+    private final PsmDecoder psmDecoder;
 
-    private String odeSsmDecodedXmlReference = "";
-    private String odeSsmDecodedJsonReference = "";
+    private String odePsmDecodedXmlReference = "";
+    private String odePsmDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
 
     @Autowired
-    public SsmDecoderTests(SsmDecoder ssmDecoder) {
-        this.ssmDecoder = ssmDecoder;
+    public PsmDecoderTests(PsmDecoder psmDecoder) {
+        this.psmDecoder = psmDecoder;
 
         objectMapper = DateJsonMapper.getInstance();
 
         try {
-            odeSsmDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceSsmXER.xml")));
+            odePsmDecodedXmlReference = new String(
+                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferencePsmXER.xml")));
 
-            odeSsmDecodedJsonReference = new String(
+            odePsmDecodedJsonReference = new String(
                     Files.readAllBytes(Paths
-                            .get("src/test/resources/json/ssm/Ode.ReferenceSsmJson.json")));
+                            .get("src/test/resources/json/psm/Ode.ReferencePsmJson.json")));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,13 +61,13 @@ public class SsmDecoderTests {
     @Test
     public void testGetAsMessageFrame() {
         try {
-            OdeMessageFrameData ssm = ssmDecoder.convertXERToMessageFrame(odeSsmDecodedXmlReference);
+            OdeMessageFrameData psm = psmDecoder.convertXERToMessageFrame(odePsmDecodedXmlReference);
 
-            ssm.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
-            ssm.getMetadata()
-                    .setSerialId(ssm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
+            psm.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
+            psm.getMetadata()
+                    .setSerialId(psm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
-            assertThatJson(odeSsmDecodedJsonReference).isEqualTo(ssm.toJson());
+            assertThatJson(odePsmDecodedJsonReference).isEqualTo(psm.toJson());
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }

@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Import;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
-import us.dot.its.jpo.ode.api.asn1.TimDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
@@ -26,28 +25,29 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 @SpringBootTest
 @ActiveProfiles("integration-test")
 @Import(TestcontainersConfiguration.class)
-public class TimDecoderTests {
+public class SrmDecoderTests {
 
-    private final TimDecoder timDecoder;
+    private final SrmDecoder srmDecoder;
 
-    private String odeTimDecodedXmlReference = "";
-    private String odeTimDecodedJsonReference = "";
+    private String odeSrmDecodedXmlReference = "";
+    private String odeSrmDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
 
     @Autowired
-    public TimDecoderTests(TimDecoder timDecoder) {
-        this.timDecoder = timDecoder;
+    public SrmDecoderTests(SrmDecoder srmDecoder) {
+        this.srmDecoder = srmDecoder;
 
         objectMapper = DateJsonMapper.getInstance();
 
         try {
-            odeTimDecodedXmlReference = new String(
-                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceTimXER.xml")));
+            odeSrmDecodedXmlReference = new String(
+                    Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceSrmXER.xml")));
 
-            odeTimDecodedJsonReference = new String(
+            odeSrmDecodedJsonReference = new String(
                     Files.readAllBytes(Paths
-                            .get("src/test/resources/json/tim/Ode.ReferenceTimJson.json")));
+                            .get("src/test/resources/json/srm/Ode.ReferenceSrmJson.json")))
+                    .replaceAll("\n", "").replaceAll(" ", "");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -62,13 +62,13 @@ public class TimDecoderTests {
     @Test
     public void testGetAsMessageFrame() {
         try {
-            OdeMessageFrameData tim = timDecoder.convertXERToMessageFrame(odeTimDecodedXmlReference);
+            OdeMessageFrameData srm = srmDecoder.convertXERToMessageFrame(odeSrmDecodedXmlReference);
 
-            tim.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
-            tim.getMetadata()
-                    .setSerialId(tim.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
+            srm.getMetadata().setOdeReceivedAt("2025-08-29T16:09:34.416Z");
+            srm.getMetadata()
+                    .setSerialId(srm.getMetadata().getSerialId().setStreamId("44a6d71c-8af1-4f45-848c-10bd7f919be8"));
 
-            assertThatJson(odeTimDecodedJsonReference).isEqualTo(tim.toJson());
+            assertThatJson(odeSrmDecodedJsonReference).isEqualTo(srm.toJson());
         } catch (JsonProcessingException e) {
             assertEquals(true, false);
         }
