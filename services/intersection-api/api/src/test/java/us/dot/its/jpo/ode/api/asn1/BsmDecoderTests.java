@@ -1,36 +1,42 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.context.annotation.Import;
-import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
+import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.ProcessedBsm;
-import us.dot.its.jpo.ode.api.asn1.BsmDecoder;
+import us.dot.its.jpo.geojsonconverter.validator.BsmJsonValidator;
+import us.dot.its.jpo.geojsonconverter.validator.JsonValidatorResult;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
-
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Import(TestcontainersConfiguration.class)
+@ExtendWith(MockitoExtension.class)
 public class BsmDecoderTests {
 
-    private final BsmDecoder bsmDecoder;
+    @Mock
+    private MessageFrameCodec messageFrameCodec;
+
+    @Mock
+    private BsmJsonValidator bsmJsonValidator;
+
+    private BsmDecoder bsmDecoder;
 
     private String odeBsmDecodedXmlReference = "";
     private String odeBsmDecodedJsonReference = "";
@@ -38,10 +44,9 @@ public class BsmDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @Autowired
-    public BsmDecoderTests(BsmDecoder bsmDecoder) {
-        this.bsmDecoder = bsmDecoder;
-
+    @BeforeEach
+    void setUp() {
+        bsmDecoder = new BsmDecoder(messageFrameCodec, bsmJsonValidator);
         objectMapper = DateJsonMapper.getInstance();
 
         try {
@@ -58,7 +63,6 @@ public class BsmDecoderTests {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**
@@ -89,6 +93,8 @@ public class BsmDecoderTests {
         ObjectMapper objectMapper = DateJsonMapper.getInstance();
 
         try {
+            when(bsmJsonValidator.validate(anyString())).thenReturn(new JsonValidatorResult());
+
             OdeMessageFrameData bsmMessageFrame = objectMapper.readValue(odeBsmDecodedJsonReference,
                     OdeMessageFrameData.class);
 

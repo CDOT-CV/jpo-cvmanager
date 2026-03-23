@@ -1,44 +1,41 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.context.annotation.Import;
-import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
+import j2735ffm.MessageFrameCodec;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
-import us.dot.its.jpo.ode.api.asn1.PsmDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
-
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Import(TestcontainersConfiguration.class)
+@ExtendWith(MockitoExtension.class)
 public class PsmDecoderTests {
 
-    private final PsmDecoder psmDecoder;
+    @Mock
+    private MessageFrameCodec messageFrameCodec;
+
+    private PsmDecoder psmDecoder;
 
     private String odePsmDecodedXmlReference = "";
     private String odePsmDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
 
-    @Autowired
-    public PsmDecoderTests(PsmDecoder psmDecoder) {
-        this.psmDecoder = psmDecoder;
-
+    @BeforeEach
+    void setUp() {
+        psmDecoder = new PsmDecoder(messageFrameCodec);
         objectMapper = DateJsonMapper.getInstance();
 
         try {
@@ -48,11 +45,9 @@ public class PsmDecoderTests {
             odePsmDecodedJsonReference = new String(
                     Files.readAllBytes(Paths
                             .get("src/test/resources/json/psm/Ode.ReferencePsmJson.json")));
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**
