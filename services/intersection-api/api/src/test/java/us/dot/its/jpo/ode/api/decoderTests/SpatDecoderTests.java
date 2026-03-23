@@ -5,17 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
 import us.dot.its.jpo.ode.api.asn1.SpatDecoder;
@@ -27,9 +29,18 @@ import java.nio.file.Paths;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
-@ActiveProfiles("test")
-public class SpatDecoderTests extends AbstractIntegrationTest {
+@ActiveProfiles("integration-test")
+@Testcontainers
+public class SpatDecoderTests {
+
+    @Container
+    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
+
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+    }
+
 
     private final SpatDecoder spatDecoder;
 
