@@ -60,6 +60,21 @@ class RsuUpgradeContextServiceTest {
     }
 
     @Test
+    void testHasCompleteRsuData_FalseWhenRsuMissing() throws UnknownHostException {
+        String rsuIp = "10.0.0.10";
+        String organization = "TestOrg";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, organization))
+                .thenReturn(Optional.empty());
+
+        boolean result = rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization);
+
+        assertFalse(result);
+        verify(rsuOrganizationRepository).findByRsuIpv4AddressAndOrganization_Name(inetAddress, organization);
+    }
+
+    @Test
     void testFindRsuForOrganization_ReturnsNullWhenMissing() throws UnknownHostException {
         String rsuIp = "10.0.0.11";
         String organization = "TestOrg";
