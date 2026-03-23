@@ -100,8 +100,10 @@ class RsuUpgradeServiceTest {
         Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization,
                 List.of(successIp, missingIp));
 
-        Map<String, Object> successResponse = castResponse(result.get(successIp));
-        Map<String, Object> missingResponse = castResponse(result.get(missingIp));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> successResponse = (Map<String, Object>) result.get(successIp);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> missingResponse = (Map<String, Object>) result.get(missingIp);
 
         assertEquals(201, successResponse.get("code"));
         assertEquals(Map.of("message", "started"), successResponse.get("data"));
@@ -120,7 +122,8 @@ class RsuUpgradeServiceTest {
                 .when(serviceSpy).markRsuForUpgrade(rsuIp, organization);
 
         Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
-        Map<String, Object> response = castResponse(result.get(rsuIp));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = (Map<String, Object>) result.get(rsuIp);
 
         assertEquals(409, response.get("code"));
         assertEquals("Requested RSU is already up to date", response.get("data"));
@@ -197,10 +200,5 @@ class RsuUpgradeServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
         assertTrue(exception.getReason().contains("already up to date"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> castResponse(Object value) {
-        return (Map<String, Object>) value;
     }
 }
