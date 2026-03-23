@@ -40,10 +40,6 @@ public class RsuUpgradeService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public Map<String, Object> checkFirmwareUpgrade(String organization, List<String> rsuIps) {
-        if (rsuIps == null || rsuIps.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one RSU IP is required");
-        }
-
         String rsuIp = rsuIps.get(0);
         Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
         if (rsu == null) {
