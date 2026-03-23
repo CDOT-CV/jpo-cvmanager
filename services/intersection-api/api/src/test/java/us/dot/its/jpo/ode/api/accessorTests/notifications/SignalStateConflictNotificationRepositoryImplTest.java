@@ -41,11 +41,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.SignalStateConflictNotification;
 import us.dot.its.jpo.ode.api.accessors.notifications.signal_state_conflict_notification.SignalStateConflictNotificationRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
@@ -53,17 +50,8 @@ import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
-@Testcontainers
+@Import(TestcontainersConfiguration.class)
 public class SignalStateConflictNotificationRepositoryImplTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

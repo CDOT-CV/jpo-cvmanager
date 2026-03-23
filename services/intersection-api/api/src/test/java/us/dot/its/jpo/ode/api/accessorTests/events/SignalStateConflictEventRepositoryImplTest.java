@@ -48,26 +48,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.SignalStateConflictEvent;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
-@Testcontainers
+@Import(TestcontainersConfiguration.class)
 public class SignalStateConflictEventRepositoryImplTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

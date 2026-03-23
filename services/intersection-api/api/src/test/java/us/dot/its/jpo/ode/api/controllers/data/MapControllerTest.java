@@ -17,11 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
@@ -30,17 +27,8 @@ import us.dot.its.jpo.ode.mockdata.MockMapGenerator;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
-@Testcontainers
+@Import(TestcontainersConfiguration.class)
 public class MapControllerTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
 
     private final MapController controller;
 

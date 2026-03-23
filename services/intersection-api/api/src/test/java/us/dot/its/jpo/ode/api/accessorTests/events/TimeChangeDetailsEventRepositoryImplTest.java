@@ -2,10 +2,11 @@ package us.dot.its.jpo.ode.api.accessorTests.events;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,28 +33,10 @@ import org.bson.Document;
 import us.dot.its.jpo.ode.api.accessors.events.time_change_details_event.TimeChangeDetailsEventRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.TimeChangeDetailsEvent;
 
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
+@ExtendWith(MockitoExtension.class)
 public class TimeChangeDetailsEventRepositoryImplTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
 
 
     @Mock
@@ -72,7 +55,6 @@ public class TimeChangeDetailsEventRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         repository = new TimeChangeDetailsEventRepositoryImpl(mongoTemplate);
     }
 

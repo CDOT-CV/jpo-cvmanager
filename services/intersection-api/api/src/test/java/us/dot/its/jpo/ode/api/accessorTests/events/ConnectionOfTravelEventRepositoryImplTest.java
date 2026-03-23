@@ -39,11 +39,8 @@ import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.ConnectionOfTravelEvent;
 import us.dot.its.jpo.ode.api.accessors.events.connection_of_travel_event.ConnectionOfTravelEventRepositoryImpl;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 import us.dot.its.jpo.ode.api.models.IDCount;
@@ -56,17 +53,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
-@Testcontainers
+@Import(TestcontainersConfiguration.class)
 public class ConnectionOfTravelEventRepositoryImplTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

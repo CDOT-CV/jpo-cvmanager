@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.decoderTests;
+package us.dot.its.jpo.ode.api.asn1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import j2735ffm.MessageFrameCodec;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,32 +16,18 @@ import org.springframework.test.context.ActiveProfiles;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.Point;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.bsm.ProcessedBsm;
-import us.dot.its.jpo.ode.api.asn1.BsmDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
+@SpringBootTest(properties = {"enable.asn1-decoder=true"})
 public class BsmDecoderTests {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
 
     private final BsmDecoder bsmDecoder;
 
@@ -49,6 +36,9 @@ public class BsmDecoderTests {
     private String processedBsmReference = "";
 
     ObjectMapper objectMapper;
+    @MockitoBean
+    @SuppressWarnings("unused") // needed to satisfy @ConditionalOnBean without loading the native library
+    MessageFrameCodec messageFrameCodec;
 
     @Autowired
     public BsmDecoderTests(BsmDecoder bsmDecoder) {
