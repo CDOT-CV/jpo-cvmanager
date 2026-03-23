@@ -4,22 +4,15 @@
 # scheme — no container code required. Testcontainers intercepts the URL, pulls the
 # postgis/postgis:17-3.5 image, and wires the connection before Hibernate runs DDL.
 #
-# MongoDB has no equivalent tc: URL scheme. Set a placeholder URI here; test classes
-# override it via @DynamicPropertySource (which has higher precedence than profile YAML).
+# MongoDB is provided by a shared MongoDBContainer bean declared in TestcontainersConfiguration.
+# The @ServiceConnection annotation on that bean automatically overrides spring.data.mongodb.uri
+# with the container's actual URI. The placeholder URI below is never used in practice.
 #
 # Usage in tests:
 #   @SpringBootTest
 #   @ActiveProfiles("integration-test")
-#   @Testcontainers
-#   class MyIntegrationTest {
-#       @Container
-#       static MongoDBContainer mongo = new MongoDBContainer("mongo:8");
-#
-#       @DynamicPropertySource
-#       static void mongoProperties(DynamicPropertyRegistry r) {
-#           r.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-#       }
-#   }
+#   @Import(TestcontainersConfiguration.class)
+#   class MyIntegrationTest { ... }
 
 server:
   port: 8089

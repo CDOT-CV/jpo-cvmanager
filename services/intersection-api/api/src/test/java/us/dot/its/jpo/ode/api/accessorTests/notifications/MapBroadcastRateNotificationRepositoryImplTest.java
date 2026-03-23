@@ -2,10 +2,11 @@ package us.dot.its.jpo.ode.api.accessorTests.notifications;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -24,28 +25,10 @@ import static org.mockito.Mockito.when;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.broadcast_rate.MapBroadcastRateNotification;
 
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import us.dot.its.jpo.ode.api.accessors.notifications.map_broadcast_rate_notification.MapBroadcastRateNotificationRepositoryImpl;
 
-@SpringBootTest
-@ActiveProfiles("integration-test")
-@Testcontainers
+@ExtendWith(MockitoExtension.class)
 public class MapBroadcastRateNotificationRepositoryImplTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
 
 
     @Mock
@@ -64,7 +47,6 @@ public class MapBroadcastRateNotificationRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         repository = new MapBroadcastRateNotificationRepositoryImpl(mongoTemplate);
     }
 
