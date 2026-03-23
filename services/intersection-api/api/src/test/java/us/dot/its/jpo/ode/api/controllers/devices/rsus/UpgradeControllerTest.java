@@ -35,7 +35,6 @@ class UpgradeControllerTest {
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIp(rsuIps);
-        request.setArgs(Map.of());
 
         Map<String, Object> serviceResponse = Map.of(
                 "10.0.0.10", Map.of("code", 201, "data", Map.of("message", "started")));
@@ -57,7 +56,6 @@ class UpgradeControllerTest {
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIp(rsuIps);
-        request.setArgs(Map.of());
 
         Map<String, Object> serviceResponse = Map.of(
                 "upgrade_available", true,
