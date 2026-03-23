@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,8 @@ import us.dot.its.jpo.ode.mockdata.MockHaasGenerator;
 @Import(TestcontainersConfiguration.class)
 public class HaasControllerTest {
 
-    private final HaasController controller;
+    @Autowired
+    private HaasController controller;
 
     @MockitoBean
     HaasLocationDataRepository haasLocationDataRepository;
@@ -41,10 +43,6 @@ public class HaasControllerTest {
     @Mock
     private CvManagerAuthToken authToken;
 
-    @Autowired
-    public HaasControllerTest(HaasController controller) {
-        this.controller = controller;
-    }
 
     @Test
     public void testGetLocations() {
