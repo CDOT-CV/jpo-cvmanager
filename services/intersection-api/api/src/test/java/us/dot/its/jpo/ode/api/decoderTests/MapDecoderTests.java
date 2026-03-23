@@ -1,43 +1,38 @@
-package us.dot.its.jpo.ode.api.asn1;
+package us.dot.its.jpo.ode.api.decoderTests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.ZonedDateTime;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import j2735ffm.MessageFrameCodec;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.LineString;
 import us.dot.its.jpo.geojsonconverter.pojos.geojson.map.ProcessedMap;
-import us.dot.its.jpo.geojsonconverter.validator.JsonValidatorResult;
-import us.dot.its.jpo.geojsonconverter.validator.MapJsonValidator;
+import us.dot.its.jpo.ode.api.asn1.MapDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-@ExtendWith(MockitoExtension.class)
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.ZonedDateTime;
+
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+
+@SpringBootTest
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 public class MapDecoderTests {
 
-    @Mock
-    private MessageFrameCodec messageFrameCodec;
-
-    @Mock
-    private MapJsonValidator mapJsonValidator;
-
-    private MapDecoder mapDecoder;
+    private final MapDecoder mapDecoder;
 
     private String odeMapDecodedXmlReference = "";
     private String odeMapDecodedJsonReference = "";
@@ -45,12 +40,14 @@ public class MapDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() {
-        mapDecoder = new MapDecoder(messageFrameCodec, mapJsonValidator);
+    @Autowired
+    public MapDecoderTests(MapDecoder mapDecoder) {
+        this.mapDecoder = mapDecoder;
+
         objectMapper = DateJsonMapper.getInstance();
 
         try {
+
             odeMapDecodedXmlReference = new String(
                     Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceMapXER.xml")));
 
@@ -94,8 +91,6 @@ public class MapDecoderTests {
         ObjectMapper objectMapper = DateJsonMapper.getInstance();
 
         try {
-            when(mapJsonValidator.validate(anyString())).thenReturn(new JsonValidatorResult());
-
             OdeMessageFrameData mapMessageFrame = objectMapper.readValue(odeMapDecodedJsonReference,
                     OdeMessageFrameData.class);
 

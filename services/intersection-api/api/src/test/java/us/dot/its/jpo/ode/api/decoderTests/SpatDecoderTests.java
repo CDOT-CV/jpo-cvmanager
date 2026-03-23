@@ -1,41 +1,36 @@
-package us.dot.its.jpo.ode.api.asn1;
+package us.dot.its.jpo.ode.api.decoderTests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import j2735ffm.MessageFrameCodec;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.geojsonconverter.pojos.spat.ProcessedSpat;
-import us.dot.its.jpo.geojsonconverter.validator.JsonValidatorResult;
-import us.dot.its.jpo.geojsonconverter.validator.SpatJsonValidator;
+import us.dot.its.jpo.ode.api.asn1.SpatDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-@ExtendWith(MockitoExtension.class)
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+
+@SpringBootTest
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 public class SpatDecoderTests {
 
-    @Mock
-    private MessageFrameCodec messageFrameCodec;
-
-    @Mock
-    private SpatJsonValidator spatJsonValidator;
-
-    private SpatDecoder spatDecoder;
+    private final SpatDecoder spatDecoder;
 
     private String odeSpatDecodedXmlReference = "";
     private String odeSpatDecodedJsonReference = "";
@@ -43,12 +38,14 @@ public class SpatDecoderTests {
 
     ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() {
-        spatDecoder = new SpatDecoder(messageFrameCodec, spatJsonValidator);
+    @Autowired
+    public SpatDecoderTests(SpatDecoder spatDecoder) {
+        this.spatDecoder = spatDecoder;
+
         objectMapper = DateJsonMapper.getInstance();
 
         try {
+
             odeSpatDecodedXmlReference = new String(
                     Files.readAllBytes(Paths.get("src/test/resources/xml/Ode.ReferenceSpatXER.xml")));
 
@@ -62,6 +59,7 @@ public class SpatDecoderTests {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     /**
@@ -91,8 +89,6 @@ public class SpatDecoderTests {
     public void testConvertMessageFrameToProcessedSpat() {
 
         try {
-            when(spatJsonValidator.validate(anyString())).thenReturn(new JsonValidatorResult());
-
             OdeMessageFrameData spatMessageFrame = objectMapper.readValue(odeSpatDecodedJsonReference,
                     OdeMessageFrameData.class);
 

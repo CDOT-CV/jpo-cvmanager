@@ -1,41 +1,44 @@
-package us.dot.its.jpo.ode.api.asn1;
+package us.dot.its.jpo.ode.api.decoderTests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import j2735ffm.MessageFrameCodec;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import us.dot.its.jpo.ode.api.asn1.TimDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-@ExtendWith(MockitoExtension.class)
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+
+@SpringBootTest
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 public class TimDecoderTests {
 
-    @Mock
-    private MessageFrameCodec messageFrameCodec;
-
-    private TimDecoder timDecoder;
+    private final TimDecoder timDecoder;
 
     private String odeTimDecodedXmlReference = "";
     private String odeTimDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() {
-        timDecoder = new TimDecoder(messageFrameCodec);
+    @Autowired
+    public TimDecoderTests(TimDecoder timDecoder) {
+        this.timDecoder = timDecoder;
+
         objectMapper = DateJsonMapper.getInstance();
 
         try {
@@ -45,9 +48,11 @@ public class TimDecoderTests {
             odeTimDecodedJsonReference = new String(
                     Files.readAllBytes(Paths
                             .get("src/test/resources/json/tim/Ode.ReferenceTimJson.json")));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     /**

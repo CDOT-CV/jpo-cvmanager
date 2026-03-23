@@ -1,41 +1,44 @@
-package us.dot.its.jpo.ode.api.asn1;
+package us.dot.its.jpo.ode.api.decoderTests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import j2735ffm.MessageFrameCodec;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import us.dot.its.jpo.ode.api.asn1.SrmDecoder;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
-@ExtendWith(MockitoExtension.class)
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+
+@SpringBootTest
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 public class SrmDecoderTests {
 
-    @Mock
-    private MessageFrameCodec messageFrameCodec;
-
-    private SrmDecoder srmDecoder;
+    private final SrmDecoder srmDecoder;
 
     private String odeSrmDecodedXmlReference = "";
     private String odeSrmDecodedJsonReference = "";
 
     ObjectMapper objectMapper;
 
-    @BeforeEach
-    void setUp() {
-        srmDecoder = new SrmDecoder(messageFrameCodec);
+    @Autowired
+    public SrmDecoderTests(SrmDecoder srmDecoder) {
+        this.srmDecoder = srmDecoder;
+
         objectMapper = DateJsonMapper.getInstance();
 
         try {
@@ -46,9 +49,11 @@ public class SrmDecoderTests {
                     Files.readAllBytes(Paths
                             .get("src/test/resources/json/srm/Ode.ReferenceSrmJson.json")))
                     .replaceAll("\n", "").replaceAll(" ", "");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     /**
