@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
@@ -23,7 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.ode.api.accessors.bsm.OdeBsmJsonRepository;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.mockdata.MockBsmGenerator;
@@ -32,7 +33,8 @@ import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class BsmControllerTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class BsmControllerTest {
 
     private final BsmController controller;
 

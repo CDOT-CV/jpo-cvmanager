@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
@@ -25,7 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.LaneDirectionOfTravelAssessment;
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLinePassageAssessment;
@@ -40,7 +41,8 @@ import us.dot.its.jpo.ode.mockdata.MockAssessmentGenerator;
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class CmAssessmentControllerTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class CmAssessmentControllerTest {
 
     private final CmAssessmentController controller;
 

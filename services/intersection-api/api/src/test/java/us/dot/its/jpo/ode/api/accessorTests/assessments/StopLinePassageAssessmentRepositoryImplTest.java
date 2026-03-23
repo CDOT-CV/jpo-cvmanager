@@ -37,6 +37,8 @@ import java.util.List;
 
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -45,14 +47,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.StopLinePassageAssessment;
 import us.dot.its.jpo.ode.api.accessors.assessments.stop_line_passage_assessment.StopLinePassageAssessmentRepositoryImpl;
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class StopLinePassageAssessmentRepositoryImplTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class StopLinePassageAssessmentRepositoryImplTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

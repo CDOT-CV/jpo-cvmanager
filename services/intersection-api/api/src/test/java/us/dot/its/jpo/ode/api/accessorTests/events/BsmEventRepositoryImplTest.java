@@ -32,17 +32,19 @@ import org.bson.Document;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.bsm.BsmEvent;
 import us.dot.its.jpo.ode.api.accessors.events.bsm_event.BsmEventRepositoryImpl;
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class BsmEventRepositoryImplTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class BsmEventRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;

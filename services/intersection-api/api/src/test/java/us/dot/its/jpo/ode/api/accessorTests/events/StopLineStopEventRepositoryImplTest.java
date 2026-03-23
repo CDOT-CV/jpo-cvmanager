@@ -34,16 +34,18 @@ import us.dot.its.jpo.ode.api.accessors.events.stop_line_stop_event.StopLineStop
 import us.dot.its.jpo.ode.api.models.IDCount;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.conflictmonitor.monitor.models.events.StopLineStopEvent;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class StopLineStopEventRepositoryImplTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class StopLineStopEventRepositoryImplTest {
 
     @Mock
     private MongoTemplate mongoTemplate;

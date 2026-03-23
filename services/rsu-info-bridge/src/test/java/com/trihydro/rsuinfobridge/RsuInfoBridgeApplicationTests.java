@@ -3,12 +3,12 @@ package com.trihydro.rsuinfobridge;
 import com.trihydro.rsuinfobridge.testutil.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@ImportTestcontainers(IntegrationTestContainers.class)
 class RsuInfoBridgeApplicationTests {
 
     @Test

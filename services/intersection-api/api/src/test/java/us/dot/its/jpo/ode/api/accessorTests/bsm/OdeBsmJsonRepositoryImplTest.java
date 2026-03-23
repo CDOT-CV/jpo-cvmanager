@@ -38,12 +38,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import us.dot.its.jpo.ode.api.accessors.bsm.OdeBsmJsonRepositoryImpl;
-import us.dot.its.jpo.ode.api.config.AbstractIntegrationTest;
+import us.dot.its.jpo.ode.api.config.IntegrationTestContainers;
 import us.dot.its.jpo.ode.api.models.AggregationResult;
 import us.dot.its.jpo.ode.api.models.AggregationResultCount;
 import us.dot.its.jpo.ode.model.OdeMessageFrameData;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -53,7 +54,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-public class OdeBsmJsonRepositoryImplTest extends AbstractIntegrationTest {
+@ImportTestcontainers(IntegrationTestContainers.class)
+public class OdeBsmJsonRepositoryImplTest {
 
     @MockitoSpyBean
     private MongoTemplate mongoTemplate;

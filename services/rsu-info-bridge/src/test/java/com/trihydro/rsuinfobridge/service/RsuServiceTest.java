@@ -24,7 +24,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,11 +37,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Integration tests for RsuService using PostGIS Testcontainer.
- * Uses production schema (CVManager_CreateTables.sql) and sample data (CVManager_SampleData.sql).
+ * Uses production schema (CVManager_CreateTables.sql) and sample data
+ * (CVManager_SampleData.sql).
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@ImportTestcontainers(IntegrationTestContainers.class)
 @Transactional
 @Testcontainers
 class RsuServiceTest {
@@ -49,7 +50,7 @@ class RsuServiceTest {
     static final int MODEL_ID = 1;
     static final int CREDENTIAL_ID = 1;
     static final int SNMP_CREDENTIAL_ID = 1;
-    static final int SNMP_PROTOCOL_ID = 2;  // NTCIP 1218
+    static final int SNMP_PROTOCOL_ID = 2; // NTCIP 1218
 
     // SRID 4326 for WGS84
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
@@ -196,8 +197,8 @@ class RsuServiceTest {
      * Creates an RSU with options using full control over fields.
      */
     void createRsuWithOptions(String ipv4Address, double milepost, String serialNumber,
-                                     String issScmsId, String primaryRoute,
-                                     boolean timDeposit, boolean snmpMonitoring) {
+            String issScmsId, String primaryRoute,
+            boolean timDeposit, boolean snmpMonitoring) {
         try {
             // Fetch reference entities from sample data
             RsuModel model = rsuModelRepository.getReferenceById(MODEL_ID);
