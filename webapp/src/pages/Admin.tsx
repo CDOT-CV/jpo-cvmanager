@@ -2,7 +2,6 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectOrganizationName } from '../generalSlices/userSlice'
 import { updateTableData as updateIntersectionTableData } from '../features/adminIntersectionTab/adminIntersectionTabSlice'
-import { getAvailableUsers } from '../features/adminUserTab/adminUserTabSlice'
 import '../features/adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -10,7 +9,7 @@ import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganiza
 import AdminRsuTab from '../features/adminRsuTab/AdminRsuTab'
 import AdminUserTab from '../features/adminUserTab/AdminUserTab'
 import { NotFound } from './404'
-import { SecureStorageManager } from '../managers'
+import { LocalStorageManager, SecureStorageManager } from '../managers'
 import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
@@ -26,13 +25,12 @@ function Admin() {
     // Preload it with changes in dispatch and organization since it needs to be updated every time the organization is switched
     // in order to show only RSUs, Intersections, and Users of selected organization
     if (evaluateFeatureFlags('intersection')) dispatch(updateIntersectionTableData())
-    dispatch(getAvailableUsers())
     dispatch(getUserNotifications())
   }, [dispatch, organization])
 
   return (
     <>
-      {SecureStorageManager.getUserRole() !== 'admin' ? (
+      {SecureStorageManager.getUserRole() !== 'admin' && !LocalStorageManager.getIsSuperUser() ? (
         <div id="admin">
           <NotFound description="You do not have permission to view this page. Please return to main dashboard: " />
         </div>
