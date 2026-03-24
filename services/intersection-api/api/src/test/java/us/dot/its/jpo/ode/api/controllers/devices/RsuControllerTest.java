@@ -641,6 +641,8 @@ class RsuControllerTest {
                         true,
                         true);
 
+                when(permissionService.hasRoleInOrgs(role, orgsToAdd)).thenReturn(true);
+
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
                         .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT,
                                 "RSU with IP 192.168.1.100 already exists"));

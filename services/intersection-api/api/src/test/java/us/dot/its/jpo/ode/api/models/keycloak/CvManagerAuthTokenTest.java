@@ -348,9 +348,9 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return role when org exists")
         void shouldReturnRoleWhenOrgExists() {
             // Act & Assert
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("CDOT"));
-            assertEquals(Optional.of("operator"), token.findRoleInOrg("WYDOT"));
-            assertEquals(Optional.of("user"), token.findRoleInOrg("VDOT"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CDOT"));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("WYDOT"));
+            assertEquals(Optional.of(UserRole.USER), token.findRoleInOrg("VDOT"));
         }
 
         @Test
@@ -367,9 +367,9 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should be case-insensitive for org name")
         void shouldBeCaseInsensitiveForOrgName() {
             // Act & Assert
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("cdot"));
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("CdOt"));
-            assertEquals(Optional.of("operator"), token.findRoleInOrg("wydot"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("cdot"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CdOt"));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("wydot"));
         }
     }
 

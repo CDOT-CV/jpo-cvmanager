@@ -41,7 +41,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
     }
 
     public boolean hasRoleInOrg(String orgId, String role) {
-        return role.equals(orgRoles.get(orgId));
+        return UserRole.fromString(role).equals(orgRoles.get(orgId));
     }
 
     public Set<String> getAllOrgs() {

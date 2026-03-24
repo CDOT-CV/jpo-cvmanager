@@ -15,7 +15,7 @@ public enum UserRole {
 
     public static UserRole fromString(String value) {
         if (value == null || value.trim().isEmpty()) {
-            return null;
+            throw new IllegalArgumentException("Role value cannot be null or empty");
         }
         return UserRole.valueOf(value.trim().toUpperCase());
     }
