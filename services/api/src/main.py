@@ -22,7 +22,6 @@ from rsu_ssm_srm import RsuSsmSrmData
 from admin_new_intersection import AdminNewIntersection
 from admin_intersection import AdminIntersection
 from admin_new_user import AdminNewUser
-from admin_user import AdminUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
 from contact_support import ContactSupportResource
