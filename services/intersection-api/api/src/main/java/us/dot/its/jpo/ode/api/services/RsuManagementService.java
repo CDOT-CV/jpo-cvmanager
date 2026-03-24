@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -12,12 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
+import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
@@ -32,23 +34,23 @@ import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RsuManagementService {
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final OrganizationRepository organizationRepository;
-    private final PermissionService permissionService;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuIntersectionRepository rsuIntersectionRepository;
@@ -60,7 +62,6 @@ public class RsuManagementService {
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
-    private final UserRepository userRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
 
@@ -78,7 +79,7 @@ public class RsuManagementService {
         return rsus.map(rsuMapper::toDto);
     }
 
-    public ModifyRsuAllowedSelections getAllowedSelections(String username) {
+    public ModifyRsuAllowedSelections getAllowedSelections(CvManagerAuthToken userToken) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
@@ -89,16 +90,90 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
-        allowed.setOrganizations(userRepository.findUserOrgRoles(username).stream()
-                .map(role -> role.getOrganizationName()).toList());
+        allowed.setOrganizations(userToken.getQualifiedOrgList("ADMIN"));
 
         return allowed;
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, String username) {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+        Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
+        updateRelationships(rsu, rsuInfoDto);
+
+        InetAddress ipv4Address = rsu.getIpv4Address();
+        if (ipv4Address != null && rsuRepository.findByIpv4Address(ipv4Address) != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "RSU with IP " + ipv4Address.getHostAddress() + " already exists");
+        }
+
+        Rsu createdRsu = rsuRepository.save(rsu);
+
+        RsuOption rsuOption = new RsuOption();
+        rsuOption.setRsu(createdRsu);
+        rsuOption.setTimDeposit(rsuInfoDto.getTimDeposit());
+        rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
+        rsuOptionRepository.save(rsuOption);
+
+        var toCreate = new ArrayList<RsuOrganization>();
+        for (String orgName : orgsToAdd) {
+            toCreate.add(createRsuOrgRelationship(orgName, rsu));
+        }
+        rsuOrganizationRepository.saveAll(toCreate);
+
+        return rsu;
+    }
+
+    public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
+        Organization organization = organizationRepository.findByName(orgName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Organization not found: " + orgName));
+
+        RsuOrganization rsuOrg = new RsuOrganization();
+        rsuOrg.setOrganization(organization);
+        rsuOrg.setRsu(rsu);
+        return rsuOrg;
+    }
+
+    private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
+        // Update model if provided
+        if (rsuInfoDto.getModel() != null) {
+            RsuModel model = findRsuModelByName(rsuInfoDto.getModel());
+            rsu.setModel(model);
+        }
+
+        // Update SSH credential if provided
+        if (rsuInfoDto.getSshCredentialGroup() != null) {
+            RsuCredential credential = rsuCredentialRepository
+                    .findByNickname(rsuInfoDto.getSshCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SSH credential not found: " + rsuInfoDto.getSshCredentialGroup()));
+            rsu.setCredential(credential);
+        }
+
+        // Update SNMP credential if provided
+        if (rsuInfoDto.getSnmpCredentialGroup() != null) {
+            SnmpCredential snmpCredential = snmpCredentialRepository
+                    .findByNickname(rsuInfoDto.getSnmpCredentialGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP credential not found: " + rsuInfoDto.getSnmpCredentialGroup()));
+            rsu.setSnmpCredential(snmpCredential);
+        }
+
+        // Update SNMP protocol if provided
+        if (rsuInfoDto.getSnmpVersionGroup() != null) {
+            SnmpProtocol snmpProtocol = snmpProtocolRepository
+                    .findByNickname(rsuInfoDto.getSnmpVersionGroup())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "SNMP protocol not found: " + rsuInfoDto.getSnmpVersionGroup()));
+            rsu.setSnmpProtocol(snmpProtocol);
+        }
+    }
+
+    @Transactional
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
-            List<String> authorizedOrgs = permissionService.getQualifiedOrgList(username, "ADMIN");
+            List<String> authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
@@ -108,19 +183,29 @@ public class RsuManagementService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
             }
 
-            // 2. Update only non-null fields using MapStruct
+            // 2. If IP is being changed, check for conflicts
+            if (rsuPatch.getIpv4Address() != null && !rsuPatch.getIpv4Address().equals(rsuIp)) {
+                InetAddress newIp = InetAddress.getByName(rsuPatch.getIpv4Address());
+                Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
+                if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "RSU with IP " + rsuPatch.getIpv4Address() + " already exists");
+                }
+            }
+
+            // 3. Update only non-null fields using MapStruct
             rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
 
-            // 3. Update relationships that require database lookups
+            // 4. Update relationships that require database lookups
             updateRelationships(existingRsu, rsuPatch);
 
-            // 4. Handle organization additions/removals
+            // 5. Handle organization additions/removals
             handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
 
-            // 5. Save updated entity (JPA handles UPDATE SQL)
+            // 6. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
 
-            // 6. Return DTO
+            // 7. Return DTO
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
@@ -190,7 +275,6 @@ public class RsuManagementService {
                     rsuOrg.setRsu(rsu);
                     rsuOrg.setOrganization(org);
 
-                    // Save to repository
                     rsuOrganizationRepository.save(rsuOrg);
                 }
             }
@@ -296,6 +380,5 @@ public class RsuManagementService {
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
         rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
-
     }
 }

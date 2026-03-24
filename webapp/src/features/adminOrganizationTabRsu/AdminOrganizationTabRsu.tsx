@@ -21,8 +21,9 @@ import {
   updateOrgSnmpMonitoring,
   selectTimDeposit,
   selectSnmpMonitoring,
+  selectSelectedOrgName,
 } from '../adminOrganizationTab/adminOrganizationTabSlice'
-import { selectLoadingGlobal, selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
@@ -34,7 +35,7 @@ import toast from 'react-hot-toast'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
 import { Multiselect } from 'react-widgets/cjs'
 import '../css/multiselect.css'
-import { useGetAllRsusQuery } from '../api/rsuApiSlice'
+import { useGetAllRsusNotInOrganizationQuery } from '../api/organizationApiSlice'
 
 interface AdminOrganizationTabRsuProps {
   selectedOrg: string
@@ -47,21 +48,9 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const { selectedOrg, selectedOrgEmail, updateTableData } = props
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
-  const organizationName = useSelector(selectOrganizationName)
+  const organizationName = useSelector(selectSelectedOrgName)
 
-  const { data: allRsuData } = useGetAllRsusQuery({ organization: organizationName })
-
-  const availableRsuList = useMemo(() => {
-    // TODO: Pull this from a separate endpoint based on organization not RSUs
-    if (!allRsuData?.content) return []
-
-    return allRsuData.content
-      .filter((rsu) => !rsu.organizations?.includes(organizationName))
-      .map((rsu, index) => ({
-        id: index,
-        ip: rsu.ip,
-      }))
-  }, [allRsuData, organizationName])
+  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(organizationName)
 
   const selectedRsuList = useSelector(selectSelectedRsuList)
   const loadingGlobal = useSelector(selectLoadingGlobal)

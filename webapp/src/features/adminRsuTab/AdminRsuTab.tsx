@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
 import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import AdminTable from '../../components/AdminTable'
@@ -13,7 +13,12 @@ import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import { useTheme, Typography } from '@mui/material'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
-import { useLazyGetAllRsusQuery, useDeleteRsuMutation, useDeleteMultipleRsusMutation } from '../api/rsuApiSlice'
+import {
+  useLazyGetAllRsusQuery,
+  useDeleteRsuMutation,
+  useDeleteMultipleRsusMutation,
+  useGetAllRsusQuery,
+} from '../api/rsuApiSlice'
 
 const AdminRsuTab = () => {
   const navigate = useNavigate()
@@ -23,75 +28,29 @@ const AdminRsuTab = () => {
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const [currentParams, setCurrentParams] = useState({
+    page: 0,
+    size: 20,
+    sort: 'ip,asc',
+    search: '',
+    organization: organization || '',
+  })
+
   const [trigger] = useLazyGetAllRsusQuery()
 
-  const currentQueryRef = useRef(null)
-  const handleQueryChange = useCallback(
-    async (query) => {
-      setIsRefreshing(true)
+  // Subscribe to query - this will trigger when cache is invalidated
+  const { data: subscribedData } = useGetAllRsusQuery(currentParams, {
+    skip: !organization, // Skip if no organization selected
+  })
 
-      try {
-        // Extract order information from orderByCollection
-        let orderBy = 'ip'
-        let orderDirection = 'asc'
-        if (query.orderByCollection && query.orderByCollection.length > 0) {
-          const firstOrder = query.orderByCollection[0]
-          if (firstOrder.orderBy !== undefined) {
-            if (typeof firstOrder.orderBy.field === 'string') {
-              orderBy = firstOrder.orderBy.field
-            } else if (typeof firstOrder.orderBy === 'number') {
-              orderBy = columns[firstOrder.orderBy].field
-            }
-          }
-          orderDirection = firstOrder.orderDirection || 'asc'
-        }
-
-        // Build query params including organization
-        const params = {
-          page: query.page,
-          size: query.pageSize,
-          sort: `${orderBy},${orderDirection}`,
-          search: query.search || '',
-          organization: organization || '', // Add organization parameter
-        }
-
-        // Check if organization changed - if so, reset to page 0
-        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
-          params.page = 0
-          query.page = 0
-        }
-
-        // Store current query for comparison
-        currentQueryRef.current = params
-
-        // Trigger the query and await the result
-        const result = await trigger(params).unwrap()
-
-        return {
-          data: result.content || [],
-          page: params.page,
-          totalCount: result.totalElements || 0,
-        }
-      } catch (error) {
-        console.error('Failed to fetch rsus:', error)
-        toast.error('Failed to fetch RSUs')
-        return {
-          data: [],
-          page: query.page,
-          totalCount: 0,
-        }
-      } finally {
-        setIsRefreshing(false)
-      }
-    },
-    [trigger, organization]
-  )
-
-  const handleRefresh = () => {
-    if (tableRef.current && tableRef.current.onQueryChange) {
-      tableRef.current.onQueryChange()
+  // When subscribed data changes (due to cache invalidation), refresh table
+  useEffect(() => {
+    if (subscribedData || organization) {
+      handleRefresh()
     }
-  }
+  }, [subscribedData, organization])
+
+  const currentQueryRef = useRef(null)
 
   const [deleteRsuApi] = useDeleteRsuMutation()
   const [deleteMultipleRsusApi] = useDeleteMultipleRsusMutation()
@@ -135,6 +94,12 @@ const AdminRsuTab = () => {
       ),
     },
   ])
+
+  const handleRefresh = () => {
+    if (tableRef.current && tableRef.current.onQueryChange) {
+      tableRef.current.onQueryChange()
+    }
+  }
 
   const tableActions: Action<AdminEditRsuFormType>[] = [
     {
@@ -209,6 +174,68 @@ const AdminRsuTab = () => {
       },
     },
   ]
+
+  const handleQueryChange = useCallback(
+    async (query) => {
+      setIsRefreshing(true)
+
+      try {
+        // Extract order information from orderByCollection
+        let orderBy = 'ip'
+        let orderDirection = 'asc'
+        if (query.orderByCollection && query.orderByCollection.length > 0) {
+          const firstOrder = query.orderByCollection[0]
+          if (firstOrder.orderBy !== undefined) {
+            if (typeof firstOrder.orderBy.field === 'string') {
+              orderBy = firstOrder.orderBy.field
+            } else if (typeof firstOrder.orderBy === 'number') {
+              orderBy = columns[firstOrder.orderBy].field
+            }
+          }
+          orderDirection = firstOrder.orderDirection || 'asc'
+        }
+
+        // Build query params including organization
+        const params = {
+          page: query.page,
+          size: query.pageSize,
+          sort: `${orderBy},${orderDirection}`,
+          search: query.search || '',
+          organization: organization || '', // Add organization parameter
+        }
+
+        // Check if organization changed - if so, reset to page 0
+        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
+          params.page = 0
+          query.page = 0
+        }
+
+        // Store current query for comparison
+        currentQueryRef.current = params
+        setCurrentParams(params) // Update params for subscription
+
+        // Trigger the query and await the result
+        const result = await trigger(params).unwrap()
+
+        return {
+          data: result.content || [],
+          page: params.page,
+          totalCount: result.totalElements || 0,
+        }
+      } catch (error) {
+        console.error('Failed to fetch rsus:', error)
+        toast.error('Failed to fetch RSUs')
+        return {
+          data: [],
+          page: query.page,
+          totalCount: 0,
+        }
+      } finally {
+        setIsRefreshing(false)
+      }
+    },
+    [trigger, organization]
+  )
 
   const onEdit = (row: AdminEditRsuFormType) => {
     navigate('editRsu/' + row.ip)
