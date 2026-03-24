@@ -75,7 +75,6 @@ const applyPagination = (parameters, page, rowsPerPage) =>
 
 export const NotificationsTable = (props: { simple: boolean }) => {
   const { simple } = props
-  const queryRef = useRef<TextFieldProps>(null)
   const [notifications, setNotifications] = useState<MessageMonitor.Notification[]>([])
   const [acceptedNotifications, setAcceptedNotifications] = useState<string[]>([])
   const [expandedNotifications, setExpandedNotifications] = useState<string[]>([])
