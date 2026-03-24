@@ -76,7 +76,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -146,7 +146,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -167,7 +167,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -187,7 +187,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -209,7 +209,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -231,7 +231,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -306,7 +306,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
         config: {
@@ -381,7 +381,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -451,7 +451,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -510,7 +510,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
@@ -592,7 +592,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { organization: 'name' },
           },
         },
       })
