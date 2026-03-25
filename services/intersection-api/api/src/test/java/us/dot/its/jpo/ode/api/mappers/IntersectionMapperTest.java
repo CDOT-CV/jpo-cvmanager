@@ -4,8 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -28,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import({ IntersectionMapperImpl.class, GeometryMapperImpl.class, INetMapperImpl.class })
 class IntersectionMapperTest {
 
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
     private static final double DELTA = 0.0000001;
     private final TestFixtures testFixtures = new TestFixtures();
 
