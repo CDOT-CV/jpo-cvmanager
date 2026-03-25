@@ -47,7 +47,7 @@ import java.util.Set;
  */
 @Slf4j
 @RestController
-@ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "enable.api", havingValue = "true")
 @RequestMapping("/admin-intersection")
 @RequiredArgsConstructor
 @Validated
