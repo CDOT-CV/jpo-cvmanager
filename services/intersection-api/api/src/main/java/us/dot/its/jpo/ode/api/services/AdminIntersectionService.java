@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 /**
  * Service for admin intersection management.
  *
- * This service is responsible only for database operations. All authorization
+ * This service is responsible only for business logic and repository operations. All authorization
  * (role checks, intersection resource access, and org restriction enforcement)
  * is handled by AdminIntersectionController before this service is called.
  *
@@ -62,7 +62,7 @@ public class AdminIntersectionService {
 
     /**
      * Returns a single intersection by intersection_number, plus allowed_selections for UI dropdowns.
-     * Applies org filtering based on the requesting user's context (see spec: Organization Filtering).
+     * Applies org filtering based on the requesting user's context.
      *
      * @param intersectionId the intersection_number to look up
      * @param organization   the scoped organization from the request header (may be null)
@@ -131,8 +131,8 @@ public class AdminIntersectionService {
 
     /**
      * Updates an intersection's properties and modifies its org/RSU relationships.
-     * All authorization has already been enforced by the controller before this is called.
-     * Wraps all writes in a single transaction (fixes known issue #1).
+     * The controller has already enforced all authorization before this is called.
+     * Wraps all writes in a single transaction.
      *
      * @param patch the patch request body
      */
@@ -208,7 +208,7 @@ public class AdminIntersectionService {
 
     /**
      * Deletes an intersection and all its relationship records.
-     * All authorization has already been enforced by the controller before this is called.
+     * The controller has already enforced all authorization before this is called.
      * Wraps all writes in a single transaction (fixes known issue #1).
      * Throws 404 if the intersection does not exist (fixes known issue #2).
      *

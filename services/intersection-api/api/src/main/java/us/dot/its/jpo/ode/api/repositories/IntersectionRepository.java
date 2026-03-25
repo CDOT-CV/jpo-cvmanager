@@ -15,13 +15,12 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
 
     /**
      * Finds a single intersection by its intersection_number.
-     * Used by getIntersection (single GET), patchIntersection, and deleteIntersection.
      */
     Optional<Intersection> findByIntersectionNumber(String intersectionNumber);
 
     /**
      * Fetches a single intersection with its organization associations eagerly loaded.
-     * Used by getIntersection to avoid N+1 queries when reading org names.
+     * Avoids N+1 queries when reading org names.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
@@ -32,7 +31,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
 
     /**
      * Fetches all intersections with their organization associations eagerly loaded.
-     * Used by getAllIntersections for superusers with no org scope.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
@@ -41,7 +39,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
 
     /**
      * Fetches intersections belonging to a single organization, with org associations loaded.
-     * Used by getAllIntersections when the user has a scoped Organization header.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
@@ -51,7 +48,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
 
     /**
      * Fetches intersections belonging to any of the given organizations, with org associations loaded.
-     * Used by getAllIntersections for non-superusers with no org scope (qualified orgs filter).
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +

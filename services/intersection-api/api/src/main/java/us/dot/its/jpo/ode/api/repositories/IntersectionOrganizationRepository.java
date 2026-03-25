@@ -18,10 +18,6 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
     @Transactional
     void deleteIntersectionOrganizationByIntersection_IntersectionNumber(String intersectionNumber);
 
-    /**
-     * Deletes specific organization associations for an intersection.
-     * Used by PATCH /admin-intersection (Step 3: remove orgs).
-     */
     @Modifying
     @Transactional
     @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.name IN :orgNames")

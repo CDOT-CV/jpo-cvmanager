@@ -13,9 +13,5 @@ public interface OrganizationRepository extends JpaRepository<Organization, Inte
 
     Optional<Organization> findByName(String name);
 
-    /**
-     * Finds all organizations whose names are in the given list.
-     * Used by patchIntersection to look up Organization entities for batch association creation.
-     */
     List<Organization> findByNameIn(List<String> names);
 }

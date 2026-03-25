@@ -17,7 +17,6 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
 
     /**
      * Projection for fetching RSU IPs alongside the intersection number they belong to.
-     * Used by getAllIntersections to load all RSU IPs in a single batch query.
      */
     interface IntersectionRsuProjection {
         String getIntersectionNumber();
@@ -27,7 +26,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
 
     /**
      * Fetches RSU IPs for a batch of intersection numbers in one query.
-     * Used by getAllIntersections to avoid N+1 RSU IP lookups.
+     * Avoids N+1 RSU IP lookups.
      */
     @Query("SELECT ri.intersection.intersectionNumber AS intersectionNumber, " +
             "ri.rsu.ipv4Address AS rsuIp " +
@@ -38,7 +37,6 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
 
     /**
      * Fetches RSU IPs for a single intersection number.
-     * Used by getIntersection (single GET).
      */
     @Query("SELECT ri.rsu.ipv4Address FROM RsuIntersection ri " +
             "WHERE ri.intersection.intersectionNumber = :intersectionNumber")
