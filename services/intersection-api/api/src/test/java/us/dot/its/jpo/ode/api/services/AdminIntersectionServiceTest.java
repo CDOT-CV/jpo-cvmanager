@@ -41,7 +41,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("integration-test")
 class AdminIntersectionServiceTest {
   @Autowired
@@ -78,6 +78,8 @@ class AdminIntersectionServiceTest {
 
   @Autowired
   private RsuModelRepository rsuModelRepository;
+  @Autowired
+  private ManufacturerRepository manufacturerRepository;
 
   /**
    * Clears all relevant tables in reverse FK-dependency order before each test so that
@@ -504,7 +506,7 @@ class AdminIntersectionServiceTest {
   }
 
   private Rsu saveRsu(String ip, Organization org) throws UnknownHostException {
-    Manufacturer mfr = fixtures.createRandomManufacturer();
+    Manufacturer mfr = manufacturerRepository.save(fixtures.createRandomManufacturer());
     RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(mfr));
     RsuCredential cred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
     SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
