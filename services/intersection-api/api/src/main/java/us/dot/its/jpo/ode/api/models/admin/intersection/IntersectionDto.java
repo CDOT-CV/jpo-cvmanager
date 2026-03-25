@@ -12,9 +12,6 @@ import java.util.List;
 
 /**
  * Represents a single intersection record as returned by GET /admin-intersection.
- *
- * When serialized with all fields null (not-found case), Jackson produces {}.
- * This is the intended behavior for the "single intersection not found" response shape.
  */
 @Schema(description = "A single intersection record")
 @Getter

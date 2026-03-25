@@ -11,7 +11,6 @@ import java.util.List;
 
 /**
  * Response shape for GET /admin-intersection (list all intersections).
- * allowed_selections is not included for list requests.
  */
 @Schema(description = "Response for GET /admin-intersection — list of all accessible intersections")
 @Getter

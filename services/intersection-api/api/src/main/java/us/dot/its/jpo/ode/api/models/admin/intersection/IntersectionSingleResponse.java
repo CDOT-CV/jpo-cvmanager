@@ -11,8 +11,7 @@ import lombok.Setter;
  * Response shape for GET /admin-intersection/{intersectionId}.
  *
  * When the intersection is found, intersection_data is populated.
- * When the intersection is not found, intersection_data is an empty IntersectionData (serializes as {}).
- * allowed_selections is always included for single-intersection requests.
+ * When the intersection is not found, intersection_data is an empty IntersectionData (serialized as {}).
  */
 @Schema(description = "Response for GET /admin-intersection/{intersectionId} — single intersection with allowed selections for UI dropdowns")
 @Getter

@@ -13,11 +13,6 @@ import java.util.List;
 
 /**
  * Request body for PATCH /admin-intersection.
- *
- * orig_intersection_id identifies the record to update (WHERE clause).
- * intersection_id is the new intersection number (may equal orig).
- * bbox, intersection_name, and origin_ip are optional; omitting them leaves those columns unchanged.
- * organizations_to_add/remove and rsus_to_add/remove must be present but may be empty lists.
  */
 @Schema(description = "Request body for updating an intersection's properties and organization/RSU associations")
 @Getter
