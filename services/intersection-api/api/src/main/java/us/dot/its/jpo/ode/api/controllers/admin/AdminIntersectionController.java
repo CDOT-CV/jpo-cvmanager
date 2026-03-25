@@ -91,8 +91,6 @@ public class AdminIntersectionController {
     }
 
     /**
-     * GET /admin-intersection/{intersectionId}
-     *
      * Returns a single intersection and allowed_selections for UI dropdown population.
      * If the intersection is not found, intersection_data is {} (empty object).
      * Authorization (outer check) runs before path variable validation.
@@ -126,8 +124,6 @@ public class AdminIntersectionController {
     }
 
     /**
-     * PATCH /admin-intersection
-     *
      * Updates an intersection's properties and modifies its organization/RSU relationships.
      * Request body validation runs after the permission checks.
      *
@@ -174,8 +170,6 @@ public class AdminIntersectionController {
     }
 
     /**
-     * DELETE /admin-intersection?intersection_id={id}
-     *
      * Removes an intersection and all its relationship records in dependency order.
      * Request parameter validation runs after the permission check.
      *
