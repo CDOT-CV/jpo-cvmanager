@@ -26,6 +26,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,6 +84,9 @@ class AdminIntersectionControllerTest {
 
   @MockitoBean
   private AdminIntersectionService adminIntersectionService;
+
+  @MockitoBean
+  IntersectionRepository intersectionRepository;
 
   /**
    * Concrete-class mock; created fresh per test to avoid cross-test stubbing bleed.
@@ -393,14 +398,11 @@ class AdminIntersectionControllerTest {
         List.of("AnyOrgNotInQualifiedList"), List.of(), List.of(), List.of());
 
       when(permissionService.isSuperUser()).thenReturn(true);
-      when(adminIntersectionService.patchIntersection(any()))
-        .thenReturn("Intersection successfully modified");
 
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithAnyOrg)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.message").value("Intersection successfully modified"));
+        .andExpect(status().isOk());
     }
 
     @Test
@@ -474,14 +476,11 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
-      when(adminIntersectionService.patchIntersection(any()))
-        .thenReturn("Intersection successfully modified");
 
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.message").value("Intersection successfully modified"));
+        .andExpect(status().isOk());
 
       verify(adminIntersectionService).patchIntersection(any());
     }
@@ -491,9 +490,8 @@ class AdminIntersectionControllerTest {
     @DisplayName("returns 404 when service throws ResponseStatusException with NOT_FOUND")
     void serviceThrowsNotFound_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
-      when(adminIntersectionService.patchIntersection(any()))
-        .thenThrow(new ResponseStatusException(
-          HttpStatus.NOT_FOUND, "Intersection not found: 12109"));
+      doThrow(new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "Intersection not found: 12109")).when(adminIntersectionService).patchIntersection(any());
 
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)
@@ -557,13 +555,10 @@ class AdminIntersectionControllerTest {
     @DisplayName("super user returns 200 with success message")
     void superUser_returns200WithSuccessMessage() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
-      when(adminIntersectionService.deleteIntersection("12109"))
-        .thenReturn("Intersection successfully deleted");
 
       mockMvc.perform(delete("/admin-intersection")
           .param("intersection_id", "12109"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.message").value("Intersection successfully deleted"));
+        .andExpect(status().isOk());
     }
 
     @Test
@@ -573,13 +568,10 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
-      when(adminIntersectionService.deleteIntersection("12109"))
-        .thenReturn("Intersection successfully deleted");
 
       mockMvc.perform(delete("/admin-intersection")
           .param("intersection_id", "12109"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.message").value("Intersection successfully deleted"));
+        .andExpect(status().isOk());
     }
 
     @Test
@@ -587,9 +579,8 @@ class AdminIntersectionControllerTest {
     @DisplayName("returns 404 when service throws ResponseStatusException with NOT_FOUND")
     void serviceThrowsNotFound_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
-      when(adminIntersectionService.deleteIntersection("99999"))
-        .thenThrow(new ResponseStatusException(
-          HttpStatus.NOT_FOUND, "Intersection not found: 99999"));
+      doThrow(new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "Intersection not found: 99999")).when(adminIntersectionService).deleteIntersection(any());
 
       mockMvc.perform(delete("/admin-intersection")
           .param("intersection_id", "99999"))

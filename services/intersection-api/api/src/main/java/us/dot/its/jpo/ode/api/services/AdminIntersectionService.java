@@ -139,10 +139,9 @@ public class AdminIntersectionService {
      * Wraps all writes in a single transaction (fixes known issue #1).
      *
      * @param patch the patch request body
-     * @return success message
      */
     @Transactional
-    public String patchIntersection(IntersectionPatch patch) {
+    public void patchIntersection(IntersectionPatch patch) {
         String origNumber = patch.getOrigIntersectionId().toString();
         String newNumber = patch.getIntersectionId().toString();
 
@@ -209,8 +208,6 @@ public class AdminIntersectionService {
             rsuIntersectionRepository.deleteByIntersectionNumberAndRsuIpv4AddressIn(
                     newNumber, ipsToRemove);
         }
-
-        return "Intersection successfully modified";
     }
 
     /**
@@ -220,10 +217,9 @@ public class AdminIntersectionService {
      * Throws 404 if the intersection does not exist (fixes known issue #2).
      *
      * @param intersectionId the intersection_number to delete
-     * @return success message
      */
     @Transactional
-    public String deleteIntersection(String intersectionId) {
+    public void deleteIntersection(String intersectionId) {
         Intersection intersection = intersectionRepository.findByIntersectionNumber(intersectionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Intersection not found: " + intersectionId));
@@ -233,8 +229,6 @@ public class AdminIntersectionService {
                 .deleteIntersectionOrganizationByIntersection_IntersectionNumber(intersectionId);
         rsuIntersectionRepository.deleteByIntersection_IntersectionNumber(intersectionId);
         intersectionRepository.delete(intersection);
-
-        return "Intersection successfully deleted";
     }
 
     // ==================== Private Helpers ====================

@@ -25,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
-import us.dot.its.jpo.ode.api.models.admin.intersection.MessageResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -126,11 +125,10 @@ public class AdminIntersectionController {
     /**
      * Updates an intersection's properties and modifies its organization/RSU relationships.
      * Request body validation runs after the permission checks.
-     *
      * Authorization (all enforced in this layer):
-     *   1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
-     *   2. Method body: each org in organizations_to_add/remove must be in the user's
-     *      qualified orgs (superusers exempt). Returns 403 if any org is not allowed.
+     * 1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
+     * 2. Method body: each org in organizations_to_add/remove must be in the user's
+     * qualified orgs (superusers exempt). Returns 403 if any org is not allowed.
      */
     @Operation(
             summary = "Update an intersection",
@@ -149,7 +147,7 @@ public class AdminIntersectionController {
     })
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
-    public MessageResponse patchIntersection(
+    public void patchIntersection(
             @RequestBody @Validated IntersectionPatch patch) {
 
         if (!permissionService.isSuperUser()) {
@@ -166,15 +164,15 @@ public class AdminIntersectionController {
             }
         }
 
-        return new MessageResponse(adminIntersectionService.patchIntersection(patch));
+        adminIntersectionService.patchIntersection(patch);
     }
 
     /**
      * Removes an intersection and all its relationship records in dependency order.
      * Request parameter validation runs after the permission check.
-     *
+     * <p>
      * Authorization (enforced in this layer):
-     *   1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
+     * 1. @PreAuthorize: OPERATOR role AND access to the specific intersection.
      */
     @Operation(
             summary = "Delete an intersection",
@@ -193,12 +191,12 @@ public class AdminIntersectionController {
     })
     @DeleteMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#intersectionId, 'OPERATOR'))")
-    public MessageResponse deleteIntersection(
+    public void deleteIntersection(
             @Parameter(description = "Intersection number to delete", example = "12109")
             @RequestParam(name = "intersection_id")
             @NotBlank(message = "intersection_id must not be blank")
             String intersectionId) {
 
-        return new MessageResponse(adminIntersectionService.deleteIntersection(intersectionId));
+        adminIntersectionService.deleteIntersection(intersectionId);
     }
 }

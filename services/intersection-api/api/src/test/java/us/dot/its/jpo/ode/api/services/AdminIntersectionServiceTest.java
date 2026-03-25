@@ -323,10 +323,8 @@ class AdminIntersectionServiceTest {
         Collections.emptyList(), Collections.emptyList(),
         Collections.emptyList(), Collections.emptyList());
 
-      String result = adminIntersectionService.patchIntersection(patch);
+      adminIntersectionService.patchIntersection(patch);
 
-
-      assertEquals("Intersection successfully modified", result);
       assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
       assertFalse(intersectionRepository.findByIntersectionNumber("1000").isPresent());
     }
@@ -487,10 +485,8 @@ class AdminIntersectionServiceTest {
       rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
 
 
-      String result = adminIntersectionService.deleteIntersection("1123");
+      adminIntersectionService.deleteIntersection("1123");
 
-
-      assertEquals("Intersection successfully deleted", result);
       assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
       assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123").isEmpty());
       assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
