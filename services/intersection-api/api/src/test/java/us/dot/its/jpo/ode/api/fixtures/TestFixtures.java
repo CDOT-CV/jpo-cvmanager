@@ -2,8 +2,10 @@ package us.dot.its.jpo.ode.api.fixtures;
 
 import com.github.javafaker.Faker;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import java.net.InetAddress;
@@ -108,5 +110,9 @@ public class TestFixtures {
         ro.setRsu(rsu);
         ro.setOrganization(org);
         return ro;
+    }
+
+    public Polygon createBBox(double minLat, double minLon, double maxLat, double maxLon) {
+        return (Polygon) GF.toGeometry(new Envelope(minLon, maxLon, minLat, maxLat));
     }
 }
