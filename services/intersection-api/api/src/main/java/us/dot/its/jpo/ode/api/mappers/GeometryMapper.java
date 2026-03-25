@@ -14,8 +14,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.Bbox;
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 
 /**
- * MapStruct mapper for converting between JTS geometry types and admin intersection DTOs.
- * Used by IntersectionMapper to convert Point/Polygon fields on Intersection entities.
+ * MapStruct mapper for converting between JTS geometry types and DTOs.
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface GeometryMapper {
