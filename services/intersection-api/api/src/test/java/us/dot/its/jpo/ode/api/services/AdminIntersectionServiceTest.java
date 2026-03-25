@@ -245,7 +245,6 @@ class AdminIntersectionServiceTest {
     void scopedOrgDoesNotMatch_returnsEmptyDto() {
       Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
       Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
-      String orgAName = orgA.getName();
       String orgBName = orgB.getName();
 
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));

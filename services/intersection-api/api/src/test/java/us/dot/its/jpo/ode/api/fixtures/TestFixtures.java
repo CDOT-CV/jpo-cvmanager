@@ -18,10 +18,6 @@ public class TestFixtures {
         return GF.createPoint(new Coordinate(lon, lat));
     }
 
-    public Point randomPoint() {
-        return createPoint(Double.parseDouble(faker.address().longitude()), Double.parseDouble(faker.address().latitude()));
-    }
-
     public Organization createOrg(String name) {
         Organization org = new Organization();
         org.setName(name);
@@ -37,10 +33,6 @@ public class TestFixtures {
         i.setIntersectionNumber(number);
         i.setRefPt(createPoint(-105.0, 40.0));
         return i;
-    }
-
-    public Intersection createRandomIntersection() {
-        return createIntersection(String.valueOf(faker.number().numberBetween(1000, 9999)));
     }
 
     public IntersectionOrganization createIntersectionOrganization(Intersection intersection, Organization org) {
@@ -102,10 +94,6 @@ public class TestFixtures {
         rsu.setSnmpCredential(snmpCred);
         rsu.setSnmpProtocol(proto);
         return rsu;
-    }
-
-    public Rsu createRandomRsu(RsuModel model, RsuCredential cred, SnmpCredential snmpCred, SnmpProtocol proto) throws UnknownHostException {
-        return createRsu(faker.internet().ipV4Address(), model, cred, snmpCred, proto);
     }
 
     public RsuIntersection createRsuIntersection(Rsu rsu, Intersection intersection) {
