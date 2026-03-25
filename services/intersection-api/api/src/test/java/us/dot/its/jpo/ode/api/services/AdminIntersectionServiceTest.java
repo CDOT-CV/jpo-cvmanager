@@ -1,15 +1,13 @@
 package us.dot.its.jpo.ode.api.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
@@ -43,9 +41,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("integration-test")
-@Testcontainers
 class AdminIntersectionServiceTest {
   @Autowired
   private AdminIntersectionService adminIntersectionService;
@@ -82,7 +79,31 @@ class AdminIntersectionServiceTest {
   @Autowired
   private RsuModelRepository rsuModelRepository;
 
-  private static final GeometryFactory GF = new GeometryFactory(new PrecisionModel(), 4326);
+  /**
+   * Clears all relevant tables in reverse FK-dependency order before each test so that
+   * tests never see each other's data and hardcoded identifiers ("1123", "1000", etc.)
+   * never produce duplicate-key violations.
+   *
+   * Deletion order (leaf tables first):
+   *   rsu_intersection → intersection_organization → rsu_organization
+   *   → rsus → rsu_credentials → snmp_credentials → snmp_protocols → rsu_models
+   *   → intersections → organizations
+   *
+   * Note: manufacturer rows are left as orphans (no unique constraint in test data).
+   */
+  @BeforeEach
+  void clearDatabase() {
+    rsuIntersectionRepository.deleteAll();
+    intersectionOrganizationRepository.deleteAll();
+    rsuOrganizationRepository.deleteAll();
+    rsuRepository.deleteAll();
+    rsuCredentialRepository.deleteAll();
+    snmpCredentialRepository.deleteAll();
+    snmpProtocolRepository.deleteAll();
+    rsuModelRepository.deleteAll();
+    intersectionRepository.deleteAll();
+    organizationRepository.deleteAll();
+  }
 
   @Nested
   class GetAllIntersections {
@@ -471,6 +492,7 @@ class AdminIntersectionServiceTest {
       assertEquals("Intersection successfully deleted", result);
       assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
       assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber("1123").isEmpty());
+      assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
     }
 
     @Test
