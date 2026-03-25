@@ -86,6 +86,8 @@ public class AdminIntersectionController {
         CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
         List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
 
+        log.info("GET /admin-intersection. organization={}, superUser={}", organization, isSuperUser);
+        log.debug("User has {} org(s) qualifying for USER role.", userOrgs.size());
         return adminIntersectionService.getAllIntersections(organization, isSuperUser, userOrgs);
     }
 
@@ -119,6 +121,8 @@ public class AdminIntersectionController {
         List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
         List<String> operatorOrgs = token != null ? token.getQualifiedOrgList("OPERATOR") : Collections.emptyList();
 
+        log.info("GET /admin-intersection/{}. organization={}, superUser={}", intersectionId, organization, isSuperUser);
+        log.debug("User has {} USER org(s), {} OPERATOR org(s).", userOrgs.size(), operatorOrgs.size());
         return adminIntersectionService.getIntersection(intersectionId, organization, isSuperUser, userOrgs, operatorOrgs);
     }
 
@@ -150,6 +154,7 @@ public class AdminIntersectionController {
     public void patchIntersection(
             @RequestBody @Validated IntersectionPatch patch) {
 
+        log.info("PATCH /admin-intersection. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
             List<String> qualifiedOrgs = token != null
@@ -159,6 +164,8 @@ public class AdminIntersectionController {
             boolean allOrgsAllowed = qualifiedOrgSet.containsAll(patch.getOrganizationsToAdd())
                     && qualifiedOrgSet.containsAll(patch.getOrganizationsToRemove());
             if (!allOrgsAllowed) {
+                log.warn("Org enforcement rejected PATCH on intersection {}. Requested orgs not in qualified set.",
+                        patch.getOrigIntersectionId());
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Not authorized to modify one or more of the specified organizations");
             }
@@ -197,6 +204,7 @@ public class AdminIntersectionController {
             @NotBlank(message = "intersection_id must not be blank")
             String intersectionId) {
 
+        log.info("DELETE /admin-intersection. intersectionId={}", intersectionId);
         adminIntersectionService.deleteIntersection(intersectionId);
     }
 }
