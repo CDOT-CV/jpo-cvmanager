@@ -33,7 +33,7 @@ import us.dot.its.jpo.ode.mockdata.MockHaasGenerator;
 @Import(TestcontainersConfiguration.class)
 public class HaasControllerTest {
 
-    @Autowired
+    @MockitoBean
     private HaasController controller;
 
     @MockitoBean
