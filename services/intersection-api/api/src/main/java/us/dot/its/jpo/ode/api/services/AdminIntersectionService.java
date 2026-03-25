@@ -1,8 +1,10 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -75,16 +77,12 @@ public class AdminIntersectionService {
             boolean isSuperUser, List<String> userOrgs, List<String> operatorOrgs) {
         AllowedSelections allowedSelections = buildAllowedSelections(isSuperUser, operatorOrgs);
 
-        Optional<Intersection> opt = intersectionRepository.findByIntersectionNumberWithOrgs(intersectionId);
-        if (opt.isEmpty()) {
-            return new IntersectionSingleResponse(new IntersectionDto(), allowedSelections);
-        }
-
-        Intersection intersection = opt.get();
+        Intersection intersection = intersectionRepository.findByIntersectionNumberWithOrgs(intersectionId)
+          .orElseThrow(() -> new EntityNotFoundException("Intersection with id " + intersectionId + " not found"));
 
         List<String> filteredOrgs = filterOrgNames(intersection, organization, isSuperUser, userOrgs);
         if (!isSuperUser && filteredOrgs.isEmpty()) {
-            return new IntersectionSingleResponse(new IntersectionDto(), allowedSelections);
+            throw new AccessDeniedException("Access denied for intersection with id " + intersectionId);
         }
 
         IntersectionDto dto = intersectionMapper.toDto(intersection);
@@ -108,12 +106,11 @@ public class AdminIntersectionService {
      * @param userOrgs     USER-role qualified orgs — used for intersection filtering
      * @return response containing intersection_data as a list (may be empty)
      */
-    public IntersectionListResponse getAllIntersections(String organization, boolean isSuperUser,
-            List<String> userOrgs) {
+    public IntersectionListResponse getAllIntersections(String organization, boolean isSuperUser, List<String> userOrgs) {
         List<Intersection> intersections = queryIntersections(organization, isSuperUser, userOrgs);
 
         if (intersections.isEmpty()) {
-            return new IntersectionListResponse(Collections.emptyList());
+            throw new EntityNotFoundException("No accessible intersections found for organization '" + organization + "' or organizations [" + userOrgs + "]");
         }
 
         List<IntersectionDto> dtos = intersections.stream()
@@ -230,8 +227,6 @@ public class AdminIntersectionService {
         rsuIntersectionRepository.deleteByIntersection_IntersectionNumber(intersectionId);
         intersectionRepository.delete(intersection);
     }
-
-    // ==================== Private Helpers ====================
 
     private List<Intersection> queryIntersections(String organization, boolean isSuperUser,
             List<String> userOrgs) {

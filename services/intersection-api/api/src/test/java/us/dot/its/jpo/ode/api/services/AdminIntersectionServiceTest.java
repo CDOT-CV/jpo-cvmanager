@@ -1,14 +1,15 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
-
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.Bbox;
@@ -39,7 +40,11 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("integration-test")
@@ -78,6 +83,7 @@ class AdminIntersectionServiceTest {
 
   @Autowired
   private RsuModelRepository rsuModelRepository;
+
   @Autowired
   private ManufacturerRepository manufacturerRepository;
 
@@ -157,11 +163,10 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void noResults_returnsEmptyList() {
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, true, List.of());
-
-      assertNotNull(result.getIntersectionData());
-      assertTrue(result.getIntersectionData().isEmpty());
+    void superUser_noResults_throwsEntityNotFoundException() {
+      assertThrows(EntityNotFoundException.class,
+        () -> adminIntersectionService.getAllIntersections(null, false, List.of()),
+        "Should throw EntityNotFoundException");
     }
 
     @Test
@@ -180,14 +185,12 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void nonSuperuser_emptyQualifiedOrgs_returnsEmptyList() {
+    void nonSuperuser_emptyQualifiedOrgs_throwsEntityNotFoundException() {
       intersectionRepository.save(fixtures.createIntersection("1123"));
 
-
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(null, false, List.of());
-
-      assertNotNull(result.getIntersectionData());
-      assertTrue(result.getIntersectionData().isEmpty());
+      assertThrows(EntityNotFoundException.class,
+        () -> adminIntersectionService.getAllIntersections(null, false, List.of()),
+        "Should throw EntityNotFoundException");
     }
   }
 
@@ -195,16 +198,11 @@ class AdminIntersectionServiceTest {
   class GetIntersection {
 
     @Test
-    void notFound_returnsEmptyDtoWithAllowedSelections() {
+    void notFound_throwsEntityNotFoundException() {
       organizationRepository.save(fixtures.createRandomOrg());
 
-
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-        "9999", null, true, List.of(), List.of());
-
-      assertNotNull(result.getIntersectionDto());
-      assertNull(result.getIntersectionDto().getIntersectionId());
-      assertNotNull(result.getAllowedSelections());
+      assertThrows(EntityNotFoundException.class, () ->  adminIntersectionService.getIntersection(
+        "9999", null, true, List.of(), List.of()), "Should throw EntityNotFoundException for non-existent intersection");
     }
 
     @Test
@@ -242,7 +240,7 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void scopedOrgDoesNotMatch_returnsEmptyDto() {
+    void scopedOrgDoesNotMatch_throwsAccessDeniedException() {
       Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
       Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
       String orgBName = orgB.getName();
@@ -251,10 +249,8 @@ class AdminIntersectionServiceTest {
       intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgA));
 
 
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-        "1123", orgBName, false, List.of(orgBName), List.of(orgBName));
-
-      assertNull(result.getIntersectionDto().getIntersectionId());
+      assertThrows(AccessDeniedException.class, () ->  adminIntersectionService.getIntersection(
+          "1123", orgBName, false, List.of(orgBName), List.of(orgBName)), "Should throw AccessDeniedException for intersection outside user's organization");
     }
 
     @Test
@@ -276,7 +272,7 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void qualifiedOrgsNoMatch_returnsEmptyDto() {
+    void qualifiedOrgsNoMatch_throwsAccessDeniedException() {
       Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
       Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
       String orgAName = orgA.getName();
@@ -284,11 +280,9 @@ class AdminIntersectionServiceTest {
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
       intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgB));
 
-
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(
-        "1123", null, false, List.of(orgAName), List.of(orgAName));
-
-      assertNull(result.getIntersectionDto().getIntersectionId());
+      assertThrows(AccessDeniedException.class,
+        () -> adminIntersectionService.getIntersection("1123", null, false, List.of(orgAName), List.of(orgAName)),
+        "Should throw AccessDeniedException for intersection outside scope of user's qualified organizations");
     }
 
     @Test
