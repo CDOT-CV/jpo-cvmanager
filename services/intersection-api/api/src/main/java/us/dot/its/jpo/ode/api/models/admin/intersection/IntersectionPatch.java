@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -62,10 +63,12 @@ public class IntersectionPatch {
     @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("rsus_to_add")
-    private List<String> rsusToAdd;
+    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+            message = "must be a valid IPv4 address") String> rsusToAdd;
 
     @Schema(description = "RSU IP addresses to disassociate from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("rsus_to_remove")
-    private List<String> rsusToRemove;
+    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+            message = "must be a valid IPv4 address") String> rsusToRemove;
 }

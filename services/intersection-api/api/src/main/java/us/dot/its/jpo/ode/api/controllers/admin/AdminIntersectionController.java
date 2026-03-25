@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -88,6 +89,11 @@ public class AdminIntersectionController {
 
         log.info("GET /admin-intersection. organization={}, superUser={}", organization, isSuperUser);
         log.debug("User has {} org(s) qualifying for USER role.", userOrgs.size());
+        if (!isSuperUser && organization != null && !userOrgs.contains(organization)) {
+            log.warn("GET /admin-intersection rejected: user is not a member of the requested organization.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Not authorized to access the specified organization");
+        }
         return adminIntersectionService.getAllIntersections(organization, isSuperUser, userOrgs);
     }
 
@@ -112,7 +118,7 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public IntersectionSingleResponse getIntersection(
             @Parameter(description = "Intersection number to retrieve", example = "12109")
-            @PathVariable String intersectionId,
+            @PathVariable @Pattern(regexp = "^[0-9]{1,10}$", message = "intersectionId must be a numeric string up to 10 digits") String intersectionId,
             @Parameter(description = "Scope results to a specific organization")
             @RequestHeader(name = "Organization", required = false) String organization) {
 
