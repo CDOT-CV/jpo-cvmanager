@@ -54,6 +54,7 @@ import java.util.Set;
 @Tag(name = "Admin Intersection", description = "Manage traffic intersections and their organization/RSU relationships")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "405", description = "Method Not Allowed"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error"),
 })
 public class AdminIntersectionController {
@@ -76,6 +77,7 @@ public class AdminIntersectionController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
+            @ApiResponse(responseCode = "404", description = "No accessible intersections found"),
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
@@ -113,6 +115,7 @@ public class AdminIntersectionController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
+            @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @GetMapping(value = "/{intersectionId}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
@@ -154,6 +157,7 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "200", description = "Intersection successfully modified"),
             @ApiResponse(responseCode = "400", description = "Missing or invalid required fields"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, intersection access, or org restriction violation"),
+            @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
