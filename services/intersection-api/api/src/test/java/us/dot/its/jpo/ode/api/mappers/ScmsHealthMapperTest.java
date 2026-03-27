@@ -1,112 +1,130 @@
 package us.dot.its.jpo.ode.api.mappers;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mapstruct.factory.Mappers;
+
+import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-@ExtendWith(SpringExtension.class)
-@Import(ScmsHealthMapperImpl.class)
 class ScmsHealthMapperTest {
 
-    @Autowired
-    private ScmsHealthMapper scmsHealthMapper;
+    private final ScmsHealthMapper mapper = Mappers.getMapper(ScmsHealthMapper.class);
 
-    @Nested
-    @DisplayName("Tests for toDto mapper method")
-    class ToDtoTests {
-        @Test
-        void testToDto_Success() {
-            ScmsHealth scmsHealth = new ScmsHealth();
-            scmsHealth.setId(1);
-            scmsHealth.setTimestamp(Instant.now());
-            scmsHealth.setHealth(true);
-            scmsHealth.setExpiration(Instant.now().plusSeconds(3600));
+    @Test
+    void testToMap_Success() throws UnknownHostException {
+        // Arrange
+        String ip = "10.0.0.1";
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
 
-            Rsu rsu = new Rsu();
-            rsu.setId(10);
-            scmsHealth.setRsu(rsu);
+        Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
+        ScmsHealth sh = new ScmsHealth();
+        sh.setHealth(true);
+        sh.setExpiration(expiration);
 
-            ScmsHealthDto result = scmsHealthMapper.toDto(scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        List<ScmsHealthRsuProjection> projections = new ArrayList<>();
+        projections.add(projection);
 
-            assertNotNull(result);
-            assertEquals(scmsHealth.getId(), result.getId());
-            assertEquals(scmsHealth.getTimestamp(), result.getTimestamp());
-            assertEquals(scmsHealth.getHealth(), result.isHealth());
-            assertEquals(scmsHealth.getExpiration(), result.getExpiration());
-            assertEquals(scmsHealth.getRsu().getId(), result.getRsuId());
-        }
+        // Act
+        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
 
-        @Test
-        void testToDto_Null() {
-            ScmsHealthDto result = scmsHealthMapper.toDto(null);
-            assertNull(result);
-        }
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey(ip));
+        ScmsHealthDto dto = result.get(ip);
+        assertNotNull(dto);
+        assertEquals(true, dto.getHealth());
+        // Denver time for 15:00:00 UTC is 09:00:00 AM (Daylight savings)
+        assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 
-    @Nested
-    @DisplayName("Tests for toDtoList mapper method")
-    class ToDtoListTests {
-        @Test
-        void testToDtoList_Success() {
-            List<ScmsHealth> scmsHealthList = new ArrayList<>();
-            
-            ScmsHealth scmsHealth1 = new ScmsHealth();
-            scmsHealth1.setId(1);
-            scmsHealth1.setTimestamp(Instant.now());
-            scmsHealth1.setHealth(true);
-            scmsHealth1.setExpiration(Instant.now().plusSeconds(3600));
-            Rsu rsu1 = new Rsu();
-            rsu1.setId(10);
-            scmsHealth1.setRsu(rsu1);
-            
-            ScmsHealth scmsHealth2 = new ScmsHealth();
-            scmsHealth2.setId(2);
-            scmsHealth2.setTimestamp(Instant.now().minusSeconds(60));
-            scmsHealth2.setHealth(false);
-            scmsHealth2.setExpiration(Instant.now().plusSeconds(7200));
-            Rsu rsu2 = new Rsu();
-            rsu2.setId(20);
-            scmsHealth2.setRsu(rsu2);
+    @Test
+    void testToMap_InactiveHealth_ReturnsNullValue() throws UnknownHostException {
+        // Arrange
+        String ip = "10.0.0.1";
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
 
-            scmsHealthList.add(scmsHealth1);
-            scmsHealthList.add(scmsHealth2);
+        ScmsHealth sh = new ScmsHealth();
+        sh.setHealth(false); // Inactive
 
-            List<ScmsHealthDto> result = scmsHealthMapper.toDtoList(scmsHealthList);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        List<ScmsHealthRsuProjection> projections = new ArrayList<>();
+        projections.add(projection);
 
-            assertNotNull(result);
-            assertEquals(2, result.size());
-            
-            assertEquals(scmsHealth1.getId(), result.get(0).getId());
-            assertEquals(scmsHealth1.getRsu().getId(), result.get(0).getRsuId());
-            
-            assertEquals(scmsHealth2.getId(), result.get(1).getId());
-            assertEquals(scmsHealth2.getRsu().getId(), result.get(1).getRsuId());
-        }
+        // Act
+        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
 
-        @Test
-        void testToDtoList_Empty() {
-            List<ScmsHealthDto> result = scmsHealthMapper.toDtoList(new ArrayList<>());
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-        }
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey(ip));
+        assertNull(result.get(ip));
+    }
 
-        @Test
-        void testToDtoList_Null() {
-            List<ScmsHealthDto> result = scmsHealthMapper.toDtoList(null);
-            assertNull(result);
-        }
+    @Test
+    void testToMap_NoHealth_ReturnsNullValue() throws UnknownHostException {
+        // Arrange
+        String ip = "10.0.0.1";
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
+
+        // No ScmsHealth record for this RSU
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, null);
+        List<ScmsHealthRsuProjection> projections = new ArrayList<>();
+        projections.add(projection);
+
+        // Act
+        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertTrue(result.containsKey(ip));
+        assertNull(result.get(ip));
+    }
+
+    @Test
+    void testToMap_NullInput() {
+        assertNull(mapper.toMap(null));
+    }
+
+    @Test
+    void testToDto_Success() throws UnknownHostException {
+        // Arrange
+        String ip = "10.0.0.1";
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
+
+        Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
+        ScmsHealth sh = new ScmsHealth();
+        sh.setHealth(true);
+        sh.setExpiration(expiration);
+
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+
+        // Act
+        ScmsHealthDto dto = mapper.toDto(projection);
+
+        // Assert
+        assertNotNull(dto);
+        assertEquals(true, dto.getHealth());
+        assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 }

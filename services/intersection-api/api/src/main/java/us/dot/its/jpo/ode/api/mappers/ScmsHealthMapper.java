@@ -2,17 +2,52 @@ package us.dot.its.jpo.ode.api.mappers;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.ReportingPolicy;
+import org.mapstruct.Named;
+import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = "spring")
 public interface ScmsHealthMapper {
-    @Mapping(target = "rsuId", source = "rsu.id")
-    ScmsHealthDto toDto(ScmsHealth scmsHealth);
 
-    List<ScmsHealthDto> toDtoList(List<ScmsHealth> scmsHealth);
+    DateTimeFormatter DENVER_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a")
+            .withZone(ZoneId.of("America/Denver"));
+
+    @Mapping(target = "health", source = "scmsHealth.health")
+    @Mapping(target = "expiration", source = "scmsHealth.expiration", qualifiedByName = "formatInstant")
+    ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
+
+    @Named("formatInstant")
+    default String formatInstant(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return DENVER_FORMATTER.format(instant);
+    }
+
+    default Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
+        if (queryResults == null) {
+            return null;
+        }
+
+        Map<String, ScmsHealthDto> statusMap = new HashMap<>();
+        for (ScmsHealthRsuProjection result : queryResults) {
+            String ip = result.getRsu().getIpv4Address().getHostAddress();
+            ScmsHealth sh = result.getScmsHealth();
+
+            if (sh != null && Boolean.TRUE.equals(sh.getHealth())) {
+                statusMap.put(ip, toDto(result));
+            } else {
+                statusMap.put(ip, null);
+            }
+        }
+        return statusMap;
+    }
 }

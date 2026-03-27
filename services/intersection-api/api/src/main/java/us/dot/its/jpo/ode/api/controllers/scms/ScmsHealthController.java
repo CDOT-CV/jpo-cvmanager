@@ -13,8 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.ScmsHealthMapper;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 import us.dot.its.jpo.ode.api.services.ScmsHealthService;
-
-import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -33,8 +32,8 @@ public class ScmsHealthController {
             @ApiResponse(responseCode = "500", description = "Organization header is missing"),
     })
     @GetMapping(produces = "application/json")
-    public List<ScmsHealthDto> getAllStatuses(@RequestHeader(name = "Organization") String organization) {
+    public Map<String, ScmsHealthDto> getAllStatuses(@RequestHeader(name = "Organization") String organization) {
         log.info("GET /scms-status. organization: {}", organization);
-        return scmsHealthMapper.toDtoList(scmsHealthService.getScmsStatuses(organization));
+        return scmsHealthMapper.toMap(scmsHealthService.getScmsStatuses(organization));
     }
 }
