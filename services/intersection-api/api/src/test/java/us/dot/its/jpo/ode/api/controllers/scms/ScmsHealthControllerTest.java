@@ -71,6 +71,21 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    void testGetScmsStatus_SUCCESS_EmptyResults() throws Exception {
+        // Arrange
+        when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(List.of());
+
+        // Act & Assert
+        mockMvc.perform(get("/scms-status")
+                        .header("Organization", "TestOrg"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isMap())
+                .andExpect(jsonPath("$.*").isEmpty());
+
+        verify(scmsHealthService).getScmsStatuses(anyString());
+    }
+
+    @Test
     void testGetScmsStatus_FAILURE_OrganizationNotFound() throws Exception {
         // Arrange
         when(scmsHealthService.getScmsStatuses(anyString())).thenThrow(new EntityNotFoundException("Organization not found"));
