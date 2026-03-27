@@ -101,8 +101,33 @@ class ScmsHealthMapperTest {
     }
 
     @Test
-    void testToMap_NullInput() {
-        assertNull(mapper.toMap(null));
+    void testToDto_NullInput() {
+        assertNull(mapper.toDto(null));
+    }
+
+    @Test
+    void testToDto_NullScmsHealth() throws UnknownHostException {
+        // Arrange
+        String ip = "10.0.0.1";
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
+
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, null);
+
+        // Act
+        ScmsHealthDto dto = mapper.toDto(projection);
+
+        // Assert
+        assertNotNull(dto);
+        assertNull(dto.getHealth());
+        assertNull(dto.getExpiration());
+    }
+
+    @Test
+    void testToMap_EmptyInput() {
+        Map<String, ScmsHealthDto> result = mapper.toMap(new ArrayList<>());
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     @Test
