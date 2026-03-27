@@ -91,11 +91,6 @@ public class AdminIntersectionController {
 
         log.info("GET /admin-intersection. organization={}, superUser={}", organization, isSuperUser);
         log.debug("User has {} org(s) qualifying for USER role.", userOrgs.size());
-        if (!isSuperUser && organization != null && !userOrgs.contains(organization)) {
-            log.warn("GET /admin-intersection rejected: user is not a member of the requested organization.");
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Not authorized to access the specified organization");
-        }
         return adminIntersectionService.getAllIntersections(organization, isSuperUser, userOrgs);
     }
 
