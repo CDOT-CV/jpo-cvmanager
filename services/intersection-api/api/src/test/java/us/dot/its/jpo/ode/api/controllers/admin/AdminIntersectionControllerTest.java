@@ -161,7 +161,7 @@ class AdminIntersectionControllerTest {
       mockMvc.perform(get("/admin-intersection"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.intersection_data").isArray())
-        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value("12109"))
+        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109))
         .andExpect(jsonPath("$.intersection_data[0].intersection_name").value("Main St & 1st Ave"))
         .andExpect(jsonPath("$.intersection_data[0].organizations[0]").value("TestOrg"));
     }
@@ -179,7 +179,7 @@ class AdminIntersectionControllerTest {
 
       mockMvc.perform(get("/admin-intersection"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value("12109"));
+        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109));
     }
 
     @Test
@@ -250,7 +250,7 @@ class AdminIntersectionControllerTest {
 
       mockMvc.perform(get("/admin-intersection/12109"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data.intersection_id").value("12109"))
+        .andExpect(jsonPath("$.intersection_data.intersection_id").value(12109))
         .andExpect(jsonPath("$.allowed_selections").exists())
         .andExpect(jsonPath("$.allowed_selections.organizations").isArray())
         .andExpect(jsonPath("$.allowed_selections.rsus").isArray());
@@ -277,13 +277,11 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("passes Organization header and correct org lists to service for non-superuser")
+    @DisplayName("non-superuser with USER role and intersection access returns 200")
     void organizationHeader_passedToServiceWithCorrectOrgLists() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("USER")).thenReturn(true);
-      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("USER")).thenReturn(List.of("TestOrg"));
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasIntersection(eq(12109), eq("USER"))).thenReturn(true);
       when(adminIntersectionService.getIntersection(12109)).thenReturn(sampleSingleResponse);
 
       mockMvc.perform(get("/admin-intersection/12109")
