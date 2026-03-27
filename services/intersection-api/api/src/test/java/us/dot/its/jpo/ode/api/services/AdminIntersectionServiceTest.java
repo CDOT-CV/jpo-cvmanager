@@ -1,16 +1,19 @@
 package us.dot.its.jpo.ode.api.services;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.Bbox;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
@@ -38,8 +41,10 @@ import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -112,6 +117,40 @@ class AdminIntersectionServiceTest {
     rsuModelRepository.deleteAll();
     intersectionRepository.deleteAll();
     organizationRepository.deleteAll();
+  }
+
+  @AfterEach
+  void clearSecurityContext() {
+    SecurityContextHolder.clearContext();
+  }
+
+  private void setUpSuperuserContext() {
+    Jwt jwt = Jwt.withTokenValue("test-token")
+        .header("alg", "RS256")
+        .claim("sub", "superuser")
+        .claim("preferred_username", "superuser")
+        .claim("cvmanager_data", Map.of("super_user", "1", "organizations", List.of()))
+        .issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600))
+        .build();
+    SecurityContextHolder.getContext().setAuthentication(
+        new CvManagerAuthToken(jwt, List.of(), "superuser"));
+  }
+
+  private void setUpOperatorContext(String orgName) {
+    Jwt jwt = Jwt.withTokenValue("test-token")
+        .header("alg", "RS256")
+        .claim("sub", "operator")
+        .claim("preferred_username", "operator")
+        .claim("cvmanager_data", Map.of(
+            "super_user", "0",
+            "organizations", List.of(Map.of("org", orgName, "role", "OPERATOR"))
+        ))
+        .issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600))
+        .build();
+    SecurityContextHolder.getContext().setAuthentication(
+        new CvManagerAuthToken(jwt, List.of(), "operator"));
   }
 
   @Nested
@@ -208,6 +247,7 @@ class AdminIntersectionServiceTest {
 
     @Test
     void foundAsSuperuser_returnsFullDataWithAllOrgs() throws UnknownHostException {
+      setUpSuperuserContext();
       Organization org = organizationRepository.save(fixtures.createRandomOrg());
       String orgName = org.getName();
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
@@ -225,7 +265,8 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void scopedOrgMatches_returnsFilteredOrgList() {
+    void found_singleOrg_returnsOrgInDto() {
+      setUpSuperuserContext();
       Organization org = organizationRepository.save(fixtures.createRandomOrg());
       String orgName = org.getName();
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
@@ -239,22 +280,12 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
-    void scopedOrgDoesNotMatch_throwsAccessDeniedException() {
-      Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
-
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgA));
-
-
-      assertThrows(AccessDeniedException.class, () ->  adminIntersectionService.getIntersection(1123),
-        "Should throw AccessDeniedException for intersection outside user's organization");
-    }
-
-    @Test
-    void qualifiedOrgsMatch_returnsOnlyUserQualifiedOrgs() {
+    void intersectionWithMultipleOrgs_returnsAllAssignedOrgsInDto() {
+      setUpSuperuserContext();
       Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
       Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
       String orgAName = orgA.getName();
+      String orgBName = orgB.getName();
 
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
       intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgA));
@@ -264,13 +295,15 @@ class AdminIntersectionServiceTest {
       IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
 
       assertEquals(1123, result.getIntersectionDto().getIntersectionId());
-      assertEquals(List.of(orgAName), result.getIntersectionDto().getOrganizations());
+      assertEquals(2, result.getIntersectionDto().getOrganizations().size());
+      assertTrue(result.getIntersectionDto().getOrganizations().containsAll(List.of(orgAName, orgBName)));
     }
 
     @Test
     void nonSuperuser_allowedSelectionsUsesOperatorOrgs() throws UnknownHostException {
       Organization org = organizationRepository.save(fixtures.createRandomOrg());
       String orgName = org.getName();
+      setUpOperatorContext(orgName);
       Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
       intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
       Rsu rsu = saveRsu("10.0.0.1", org);
