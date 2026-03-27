@@ -75,56 +75,18 @@ class ScmsHealthServiceTest {
     @Test
     void testGetScmsStatuses_ReturnsLatestForEachRsuInOrganization() throws Exception {
         // Arrange
-        Organization org1 = new Organization();
-        org1.setName("Org1");
-        org1 = organizationRepository.save(org1);
+        Organization org1 = saveOrganization("Org1");
+        Organization org2 = saveOrganization("Org2");
 
-        Organization org2 = new Organization();
-        org2.setName("Org2");
-        org2 = organizationRepository.save(org2);
+        Manufacturer manufacturer = saveManufacturer("Manufacturer1");
+        RsuModel model = saveRsuModel("Model1", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp", "user", "pass", org1);
+        RsuCredential rsuCred = saveRsuCredential("rsu", "user", "pass", org1);
 
-        Manufacturer manufacturer = new Manufacturer();
-        manufacturer.setName("Manufacturer1");
-        manufacturer = manufacturerRepository.save(manufacturer);
-
-        RsuModel model = new RsuModel();
-        model.setName("Model1");
-        model.setSupportedRadio("DSRC");
-        model.setManufacturer(manufacturer);
-        model = rsuModelRepository.save(model);
-
-        SnmpProtocol protocol = new SnmpProtocol();
-        protocol.setNickname("v3");
-        protocol.setProtocolCode("v3");
-        protocol = snmpProtocolRepository.save(protocol);
-
-        SnmpCredential snmpCred = new SnmpCredential();
-        snmpCred.setNickname("snmp");
-        snmpCred.setUsername("user");
-        snmpCred.setPassword("pass");
-        snmpCred.setOwnerOrganization(org1);
-        snmpCred = snmpCredentialRepository.save(snmpCred);
-
-        RsuCredential rsuCred = new RsuCredential();
-        rsuCred.setNickname("rsu");
-        rsuCred.setUsername("user");
-        rsuCred.setPassword("pass");
-        rsuCred.setOwnerOrganization(org1);
-        rsuCred = rsuCredentialRepository.save(rsuCred);
-
-        Rsu rsu1 = createRsu("10.0.0.1", model, snmpCred, rsuCred, protocol);
-        rsu1 = rsuRepository.save(rsu1);
-
-        Rsu rsu2 = createRsu("10.0.0.2", model, snmpCred, rsuCred, protocol);
-        rsu2 = rsuRepository.save(rsu2);
-
-        Rsu rsu3 = createRsu("10.0.0.3", model, snmpCred, rsuCred, protocol);
-        rsu3 = rsuRepository.save(rsu3);
-
-        // Map RSUs to Organizations
-        saveRsuOrganization(rsu1, org1);
-        saveRsuOrganization(rsu2, org1);
-        saveRsuOrganization(rsu3, org2);
+        Rsu rsu1 = saveRsu("10.0.0.1", model, snmpCred, rsuCred, protocol, org1);
+        Rsu rsu2 = saveRsu("10.0.0.2", model, snmpCred, rsuCred, protocol, org1);
+        Rsu rsu3 = saveRsu("10.0.0.3", model, snmpCred, rsuCred, protocol, org2);
 
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
         Instant older = now.minus(1, ChronoUnit.HOURS);
@@ -155,9 +117,7 @@ class ScmsHealthServiceTest {
     @Test
     void testGetScmsStatuses_ReturnsEmpty_WhenOrganizationHasNoRsus() {
         // Arrange
-        Organization org = new Organization();
-        org.setName("EmptyOrg");
-        organizationRepository.save(org);
+        saveOrganization("EmptyOrg");
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("EmptyOrg");
@@ -169,43 +129,15 @@ class ScmsHealthServiceTest {
     @Test
     void testGetScmsStatuses_ReturnsNullValue_WhenOrganizationHasRsusButNoHealthRecords() throws Exception {
         // Arrange
-        Organization org = new Organization();
-        org.setName("NoHealthOrg");
-        org = organizationRepository.save(org);
+        Organization org = saveOrganization("NoHealthOrg");
 
-        Manufacturer manufacturer = new Manufacturer();
-        manufacturer.setName("Manufacturer2");
-        manufacturer = manufacturerRepository.save(manufacturer);
+        Manufacturer manufacturer = saveManufacturer("Manufacturer2");
+        RsuModel model = saveRsuModel("Model2", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-2", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp2", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu2", "user", "pass", org);
 
-        RsuModel model = new RsuModel();
-        model.setName("Model2");
-        model.setSupportedRadio("DSRC");
-        model.setManufacturer(manufacturer);
-        model = rsuModelRepository.save(model);
-
-        SnmpProtocol protocol = new SnmpProtocol();
-        protocol.setNickname("v3-2");
-        protocol.setProtocolCode("v3");
-        protocol = snmpProtocolRepository.save(protocol);
-
-        SnmpCredential snmpCred = new SnmpCredential();
-        snmpCred.setNickname("snmp2");
-        snmpCred.setUsername("user");
-        snmpCred.setPassword("pass");
-        snmpCred.setOwnerOrganization(org);
-        snmpCred = snmpCredentialRepository.save(snmpCred);
-
-        RsuCredential rsuCred = new RsuCredential();
-        rsuCred.setNickname("rsu2");
-        rsuCred.setUsername("user");
-        rsuCred.setPassword("pass");
-        rsuCred.setOwnerOrganization(org);
-        rsuCred = rsuCredentialRepository.save(rsuCred);
-
-        Rsu rsu = createRsu("10.0.0.10", model, snmpCred, rsuCred, protocol);
-        rsu = rsuRepository.save(rsu);
-
-        saveRsuOrganization(rsu, org);
+        saveRsu("10.0.0.10", model, snmpCred, rsuCred, protocol, org);
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("NoHealthOrg");
@@ -227,43 +159,15 @@ class ScmsHealthServiceTest {
     @Test
     void testGetScmsStatuses_StableResult_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = new Organization();
-        org.setName("SameTimestampOrg");
-        org = organizationRepository.save(org);
+        Organization org = saveOrganization("SameTimestampOrg");
 
-        Manufacturer manufacturer = new Manufacturer();
-        manufacturer.setName("Manufacturer3");
-        manufacturer = manufacturerRepository.save(manufacturer);
+        Manufacturer manufacturer = saveManufacturer("Manufacturer3");
+        RsuModel model = saveRsuModel("Model3", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-3", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp3", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu3", "user", "pass", org);
 
-        RsuModel model = new RsuModel();
-        model.setName("Model3");
-        model.setSupportedRadio("DSRC");
-        model.setManufacturer(manufacturer);
-        model = rsuModelRepository.save(model);
-
-        SnmpProtocol protocol = new SnmpProtocol();
-        protocol.setNickname("v3-3");
-        protocol.setProtocolCode("v3");
-        protocol = snmpProtocolRepository.save(protocol);
-
-        SnmpCredential snmpCred = new SnmpCredential();
-        snmpCred.setNickname("snmp3");
-        snmpCred.setUsername("user");
-        snmpCred.setPassword("pass");
-        snmpCred.setOwnerOrganization(org);
-        snmpCred = snmpCredentialRepository.save(snmpCred);
-
-        RsuCredential rsuCred = new RsuCredential();
-        rsuCred.setNickname("rsu3");
-        rsuCred.setUsername("user");
-        rsuCred.setPassword("pass");
-        rsuCred.setOwnerOrganization(org);
-        rsuCred = rsuCredentialRepository.save(rsuCred);
-
-        Rsu rsu = createRsu("10.0.0.20", model, snmpCred, rsuCred, protocol);
-        rsu = rsuRepository.save(rsu);
-
-        saveRsuOrganization(rsu, org);
+        Rsu rsu = saveRsu("10.0.0.20", model, snmpCred, rsuCred, protocol, org);
 
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
@@ -280,7 +184,52 @@ class ScmsHealthServiceTest {
         assertFalse(results.isEmpty(), "Should return at least one record");
     }
 
-    private Rsu createRsu(String ip, RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol) throws Exception {
+    private Organization saveOrganization(String name) {
+        Organization org = new Organization();
+        org.setName(name);
+        return organizationRepository.save(org);
+    }
+
+    private Manufacturer saveManufacturer(String name) {
+        Manufacturer manufacturer = new Manufacturer();
+        manufacturer.setName(name);
+        return manufacturerRepository.save(manufacturer);
+    }
+
+    private RsuModel saveRsuModel(String name, Manufacturer manufacturer) {
+        RsuModel model = new RsuModel();
+        model.setName(name);
+        model.setSupportedRadio("DSRC");
+        model.setManufacturer(manufacturer);
+        return rsuModelRepository.save(model);
+    }
+
+    private SnmpProtocol saveSnmpProtocol(String nickname, String protocolCode) {
+        SnmpProtocol protocol = new SnmpProtocol();
+        protocol.setNickname(nickname);
+        protocol.setProtocolCode(protocolCode);
+        return snmpProtocolRepository.save(protocol);
+    }
+
+    private SnmpCredential saveSnmpCredential(String nickname, String user, String pass, Organization org) {
+        SnmpCredential snmpCred = new SnmpCredential();
+        snmpCred.setNickname(nickname);
+        snmpCred.setUsername(user);
+        snmpCred.setPassword(pass);
+        snmpCred.setOwnerOrganization(org);
+        return snmpCredentialRepository.save(snmpCred);
+    }
+
+    private RsuCredential saveRsuCredential(String nickname, String user, String pass, Organization org) {
+        RsuCredential rsuCred = new RsuCredential();
+        rsuCred.setNickname(nickname);
+        rsuCred.setUsername(user);
+        rsuCred.setPassword(pass);
+        rsuCred.setOwnerOrganization(org);
+        return rsuCredentialRepository.save(rsuCred);
+    }
+
+    private Rsu saveRsu(String ip, RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol, Organization org) throws Exception {
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(InetAddress.getByName(ip));
         rsu.setModel(model);
@@ -296,6 +245,8 @@ class ScmsHealthServiceTest {
         Point point = geometryFactory.createPoint(new Coordinate(0, 0));
         rsu.setGeography(point);
         
+        rsu = rsuRepository.save(rsu);
+        saveRsuOrganization(rsu, org);
         return rsu;
     }
 
