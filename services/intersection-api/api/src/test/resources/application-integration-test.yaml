@@ -62,7 +62,7 @@ spring:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-only
   mail:
     host: localhost
     port: 1025

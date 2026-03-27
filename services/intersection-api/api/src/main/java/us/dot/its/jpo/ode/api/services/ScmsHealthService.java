@@ -15,7 +15,6 @@ public class ScmsHealthService {
     private final ScmsHealthRepository scmsHealthRepository;
 
     public List<ScmsHealthRsuProjection> getScmsStatuses(String organization) {
-        // TODO: implement
-        throw new UnsupportedOperationException();
+        return scmsHealthRepository.findLatestScmsHealthByOrganization(organization);
     }
 }
