@@ -104,7 +104,7 @@ class AdminIntersectionControllerTest {
     RefPt refPt = new RefPt(39.7392, -104.9903);
 
     IntersectionDto sampleDto = new IntersectionDto(
-      "12109",
+      12109,
       refPt,
       null,
       "Main St & 1st Ave",
@@ -246,9 +246,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getIntersection(
-        eq("12109"), isNull(), eq(true), anyList(), anyList()))
-        .thenReturn(sampleSingleResponse);
+      when(adminIntersectionService.getIntersection(eq(12109))).thenReturn(sampleSingleResponse);
 
       mockMvc.perform(get("/admin-intersection/12109"))
         .andExpect(status().isOk())
@@ -266,8 +264,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getIntersection(
-        eq("99999"), isNull(), eq(true), anyList(), anyList()))
+      when(adminIntersectionService.getIntersection(99999))
         .thenReturn(new IntersectionSingleResponse(
           new IntersectionDto(),
           new AllowedSelections(List.of(), List.of())));
@@ -287,18 +284,13 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(List.of("TestOrg"));
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
-      when(adminIntersectionService.getIntersection(
-        eq("12109"), eq("TestOrg"), eq(false),
-        eq(List.of("TestOrg")), eq(List.of("TestOrg"))))
-        .thenReturn(sampleSingleResponse);
+      when(adminIntersectionService.getIntersection(12109)).thenReturn(sampleSingleResponse);
 
       mockMvc.perform(get("/admin-intersection/12109")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk());
 
-      verify(adminIntersectionService).getIntersection(
-        eq("12109"), eq("TestOrg"), eq(false),
-        eq(List.of("TestOrg")), eq(List.of("TestOrg")));
+      verify(adminIntersectionService).getIntersection(eq(12109));
     }
   }
 

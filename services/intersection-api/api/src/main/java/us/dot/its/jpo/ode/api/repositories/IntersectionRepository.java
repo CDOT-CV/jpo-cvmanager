@@ -27,7 +27,7 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             "LEFT JOIN FETCH io.organization " +
             "WHERE i.intersectionNumber = :intersectionNumber")
     Optional<Intersection> findByIntersectionNumberWithOrgs(
-            @Param("intersectionNumber") String intersectionNumber);
+            @Param("intersectionNumber") Integer intersectionNumber);
 
     /**
      * Fetches all intersections with their organization associations eagerly loaded.

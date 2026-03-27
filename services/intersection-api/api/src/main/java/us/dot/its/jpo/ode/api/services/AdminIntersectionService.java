@@ -5,7 +5,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,10 +31,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -45,8 +42,7 @@ import java.util.stream.Collectors;
  * (role checks, intersection resource access, and org restriction enforcement)
  * is handled by AdminIntersectionController before this service is called.
  *
- * Org-filtering and allowed-selections context (isSuperUser, userOrgs, operatorOrgs)
- * is computed by the controller from the auth token and passed in as parameters.
+ * Allowed-selections context is computed via PermissionService.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,39 +57,32 @@ public class AdminIntersectionService {
     private final IntersectionMapper intersectionMapper;
     private final INetMapper inetMapper;
     private final GeometryMapper geometryMapper;
+    private final PermissionService permissionService;
 
     /**
      * Returns a single intersection by intersection_number, plus allowed_selections for UI dropdowns.
-     * Applies org filtering based on the requesting user's context.
+     * Access is already verified by @PreAuthorize in the controller; all intersection orgs are returned.
+     * AllowedSelections is computed via PermissionService based on the current user's OPERATOR-qualified orgs.
      *
      * @param intersectionId the intersection_number to look up
-     * @param organization   the scoped organization from the request header (may be null)
-     * @param isSuperUser    whether the requesting user is a superuser
-     * @param userOrgs       USER-role qualified orgs — used for intersection filtering
-     * @param operatorOrgs   OPERATOR-role qualified orgs — used for allowed_selections
-     * @return response containing intersection_data (empty IntersectionData if not found) and
-     *         allowed_selections
+     * @return response containing intersection_data and allowed_selections
      */
-    public IntersectionSingleResponse getIntersection(String intersectionId, String organization,
-            boolean isSuperUser, List<String> userOrgs, List<String> operatorOrgs) {
-        log.info("Fetching intersection with id: {}, organization scope: {}, isSuperUser: {}", intersectionId, organization, isSuperUser);
-        AllowedSelections allowedSelections = buildAllowedSelections(isSuperUser, operatorOrgs);
+    public IntersectionSingleResponse getIntersection(Integer intersectionId) {
+        log.info("Fetching intersection with id: {}", intersectionId);
 
         Intersection intersection = intersectionRepository.findByIntersectionNumberWithOrgs(intersectionId)
           .orElseThrow(() -> {
               log.error("Intersection with id {} not found", intersectionId);
               return new EntityNotFoundException("Intersection with id " + intersectionId + " not found");
           });
-        log.debug("Found intersection {}. Total org associations: {}", intersectionId, intersection.getIntersectionOrganizations().size());
-
-        List<String> filteredOrgs = filterOrgNames(intersection, organization, isSuperUser, userOrgs);
-        if (!isSuperUser && filteredOrgs.isEmpty()) {
-            log.error("Access denied for user to intersection with id {}. User orgs: {}, organization scope: {}", intersectionId, userOrgs, organization);
-            throw new AccessDeniedException("Access denied for intersection with id " + intersectionId);
-        }
 
         IntersectionDto dto = intersectionMapper.toDto(intersection);
-        dto.setOrganizations(filteredOrgs);
+
+        List<String> orgNames = intersection.getIntersectionOrganizations().stream()
+                .filter(io -> io.getOrganization() != null)
+                .map(io -> io.getOrganization().getName())
+                .collect(Collectors.toList());
+        dto.setOrganizations(orgNames);
 
         List<String> rsuIps = rsuIntersectionRepository.findRsuIpsByIntersectionNumber(intersectionId)
                 .stream()
@@ -101,8 +90,31 @@ public class AdminIntersectionService {
                 .collect(Collectors.toList());
         dto.setRsus(rsuIps);
 
-        log.debug("Successfully fetched intersection {}. Filtered orgs count: {}, RSUs count: {}", intersectionId, filteredOrgs.size(), rsuIps.size());
-        return new IntersectionSingleResponse(dto, allowedSelections);
+        log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgNames.size(), rsuIps.size());
+        return new IntersectionSingleResponse(dto, buildAllowedSelections());
+    }
+
+    /**
+     * Builds the AllowedSelections for the current user: the orgs and RSUs they may assign
+     * to an intersection. Scoped to OPERATOR-qualified orgs since OPERATOR is required to modify.
+     * Superusers receive all orgs and RSUs.
+     */
+    private AllowedSelections buildAllowedSelections() {
+        if (permissionService.isSuperUser()) {
+            List<String> allOrgNames = organizationRepository.findAll().stream()
+                    .map(Organization::getName)
+                    .collect(Collectors.toList());
+            List<String> allRsuIps = rsuRepository.findAll().stream()
+                    .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
+                    .collect(Collectors.toList());
+            return new AllowedSelections(allOrgNames, allRsuIps);
+        }
+        var token = permissionService.getCvManagerAuthToken();
+        List<String> operatorOrgs = token.getQualifiedOrgList("OPERATOR");
+        List<String> rsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
+                .map(inetMapper::mapInetAddressToString)
+                .collect(Collectors.toList());
+        return new AllowedSelections(operatorOrgs, rsuIps);
     }
 
     /**
@@ -131,7 +143,7 @@ public class AdminIntersectionService {
                 .map(Intersection::getIntersectionNumber)
                 .collect(Collectors.toList());
 
-        Map<String, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
+        Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
         log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(), intersectionNumbers.size());
 
         for (IntersectionDto dto : dtos) {
@@ -306,12 +318,12 @@ public class AdminIntersectionService {
         return results;
     }
 
-    private Map<String, List<String>> loadRsuIpsByIntersection(List<String> intersectionNumbers) {
+    private Map<Integer, List<String>> loadRsuIpsByIntersection(List<String> intersectionNumbers) {
         log.debug("Loading RSU IPs for {} intersection(s).", intersectionNumbers.size());
         List<RsuIntersectionRepository.IntersectionRsuProjection> projections =
                 rsuIntersectionRepository.findRsuIpsByIntersectionNumbers(intersectionNumbers);
         log.debug("Retrieved {} RSU-intersection projection record(s).", projections.size());
-        Map<String, List<String>> result = new HashMap<>();
+        Map<Integer, List<String>> result = new HashMap<>();
         for (RsuIntersectionRepository.IntersectionRsuProjection proj : projections) {
             String ip = inetMapper.mapInetAddressToString(proj.getRsuIp());
             result.computeIfAbsent(proj.getIntersectionNumber(), _ -> new ArrayList<>()).add(ip);
@@ -319,57 +331,4 @@ public class AdminIntersectionService {
         return result;
     }
 
-    private List<String> filterOrgNames(Intersection intersection, String organization,
-            boolean isSuperUser, List<String> userOrgs) {
-        List<String> allOrgNames = intersection.getIntersectionOrganizations().stream()
-                .filter(io -> io.getOrganization() != null)
-                .map(io -> io.getOrganization().getName())
-                .collect(Collectors.toList());
-        log.debug("Intersection {} has {} org association(s) in DB.", intersection.getIntersectionNumber(), allOrgNames.size());
-
-        if (isSuperUser) {
-            log.debug("Superuser: returning all {} org(s) for intersection {}.", allOrgNames.size(), intersection.getIntersectionNumber());
-            return allOrgNames;
-        }
-        if (organization != null) {
-            List<String> filtered = allOrgNames.stream()
-                    .filter(name -> name.equals(organization))
-                    .collect(Collectors.toList());
-            log.debug("Org-scoped filter (org={}): {}/{} org(s) matched for intersection {}.",
-                    organization, filtered.size(), allOrgNames.size(), intersection.getIntersectionNumber());
-            return filtered;
-        }
-        Set<String> userOrgSet = new HashSet<>(userOrgs);
-        List<String> filtered = allOrgNames.stream()
-                .filter(userOrgSet::contains)
-                .collect(Collectors.toList());
-        log.debug("User-orgs filter: {}/{} org(s) matched for intersection {}. User orgs: {}",
-                filtered.size(), allOrgNames.size(), intersection.getIntersectionNumber(), userOrgs);
-        return filtered;
-    }
-
-    private AllowedSelections buildAllowedSelections(boolean isSuperUser, List<String> operatorOrgs) {
-        if (isSuperUser) {
-            log.debug("Building allowed selections for superuser (all orgs + all RSUs).");
-            List<String> allOrgs = organizationRepository.findAll().stream()
-                    .map(Organization::getName)
-                    .sorted()
-                    .collect(Collectors.toList());
-            List<String> allRsus = rsuRepository.findAll().stream()
-                    .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
-                    .sorted()
-                    .collect(Collectors.toList());
-            log.debug("Allowed selections (superuser): {} org(s), {} RSU(s).", allOrgs.size(), allRsus.size());
-            return new AllowedSelections(allOrgs, allRsus);
-        }
-        log.debug("Building allowed selections for {} operator org(s): {}", operatorOrgs.size(), operatorOrgs);
-        List<String> allowedOrgs = new ArrayList<>(operatorOrgs);
-        Collections.sort(allowedOrgs);
-        List<String> allowedRsus = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
-                .map(inetMapper::mapInetAddressToString)
-                .sorted()
-                .collect(Collectors.toList());
-        log.debug("Allowed selections (operator): {} org(s), {} RSU(s).", allowedOrgs.size(), allowedRsus.size());
-        return new AllowedSelections(allowedOrgs, allowedRsus);
-    }
 }

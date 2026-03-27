@@ -96,38 +96,32 @@ public class AdminIntersectionController {
 
     /**
      * Returns a single intersection and allowed_selections for UI dropdown population.
-     * If the intersection is not found, intersection_data is {} (empty object).
-     * Authorization (outer check) runs before path variable validation.
+     * Authorization: USER role + intersection access enforced by @PreAuthorize.
+     * allowed_selections is computed by PermissionService for UI dropdown population.
      */
     @Operation(
             summary = "Get a single intersection",
             description = """
                     Returns a single intersection by number, plus allowed_selections for UI dropdown population.
-                    If the intersection is not found, intersection_data is an empty object.
-                    Organization filtering is applied based on the requesting user's org context.
+                    Role check: USER required.
+                    Intersection access check: user must have access to the specified intersection.
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role or no access to this intersection"),
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @GetMapping(value = "/{intersectionId}", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('USER') && @PermissionService.hasIntersection(#intersectionId, 'USER'))")
     public IntersectionSingleResponse getIntersection(
             @Parameter(description = "Intersection number to retrieve", example = "12109")
-            @PathVariable @Pattern(regexp = "^[0-9]{1,10}$", message = "intersectionId must be a numeric string up to 10 digits") String intersectionId,
+            @PathVariable Integer intersectionId,
             @Parameter(description = "Scope results to a specific organization")
             @RequestHeader(name = "Organization", required = false) String organization) {
 
-        boolean isSuperUser = permissionService.isSuperUser();
-        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-        List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
-        List<String> operatorOrgs = token != null ? token.getQualifiedOrgList("OPERATOR") : Collections.emptyList();
-
-        log.info("GET /admin-intersection/{}. organization={}, superUser={}", intersectionId, organization, isSuperUser);
-        log.debug("User has {} USER org(s), {} OPERATOR org(s).", userOrgs.size(), operatorOrgs.size());
-        return adminIntersectionService.getIntersection(intersectionId, organization, isSuperUser, userOrgs, operatorOrgs);
+        log.info("GET /admin-intersection/{}. organization={}", intersectionId, organization);
+        return adminIntersectionService.getIntersection(intersectionId);
     }
 
     /**

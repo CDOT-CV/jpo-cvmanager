@@ -22,7 +22,7 @@ import java.util.List;
 public class IntersectionDto {
     @Schema(description = "Intersection number", example = "12109")
     @JsonProperty("intersection_id")
-    private String intersectionId;
+    private Integer intersectionId;
 
     @Schema(description = "Reference point (WGS-84) of the intersection stop bar")
     @JsonProperty("ref_pt")
