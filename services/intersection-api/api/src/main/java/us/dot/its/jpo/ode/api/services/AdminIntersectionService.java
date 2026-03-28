@@ -124,7 +124,7 @@ public class AdminIntersectionService {
      * @param organization the scoped organization from the request header (may be null)
      * @param isSuperUser  whether the requesting user is a superuser
      * @param userOrgs     USER-role qualified orgs — used for intersection filtering
-     * @return response containing intersection_data as a list (may be empty)
+     * @return response containing intersection_data as a list of accessible intersections
      */
     public IntersectionListResponse getAllIntersections(String organization, boolean isSuperUser, List<String> userOrgs) {
         log.info("Fetching all accessible intersections. Organization scope: {}, isSuperUser: {}, userOrgs: {}", organization, isSuperUser, userOrgs);
