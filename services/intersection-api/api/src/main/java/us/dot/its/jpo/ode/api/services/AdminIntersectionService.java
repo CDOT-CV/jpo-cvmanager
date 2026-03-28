@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import us.dot.its.jpo.ode.api.mappers.GeometryMapper;
 import us.dot.its.jpo.ode.api.mappers.INetMapper;
 import us.dot.its.jpo.ode.api.mappers.IntersectionMapper;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
@@ -56,7 +55,6 @@ public class AdminIntersectionService {
     private final RsuRepository rsuRepository;
     private final IntersectionMapper intersectionMapper;
     private final INetMapper inetMapper;
-    private final GeometryMapper geometryMapper;
     private final PermissionService permissionService;
 
     /**
@@ -183,18 +181,9 @@ public class AdminIntersectionService {
                 patch.getBbox() != null ? "provided" : "unchanged",
                 patch.getIntersectionName() != null ? patch.getIntersectionName() : "unchanged",
                 patch.getOriginIp() != null ? patch.getOriginIp() : "unchanged");
-        intersection.setIntersectionNumber(newNumber);
-        intersection.setRefPt(geometryMapper.toPoint(patch.getRefPt()));
-        if (patch.getBbox() != null) {
-            intersection.setBbox(geometryMapper.toPolygon(patch.getBbox()));
-        }
-        if (patch.getIntersectionName() != null) {
-            intersection.setIntersectionName(patch.getIntersectionName());
-        }
-        if (patch.getOriginIp() != null) {
-            intersection.setOriginIp(inetMapper.mapStringToInetAddress(patch.getOriginIp()));
-        }
-        intersectionRepository.save(intersection);
+        var updatedIntersection = intersectionMapper.partialUpdate(intersection, patch);
+
+        intersectionRepository.save(updatedIntersection);
         log.debug("Step 1: Intersection base record saved.");
 
         // Step 2: Add org associations
