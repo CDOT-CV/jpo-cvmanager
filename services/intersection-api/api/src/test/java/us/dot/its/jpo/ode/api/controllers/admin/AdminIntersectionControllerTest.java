@@ -18,6 +18,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
@@ -201,18 +203,16 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("returns 200 with empty intersection_data array when service returns empty list")
-    void emptyServiceResponse_returnsEmptyArray() throws Exception {
+    @DisplayName("returns 404 when no accessible intersections are found")
+    void noAccessibleIntersections_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getAllIntersections(any(), anyBoolean(), anyList()))
-        .thenReturn(new IntersectionListResponse(Collections.emptyList()));
+      doThrow(new EntityNotFoundException("No accessible intersections found for organization 'null' or organizations [[]]"))
+        .when(adminIntersectionService).getAllIntersections(any(), anyBoolean(), anyList());
 
       mockMvc.perform(get("/admin-intersection"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data").isArray())
-        .andExpect(jsonPath("$.intersection_data").isEmpty());
+        .andExpect(status().isNotFound());
     }
   }
 
@@ -258,21 +258,17 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("returns 200 with empty intersection_data when intersection is not found")
-    void intersectionNotFound_returnsEmptyIntersectionData() throws Exception {
+    @DisplayName("returns 404 when intersection is not found")
+    void intersectionNotFound_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getIntersection(99999))
-        .thenReturn(new IntersectionSingleResponse(
-          new IntersectionDto(),
-          new AllowedSelections(List.of(), List.of())));
+      doThrow(new EntityNotFoundException("Intersection with id 99999 not found"))
+        .when(adminIntersectionService).getIntersection(99999);
 
       mockMvc.perform(get("/admin-intersection/99999"))
-        .andExpect(status().isOk())
-        // IntersectionDto with all-null fields serializes as {} (NON_NULL policy)
-        .andExpect(jsonPath("$.intersection_data.intersection_id").doesNotExist());
+        .andExpect(status().isNotFound());
     }
 
     @Test
