@@ -26,6 +26,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -60,6 +61,7 @@ public class AdminIntersectionController {
 
     private final AdminIntersectionService adminIntersectionService;
     private final PermissionService permissionService;
+    private final RsuRepository rsuRepository;
 
     /**
      * Returns all intersections accessible to the requesting user, filtered by organization context.
@@ -149,8 +151,7 @@ public class AdminIntersectionController {
     })
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
-    public void patchIntersection(
-            @RequestBody @Validated IntersectionPatch patch) {
+    public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
 
         log.info("PATCH /admin-intersection. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
@@ -166,6 +167,15 @@ public class AdminIntersectionController {
                         patch.getOrigIntersectionId());
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Not authorized to modify one or more of the specified organizations");
+            }
+
+            // Verify RSU accessibility
+            if (!permissionService.hasRsus(patch.getRsusToAdd(), "OPERATOR") ||
+                    !permissionService.hasRsus(patch.getRsusToRemove(), "OPERATOR")) {
+                log.warn("RSU enforcement rejected PATCH on intersection {}. Requested RSUs not in qualified set.",
+                        patch.getOrigIntersectionId());
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Not authorized to modify one or more of the specified RSUs");
             }
         }
 
