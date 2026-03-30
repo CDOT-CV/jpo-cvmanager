@@ -29,6 +29,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleRespon
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -89,6 +90,9 @@ class AdminIntersectionControllerTest {
 
   @MockitoBean
   IntersectionRepository intersectionRepository;
+
+  @MockitoBean
+  RsuRepository rsuRepository;
 
   /**
    * Concrete-class mock; created fresh per test to avoid cross-test stubbing bleed.
@@ -376,6 +380,55 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
+    @DisplayName("returns 403 when rsus_to_add contains an RSU outside the user's qualified RSUs")
+    void unqualifiedRsuInRsusToAdd_returns403() throws Exception {
+      IntersectionPatch patchWithUnqualifiedRsu = new IntersectionPatch(
+        12109, 12109, new RefPt(39.7392, -104.9903),
+        null, null, null,
+        List.of(), List.of(), List.of("192.168.1.99"), List.of());
+
+      when(permissionService.isSuperUser()).thenReturn(false);
+      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
+
+      mockMvc.perform(patch("/admin-intersection")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsu)))
+        .andExpect(status().isForbidden());
+
+      verify(adminIntersectionService, never()).patchIntersection(any());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("returns 403 when rsus_to_remove contains an RSU outside the user's qualified RSUs")
+    void unqualifiedRsuInRsusToRemove_returns403() throws Exception {
+      IntersectionPatch patchWithUnqualifiedRsuRemove = new IntersectionPatch(
+        12109, 12109, new RefPt(39.7392, -104.9903),
+        null, null, null,
+        List.of(), List.of(), List.of(), List.of("192.168.1.99"));
+
+      when(permissionService.isSuperUser()).thenReturn(false);
+      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
+
+      mockMvc.perform(patch("/admin-intersection")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsuRemove)))
+        .andExpect(status().isForbidden());
+
+      verify(adminIntersectionService, never()).patchIntersection(any());
+    }
+
+    @Test
+    @WithMockUser
     @DisplayName("super user bypasses org restriction check entirely")
     void superUser_bypassesOrgRestriction_returns200() throws Exception {
       IntersectionPatch patchWithAnyOrg = new IntersectionPatch(
@@ -462,6 +515,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
 
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)

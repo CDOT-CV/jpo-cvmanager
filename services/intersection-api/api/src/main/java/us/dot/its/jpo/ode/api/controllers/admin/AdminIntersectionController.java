@@ -26,7 +26,6 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -61,7 +60,6 @@ public class AdminIntersectionController {
 
     private final AdminIntersectionService adminIntersectionService;
     private final PermissionService permissionService;
-    private final RsuRepository rsuRepository;
 
     /**
      * Returns all intersections accessible to the requesting user, filtered by organization context.
