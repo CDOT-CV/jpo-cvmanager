@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -54,6 +53,7 @@ import java.util.Set;
 @Tag(name = "Admin Intersection", description = "Manage traffic intersections and their organization/RSU relationships")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "405", description = "Method Not Allowed"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error"),
 })
 public class AdminIntersectionController {
@@ -76,6 +76,7 @@ public class AdminIntersectionController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
+            @ApiResponse(responseCode = "404", description = "No accessible intersections found"),
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
@@ -89,47 +90,37 @@ public class AdminIntersectionController {
 
         log.info("GET /admin-intersection. organization={}, superUser={}", organization, isSuperUser);
         log.debug("User has {} org(s) qualifying for USER role.", userOrgs.size());
-        if (!isSuperUser && organization != null && !userOrgs.contains(organization)) {
-            log.warn("GET /admin-intersection rejected: user is not a member of the requested organization.");
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Not authorized to access the specified organization");
-        }
         return adminIntersectionService.getAllIntersections(organization, isSuperUser, userOrgs);
     }
 
     /**
      * Returns a single intersection and allowed_selections for UI dropdown population.
-     * If the intersection is not found, intersection_data is {} (empty object).
-     * Authorization (outer check) runs before path variable validation.
+     * Authorization: USER role + intersection access enforced by @PreAuthorize.
+     * allowed_selections is computed by PermissionService for UI dropdown population.
      */
     @Operation(
             summary = "Get a single intersection",
             description = """
                     Returns a single intersection by number, plus allowed_selections for UI dropdown population.
-                    If the intersection is not found, intersection_data is an empty object.
-                    Organization filtering is applied based on the requesting user's org context.
+                    Role check: USER required.
+                    Intersection access check: user must have access to the specified intersection.
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role or no access to this intersection"),
+            @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @GetMapping(value = "/{intersectionId}", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('USER') && @PermissionService.hasIntersection(#intersectionId, 'USER'))")
     public IntersectionSingleResponse getIntersection(
             @Parameter(description = "Intersection number to retrieve", example = "12109")
-            @PathVariable @Pattern(regexp = "^[0-9]{1,10}$", message = "intersectionId must be a numeric string up to 10 digits") String intersectionId,
+            @PathVariable Integer intersectionId,
             @Parameter(description = "Scope results to a specific organization")
             @RequestHeader(name = "Organization", required = false) String organization) {
 
-        boolean isSuperUser = permissionService.isSuperUser();
-        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-        List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
-        List<String> operatorOrgs = token != null ? token.getQualifiedOrgList("OPERATOR") : Collections.emptyList();
-
-        log.info("GET /admin-intersection/{}. organization={}, superUser={}", intersectionId, organization, isSuperUser);
-        log.debug("User has {} USER org(s), {} OPERATOR org(s).", userOrgs.size(), operatorOrgs.size());
-        return adminIntersectionService.getIntersection(intersectionId, organization, isSuperUser, userOrgs, operatorOrgs);
+        log.info("GET /admin-intersection/{}. organization={}", intersectionId, organization);
+        return adminIntersectionService.getIntersection(intersectionId);
     }
 
     /**
@@ -154,11 +145,11 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "200", description = "Intersection successfully modified"),
             @ApiResponse(responseCode = "400", description = "Missing or invalid required fields"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role, intersection access, or org restriction violation"),
+            @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
-    public void patchIntersection(
-            @RequestBody @Validated IntersectionPatch patch) {
+    public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
 
         log.info("PATCH /admin-intersection. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
@@ -174,6 +165,15 @@ public class AdminIntersectionController {
                         patch.getOrigIntersectionId());
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Not authorized to modify one or more of the specified organizations");
+            }
+
+            // Verify RSU accessibility
+            if (!permissionService.hasRsus(patch.getRsusToAdd(), "OPERATOR") ||
+                    !permissionService.hasRsus(patch.getRsusToRemove(), "OPERATOR")) {
+                log.warn("RSU enforcement rejected PATCH on intersection {}. Requested RSUs not in qualified set.",
+                        patch.getOrigIntersectionId());
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Not authorized to modify one or more of the specified RSUs");
             }
         }
 

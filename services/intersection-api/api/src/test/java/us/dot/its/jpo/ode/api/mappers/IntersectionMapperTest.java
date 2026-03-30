@@ -78,7 +78,7 @@ class IntersectionMapperTest {
             IntersectionDto result = mapper.toDto(entity);
 
             assertNotNull(result);
-            assertEquals("12109", result.getIntersectionId());
+            assertEquals(12109, result.getIntersectionId());
             assertEquals("Main St & 1st Ave", result.getIntersectionName());
             assertEquals("192.168.1.1", result.getOriginIp());
 
@@ -104,7 +104,7 @@ class IntersectionMapperTest {
             IntersectionDto result = mapper.toDto(entity);
 
             assertNotNull(result);
-            assertEquals("99999", result.getIntersectionId());
+            assertEquals(99999, result.getIntersectionId());
         }
 
         @Test

@@ -18,6 +18,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
@@ -27,6 +29,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleRespon
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -88,6 +91,9 @@ class AdminIntersectionControllerTest {
   @MockitoBean
   IntersectionRepository intersectionRepository;
 
+  @MockitoBean
+  RsuRepository rsuRepository;
+
   /**
    * Concrete-class mock; created fresh per test to avoid cross-test stubbing bleed.
    */
@@ -104,7 +110,7 @@ class AdminIntersectionControllerTest {
     RefPt refPt = new RefPt(39.7392, -104.9903);
 
     IntersectionDto sampleDto = new IntersectionDto(
-      "12109",
+      12109,
       refPt,
       null,
       "Main St & 1st Ave",
@@ -161,7 +167,7 @@ class AdminIntersectionControllerTest {
       mockMvc.perform(get("/admin-intersection"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.intersection_data").isArray())
-        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value("12109"))
+        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109))
         .andExpect(jsonPath("$.intersection_data[0].intersection_name").value("Main St & 1st Ave"))
         .andExpect(jsonPath("$.intersection_data[0].organizations[0]").value("TestOrg"));
     }
@@ -179,7 +185,7 @@ class AdminIntersectionControllerTest {
 
       mockMvc.perform(get("/admin-intersection"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value("12109"));
+        .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109));
     }
 
     @Test
@@ -201,18 +207,16 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("returns 200 with empty intersection_data array when service returns empty list")
-    void emptyServiceResponse_returnsEmptyArray() throws Exception {
+    @DisplayName("returns 404 when no accessible intersections are found")
+    void noAccessibleIntersections_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getAllIntersections(any(), anyBoolean(), anyList()))
-        .thenReturn(new IntersectionListResponse(Collections.emptyList()));
+      doThrow(new EntityNotFoundException("No accessible intersections found for organization 'null' or organizations [[]]"))
+        .when(adminIntersectionService).getAllIntersections(any(), anyBoolean(), anyList());
 
       mockMvc.perform(get("/admin-intersection"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data").isArray())
-        .andExpect(jsonPath("$.intersection_data").isEmpty());
+        .andExpect(status().isNotFound());
     }
   }
 
@@ -246,13 +250,11 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getIntersection(
-        eq("12109"), isNull(), eq(true), anyList(), anyList()))
-        .thenReturn(sampleSingleResponse);
+      when(adminIntersectionService.getIntersection(eq(12109))).thenReturn(sampleSingleResponse);
 
       mockMvc.perform(get("/admin-intersection/12109"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.intersection_data.intersection_id").value("12109"))
+        .andExpect(jsonPath("$.intersection_data.intersection_id").value(12109))
         .andExpect(jsonPath("$.allowed_selections").exists())
         .andExpect(jsonPath("$.allowed_selections.organizations").isArray())
         .andExpect(jsonPath("$.allowed_selections.rsus").isArray());
@@ -260,45 +262,33 @@ class AdminIntersectionControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("returns 200 with empty intersection_data when intersection is not found")
-    void intersectionNotFound_returnsEmptyIntersectionData() throws Exception {
+    @DisplayName("returns 404 when intersection is not found")
+    void intersectionNotFound_returns404() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("USER")).thenReturn(Collections.emptyList());
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
-      when(adminIntersectionService.getIntersection(
-        eq("99999"), isNull(), eq(true), anyList(), anyList()))
-        .thenReturn(new IntersectionSingleResponse(
-          new IntersectionDto(),
-          new AllowedSelections(List.of(), List.of())));
+      doThrow(new EntityNotFoundException("Intersection with id 99999 not found"))
+        .when(adminIntersectionService).getIntersection(99999);
 
       mockMvc.perform(get("/admin-intersection/99999"))
-        .andExpect(status().isOk())
-        // IntersectionDto with all-null fields serializes as {} (NON_NULL policy)
-        .andExpect(jsonPath("$.intersection_data.intersection_id").doesNotExist());
+        .andExpect(status().isNotFound());
     }
 
     @Test
     @WithMockUser
-    @DisplayName("passes Organization header and correct org lists to service for non-superuser")
+    @DisplayName("non-superuser with USER role and intersection access returns 200")
     void organizationHeader_passedToServiceWithCorrectOrgLists() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("USER")).thenReturn(true);
-      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("USER")).thenReturn(List.of("TestOrg"));
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
-      when(adminIntersectionService.getIntersection(
-        eq("12109"), eq("TestOrg"), eq(false),
-        eq(List.of("TestOrg")), eq(List.of("TestOrg"))))
-        .thenReturn(sampleSingleResponse);
+      when(permissionService.hasIntersection(eq(12109), eq("USER"))).thenReturn(true);
+      when(adminIntersectionService.getIntersection(12109)).thenReturn(sampleSingleResponse);
 
       mockMvc.perform(get("/admin-intersection/12109")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk());
 
-      verify(adminIntersectionService).getIntersection(
-        eq("12109"), eq("TestOrg"), eq(false),
-        eq(List.of("TestOrg")), eq(List.of("TestOrg")));
+      verify(adminIntersectionService).getIntersection(eq(12109));
     }
   }
 
@@ -383,6 +373,55 @@ class AdminIntersectionControllerTest {
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithUnqualifiedOrgRemove)))
+        .andExpect(status().isForbidden());
+
+      verify(adminIntersectionService, never()).patchIntersection(any());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("returns 403 when rsus_to_add contains an RSU outside the user's qualified RSUs")
+    void unqualifiedRsuInRsusToAdd_returns403() throws Exception {
+      IntersectionPatch patchWithUnqualifiedRsu = new IntersectionPatch(
+        12109, 12109, new RefPt(39.7392, -104.9903),
+        null, null, null,
+        List.of(), List.of(), List.of("192.168.1.99"), List.of());
+
+      when(permissionService.isSuperUser()).thenReturn(false);
+      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
+
+      mockMvc.perform(patch("/admin-intersection")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsu)))
+        .andExpect(status().isForbidden());
+
+      verify(adminIntersectionService, never()).patchIntersection(any());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("returns 403 when rsus_to_remove contains an RSU outside the user's qualified RSUs")
+    void unqualifiedRsuInRsusToRemove_returns403() throws Exception {
+      IntersectionPatch patchWithUnqualifiedRsuRemove = new IntersectionPatch(
+        12109, 12109, new RefPt(39.7392, -104.9903),
+        null, null, null,
+        List.of(), List.of(), List.of(), List.of("192.168.1.99"));
+
+      when(permissionService.isSuperUser()).thenReturn(false);
+      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
+      when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
+
+      mockMvc.perform(patch("/admin-intersection")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsuRemove)))
         .andExpect(status().isForbidden());
 
       verify(adminIntersectionService, never()).patchIntersection(any());
@@ -476,6 +515,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
 
       mockMvc.perform(patch("/admin-intersection")
           .contentType(MediaType.APPLICATION_JSON)

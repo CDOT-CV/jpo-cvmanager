@@ -19,7 +19,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
      * Projection for fetching RSU IPs alongside the intersection number they belong to.
      */
     interface IntersectionRsuProjection {
-        String getIntersectionNumber();
+        Integer getIntersectionNumber();
 
         InetAddress getRsuIp();
     }
@@ -41,7 +41,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     @Query("SELECT ri.rsu.ipv4Address FROM RsuIntersection ri " +
             "WHERE ri.intersection.intersectionNumber = :intersectionNumber")
     List<InetAddress> findRsuIpsByIntersectionNumber(
-            @Param("intersectionNumber") String intersectionNumber);
+            @Param("intersectionNumber") Integer intersectionNumber);
 
 
 
