@@ -82,9 +82,8 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', data: 'body' })
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+        url: `${EnvironmentVars.adminIntersection}/${intersection_id}`,
         token: 'token',
-        query_params: { intersection_id },
         additional_headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
@@ -95,9 +94,8 @@ describe('async thunks', () => {
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+        url: `${EnvironmentVars.adminIntersection}/${intersection_id}`,
         token: 'token',
-        query_params: { intersection_id },
         additional_headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
@@ -177,7 +175,6 @@ describe('async thunks', () => {
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminIntersection,
           token: 'token',
-          query_params: { intersection_id: json.orig_intersection_id },
           body: JSON.stringify(json),
           tag: 'intersection',
         })
@@ -196,7 +193,6 @@ describe('async thunks', () => {
         expect(apiHelper._patchData).toHaveBeenCalledWith({
           url: EnvironmentVars.adminIntersection,
           token: 'token',
-          query_params: { intersection_id: json.orig_intersection_id },
           body: JSON.stringify(json),
           tag: 'intersection',
         })

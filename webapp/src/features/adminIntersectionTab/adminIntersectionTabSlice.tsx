@@ -33,7 +33,6 @@ export const updateTableData = createAsyncThunk(
     const data = await apiHelper._getDataWithCodes({
       url: EnvironmentVars.adminIntersection,
       token,
-      query_params: { intersection_id: 'all' },
       additional_headers: { 'Content-Type': 'application/json', Organization: organization },
       tag: 'intersection',
     })
@@ -139,6 +138,7 @@ export const adminIntersectionTabSlice = createSlice({
         state.loading = false
         state.value.tableData = action.payload?.intersection_data
         state.value.tableData?.forEach((element: AdminIntersection) => {
+          element.intersection_id = element.intersection_id?.toString() // Java API returns Integer; normalize to string for URL params and comparisons
           element.rsus = (element.rsus as string[])?.join(', ') // This is really silly, but without it the Admin Table breaks... no idea why
         })
       })

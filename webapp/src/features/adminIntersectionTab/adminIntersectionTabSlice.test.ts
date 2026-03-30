@@ -75,7 +75,6 @@ describe('async thunks', () => {
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
         url: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
         additional_headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
@@ -87,7 +86,6 @@ describe('async thunks', () => {
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
         url: EnvironmentVars.adminIntersection,
         token: 'token',
-        query_params: { intersection_id: 'all' },
         additional_headers: { 'Content-Type': 'application/json' },
         tag: 'intersection',
       })
@@ -129,6 +127,20 @@ describe('async thunks', () => {
         ...initialState,
         loading,
         value: { ...initialState.value, tableData: intersection_data },
+      })
+    })
+
+    it('Converts numeric intersection_id to string on fulfilled', async () => {
+      const loading = false
+      const intersection_data = [{ intersection_id: 12109, rsus: ['1.1.1.1'] }]
+      const state = reducer(initialState, {
+        type: 'adminIntersectionTab/updateTableData/fulfilled',
+        payload: { intersection_data },
+      })
+      expect(state).toEqual({
+        ...initialState,
+        loading,
+        value: { ...initialState.value, tableData: [{ intersection_id: '12109', rsus: '1.1.1.1' }] },
       })
     })
 
