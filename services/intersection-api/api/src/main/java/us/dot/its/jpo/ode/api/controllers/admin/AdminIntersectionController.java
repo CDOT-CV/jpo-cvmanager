@@ -62,35 +62,31 @@ public class AdminIntersectionController {
     private final PermissionService permissionService;
 
     /**
-     * Returns all intersections accessible to the requesting user, filtered by organization context.
-     * Does NOT include allowed_selections.
+     * Returns all intersections for the specified organization.
+     * The Organization header is required for all users, including super users.
      * Authorization (outer check) runs before query parameter validation.
      */
     @Operation(
             summary = "List all intersections",
             description = """
-                    Returns all intersections accessible to the requesting user.
-                    Organization filtering is applied based on the requesting user's org context.
+                    Returns all intersections for the specified organization.
+                    The Organization header is required for all users, including super users.
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Missing Organization header"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
-            @ApiResponse(responseCode = "404", description = "No accessible intersections found"),
+            @ApiResponse(responseCode = "404", description = "No intersections found for the specified organization"),
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public IntersectionListResponse getAllIntersections(
-            @Parameter(description = "Scope results to a specific organization")
-            @RequestHeader(name = "Organization", required = false) String organization) {
+            @Parameter(description = "Organization to scope results to", required = true)
+            @RequestHeader(name = "Organization") String organization) {
 
-        boolean isSuperUser = permissionService.isSuperUser();
-        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-        List<String> userOrgs = token != null ? token.getQualifiedOrgList("USER") : Collections.emptyList();
-
-        log.info("GET /admin-intersection. organization={}, superUser={}", organization, isSuperUser);
-        log.debug("User has {} org(s) qualifying for USER role.", userOrgs.size());
-        return adminIntersectionService.getAllIntersections(organization, isSuperUser, userOrgs);
+        log.info("GET /admin-intersection. organization={}", organization);
+        return adminIntersectionService.getAllIntersections(organization);
     }
 
     /**

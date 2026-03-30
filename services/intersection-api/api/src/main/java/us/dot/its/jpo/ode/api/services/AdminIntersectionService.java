@@ -116,21 +116,20 @@ public class AdminIntersectionService {
     }
 
     /**
-     * Returns all intersections accessible to the requesting user, filtered by organization context.
-     * Does NOT include allowed_selections.
+     * Returns all intersections for the specified organization.
+     * The organization parameter is always required; the controller enforces this via a
+     * mandatory request header.
      *
-     * @param organization the scoped organization from the request header (may be null)
-     * @param isSuperUser  whether the requesting user is a superuser
-     * @param userOrgs     USER-role qualified orgs — used for intersection filtering
-     * @return response containing intersection_data as a list of accessible intersections
+     * @param organization the organization to scope results to
+     * @return response containing intersection_data as a list of intersections for the organization
      */
-    public IntersectionListResponse getAllIntersections(String organization, boolean isSuperUser, List<String> userOrgs) {
-        log.info("Fetching all accessible intersections. Organization scope: {}, isSuperUser: {}, userOrgs: {}", organization, isSuperUser, userOrgs);
-        List<Intersection> intersections = queryIntersections(organization, isSuperUser, userOrgs);
+    public IntersectionListResponse getAllIntersections(String organization) {
+        log.info("Fetching intersections for organization: {}", organization);
+        List<Intersection> intersections = intersectionRepository.findAllByOrgNameWithOrgs(organization);
 
         if (intersections.isEmpty()) {
-            log.warn("No accessible intersections found for organization scope '{}' and user orgs {}", organization, userOrgs);
-            throw new EntityNotFoundException("No accessible intersections found for organization '" + organization + "' or organizations [" + userOrgs + "]");
+            log.warn("No intersections found for organization '{}'", organization);
+            throw new EntityNotFoundException("No accessible intersections found for organization '" + organization + "'");
         }
 
         List<IntersectionDto> dtos = intersections.stream()
@@ -281,30 +280,6 @@ public class AdminIntersectionService {
         rsuIntersectionRepository.deleteByIntersection_IntersectionNumber(intersectionId);
         intersectionRepository.delete(intersection);
         log.info("Successfully deleted intersection {}", intersectionId);
-    }
-
-    private List<Intersection> queryIntersections(String organization, boolean isSuperUser,
-            List<String> userOrgs) {
-        if (organization != null) {
-            log.debug("Querying intersections scoped to organization: {}", organization);
-            List<Intersection> results = intersectionRepository.findAllByOrgNameWithOrgs(organization);
-            log.debug("Found {} intersection(s) for organization: {}", results.size(), organization);
-            return results;
-        }
-        if (isSuperUser) {
-            log.debug("Querying all intersections (superuser path).");
-            List<Intersection> results = intersectionRepository.findAllWithOrgs();
-            log.debug("Found {} intersection(s) (superuser).", results.size());
-            return results;
-        }
-        if (userOrgs.isEmpty()) {
-            log.debug("No user orgs available; returning empty intersection list.");
-            return Collections.emptyList();
-        }
-        log.debug("Querying intersections for {} user org(s): {}", userOrgs.size(), userOrgs);
-        List<Intersection> results = intersectionRepository.findAllByOrgNamesWithOrgs(userOrgs);
-        log.debug("Found {} intersection(s) for user orgs.", results.size());
-        return results;
     }
 
     private Map<Integer, List<String>> loadRsuIpsByIntersection(List<String> intersectionNumbers) {
