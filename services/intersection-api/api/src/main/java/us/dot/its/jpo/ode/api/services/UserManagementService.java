@@ -58,8 +58,7 @@ public class UserManagementService {
     }
 
     @Transactional
-    public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken)
-            throws UserEmailAlreadyExistsException {
+    public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
         List<String> authorizedOrgs;
         if (authToken.isSuperUser()) {
             authorizedOrgs = organizationRepository.findAllOrganizationNames();
@@ -211,7 +210,7 @@ public class UserManagementService {
         userRepository.deleteAll(existingUsers);
     }
 
-    public static class UserEmailAlreadyExistsException extends Exception {
+    public static class UserEmailAlreadyExistsException extends RuntimeException {
         public UserEmailAlreadyExistsException(String message) {
             super(message);
         }

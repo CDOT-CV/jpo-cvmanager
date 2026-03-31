@@ -23,7 +23,6 @@ import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import us.dot.its.jpo.ode.api.services.UserManagementService.UserEmailAlreadyExistsException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -345,7 +344,7 @@ class UserControllerTest {
     // ==================== modifyUser Tests ====================
 
     @Test
-    void testModifyUser_Success() throws UserEmailAlreadyExistsException {
+    void testModifyUser_Success() {
         // Arrange
         String email = "test@example.com";
         UserPatch userPatch = new UserPatch();
@@ -366,7 +365,7 @@ class UserControllerTest {
     }
 
     @Test
-    void testModifyUser_WithOrganizationChanges() throws UserEmailAlreadyExistsException {
+    void testModifyUser_WithOrganizationChanges() {
         // Arrange
         String email = "test@example.com";
         UserPatch userPatch = new UserPatch();

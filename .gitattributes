@@ -24,3 +24,4 @@ Dockerfile text eol=lf
 *.py     text eol=lf
 *.java   text eol=lf
 *.properties text eol=lf
+**/__snapshots__/*.snap text eol=lf

@@ -40,7 +40,6 @@ import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-import us.dot.its.jpo.ode.api.services.RsuManagementService.RsuIpAlreadyExistsException;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -329,7 +328,7 @@ class RsuManagementServiceTest {
     // ==================== MODIFY RSU TESTS ====================
 
     @Test
-    void testModifyRsu_Success() throws UnknownHostException, RsuIpAlreadyExistsException {
+    void testModifyRsu_Success() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -376,7 +375,7 @@ class RsuManagementServiceTest {
     }
 
     @Test
-    void testModifyRsu_WithModelUpdate() throws UnknownHostException, RsuIpAlreadyExistsException {
+    void testModifyRsu_WithModelUpdate() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -404,7 +403,7 @@ class RsuManagementServiceTest {
     }
 
     @Test
-    void testModifyRsu_WithCredentialUpdates() throws UnknownHostException, RsuIpAlreadyExistsException {
+    void testModifyRsu_WithCredentialUpdates() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -511,7 +510,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_AddOrganizations_Success()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -549,7 +548,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_AddOrganizations_AlreadyExists()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -631,7 +630,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_RemoveOrganizations_Success()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -674,7 +673,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_RemoveOrganizations_NotFound()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -727,7 +726,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_AddAndRemoveOrganizations()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -820,7 +819,7 @@ class RsuManagementServiceTest {
 
     @Test
     void testHandleOrganizationChanges_NoOrganizationChanges()
-            throws UnknownHostException, RsuIpAlreadyExistsException {
+            throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -843,7 +842,7 @@ class RsuManagementServiceTest {
     }
 
     @Test
-    void testHandleOrganizationChanges_EmptyAddList() throws UnknownHostException, RsuIpAlreadyExistsException {
+    void testHandleOrganizationChanges_EmptyAddList() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
@@ -865,7 +864,7 @@ class RsuManagementServiceTest {
     }
 
     @Test
-    void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException, RsuIpAlreadyExistsException {
+    void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 

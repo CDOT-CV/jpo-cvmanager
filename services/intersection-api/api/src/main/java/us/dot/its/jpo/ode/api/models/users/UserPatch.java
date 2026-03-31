@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Getter
@@ -32,6 +33,7 @@ public class UserPatch {
     @JsonProperty("organizations_to_remove")
     List<UserOrganizationDto> organizationsToRemove;
 
-    @JsonProperty("organizations_to_update")
+    // TODO: Deprecate organizations_to_update in favor of organization_to_modify
+    @JsonAlias({ "organizations_to_modify", "organizations_to_update" })
     List<UserOrganizationDto> organizationsToModify;
 }

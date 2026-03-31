@@ -96,7 +96,7 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) throws RsuIpAlreadyExistsException {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
@@ -169,8 +169,7 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken)
-            throws RsuIpAlreadyExistsException {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
             List<String> authorizedOrgs;
             if (userToken.isSuperUser()) {
@@ -381,7 +380,7 @@ public class RsuManagementService {
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
     }
 
-    public static class RsuIpAlreadyExistsException extends Exception {
+    public static class RsuIpAlreadyExistsException extends RuntimeException {
         public RsuIpAlreadyExistsException(String message) {
             super(message);
         }

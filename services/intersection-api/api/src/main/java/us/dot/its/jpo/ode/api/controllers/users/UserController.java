@@ -32,7 +32,6 @@ import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import us.dot.its.jpo.ode.api.services.UserManagementService.UserEmailAlreadyExistsException;
 
 @Slf4j
 @RestController
@@ -105,7 +104,7 @@ public class UserController {
     })
     public ResponseEntity<Void> modifyUser(
             @Parameter(description = "User email address", example = "user@example.com", required = true) @PathVariable(name = "email") String email,
-            @Validated @RequestBody UserPatch body) throws UserEmailAlreadyExistsException {
+            @Validated @RequestBody UserPatch body) {
         userManagementService.modifyUser(email, body, permissionService.getCvManagerAuthToken());
 
         return ResponseEntity.noContent().build();

@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleRsuIpAlreadyExistsException(
             RsuManagementService.RsuIpAlreadyExistsException e) {
         String message = e.getMessage();
-        log.error(message);
+        log.warn(message, e);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
     }
 
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleUserEmailAlreadyExistsException(
             UserManagementService.UserEmailAlreadyExistsException e) {
         String message = e.getMessage();
-        log.error(message);
+        log.warn(message, e);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
     }
 

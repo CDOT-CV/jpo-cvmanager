@@ -73,8 +73,8 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        return CvManagerAuthToken.isSuperUser();
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        return authToken.isSuperUser();
     }
 
     /**
@@ -95,18 +95,18 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
         String organization = getOrganizationFromHeader();
 
         if (organization != null) {
-            Optional<String> userRole = CvManagerAuthToken.findRoleInOrg(organization);
+            Optional<String> userRole = authToken.findRoleInOrg(organization);
             return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
         }
-        return !CvManagerAuthToken.getQualifiedOrgList(role).isEmpty();
+        return !authToken.getQualifiedOrgList(role).isEmpty();
     }
 
     public boolean hasRoleInOrgs(String role, List<String> organizations) {
@@ -115,12 +115,12 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
         return qualifiedOrgs.containsAll(organizations);
     }
 
@@ -141,12 +141,12 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        Optional<String> userRole = CvManagerAuthToken.findRoleInOrg(organization);
+        Optional<String> userRole = authToken.findRoleInOrg(organization);
         return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
     }
 
@@ -163,12 +163,12 @@ public class PermissionService {
             return true;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -200,12 +200,12 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -235,12 +235,12 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
@@ -253,15 +253,33 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
 
-        List<String> allowedEmails = userRepository.findAllowedEmailsInOrganizations(qualifiedOrgs);
-        return allowedEmails.contains(email);
+        return userRepository.existsByEmailAndOrganizations(email, qualifiedOrgs);
+    }
+
+    // Allow Connection if the users organization controls the specified RSU unit
+    public boolean hasUsers(List<String> emails, String role) {
+        List<String> distinctEmails = emails.stream().distinct().toList();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+
+        return userRepository.allUsersExistInOrganizations(distinctEmails, qualifiedOrgs, distinctEmails.size());
     }
 
     /**
@@ -288,13 +306,13 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
         return rsuCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                CvManagerAuthToken.getQualifiedOrgList(role));
+                authToken.getQualifiedOrgList(role));
     }
 
     /**
@@ -321,13 +339,13 @@ public class PermissionService {
             return false;
         }
 
-        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
-        if (CvManagerAuthToken.isSuperUser()) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
             return true;
         }
 
         return snmpCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                CvManagerAuthToken.getQualifiedOrgList(role));
+                authToken.getQualifiedOrgList(role));
     }
 
     // helper method to make sure authentication is valid

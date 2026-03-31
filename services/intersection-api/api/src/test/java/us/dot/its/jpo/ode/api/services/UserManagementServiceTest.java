@@ -28,7 +28,6 @@ import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-import us.dot.its.jpo.ode.api.services.UserManagementService.UserEmailAlreadyExistsException;
 
 import java.util.List;
 import java.util.Optional;
@@ -206,7 +205,7 @@ class UserManagementServiceTest {
     // ==================== modifyUser Tests ====================
 
     @Test
-    void testModifyUser_UpdateBasicFields() throws UserEmailAlreadyExistsException {
+    void testModifyUser_UpdateBasicFields() {
         UserPatch patch = new UserPatch();
         patch.setFirstName("Updated");
         patch.setLastName("Name");
@@ -241,7 +240,7 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void testModifyUser_AddOrganization_Success() throws UserEmailAlreadyExistsException {
+    void testModifyUser_AddOrganization_Success() {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization("TestOrg");
@@ -283,7 +282,7 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void testModifyUser_AddOrganization_AlreadyExists() throws UserEmailAlreadyExistsException {
+    void testModifyUser_AddOrganization_AlreadyExists() {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization("TestOrg");
@@ -346,7 +345,7 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void testModifyUser_RemoveOrganization_Success() throws UserEmailAlreadyExistsException {
+    void testModifyUser_RemoveOrganization_Success() {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToRemove = new UserOrganizationDto();
         orgToRemove.setOrganization("TestOrg");
@@ -390,7 +389,7 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void testModifyUser_RemoveOrganization_NotFound() throws UserEmailAlreadyExistsException {
+    void testModifyUser_RemoveOrganization_NotFound() {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToRemove = new UserOrganizationDto();
         orgToRemove.setOrganization("TestOrg");
@@ -412,7 +411,7 @@ class UserManagementServiceTest {
     }
 
     @Test
-    void testModifyUser_ModifyOrganization_Success() throws UserEmailAlreadyExistsException {
+    void testModifyUser_ModifyOrganization_Success() {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToModify = new UserOrganizationDto();
         orgToModify.setOrganization("TestOrg");
