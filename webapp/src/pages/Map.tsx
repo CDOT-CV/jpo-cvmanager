@@ -53,7 +53,6 @@ import {
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
 import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
-import { SecureStorageManager } from '../managers'
 import {
   selectConfigCoordinates,
   toggleConfigPointSelect,
