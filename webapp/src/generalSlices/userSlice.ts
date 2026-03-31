@@ -152,13 +152,6 @@ export const selectIsUserOrAbove = (state: RootState) => {
     return true
   }
   const role = selectRole(state)?.toUpperCase()
-  console.error(
-    role,
-    role === 'USER',
-    role === 'OPERATOR',
-    role === 'ADMIN',
-    role === 'USER' || role === 'OPERATOR' || role === 'ADMIN'
-  )
   return role === 'USER' || role === 'OPERATOR' || role === 'ADMIN'
 }
 export const selectIsOperatorOrAbove = (state: RootState) => {
