@@ -1,6 +1,7 @@
 import EnvironmentVars from '../EnvironmentVars'
 import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
 import apiHelper from './api-helper'
+import { authApiHelper } from './intersections/api-helper-cviz'
 import {
   ApiMsgRespWithCodes,
   GetRsuCommandResp,
@@ -101,17 +102,19 @@ class RsuApi {
       query_params,
       tag: 'rsu',
     })
+  // This method uses authApiHelper which defaults to EnvironmentVars.CVIZ_API_SERVER_URL
+  // as the basePath, allowing EnvironmentVars.issScmsStatusEndpoint to be relative.
   getIssScmsStatus = async (
     token: string,
     org: string,
     url_ext = '',
     query_params: Record<string, string> = {}
   ): Promise<IssScmsStatus> =>
-    apiHelper._getData({
-      url: EnvironmentVars.issScmsStatusEndpoint + url_ext,
+    authApiHelper.invokeApi({
+      path: EnvironmentVars.issScmsStatusEndpoint + url_ext,
       token,
-      query_params,
-      additional_headers: { Organization: org },
+      queryParams: query_params,
+      headers: { Organization: org },
       tag: 'rsu',
     })
 

@@ -56,7 +56,31 @@ exports[`snapshot scms 1 1`] = `
 </div>
 `;
 
+exports[`snapshot scms false 1`] = `
+<div>
+  <div
+    style="padding: 5px; display: inline-block; border-radius: 50%; width: 5px; height: 5px; background-color: rgb(176, 176, 176);"
+  />
+</div>
+`;
+
 exports[`snapshot scms other 1`] = `
+<div>
+  <div
+    style="padding: 5px; display: inline-block; border-radius: 50%; width: 5px; height: 5px; background-color: rgb(176, 176, 176);"
+  />
+</div>
+`;
+
+exports[`snapshot scms true 1`] = `
+<div>
+  <div
+    style="padding: 5px; display: inline-block; border-radius: 50%; width: 5px; height: 5px; background-color: rgb(161, 211, 99);"
+  />
+</div>
+`;
+
+exports[`snapshot scms undefined 1`] = `
 <div>
   <div
     style="padding: 5px; display: inline-block; border-radius: 50%; width: 5px; height: 5px; background-color: rgb(176, 176, 176);"
