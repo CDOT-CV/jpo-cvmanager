@@ -1,11 +1,11 @@
-import { ApiMsgRespWithCodes, RsuUpgradePostBody } from '../../models/RsuApi'
+import { ApiMsgRespWithCodes, RsuUpgradeCheckPostBody, RsuUpgradePostBody } from '../../models/RsuApi'
 import { authApiHelper } from './api-helper-cviz'
 
 class RsuFirmwareApi {
   async postRsuUpgradeData(
     token: string,
     org: string,
-    body: RsuUpgradePostBody,
+    body: RsuUpgradePostBody | RsuUpgradeCheckPostBody,
     url_ext = ''
   ): Promise<ApiMsgRespWithCodes<any> | null> {
     const response = await authApiHelper.invokeApi({
@@ -16,11 +16,20 @@ class RsuFirmwareApi {
       body,
       tag: 'rsu',
       toastOnFailure: false,
+      returnErrorBody: true,
       failureMessage: 'Failed to submit RSU firmware upgrade request',
     })
 
     if (!response) {
       return null
+    }
+
+    if (response.__isErrorResponse) {
+      return {
+        body: response.body,
+        status: response.status,
+        message: response.body?.detail ?? `Request failed with status ${response.status}`,
+      }
     }
 
     return {

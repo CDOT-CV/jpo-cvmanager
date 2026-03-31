@@ -3,7 +3,13 @@ import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
-import { RsuCommandPostBody, RsuDsrcFwdConfigs, RsuRxTxMsgFwdConfigs, RsuUpgradePostBody } from '../models/RsuApi'
+import {
+  RsuCommandPostBody,
+  RsuDsrcFwdConfigs,
+  RsuRxTxMsgFwdConfigs,
+  RsuUpgradeCheckPostBody,
+  RsuUpgradePostBody,
+} from '../models/RsuApi'
 
 const initialState = {
   msgFwdConfig: {} as any,
@@ -156,22 +162,26 @@ export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: str
 
 export const checkFirmwareUpgrade = createAsyncThunk(
   'config/checkFirmwareUpgrade',
-  async (rsuIp: string[], { getState }) => {
+  async (rsuIp: string[], { getState, rejectWithValue }) => {
+    if (rsuIp.length !== 1) {
+      return rejectWithValue('Firmware upgrade availability check requires exactly one RSU')
+    }
+
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
 
-    const body: RsuUpgradePostBody = {
-      rsu_ip: rsuIp,
+    const body: RsuUpgradeCheckPostBody = {
+      rsu_ip: rsuIp[0],
       args: {},
     }
 
     const response = await RsuFirmwareApi.postRsuUpgradeData(token, organization, body, '/check')
     if (!response) {
-      return {
-        firmwareUpgradeAvailable: false,
-        firmwareUpgradeName: '',
-      }
+      return rejectWithValue('Failed to check firmware upgrade availability')
+    }
+    if (response.status >= 400) {
+      return rejectWithValue(response.message || 'Failed to check firmware upgrade availability')
     }
     return {
       firmwareUpgradeAvailable: response.body?.upgrade_available,
@@ -182,7 +192,7 @@ export const checkFirmwareUpgrade = createAsyncThunk(
 
 export const startFirmwareUpgrade = createAsyncThunk(
   'config/startFirmwareUpgrade',
-  async (ipList: string[], { getState }) => {
+  async (ipList: string[], { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
@@ -194,7 +204,10 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
     const response = await RsuFirmwareApi.postRsuUpgradeData(token, organization, body, '')
     if (!response) {
-      return { message: 'Firmware upgrades failed to be started', statusCode: 500 }
+      return rejectWithValue('Firmware upgrades failed to be started')
+    }
+    if (response.status >= 400) {
+      return rejectWithValue(response.message || 'Firmware upgrades failed to be started')
     }
 
     const perRsuResults = response.body as Record<string, { code?: number; data?: unknown }> | undefined
@@ -264,10 +277,11 @@ export const startFirmwareUpgrade = createAsyncThunk(
 
     const successSummary = startedIps.length > 0 ? `Firmware upgrade started for ${startedIps.length} RSUs.` : ''
     const upToDateSummary = upToDateIps.length > 0 ? ` ${upToDateIps.length} RSUs already up to date.` : ''
+    const firstFailedIpCode = failedIps.length > 0 ? (perRsuResults?.[failedIps[0]]?.code ?? 500) : 500
 
     return {
       message: `${successSummary}${upToDateSummary} Failed: ${failedIps.join(', ')}`.trim(),
-      statusCode: 500,
+      statusCode: firstFailedIpCode,
     }
   }
 )
@@ -422,11 +436,12 @@ export const configSlice = createSlice({
         state.value.firmwareUpgradeName = action.payload.firmwareUpgradeName
         if (!action.payload.firmwareUpgradeAvailable) state.value.firmwareUpgradeMsg = 'Firmware is up to date!'
       })
-      .addCase(checkFirmwareUpgrade.rejected, (state) => {
+      .addCase(checkFirmwareUpgrade.rejected, (state, action) => {
         state.loading = false
         state.value.firmwareUpgradeAvailable = false
         state.value.firmwareUpgradeName = ''
-        state.value.firmwareUpgradeMsg = 'An error occurred while checking for an upgrade'
+        state.value.firmwareUpgradeMsg =
+          (action.payload as string | undefined) || 'An error occurred while checking for an upgrade'
         state.value.firmwareUpgradeErr = true
       })
       .addCase(startFirmwareUpgrade.pending, (state) => {
@@ -441,11 +456,12 @@ export const configSlice = createSlice({
         if (action.payload.statusCode !== 201 && action.payload.statusCode !== 200)
           state.value.firmwareUpgradeErr = true
       })
-      .addCase(startFirmwareUpgrade.rejected, (state) => {
+      .addCase(startFirmwareUpgrade.rejected, (state, action) => {
         state.loading = false
         state.value.firmwareUpgradeAvailable = false
         state.value.firmwareUpgradeName = ''
-        state.value.firmwareUpgradeMsg = 'An error occurred while starting the firmware upgrade'
+        state.value.firmwareUpgradeMsg =
+          (action.payload as string | undefined) || 'An error occurred while starting the firmware upgrade'
         state.value.firmwareUpgradeErr = true
       })
       .addCase(geoRsuQuery.pending, (state) => {

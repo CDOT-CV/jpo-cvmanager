@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -77,7 +79,7 @@ class RsuUpgradeServiceTest {
         when(rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization)).thenReturn(rsu);
         when(firmwareUpgradeRuleRepository.findFirstByFrom_Id(1)).thenReturn(Optional.of(rule));
 
-        Map<String, Object> result = rsuUpgradeService.checkFirmwareUpgrade(organization, List.of(rsuIp));
+        Map<String, Object> result = rsuUpgradeService.checkFirmwareUpgrade(organization, rsuIp);
 
         assertEquals(true, result.get("upgrade_available"));
         assertEquals(2, result.get("upgrade_id"));
@@ -86,7 +88,7 @@ class RsuUpgradeServiceTest {
     }
 
     @Test
-    void testStartFirmwareUpgradeForRsus_CollectsMixedResults() {
+    void testStartFirmwareUpgradeForRsus_ThrowsWhenRsuDataMissing() {
         String organization = "TestOrg";
         String successIp = "10.0.0.10";
         String missingIp = "10.0.0.11";
@@ -97,36 +99,28 @@ class RsuUpgradeServiceTest {
         doReturn(new RsuUpgradeService.UpgradeExecutionResult(Map.of("message", "started"), 201))
                 .when(serviceSpy).markRsuForUpgrade(successIp, organization);
 
-        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization,
-                List.of(successIp, missingIp));
+        EntityNotFoundException exception = assertThrows(
+                EntityNotFoundException.class,
+                () -> serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(successIp, missingIp)));
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> successResponse = (Map<String, Object>) result.get(successIp);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> missingResponse = (Map<String, Object>) result.get(missingIp);
-
-        assertEquals(201, successResponse.get("code"));
-        assertEquals(Map.of("message", "started"), successResponse.get("data"));
-        assertEquals(400, missingResponse.get("code"));
-        assertTrue(String.valueOf(missingResponse.get("data")).contains("does not have complete RSU data"));
+        assertTrue(exception.getMessage().contains("does not have complete RSU data"));
     }
 
     @Test
-    void testStartFirmwareUpgradeForRsus_HandlesResponseStatusException() {
+    void testStartFirmwareUpgradeForRsus_PropagatesFirmwareUpgradeUnavailableException() {
         String organization = "TestOrg";
         String rsuIp = "10.0.0.12";
 
         RsuUpgradeService serviceSpy = spy(rsuUpgradeService);
         when(rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)).thenReturn(true);
-        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Requested RSU is already up to date"))
+        doThrow(new RsuUpgradeService.FirmwareUpgradeUnavailableException("Requested RSU is already up to date"))
                 .when(serviceSpy).markRsuForUpgrade(rsuIp, organization);
 
-        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
-        @SuppressWarnings("unchecked")
-        Map<String, Object> response = (Map<String, Object>) result.get(rsuIp);
+        RsuUpgradeService.FirmwareUpgradeUnavailableException exception = assertThrows(
+                RsuUpgradeService.FirmwareUpgradeUnavailableException.class,
+                () -> serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp)));
 
-        assertEquals(409, response.get("code"));
-        assertEquals("Requested RSU is already up to date", response.get("data"));
+        assertEquals("Requested RSU is already up to date", exception.getMessage());
     }
 
     @Test
@@ -194,11 +188,10 @@ class RsuUpgradeServiceTest {
         when(rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization)).thenReturn(rsu);
         when(firmwareUpgradeRuleRepository.findFirstByFrom_Id(20)).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        RsuUpgradeService.FirmwareUpgradeUnavailableException exception = assertThrows(
+                RsuUpgradeService.FirmwareUpgradeUnavailableException.class,
                 () -> rsuUpgradeService.markRsuForUpgrade(rsuIp, organization));
 
-        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("already up to date"));
+        assertTrue(exception.getMessage().contains("already up to date"));
     }
 }

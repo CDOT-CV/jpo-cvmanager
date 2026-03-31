@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +29,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class RsuUpgradeService {
 
@@ -37,13 +40,12 @@ public class RsuUpgradeService {
     @Value("${firmwareManagerEndpoint:}")
     private String firmwareManagerEndpoint;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public Map<String, Object> checkFirmwareUpgrade(String organization, List<String> rsuIps) {
-        String rsuIp = rsuIps.get(0);
+    public Map<String, Object> checkFirmwareUpgrade(String organization, String rsuIp) {
         Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
         if (rsu == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new EntityNotFoundException(
                     "Provided RSU IP does not have complete RSU data for organization: " + organization + "::" + rsuIp);
         }
 
@@ -63,37 +65,20 @@ public class RsuUpgradeService {
 
         for (String rsuIp : rsuIps) {
             if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)) {
-                response.put(rsuIp, Map.of(
-                        "code", 400,
-                        "data", "Provided RSU IP does not have complete RSU data for organization: " + organization
-                                + "::" + rsuIp));
-                continue;
+                throw new EntityNotFoundException(
+                        "Provided RSU IP does not have complete RSU data for organization: " + organization
+                                + "::" + rsuIp);
             }
 
-            try {
-                UpgradeExecutionResult result = markRsuForUpgrade(rsuIp, organization);
-                response.put(rsuIp, Map.of(
-                        "code", result.statusCode(),
-                        "data", result.body()));
-            } catch (ResponseStatusException ex) {
-                int statusCode = ex.getStatusCode().value();
-                String errorMessage = ex.getReason() == null ? "Failed to initiate firmware upgrade" : ex.getReason();
-                response.put(rsuIp, Map.of(
-                        "code", statusCode,
-                        "data", errorMessage));
-                log.warn("Firmware upgrade failed for {} with status {}: {}", rsuIp, statusCode, errorMessage);
-            } catch (Exception ex) {
-                response.put(rsuIp, Map.of(
-                        "code", 500,
-                        "data", "Failed to initiate firmware upgrade for RSU '" + rsuIp + "'"));
-                log.error("Unexpected firmware upgrade error for {}", rsuIp, ex);
-            }
+            UpgradeExecutionResult result = markRsuForUpgrade(rsuIp, organization);
+            response.put(rsuIp, Map.of(
+                    "code", result.statusCode(),
+                    "data", result.body()));
         }
 
         return response;
     }
 
-    @Transactional
     protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp, String organization) {
         if (firmwareManagerEndpoint == null || firmwareManagerEndpoint.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
@@ -102,14 +87,14 @@ public class RsuUpgradeService {
 
         Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
         if (rsu == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new EntityNotFoundException(
                     "Provided RSU IP does not have complete RSU data for organization: " + organization + "::" + rsuIp);
         }
 
         FirmwareUpgradeInfo upgradeInfo = checkForUpgrade(rsu);
 
         if (!upgradeInfo.upgradeAvailable()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareUpgradeUnavailableException(
                     "Requested RSU '" + rsuIp + "' is already up to date with the latest firmware");
         }
 
@@ -162,5 +147,11 @@ public class RsuUpgradeService {
     }
 
     public record FirmwareUpgradeInfo(boolean upgradeAvailable, FirmwareImage upgradeImage) {
+    }
+
+    public static class FirmwareUpgradeUnavailableException extends RuntimeException {
+        public FirmwareUpgradeUnavailableException(String message) {
+            super(message);
+        }
     }
 }
