@@ -11,7 +11,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * Represents a single intersection record as returned by GET /admin-intersection.
+ * Represents a single intersection record as returned by GET /intersection.
  */
 @Schema(description = "A single intersection record")
 @Getter

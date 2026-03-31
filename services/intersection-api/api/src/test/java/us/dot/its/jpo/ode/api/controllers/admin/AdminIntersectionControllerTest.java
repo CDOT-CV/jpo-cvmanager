@@ -130,14 +130,14 @@ class AdminIntersectionControllerTest {
   }
 
   @Nested
-  @DisplayName("GET /admin-intersection — list all intersections")
+  @DisplayName("GET /intersection — list all intersections")
   class GetAllIntersections {
 
     @Test
     @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
     void noPermissions_returns403() throws Exception {
       // Spring Security filter runs before argument binding; unauthenticated → 403
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isForbidden());
     }
@@ -147,7 +147,7 @@ class AdminIntersectionControllerTest {
     @DisplayName("returns 400 when Organization header is missing")
     void missingOrganizationHeader_returns400() throws Exception {
       // Argument binding runs before @PreAuthorize; missing required header → 400
-      mockMvc.perform(get("/admin-intersection"))
+      mockMvc.perform(get("/intersection"))
         .andExpect(status().isBadRequest());
     }
 
@@ -158,7 +158,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("USER")).thenReturn(false);
 
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isForbidden());
     }
@@ -171,7 +171,7 @@ class AdminIntersectionControllerTest {
       when(adminIntersectionService.getAllIntersections(eq("TestOrg")))
         .thenReturn(sampleListResponse);
 
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.intersection_data").isArray())
@@ -189,7 +189,7 @@ class AdminIntersectionControllerTest {
       when(adminIntersectionService.getAllIntersections(eq("TestOrg")))
         .thenReturn(sampleListResponse);
 
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109));
@@ -203,7 +203,7 @@ class AdminIntersectionControllerTest {
       when(adminIntersectionService.getAllIntersections(eq("TestOrg")))
         .thenReturn(sampleListResponse);
 
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk());
 
@@ -218,20 +218,20 @@ class AdminIntersectionControllerTest {
       doThrow(new EntityNotFoundException("No accessible intersections found for organization 'TestOrg'"))
         .when(adminIntersectionService).getAllIntersections(any());
 
-      mockMvc.perform(get("/admin-intersection")
+      mockMvc.perform(get("/intersection")
           .header("Organization", "TestOrg"))
         .andExpect(status().isNotFound());
     }
   }
 
   @Nested
-  @DisplayName("GET /admin-intersection/{intersectionId} — single intersection")
+  @DisplayName("GET /intersection/{intersectionId} — single intersection")
   class GetSingleIntersection {
 
     @Test
     @DisplayName("returns 403 when no permissions are granted")
     void noPermissions_returns403() throws Exception {
-      mockMvc.perform(get("/admin-intersection/12109"))
+      mockMvc.perform(get("/intersection/12109"))
         .andExpect(status().isForbidden());
     }
 
@@ -242,7 +242,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("USER")).thenReturn(false);
 
-      mockMvc.perform(get("/admin-intersection/12109"))
+      mockMvc.perform(get("/intersection/12109"))
         .andExpect(status().isForbidden());
     }
 
@@ -256,7 +256,7 @@ class AdminIntersectionControllerTest {
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(Collections.emptyList());
       when(adminIntersectionService.getIntersection(eq(12109))).thenReturn(sampleSingleResponse);
 
-      mockMvc.perform(get("/admin-intersection/12109"))
+      mockMvc.perform(get("/intersection/12109"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.intersection_data.intersection_id").value(12109))
         .andExpect(jsonPath("$.allowed_selections").exists())
@@ -275,7 +275,7 @@ class AdminIntersectionControllerTest {
       doThrow(new EntityNotFoundException("Intersection with id 99999 not found"))
         .when(adminIntersectionService).getIntersection(99999);
 
-      mockMvc.perform(get("/admin-intersection/99999"))
+      mockMvc.perform(get("/intersection/99999"))
         .andExpect(status().isNotFound());
     }
 
@@ -288,7 +288,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasIntersection(eq(12109), eq("USER"))).thenReturn(true);
       when(adminIntersectionService.getIntersection(12109)).thenReturn(sampleSingleResponse);
 
-      mockMvc.perform(get("/admin-intersection/12109")
+      mockMvc.perform(get("/intersection/12109")
           .header("Organization", "TestOrg"))
         .andExpect(status().isOk());
 
@@ -297,13 +297,13 @@ class AdminIntersectionControllerTest {
   }
 
   @Nested
-  @DisplayName("PATCH /admin-intersection — update intersection")
+  @DisplayName("PATCH /intersection — update intersection")
   class PatchIntersection {
 
     @Test
     @DisplayName("returns 403 when no permissions are granted")
     void noPermissions_returns403() throws Exception {
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
         .andExpect(status().isForbidden());
@@ -316,7 +316,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("OPERATOR")).thenReturn(false);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
         .andExpect(status().isForbidden());
@@ -330,7 +330,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(false);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
         .andExpect(status().isForbidden());
@@ -351,7 +351,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithUnqualifiedOrg)))
         .andExpect(status().isForbidden());
@@ -374,7 +374,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithUnqualifiedOrgRemove)))
         .andExpect(status().isForbidden());
@@ -398,7 +398,7 @@ class AdminIntersectionControllerTest {
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsu)))
         .andExpect(status().isForbidden());
@@ -423,7 +423,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
       when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithUnqualifiedRsuRemove)))
         .andExpect(status().isForbidden());
@@ -442,7 +442,7 @@ class AdminIntersectionControllerTest {
 
       when(permissionService.isSuperUser()).thenReturn(true);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(patchWithAnyOrg)))
         .andExpect(status().isOk());
@@ -463,7 +463,7 @@ class AdminIntersectionControllerTest {
         }
         """;
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(bodyMissingOrigId))
         .andExpect(status().isBadRequest());
@@ -483,7 +483,7 @@ class AdminIntersectionControllerTest {
         }
         """;
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(bodyMissingRefPt))
         .andExpect(status().isBadRequest());
@@ -504,7 +504,7 @@ class AdminIntersectionControllerTest {
         }
         """;
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(bodyWithNullOrgs))
         .andExpect(status().isBadRequest());
@@ -521,7 +521,7 @@ class AdminIntersectionControllerTest {
       when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
         .andExpect(status().isOk());
@@ -537,7 +537,7 @@ class AdminIntersectionControllerTest {
       doThrow(new ResponseStatusException(
         HttpStatus.NOT_FOUND, "Intersection not found: 12109")).when(adminIntersectionService).patchIntersection(any());
 
-      mockMvc.perform(patch("/admin-intersection")
+      mockMvc.perform(patch("/intersection")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(validPatch)))
         .andExpect(status().isNotFound());
@@ -545,13 +545,13 @@ class AdminIntersectionControllerTest {
   }
 
   @Nested
-  @DisplayName("DELETE /admin-intersection — delete intersection")
+  @DisplayName("DELETE /intersection — delete intersection")
   class DeleteIntersection {
 
     @Test
     @DisplayName("returns 403 when no permissions are granted")
     void noPermissions_returns403() throws Exception {
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "12109"))
         .andExpect(status().isForbidden());
     }
@@ -563,7 +563,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("OPERATOR")).thenReturn(false);
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "12109"))
         .andExpect(status().isForbidden());
     }
@@ -576,7 +576,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(false);
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "12109"))
         .andExpect(status().isForbidden());
     }
@@ -589,7 +589,7 @@ class AdminIntersectionControllerTest {
       // @NotBlank then fires and returns 400
       when(permissionService.isSuperUser()).thenReturn(true);
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "   "))
         .andExpect(status().isBadRequest());
     }
@@ -600,7 +600,7 @@ class AdminIntersectionControllerTest {
     void superUser_returns200WithSuccessMessage() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "12109"))
         .andExpect(status().isOk());
     }
@@ -613,7 +613,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "12109"))
         .andExpect(status().isOk());
     }
@@ -626,7 +626,7 @@ class AdminIntersectionControllerTest {
       doThrow(new ResponseStatusException(
         HttpStatus.NOT_FOUND, "Intersection not found: 99999")).when(adminIntersectionService).deleteIntersection(any());
 
-      mockMvc.perform(delete("/admin-intersection")
+      mockMvc.perform(delete("/intersection")
           .param("intersection_id", "99999"))
         .andExpect(status().isNotFound());
     }
