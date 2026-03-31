@@ -174,8 +174,7 @@ class FirmwareUpgradeMapperTest {
         }
 
         @Test
-        void testMapStartUpgradeResponse_MissingCodeField_CodeIsNull() {
-            // When "code" key is absent, code should be null
+        void testMapStartUpgradeResponse_MissingCodeField_DefaultsTo500() {
             Map<String, Object> response = Map.of(
                     "10.0.0.1", Map.of("data", "some data"));
 
@@ -183,7 +182,7 @@ class FirmwareUpgradeMapperTest {
 
             FirmwareUpgradeResultDto dto = result.get("10.0.0.1");
             assertNotNull(dto);
-            assertNull(dto.getCode());
+            assertEquals(500, dto.getCode());
         }
 
         @Test

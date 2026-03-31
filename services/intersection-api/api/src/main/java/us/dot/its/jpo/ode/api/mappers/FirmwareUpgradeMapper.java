@@ -56,15 +56,15 @@ public interface FirmwareUpgradeMapper {
 
             if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> resultMap_inner = (Map<String, Object>) value;
+                Map<String, Object> resultMapInner = (Map<String, Object>) value;
 
-                Integer code = null;
-                if (resultMap_inner.containsKey("code")) {
-                    Object codeObj = resultMap_inner.get("code");
+                Integer code = 500;
+                if (resultMapInner.containsKey("code")) {
+                    Object codeObj = resultMapInner.get("code");
                     code = codeObj instanceof Number ? ((Number) codeObj).intValue() : 500;
                 }
 
-                Object data = resultMap_inner.getOrDefault("data", "");
+                Object data = resultMapInner.getOrDefault("data", "");
 
                 resultMap.put(rsuIp, new FirmwareUpgradeResultDto(code, data));
             }
