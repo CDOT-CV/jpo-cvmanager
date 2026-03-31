@@ -960,7 +960,7 @@ function MapPage() {
         </ConditionalRenderRsu>
 
         <ConditionalRenderRsu>
-          {(userRole ?? SecureStorageManager.getUserRole()) === 'ADMIN' && (
+          {(userRole ?? SecureStorageManager.getUserRole())?.toUpperCase() === 'ADMIN' && (
             <>
               <Divider />
               <Accordion
