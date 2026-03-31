@@ -266,6 +266,9 @@ public class PermissionService {
     // Allow Connection if the users organization(s) control the specified Users
     public boolean hasUsers(List<String> emails, String role) {
         List<String> distinctEmails = emails.stream().distinct().toList();
+        if (distinctEmails.isEmpty()) {
+            return true; // No emails to check, so allow connection
+        }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
