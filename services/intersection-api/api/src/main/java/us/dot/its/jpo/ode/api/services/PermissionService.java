@@ -259,6 +259,10 @@ public class PermissionService {
         }
 
         List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (email == null || email.isBlank() || qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No valid email or no qualified organizations: deny access without hitting the repository
+            return false;
+        }
 
         return userRepository.existsByEmailAndOrganizations(email, qualifiedOrgs);
     }
