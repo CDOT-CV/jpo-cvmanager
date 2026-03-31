@@ -3,6 +3,7 @@ import './Menu.css'
 import { useSelector } from 'react-redux'
 import { selectSelectedRsu } from '../../generalSlices/rsuSlice'
 import { selectConfigList } from '../../generalSlices/configSlice'
+import { selectRole } from '../../generalSlices/userSlice'
 import { selectDisplayCounts, selectDisplayRsuErrors } from './menuSlice'
 import { SecureStorageManager } from '../../managers'
 import DisplayCounts from './DisplayCounts'
@@ -25,13 +26,15 @@ const Menu = () => {
   const theme = useTheme()
   const selectedRsu = useSelector(selectSelectedRsu)
   const selectedRsuList = useSelector(selectConfigList)
+  const userRole = useSelector(selectRole)
   const displayCounts = useSelector(selectDisplayCounts)
   const displayRsuErrors = useSelector(selectDisplayRsuErrors)
 
   const isOperatorOrAbove = useMemo(() => {
-    const allowedRoles = ['operator', 'admin']
-    return allowedRoles.includes(SecureStorageManager.getUserRole())
-  }, [])
+    const allowedRoles = ['OPERATOR', 'ADMIN']
+    const resolvedRole = userRole ?? SecureStorageManager.getUserRole()
+    return !!resolvedRole && allowedRoles.includes(resolvedRole)
+  }, [userRole])
 
   return (
     <div>
