@@ -23,7 +23,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
+import org.springframework.context.annotation.Import;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
@@ -31,10 +32,10 @@ import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 
-@SpringBootTest(properties = "enable.api=true")
+@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@AutoConfigureEmbeddedDatabase
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 class UpgradeControllerTest {
 
     @Autowired
