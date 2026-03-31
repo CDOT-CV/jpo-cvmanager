@@ -10,7 +10,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * Response shape for GET /intersection (list all intersections).
+ * Response shape for GET /intersections (list all intersections).
  */
 @Schema(description = "Response for GET /intersection — list of all accessible intersections")
 @Getter

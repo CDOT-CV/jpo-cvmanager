@@ -47,7 +47,7 @@ import java.util.Set;
 @Slf4j
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
-@RequestMapping("/intersection")
+@RequestMapping("/intersections")
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "Admin Intersection", description = "Manage traffic intersections and their organization/RSU relationships")
@@ -85,7 +85,7 @@ public class AdminIntersectionController {
             @Parameter(description = "Organization to scope results to", required = true)
             @RequestHeader(name = "Organization") String organization) {
 
-        log.info("GET /intersection. organization={}", organization);
+        log.info("GET /intersections. organization={}", organization);
         return adminIntersectionService.getAllIntersections(organization);
     }
 
@@ -115,7 +115,7 @@ public class AdminIntersectionController {
             @Parameter(description = "Scope results to a specific organization")
             @RequestHeader(name = "Organization", required = false) String organization) {
 
-        log.info("GET /intersection/{}. organization={}", intersectionId, organization);
+        log.info("GET /intersections/{}. organization={}", intersectionId, organization);
         return adminIntersectionService.getIntersection(intersectionId);
     }
 
@@ -147,7 +147,7 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
     public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
 
-        log.info("PATCH /intersection. origIntersectionId={}", patch.getOrigIntersectionId());
+        log.info("PATCH /intersections. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
             List<String> qualifiedOrgs = token != null
@@ -206,7 +206,7 @@ public class AdminIntersectionController {
             @NotBlank(message = "intersection_id must not be blank")
             String intersectionId) {
 
-        log.info("DELETE /intersection. intersectionId={}", intersectionId);
+        log.info("DELETE /intersections. intersectionId={}", intersectionId);
         adminIntersectionService.deleteIntersection(intersectionId);
     }
 }
