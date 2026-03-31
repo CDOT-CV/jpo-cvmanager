@@ -8,9 +8,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Response shape for GET /intersections/{intersectionId}.
+ * Response shape for GET /admin/intersections/{intersectionId}.
  */
-@Schema(description = "Response for GET /intersection/{intersectionId} — single intersection with allowed selections for UI dropdowns")
+@Schema(description = "Response for GET /admin/intersections/{intersectionId} — single intersection with allowed selections for UI dropdowns")
 @Getter
 @Setter
 @NoArgsConstructor

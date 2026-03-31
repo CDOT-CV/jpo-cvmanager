@@ -13,7 +13,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * Request body for PATCH /intersections.
+ * Request body for PATCH /admin/intersections.
  */
 @Schema(description = "Request body for updating an intersection's properties and organization/RSU associations")
 @Getter
