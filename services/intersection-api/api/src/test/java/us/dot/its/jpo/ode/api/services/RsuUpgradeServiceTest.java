@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import jakarta.persistence.EntityNotFoundException;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -31,7 +29,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
@@ -50,6 +50,9 @@ class RsuUpgradeServiceTest {
 
     @Mock
     private RsuRepository rsuRepository;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     @InjectMocks
     private RsuUpgradeService rsuUpgradeService;
@@ -87,7 +90,7 @@ class RsuUpgradeServiceTest {
     }
 
     @Test
-    void testStartFirmwareUpgradeForRsus_ThrowsWhenRsuDataMissing() {
+    void testStartFirmwareUpgradeForRsus_ReturnsPerRsuResultWhenRsuDataMissing() {
         String organization = "TestOrg";
         String successIp = "10.0.0.10";
         String missingIp = "10.0.0.11";
@@ -96,30 +99,47 @@ class RsuUpgradeServiceTest {
         when(rsuUpgradeContextService.hasCompleteRsuData(successIp, organization)).thenReturn(true);
         when(rsuUpgradeContextService.hasCompleteRsuData(missingIp, organization)).thenReturn(false);
         doReturn(new RsuUpgradeService.UpgradeExecutionResult(Map.of("message", "started"), 201))
-                .when(serviceSpy).markRsuForUpgrade(successIp, organization);
+                .when(serviceSpy).executeUpgradeForRsu(successIp, organization);
 
-        EntityNotFoundException exception = assertThrows(
-                EntityNotFoundException.class,
-                () -> serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(successIp, missingIp)));
+        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization,
+                List.of(successIp, missingIp));
 
-        assertTrue(exception.getMessage().contains("does not have complete RSU data"));
+        assertEquals(Map.of("code", 201, "data", Map.of("message", "started")), result.get(successIp));
+        assertEquals(
+                Map.of(
+                        "code", 404,
+                        "data", "Provided RSU IP does not have complete RSU data for organization: TestOrg::10.0.0.11"),
+                result.get(missingIp));
     }
 
     @Test
-    void testStartFirmwareUpgradeForRsus_PropagatesFirmwareUpgradeUnavailableException() {
+    void testStartFirmwareUpgradeForRsus_ReturnsConflictWhenAlreadyUpToDate() {
         String organization = "TestOrg";
         String rsuIp = "10.0.0.12";
 
         RsuUpgradeService serviceSpy = spy(rsuUpgradeService);
         when(rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)).thenReturn(true);
         doThrow(new RsuUpgradeService.FirmwareUpgradeUnavailableException("Requested RSU is already up to date"))
-                .when(serviceSpy).markRsuForUpgrade(rsuIp, organization);
+                .when(serviceSpy).executeUpgradeForRsu(rsuIp, organization);
 
-        RsuUpgradeService.FirmwareUpgradeUnavailableException exception = assertThrows(
-                RsuUpgradeService.FirmwareUpgradeUnavailableException.class,
-                () -> serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp)));
+        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
 
-        assertEquals("Requested RSU is already up to date", exception.getMessage());
+        assertEquals(Map.of("code", 409, "data", "Requested RSU is already up to date"), result.get(rsuIp));
+    }
+
+    @Test
+    void testStartFirmwareUpgradeForRsus_ReturnsStatusCodePerRsuWhenFirmwareManagerUnsupported() {
+        String organization = "TestOrg";
+        String rsuIp = "10.0.0.15";
+
+        RsuUpgradeService serviceSpy = spy(rsuUpgradeService);
+        when(rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)).thenReturn(true);
+        doThrow(new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "The firmware manager is not supported"))
+                .when(serviceSpy).executeUpgradeForRsu(rsuIp, organization);
+
+        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
+
+        assertEquals(Map.of("code", 501, "data", "The firmware manager is not supported"), result.get(rsuIp));
     }
 
     @Test

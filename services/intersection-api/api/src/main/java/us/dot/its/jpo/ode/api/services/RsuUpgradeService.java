@@ -1,8 +1,9 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -13,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -29,7 +32,6 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class RsuUpgradeService {
 
@@ -41,6 +43,7 @@ public class RsuUpgradeService {
     private String firmwareManagerEndpoint;
 
     private final RestTemplate restTemplate;
+    private final PlatformTransactionManager transactionManager;
 
     public Map<String, Object> checkFirmwareUpgrade(String organization, String rsuIp) {
         Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
@@ -61,22 +64,53 @@ public class RsuUpgradeService {
     }
 
     public Map<String, Object> startFirmwareUpgradeForRsus(String organization, List<String> rsuIps) {
-        Map<String, Object> response = new HashMap<>();
+        Map<String, Object> response = new LinkedHashMap<>();
 
         for (String rsuIp : rsuIps) {
             if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)) {
-                throw new EntityNotFoundException(
-                        "Provided RSU IP does not have complete RSU data for organization: " + organization
-                                + "::" + rsuIp);
+                response.put(rsuIp, createUpgradeResult(
+                        HttpStatus.NOT_FOUND.value(),
+                        "Provided RSU IP does not have complete RSU data for organization: " + organization + "::"
+                                + rsuIp));
+                continue;
             }
 
-            UpgradeExecutionResult result = markRsuForUpgrade(rsuIp, organization);
-            response.put(rsuIp, Map.of(
-                    "code", result.statusCode(),
-                    "data", result.body()));
+            try {
+                UpgradeExecutionResult result = executeUpgradeForRsu(rsuIp, organization);
+                response.put(rsuIp, createUpgradeResult(result.statusCode(), result.body()));
+            } catch (EntityNotFoundException ex) {
+                response.put(rsuIp, createUpgradeResult(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
+            } catch (FirmwareUpgradeUnavailableException ex) {
+                response.put(rsuIp, createUpgradeResult(HttpStatus.CONFLICT.value(), ex.getMessage()));
+            } catch (ResponseStatusException ex) {
+                response.put(rsuIp, createUpgradeResult(
+                        ex.getStatusCode().value(),
+                        ex.getReason() == null || ex.getReason().isBlank() ? ex.getMessage() : ex.getReason()));
+            } catch (RuntimeException ex) {
+                log.warn("Failed to start firmware upgrade for RSU {}", rsuIp, ex);
+                response.put(rsuIp, createUpgradeResult(
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        ex.getMessage() == null || ex.getMessage().isBlank()
+                                ? "Failed to initiate firmware upgrade for RSU '" + rsuIp + "'"
+                                : ex.getMessage()));
+            }
         }
 
         return response;
+    }
+
+    protected UpgradeExecutionResult executeUpgradeForRsu(String rsuIp, String organization) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return Objects.requireNonNull(
+                transactionTemplate.execute(status -> markRsuForUpgrade(rsuIp, organization)),
+                "Upgrade execution result must not be null");
+    }
+
+    private Map<String, Object> createUpgradeResult(int statusCode, Object data) {
+        return Map.of(
+                "code", statusCode,
+                "data", data == null ? "" : data);
     }
 
     protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp, String organization) {

@@ -247,6 +247,13 @@ export const startFirmwareUpgrade = createAsyncThunk(
     })
 
     if (ipList.length === 1) {
+      if (upToDateIps.length > 0) {
+        return {
+          message: 'Selected RSU is already up to date.',
+          statusCode: 200,
+        }
+      }
+
       return failedIps.length > 0
         ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[ipList[0]]?.code ?? 500 }
         : { message: 'Firmware upgrade started successfully.', statusCode: 200 }
