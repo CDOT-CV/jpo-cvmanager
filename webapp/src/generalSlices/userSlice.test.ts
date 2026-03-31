@@ -281,7 +281,7 @@ describe('selectors', () => {
 })
 
 describe('user roles', () => {
-  it('not super role user', async () => {
+  it('not super user, role user', async () => {
     const initialState = {
       value: {
         organization: {
@@ -302,7 +302,7 @@ describe('user roles', () => {
     expect(selectIsAdminOrAbove(state)).toEqual(false)
   })
 
-  it('not super role operator lowercase', async () => {
+  it('not super user, role operator lowercase', async () => {
     const initialState = {
       value: {
         organization: {
@@ -323,7 +323,7 @@ describe('user roles', () => {
     expect(selectIsAdminOrAbove(state)).toEqual(false)
   })
 
-  it('not super role admin mixed case', async () => {
+  it('not super user, role admin mixed case', async () => {
     const initialState = {
       value: {
         organization: {
@@ -363,25 +363,5 @@ describe('user roles', () => {
     expect(selectIsUserOrAbove(state)).toEqual(true)
     expect(selectIsOperatorOrAbove(state)).toEqual(true)
     expect(selectIsAdminOrAbove(state)).toEqual(true)
-  })
-  it('not super role user', async () => {
-    const initialState = {
-      value: {
-        organization: {
-          role: 'USER',
-        },
-        authLoginData: {
-          data: {
-            super_user: false,
-          },
-        },
-      },
-    }
-    const state = { user: initialState } as any
-
-    expect(selectIsSuperUser(state)).toEqual(false)
-    expect(selectIsUserOrAbove(state)).toEqual(true)
-    expect(selectIsOperatorOrAbove(state)).toEqual(false)
-    expect(selectIsAdminOrAbove(state)).toEqual(false)
   })
 })
