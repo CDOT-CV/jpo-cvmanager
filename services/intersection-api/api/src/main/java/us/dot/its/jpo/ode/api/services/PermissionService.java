@@ -246,7 +246,7 @@ public class PermissionService {
         return allowedRsuIps.containsAll(ipv4Addresses);
     }
 
-    // Allow Connection if the users organization controls the specified RSU unit
+    // Allow Connection if the users organization(s) control the specified User
     public boolean hasUser(String email, String role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
@@ -263,7 +263,7 @@ public class PermissionService {
         return userRepository.existsByEmailAndOrganizations(email, qualifiedOrgs);
     }
 
-    // Allow Connection if the users organization controls the specified RSU unit
+    // Allow Connection if the users organization(s) control the specified Users
     public boolean hasUsers(List<String> emails, String role) {
         List<String> distinctEmails = emails.stream().distinct().toList();
 

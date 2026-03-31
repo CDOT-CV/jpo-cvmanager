@@ -19,6 +19,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -37,6 +38,9 @@ class PermissionServiceTest {
 
     @Mock
     private RsuRepository rsuRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private SecurityContext securityContext;
@@ -403,6 +407,232 @@ class PermissionServiceTest {
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
+    }
+
+    @Test
+    void testHasUser_NotAuthenticated() {
+        JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
+        token.setAuthenticated(false);
+        setupSecurityContext(token);
+
+        assertFalse(permissionService.hasUser("user@example.com", "USER"));
+        verify(userRepository, never()).existsByEmailAndOrganizations(anyString(), anyList());
+    }
+
+    @Test
+    void testHasUser_SuperUser() {
+        JwtAuthenticationToken token = createAuthenticatedToken("admin@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.hasUser("user@example.com", "ADMIN"));
+        verify(userRepository, never()).existsByEmailAndOrganizations(anyString(), anyList());
+    }
+
+    @Test
+    void testHasUser_HasAccessInQualifiedOrganization() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg", "AnotherOrg"));
+        when(userRepository.existsByEmailAndOrganizations("user@example.com", List.of("TestOrg", "AnotherOrg")))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUser("user@example.com", "ADMIN"));
+        verify(userRepository).existsByEmailAndOrganizations("user@example.com", List.of("TestOrg", "AnotherOrg"));
+    }
+
+    @Test
+    void testHasUser_NoAccessInQualifiedOrganization() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(userRepository.existsByEmailAndOrganizations("user@example.com", List.of("TestOrg")))
+                .thenReturn(false);
+
+        assertFalse(permissionService.hasUser("user@example.com", "ADMIN"));
+        verify(userRepository).existsByEmailAndOrganizations("user@example.com", List.of("TestOrg"));
+    }
+
+    @Test
+    void testHasUser_EmptyQualifiedOrganizations() {
+        JwtAuthenticationToken token = createAuthenticatedToken("user@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+        when(userRepository.existsByEmailAndOrganizations("target@example.com", List.of()))
+                .thenReturn(false);
+
+        assertFalse(permissionService.hasUser("target@example.com", "ADMIN"));
+        verify(userRepository).existsByEmailAndOrganizations("target@example.com", List.of());
+    }
+
+    @Test
+    void testHasUser_WithOperatorRole() {
+        JwtAuthenticationToken token = createAuthenticatedToken("operator@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+        when(userRepository.existsByEmailAndOrganizations("user@example.com", List.of("TestOrg")))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUser("user@example.com", "OPERATOR"));
+    }
+
+    // ==================== hasUsers Tests ====================
+
+    @Test
+    void testHasUsers_NotAuthenticated() {
+        JwtAuthenticationToken token = createAuthenticatedToken("test@example.com");
+        token.setAuthenticated(false);
+        setupSecurityContext(token);
+
+        List<String> emails = List.of("user1@example.com", "user2@example.com");
+
+        assertFalse(permissionService.hasUsers(emails, "USER"));
+        verify(userRepository, never()).allUsersExistInOrganizations(anyList(), anyList(), anyLong());
+    }
+
+    @Test
+    void testHasUsers_SuperUser() {
+        JwtAuthenticationToken token = createAuthenticatedToken("admin@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        List<String> emails = List.of("user1@example.com", "user2@example.com", "user3@example.com");
+
+        assertTrue(permissionService.hasUsers(emails, "ADMIN"));
+        verify(userRepository, never()).allUsersExistInOrganizations(anyList(), anyList(), anyLong());
+    }
+
+    @Test
+    void testHasUsers_AllUsersExistInOrganizations() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<String> emails = List.of("user1@example.com", "user2@example.com", "user3@example.com");
+        List<String> qualifiedOrgs = List.of("TestOrg", "AnotherOrg");
+
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 3L))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUsers(emails, "ADMIN"));
+        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 3L);
+    }
+
+    @Test
+    void testHasUsers_SomeUsersMissingFromOrganizations() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<String> emails = List.of("user1@example.com", "user2@example.com", "user3@example.com");
+        List<String> qualifiedOrgs = List.of("TestOrg");
+
+        when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 3L))
+                .thenReturn(false);
+
+        assertFalse(permissionService.hasUsers(emails, "OPERATOR"));
+        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 3L);
+    }
+
+    @Test
+    void testHasUsers_EmptyEmailList() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<String> emails = List.of();
+        List<String> qualifiedOrgs = List.of("TestOrg");
+
+        when(authToken.getQualifiedOrgList("USER")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 0L))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUsers(emails, "USER"));
+        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 0L);
+    }
+
+    @Test
+    void testHasUsers_DuplicateEmailsAreHandled() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        // Input list with duplicates
+        List<String> emails = List.of("user1@example.com", "user2@example.com", "user1@example.com");
+        // Expected distinct list
+        List<String> distinctEmails = List.of("user1@example.com", "user2@example.com");
+        List<String> qualifiedOrgs = List.of("TestOrg");
+
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(distinctEmails, qualifiedOrgs, 2L))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUsers(emails, "ADMIN"));
+        verify(userRepository).allUsersExistInOrganizations(distinctEmails, qualifiedOrgs, 2L);
+    }
+
+    @Test
+    void testHasUsers_SingleUser() {
+        JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<String> emails = List.of("user1@example.com");
+        List<String> qualifiedOrgs = List.of("TestOrg");
+
+        when(authToken.getQualifiedOrgList("USER")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 1L))
+                .thenReturn(true);
+
+        assertTrue(permissionService.hasUsers(emails, "USER"));
+        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 1L);
+    }
+
+    @Test
+    void testHasUsers_NoQualifiedOrganizations() {
+        JwtAuthenticationToken token = createAuthenticatedToken("user@example.com");
+        setupSecurityContext(token);
+
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<String> emails = List.of("user1@example.com", "user2@example.com");
+        List<String> qualifiedOrgs = List.of();
+
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(qualifiedOrgs);
+        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 2L))
+                .thenReturn(false);
+
+        assertFalse(permissionService.hasUsers(emails, "ADMIN"));
+        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 2L);
     }
 
     // ==================== isAuthValid Tests ====================

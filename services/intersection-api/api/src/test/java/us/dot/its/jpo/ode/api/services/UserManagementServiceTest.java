@@ -67,6 +67,7 @@ class UserManagementServiceTest {
     private User testUser;
     private UserDto testUserDto;
     private Organization testOrganization;
+    private UserOrganization testUserOrganization;
     private Role testRole;
 
     @BeforeEach
@@ -88,6 +89,12 @@ class UserManagementServiceTest {
         testOrganization = new Organization();
         testOrganization.setId(1);
         testOrganization.setName("TestOrg");
+
+        // Set up test user-organization association
+        testUserOrganization = new UserOrganization();
+        testUserOrganization.setUser(testUser);
+        testUserOrganization.setRole(testRole);
+        testUserOrganization.setOrganization(testOrganization);
 
         // Set up test role
         testRole = new Role();
@@ -461,18 +468,16 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToModify = new UserOrganizationDto();
         orgToModify.setOrganization("NonexistentOrg");
         orgToModify.setRole("admin");
-        patch.setOrganizationsToAdd(List.of(orgToModify));
+        patch.setOrganizationsToModify(List.of(orgToModify));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
-        when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("NonexistentOrg")))
-                .thenReturn(false);
-        when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("ExistingOrg"));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertTrue(exception.getMessage().contains("Organization not found"));
+        assertTrue(exception.getMessage().contains("does not have permission"));
+        assertTrue(exception.getMessage().contains("NonexistentOrg"));
         verify(userOrganizationRepository, never()).save(any());
     }
 
@@ -482,12 +487,12 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToModify = new UserOrganizationDto();
         orgToModify.setOrganization("TestOrg");
         orgToModify.setRole("nonexistent_role");
-        patch.setOrganizationsToAdd(List.of(orgToModify));
+        patch.setOrganizationsToModify(List.of(orgToModify));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
-        when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
+                .thenReturn(Optional.of(testUserOrganization));
         when(roleRepository.findByName("nonexistent_role")).thenReturn(Optional.empty());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
