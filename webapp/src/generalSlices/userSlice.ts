@@ -120,7 +120,7 @@ export const { logout, changeOrganization, setOrganizationList, setLoading, setL
   userSlice.actions
 
 export const selectAuthLoginData = (state: RootState) => state.user.value.authLoginData
-export const selectToken = (state: RootState) => state.user.value.authLoginData.token
+export const selectToken = (state: RootState) => state.user.value.authLoginData?.token
 export const selectRole = (state: RootState) => state.user.value.organization?.role
 export const selectIsSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user
 export const selectOrganizationName = (state: RootState) => state.user.value.organization?.organization
@@ -152,13 +152,6 @@ export const selectIsUserOrAbove = (state: RootState) => {
     return true
   }
   const role = selectRole(state)?.toUpperCase()
-  console.error(
-    role,
-    role === 'USER',
-    role === 'OPERATOR',
-    role === 'ADMIN',
-    role === 'USER' || role === 'OPERATOR' || role === 'ADMIN'
-  )
   return role === 'USER' || role === 'OPERATOR' || role === 'ADMIN'
 }
 export const selectIsOperatorOrAbove = (state: RootState) => {
