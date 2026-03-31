@@ -518,12 +518,10 @@ describe('async thunks', () => {
       RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
         status: 200,
         body: {
-          '1.2.3.4': {
-            code: 200,
-            data: {
-              message: 'started',
-            },
-          },
+          upgrade_available: true,
+          upgrade_id: 42,
+          upgrade_name: 'RSU Firmware v2.0',
+          upgrade_version: '2.0',
         },
       })
 
@@ -541,7 +539,7 @@ describe('async thunks', () => {
         },
         '/check'
       )
-      expect(resp.payload).toEqual({ firmwareUpgradeAvailable: undefined, firmwareUpgradeName: undefined })
+      expect(resp.payload).toEqual({ firmwareUpgradeAvailable: true, firmwareUpgradeName: 'RSU Firmware v2.0' })
     })
 
     it('rejects when multiple RSUs are provided', async () => {
@@ -917,10 +915,12 @@ describe('async thunks', () => {
       const action = startFirmwareUpgrade(arg)
       const resp = await action(dispatch, getState, undefined)
 
-      expect(resp.payload.statusCode).toBe(404)
-      expect(resp.payload.message).toContain('Firmware upgrade started for 1 RSUs')
-      expect(resp.payload.message).toContain('1 RSUs already up to date')
-      expect(resp.payload.message).toContain('Failed: 1.2.3.4')
+      expect(resp.type).toBe('config/startFirmwareUpgrade/fulfilled')
+      const payload = resp.payload as { statusCode: number; message: string }
+      expect(payload.statusCode).toBe(404)
+      expect(payload.message).toContain('Firmware upgrade started for 1 RSUs')
+      expect(payload.message).toContain('1 RSUs already up to date')
+      expect(payload.message).toContain('Failed: 1.2.3.4')
     })
   })
 })
