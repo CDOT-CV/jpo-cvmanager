@@ -469,11 +469,9 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
-        when(userRepository.existsByEmailAndOrganizations("target@example.com", List.of()))
-                .thenReturn(false);
 
         assertFalse(permissionService.hasUser("target@example.com", "ADMIN"));
-        verify(userRepository).existsByEmailAndOrganizations("target@example.com", List.of());
+        verify(userRepository, never()).existsByEmailAndOrganizations(anyString(), anyList());
     }
 
     @Test
