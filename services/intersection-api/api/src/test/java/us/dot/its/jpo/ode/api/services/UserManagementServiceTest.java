@@ -10,9 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.access.AccessDeniedException;
 
+import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
@@ -28,6 +28,7 @@ import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.services.UserManagementService.UserEmailAlreadyExistsException;
 
 import java.util.List;
 import java.util.Optional;
@@ -114,11 +115,10 @@ class UserManagementServiceTest {
     void testGetUser_NotFound() {
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.getUser("nonexistent@example.com"));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("User not found"));
+        assertTrue(exception.getMessage().contains("User not found"));
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userMapper, never()).toDto(any());
     }
@@ -206,7 +206,7 @@ class UserManagementServiceTest {
     // ==================== modifyUser Tests ====================
 
     @Test
-    void testModifyUser_UpdateBasicFields() {
+    void testModifyUser_UpdateBasicFields() throws UserEmailAlreadyExistsException {
         UserPatch patch = new UserPatch();
         patch.setFirstName("Updated");
         patch.setLastName("Name");
@@ -232,16 +232,16 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("User not found"));
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void testModifyUser_AddOrganization_Success() {
+    void testModifyUser_AddOrganization_Success() throws UserEmailAlreadyExistsException {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization("TestOrg");
@@ -275,16 +275,15 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("does not have permission"));
+        assertTrue(exception.getMessage().contains("does not have permission"));
         verify(userOrganizationRepository, never()).save(any());
     }
 
     @Test
-    void testModifyUser_AddOrganization_AlreadyExists() {
+    void testModifyUser_AddOrganization_AlreadyExists() throws UserEmailAlreadyExistsException {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization("TestOrg");
@@ -318,11 +317,10 @@ class UserManagementServiceTest {
                 .thenReturn(false);
         when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Organization not found"));
+        assertTrue(exception.getMessage().contains("Organization not found"));
         verify(userOrganizationRepository, never()).save(any());
     }
 
@@ -340,16 +338,15 @@ class UserManagementServiceTest {
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByName("nonexistent_role")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Role not found"));
+        assertTrue(exception.getMessage().contains("Role not found"));
         verify(userOrganizationRepository, never()).save(any());
     }
 
     @Test
-    void testModifyUser_RemoveOrganization_Success() {
+    void testModifyUser_RemoveOrganization_Success() throws UserEmailAlreadyExistsException {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToRemove = new UserOrganizationDto();
         orgToRemove.setOrganization("TestOrg");
@@ -385,16 +382,15 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("does not have permission to remove"));
+        assertTrue(exception.getMessage().contains("does not have permission to remove"));
         verify(userOrganizationRepository, never()).delete(any());
     }
 
     @Test
-    void testModifyUser_RemoveOrganization_NotFound() {
+    void testModifyUser_RemoveOrganization_NotFound() throws UserEmailAlreadyExistsException {
         UserPatch patch = new UserPatch();
         UserOrganizationDto orgToRemove = new UserOrganizationDto();
         orgToRemove.setOrganization("TestOrg");
@@ -415,6 +411,93 @@ class UserManagementServiceTest {
         verify(userOrganizationRepository, never()).delete(any());
     }
 
+    @Test
+    void testModifyUser_ModifyOrganization_Success() throws UserEmailAlreadyExistsException {
+        UserPatch patch = new UserPatch();
+        UserOrganizationDto orgToModify = new UserOrganizationDto();
+        orgToModify.setOrganization("TestOrg");
+        orgToModify.setRole("admin");
+        patch.setOrganizationsToModify(List.of(orgToModify));
+
+        UserOrganization userOrg = new UserOrganization();
+        userOrg.setUser(testUser);
+        userOrg.setOrganization(testOrganization);
+        userOrg.setRole(testRole);
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
+                .thenReturn(Optional.of(userOrg));
+        when(userRepository.save(testUser)).thenReturn(testUser);
+        when(roleRepository.findByName("admin")).thenReturn(Optional.of(testRole));
+        when(userMapper.toDto(testUser)).thenReturn(testUserDto);
+
+        UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
+
+        assertNotNull(result);
+        verify(userOrganizationRepository).save(userOrg);
+    }
+
+    @Test
+    void testModifyUser_ModifyOrganization_Unauthorized() {
+        UserPatch patch = new UserPatch();
+        UserOrganizationDto orgToModify = new UserOrganizationDto();
+        orgToModify.setOrganization("UnauthorizedOrg");
+        orgToModify.setRole("admin");
+        patch.setOrganizationsToModify(List.of(orgToModify));
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+
+        assertTrue(exception.getMessage().contains("does not have permission to modify"));
+        verify(userOrganizationRepository, never()).save(any());
+    }
+
+    @Test
+    void testModifyUser_ModifyOrganization_OrganizationNotFound() {
+        UserPatch patch = new UserPatch();
+        UserOrganizationDto orgToModify = new UserOrganizationDto();
+        orgToModify.setOrganization("NonexistentOrg");
+        orgToModify.setRole("admin");
+        patch.setOrganizationsToAdd(List.of(orgToModify));
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
+        when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("NonexistentOrg")))
+                .thenReturn(false);
+        when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+
+        assertTrue(exception.getMessage().contains("Organization not found"));
+        verify(userOrganizationRepository, never()).save(any());
+    }
+
+    @Test
+    void testModifyUser_ModifyOrganization_RoleNotFound() {
+        UserPatch patch = new UserPatch();
+        UserOrganizationDto orgToModify = new UserOrganizationDto();
+        orgToModify.setOrganization("TestOrg");
+        orgToModify.setRole("nonexistent_role");
+        patch.setOrganizationsToAdd(List.of(orgToModify));
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(roleRepository.findByName("nonexistent_role")).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+
+        assertTrue(exception.getMessage().contains("Role not found"));
+        verify(userOrganizationRepository, never()).save(any());
+    }
+
     // ==================== deleteUserByEmail Tests ====================
 
     @Test
@@ -432,11 +515,10 @@ class UserManagementServiceTest {
     void testDeleteUserByEmail_UserNotFound() {
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteUserByEmail("nonexistent@example.com"));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("User not found"));
+        assertTrue(exception.getMessage().contains("User not found"));
         verify(userRepository, never()).delete(any());
         verify(userOrganizationRepository, never()).removeUserOrganizationByEmail(any());
     }
@@ -470,12 +552,11 @@ class UserManagementServiceTest {
 
         when(userRepository.findByEmailIn(emails)).thenReturn(users);
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("User(s) not found"));
-        assertTrue(exception.getReason().contains("nonexistent@example.com"));
+        assertTrue(exception.getMessage().contains("User(s) not found"));
+        assertTrue(exception.getMessage().contains("nonexistent@example.com"));
         verify(userRepository, never()).deleteAll(any());
         verify(userOrganizationRepository, never()).removeMultipleUserOrganizationsByEmail(any());
     }
@@ -486,11 +567,10 @@ class UserManagementServiceTest {
 
         when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("No valid user emails provided"));
+        assertTrue(exception.getMessage().contains("No valid user emails provided"));
         verify(userRepository, never()).deleteAll(any());
     }
 
@@ -500,10 +580,10 @@ class UserManagementServiceTest {
 
         when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("User(s) not found"));
         verify(userRepository, never()).deleteAll(any());
     }
 }

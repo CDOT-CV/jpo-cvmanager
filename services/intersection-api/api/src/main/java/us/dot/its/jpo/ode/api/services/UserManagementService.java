@@ -4,11 +4,9 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +40,7 @@ public class UserManagementService {
 
     public UserDto getUser(String email) {
         return userMapper.toDto(userRepository.findByEmail(email).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email)));
+                () -> new EntityNotFoundException("User not found with email: " + email)));
     }
 
     public Page<UserDto> getUsers(String orgName, String search, Pageable pageable) {
@@ -167,7 +165,8 @@ public class UserManagementService {
                         org.getOrganization()).ifPresent(userOrg -> {
                             Role role = roleRepository.findByName(org.getRole())
                                     .orElseThrow(
-                                            () -> new IllegalArgumentException("Role not found: " + org.getRole()));
+                                            () -> new IllegalArgumentException(
+                                                    "Role not found: " + org.getRole()));
                             userOrg.setRole(role);
                             userOrganizationRepository.save(userOrg);
                         });

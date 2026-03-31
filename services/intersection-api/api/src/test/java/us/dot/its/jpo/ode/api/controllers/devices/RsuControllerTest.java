@@ -26,6 +26,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService.RsuIpAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
 
 import java.util.Arrays;
@@ -310,7 +311,7 @@ class RsuControllerTest {
         @DisplayName("Tests for modifyRsu endpoint")
         class ModifyRsuTests {
             @Test
-            void testModifyRsu_Success() {
+            void testModifyRsu_Success() throws RsuIpAlreadyExistsException {
                 String rsuIp = "192.168.1.100";
                 RsuPatch patch = new RsuPatch();
                 patch.setIpv4Address("192.168.1.101");
@@ -331,7 +332,7 @@ class RsuControllerTest {
             }
 
             @Test
-            void testModifyRsu_RsuNotFound() {
+            void testModifyRsu_RsuNotFound() throws RsuIpAlreadyExistsException {
                 String rsuIp = "192.168.1.999";
                 RsuPatch patch = new RsuPatch();
 
@@ -348,7 +349,7 @@ class RsuControllerTest {
             }
 
             @Test
-            void testModifyRsu_InvalidPatch() {
+            void testModifyRsu_InvalidPatch() throws RsuIpAlreadyExistsException {
                 String rsuIp = "192.168.1.100";
                 RsuPatch invalidPatch = new RsuPatch();
                 invalidPatch.setIpv4Address("invalid-ip");
@@ -367,7 +368,7 @@ class RsuControllerTest {
             }
 
             @Test
-            void testModifyRsu_ServiceException() {
+            void testModifyRsu_ServiceException() throws RsuIpAlreadyExistsException {
                 String rsuIp = "192.168.1.100";
                 RsuPatch patch = new RsuPatch();
 
@@ -554,7 +555,7 @@ class RsuControllerTest {
         @DisplayName("Tests for createRsu endpoint")
         class CreateRsuTests {
             @Test
-            void testCreateRsu_Success() {
+            void testCreateRsu_Success() throws RsuIpAlreadyExistsException {
                 List<String> orgsToAdd = Arrays.asList("TestOrg");
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -588,7 +589,7 @@ class RsuControllerTest {
             }
 
             @Test
-            void testCreateRsu_UnqualifiedOrganization() {
+            void testCreateRsu_UnqualifiedOrganization() throws RsuIpAlreadyExistsException {
                 List<String> orgsToAdd = Arrays.asList("TestOrg", "UnqualifiedOrg");
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -619,7 +620,7 @@ class RsuControllerTest {
             }
 
             @Test
-            void testCreateRsu_DuplicateIpAddress() {
+            void testCreateRsu_DuplicateIpAddress() throws RsuIpAlreadyExistsException {
                 List<String> orgsToAdd = Arrays.asList("TestOrg");
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -703,7 +704,7 @@ class RsuControllerTest {
         }
 
         @Test
-        void testCreateRsu_NullOrganizationsList() {
+        void testCreateRsu_NullOrganizationsList() throws RsuIpAlreadyExistsException {
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
                     new SimplePosition(39.7392, -105.0844),
