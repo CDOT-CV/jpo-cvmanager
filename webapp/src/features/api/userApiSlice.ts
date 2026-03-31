@@ -22,6 +22,8 @@ export const userApiSlice = createApi({
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
+      headers.set('Accept', 'application/json')
+
       // Endpoint names must match the keys in the endpoints objects below
       const endpointsWithoutToken = []
       if (token && !endpointsWithoutToken.includes(endpoint)) {

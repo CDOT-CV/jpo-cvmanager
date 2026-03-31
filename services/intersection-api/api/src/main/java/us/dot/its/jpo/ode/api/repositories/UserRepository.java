@@ -50,4 +50,12 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "WHERE u.email = :email " +
             "ORDER BY o.name ASC")
     List<String> findAllOrganizationNamesByEmail(@Param("email") String email);
+
+
+    @Query("SELECT u.email " +
+            "FROM User u " +
+            "JOIN u.userOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE o.name in :organizationNames")
+    List<String> findAllowedEmailsInOrganizations(@Param("organizationNames") List<String> organizationNames);
 }

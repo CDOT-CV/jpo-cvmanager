@@ -7,11 +7,11 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
@@ -70,7 +70,7 @@ public class RsuManagementService {
             Rsu rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(ipv4Address));
             return rsu != null ? rsuMapper.toDto(rsu) : null;
         } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
+            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
         }
     }
 
@@ -96,14 +96,13 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) throws RsuIpAlreadyExistsException {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
         InetAddress ipv4Address = rsu.getIpv4Address();
         if (ipv4Address != null && rsuRepository.findByIpv4Address(ipv4Address) != null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+            throw new RsuIpAlreadyExistsException(
                     "RSU with IP " + ipv4Address.getHostAddress() + " already exists");
         }
 
@@ -126,8 +125,7 @@ public class RsuManagementService {
 
     public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
         Organization organization = organizationRepository.findByName(orgName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Organization not found: " + orgName));
+                .orElseThrow(() -> new IllegalArgumentException("Organization not found: " + orgName));
 
         RsuOrganization rsuOrg = new RsuOrganization();
         rsuOrg.setOrganization(organization);
@@ -171,16 +169,22 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken)
+            throws RsuIpAlreadyExistsException {
         try {
-            List<String> authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
+            List<String> authorizedOrgs;
+            if (userToken.isSuperUser()) {
+                authorizedOrgs = organizationRepository.findAllOrganizationNames();
+            } else {
+                authorizedOrgs = userToken.getQualifiedOrgList("ADMIN");
+            }
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
             Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
 
             if (existingRsu == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
+                throw new EntityNotFoundException("RSU not found with IP: " + rsuIp);
             }
 
             // 2. If IP is being changed, check for conflicts
@@ -188,7 +192,7 @@ public class RsuManagementService {
                 InetAddress newIp = InetAddress.getByName(rsuPatch.getIpv4Address());
                 Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
                 if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    throw new RsuIpAlreadyExistsException(
                             "RSU with IP " + rsuPatch.getIpv4Address() + " already exists");
                 }
             }
@@ -209,7 +213,7 @@ public class RsuManagementService {
             return rsuMapper.toDto(savedRsu);
 
         } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
+            throw new IllegalArgumentException("Invalid IP address: " + rsuIp, e);
         }
     }
 
@@ -224,7 +228,7 @@ public class RsuManagementService {
         if (patch.getSshCredentialGroup() != null) {
             RsuCredential credential = rsuCredentialRepository
                     .findByNickname(patch.getSshCredentialGroup())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    .orElseThrow(() -> new IllegalArgumentException(
                             "SSH credential not found: " + patch.getSshCredentialGroup()));
             rsu.setCredential(credential);
         }
@@ -233,7 +237,7 @@ public class RsuManagementService {
         if (patch.getSnmpCredentialGroup() != null) {
             SnmpCredential snmpCredential = snmpCredentialRepository
                     .findByNickname(patch.getSnmpCredentialGroup())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    .orElseThrow(() -> new IllegalArgumentException(
                             "SNMP credential not found: " + patch.getSnmpCredentialGroup()));
             rsu.setSnmpCredential(snmpCredential);
         }
@@ -242,7 +246,7 @@ public class RsuManagementService {
         if (patch.getSnmpVersionGroup() != null) {
             SnmpProtocol snmpProtocol = snmpProtocolRepository
                     .findByNickname(patch.getSnmpVersionGroup())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    .orElseThrow(() -> new IllegalArgumentException(
                             "SNMP protocol not found: " + patch.getSnmpVersionGroup()));
             rsu.setSnmpProtocol(snmpProtocol);
         }
@@ -256,9 +260,8 @@ public class RsuManagementService {
                     .filter(org -> !authorizedOrgs.contains(org))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to add RSU to organization(s): "
-                                + String.join(", ", unqualifiedAdds));
+                throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
+                        + String.join(", ", unqualifiedAdds));
             }
             for (String orgName : patch.getOrganizationsToAdd()) {
                 // Check if already associated
@@ -268,8 +271,7 @@ public class RsuManagementService {
 
                 if (!exists) {
                     Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                    "Organization not found: " + orgName));
+                            .orElseThrow(() -> new IllegalArgumentException("Organization not found: " + orgName));
 
                     RsuOrganization rsuOrg = new RsuOrganization();
                     rsuOrg.setRsu(rsu);
@@ -286,9 +288,8 @@ public class RsuManagementService {
                     .filter(org -> !authorizedOrgs.contains(org))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to remove RSU from organization(s): "
-                                + String.join(", ", unqualifiedRemoves));
+                throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "
+                        + String.join(", ", unqualifiedRemoves));
             }
             for (String orgName : patch.getOrganizationsToRemove()) {
                 // Find and delete the specific association
@@ -303,15 +304,14 @@ public class RsuManagementService {
         // Parse "Manufacturer Model" format
         String[] parts = modelStr.trim().split("\\s+", 2);
         if (parts.length != 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Invalid model format. Expected 'Manufacturer Model', got: " + modelStr);
+            throw new IllegalArgumentException("Invalid model format. Expected 'Manufacturer Model', got: " + modelStr);
         }
 
         String manufacturerName = parts[0];
         String modelName = parts[1];
 
         return rsuModelRepository.findByNameAndManufacturerName(modelName, manufacturerName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Model not found: " + modelStr));
+                .orElseThrow(() -> new IllegalArgumentException("Model not found: " + modelStr));
     }
 
     @Transactional
@@ -322,7 +322,7 @@ public class RsuManagementService {
             // Check if RSU exists
             Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
             if (rsu == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + ipv4Address);
+                throw new EntityNotFoundException("RSU not found with IP: " + ipv4Address);
             }
 
             // Delete related entities first to maintain referential integrity
@@ -339,7 +339,7 @@ public class RsuManagementService {
             // Finally, delete the RSU itself
             rsuRepository.removeRsuByIpv4Address(inetAddress);
         } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
+            throw new IllegalArgumentException("Invalid IP address: " + ipv4Address, e);
         }
     }
 
@@ -349,7 +349,7 @@ public class RsuManagementService {
             try {
                 return InetAddress.getByName(ip);
             } catch (UnknownHostException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ip, e);
+                throw new IllegalArgumentException("Invalid IP address: " + ip, e);
             }
         }).toList();
 
@@ -363,10 +363,9 @@ public class RsuManagementService {
             List<String> missingIps = rsuIps.stream()
                     .filter(ip -> !existingIps.contains(ip))
                     .toList();
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "RSU(s) not found with IP(s): " + String.join(", ", missingIps));
+            throw new EntityNotFoundException("RSU(s) not found with IP(s): " + String.join(", ", missingIps));
         } else if (existingRsus.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
+            throw new IllegalArgumentException("No valid RSU IP addresses provided");
         }
 
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
@@ -380,5 +379,11 @@ public class RsuManagementService {
                 .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
         rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
+    }
+
+    public static class RsuIpAlreadyExistsException extends Exception {
+        public RsuIpAlreadyExistsException(String message) {
+            super(message);
+        }
     }
 }

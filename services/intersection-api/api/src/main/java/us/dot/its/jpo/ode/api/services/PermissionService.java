@@ -17,6 +17,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.utils.AuthUtils;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -34,6 +35,7 @@ public class PermissionService {
     private final RsuRepository rsuRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
+    private final UserRepository userRepository;
 
     public List<Integer> getAllowedIntersectionIdsByEmail(String email) {
         return intersectionRepository.findAllowedIntersectionIdsByEmail(email).stream().map(Integer::parseInt)
@@ -242,6 +244,24 @@ public class PermissionService {
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
+    }
+
+    // Allow Connection if the users organization controls the specified RSU unit
+    public boolean hasUser(String email, String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAuthValid(auth)) {
+            return false;
+        }
+
+        CvManagerAuthToken CvManagerAuthToken = getCvManagerAuthToken();
+        if (CvManagerAuthToken.isSuperUser()) {
+            return true;
+        }
+
+        List<String> qualifiedOrgs = CvManagerAuthToken.getQualifiedOrgList(role);
+
+        List<String> allowedEmails = userRepository.findAllowedEmailsInOrganizations(qualifiedOrgs);
+        return allowedEmails.contains(email);
     }
 
     /**

@@ -199,9 +199,13 @@ const AdminEditRsu = () => {
       setOpen(false)
       navigate('/dashboard/admin/rsus')
     } catch (error: any) {
-      toast.error('Failed to update RSU: ' + (error?.data?.message || error?.message || 'Unknown error'), {
-        id: loadingToast,
-      })
+      console.error('Failed to update RSU', error)
+      toast.error(
+        'Failed to update RSU: ' + (error?.data?.message || error?.data?.detail || error?.message || 'Unknown error'),
+        {
+          id: loadingToast,
+        }
+      )
     }
   }
 

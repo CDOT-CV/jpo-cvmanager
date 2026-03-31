@@ -32,6 +32,6 @@ public class UserPatch {
     @JsonProperty("organizations_to_remove")
     List<UserOrganizationDto> organizationsToRemove;
 
-    @JsonProperty("organizations_to_modify")
+    @JsonProperty("organizations_to_update")
     List<UserOrganizationDto> organizationsToModify;
 }

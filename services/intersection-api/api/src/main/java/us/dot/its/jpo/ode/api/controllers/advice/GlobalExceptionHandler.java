@@ -19,13 +19,14 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.UserManagementService;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -66,6 +67,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler()
     public ProblemDetail handleSnmpCredentialAlreadyExistsException(
             SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
+        String message = e.getMessage();
+        log.error(message);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleRsuIpAlreadyExistsException(
+            RsuManagementService.RsuIpAlreadyExistsException e) {
+        String message = e.getMessage();
+        log.error(message);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleUserEmailAlreadyExistsException(
+            UserManagementService.UserEmailAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);

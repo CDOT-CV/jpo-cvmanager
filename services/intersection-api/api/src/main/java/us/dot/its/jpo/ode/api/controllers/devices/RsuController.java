@@ -113,7 +113,8 @@ public class RsuController {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
-    public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
+    public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body)
+            throws RsuManagementService.RsuIpAlreadyExistsException {
         if (!permissionService.hasRoleInOrgs("OPERATOR", body.getOrganizations())) {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -133,7 +134,7 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
-            @Validated @RequestBody RsuPatch body) {
+            @Validated @RequestBody RsuPatch body) throws RsuManagementService.RsuIpAlreadyExistsException {
         rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
