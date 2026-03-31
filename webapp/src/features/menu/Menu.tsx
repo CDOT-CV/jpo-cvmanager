@@ -33,7 +33,8 @@ const Menu = () => {
   const isOperatorOrAbove = useMemo(() => {
     const allowedRoles = ['OPERATOR', 'ADMIN']
     const resolvedRole = userRole ?? SecureStorageManager.getUserRole()
-    return !!resolvedRole && allowedRoles.includes(resolvedRole)
+    const normalizedRole = resolvedRole?.toUpperCase()
+    return !!normalizedRole && allowedRoles.includes(normalizedRole)
   }, [userRole])
 
   return (
