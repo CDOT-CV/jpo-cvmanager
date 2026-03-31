@@ -38,7 +38,7 @@ class CvizApiHelper {
     method?: string
     headers?: Record<string, string>
     queryParams?: Record<string, string>
-    body?: object
+    body?: object | string
     token?: string
     timeout?: number
     abortController?: AbortController
@@ -77,7 +77,7 @@ class CvizApiHelper {
       headers: localHeaders,
       body: body
         ? localHeaders['Content-Type'] === 'application/x-www-form-urlencoded'
-          ? (body as string)
+          ? body?.toString()
           : JSON.stringify(body)
         : undefined,
       mode: 'cors',
