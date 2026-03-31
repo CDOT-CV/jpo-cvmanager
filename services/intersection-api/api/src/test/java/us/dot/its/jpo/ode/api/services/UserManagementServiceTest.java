@@ -82,6 +82,11 @@ class UserManagementServiceTest {
         testUser.setCreatedTimestamp(System.currentTimeMillis());
         testUser.setSuperUser(false);
 
+        // Set up test role
+        testRole = new Role();
+        testRole.setId(1);
+        testRole.setName("admin");
+
         // Set up test user DTO
         testUserDto = new UserDto(1, "test@example.com", "Test", "User", false, List.of());
 
@@ -95,11 +100,6 @@ class UserManagementServiceTest {
         testUserOrganization.setUser(testUser);
         testUserOrganization.setRole(testRole);
         testUserOrganization.setOrganization(testOrganization);
-
-        // Set up test role
-        testRole = new Role();
-        testRole.setId(1);
-        testRole.setName("admin");
     }
 
     // ==================== getUser Tests ====================

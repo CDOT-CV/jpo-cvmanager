@@ -73,6 +73,7 @@
         "POSTGRES_SERVER_URL": "jdbc:postgresql://localhost:5432",
         "CM_SERVER_URL": "http://localhost:8082",
         "UNSUBSCRIBE_SECRET_KEY": "b5f9070ca58d4576ea6a2d8d4c1b97caf8abc2554198f8f9acf86d0d31a52a52",
+        "INTERSECTION_API_ENABLE_EMAILER": "false",
         "INTERSECTION_SMTP_USERNAME": "admin",
         "INTERSECTION_SMTP_PASSWORD": "password",
         "INTERSECTION_SMTP_AUTH": "true",
