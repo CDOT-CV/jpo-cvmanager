@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,6 +26,7 @@ import java.util.List;
 import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
+import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.ScmsHealthService;
 
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
@@ -40,6 +43,9 @@ class ScmsHealthControllerTest {
     @MockitoBean
     private ScmsHealthService scmsHealthService;
 
+    @MockitoBean
+    private PermissionService permissionService;
+
     @Test
     @Transactional
     void testGetScmsStatus_SUCCESS() throws Exception {
@@ -52,6 +58,9 @@ class ScmsHealthControllerTest {
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
+
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
 
         // Act & Assert
@@ -73,6 +82,8 @@ class ScmsHealthControllerTest {
     @Test
     void testGetScmsStatus_SUCCESS_EmptyResults() throws Exception {
         // Arrange
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(List.of());
 
         // Act & Assert
@@ -88,11 +99,69 @@ class ScmsHealthControllerTest {
     @Test
     void testGetScmsStatus_FAILURE_OrganizationNotFound() throws Exception {
         // Arrange
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(scmsHealthService.getScmsStatuses(anyString())).thenThrow(new EntityNotFoundException("Organization not found"));
 
         // Act & Assert
         mockMvc.perform(get("/scms-status")
                         .header("Organization", "TestOrg"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetScmsStatus_SUCCESS_AsSuperUser() throws Exception {
+        // Arrange - super user can access any organization
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName("10.0.0.1"));
+        ScmsHealth sh = new ScmsHealth();
+        sh.setHealth(true);
+        sh.setExpiration(Instant.now());
+
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        List<ScmsHealthRsuProjection> queryResults = List.of(projection);
+
+        when(permissionService.isSuperUser()).thenReturn(true);
+        when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
+
+        // Act & Assert
+        mockMvc.perform(get("/scms-status")
+                        .header("Organization", "AnyOrg"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.['10.0.0.1'].health").value("1"));
+
+        verify(scmsHealthService).getScmsStatuses(anyString());
+        // hasRoleInOrg should NOT be called since isSuperUser returns true
+        verify(permissionService, never()).hasRoleInOrg(anyString(), eq("USER"));
+    }
+
+    @Test
+    void testGetScmsStatus_FORBIDDEN_UserNotInOrganization() throws Exception {
+        // Arrange - user does not have access to the requested organization
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRoleInOrg("UnauthorizedOrg", "USER")).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(get("/scms-status")
+                        .header("Organization", "UnauthorizedOrg"))
+            .andExpect(status().isForbidden());
+
+        // Service should NOT be called since authorization failed
+        verify(scmsHealthService, never()).getScmsStatuses(anyString());
+    }
+
+    @Test
+    void testGetScmsStatus_FORBIDDEN_UserHasLowerRole() throws Exception {
+        // Arrange - user exists in org but doesn't have USER role or above
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(get("/scms-status")
+                        .header("Organization", "TestOrg"))
+            .andExpect(status().isForbidden());
+
+        // Service should NOT be called since authorization failed
+        verify(scmsHealthService, never()).getScmsStatuses(anyString());
     }
 }

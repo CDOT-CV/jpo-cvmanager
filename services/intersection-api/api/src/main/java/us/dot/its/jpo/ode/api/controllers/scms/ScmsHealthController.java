@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,10 +29,12 @@ public class ScmsHealthController {
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role in the specified organization"),
             @ApiResponse(responseCode = "404", description = "Organization not found"),
             @ApiResponse(responseCode = "500", description = "Organization header is missing"),
     })
     @GetMapping(produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     public Map<String, ScmsHealthDto> getAllStatuses(@RequestHeader(name = "Organization") String organization) {
         log.info("GET /scms-status. organization: {}", organization);
         return scmsHealthMapper.toMap(scmsHealthService.getScmsStatuses(organization));
