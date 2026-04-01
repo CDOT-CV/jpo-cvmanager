@@ -157,7 +157,7 @@ class ScmsHealthServiceTest {
     }
 
     @Test
-    void testGetScmsStatuses_StableResult_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
+    void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
         // Arrange
         Organization org = saveOrganization("SameTimestampOrg");
 
@@ -171,17 +171,29 @@ class ScmsHealthServiceTest {
 
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-        // Identical timestamps for multiple health records.
-        // The JPQL MAX(timestamp) subquery may join multiple records if they share the maximum timestamp.
-        saveScmsHealth(rsu, sameTime, true);
-        saveScmsHealth(rsu, sameTime, false);
+        // Create multiple health records with identical timestamps.
+        // The query must return exactly one row per RSU (matching legacy ROW_NUMBER behavior).
+        // The tie-breaker is the highest ID, so the last saved record should be selected.
+        ScmsHealth firstRecord = saveScmsHealth(rsu, sameTime, true);
+        ScmsHealth secondRecord = saveScmsHealth(rsu, sameTime, false);
+
+        // Verify secondRecord has a higher ID (saved later)
+        assertTrue(secondRecord.getId() > firstRecord.getId(),
+            "Second record should have higher ID than first record");
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("SameTimestampOrg");
 
         // Assert
-        // Current logic might return multiple records for the same RSU if timestamps are identical.
-        assertFalse(results.isEmpty(), "Should return at least one record");
+        assertEquals(1, results.size(),
+            "Should return exactly one record per RSU even when multiple records have the same timestamp");
+
+        ScmsHealthRsuProjection result = results.get(0);
+        assertNotNull(result.getScmsHealth(), "ScmsHealth should not be null");
+        assertEquals(secondRecord.getId(), result.getScmsHealth().getId(),
+            "Should select the record with the highest ID as a deterministic tie-breaker");
+        assertEquals(secondRecord.getHealth(), result.getScmsHealth().getHealth(),
+            "Should return the health value from the record with the highest ID");
     }
 
     private Organization saveOrganization(String name) {
