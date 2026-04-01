@@ -198,15 +198,14 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role or no access to this intersection"),
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
-    @DeleteMapping(produces = "application/json")
+    @DeleteMapping(value = "/{intersectionId}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#intersectionId, 'OPERATOR'))")
     public void deleteIntersection(
             @Parameter(description = "Intersection number to delete", example = "12109")
-            @RequestParam(name = "intersection_id")
-            @NotBlank(message = "intersection_id must not be blank")
+            @PathVariable
             String intersectionId) {
 
-        log.info("DELETE /admin/intersections. intersectionId={}", intersectionId);
+        log.info("DELETE /admin/intersections/{}. intersectionId={}", intersectionId, intersectionId);
         adminIntersectionService.deleteIntersection(intersectionId);
     }
 }
