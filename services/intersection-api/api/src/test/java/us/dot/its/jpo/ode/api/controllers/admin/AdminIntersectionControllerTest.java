@@ -551,8 +551,7 @@ class AdminIntersectionControllerTest {
     @Test
     @DisplayName("returns 403 when no permissions are granted")
     void noPermissions_returns403() throws Exception {
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "12109"))
+      mockMvc.perform(delete("/admin/intersections/12109"))
         .andExpect(status().isForbidden());
     }
 
@@ -563,8 +562,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("OPERATOR")).thenReturn(false);
 
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "12109"))
+      mockMvc.perform(delete("/admin/intersections/12109"))
         .andExpect(status().isForbidden());
     }
 
@@ -576,22 +574,8 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(false);
 
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "12109"))
+      mockMvc.perform(delete("/admin/intersections/12109"))
         .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @WithMockUser
-    @DisplayName("returns 400 when intersection_id is blank (only whitespace)")
-    void blankIntersectionId_returns400() throws Exception {
-      // isSuperUser=true prevents SpEL type-conversion error on blank→Integer;
-      // @NotBlank then fires and returns 400
-      when(permissionService.isSuperUser()).thenReturn(true);
-
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "   "))
-        .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -600,8 +584,7 @@ class AdminIntersectionControllerTest {
     void superUser_returns200WithSuccessMessage() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
 
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "12109"))
+      mockMvc.perform(delete("/admin/intersections/12109"))
         .andExpect(status().isOk());
     }
 
@@ -613,8 +596,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.hasRole("OPERATOR")).thenReturn(true);
       when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
 
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "12109"))
+      mockMvc.perform(delete("/admin/intersections/12109"))
         .andExpect(status().isOk());
     }
 
@@ -626,8 +608,7 @@ class AdminIntersectionControllerTest {
       doThrow(new ResponseStatusException(
         HttpStatus.NOT_FOUND, "Intersection not found: 99999")).when(adminIntersectionService).deleteIntersection(any());
 
-      mockMvc.perform(delete("/admin/intersections")
-          .param("intersection_id", "99999"))
+      mockMvc.perform(delete("/admin/intersections/99999"))
         .andExpect(status().isNotFound());
     }
   }

@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
@@ -198,15 +196,14 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires OPERATOR role or no access to this intersection"),
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
-    @DeleteMapping(produces = "application/json")
+    @DeleteMapping(value = "/{intersectionId}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#intersectionId, 'OPERATOR'))")
     public void deleteIntersection(
             @Parameter(description = "Intersection number to delete", example = "12109")
-            @RequestParam(name = "intersection_id")
-            @NotBlank(message = "intersection_id must not be blank")
+            @PathVariable
             String intersectionId) {
 
-        log.info("DELETE /admin/intersections. intersectionId={}", intersectionId);
+        log.info("DELETE /admin/intersections/{}. intersectionId={}", intersectionId, intersectionId);
         adminIntersectionService.deleteIntersection(intersectionId);
     }
 }

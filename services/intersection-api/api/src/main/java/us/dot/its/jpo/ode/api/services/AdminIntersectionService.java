@@ -227,6 +227,7 @@ public class AdminIntersectionService {
                 log.warn("Step 4: Requested {} RSU(s) to add but only {} resolved in DB. Requested: {}", patch.getRsusToAdd().size(), rsus.size(), patch.getRsusToAdd());
             }
             List<RsuIntersection> newRsuAssocs = rsus.stream()
+                    .filter(rsu -> !rsuIntersectionRepository.existsByRsuAndIntersection(rsu, intersection))
                     .map(rsu -> {
                         RsuIntersection ri = new RsuIntersection();
                         ri.setIntersection(intersection);
