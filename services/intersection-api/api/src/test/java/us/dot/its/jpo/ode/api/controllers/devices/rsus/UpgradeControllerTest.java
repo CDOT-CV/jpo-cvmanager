@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.context.annotation.Import;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
-import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
@@ -48,9 +47,6 @@ class UpgradeControllerTest {
     RsuUpgradeService rsuUpgradeService;
 
     @MockitoBean
-    FirmwareUpgradeMapper firmwareUpgradeMapper;
-
-    @MockitoBean
     PermissionService permissionService;
 
     // POST /devices/rsus/upgrade (startUpgrade) Tests
@@ -58,13 +54,11 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_Success() throws Exception {
         List<String> rsuIps = List.of("10.0.0.10", "10.0.0.11");
-        Map<String, Object> serviceResponse = Map.of("rsu1", Map.of("code", 200));
-        Map<String, FirmwareUpgradeResultDto> mappedResponse = Map.of(
+        Map<String, FirmwareUpgradeResultDto> serviceResponse = Map.of(
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyString(), anyList())).willReturn(serviceResponse);
-        given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(mappedResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIp(rsuIps);
@@ -127,13 +121,11 @@ class UpgradeControllerTest {
 
     @Test
     void checkUpgrade_Success() throws Exception {
-        Map<String, Object> serviceResponse = Map.of("upgrade_available", true);
-        FirmwareUpgradeCheckResponseDto mappedResponse = new FirmwareUpgradeCheckResponseDto(
+        FirmwareUpgradeCheckResponseDto serviceResponse = new FirmwareUpgradeCheckResponseDto(
                 true, 42L, "RSU Firmware v2.0", "2.0");
 
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.checkFirmwareUpgrade(anyString(), anyString())).willReturn(serviceResponse);
-        given(firmwareUpgradeMapper.mapCheckUpgradeResponse(any())).willReturn(mappedResponse);
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())

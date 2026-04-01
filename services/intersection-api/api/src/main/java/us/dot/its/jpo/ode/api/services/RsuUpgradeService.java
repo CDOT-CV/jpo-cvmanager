@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
+
 import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -45,7 +48,7 @@ public class RsuUpgradeService {
     private final RestTemplate restTemplate;
     private final PlatformTransactionManager transactionManager;
 
-    public Map<String, Object> checkFirmwareUpgrade(String organization, String rsuIp) {
+    public FirmwareUpgradeCheckResponseDto checkFirmwareUpgrade(String organization, String rsuIp) {
         Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
         if (rsu == null) {
             throw new EntityNotFoundException(
@@ -55,16 +58,15 @@ public class RsuUpgradeService {
         FirmwareUpgradeInfo upgradeInfo = checkForUpgrade(rsu);
         FirmwareImage upgradeImage = upgradeInfo.upgradeImage();
 
-        return Map.of(
-                "upgrade_available", upgradeInfo.upgradeAvailable(),
-                "upgrade_id", upgradeImage != null && upgradeImage.getId() != null ? upgradeImage.getId() : -1,
-                "upgrade_name", upgradeImage != null && upgradeImage.getName() != null ? upgradeImage.getName() : "",
-                "upgrade_version",
+        return new FirmwareUpgradeCheckResponseDto(
+                upgradeInfo.upgradeAvailable(),
+                upgradeImage != null && upgradeImage.getId() != null ? upgradeImage.getId().longValue() : -1L,
+                upgradeImage != null && upgradeImage.getName() != null ? upgradeImage.getName() : "",
                 upgradeImage != null && upgradeImage.getVersion() != null ? upgradeImage.getVersion() : "");
     }
 
-    public Map<String, Object> startFirmwareUpgradeForRsus(String organization, List<String> rsuIps) {
-        Map<String, Object> response = new LinkedHashMap<>();
+    public Map<String, FirmwareUpgradeResultDto> startFirmwareUpgradeForRsus(String organization, List<String> rsuIps) {
+        Map<String, FirmwareUpgradeResultDto> response = new LinkedHashMap<>();
 
         for (String rsuIp : rsuIps) {
             if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)) {
@@ -107,10 +109,8 @@ public class RsuUpgradeService {
                 "Upgrade execution result must not be null");
     }
 
-    private Map<String, Object> createUpgradeResult(int statusCode, Object data) {
-        return Map.of(
-                "code", statusCode,
-                "data", data == null ? "" : data);
+    private FirmwareUpgradeResultDto createUpgradeResult(int statusCode, Object data) {
+        return new FirmwareUpgradeResultDto(statusCode, data == null ? "" : data);
     }
 
     protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp, String organization) {

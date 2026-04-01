@@ -19,7 +19,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuSingleUpgradeCheckRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
@@ -38,7 +37,6 @@ import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 public class UpgradeController {
 
     private final RsuUpgradeService rsuUpgradeService;
-    private final FirmwareUpgradeMapper firmwareUpgradeMapper;
 
     @Operation(summary = "Start RSU Firmware Upgrade", description = "Marks the supplied RSUs for upgrade and triggers firmware manager processing.")
     @PostMapping(produces = "application/json")
@@ -50,9 +48,7 @@ public class UpgradeController {
     public ResponseEntity<Map<String, FirmwareUpgradeResultDto>> startUpgrade(
             @RequestHeader(name = "Organization", required = true) String organization,
             @Validated @RequestBody RsuUpgradeRequest body) {
-        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIp());
-        Map<String, FirmwareUpgradeResultDto> mappedResponse = firmwareUpgradeMapper.mapStartUpgradeResponse(response);
-        return ResponseEntity.ok(mappedResponse);
+        return ResponseEntity.ok(rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIp()));
     }
 
     @Operation(summary = "Check RSU Firmware Upgrade Availability", description = "Checks whether a firmware upgrade is available for the requested RSU.")
@@ -65,8 +61,6 @@ public class UpgradeController {
     public ResponseEntity<FirmwareUpgradeCheckResponseDto> checkUpgrade(
             @RequestHeader(name = "Organization", required = true) String organization,
             @Validated @RequestBody RsuSingleUpgradeCheckRequest body) {
-        Map<String, Object> response = rsuUpgradeService.checkFirmwareUpgrade(organization, body.getRsuIp());
-        FirmwareUpgradeCheckResponseDto mappedResponse = firmwareUpgradeMapper.mapCheckUpgradeResponse(response);
-        return ResponseEntity.ok(mappedResponse);
+        return ResponseEntity.ok(rsuUpgradeService.checkFirmwareUpgrade(organization, body.getRsuIp()));
     }
 }
