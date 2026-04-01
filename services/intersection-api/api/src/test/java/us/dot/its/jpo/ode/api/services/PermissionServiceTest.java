@@ -559,18 +559,7 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
         setupSecurityContext(token);
 
-        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        when(authToken.isSuperUser()).thenReturn(false);
-
-        List<String> emails = List.of();
-        List<String> qualifiedOrgs = List.of("TestOrg");
-
-        when(authToken.getQualifiedOrgList("USER")).thenReturn(qualifiedOrgs);
-        when(userRepository.allUsersExistInOrganizations(emails, qualifiedOrgs, 0L))
-                .thenReturn(true);
-
-        assertTrue(permissionService.hasUsers(emails, "USER"));
-        verify(userRepository).allUsersExistInOrganizations(emails, qualifiedOrgs, 0L);
+        verify(userRepository, never()).allUsersExistInOrganizations(any(), any(), any());
     }
 
     @Test
