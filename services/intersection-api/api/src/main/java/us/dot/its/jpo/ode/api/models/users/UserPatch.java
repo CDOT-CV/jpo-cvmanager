@@ -33,8 +33,6 @@ public class UserPatch {
     @JsonProperty("organizations_to_remove")
     List<UserOrganizationDto> organizationsToRemove;
 
-    // TODO: Deprecate organizations_to_update in favor of organizations_to_modify
     @JsonProperty("organizations_to_modify")
-    @JsonAlias("organizations_to_update")
     List<UserOrganizationDto> organizationsToModify;
 }
