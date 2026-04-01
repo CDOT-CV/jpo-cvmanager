@@ -559,6 +559,10 @@ class PermissionServiceTest {
         JwtAuthenticationToken token = createAuthenticatedToken("manager@example.com");
         setupSecurityContext(token);
 
+        List<String> emails = List.of();
+        
+        assertTrue(permissionService.hasUsers(emails, "USER"));
+
         verify(userRepository, never()).allUsersExistInOrganizations(any(), any(), any());
     }
 
