@@ -1,7 +1,13 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -10,14 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuSingleUpgradeCheckRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
@@ -26,7 +24,7 @@ import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 
 @Slf4j
 @RestController
-@ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "enable.api", havingValue = "true")
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
@@ -45,7 +43,7 @@ public class UpgradeController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
     })
     public ResponseEntity<FirmwareUpgradeStartResponseDto> startUpgrade(
-            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestHeader(name = "Organization") String organization,
             @Validated @RequestBody RsuUpgradeRequest body) {
         return ResponseEntity.ok(rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIp()));
     }
@@ -58,7 +56,7 @@ public class UpgradeController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
     })
     public ResponseEntity<FirmwareUpgradeCheckResponseDto> checkUpgrade(
-            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestHeader(name = "Organization") String organization,
             @Validated @RequestBody RsuSingleUpgradeCheckRequest body) {
         return ResponseEntity.ok(rsuUpgradeService.checkFirmwareUpgrade(organization, body.getRsuIp()));
     }

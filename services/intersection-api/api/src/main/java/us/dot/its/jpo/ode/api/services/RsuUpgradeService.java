@@ -109,7 +109,7 @@ public class RsuUpgradeService {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return Objects.requireNonNull(
-                transactionTemplate.execute(status -> markRsuForUpgrade(rsuIp, organization)),
+                transactionTemplate.execute(_ -> markRsuForUpgrade(rsuIp, organization)),
                 "Upgrade execution result must not be null");
     }
 
@@ -158,7 +158,7 @@ public class RsuUpgradeService {
             return new UpgradeExecutionResult(responseBody, response.getStatusCode().value());
         } catch (HttpStatusCodeException ex) {
             String errorMessage = ex.getResponseBodyAsString();
-            if (errorMessage == null || errorMessage.isBlank()) {
+            if (errorMessage.isBlank()) {
                 errorMessage = "Firmware manager returned " + ex.getStatusCode().value();
             }
             throw new ResponseStatusException(ex.getStatusCode(), errorMessage, ex);
