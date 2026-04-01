@@ -58,7 +58,7 @@ class ScmsHealthControllerTest {
         mockMvc.perform(get("/scms-status")
                         .header("Organization", "TestOrg"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.['10.0.0.1'].health").value(true));
+            .andExpect(jsonPath("$.['10.0.0.1'].health").value("1"));
 
         verify(scmsHealthService).getScmsStatuses(anyString());
     }

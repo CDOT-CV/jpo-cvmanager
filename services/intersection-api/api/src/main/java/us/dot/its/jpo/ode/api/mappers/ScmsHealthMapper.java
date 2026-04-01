@@ -20,9 +20,17 @@ public interface ScmsHealthMapper {
     DateTimeFormatter DENVER_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a")
             .withZone(ZoneId.of("America/Denver"));
 
-    @Mapping(target = "health", source = "scmsHealth.health")
+    @Mapping(target = "health", source = "scmsHealth.health", qualifiedByName = "healthToString")
     @Mapping(target = "expiration", source = "scmsHealth.expiration", qualifiedByName = "formatInstant")
     ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
+
+    @Named("healthToString")
+    default String healthToString(Boolean health) {
+        if (health == null) {
+            return null;
+        }
+        return health ? "1" : "0";
+    }
 
     @Named("formatInstant")
     default String formatInstant(Instant instant) {
@@ -42,7 +50,7 @@ public interface ScmsHealthMapper {
             String ip = result.getRsu().getIpv4Address().getHostAddress();
             ScmsHealth sh = result.getScmsHealth();
 
-            if (sh != null && Boolean.TRUE.equals(sh.getHealth())) {
+            if (sh != null) {
                 statusMap.put(ip, toDto(result));
             } else {
                 statusMap.put(ip, null);

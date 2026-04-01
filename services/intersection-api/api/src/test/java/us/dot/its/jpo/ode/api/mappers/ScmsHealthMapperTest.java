@@ -49,13 +49,13 @@ class ScmsHealthMapperTest {
         assertTrue(result.containsKey(ip));
         ScmsHealthDto dto = result.get(ip);
         assertNotNull(dto);
-        assertEquals(true, dto.getHealth());
+        assertEquals("1", dto.getHealth());
         // Denver time for 15:00:00 UTC is 09:00:00 AM (Daylight savings)
         assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 
     @Test
-    void testToMap_InactiveHealth_ReturnsNullValue() throws UnknownHostException {
+    void testToMap_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         Rsu rsu = new Rsu();
@@ -75,7 +75,8 @@ class ScmsHealthMapperTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.containsKey(ip));
-        assertNull(result.get(ip));
+        assertNotNull(result.get(ip));
+        assertEquals("0", result.get(ip).getHealth());
     }
 
     @Test
@@ -149,7 +150,7 @@ class ScmsHealthMapperTest {
 
         // Assert
         assertNotNull(dto);
-        assertEquals(true, dto.getHealth());
+        assertEquals("1", dto.getHealth());
         assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 }

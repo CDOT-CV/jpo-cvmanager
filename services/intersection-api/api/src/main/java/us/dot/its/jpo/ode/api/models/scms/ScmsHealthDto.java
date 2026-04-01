@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ScmsHealthDto {
-    private Boolean health;
+    private String health;
 
     @Schema(description = "The expiration time of the scms health record", example = "01/01/2020 12:00:00 AM")
     private String expiration;
