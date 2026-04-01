@@ -22,18 +22,18 @@ it('snapshot online other', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('snapshot scms true', () => {
-  const { container } = render(<RsuMarker displayType="scms" scmsStatus={true} />)
+it('snapshot scms 1', () => {
+  const { container } = render(<RsuMarker displayType="scms" scmsStatus="1" />)
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('snapshot scms false', () => {
-  const { container } = render(<RsuMarker displayType="online" scmsStatus={false} />)
+it('snapshot scms 0', () => {
+  const { container } = render(<RsuMarker displayType="online" scmsStatus="0" />)
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('snapshot scms undefined', () => {
-  const { container } = render(<RsuMarker displayType="online" scmsStatus={undefined} />)
+it('snapshot scms other', () => {
+  const { container } = render(<RsuMarker displayType="online" scmsStatus="other" />)
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 

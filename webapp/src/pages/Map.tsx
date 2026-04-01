@@ -1186,7 +1186,7 @@ function MapPage() {
                         Object.prototype.hasOwnProperty.call(issScmsStatusData, rsu.properties.ipv4_address) &&
                         issScmsStatusData[rsu.properties.ipv4_address]
                           ? issScmsStatusData[rsu.properties.ipv4_address].health
-                          : false
+                          : '0'
                       }
                     />
                   </button>
@@ -1453,12 +1453,12 @@ function MapPage() {
                           <Typography
                             sx={{
                               color:
-                                issScmsStatusData[rsuIpv4].health
+                                issScmsStatusData[rsuIpv4].health === '1'
                                   ? theme.palette.success.light
                                   : theme.palette.error.light,
                             }}
                           >
-                            {issScmsStatusData[rsuIpv4].health ? 'Healthy' : 'Unhealthy'}
+                            {issScmsStatusData[rsuIpv4].health === '1' ? 'Healthy' : 'Unhealthy'}
                           </Typography>
                         </Grid2>
                         <Grid2 size={12}>

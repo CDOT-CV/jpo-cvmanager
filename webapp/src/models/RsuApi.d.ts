@@ -75,7 +75,7 @@ export type SsmSrmData = Array<{
 
 export type IssScmsStatus = {
   [ip: string]: {
-    health: boolean
+    health: '0' | '1'
     expiration: string
   }
 }
