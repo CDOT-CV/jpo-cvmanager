@@ -444,6 +444,23 @@ class AdminIntersectionServiceTest {
     }
 
     @Test
+    void rsusToAdd_alreadyAssociated_doesNotCreateDuplicate() throws UnknownHostException {
+      Organization org = organizationRepository.save(fixtures.createRandomOrg());
+      Intersection intersection = intersectionRepository.save(fixtures.createIntersection("1000"));
+      Rsu rsu = saveRsu("192.168.1.1", org);
+      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
+
+      IntersectionPatch patch = new IntersectionPatch(
+        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+        Collections.emptyList(), Collections.emptyList(),
+        List.of("192.168.1.1"), Collections.emptyList());
+
+      adminIntersectionService.patchIntersection(patch);
+
+      assertEquals(1, rsuIntersectionRepository.findAll().size());
+    }
+
+    @Test
     void emptyRelationshipLists_noAssociations_createdOrRemoved() {
       intersectionRepository.save(fixtures.createIntersection("1000"));
 

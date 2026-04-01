@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuIntersection;
 
 import java.net.InetAddress;
@@ -44,6 +46,8 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
             @Param("intersectionNumber") Integer intersectionNumber);
 
 
+
+    boolean existsByRsuAndIntersection(Rsu rsu, Intersection intersection);
 
     @Modifying
     @Transactional
