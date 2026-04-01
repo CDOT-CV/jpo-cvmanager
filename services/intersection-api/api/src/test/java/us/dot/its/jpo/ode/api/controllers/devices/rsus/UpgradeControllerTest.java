@@ -28,6 +28,7 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeStartResponseDto;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 
@@ -54,8 +55,8 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_Success() throws Exception {
         List<String> rsuIps = List.of("10.0.0.10", "10.0.0.11");
-        Map<String, FirmwareUpgradeResultDto> serviceResponse = Map.of(
-                "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
+        FirmwareUpgradeStartResponseDto serviceResponse = new FirmwareUpgradeStartResponseDto(
+                Map.of("rsu1", new FirmwareUpgradeResultDto(200, "ok")));
 
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyString(), anyList())).willReturn(serviceResponse);
@@ -69,7 +70,7 @@ class UpgradeControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rsu1.code").value(200));
+                .andExpect(jsonPath("$.results.rsu1.code").value(200));
     }
 
     @Test

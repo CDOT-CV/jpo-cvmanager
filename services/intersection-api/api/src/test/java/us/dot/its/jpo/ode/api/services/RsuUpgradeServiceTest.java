@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeStartResponseDto;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +28,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -104,14 +107,14 @@ class RsuUpgradeServiceTest {
         doReturn(new RsuUpgradeService.UpgradeExecutionResult(Map.of("message", "started"), 201))
                 .when(serviceSpy).executeUpgradeForRsu(successIp, organization);
 
-        Map<String, FirmwareUpgradeResultDto> result = serviceSpy.startFirmwareUpgradeForRsus(organization,
+        FirmwareUpgradeStartResponseDto result = serviceSpy.startFirmwareUpgradeForRsus(organization,
                 List.of(successIp, missingIp));
 
-        FirmwareUpgradeResultDto successResult = result.get(successIp);
+        FirmwareUpgradeResultDto successResult = result.getResults().get(successIp);
         assertEquals(201, successResult.getCode());
         assertEquals(Map.of("message", "started"), successResult.getData());
 
-        FirmwareUpgradeResultDto missingResult = result.get(missingIp);
+        FirmwareUpgradeResultDto missingResult = result.getResults().get(missingIp);
         assertEquals(404, missingResult.getCode());
         assertEquals("Provided RSU IP does not have complete RSU data for organization: TestOrg::10.0.0.11",
                 missingResult.getData());
@@ -127,9 +130,9 @@ class RsuUpgradeServiceTest {
         doThrow(new RsuUpgradeService.FirmwareUpgradeUnavailableException("Requested RSU is already up to date"))
                 .when(serviceSpy).executeUpgradeForRsu(rsuIp, organization);
 
-        Map<String, FirmwareUpgradeResultDto> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
+        FirmwareUpgradeStartResponseDto result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
 
-        FirmwareUpgradeResultDto upgradeResult = result.get(rsuIp);
+        FirmwareUpgradeResultDto upgradeResult = result.getResults().get(rsuIp);
         assertEquals(409, upgradeResult.getCode());
         assertEquals("Requested RSU is already up to date", upgradeResult.getData());
     }
@@ -144,9 +147,9 @@ class RsuUpgradeServiceTest {
         doThrow(new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "The firmware manager is not supported"))
                 .when(serviceSpy).executeUpgradeForRsu(rsuIp, organization);
 
-        Map<String, FirmwareUpgradeResultDto> result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
+        FirmwareUpgradeStartResponseDto result = serviceSpy.startFirmwareUpgradeForRsus(organization, List.of(rsuIp));
 
-        FirmwareUpgradeResultDto upgradeResult = result.get(rsuIp);
+        FirmwareUpgradeResultDto upgradeResult = result.getResults().get(rsuIp);
         assertEquals(501, upgradeResult.getCode());
         assertEquals("The firmware manager is not supported", upgradeResult.getData());
     }
@@ -180,7 +183,8 @@ class RsuUpgradeServiceTest {
         when(rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization)).thenReturn(rsu);
         when(firmwareUpgradeRuleRepository.findFirstByFrom_Id(10)).thenReturn(Optional.of(rule));
         when(rsuRepository.save(any(Rsu.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(restTemplate.postForEntity(eq(endpoint + "/init_firmware_upgrade"), any(HttpEntity.class), eq(Map.class)))
+        when(restTemplate.exchange(eq(endpoint + "/init_firmware_upgrade"), eq(HttpMethod.POST),
+                any(HttpEntity.class), any(ParameterizedTypeReference.class)))
                 .thenReturn(new ResponseEntity<>(Map.of("message", "started"), HttpStatus.OK));
 
         RsuUpgradeService.UpgradeExecutionResult result = rsuUpgradeService.markRsuForUpgrade(rsuIp, organization);
@@ -189,11 +193,12 @@ class RsuUpgradeServiceTest {
         assertEquals(Map.of("message", "started"), result.body());
         assertEquals(targetImage, rsu.getTargetFirmwareVersion());
 
+        @SuppressWarnings("rawtypes")
         ArgumentCaptor<HttpEntity> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(restTemplate).postForEntity(eq(endpoint + "/init_firmware_upgrade"), entityCaptor.capture(),
-                eq(Map.class));
+        verify(restTemplate).exchange(eq(endpoint + "/init_firmware_upgrade"), eq(HttpMethod.POST),
+                entityCaptor.capture(), any(ParameterizedTypeReference.class));
 
-        HttpEntity requestEntity = entityCaptor.getValue();
+        HttpEntity<?> requestEntity = entityCaptor.getValue();
         assertNotNull(requestEntity);
         assertEquals(MediaType.APPLICATION_JSON, requestEntity.getHeaders().getContentType());
         assertEquals(Map.of("rsu_ip", rsuIp), requestEntity.getBody());
