@@ -20,7 +20,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
-@RequestMapping("/scms-status")
+@RequestMapping("/scms")
 @RequiredArgsConstructor
 @Tag(name = "SCMS Health Status", description = "Manage SCMS health status for RSUs")
 public class ScmsHealthController {
@@ -41,10 +41,10 @@ public class ScmsHealthController {
             @ApiResponse(responseCode = "400", description = "Organization header is missing"),
             @ApiResponse(responseCode = "404", description = "Organization not found"),
     })
-    @GetMapping(produces = "application/json")
+    @GetMapping(value = "/status", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     public Map<String, ScmsHealthDto> getAllStatuses(@RequestHeader(name = "Organization") String organization) {
-        log.info("GET /scms-status. organization: {}", organization);
+        log.info("GET /scms/status. organization: {}", organization);
         return scmsHealthMapper.toMap(scmsHealthService.getScmsStatuses(organization));
     }
 }
