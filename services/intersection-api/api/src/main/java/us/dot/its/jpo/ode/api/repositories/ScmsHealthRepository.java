@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import jakarta.transaction.Transactional;
+
+import org.springframework.transaction.annotation.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 
@@ -50,5 +51,6 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
             "AND sh.id = (SELECT MAX(sh2.id) FROM ScmsHealth sh2 WHERE sh2.rsu = rd) " +
             "WHERE o.name = :organization " +
             "ORDER BY rd.ipv4Address")
+    @Transactional(readOnly = true)
     List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("organization") String organization);
 }
