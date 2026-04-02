@@ -64,9 +64,8 @@ export const deleteIntersection = createAsyncThunk(
     const token = selectToken(currentState)
 
     const data = await apiHelper._deleteData({
-      url: EnvironmentVars.adminIntersection,
+      url: `${EnvironmentVars.adminIntersection}/${intersection_id}`,
       token,
-      query_params: { intersection_id },
       tag: 'intersection',
     })
 

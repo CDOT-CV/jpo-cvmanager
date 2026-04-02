@@ -171,9 +171,8 @@ describe('async thunks', () => {
       apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message', body: 'data' })
       await action(dispatch, getState, undefined)
       expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+        url: `${EnvironmentVars.adminIntersection}/${intersection_id}`,
         token: 'token',
-        query_params: { intersection_id },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
@@ -185,9 +184,8 @@ describe('async thunks', () => {
       apiHelper._deleteData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
       await action(dispatch, getState, undefined)
       expect(apiHelper._deleteData).toHaveBeenCalledWith({
-        url: EnvironmentVars.adminIntersection,
+        url: `${EnvironmentVars.adminIntersection}/${intersection_id}`,
         token: 'token',
-        query_params: { intersection_id },
         tag: 'intersection',
       })
       expect(dispatch).toHaveBeenCalledTimes(0 + 2)
