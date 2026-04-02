@@ -28,12 +28,12 @@ it('snapshot scms 1', () => {
 })
 
 it('snapshot scms 0', () => {
-  const { container } = render(<RsuMarker displayType="scms" scmsStatus="0" />)
+  const { container } = render(<RsuMarker displayType="online" scmsStatus="0" />)
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
 it('snapshot scms other', () => {
-  const { container } = render(<RsuMarker displayType="scms" scmsStatus="other" />)
+  const { container } = render(<RsuMarker displayType="online" scmsStatus="other" />)
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
