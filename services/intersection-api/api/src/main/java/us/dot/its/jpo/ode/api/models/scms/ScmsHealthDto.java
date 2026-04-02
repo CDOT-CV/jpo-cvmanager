@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ScmsHealthDto {
-    @Schema(description = "The current ISS SCMS status of an RSU", example = "1")
+    @Schema(description = "Whether SCMS certificates associated with an RSU are up-to-date or out-of-date. 1 = up-to-date, 0 = out-of-date", example = "1")
     private String health;
 
     @Schema(description = "The expiration time of the SCMS certificates associated with an RSU", example = "04/10/2026 01:28:01 PM")
