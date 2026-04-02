@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -25,6 +26,7 @@ class ScmsHealthMapperTest {
     private final ScmsHealthMapper mapper = Mappers.getMapper(ScmsHealthMapper.class);
 
     @Test
+    @DisplayName("Maps projections to String -> ScmsHealthDto map successfully")
     void testToMap_Success() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
@@ -32,11 +34,11 @@ class ScmsHealthMapperTest {
         rsu.setIpv4Address(InetAddress.getByName(ip));
 
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
-        ScmsHealth sh = new ScmsHealth();
-        sh.setHealth(true);
-        sh.setExpiration(expiration);
+        ScmsHealth scmsHealth = new ScmsHealth();
+        scmsHealth.setHealth(true);
+        scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -55,16 +57,17 @@ class ScmsHealthMapperTest {
     }
 
     @Test
+    @DisplayName("Maps projections with inactive health")
     void testToMap_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(InetAddress.getByName(ip));
 
-        ScmsHealth sh = new ScmsHealth();
-        sh.setHealth(false); // Inactive
+        ScmsHealth scmsHealth = new ScmsHealth();
+        scmsHealth.setHealth(false); // Inactive
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -80,6 +83,7 @@ class ScmsHealthMapperTest {
     }
 
     @Test
+    @DisplayName("Maps projections with no health")
     void testToMap_NoHealth_ReturnsNullValue() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
@@ -102,11 +106,13 @@ class ScmsHealthMapperTest {
     }
 
     @Test
+    @DisplayName("Null input returns null")
     void testToDto_NullInput() {
         assertNull(mapper.toDto(null));
     }
 
     @Test
+    @DisplayName("Maps projections with null health")
     void testToDto_NullScmsHealth() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
@@ -125,6 +131,7 @@ class ScmsHealthMapperTest {
     }
 
     @Test
+    @DisplayName("Empty input returns empty map")
     void testToMap_EmptyInput() {
         Map<String, ScmsHealthDto> result = mapper.toMap(new ArrayList<>());
         assertNotNull(result);
@@ -132,6 +139,7 @@ class ScmsHealthMapperTest {
     }
 
     @Test
+    @DisplayName("Maps projection to DTO successfully")
     void testToDto_Success() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
@@ -139,11 +147,11 @@ class ScmsHealthMapperTest {
         rsu.setIpv4Address(InetAddress.getByName(ip));
 
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
-        ScmsHealth sh = new ScmsHealth();
-        sh.setHealth(true);
-        sh.setExpiration(expiration);
+        ScmsHealth scmsHealth = new ScmsHealth();
+        scmsHealth.setHealth(true);
+        scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
 
         // Act
         ScmsHealthDto dto = mapper.toDto(projection);
