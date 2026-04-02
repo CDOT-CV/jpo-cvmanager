@@ -1159,6 +1159,7 @@ function MapPage() {
                     setSelectedWZDxMarker(null)
                     dispatch(clearFirmware()) // TODO: Should remove??
                     dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
+                    dispatch(getIssScmsStatus())
                   }}
                 >
                   <button
