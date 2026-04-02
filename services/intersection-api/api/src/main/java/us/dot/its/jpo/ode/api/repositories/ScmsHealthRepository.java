@@ -29,7 +29,7 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
     /**
      * Retrieves the latest SCMS health record for each RSU within a specific organization.
      * <p>
-     * This query is functionally equivalent to the legacy Python implementation in {@code iss_scms_status.py}.
+     * This query is functionally equivalent to the legacy Python implementation.
      * It achieves parity by:
      * <ul>
      *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health
