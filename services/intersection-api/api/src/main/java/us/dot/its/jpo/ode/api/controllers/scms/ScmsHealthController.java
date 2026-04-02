@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.scms;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,12 +22,19 @@ import java.util.Map;
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
 @RequestMapping("/scms-status")
 @RequiredArgsConstructor
-@Tag(name = "SCMS Health Status", description = "Retrieves the SCMS health status for RSUs in the given organization")
+@Tag(name = "SCMS Health Status", description = "Manage SCMS health status for RSUs")
 public class ScmsHealthController {
 
     private final ScmsHealthService scmsHealthService;
     private final ScmsHealthMapper scmsHealthMapper;
 
+    @Operation(
+            summary = "Retrieve SCMS health status for RSUs in the given organization",
+            description = """
+                    Returns a map of RSU IDs to their health status for the specified organization.
+                    The Organization header is required for all users, including super users.
+                    """
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role in the specified organization"),
