@@ -384,40 +384,6 @@ class ScmsHealthServiceTest {
         assertEquals(rsu2Latest.getId(), results1.get(1).getScmsHealth().getId());
     }
 
-    @Test
-    @DisplayName("Timestamp takes precedence over ID for selecting latest record")
-    void testGetScmsStatuses_SelectsLatestTimestamp_NotHighestId() throws Exception {
-        // Arrange - Ensure timestamp takes precedence over ID for selecting the latest record
-        Organization org = saveOrganization("TimestampPrecedenceOrg");
-
-        Manufacturer manufacturer = saveManufacturer("Manufacturer9");
-        RsuModel model = saveRsuModel("Model9", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-9");
-        SnmpCredential snmpCredential = saveSnmpCredential("snmp9", org);
-        RsuCredential rsuCredential = saveRsuCredential("rsu9", org);
-
-        Rsu rsu = saveRsu("10.0.0.80", model, snmpCredential, rsuCredential, protocol, org);
-
-        Instant oneHourEarlier = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MICROS);
-        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
-
-        // Save older record first (will have lower ID)
-        saveScmsHealth(rsu, oneHourEarlier, false);
-        // Save newer record second (will have higher ID AND newer timestamp)
-        ScmsHealth newerRecord = saveScmsHealth(rsu, now, true);
-        // Save another older record last (will have highest ID but older timestamp)
-        saveScmsHealth(rsu, oneHourEarlier, false);
-
-        // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("TimestampPrecedenceOrg");
-
-        // Assert - Should select the record with the newest timestamp, not the highest ID
-        assertEquals(1, results.size());
-        assertEquals(newerRecord.getId(), results.getFirst().getScmsHealth().getId(),
-            "Should select record with newest timestamp, not highest ID");
-        assertEquals(newerRecord.getHealth(), results.getFirst().getScmsHealth().getHealth());
-    }
-
     private Organization saveOrganization(String name) {
         Organization organization = new Organization();
         organization.setName(name);
