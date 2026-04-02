@@ -196,6 +196,216 @@ class ScmsHealthServiceTest {
             "Should return the health value from the record with the highest ID");
     }
 
+    @Test
+    void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMoreThanTwoRecordsHaveSameTimestamp() throws Exception {
+        // Arrange - Tests that even with many tied timestamps, exactly one row is returned
+        Organization org = saveOrganization("ManyTiesOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer4");
+        RsuModel model = saveRsuModel("Model4", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-4", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp4", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu4", "user", "pass", org);
+
+        Rsu rsu = saveRsu("10.0.0.30", model, snmpCred, rsuCred, protocol, org);
+
+        Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        // Create 5 health records with identical timestamps
+        saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, false);
+        saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, false);
+        ScmsHealth lastRecord = saveScmsHealth(rsu, sameTime, true);
+
+        // Act
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("ManyTiesOrg");
+
+        // Assert
+        assertEquals(1, results.size(),
+            "Should return exactly one record per RSU even with many timestamp ties");
+        assertEquals(lastRecord.getId(), results.get(0).getScmsHealth().getId(),
+            "Should select the record with the highest ID");
+    }
+
+    @Test
+    void testGetScmsStatuses_ResultsOrderedByIpv4Address() throws Exception {
+        // Arrange - Legacy query orders by rd.ipv4_address
+        Organization org = saveOrganization("OrderedOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer5");
+        RsuModel model = saveRsuModel("Model5", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-5", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp5", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu5", "user", "pass", org);
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        // Create RSUs in non-sorted order
+        Rsu rsu3 = saveRsu("10.0.0.103", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsu1 = saveRsu("10.0.0.101", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsu2 = saveRsu("10.0.0.102", model, snmpCred, rsuCred, protocol, org);
+
+        saveScmsHealth(rsu3, now, true);
+        saveScmsHealth(rsu1, now, true);
+        saveScmsHealth(rsu2, now, true);
+
+        // Act
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("OrderedOrg");
+
+        // Assert - Results should be sorted by IPv4 address
+        assertEquals(3, results.size());
+        assertEquals("10.0.0.101", results.get(0).getRsu().getIpv4Address().getHostAddress(),
+            "First result should be 10.0.0.101");
+        assertEquals("10.0.0.102", results.get(1).getRsu().getIpv4Address().getHostAddress(),
+            "Second result should be 10.0.0.102");
+        assertEquals("10.0.0.103", results.get(2).getRsu().getIpv4Address().getHostAddress(),
+            "Third result should be 10.0.0.103");
+    }
+
+    @Test
+    void testGetScmsStatuses_RsuInMultipleOrganizations_AppearsInEachOrgQuery() throws Exception {
+        // Arrange - An RSU can belong to multiple organizations
+        Organization org1 = saveOrganization("MultiOrg1");
+        Organization org2 = saveOrganization("MultiOrg2");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer6");
+        RsuModel model = saveRsuModel("Model6", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-6", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp6", "user", "pass", org1);
+        RsuCredential rsuCred = saveRsuCredential("rsu6", "user", "pass", org1);
+
+        // Create RSU and associate with both organizations
+        Rsu sharedRsu = saveRsuWithoutOrg("10.0.0.50", model, snmpCred, rsuCred, protocol);
+        saveRsuOrganization(sharedRsu, org1);
+        saveRsuOrganization(sharedRsu, org2);
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        ScmsHealth healthRecord = saveScmsHealth(sharedRsu, now, true);
+
+        // Act
+        List<ScmsHealthRsuProjection> resultsOrg1 = scmsHealthService.getScmsStatuses("MultiOrg1");
+        List<ScmsHealthRsuProjection> resultsOrg2 = scmsHealthService.getScmsStatuses("MultiOrg2");
+
+        // Assert - RSU should appear in both organization queries
+        assertEquals(1, resultsOrg1.size(), "RSU should appear in MultiOrg1 results");
+        assertEquals(1, resultsOrg2.size(), "RSU should appear in MultiOrg2 results");
+        assertEquals(healthRecord.getId(), resultsOrg1.get(0).getScmsHealth().getId());
+        assertEquals(healthRecord.getId(), resultsOrg2.get(0).getScmsHealth().getId());
+    }
+
+    @Test
+    void testGetScmsStatuses_MixedRsusWithAndWithoutHealthRecords() throws Exception {
+        // Arrange - Legacy query uses LEFT JOIN so RSUs without health records are included
+        Organization org = saveOrganization("MixedOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer7");
+        RsuModel model = saveRsuModel("Model7", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-7", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp7", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu7", "user", "pass", org);
+
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        // RSU with health records
+        Rsu rsuWithHealth = saveRsu("10.0.0.60", model, snmpCred, rsuCred, protocol, org);
+        ScmsHealth healthRecord = saveScmsHealth(rsuWithHealth, now, true);
+
+        // RSU without health records
+        Rsu rsuWithoutHealth = saveRsu("10.0.0.61", model, snmpCred, rsuCred, protocol, org);
+
+        // Act
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("MixedOrg");
+
+        // Assert - Both RSUs should be returned, sorted by IP
+        assertEquals(2, results.size(), "Should return both RSUs");
+
+        // First RSU (10.0.0.60) has health record
+        assertEquals("10.0.0.60", results.get(0).getRsu().getIpv4Address().getHostAddress());
+        assertNotNull(results.get(0).getScmsHealth(), "First RSU should have health record");
+        assertEquals(healthRecord.getId(), results.get(0).getScmsHealth().getId());
+
+        // Second RSU (10.0.0.61) has no health record
+        assertEquals("10.0.0.61", results.get(1).getRsu().getIpv4Address().getHostAddress());
+        assertNull(results.get(1).getScmsHealth(), "Second RSU should have null health record");
+    }
+
+    @Test
+    void testGetScmsStatuses_DeterministicResults_MultipleCallsReturnSameOrder() throws Exception {
+        // Arrange - Ensure the query returns deterministic results on repeated calls
+        Organization org = saveOrganization("DeterministicOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer8");
+        RsuModel model = saveRsuModel("Model8", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-8", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp8", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu8", "user", "pass", org);
+
+        Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        Rsu rsu1 = saveRsu("10.0.0.70", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsu2 = saveRsu("10.0.0.71", model, snmpCred, rsuCred, protocol, org);
+
+        // Create multiple records with same timestamp for each RSU
+        saveScmsHealth(rsu1, sameTime, true);
+        ScmsHealth rsu1Latest = saveScmsHealth(rsu1, sameTime, false);
+        saveScmsHealth(rsu2, sameTime, false);
+        ScmsHealth rsu2Latest = saveScmsHealth(rsu2, sameTime, true);
+
+        // Act - Call multiple times
+        List<ScmsHealthRsuProjection> results1 = scmsHealthService.getScmsStatuses("DeterministicOrg");
+        List<ScmsHealthRsuProjection> results2 = scmsHealthService.getScmsStatuses("DeterministicOrg");
+        List<ScmsHealthRsuProjection> results3 = scmsHealthService.getScmsStatuses("DeterministicOrg");
+
+        // Assert - All calls should return identical results
+        assertEquals(2, results1.size());
+        assertEquals(2, results2.size());
+        assertEquals(2, results3.size());
+
+        // Verify same IDs are returned each time
+        assertEquals(results1.get(0).getScmsHealth().getId(), results2.get(0).getScmsHealth().getId());
+        assertEquals(results1.get(0).getScmsHealth().getId(), results3.get(0).getScmsHealth().getId());
+        assertEquals(results1.get(1).getScmsHealth().getId(), results2.get(1).getScmsHealth().getId());
+        assertEquals(results1.get(1).getScmsHealth().getId(), results3.get(1).getScmsHealth().getId());
+
+        // Verify correct records are selected (highest ID per RSU)
+        assertEquals(rsu1Latest.getId(), results1.get(0).getScmsHealth().getId());
+        assertEquals(rsu2Latest.getId(), results1.get(1).getScmsHealth().getId());
+    }
+
+    @Test
+    void testGetScmsStatuses_SelectsLatestTimestamp_NotHighestId() throws Exception {
+        // Arrange - Ensure timestamp takes precedence over ID for selecting the latest record
+        Organization org = saveOrganization("TimestampPrecedenceOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer9");
+        RsuModel model = saveRsuModel("Model9", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-9", "v3");
+        SnmpCredential snmpCred = saveSnmpCredential("snmp9", "user", "pass", org);
+        RsuCredential rsuCred = saveRsuCredential("rsu9", "user", "pass", org);
+
+        Rsu rsu = saveRsu("10.0.0.80", model, snmpCred, rsuCred, protocol, org);
+
+        Instant older = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MICROS);
+        Instant newer = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        // Save older record first (will have lower ID)
+        saveScmsHealth(rsu, older, false);
+        // Save newer record second (will have higher ID AND newer timestamp)
+        ScmsHealth newerRecord = saveScmsHealth(rsu, newer, true);
+        // Save another older record last (will have highest ID but older timestamp)
+        saveScmsHealth(rsu, older, false);
+
+        // Act
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("TimestampPrecedenceOrg");
+
+        // Assert - Should select the record with the newest timestamp, not the highest ID
+        assertEquals(1, results.size());
+        assertEquals(newerRecord.getId(), results.get(0).getScmsHealth().getId(),
+            "Should select record with newest timestamp, not highest ID");
+        assertEquals(newerRecord.getHealth(), results.get(0).getScmsHealth().getHealth());
+    }
+
     private Organization saveOrganization(String name) {
         Organization org = new Organization();
         org.setName(name);
@@ -260,6 +470,25 @@ class ScmsHealthServiceTest {
         rsu = rsuRepository.save(rsu);
         saveRsuOrganization(rsu, org);
         return rsu;
+    }
+
+    private Rsu saveRsuWithoutOrg(String ip, RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol) throws Exception {
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(InetAddress.getByName(ip));
+        rsu.setModel(model);
+        rsu.setSnmpCredential(snmpCred);
+        rsu.setCredential(rsuCred);
+        rsu.setSnmpProtocol(protocol);
+        rsu.setSerialNumber("SN-" + ip);
+        rsu.setMilepost(100.0);
+        rsu.setIssScmsId("ISS-" + ip);
+        rsu.setPrimaryRoute("I-25");
+
+        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        Point point = geometryFactory.createPoint(new Coordinate(0, 0));
+        rsu.setGeography(point);
+
+        return rsuRepository.save(rsu);
     }
 
     private void saveRsuOrganization(Rsu rsu, Organization org) {
