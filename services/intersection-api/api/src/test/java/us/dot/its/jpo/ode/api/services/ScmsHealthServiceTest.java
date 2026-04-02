@@ -446,27 +446,14 @@ class ScmsHealthServiceTest {
         rsu.setGeography(point);
         
         rsu = rsuRepository.save(rsu);
-        saveRsuOrganization(rsu, org);
+        if (org != null) {
+            saveRsuOrganization(rsu, org);
+        }
         return rsu;
     }
 
     private Rsu saveRsuWithoutOrg(RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol) throws Exception {
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName("10.0.0.50"));
-        rsu.setModel(model);
-        rsu.setSnmpCredential(snmpCred);
-        rsu.setCredential(rsuCred);
-        rsu.setSnmpProtocol(protocol);
-        rsu.setSerialNumber("SN-" + "10.0.0.50");
-        rsu.setMilepost(100.0);
-        rsu.setIssScmsId("ISS-" + "10.0.0.50");
-        rsu.setPrimaryRoute("I-25");
-
-        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        Point point = geometryFactory.createPoint(new Coordinate(0, 0));
-        rsu.setGeography(point);
-
-        return rsuRepository.save(rsu);
+        return saveRsu("10.0.0.80", model, snmpCred, rsuCred, protocol, null);
     }
 
     private void saveRsuOrganization(Rsu rsu, Organization org) {
