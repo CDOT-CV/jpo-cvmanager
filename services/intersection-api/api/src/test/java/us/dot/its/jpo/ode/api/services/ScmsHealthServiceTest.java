@@ -162,10 +162,10 @@ class ScmsHealthServiceTest {
     }
 
     @Test
-    @DisplayName("Given two records with different timestamps, returns the one with the latest timestamp")
-    void testGetScmsStatuses_ReturnsRecordWithLatestTimestamp() throws Exception {
+    @DisplayName("Given two records with the same timestamp, only one row is returned")
+    void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = saveOrganization("TimestampOrg");
+        Organization org = saveOrganization("SameTimestampOrg");
 
         Manufacturer manufacturer = saveManufacturer("Manufacturer3");
         RsuModel model = saveRsuModel("Model3", manufacturer);
@@ -175,26 +175,64 @@ class ScmsHealthServiceTest {
 
         Rsu rsu = saveRsu("10.0.0.20", model, snmpCred, rsuCred, protocol, org);
 
-        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
-        Instant earlier = now.minus(1, ChronoUnit.HOURS);
+        Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-        // Create health records with different timestamps - the later one should be selected
-        saveScmsHealth(rsu, earlier, true);
-        ScmsHealth latestRecord = saveScmsHealth(rsu, now, false);
+        // Create multiple health records with identical timestamps.
+        // The query must return exactly one row per RSU (matching legacy ROW_NUMBER behavior).
+        // The tie-breaker is the highest ID, so the last saved record should be selected.
+        ScmsHealth firstRecord = saveScmsHealth(rsu, sameTime, true);
+        ScmsHealth secondRecord = saveScmsHealth(rsu, sameTime, false);
+
+        // Verify secondRecord has a higher ID (saved later)
+        assertTrue(secondRecord.getId() > firstRecord.getId(),
+            "Second record should have higher ID than first record");
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("TimestampOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("SameTimestampOrg");
 
         // Assert
         assertEquals(1, results.size(),
-            "Should return exactly one record per RSU");
+            "Should return exactly one record per RSU even when multiple records have the same timestamp");
 
         ScmsHealthRsuProjection result = results.getFirst();
         assertNotNull(result.getScmsHealth(), "ScmsHealth should not be null");
-        assertEquals(latestRecord.getTimestamp(), result.getScmsHealth().getTimestamp(),
-            "Should select the record with the latest timestamp");
-        assertEquals(latestRecord.getHealth(), result.getScmsHealth().getHealth(),
-            "Should return the health value from the record with the latest timestamp");
+        assertEquals(secondRecord.getId(), result.getScmsHealth().getId(),
+            "Should select the record with the highest ID as a deterministic tie-breaker");
+        assertEquals(secondRecord.getHealth(), result.getScmsHealth().getHealth(),
+            "Should return the health value from the record with the highest ID");
+    }
+
+    @Test
+    @DisplayName("Given many tied timestamps, exactly one row is returned")
+    void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMoreThanTwoRecordsHaveSameTimestamp() throws Exception {
+        // Arrange
+        Organization org = saveOrganization("ManyTiesOrg");
+
+        Manufacturer manufacturer = saveManufacturer("Manufacturer4");
+        RsuModel model = saveRsuModel("Model4", manufacturer);
+        SnmpProtocol protocol = saveSnmpProtocol("v3-4");
+        SnmpCredential snmpCredential = saveSnmpCredential("snmp4", org);
+        RsuCredential rsuCredential = saveRsuCredential("rsu4", org);
+
+        Rsu rsu = saveRsu("10.0.0.30", model, snmpCredential, rsuCredential, protocol, org);
+
+        Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
+
+        // Create 5 health records with identical timestamps
+        saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, false);
+        saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, false);
+        ScmsHealth lastRecord = saveScmsHealth(rsu, sameTime, true);
+
+        // Act
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("ManyTiesOrg");
+
+        // Assert
+        assertEquals(1, results.size(),
+            "Should return exactly one record per RSU even with many timestamp ties");
+        assertEquals(lastRecord.getId(), results.getFirst().getScmsHealth().getId(),
+            "Should select the record with the highest ID");
     }
 
     @Test
@@ -314,17 +352,16 @@ class ScmsHealthServiceTest {
         SnmpCredential snmpCredential = saveSnmpCredential("snmp8", org);
         RsuCredential rsuCredential = saveRsuCredential("rsu8", org);
 
-        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
-        Instant earlier = now.minus(1, ChronoUnit.HOURS);
+        Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         Rsu rsu1 = saveRsu("10.0.0.70", model, snmpCredential, rsuCredential, protocol, org);
         Rsu rsu2 = saveRsu("10.0.0.71", model, snmpCredential, rsuCredential, protocol, org);
 
-        // Create multiple records with different timestamps for each RSU
-        saveScmsHealth(rsu1, earlier, true);
-        ScmsHealth rsu1Latest = saveScmsHealth(rsu1, now, false);
-        saveScmsHealth(rsu2, earlier, false);
-        ScmsHealth rsu2Latest = saveScmsHealth(rsu2, now, true);
+        // Create multiple records with same timestamp for each RSU
+        saveScmsHealth(rsu1, sameTime, true);
+        ScmsHealth rsu1Latest = saveScmsHealth(rsu1, sameTime, false);
+        saveScmsHealth(rsu2, sameTime, false);
+        ScmsHealth rsu2Latest = saveScmsHealth(rsu2, sameTime, true);
 
         // Act - Call multiple times
         List<ScmsHealthRsuProjection> results1 = scmsHealthService.getScmsStatuses("DeterministicOrg");
@@ -336,15 +373,15 @@ class ScmsHealthServiceTest {
         assertEquals(2, results2.size());
         assertEquals(2, results3.size());
 
-        // Verify same timestamps are returned each time
-        assertEquals(results1.get(0).getScmsHealth().getTimestamp(), results2.get(0).getScmsHealth().getTimestamp());
-        assertEquals(results1.get(0).getScmsHealth().getTimestamp(), results3.get(0).getScmsHealth().getTimestamp());
-        assertEquals(results1.get(1).getScmsHealth().getTimestamp(), results2.get(1).getScmsHealth().getTimestamp());
-        assertEquals(results1.get(1).getScmsHealth().getTimestamp(), results3.get(1).getScmsHealth().getTimestamp());
+        // Verify same IDs are returned each time
+        assertEquals(results1.get(0).getScmsHealth().getId(), results2.get(0).getScmsHealth().getId());
+        assertEquals(results1.get(0).getScmsHealth().getId(), results3.get(0).getScmsHealth().getId());
+        assertEquals(results1.get(1).getScmsHealth().getId(), results2.get(1).getScmsHealth().getId());
+        assertEquals(results1.get(1).getScmsHealth().getId(), results3.get(1).getScmsHealth().getId());
 
-        // Verify correct records are selected (latest timestamp per RSU)
-        assertEquals(rsu1Latest.getTimestamp(), results1.get(0).getScmsHealth().getTimestamp());
-        assertEquals(rsu2Latest.getTimestamp(), results1.get(1).getScmsHealth().getTimestamp());
+        // Verify correct records are selected (highest ID per RSU)
+        assertEquals(rsu1Latest.getId(), results1.get(0).getScmsHealth().getId());
+        assertEquals(rsu2Latest.getId(), results1.get(1).getScmsHealth().getId());
     }
 
     private Organization saveOrganization(String name) {

@@ -35,7 +35,8 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
      *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health
      *     records (matching Python's LEFT JOIN).</li>
      *     <li>Using a <b>correlated subquery</b> to select only the most recent health record per RSU
-     *     by selecting the record with the latest timestamp.</li>
+     *     by selecting the record with the highest ID (since IDs are auto-incrementing, the highest ID
+     *     corresponds to the latest record).</li>
      *     <li>Filtering by the <b>organization name</b> and sorting by <b>IPv4 address</b>.</li>
      * </ul>
      *
@@ -46,7 +47,7 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
             "JOIN rd.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "LEFT JOIN ScmsHealth sh ON sh.rsu = rd " +
-            "AND sh.timestamp = (SELECT MAX(sh2.timestamp) FROM ScmsHealth sh2 WHERE sh2.rsu = rd) " +
+            "AND sh.id = (SELECT MAX(sh2.id) FROM ScmsHealth sh2 WHERE sh2.rsu = rd) " +
             "WHERE o.name = :organization " +
             "ORDER BY rd.ipv4Address")
     List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("organization") String organization);
