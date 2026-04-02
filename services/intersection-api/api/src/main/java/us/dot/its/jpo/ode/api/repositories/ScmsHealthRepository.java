@@ -32,8 +32,12 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
      * This query is functionally equivalent to the legacy Python implementation in {@code iss_scms_status.py}.
      * It achieves parity by:
      * <ul>
-     *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health records (matching Python's LEFT JOIN).</li>
-     *     <li>Using a <b>correlated subquery</b> that selects the ScmsHealth record with the highest timestamp, and breaks ties using the highest ID (equivalent to Python's ROW_NUMBER() window function which guarantees exactly one row per RSU).</li>
+     *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health
+     *     records (matching Python's LEFT JOIN).</li>
+     *     <li>Using a <b>correlated subquery</b> to select only the most recent health record per RSU
+     *     (equivalent to Python's ROW_NUMBER() window function).</li>
+     *     <li>Using <b>timestamp DESC, id DESC</b> ordering in the subquery to ensure deterministic results
+     *     when multiple records have the same timestamp (highest ID wins as tie-breaker).</li>
      *     <li>Filtering by the <b>organization name</b> and sorting by <b>IPv4 address</b>.</li>
      * </ul>
      *
@@ -44,7 +48,8 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
             "JOIN rd.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "LEFT JOIN ScmsHealth sh ON sh.rsu = rd " +
-            "AND sh.id = (SELECT sh2.id FROM ScmsHealth sh2 WHERE sh2.rsu = rd ORDER BY sh2.timestamp DESC, sh2.id DESC LIMIT 1) " +
+            "AND sh.id = (SELECT MAX(sh3.id) FROM ScmsHealth sh3 WHERE sh3.rsu = rd " +
+            "AND sh3.timestamp = (SELECT MAX(sh2.timestamp) FROM ScmsHealth sh2 WHERE sh2.rsu = rd)) " +
             "WHERE o.name = :organization " +
             "ORDER BY rd.ipv4Address")
     List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("organization") String organization);
