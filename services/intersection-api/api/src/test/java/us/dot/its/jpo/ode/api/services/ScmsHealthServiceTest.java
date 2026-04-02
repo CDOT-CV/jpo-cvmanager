@@ -109,10 +109,10 @@ class ScmsHealthServiceTest {
         // Assert
         assertEquals(2, results.size(), "Should return 2 records for Org1");
         
-        ScmsHealthRsuProjection result1 = results.stream().filter(res -> res.getRsu().getIpv4Address().getHostAddress().equals("10.0.0.1")).findFirst().orElseThrow();
+        ScmsHealthRsuProjection result1 = results.stream().filter(res -> res.getRsuIp().getHostAddress().equals("10.0.0.1")).findFirst().orElseThrow();
         assertEquals(rsu1Latest.getHealth(), result1.getScmsHealth().getHealth());
 
-        ScmsHealthRsuProjection result2 = results.stream().filter(res -> res.getRsu().getIpv4Address().getHostAddress().equals("10.0.0.2")).findFirst().orElseThrow();
+        ScmsHealthRsuProjection result2 = results.stream().filter(res -> res.getRsuIp().getHostAddress().equals("10.0.0.2")).findFirst().orElseThrow();
         assertEquals(rsu2Latest.getHealth(), result2.getScmsHealth().getHealth());
     }
 
@@ -225,11 +225,11 @@ class ScmsHealthServiceTest {
 
         // Assert - Results should be sorted by IPv4 address
         assertEquals(3, results.size());
-        assertEquals("10.0.0.101", results.get(0).getRsu().getIpv4Address().getHostAddress(),
+        assertEquals("10.0.0.101", results.get(0).getRsuIp().getHostAddress(),
             "First result should be 10.0.0.101");
-        assertEquals("10.0.0.102", results.get(1).getRsu().getIpv4Address().getHostAddress(),
+        assertEquals("10.0.0.102", results.get(1).getRsuIp().getHostAddress(),
             "Second result should be 10.0.0.102");
-        assertEquals("10.0.0.103", results.get(2).getRsu().getIpv4Address().getHostAddress(),
+        assertEquals("10.0.0.103", results.get(2).getRsuIp().getHostAddress(),
             "Third result should be 10.0.0.103");
     }
 
@@ -293,12 +293,12 @@ class ScmsHealthServiceTest {
         assertEquals(2, results.size(), "Should return both RSUs");
 
         // First RSU (10.0.0.60) has health record
-        assertEquals("10.0.0.60", results.getFirst().getRsu().getIpv4Address().getHostAddress());
+        assertEquals("10.0.0.60", results.getFirst().getRsuIp().getHostAddress());
         assertNotNull(results.get(0).getScmsHealth(), "First RSU should have health record");
         assertEquals(healthRecord.getId(), results.get(0).getScmsHealth().getId());
 
         // Second RSU (10.0.0.61) has no health record
-        assertEquals("10.0.0.61", results.get(1).getRsu().getIpv4Address().getHostAddress());
+        assertEquals("10.0.0.61", results.get(1).getRsuIp().getHostAddress());
         assertNull(results.get(1).getScmsHealth(), "Second RSU should have null health record");
     }
 

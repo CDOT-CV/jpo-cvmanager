@@ -51,13 +51,11 @@ class ScmsHealthControllerTest {
     @DisplayName("Retrieved successfully")
     void testGetScmsStatus_SUCCESS() throws Exception {
         // Arrange
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName("10.0.0.1"));
         ScmsHealth scmsHealth = new ScmsHealth();
         scmsHealth.setHealth(true);
         scmsHealth.setExpiration(Instant.now());
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(InetAddress.getByName("10.0.0.1"), scmsHealth);
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -117,13 +115,11 @@ class ScmsHealthControllerTest {
     @DisplayName("Retrieval succeeds when user is a super user")
     void testGetScmsStatus_SUCCESS_AsSuperUser() throws Exception {
         // Arrange - super user can access any organization
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName("10.0.0.1"));
         ScmsHealth scmsHealth = new ScmsHealth();
         scmsHealth.setHealth(true);
         scmsHealth.setExpiration(Instant.now());
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(InetAddress.getByName("10.0.0.1"), scmsHealth);
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(true);

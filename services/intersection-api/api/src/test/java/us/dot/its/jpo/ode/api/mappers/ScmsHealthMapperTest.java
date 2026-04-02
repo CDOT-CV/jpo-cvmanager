@@ -30,15 +30,14 @@ class ScmsHealthMapperTest {
     void testToMap_Success() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        InetAddress inetAddress = InetAddress.getByName(ip);
 
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
         ScmsHealth scmsHealth = new ScmsHealth();
         scmsHealth.setHealth(true);
         scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -61,13 +60,12 @@ class ScmsHealthMapperTest {
     void testToMap_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        InetAddress inetAddress = InetAddress.getByName(ip);
 
         ScmsHealth scmsHealth = new ScmsHealth();
         scmsHealth.setHealth(false); // Inactive
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -87,11 +85,10 @@ class ScmsHealthMapperTest {
     void testToMap_NoHealth_ReturnsNullValue() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        InetAddress inetAddress = InetAddress.getByName(ip);
 
         // No ScmsHealth record for this RSU
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, null);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, null);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -116,10 +113,9 @@ class ScmsHealthMapperTest {
     void testToDto_NullScmsHealth() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        InetAddress inetAddress = InetAddress.getByName(ip);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, null);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, null);
 
         // Act
         ScmsHealthDto dto = mapper.toDto(projection);
@@ -143,15 +139,14 @@ class ScmsHealthMapperTest {
     void testToDto_Success() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        InetAddress inetAddress = InetAddress.getByName(ip);
 
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
         ScmsHealth scmsHealth = new ScmsHealth();
         scmsHealth.setHealth(true);
         scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
 
         // Act
         ScmsHealthDto dto = mapper.toDto(projection);

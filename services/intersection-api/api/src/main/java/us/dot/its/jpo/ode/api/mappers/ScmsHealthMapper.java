@@ -47,7 +47,7 @@ public interface ScmsHealthMapper {
 
         Map<String, ScmsHealthDto> statusMap = new HashMap<>();
         for (ScmsHealthRsuProjection result : queryResults) {
-            String ip = result.getRsu().getIpv4Address().getHostAddress();
+            String ip = result.getRsuIp().getHostAddress();
             ScmsHealth sh = result.getScmsHealth();
 
             if (sh != null) {

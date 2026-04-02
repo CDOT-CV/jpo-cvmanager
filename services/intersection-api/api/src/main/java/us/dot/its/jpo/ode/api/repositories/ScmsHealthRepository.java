@@ -42,7 +42,7 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
      * @param organization The name of the organization to filter by.
      * @return A list of projections containing RSU and their latest SCMS health data.
      */
-    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection(rd, sh) FROM Rsu rd " +
+    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection(rd.ipv4Address, sh) FROM Rsu rd " +
             "JOIN rd.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "LEFT JOIN ScmsHealth sh ON sh.rsu = rd " +
