@@ -38,8 +38,8 @@ public class ScmsHealthController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role in the specified organization"),
+            @ApiResponse(responseCode = "400", description = "Organization header is missing"),
             @ApiResponse(responseCode = "404", description = "Organization not found"),
-            @ApiResponse(responseCode = "500", description = "Organization header is missing"),
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")

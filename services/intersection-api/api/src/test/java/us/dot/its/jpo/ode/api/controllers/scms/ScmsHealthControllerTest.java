@@ -76,7 +76,7 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_FAILURE_OrganizationHeaderMissing() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/scms-status"))
-            .andExpect(status().isInternalServerError());
+            .andExpect(status().isBadRequest());
     }
 
     @Test
