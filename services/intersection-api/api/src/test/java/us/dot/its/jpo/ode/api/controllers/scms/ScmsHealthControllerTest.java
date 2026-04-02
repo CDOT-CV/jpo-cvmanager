@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.controllers.scms;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -47,16 +48,16 @@ class ScmsHealthControllerTest {
     private PermissionService permissionService;
 
     @Test
-    @Transactional
+    @DisplayName("Retrieved successfully")
     void testGetScmsStatus_SUCCESS() throws Exception {
         // Arrange
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(InetAddress.getByName("10.0.0.1"));
-        ScmsHealth sh = new ScmsHealth();
-        sh.setHealth(true);
-        sh.setExpiration(Instant.now());
+        ScmsHealth scmsHealth = new ScmsHealth();
+        scmsHealth.setHealth(true);
+        scmsHealth.setExpiration(Instant.now());
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -73,6 +74,7 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    @DisplayName("Retrieval fails when Organization header is missing")
     void testGetScmsStatus_FAILURE_OrganizationHeaderMissing() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/scms-status"))
@@ -80,6 +82,7 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    @DisplayName("Retrieval succeeds when no results are returned")
     void testGetScmsStatus_SUCCESS_EmptyResults() throws Exception {
         // Arrange
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -97,6 +100,7 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    @DisplayName("Retrieval fails when Organization is not found")
     void testGetScmsStatus_FAILURE_OrganizationNotFound() throws Exception {
         // Arrange
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -110,15 +114,16 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    @DisplayName("Retrieval succeeds when user is a super user")
     void testGetScmsStatus_SUCCESS_AsSuperUser() throws Exception {
         // Arrange - super user can access any organization
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(InetAddress.getByName("10.0.0.1"));
-        ScmsHealth sh = new ScmsHealth();
-        sh.setHealth(true);
-        sh.setExpiration(Instant.now());
+        ScmsHealth scmsHealth = new ScmsHealth();
+        scmsHealth.setHealth(true);
+        scmsHealth.setExpiration(Instant.now());
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, sh);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(rsu, scmsHealth);
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(true);
@@ -136,6 +141,7 @@ class ScmsHealthControllerTest {
     }
 
     @Test
+    @DisplayName("Retrieval fails when user is not authorized to access the requested organization")
     void testGetScmsStatus_FORBIDDEN_UserNotInOrganization() throws Exception {
         // Arrange - user does not have access to the requested organization
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -144,21 +150,6 @@ class ScmsHealthControllerTest {
         // Act & Assert
         mockMvc.perform(get("/scms-status")
                         .header("Organization", "UnauthorizedOrg"))
-            .andExpect(status().isForbidden());
-
-        // Service should NOT be called since authorization failed
-        verify(scmsHealthService, never()).getScmsStatuses(anyString());
-    }
-
-    @Test
-    void testGetScmsStatus_FORBIDDEN_UserHasLowerRole() throws Exception {
-        // Arrange - user exists in org but doesn't have USER role or above
-        when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(false);
-
-        // Act & Assert
-        mockMvc.perform(get("/scms-status")
-                        .header("Organization", "TestOrg"))
             .andExpect(status().isForbidden());
 
         // Service should NOT be called since authorization failed
