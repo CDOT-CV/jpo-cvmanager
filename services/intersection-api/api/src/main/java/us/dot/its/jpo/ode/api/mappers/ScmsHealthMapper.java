@@ -17,8 +17,9 @@ import java.util.Map;
 @Mapper(componentModel = "spring")
 public interface ScmsHealthMapper {
 
-    DateTimeFormatter DENVER_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a")
-            .withZone(ZoneId.of("America/Denver"));
+    String ZONE_ID = "America/Denver"; // TODO: make configurable
+    DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a")
+            .withZone(ZoneId.of(ZONE_ID));
 
     @Mapping(target = "health", source = "scmsHealth.health", qualifiedByName = "healthToString")
     @Mapping(target = "expiration", source = "scmsHealth.expiration", qualifiedByName = "formatInstant")
@@ -37,7 +38,7 @@ public interface ScmsHealthMapper {
         if (instant == null) {
             return null;
         }
-        return DENVER_FORMATTER.format(instant);
+        return DATE_TIME_FORMATTER.format(instant);
     }
 
     default Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
