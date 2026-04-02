@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { getIssScmsStatus, getRsuLastOnline, selectRsuData } from '../../generalSlices/rsuSlice'
+import { getRsuLastOnline, selectRsuData } from '../../generalSlices/rsuSlice'
 
 import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
-import { selectRsuOnlineStatus, selectIssScmsStatusData } from '../../generalSlices/rsuSlice'
+import { selectRsuOnlineStatus } from '../../generalSlices/rsuSlice'
+import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
 
 import { GpsFixedSharp } from '@mui/icons-material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -25,7 +27,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const rsuData = useSelector(selectRsuData)
   const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
-  const issScmsStatusData = useSelector(selectIssScmsStatusData)
+  const organization = useSelector(selectOrganizationName)
+  const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
   const [selectedRSU, setSelectedRSU] = useState<RsuInfo | undefined>(initialSelectedRsu)
   const [emailHidden, setEmailHidden] = useState(true)
   const contentRef = useRef(null)
@@ -43,10 +46,6 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     scms_status: string
   }
 
-  // UseEffect to pull SCMS status data on first load
-  useEffect(() => {
-    dispatch(getIssScmsStatus())
-  }, [dispatch])
 
   // Fetch RSU online status data when an RSU is selected to ensure 'last online' is populated
   useEffect(() => {

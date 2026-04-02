@@ -50,9 +50,6 @@ class EnvironmentVars {
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
-  // This endpoint is relative because authApiHelper.invokeApi in rsu-api.ts 
-  // automatically prepends EnvironmentVars.CVIZ_API_SERVER_URL as the default basePath.
-  static issScmsStatusEndpoint = `/scms/status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
   static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`

@@ -23,7 +23,6 @@ import Slider from '@mui/material/Slider'
 import {
   selectRsuOnlineStatus,
   selectRsuData,
-  selectIssScmsStatusData,
   selectSelectedRsu,
   selectRsuIpv4,
   selectAddGeoMsgPoint,
@@ -38,7 +37,6 @@ import {
   // actions
   selectRsu,
   getRsuData,
-  getIssScmsStatus,
   getRsuLastOnline,
   toggleGeoMsgPointSelect,
   clearGeoMsg,
@@ -132,6 +130,7 @@ import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
 import { DateTime } from 'luxon'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
+import { useLazyGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 
@@ -150,7 +149,7 @@ function MapPage() {
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
-  const issScmsStatusData = useSelector(selectIssScmsStatusData)
+  const [triggerGetScmsStatus, { data: issScmsStatusData = {} }] = useLazyGetScmsStatusQuery()
   const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
   const rsuIpv4 = useSelector(selectRsuIpv4)
   const addConfigPoint = useSelector(selectAddConfigPoint)
@@ -701,7 +700,7 @@ function MapPage() {
   }
 
   const handleScmsStatus = () => {
-    dispatch(getIssScmsStatus())
+    triggerGetScmsStatus(organization)
     setDisplayType('scms')
   }
 
@@ -1159,7 +1158,7 @@ function MapPage() {
                     setSelectedWZDxMarker(null)
                     dispatch(clearFirmware()) // TODO: Should remove??
                     dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                    dispatch(getIssScmsStatus())
+                    triggerGetScmsStatus(organization)
                   }}
                 >
                   <button
@@ -1173,7 +1172,7 @@ function MapPage() {
                       setSelectedWZDxMarkerIndex(null)
                       setSelectedWZDxMarker(null)
                       dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                      dispatch(getIssScmsStatus())
+                      triggerGetScmsStatus(organization)
                     }}
                   >
                     <RsuMarker
