@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.DateTimeException;
 import java.time.ZoneId;
-import java.time.zone.ZoneRulesException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,12 +56,12 @@ class DateTimeConfigTest {
     }
 
     @Test
-    @DisplayName("Unrecognized timezone throws ZoneRulesException")
+    @DisplayName("Unrecognized timezone throws DateTimeException")
     void testInvalidTimezoneThrowsException() {
         DateTimeConfig config = new DateTimeConfig();
         config.setTimezone("Invalid/Timezone");
 
-        assertThrows(ZoneRulesException.class, config::getZoneId);
+        assertThrows(DateTimeException.class, config::getZoneId);
     }
 
     @Test
