@@ -118,6 +118,7 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendIntersectionNotificationSummaryEmailSendResponses(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
     }
 
     @Test
@@ -135,6 +136,7 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
     }
 
     @Test
@@ -152,6 +154,7 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendMessageCounts(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
     }
 
     @Test
@@ -180,6 +183,7 @@ class EmailServiceTest {
     @Test
     void testSendRsuErrorSummary() {
         List<String> recipientNames = List.of("test@example.com");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", ""));
         RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents(recipientNames, "subject", "message");
         EmailContent content = new EmailContent("subject", "body");
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
@@ -192,5 +196,6 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
     }
 }
