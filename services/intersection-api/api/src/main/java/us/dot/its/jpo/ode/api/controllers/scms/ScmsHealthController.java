@@ -13,9 +13,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.ScmsHealthMapper;
-import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
+import us.dot.its.jpo.ode.api.models.scms.ScmsHealthResponse;
 import us.dot.its.jpo.ode.api.services.ScmsHealthService;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -43,8 +42,8 @@ public class ScmsHealthController {
     })
     @GetMapping(value = "/status", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
-    public Map<String, ScmsHealthDto> getAllStatuses(@RequestHeader(name = "Organization") String organization) {
+    public ScmsHealthResponse getAllStatuses(@RequestHeader(name = "Organization") String organization) {
         log.info("GET /scms/status. organization: {}", organization);
-        return scmsHealthMapper.toMap(scmsHealthService.getScmsStatuses(organization));
+        return scmsHealthMapper.toResponse(scmsHealthService.getScmsStatuses(organization));
     }
 }

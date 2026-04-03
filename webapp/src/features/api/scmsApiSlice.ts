@@ -3,12 +3,29 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 
-// Types
+/**
+ * API slice for SCMS health status.
+ * Provides RSU certificate health information for a given organization.
+ */
+
+// Types matching the API response structure
+
+// Individual SCMS health record for an RSU
+export type ScmsHealthDto = {
+  // "1" = healthy/up-to-date, "0" = unhealthy/out-of-date, null = unknown
+  health: '0' | '1' | null
+  // Certificate expiration timestamp, e.g. "04/10/2026 01:28:01 PM"
+  expiration: string | null
+}
+
+// Map of RSU IPv4 addresses to their health status. Null values indicate no health record.
 export type ScmsHealthStatus = {
-  [ip: string]: {
-    health: '0' | '1'
-    expiration: string
-  }
+  [ip: string]: ScmsHealthDto | null
+}
+
+// Raw API response wrapper - the API returns the map inside a scmsHealthByIp field
+type ScmsHealthResponse = {
+  scmsHealthByIp: ScmsHealthStatus
 }
 
 // Tag type constants
@@ -40,6 +57,8 @@ export const scmsApiSlice = createApi({
           Organization: organization,
         },
       }),
+      // Unwrap the response so consumers get the map directly without needing to access .scmsHealthByIp
+      transformResponse: (response: ScmsHealthResponse) => response.scmsHealthByIp,
       providesTags: [SCMS_API_STATUS_TAG],
     }),
   }),

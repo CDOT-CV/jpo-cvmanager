@@ -2,11 +2,13 @@ package us.dot.its.jpo.ode.api.mappers;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
+import us.dot.its.jpo.ode.api.models.scms.ScmsHealthResponse;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -14,7 +16,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Mapper(componentModel = "spring")
+/**
+ * MapStruct mapper for SCMS health data.
+ *
+ * <p>MapStruct generates {@link #toDto(ScmsHealthRsuProjection)} with compile-time field checking.
+ * If a field is added to {@link ScmsHealthDto} without a corresponding mapping, MapStruct emits
+ * a compile warning.</p>
+ *
+ * <p>{@link #toResponse(List)} is manually implemented because MapStruct does not yet support
+ * {@code List → Map} conversions keyed by a property. It delegates to the generated {@code toDto()}
+ * to preserve compile-time checking.</p>
+ *
+ * @see <a href="https://github.com/mapstruct/mapstruct/discussions/3263">MapStruct Discussion #3263</a>
+ * @see <a href="https://github.com/mapstruct/mapstruct/issues/3580">MapStruct Issue #3580</a>
+ */
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public abstract class ScmsHealthMapper {
 
     private static final String DATE_TIME_PATTERN = "MM/dd/yyyy hh:mm:ss a";
@@ -22,6 +38,9 @@ public abstract class ScmsHealthMapper {
     @Autowired
     protected DateTimeConfig dateTimeConfig;
 
+    /**
+     * Maps a single projection to DTO. MapStruct generates this method.
+     */
     @Mapping(target = "health", source = "health", qualifiedByName = "healthToString")
     @Mapping(target = "expiration", source = "expiration", qualifiedByName = "formatInstant")
     public abstract ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
@@ -45,24 +64,19 @@ public abstract class ScmsHealthMapper {
     }
 
     /**
-     * Converts a list of projections to a map keyed by IP address.
-     * Entries with null health are mapped to null values.
+     * Converts projections to a response keyed by IP address.
+     * Delegates to {@link #toDto} to preserve compile-time field checking.
      */
-    public Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
-        if (queryResults == null) {
+    public ScmsHealthResponse toResponse(List<ScmsHealthRsuProjection> projections) {
+        if (projections == null) {
             return null;
         }
-
-        Map<String, ScmsHealthDto> statusMap = new HashMap<>();
-        for (ScmsHealthRsuProjection result : queryResults) {
-            String ip = result.getIpv4Address().getHostAddress();
-
-            if (result.getHealth() != null) {
-                statusMap.put(ip, toDto(result));
-            } else {
-                statusMap.put(ip, null);
-            }
+        Map<String, ScmsHealthDto> scmsHealthByIp = new HashMap<>();
+        for (ScmsHealthRsuProjection projection : projections) {
+            String ip = projection.getIpv4Address().getHostAddress();
+            ScmsHealthDto dto = projection.getHealth() != null ? toDto(projection) : null;
+            scmsHealthByIp.put(ip, dto);
         }
-        return statusMap;
+        return new ScmsHealthResponse(scmsHealthByIp);
     }
 }

@@ -61,7 +61,7 @@ class ScmsHealthControllerTest {
         mockMvc.perform(get("/scms/status")
                         .header("Organization", "TestOrg"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.['10.0.0.1'].health").value("1"));
+            .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value("1"));
 
         verify(scmsHealthService).getScmsStatuses(anyString());
     }
@@ -86,8 +86,8 @@ class ScmsHealthControllerTest {
         mockMvc.perform(get("/scms/status")
                         .header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isMap())
-                .andExpect(jsonPath("$.*").isEmpty());
+                .andExpect(jsonPath("$.scmsHealthByIp").isMap())
+                .andExpect(jsonPath("$.scmsHealthByIp.*").isEmpty());
 
         verify(scmsHealthService).getScmsStatuses(anyString());
     }
@@ -121,7 +121,7 @@ class ScmsHealthControllerTest {
         mockMvc.perform(get("/scms/status")
                         .header("Organization", "AnyOrg"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.['10.0.0.1'].health").value("1"));
+            .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value("1"));
 
         verify(scmsHealthService).getScmsStatuses(anyString());
         // hasRoleInOrg should NOT be called since isSuperUser returns true

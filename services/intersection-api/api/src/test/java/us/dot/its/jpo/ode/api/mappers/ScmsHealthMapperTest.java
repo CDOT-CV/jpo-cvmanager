@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectionImpl;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
+import us.dot.its.jpo.ode.api.models.scms.ScmsHealthResponse;
 
 class ScmsHealthMapperTest {
 
@@ -34,8 +35,8 @@ class ScmsHealthMapperTest {
     }
 
     @Test
-    @DisplayName("Maps projections to String -> ScmsHealthDto map successfully")
-    void testToMap_Success() throws UnknownHostException {
+    @DisplayName("Maps projections to ScmsHealthResponse successfully")
+    void testToResponse_Success() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
@@ -46,9 +47,11 @@ class ScmsHealthMapperTest {
         projections.add(projection);
 
         // Act
-        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
+        ScmsHealthResponse response = mapper.toResponse(projections);
 
         // Assert
+        assertNotNull(response);
+        Map<String, ScmsHealthDto> result = response.getScmsHealthByIp();
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.containsKey(ip));
@@ -61,7 +64,7 @@ class ScmsHealthMapperTest {
 
     @Test
     @DisplayName("Maps projections with inactive health")
-    void testToMap_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
+    void testToResponse_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
@@ -71,9 +74,11 @@ class ScmsHealthMapperTest {
         projections.add(projection);
 
         // Act
-        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
+        ScmsHealthResponse response = mapper.toResponse(projections);
 
         // Assert
+        assertNotNull(response);
+        Map<String, ScmsHealthDto> result = response.getScmsHealthByIp();
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.containsKey(ip));
@@ -83,7 +88,7 @@ class ScmsHealthMapperTest {
 
     @Test
     @DisplayName("Maps projections with no health")
-    void testToMap_NoHealth_ReturnsNullValue() throws UnknownHostException {
+    void testToResponse_NoHealth_ReturnsNullValue() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
@@ -94,9 +99,11 @@ class ScmsHealthMapperTest {
         projections.add(projection);
 
         // Act
-        Map<String, ScmsHealthDto> result = mapper.toMap(projections);
+        ScmsHealthResponse response = mapper.toResponse(projections);
 
         // Assert
+        assertNotNull(response);
+        Map<String, ScmsHealthDto> result = response.getScmsHealthByIp();
         assertNotNull(result);
         assertEquals(1, result.size());
         assertTrue(result.containsKey(ip));
@@ -128,11 +135,12 @@ class ScmsHealthMapperTest {
     }
 
     @Test
-    @DisplayName("Empty input returns empty map")
-    void testToMap_EmptyInput() {
-        Map<String, ScmsHealthDto> result = mapper.toMap(new ArrayList<>());
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
+    @DisplayName("Empty input returns response with empty map")
+    void testToResponse_EmptyInput() {
+        ScmsHealthResponse response = mapper.toResponse(new ArrayList<>());
+        assertNotNull(response);
+        assertNotNull(response.getScmsHealthByIp());
+        assertTrue(response.getScmsHealthByIp().isEmpty());
     }
 
     @Test
