@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.*;
 @Slf4j
 @SpringBootTest
 class IntersectionNotificationSummaryEmailGeneratorTest {
+
+    @Autowired
     private TemplateEngine templateEngine;
 
     @Mock

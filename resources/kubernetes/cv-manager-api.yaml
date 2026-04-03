@@ -144,22 +144,15 @@ spec:
               value: ""
             - name: WZDX_API_KEY
               value: ""
-            - name: CSM_EMAIL_TO_SEND_FROM
+            - name: IAPI_ENDPOINT
               value: ""
-            - name: CSM_EMAIL_APP_USERNAME
-              valueFrom: 
+            - name: KEYCLOAK_API_CLIENT_ID
+              value: "sa_cvmanager_python_api"
+            - name: KEYCLOAK_API_CLIENT_SECRET_KEY
+              valueFrom:
                 secretKeyRef:
-                  name: some_email_secret_name
-                  key: some_email_secret_key
-            - name: CSM_EMAIL_APP_PASSWORD
-              valueFrom: 
-                secretKeyRef:
-                  name: some_email_secret_password
-                  key: some_email_secret_key
-            - name: CSM_TARGET_SMTP_SERVER_ADDRESS
-              value: ""
-            - name: CSM_TARGET_SMTP_SERVER_PORT
-              value: ""
+                  name: keycloak-sa-python-api-secret-name
+                  key: keycloak-sa-python-api-secret-key
             - name: TIMEZONE
               value: ""
             - name: LOGGING_LEVEL
