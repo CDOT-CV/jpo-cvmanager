@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
@@ -21,7 +22,7 @@ import java.util.Map;
  *
  * <p>MapStruct generates {@link #toDto(ScmsHealthRsuProjection)} with compile-time field checking.
  * If a field is added to {@link ScmsHealthDto} without a corresponding mapping, MapStruct emits
- * a compile warning.</p>
+ * a compile error (see {@code unmappedTargetPolicy}).</p>
  *
  * <p>{@link #toResponse(List)} is manually implemented because MapStruct does not yet support
  * {@code List → Map} conversions keyed by a property. It delegates to the generated {@code toDto()}
@@ -30,7 +31,10 @@ import java.util.Map;
  * @see <a href="https://github.com/mapstruct/mapstruct/discussions/3263">MapStruct Discussion #3263</a>
  * @see <a href="https://github.com/mapstruct/mapstruct/issues/3580">MapStruct Issue #3580</a>
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(
+        componentModel = MappingConstants.ComponentModel.SPRING,
+        unmappedTargetPolicy = ReportingPolicy.ERROR
+)
 public abstract class ScmsHealthMapper {
 
     private static final String DATE_TIME_PATTERN = "MM/dd/yyyy hh:mm:ss a";
