@@ -105,3 +105,12 @@ INSERT INTO public.intersection_organization(
 INSERT INTO public.rsu_intersection(
 	rsu_id, intersection_id)
 	VALUES (1, 1);
+
+-- SCMS Health data for RSUs
+-- RSU 1: Healthy with future expiration
+-- RSU 2: Unhealthy with past expiration
+INSERT INTO public.scms_health(
+	timestamp, health, expiration, rsu_id)
+	VALUES
+	(CURRENT_TIMESTAMP, B'1', CURRENT_TIMESTAMP + INTERVAL '30 days', 1),
+	(CURRENT_TIMESTAMP, B'0', CURRENT_TIMESTAMP - INTERVAL '7 days', 2);
