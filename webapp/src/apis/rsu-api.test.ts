@@ -10,7 +10,6 @@ beforeEach(() => {
   EnvironmentVars.rsuCommandEndpoint = 'VITE_ENV/rsu-command'
   EnvironmentVars.wzdxEndpoint = 'VITE_ENV/wzdx-feed'
   EnvironmentVars.geoMsgDataEndpoint = 'VITE_ENV/rsu-geo-data'
-  EnvironmentVars.CVIZ_API_SERVER_URL = 'VITE_CVIZ_ENV'
   EnvironmentVars.ssmSrmEndpoint = 'VITE_ENV/rsu-ssm-srm-data'
   EnvironmentVars.adminAddIntersection = 'VITE_ENV/admin-new-intersection'
   EnvironmentVars.adminIntersection = 'VITE_ENV/admin-intersection'
