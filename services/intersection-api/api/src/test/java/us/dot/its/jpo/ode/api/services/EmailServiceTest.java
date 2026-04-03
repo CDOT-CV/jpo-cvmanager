@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -127,7 +128,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
@@ -143,7 +145,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendMessageCounts(data);
@@ -160,7 +163,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"), eq("IMMEDIATE"), eq(InetAddress.getByName("1.1.1.1"))))
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"),
+                eq("IMMEDIATE"), eq(InetAddress.getByName("1.1.1.1"))))
                 .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
@@ -181,7 +185,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);

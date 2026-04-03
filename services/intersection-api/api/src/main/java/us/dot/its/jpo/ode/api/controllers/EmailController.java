@@ -17,6 +17,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmail
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -76,6 +77,7 @@ public class EmailController {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendFirmwareUpgradeFailure(body));
     }
+
     @Operation(summary = "API Error Summary", description = "Sends an email with a summary of API errors.")
     @RequestMapping(value = "/send-api-error", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS')")

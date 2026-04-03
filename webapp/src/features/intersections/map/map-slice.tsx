@@ -1,7 +1,8 @@
-import { createAsyncThunk, createSlice, PayloadAction, current } from '@reduxjs/toolkit'
+import React from 'react'
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../../../store'
 import { selectToken } from '../../../generalSlices/userSlice'
-import { CompatClient, IMessage, Stomp, Client } from '@stomp/stompjs'
+import { IMessage, Client } from '@stomp/stompjs'
 import MessageMonitorApi from '../../../apis/intersections/mm-api'
 import EventsApi from '../../../apis/intersections/events-api'
 import NotificationApi from '../../../apis/intersections/notification-api'
@@ -20,7 +21,6 @@ import { MapRef, ViewState } from 'react-map-gl'
 import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
 import EnvironmentVars from '../../../EnvironmentVars'
 import { downloadAllData } from './utilities/file-utilities'
-import React from 'react'
 import { SsmSrmData } from '../../../models/RsuApi'
 import { getTimestamp } from './map-component'
 import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
@@ -85,12 +85,6 @@ export type RAW_MESSAGE_DATA_EXPORT = {
 export type BSM_COUNTS_CHART_DATA = MessageMonitor.MinuteCount & {
   minutesAfterMidnight: number
   timestamp: string
-}
-
-interface MinimalClient {
-  connect: (headers: unknown, connectCallback: () => void, errorCallback?: (error: string) => void) => void
-  subscribe: (destination: string, callback: (message: IMessage) => void) => void
-  disconnect: (disconnectCallback: () => void) => void
 }
 
 const initialState = {
@@ -961,7 +955,7 @@ export const initializeLiveStreaming = createAsyncThunk(
     args: { token: string; intersectionId: number; numRestarts?: number; shouldResetMapView?: boolean },
     { getState, dispatch }
   ) => {
-    const { token, intersectionId, numRestarts = 0, shouldResetMapView = true } = args
+    const { token, intersectionId, shouldResetMapView = true } = args
     // Connect to WebSocket when component mounts
     const currentState = getState() as RootState
     const liveDataActive = selectLiveDataActive(currentState)
@@ -1220,7 +1214,7 @@ export const updateRenderedMapState = createAsyncThunk(
       Boolean(
         (selectMapSignalGroups(getState() as RootState)?.features.length != 0 &&
           selectSpatSignalGroups(getState() as RootState)) ||
-          selectBsmData(getState() as RootState)?.features.length != 0
+        selectBsmData(getState() as RootState)?.features.length != 0
       ),
   }
 )
