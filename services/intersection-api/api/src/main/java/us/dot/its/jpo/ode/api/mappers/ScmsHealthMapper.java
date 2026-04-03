@@ -3,30 +3,32 @@ package us.dot.its.jpo.ode.api.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.springframework.beans.factory.annotation.Autowired;
+import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Mapper(componentModel = "spring")
-public interface ScmsHealthMapper {
+public abstract class ScmsHealthMapper {
 
-    String ZONE_ID = "America/Denver"; // TODO: make configurable
-    DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a")
-            .withZone(ZoneId.of(ZONE_ID));
+    private static final String DATE_TIME_PATTERN = "MM/dd/yyyy hh:mm:ss a";
+
+    @Autowired
+    protected DateTimeConfig dateTimeConfig;
 
     @Mapping(target = "health", source = "scmsHealth.health", qualifiedByName = "healthToString")
     @Mapping(target = "expiration", source = "scmsHealth.expiration", qualifiedByName = "formatInstant")
-    ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
+    public abstract ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
 
     @Named("healthToString")
-    default String healthToString(Boolean health) {
+    protected String healthToString(Boolean health) {
         if (health == null) {
             return null;
         }
@@ -34,14 +36,17 @@ public interface ScmsHealthMapper {
     }
 
     @Named("formatInstant")
-    default String formatInstant(Instant instant) {
+    protected String formatInstant(Instant instant) {
         if (instant == null) {
             return null;
         }
-        return DATE_TIME_FORMATTER.format(instant);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)
+                .withZone(dateTimeConfig.getZoneId());
+        return formatter.format(instant);
     }
 
-    default Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
+    // TODO: define a class instead of using a Map directly in order to allow Mapstruct to automatically map fields
+    public Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
         if (queryResults == null) {
             return null;
         }

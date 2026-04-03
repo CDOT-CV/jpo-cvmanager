@@ -64,6 +64,7 @@ services:
       INTERSECTION_SMTP_STARTTLS: ${INTERSECTION_SMTP_STARTTLS_ENABLED:-false}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       POSTMARK_API_KEY: ${POSTMARK_API_KEY}
+      APP_TIMEZONE: ${APP_TIMEZONE:-America/Denver}
     entrypoint:
       - sh
       - -c
