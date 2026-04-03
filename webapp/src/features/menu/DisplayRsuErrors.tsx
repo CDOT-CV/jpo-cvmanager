@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { getIssScmsStatus, getRsuLastOnline, selectRsuData } from '../../generalSlices/rsuSlice'
@@ -168,15 +168,6 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     borderRadius: '4px',
   }
 
-  const errorPageStyle = {
-    backgroundColor: theme.palette.custom.mapLegendBackground,
-    borderTop: '1px solid white',
-    borderBottom: '1px solid white',
-    fontFamily: '"museo-slab" Arial Helvetica Sans-Serif',
-    width: '90%',
-    padding: '0.5rem 1rem',
-  }
-
   return (
     <div style={containerStyle}>
       {selectedRSU !== undefined ? (
@@ -296,8 +287,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                       backgroundColor: rowData.online_status.toLowerCase().includes('online')
                         ? theme.palette.success.dark
                         : rowData.online_status.toLowerCase().includes('unstable')
-                        ? theme.palette.warning.main
-                        : theme.palette.error.dark,
+                          ? theme.palette.warning.main
+                          : theme.palette.error.dark,
                       width: '4rem',
                       height: '1.5rem',
                       display: 'flex',

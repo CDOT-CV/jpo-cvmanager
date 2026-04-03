@@ -18,7 +18,6 @@ import EnvironmentVars from '../EnvironmentVars'
 import dayjs from 'dayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import TuneIcon from '@mui/icons-material/Tune'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from '@mui/material/Slider'
 import {
@@ -53,7 +52,7 @@ import {
   selectGeoMsgType,
 } from '../generalSlices/rsuSlice'
 import { selectWzdxData, getWzdxData } from '../generalSlices/wzdxSlice'
-import { selectOrganizationName } from '../generalSlices/userSlice'
+import { selectOrganizationName, selectRole } from '../generalSlices/userSlice'
 import { SecureStorageManager } from '../managers'
 import {
   selectConfigCoordinates,
@@ -86,14 +85,11 @@ import {
   FormControl,
   RadioGroup,
   Radio,
-  Collapse,
   InputLabel,
   Box,
   Divider,
   Grid2,
-  Stack,
 } from '@mui/material'
-import * as turf from '@turf/turf'
 import './css/MsgMap.css'
 import './css/Map.css'
 import { WZDxFeature, WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
@@ -136,8 +132,6 @@ import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
 import { DateTime } from 'luxon'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
-import { CustomTable } from '../features/intersections/map/custom-table'
-import { getStackGroupsByAxisId } from 'recharts/types/util/ChartUtils'
 
 const MILLISECONDS_PER_MINUTE = 60000
 
@@ -237,8 +231,7 @@ function MapPage() {
   const [selectedWZDxMarker, setSelectedWZDxMarker] = useState(null)
   const [wzdxMarkers, setWzdxMarkers] = useState([])
   const [pageOpen] = useState(true)
-
-  const [expandedLayers, setExpandedLayers] = useState<string[]>([])
+  const userRole = useSelector(selectRole)
 
   // Vendor filter local state variable
   const [selectedVendor, setSelectedVendor] = useState('Select Vendor')
@@ -367,7 +360,7 @@ function MapPage() {
       ({
         type: 'FeatureCollection',
         features: configCoordinates.map(createPointFeature),
-      } as GeoJSON.FeatureCollection<GeoJSON.Geometry>),
+      }) as GeoJSON.FeatureCollection<GeoJSON.Geometry>,
     [configCoordinates]
   )
 
@@ -488,7 +481,7 @@ function MapPage() {
                   ipv4_address: rsu.properties.ipv4_address,
                   count: rsuCounts?.[rsu.properties.ipv4_address]?.messageTypeCounts?.[countsMsgType] ?? 0,
                 },
-              } as GeoJSON.Feature<GeoJSON.Geometry>)
+              }) as GeoJSON.Feature<GeoJSON.Geometry>
           )
           ?.filter((feature) => feature.properties.count > 0) ?? [],
     }
@@ -724,10 +717,6 @@ function MapPage() {
     if (!activeLayers.includes(MAP_LAYERS.RSU.id)) {
       dispatch(toggleLayerActive(MAP_LAYERS.RSU.id))
     }
-  }
-
-  const toggleExpandLayer = (layerId: string) => {
-    setExpandedLayers((prev) => (prev.includes(layerId) ? prev.filter((id) => id !== layerId) : [...prev, layerId]))
   }
 
   const MAP_LAYERS: Record<string, MapLayer> = {
@@ -971,7 +960,7 @@ function MapPage() {
         </ConditionalRenderRsu>
 
         <ConditionalRenderRsu>
-          {SecureStorageManager.getUserRole() === 'admin' && (
+          {(userRole ?? SecureStorageManager.getUserRole())?.toUpperCase() === 'ADMIN' && (
             <>
               <Divider />
               <Accordion
@@ -1131,13 +1120,9 @@ function MapPage() {
                   type="circle"
                   paint={{
                     'circle-radius': 5,
-                    'circle-color': addGeoMsgPoint
-                      ? 'rgba(255, 164, 0, 0.5)'
-                      : 'rgba(255, 0, 0, 0.5)',
+                    'circle-color': addGeoMsgPoint ? 'rgba(255, 164, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)',
                     'circle-stroke-width': 2,
-                    'circle-stroke-color': addGeoMsgPoint
-                      ? 'rgb(255, 164, 0)'
-                      : 'rgb(255, 0, 0)',
+                    'circle-stroke-color': addGeoMsgPoint ? 'rgb(255, 164, 0)' : 'rgb(255, 0, 0)',
                   }}
                 />
               </Source>
