@@ -29,27 +29,40 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
     /**
      * Retrieves the latest SCMS health record for each RSU within a specific organization.
      * <p>
-     * This query is functionally equivalent to the legacy Python implementation.
+     * This query is functionally equivalent to the legacy Python implementation which uses:
+     * {@code ROW_NUMBER() OVER (PARTITION BY sh.rsu_id ORDER BY sh.timestamp DESC)}
+     * <p>
      * It achieves parity by:
      * <ul>
      *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health
      *     records (matching Python's LEFT JOIN).</li>
-     *     <li>Using a <b>correlated subquery</b> to select only the most recent health record per RSU
-     *     by selecting the record with the highest ID (since IDs are auto-incrementing, the highest ID
-     *     corresponds to the latest record).</li>
+     *     <li>Using a <b>subquery with ROW_NUMBER()</b> window function to efficiently select only the most recent
+     *     health record per RSU (single pass, no correlated subquery).</li>
      *     <li>Filtering by the <b>organization name</b> and sorting by <b>IPv4 address</b>.</li>
      * </ul>
+     * <p>
+     * Note: Uses native SQL for PostgreSQL-specific ROW_NUMBER() window function for performance.
      *
      * @param organization The name of the organization to filter by.
      * @return A list of projections containing RSU and their latest SCMS health data.
      */
-    @Query("SELECT new us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection(rd.ipv4Address, sh) FROM Rsu rd " +
-            "JOIN rd.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "LEFT JOIN ScmsHealth sh ON sh.rsu = rd " +
-            "AND sh.id = (SELECT MAX(sh2.id) FROM ScmsHealth sh2 WHERE sh2.rsu = rd) " +
-            "WHERE o.name = :organization " +
-            "ORDER BY rd.ipv4Address")
+    @Query(value = """
+            SELECT rd.ipv4_address, sh.health, sh.expiration
+            FROM rsus rd
+            JOIN rsu_organization ro ON ro.rsu_id = rd.rsu_id
+            JOIN organizations o ON o.organization_id = ro.organization_id
+            LEFT JOIN (
+                SELECT rsu_id, health, expiration
+                FROM (
+                    SELECT rsu_id, health, expiration,
+                           ROW_NUMBER() OVER (PARTITION BY rsu_id ORDER BY timestamp DESC) AS row_num
+                    FROM scms_health
+                ) ranked
+                WHERE row_num = 1
+            ) sh ON sh.rsu_id = rd.rsu_id
+            WHERE o.name = :organization
+            ORDER BY rd.ipv4_address
+            """, nativeQuery = true)
     @Transactional(readOnly = true)
     List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("organization") String organization);
 }

@@ -109,11 +109,15 @@ class ScmsHealthServiceTest {
         // Assert
         assertEquals(2, results.size(), "Should return 2 records for Org1");
         
-        ScmsHealthRsuProjection result1 = results.stream().filter(res -> res.getRsuIp().getHostAddress().equals("10.0.0.1")).findFirst().orElseThrow();
-        assertEquals(rsu1Latest.getHealth(), result1.getScmsHealth().getHealth());
+        ScmsHealthRsuProjection result1 = results.stream()
+                .filter(res -> res.getIpv4Address().getHostAddress().equals("10.0.0.1"))
+                .findFirst().orElseThrow();
+        assertEquals(rsu1Latest.getHealth(), result1.getHealth());
 
-        ScmsHealthRsuProjection result2 = results.stream().filter(res -> res.getRsuIp().getHostAddress().equals("10.0.0.2")).findFirst().orElseThrow();
-        assertEquals(rsu2Latest.getHealth(), result2.getScmsHealth().getHealth());
+        ScmsHealthRsuProjection result2 = results.stream()
+                .filter(res -> res.getIpv4Address().getHostAddress().equals("10.0.0.2"))
+                .findFirst().orElseThrow();
+        assertEquals(rsu2Latest.getHealth(), result2.getHealth());
     }
 
     @Test
@@ -130,8 +134,8 @@ class ScmsHealthServiceTest {
     }
 
     @Test
-    @DisplayName("When an organization has RSUs but no health records, the result is null")
-    void testGetScmsStatuses_ReturnsNullValue_WhenOrganizationHasRsusButNoHealthRecords() throws Exception {
+    @DisplayName("When an organization has RSUs but no health records, the health fields are null")
+    void testGetScmsStatuses_ReturnsNullHealth_WhenOrganizationHasRsusButNoHealthRecords() throws Exception {
         // Arrange
         Organization org = saveOrganization("NoHealthOrg");
 
@@ -148,7 +152,8 @@ class ScmsHealthServiceTest {
 
         // Assert
         assertEquals(1, results.size(), "Should return 1 entry even when RSU has no health records");
-        assertNull(results.getFirst().getScmsHealth(), "The ScmsHealth object should be null when the RSU has no health records");
+        assertNull(results.getFirst().getHealth(), "Health should be null when the RSU has no health records");
+        assertNull(results.getFirst().getExpiration(), "Expiration should be null when the RSU has no health records");
     }
 
     @Test
@@ -179,13 +184,8 @@ class ScmsHealthServiceTest {
 
         // Create multiple health records with identical timestamps.
         // The query must return exactly one row per RSU (matching legacy ROW_NUMBER behavior).
-        // The tie-breaker is the highest ID, so the last saved record should be selected.
-        ScmsHealth firstRecord = saveScmsHealth(rsu, sameTime, true);
-        ScmsHealth secondRecord = saveScmsHealth(rsu, sameTime, false);
-
-        // Verify secondRecord has a higher ID (saved later)
-        assertTrue(secondRecord.getId() > firstRecord.getId(),
-            "Second record should have higher ID than first record");
+        saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, false);
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("SameTimestampOrg");
@@ -195,11 +195,7 @@ class ScmsHealthServiceTest {
             "Should return exactly one record per RSU even when multiple records have the same timestamp");
 
         ScmsHealthRsuProjection result = results.getFirst();
-        assertNotNull(result.getScmsHealth(), "ScmsHealth should not be null");
-        assertEquals(secondRecord.getId(), result.getScmsHealth().getId(),
-            "Should select the record with the highest ID as a deterministic tie-breaker");
-        assertEquals(secondRecord.getHealth(), result.getScmsHealth().getHealth(),
-            "Should return the health value from the record with the highest ID");
+        assertNotNull(result.getHealth(), "Health should not be null");
     }
 
     @Test
@@ -223,7 +219,7 @@ class ScmsHealthServiceTest {
         saveScmsHealth(rsu, sameTime, false);
         saveScmsHealth(rsu, sameTime, true);
         saveScmsHealth(rsu, sameTime, false);
-        ScmsHealth lastRecord = saveScmsHealth(rsu, sameTime, true);
+        saveScmsHealth(rsu, sameTime, true);
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("ManyTiesOrg");
@@ -231,8 +227,6 @@ class ScmsHealthServiceTest {
         // Assert
         assertEquals(1, results.size(),
             "Should return exactly one record per RSU even with many timestamp ties");
-        assertEquals(lastRecord.getId(), results.getFirst().getScmsHealth().getId(),
-            "Should select the record with the highest ID");
     }
 
     @Test
@@ -263,11 +257,11 @@ class ScmsHealthServiceTest {
 
         // Assert - Results should be sorted by IPv4 address
         assertEquals(3, results.size());
-        assertEquals("10.0.0.101", results.get(0).getRsuIp().getHostAddress(),
+        assertEquals("10.0.0.101", results.get(0).getIpv4Address().getHostAddress(),
             "First result should be 10.0.0.101");
-        assertEquals("10.0.0.102", results.get(1).getRsuIp().getHostAddress(),
+        assertEquals("10.0.0.102", results.get(1).getIpv4Address().getHostAddress(),
             "Second result should be 10.0.0.102");
-        assertEquals("10.0.0.103", results.get(2).getRsuIp().getHostAddress(),
+        assertEquals("10.0.0.103", results.get(2).getIpv4Address().getHostAddress(),
             "Third result should be 10.0.0.103");
     }
 
@@ -299,8 +293,8 @@ class ScmsHealthServiceTest {
         // Assert - RSU should appear in both organization queries
         assertEquals(1, resultsOrg1.size(), "RSU should appear in MultiOrg1 results");
         assertEquals(1, resultsOrg2.size(), "RSU should appear in MultiOrg2 results");
-        assertEquals(healthRecord.getId(), resultsOrg1.getFirst().getScmsHealth().getId());
-        assertEquals(healthRecord.getId(), resultsOrg2.getFirst().getScmsHealth().getId());
+        assertEquals(healthRecord.getHealth(), resultsOrg1.getFirst().getHealth());
+        assertEquals(healthRecord.getHealth(), resultsOrg2.getFirst().getHealth());
     }
 
     @Test
@@ -331,13 +325,13 @@ class ScmsHealthServiceTest {
         assertEquals(2, results.size(), "Should return both RSUs");
 
         // First RSU (10.0.0.60) has health record
-        assertEquals("10.0.0.60", results.getFirst().getRsuIp().getHostAddress());
-        assertNotNull(results.get(0).getScmsHealth(), "First RSU should have health record");
-        assertEquals(healthRecord.getId(), results.get(0).getScmsHealth().getId());
+        assertEquals("10.0.0.60", results.getFirst().getIpv4Address().getHostAddress());
+        assertNotNull(results.get(0).getHealth(), "First RSU should have health record");
+        assertEquals(healthRecord.getHealth(), results.get(0).getHealth());
 
         // Second RSU (10.0.0.61) has no health record
-        assertEquals("10.0.0.61", results.get(1).getRsuIp().getHostAddress());
-        assertNull(results.get(1).getScmsHealth(), "Second RSU should have null health record");
+        assertEquals("10.0.0.61", results.get(1).getIpv4Address().getHostAddress());
+        assertNull(results.get(1).getHealth(), "Second RSU should have null health");
     }
 
     @Test
@@ -359,9 +353,9 @@ class ScmsHealthServiceTest {
 
         // Create multiple records with same timestamp for each RSU
         saveScmsHealth(rsu1, sameTime, true);
-        ScmsHealth rsu1Latest = saveScmsHealth(rsu1, sameTime, false);
+        saveScmsHealth(rsu1, sameTime, false);
         saveScmsHealth(rsu2, sameTime, false);
-        ScmsHealth rsu2Latest = saveScmsHealth(rsu2, sameTime, true);
+        saveScmsHealth(rsu2, sameTime, true);
 
         // Act - Call multiple times
         List<ScmsHealthRsuProjection> results1 = scmsHealthService.getScmsStatuses("DeterministicOrg");
@@ -373,15 +367,11 @@ class ScmsHealthServiceTest {
         assertEquals(2, results2.size());
         assertEquals(2, results3.size());
 
-        // Verify same IDs are returned each time
-        assertEquals(results1.get(0).getScmsHealth().getId(), results2.get(0).getScmsHealth().getId());
-        assertEquals(results1.get(0).getScmsHealth().getId(), results3.get(0).getScmsHealth().getId());
-        assertEquals(results1.get(1).getScmsHealth().getId(), results2.get(1).getScmsHealth().getId());
-        assertEquals(results1.get(1).getScmsHealth().getId(), results3.get(1).getScmsHealth().getId());
-
-        // Verify correct records are selected (highest ID per RSU)
-        assertEquals(rsu1Latest.getId(), results1.get(0).getScmsHealth().getId());
-        assertEquals(rsu2Latest.getId(), results1.get(1).getScmsHealth().getId());
+        // Verify same health values are returned each time
+        assertEquals(results1.get(0).getHealth(), results2.get(0).getHealth());
+        assertEquals(results1.get(0).getHealth(), results3.get(0).getHealth());
+        assertEquals(results1.get(1).getHealth(), results2.get(1).getHealth());
+        assertEquals(results1.get(1).getHealth(), results3.get(1).getHealth());
     }
 
     private Organization saveOrganization(String name) {

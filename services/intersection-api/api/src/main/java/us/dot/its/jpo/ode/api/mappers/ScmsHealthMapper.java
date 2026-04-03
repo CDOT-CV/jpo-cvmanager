@@ -6,7 +6,6 @@ import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
-import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 
 import java.time.Instant;
@@ -23,8 +22,8 @@ public abstract class ScmsHealthMapper {
     @Autowired
     protected DateTimeConfig dateTimeConfig;
 
-    @Mapping(target = "health", source = "scmsHealth.health", qualifiedByName = "healthToString")
-    @Mapping(target = "expiration", source = "scmsHealth.expiration", qualifiedByName = "formatInstant")
+    @Mapping(target = "health", source = "health", qualifiedByName = "healthToString")
+    @Mapping(target = "expiration", source = "expiration", qualifiedByName = "formatInstant")
     public abstract ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
 
     @Named("healthToString")
@@ -45,7 +44,10 @@ public abstract class ScmsHealthMapper {
         return formatter.format(instant);
     }
 
-    // TODO: define a class instead of using a Map directly in order to allow Mapstruct to automatically map fields
+    /**
+     * Converts a list of projections to a map keyed by IP address.
+     * Entries with null health are mapped to null values.
+     */
     public Map<String, ScmsHealthDto> toMap(List<ScmsHealthRsuProjection> queryResults) {
         if (queryResults == null) {
             return null;
@@ -53,10 +55,9 @@ public abstract class ScmsHealthMapper {
 
         Map<String, ScmsHealthDto> statusMap = new HashMap<>();
         for (ScmsHealthRsuProjection result : queryResults) {
-            String ip = result.getRsuIp().getHostAddress();
-            ScmsHealth sh = result.getScmsHealth();
+            String ip = result.getIpv4Address().getHostAddress();
 
-            if (sh != null) {
+            if (result.getHealth() != null) {
                 statusMap.put(ip, toDto(result));
             } else {
                 statusMap.put(ip, null);

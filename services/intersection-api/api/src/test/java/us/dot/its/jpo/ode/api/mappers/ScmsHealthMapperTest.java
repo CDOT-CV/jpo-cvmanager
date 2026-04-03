@@ -12,18 +12,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
+import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
-import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
+import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectionImpl;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 
 class ScmsHealthMapperTest {
 
-    private final ScmsHealthMapper mapper = Mappers.getMapper(ScmsHealthMapper.class);
+    private ScmsHealthMapperImpl mapper;
+
+    @BeforeEach
+    void setUp() {
+        mapper = new ScmsHealthMapperImpl();
+        DateTimeConfig dateTimeConfig = new DateTimeConfig();
+        dateTimeConfig.setTimezone("America/Denver");
+        mapper.dateTimeConfig = dateTimeConfig;
+    }
 
     @Test
     @DisplayName("Maps projections to String -> ScmsHealthDto map successfully")
@@ -31,13 +39,9 @@ class ScmsHealthMapperTest {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
-
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
-        ScmsHealth scmsHealth = new ScmsHealth();
-        scmsHealth.setHealth(true);
-        scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, true, expiration);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -62,10 +66,7 @@ class ScmsHealthMapperTest {
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
 
-        ScmsHealth scmsHealth = new ScmsHealth();
-        scmsHealth.setHealth(false); // Inactive
-
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, false, null);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -87,8 +88,8 @@ class ScmsHealthMapperTest {
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
 
-        // No ScmsHealth record for this RSU
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, null);
+        // No health record for this RSU (null health)
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, null, null);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
         projections.add(projection);
 
@@ -110,12 +111,12 @@ class ScmsHealthMapperTest {
 
     @Test
     @DisplayName("Maps projections with null health")
-    void testToDto_NullScmsHealth() throws UnknownHostException {
+    void testToDto_NullHealth() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, null);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, null, null);
 
         // Act
         ScmsHealthDto dto = mapper.toDto(projection);
@@ -140,13 +141,9 @@ class ScmsHealthMapperTest {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
-
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
-        ScmsHealth scmsHealth = new ScmsHealth();
-        scmsHealth.setHealth(true);
-        scmsHealth.setExpiration(expiration);
 
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(inetAddress, scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, true, expiration);
 
         // Act
         ScmsHealthDto dto = mapper.toDto(projection);
@@ -155,5 +152,29 @@ class ScmsHealthMapperTest {
         assertNotNull(dto);
         assertEquals("1", dto.getHealth());
         assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
+    }
+
+    @Test
+    @DisplayName("Maps projection with different timezone")
+    void testToDto_DifferentTimezone() throws UnknownHostException {
+        // Arrange - Use UTC timezone
+        DateTimeConfig utcConfig = new DateTimeConfig();
+        utcConfig.setTimezone("UTC");
+        mapper.dateTimeConfig = utcConfig;
+
+        String ip = "10.0.0.1";
+        InetAddress inetAddress = InetAddress.getByName(ip);
+        Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
+
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, true, expiration);
+
+        // Act
+        ScmsHealthDto dto = mapper.toDto(projection);
+
+        // Assert
+        assertNotNull(dto);
+        assertEquals("1", dto.getHealth());
+        // UTC time should be 15:00:00 (3:00 PM)
+        assertEquals("03/27/2024 03:00:00 PM", dto.getExpiration());
     }
 }

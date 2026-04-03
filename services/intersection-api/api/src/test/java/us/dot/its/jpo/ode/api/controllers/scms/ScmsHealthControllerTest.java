@@ -24,13 +24,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
-import jakarta.transaction.Transactional;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
-import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
-import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.ScmsHealthService;
 
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
+import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectionImpl;
+import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.services.ScmsHealthService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("integration-test")
@@ -51,11 +49,8 @@ class ScmsHealthControllerTest {
     @DisplayName("Retrieved successfully")
     void testGetScmsStatus_SUCCESS() throws Exception {
         // Arrange
-        ScmsHealth scmsHealth = new ScmsHealth();
-        scmsHealth.setHealth(true);
-        scmsHealth.setExpiration(Instant.now());
-
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(InetAddress.getByName("10.0.0.1"), scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(
+                InetAddress.getByName("10.0.0.1"), true, Instant.now());
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -115,11 +110,8 @@ class ScmsHealthControllerTest {
     @DisplayName("Retrieval succeeds when user is a super user")
     void testGetScmsStatus_SUCCESS_AsSuperUser() throws Exception {
         // Arrange - super user can access any organization
-        ScmsHealth scmsHealth = new ScmsHealth();
-        scmsHealth.setHealth(true);
-        scmsHealth.setExpiration(Instant.now());
-
-        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjection(InetAddress.getByName("10.0.0.1"), scmsHealth);
+        ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(
+                InetAddress.getByName("10.0.0.1"), true, Instant.now());
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(true);
