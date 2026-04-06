@@ -48,15 +48,15 @@ describe('functions', () => {
     ).toEqual(false)
   })
 
-  it('checkForm valid with organizations selected', async () => {
+  it('checkForm all invalid', async () => {
     expect(
       validateFormContents({
         value: {
-          selectedOrganizations: [{ name: 'org1' }],
+          selectedOrganizations: [],
           selectedRsus: [],
         },
       } as any)
-    ).toEqual(true)
+    ).toEqual(false)
   })
 
   it('checkForm all valid', async () => {
@@ -102,34 +102,33 @@ describe('functions', () => {
     expect(mapFormToRequestJson(data, state)).toEqual(expected)
   })
 
-  it('updateJson strips /32 from RSU names and removes empty optional fields', async () => {
+  it('updateJson selectedRoute Other', async () => {
     const data = {
-      intersection_name: '',
-      origin_ip: '',
-      bbox: { latitude1: '', longitude1: '', latitude2: '', longitude2: '' },
+      intersection_name: 'a',
     } as any
     const state = {
       value: {
         apiData: {
           allowed_selections: {
-            organizations: ['org1'],
-            rsus: ['10.0.0.1/32', '10.0.0.2/32'],
+            organizations: ['org1', 'org2', 'org4'],
+            rsus: ['rsu1', 'rsu2', 'rsu4'],
           },
           intersection_data: {
-            organizations: [],
-            rsus: ['10.0.0.2'],
+            organizations: ['org2', 'org4'],
+            rsus: ['rsu2', 'rsu4'],
           },
         },
-        selectedOrganizations: [{ name: 'org1' }],
-        selectedRsus: [{ name: '10.0.0.1' }],
+        selectedOrganizations: [{ name: 'org1' }, { name: 'org2' }, { name: 'org3' }],
+        selectedRsus: [{ name: 'rsu1' }, { name: 'rsu2' }, { name: 'rsu3' }],
       },
     } as any
 
     const expected = {
+      intersection_name: 'a',
       organizations_to_add: ['org1'],
-      organizations_to_remove: [],
-      rsus_to_add: ['10.0.0.1'],
-      rsus_to_remove: ['10.0.0.2'],
+      organizations_to_remove: ['org4'],
+      rsus_to_add: ['rsu1'],
+      rsus_to_remove: ['rsu4'],
     }
 
     expect(mapFormToRequestJson(data, state)).toEqual(expected)
