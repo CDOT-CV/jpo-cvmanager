@@ -125,10 +125,12 @@ const AdminEditIntersection = () => {
     const json = mapFormToRequestJson(data, editIntersectionState)
     patchIntersection(json)
       .unwrap()
-      .then(() => toast.success('Intersection updated successfully'))
+      .then(() => {
+        toast.success('Intersection updated successfully')
+        setOpen(false)
+        navigate('/dashboard/admin/intersections')
+      })
       .catch(() => toast.error('Failed to update Intersection'))
-    setOpen(false)
-    navigate('/dashboard/admin/intersections')
   }
 
   return (
