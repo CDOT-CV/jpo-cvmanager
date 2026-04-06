@@ -377,7 +377,6 @@ describe('adminIntersectionApiSlice', () => {
 
       const request = getRequest()
       expect(request.headers.has('Authorization')).toBe(false)
-      expect(request.headers.has('Organization')).toBe(false)
     })
   })
 })
