@@ -653,7 +653,7 @@ class AdminIntersectionControllerTest {
     @DisplayName("super user returns 200 with organizations and rsus")
     void superUser_returns200WithAllowedSelections() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(true);
-      when(adminIntersectionService.buildAllowedSelections()).thenReturn(sampleAllowedSelections);
+      when(adminIntersectionService.getAllowedSelections()).thenReturn(sampleAllowedSelections);
 
       mockMvc.perform(get("/admin/intersections/allowed-selections"))
         .andExpect(status().isOk())
@@ -669,13 +669,13 @@ class AdminIntersectionControllerTest {
     void userWithRole_returns200() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole("USER")).thenReturn(true);
-      when(adminIntersectionService.buildAllowedSelections()).thenReturn(sampleAllowedSelections);
+      when(adminIntersectionService.getAllowedSelections()).thenReturn(sampleAllowedSelections);
 
       mockMvc.perform(get("/admin/intersections/allowed-selections"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.organizations").isArray());
 
-      verify(adminIntersectionService).buildAllowedSelections();
+      verify(adminIntersectionService).getAllowedSelections();
     }
   }
 

@@ -110,7 +110,7 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public AllowedSelections getAllowedSelections() {
         log.info("GET /admin/intersections/allowed-selections");
-        return adminIntersectionService.buildAllowedSelections();
+        return adminIntersectionService.getAllowedSelections();
     }
 
     /**
