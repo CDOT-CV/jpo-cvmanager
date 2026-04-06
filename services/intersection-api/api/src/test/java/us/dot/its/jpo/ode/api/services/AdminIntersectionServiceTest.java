@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
@@ -574,10 +575,25 @@ class AdminIntersectionServiceTest {
       assertTrue(intersectionRepository.findByIntersectionNumber("12109").isPresent());
     }
 
-    // Duplicate intersectionNumber → DataIntegrityViolationException is enforced by the
-    // production DB's unique constraint on intersections.intersection_number. The test DB
-    // auto-generates schema from entity annotations which lack @Column(unique = true),
-    // so this behavior cannot be verified here.
+    @Test
+    void duplicateIntersectionNumber_throwsDataIntegrityViolationException() {
+      Organization org = organizationRepository.save(fixtures.createRandomOrg());
+      String orgName = org.getName();
+
+      IntersectionCreate first = new IntersectionCreate(
+        12109, new RefPt(40.123, -105.456),
+        List.of(orgName), List.of(),
+        null, null, null);
+      adminIntersectionService.createIntersection(first);
+
+      IntersectionCreate duplicate = new IntersectionCreate(
+        12109, new RefPt(40.789, -105.012),
+        List.of(orgName), List.of(),
+        null, null, null);
+
+      assertThrows(DataIntegrityViolationException.class,
+        () -> adminIntersectionService.createIntersection(duplicate));
+    }
 
     @Test
     void nonExistentOrganization_throwsEntityNotFoundException() {
