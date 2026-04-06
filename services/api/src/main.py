@@ -21,7 +21,6 @@ from iss_scms_status import IssScmsStatus
 from rsu_ssm_srm import RsuSsmSrmData
 from admin_new_intersection import AdminNewIntersection
 from admin_intersection import AdminIntersection
-from admin_new_user import AdminNewUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
 from contact_support import ContactSupportResource
@@ -50,7 +49,6 @@ def apply_cors_header(response):
 api = Api(app)
 
 api.add_resource(HealthCheck, "/")
-api.add_resource(AdminNewUser, "/admin-new-user")
 api.add_resource(AdminNewOrg, "/admin-new-org")
 api.add_resource(AdminOrg, "/admin-org")
 api.add_resource(AdminOrgTimDeposit, "/admin-org-tim-deposit")
