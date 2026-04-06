@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectOrganizationName } from '../generalSlices/userSlice'
+import { selectOrganizationName, selectRole } from '../generalSlices/userSlice'
 import '../features/adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -17,6 +17,7 @@ import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersec
 function Admin() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const organization = useSelector(selectOrganizationName)
+  const userRole = useSelector(selectRole)
 
   useEffect(() => {
     dispatch(getUserNotifications())
@@ -24,7 +25,7 @@ function Admin() {
 
   return (
     <>
-      {SecureStorageManager.getUserRole() !== 'admin' && !LocalStorageManager.getIsSuperUser() ? (
+      {(userRole ?? SecureStorageManager.getUserRole()) !== 'ADMIN' && !LocalStorageManager.getIsSuperUser() ? (
         <div id="admin">
           <NotFound description="You do not have permission to view this page. Please return to main dashboard: " />
         </div>
