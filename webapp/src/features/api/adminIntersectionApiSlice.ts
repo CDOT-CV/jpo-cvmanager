@@ -7,8 +7,8 @@ import { AdminIntersectionCreationInfo, AdminIntersectionCreationBody } from '..
 import { AdminEditIntersectionBody, adminEditIntersectionData } from '../adminEditIntersection/adminEditIntersectionSlice'
 
 // Tag type constants
-const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const
-const ADMIN_INTERSECTION_LIST_ID = 'LIST' as const
+export const ADMIN_INTERSECTION_TAG = 'AdminIntersection' as const
+export const ADMIN_INTERSECTION_LIST_ID = 'LIST' as const
 
 export const adminIntersectionApiSlice = createApi({
   reducerPath: 'adminIntersectionApi',
