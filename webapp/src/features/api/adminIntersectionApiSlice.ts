@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
-import { selectToken } from '../../generalSlices/userSlice'
+import { selectToken, selectOrganizationName } from '../../generalSlices/userSlice'
 import { AdminIntersection } from '../../models/Intersection'
 import { AdminIntersectionCreationInfo, AdminIntersectionCreationBody } from '../adminAddIntersection/adminAddIntersectionSlice'
 import { AdminEditIntersectionBody, adminEditIntersectionData } from '../adminEditIntersection/adminEditIntersectionSlice'
@@ -14,13 +14,14 @@ export const adminIntersectionApiSlice = createApi({
   reducerPath: 'adminIntersectionApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/admin/intersections`,
-    prepareHeaders: (headers, { getState, endpoint }) => {
+    prepareHeaders: (headers, { getState }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
+      const organization = selectOrganizationName(currentState)
 
-      const endpointsWithoutToken = []
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
+      if (token) {
         headers.set('Authorization', `Bearer ${token}`)
+        headers.set('Organization', organization)
       }
 
       return headers
@@ -29,12 +30,9 @@ export const adminIntersectionApiSlice = createApi({
   tagTypes: [ADMIN_INTERSECTION_TAG],
   endpoints: (builder) => ({
     getIntersections: builder.query<{ intersection_data: AdminIntersection[] }, string>({
-      query: (organization) => {
+      query: () => {
         return {
           url: '',
-          headers: {
-            Organization: organization,
-          },
         }
       },
       providesTags: (result) =>
