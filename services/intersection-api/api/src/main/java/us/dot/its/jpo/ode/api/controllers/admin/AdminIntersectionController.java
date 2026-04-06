@@ -41,8 +41,8 @@ import java.util.Set;
  *
  * All authorization is handled in this layer (controller/auth), not in the service:
  *   - Role checks and intersection resource access are enforced via @PreAuthorize expressions.
- *   - Org restriction enforcement on PATCH (organizations_to_add/remove must be within the
- *     user's qualified orgs) is enforced in the method body via PermissionService.
+ *   - Org/RSU restriction enforcement on POST and PATCH (requested orgs/RSUs must be within the
+ *     user's qualified set) is enforced in the method body via PermissionService.
  *   - AdminIntersectionService is responsible only for database operations.
  */
 @Slf4j
@@ -92,7 +92,9 @@ public class AdminIntersectionController {
 
     /**
      * Returns the organizations and RSUs the requesting user may assign to a new intersection.
-     * Used to populate UI dropdowns when creating an intersection.
+     * Used to populate UI dropdowns when creating or editing an intersection.
+     *
+     * @return allowed organizations and RSU IP addresses for the current user
      */
     @Operation(
             summary = "Get allowed selections for creating an intersection",
@@ -116,9 +118,11 @@ public class AdminIntersectionController {
     /**
      * Creates a new intersection with organization and RSU associations.
      * Authorization:
-     * 1. @PreAuthorize: OPERATOR role required.
+     * 1. {@code @PreAuthorize}: OPERATOR role required.
      * 2. Method body: each org in organizations must be in the user's
      *    qualified orgs, and each RSU must be accessible (superusers exempt).
+     *
+     * @param create the intersection creation request body
      */
     @Operation(
             summary = "Create a new intersection",
@@ -166,7 +170,8 @@ public class AdminIntersectionController {
     /**
      * Returns a single intersection and allowed_selections for UI dropdown population.
      * Authorization: USER role + intersection access enforced by @PreAuthorize.
-     * allowed_selections is computed by PermissionService for UI dropdown population.
+     * allowed_selections is the same data returned by GET /allowed-selections, included here
+     * for convenience so the edit form can populate dropdowns in a single request.
      */
     @Operation(
             summary = "Get a single intersection",

@@ -94,9 +94,11 @@ public class AdminIntersectionService {
     }
 
     /**
-     * Gets the AllowedSelections for the current user: the orgs and RSUs they may assign
-     * to an intersection. Scoped to OPERATOR-qualified orgs since OPERATOR is required to modify.
-     * Superusers receive all orgs and RSUs.
+     * Returns the organizations and RSU IPs the current user may assign to an intersection.
+     * Superusers receive all orgs and RSUs; non-superusers receive only those within their
+     * OPERATOR-qualified organizations.
+     *
+     * @return allowed organizations and RSU IP addresses
      */
     public AllowedSelections getAllowedSelections() {
         if (permissionService.isSuperUser()) {
@@ -119,7 +121,7 @@ public class AdminIntersectionService {
     /**
      * Creates a new intersection with organization and RSU associations.
      * The controller has already enforced all authorization before this is called.
-     * Wraps all writes in a single transaction (improvement over Python's independent commits).
+     * All writes are wrapped in a single transaction; a failure at any step rolls back entirely.
      * Validates that all referenced organizations and RSUs exist before writing.
      *
      * @param create the create request body
