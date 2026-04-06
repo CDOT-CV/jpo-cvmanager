@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,6 +95,26 @@ public class UserController {
                 .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
+    }
+
+    @Operation(summary = "Create User", description = "Create a new User")
+    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
+    })
+    public ResponseEntity<Void> createUser(@Validated @RequestBody UserDto body) {
+        if (!permissionService.hasRoleInOrgs("ADMIN",
+                body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
+            // This catches unqualified orgs or nonexistent orgs
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "User not qualified to modify all specified organizations");
+        }
+
+        userManagementService.createUser(body);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(summary = "Modify User", description = "Modify User information")

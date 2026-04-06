@@ -2,7 +2,9 @@ package us.dot.its.jpo.ode.api.models.users;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 
 import java.io.Serializable;
@@ -13,12 +15,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * DTO for {@link User}
  */
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserDto implements Serializable {
-
-    @NotNull
-    private Integer id;
-
     @Size(max = 128)
     @NotNull
     private String email;

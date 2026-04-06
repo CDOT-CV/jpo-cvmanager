@@ -1,14 +1,16 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
@@ -40,7 +42,7 @@ public class UserManagementService {
 
     public UserDto getUser(String email) {
         return userMapper.toDto(userRepository.findByEmail(email).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email)));
+                () -> new EntityNotFoundException("User not found with email: " + email)));
     }
 
     public Page<UserDto> getUsers(String orgName, String search, Pageable pageable) {
@@ -58,12 +60,59 @@ public class UserManagementService {
     }
 
     @Transactional
+    public User createUser(UserDto userDto) {
+        User user = userMapper.toEntity(userDto);
+        user.setCreatedTimestamp(System.currentTimeMillis());
+        user.setKeycloakId(UUID.randomUUID());
+
+        User createdUser = userRepository.save(user);
+
+        var toCreate = new ArrayList<UserOrganization>();
+        for (UserOrganizationDto userOrgDto : userDto.getOrganizations()) {
+            toCreate.add(createUserOrgRelationship(userOrgDto, createdUser));
+        }
+        userOrganizationRepository.saveAll(toCreate);
+
+        return user;
+    }
+
+    public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user) {
+        Organization organization = organizationRepository.findByNameIgnoreCase(userOrgDto.getOrganization())
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Organization not found: " + userOrgDto.getOrganization()));
+
+        Role role = roleRepository.findByNameIgnoreCase(userOrgDto.getRole())
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + userOrgDto.getRole()));
+
+        UserOrganization userOrg = new UserOrganization();
+        userOrg.setOrganization(organization);
+        userOrg.setUser(user);
+        userOrg.setRole(role);
+        return userOrg;
+    }
+
+    @Transactional
     public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
-        List<String> authorizedOrgs = authToken.getQualifiedOrgList("ADMIN");
+        List<String> authorizedOrgs;
+        if (authToken.isSuperUser()) {
+            authorizedOrgs = organizationRepository.findAllOrganizationNames();
+        } else {
+            authorizedOrgs = authToken.getQualifiedOrgList("ADMIN");
+        }
 
         // 1. Find existing User by email
         User existingUser = userRepository.findByEmail(email).orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email));
+                () -> new EntityNotFoundException("User not found with email: " + email));
+
+        // 2. If email is being changed, check for conflicts
+        if (userPatch.getEmail() != null && !userPatch.getEmail().equals(email)) {
+            String newEmail = userPatch.getEmail();
+            User conflictingUser = userRepository.findByEmail(newEmail).orElse(null);
+            if (conflictingUser != null && !conflictingUser.getEmail().equals(existingUser.getEmail())) {
+                throw new UserEmailAlreadyExistsException(
+                        "User with email " + newEmail + " already exists");
+            }
+        }
 
         // 2. Update only non-null fields using MapStruct
         userPatchMapper.updateUserFromPatch(userPatch, existingUser);
@@ -86,10 +135,9 @@ public class UserManagementService {
                     .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to add User to organization(s): "
-                                + String.join(", ",
-                                        unqualifiedAdds.stream().map(UserOrganizationDto::getOrganization).toList()));
+                throw new AccessDeniedException("User does not have permission to add User to organization(s): "
+                        + String.join(", ",
+                                unqualifiedAdds.stream().map(UserOrganizationDto::getOrganization).toList()));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
                 // Check if already associated
@@ -98,13 +146,12 @@ public class UserManagementService {
                         List.of(org.getOrganization()));
 
                 if (!exists) {
-                    Organization organization = organizationRepository.findByName(org.getOrganization())
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    Organization organization = organizationRepository.findByNameIgnoreCase(org.getOrganization())
+                            .orElseThrow(() -> new IllegalArgumentException(
                                     "Organization not found: " + org.getOrganization()));
 
-                    Role role = roleRepository.findByName(org.getRole())
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                    "Role not found: " + org.getRole()));
+                    Role role = roleRepository.findByNameIgnoreCase(org.getRole())
+                            .orElseThrow(() -> new IllegalArgumentException("Role not found: " + org.getRole()));
 
                     UserOrganization userOrg = new UserOrganization();
                     userOrg.setUser(user);
@@ -123,16 +170,39 @@ public class UserManagementService {
                     .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to remove User from organization(s): "
-                                + String.join(", ", unqualifiedRemoves.stream()
-                                        .map(UserOrganizationDto::getOrganization).toList()));
+                throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
+                        + String.join(", ", unqualifiedRemoves.stream()
+                                .map(UserOrganizationDto::getOrganization).toList()));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToRemove()) {
                 // Find and delete the specific association
                 userOrganizationRepository.findByUserAndOrganization_Name(
                         user,
                         org.getOrganization()).ifPresent(userOrganizationRepository::delete);
+            }
+        }
+
+        if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
+            List<UserOrganizationDto> unqualifiedModifies = patch.getOrganizationsToModify().stream()
+                    .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
+                    .toList();
+            if (!unqualifiedModifies.isEmpty()) {
+                throw new AccessDeniedException(
+                        "User does not have permission to modify User's role in organization(s): "
+                                + String.join(", ", unqualifiedModifies.stream()
+                                        .map(UserOrganizationDto::getOrganization).toList()));
+            }
+            for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
+                userOrganizationRepository.findByUserAndOrganization_Name(
+                        user,
+                        org.getOrganization()).ifPresent(userOrg -> {
+                            Role role = roleRepository.findByName(org.getRole())
+                                    .orElseThrow(
+                                            () -> new IllegalArgumentException(
+                                                    "Role not found: " + org.getRole()));
+                            userOrg.setRole(role);
+                            userOrganizationRepository.save(userOrg);
+                        });
             }
         }
     }
@@ -142,7 +212,7 @@ public class UserManagementService {
         // Check if User exists
         User user = userRepository.findByEmail(email)
                 .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email));
+                        () -> new EntityNotFoundException("User not found with email: " + email));
 
         // Delete related entities first to maintain referential integrity
         userOrganizationRepository.removeUserOrganizationByEmail(email);
@@ -164,13 +234,19 @@ public class UserManagementService {
             List<String> missingEmails = emails.stream()
                     .filter(email -> !existingEmails.contains(email))
                     .toList();
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+            throw new EntityNotFoundException(
                     "User(s) not found with email(s): " + String.join(", ", missingEmails));
         } else if (existingUsers.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid user emails provided");
+            throw new IllegalArgumentException("No valid user emails provided");
         }
 
         userOrganizationRepository.removeMultipleUserOrganizationsByEmail(emails);
         userRepository.deleteAll(existingUsers);
+    }
+
+    public static class UserEmailAlreadyExistsException extends RuntimeException {
+        public UserEmailAlreadyExistsException(String message) {
+            super(message);
+        }
     }
 }

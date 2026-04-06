@@ -39,4 +39,9 @@ public interface UserMapper {
                 .map(userOrganizationDtoMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Mapping(target = "keycloakId", ignore = true) // auto-generated
+    @Mapping(target = "createdTimestamp", ignore = true) // will be populated in service layer
+    @Mapping(target = "userOrganizations", ignore = true) // relationships will be handled in service layer
+    User toEntity(UserDto dto);
 }
