@@ -16,10 +16,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
+import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
+import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
@@ -52,7 +53,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         // Set up test user DTO
-        testUserDto = new UserDto(1, "test@example.com", "Test", "User", false, List.of());
+        testUserDto = new UserDto("test@example.com", "Test", "User", false, List.of());
 
         // Set up mock request context
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -282,7 +283,7 @@ class UserControllerTest {
     void testGetSingleUser_DifferentEmail() {
         // Arrange
         String email = "another@example.com";
-        UserDto anotherUser = new UserDto(2, email, "Another", "User", false, List.of());
+        UserDto anotherUser = new UserDto(email, "Another", "User", false, List.of());
         when(userManagementService.getUser(email)).thenReturn(anotherUser);
 
         // Act
@@ -339,6 +340,298 @@ class UserControllerTest {
         assertNotNull(result);
         assertTrue(result.getRoles().isEmpty());
         assertTrue(result.getOrganizations().isEmpty());
+    }
+
+    // ==================== createUser Tests ====================
+
+    @Test
+    void testCreateUser_Success() {
+        // Arrange
+        UserOrganizationDto org1 = new UserOrganizationDto();
+        org1.setOrganization("TestOrg");
+        org1.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org1));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg"));
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_MultipleOrganizations() {
+        // Arrange
+        UserOrganizationDto org1 = new UserOrganizationDto();
+        org1.setOrganization("TestOrg");
+        org1.setRole("USER");
+
+        UserOrganizationDto org2 = new UserOrganizationDto();
+        org2.setOrganization("AnotherOrg");
+        org2.setRole("OPERATOR");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org1, org2));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg", "AnotherOrg")))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg", "AnotherOrg"));
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_WithSuperUserFlag() {
+        // Arrange
+        UserOrganizationDto org = new UserOrganizationDto();
+        org.setOrganization("TestOrg");
+        org.setRole("ADMIN");
+
+        UserDto newUser = new UserDto(
+                "admin@example.com",
+                "Admin",
+                "User",
+                true, // super_user = true
+                List.of(org));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertTrue(newUser.getSuperUser());
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_Forbidden_NoAdminRoleInOrganization() {
+        // Arrange
+        UserOrganizationDto org = new UserOrganizationDto();
+        org.setOrganization("TestOrg");
+        org.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
+                .thenReturn(false);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> userController.createUser(newUser));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals("User not qualified to modify all specified organizations", exception.getReason());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg"));
+        verify(userManagementService, never()).createUser(any());
+    }
+
+    @Test
+    void testCreateUser_Forbidden_NoAdminRoleInOneOfMultipleOrganizations() {
+        // Arrange
+        UserOrganizationDto org1 = new UserOrganizationDto();
+        org1.setOrganization("TestOrg");
+        org1.setRole("USER");
+
+        UserOrganizationDto org2 = new UserOrganizationDto();
+        org2.setOrganization("UnauthorizedOrg");
+        org2.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org1, org2));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg", "UnauthorizedOrg")))
+                .thenReturn(false);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> userController.createUser(newUser));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals("User not qualified to modify all specified organizations", exception.getReason());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg", "UnauthorizedOrg"));
+        verify(userManagementService, never()).createUser(any());
+    }
+
+    @Test
+    void testCreateUser_NonexistentOrganization() {
+        // Arrange
+        UserOrganizationDto org = new UserOrganizationDto();
+        org.setOrganization("NonexistentOrg");
+        org.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org));
+
+        // hasRoleInOrgs returns false for nonexistent organizations
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("NonexistentOrg")))
+                .thenReturn(false);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> userController.createUser(newUser));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals("User not qualified to modify all specified organizations", exception.getReason());
+        verify(userManagementService, never()).createUser(any());
+    }
+
+    @Test
+    void testCreateUser_EmptyOrganizationsList() {
+        // Arrange
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of() // Empty organizations list
+        );
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of()))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of());
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_WithDifferentRoles() {
+        // Arrange
+        UserOrganizationDto orgAdmin = new UserOrganizationDto();
+        orgAdmin.setOrganization("TestOrg1");
+        orgAdmin.setRole("ADMIN");
+
+        UserOrganizationDto orgOperator = new UserOrganizationDto();
+        orgOperator.setOrganization("TestOrg2");
+        orgOperator.setRole("OPERATOR");
+
+        UserOrganizationDto orgUser = new UserOrganizationDto();
+        orgUser.setOrganization("TestOrg3");
+        orgUser.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "newuser@example.com",
+                "New",
+                "User",
+                false,
+                List.of(orgAdmin, orgOperator, orgUser));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg1", "TestOrg2", "TestOrg3")))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg1", "TestOrg2", "TestOrg3"));
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_WithSpecialCharactersInEmail() {
+        // Arrange
+        UserOrganizationDto org = new UserOrganizationDto();
+        org.setOrganization("TestOrg");
+        org.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "new.user+tag@example.co.uk",
+                "New",
+                "User",
+                false,
+                List.of(org));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
+                .thenReturn(true);
+        doNothing().when(userManagementService).createUser(newUser);
+
+        // Act
+        ResponseEntity<Void> result = userController.createUser(newUser);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertEquals("new.user+tag@example.co.uk", newUser.getEmail());
+        verify(userManagementService).createUser(newUser);
+    }
+
+    @Test
+    void testCreateUser_ServiceLayerValidationHandled() {
+        // Arrange
+        UserOrganizationDto org = new UserOrganizationDto();
+        org.setOrganization("TestOrg");
+        org.setRole("USER");
+
+        UserDto newUser = new UserDto(
+                "duplicate@example.com",
+                "New",
+                "User",
+                false,
+                List.of(org));
+
+        when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
+                .thenReturn(true);
+        doThrow(new IllegalArgumentException("User with email already exists"))
+                .when(userManagementService).createUser(newUser);
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> userController.createUser(newUser));
+        verify(permissionService).hasRoleInOrgs("ADMIN", List.of("TestOrg"));
+        verify(userManagementService).createUser(newUser);
     }
 
     // ==================== modifyUser Tests ====================
