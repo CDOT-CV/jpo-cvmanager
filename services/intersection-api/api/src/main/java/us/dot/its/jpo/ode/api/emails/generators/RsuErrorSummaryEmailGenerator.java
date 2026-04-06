@@ -26,10 +26,8 @@ public class RsuErrorSummaryEmailGenerator extends AbstractEmailGenerator<RsuErr
         context.setVariable("content_1", data.getMessage());
         context.setVariable("footer_address", "RSU Error Summary");
         context.setVariable("unsubscribe_pre_text", "This email was sent to you on request of a CV-Manager user. ");
-        context.setVariable("unsubscribe_link_text", "");
-        context.setVariable("unsubscribe_href", "");
 
-        String htmlContent = templateEngine.process("emails/email_template", context);
+        String htmlContent = templateEngine.process("emails/email_template_no_unsubscribe", context);
 
         return new EmailContent(
                 data.getSubject(),
