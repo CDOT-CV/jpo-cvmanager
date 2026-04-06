@@ -22,6 +22,8 @@ export const userApiSlice = createApi({
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
+      headers.set('Accept', 'application/json')
+
       // Endpoint names must match the keys in the endpoints objects below
       const endpointsWithoutToken = []
       if (token && !endpointsWithoutToken.includes(endpoint)) {
@@ -71,6 +73,14 @@ export const userApiSlice = createApi({
       },
       providesTags: (result, error) => [USER_API_ALLOWED_SELECTIONS_TAG],
     }),
+    createUser: builder.mutation<void, AdminUserCreationBody>({
+      query: (user) => ({
+        url: '',
+        method: 'POST',
+        body: user,
+      }),
+      invalidatesTags: (result, error, vars) => [{ type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID }],
+    }),
     patchUser: builder.mutation<void, { email: string; patch: Partial<AdminUser> }>({
       query: ({ email, patch }) => ({
         url: `${email}`,
@@ -113,6 +123,7 @@ export const {
   useLazyGetUserQuery,
   useGetUserAllowedSelectionsQuery,
   useLazyGetUserAllowedSelectionsQuery,
+  useCreateUserMutation,
   usePatchUserMutation,
   useDeleteUserMutation,
   useDeleteMultipleUsersMutation,
