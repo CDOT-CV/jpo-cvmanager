@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectOrganizationName, selectRole } from '../generalSlices/userSlice'
+import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
 import '../features/adminRsuTab/Admin.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -8,7 +8,6 @@ import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganiza
 import AdminRsuTab from '../features/adminRsuTab/AdminRsuTab'
 import AdminUserTab from '../features/adminUserTab/AdminUserTab'
 import { NotFound } from './404'
-import { LocalStorageManager, SecureStorageManager } from '../managers'
 import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
@@ -17,7 +16,7 @@ import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersec
 function Admin() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const organization = useSelector(selectOrganizationName)
-  const userRole = useSelector(selectRole)
+  const isAdmin = useSelector(selectIsAdminOrAbove)
 
   useEffect(() => {
     dispatch(getUserNotifications())
@@ -25,7 +24,7 @@ function Admin() {
 
   return (
     <>
-      {(userRole ?? SecureStorageManager.getUserRole()) !== 'ADMIN' && !LocalStorageManager.getIsSuperUser() ? (
+      {!isAdmin ? (
         <div id="admin">
           <NotFound description="You do not have permission to view this page. Please return to main dashboard: " />
         </div>
