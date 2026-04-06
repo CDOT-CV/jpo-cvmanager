@@ -123,19 +123,19 @@ const AdminIntersectionTab = () => {
   }
 
   const onDelete = (row: AdminEditIntersectionFormType) => {
-    deleteIntersectionMutation(row.intersection_id)
-      .unwrap()
-      .then(() => toast.success('Intersection Deleted Successfully'))
-      .catch(() => toast.error('Failed to delete Intersection'))
+    toast.promise(deleteIntersectionMutation(row.intersection_id).unwrap(), {
+      loading: `Deleting intersection ${row.intersection_id}`,
+      success: `Successfully deleted intersection ${row.intersection_id}`,
+      error: `Failed to delete intersection ${row.intersection_id}`,
+    })
   }
 
   const multiDelete = async (rows: AdminEditIntersectionFormType[]) => {
-    try {
-      await Promise.all(rows.map((row) => deleteIntersectionMutation(row.intersection_id).unwrap()))
-      toast.success('Intersections Deleted Successfully')
-    } catch {
-      toast.error('Failed to delete one or more Intersection(s)')
-    }
+    toast.promise(Promise.all(rows.map((row) => deleteIntersectionMutation(row.intersection_id).unwrap())), {
+      loading: 'Deleting selected intersections',
+      success: 'Intersections Deleted Successfully',
+      error: 'Failed to delete one or more Intersection(s)',
+    })
   }
 
   return (
