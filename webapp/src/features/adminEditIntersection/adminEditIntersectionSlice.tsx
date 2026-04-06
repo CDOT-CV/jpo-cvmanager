@@ -71,7 +71,7 @@ export const mapFormToRequestJson = (
   data: AdminEditIntersectionFormType,
   state: RootState['adminEditIntersection']
 ): AdminEditIntersectionBody => {
-  const json = data
+  const json = { ...data }
 
   if (!json.bbox || !json.bbox.latitude1 || !json.bbox.longitude1 || !json.bbox.latitude2 || !json.bbox.longitude2) {
     delete json.bbox
