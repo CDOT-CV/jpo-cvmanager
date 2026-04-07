@@ -47,7 +47,6 @@ public class KeycloakApi {
     }
 
     private Mono<TokenPostResponse> generateKeycloakToken(TokenPostRequestKeycloak requestBody) {
-
         return webClient.post()
                 .uri(String.format("/realms/%s/protocol/openid-connect/token", keycloakRealm))
                 .headers(headers -> {

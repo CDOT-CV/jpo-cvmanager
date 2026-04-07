@@ -75,7 +75,7 @@ spring:
 
 enable:
   api: true
-  email: false
+  email: true
   report: false
   asn1-decoder: false
 

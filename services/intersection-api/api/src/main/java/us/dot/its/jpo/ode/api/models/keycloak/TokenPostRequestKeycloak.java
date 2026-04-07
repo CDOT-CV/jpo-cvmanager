@@ -48,8 +48,12 @@ public class TokenPostRequestKeycloak {
         formData.add("client_secret", clientSecret);
         formData.add("grant_type", grantType);
         formData.add("scope", scope);
-        formData.add("username", username);
-        formData.add("password", password);
+        if (username != null) {
+            formData.add("username", username);
+        }
+        if (password != null) {
+            formData.add("password", password);
+        }
         return formData;
     }
 }

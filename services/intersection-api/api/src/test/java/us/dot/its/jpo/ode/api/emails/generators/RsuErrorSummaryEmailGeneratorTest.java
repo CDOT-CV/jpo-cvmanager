@@ -47,7 +47,7 @@ class RsuErrorSummaryEmailGeneratorTest {
         List<String> recipients = List.of("admin@example.com");
         String subject = "Support Request: System Issues";
         String message = """
-                Summary of RSU errors:<br>- RSU 192.168.1.1: Connection timeout<br>- RSU 192.168.1.2: Authentication failed
+                Summary of RSU errors:\n- RSU 192.168.1.1: Connection timeout\n- RSU 192.168.1.2: Authentication failed
 
                 And a message with 'quotes', \"double quotes\", and <html> tags & ampersands
                 """;

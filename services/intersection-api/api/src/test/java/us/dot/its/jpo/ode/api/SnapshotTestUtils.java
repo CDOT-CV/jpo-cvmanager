@@ -27,13 +27,14 @@ public class SnapshotTestUtils {
 
         // Create directory if it doesn't exist
         Files.createDirectories(path.getParent());
+        boolean existedBefore = Files.exists(path);
 
-        if (!Files.exists(path) || updateSnapshots) {
+        if (!existedBefore || updateSnapshots) {
             // Create or update snapshot
             Files.writeString(path, actualContent);
-            System.out.println("Snapshot " + (Files.exists(path) ? "updated" : "created") + ": " + snapshotPath);
+            System.out.println("Snapshot " + (existedBefore ? "updated" : "created") + ": " + snapshotPath);
 
-            if (!updateSnapshots && !Files.exists(path)) {
+            if (!updateSnapshots && !existedBefore) {
                 fail("Snapshot file created. Please review and commit: " + snapshotPath);
             }
         } else {

@@ -37,9 +37,9 @@ public class EmailSendResponse {
      * @return Combined ResponseEntity with appropriate status code and detailed
      *         message
      */
-    public static ResponseEntity<String> getCombinedResponseEntity(List<EmailSendResponse> responses) {
+    public static EmailApiResponse getCombinedResponseEntity(List<EmailSendResponse> responses) {
         if (responses == null || responses.isEmpty()) {
-            return ResponseEntity.ok("No emails to send");
+            return new EmailApiResponse(List.of(), 0, 0);
         }
 
         // Separate successful and failed responses
@@ -51,33 +51,21 @@ public class EmailSendResponse {
                 .filter(resp -> resp != null && resp.getMappedStatusCode() != 200)
                 .toList();
 
-        int totalCount = responses.size();
         int successCount = successfulResponses.size();
         int failureCount = failedResponses.size();
 
+        EmailApiResponse apiResponse = new EmailApiResponse(responses, successCount, failureCount);
+
         // All succeeded
         if (failureCount == 0) {
-            return ResponseEntity.ok(
-                    String.format("Successfully sent %d email(s)", successCount));
+            return apiResponse;
         }
 
         // All failed
         if (successCount == 0) {
-            String errorMessages = failedResponses.stream()
-                    .map(EmailSendResponse::getMessage)
-                    .collect(java.util.stream.Collectors.joining("; "));
-            return ResponseEntity.status(500)
-                    .body(String.format("Failed to send %d email(s): %s", failureCount, errorMessages));
+            throw EmailResponseException.internalServerError(apiResponse);
         }
 
-        // Partial success - use 207 Multi-Status
-        String errorMessages = failedResponses.stream()
-                .map(EmailSendResponse::getMessage)
-                .collect(java.util.stream.Collectors.joining("; "));
-
-        return ResponseEntity.status(207)
-                .body(String.format(
-                        "Sent %d of %d email(s) successfully. %d failed: %s",
-                        successCount, totalCount, failureCount, errorMessages));
+        throw EmailResponseException.multiStatus(apiResponse);
     }
 }

@@ -12,9 +12,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.thymeleaf.TemplateEngine;
 
 import us.dot.its.jpo.ode.api.SnapshotTestUtils;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -22,6 +25,8 @@ import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
+@ActiveProfiles("integration-test")
+@Import(TestcontainersConfiguration.class)
 class ApiErrorEmailGeneratorTest {
 
     @Autowired
@@ -38,7 +43,7 @@ class ApiErrorEmailGeneratorTest {
     @BeforeEach
     void setUp() {
         when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.com");
-        
+
         generator = new ApiErrorEmailGenerator(templateEngine, unsubscribeTokenGenerator, emailProperties);
     }
 

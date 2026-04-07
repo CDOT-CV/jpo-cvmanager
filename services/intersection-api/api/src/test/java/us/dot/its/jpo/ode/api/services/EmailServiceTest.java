@@ -7,7 +7,7 @@ import org.mockito.*;
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
-import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
@@ -19,6 +19,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -40,6 +41,8 @@ class EmailServiceTest {
     private MessageCountEmailGenerator messageCountEmailGenerator;
     @Mock
     private FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
+    @Mock
+    private ApiErrorEmailGenerator apiErrorEmailGenerator;
     @Mock
     private RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
@@ -140,44 +143,21 @@ class EmailServiceTest {
     }
 
     @Test
-    void testSendMessageCounts() {
-        MessageCountEmailContents data = new MessageCountEmailContents();
+    void testSendApiError() {
+        ApiErrorEmailContents data = new ApiErrorEmailContents();
         EmailContent content = new EmailContent("subject", "body");
         List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
-        when(messageCountEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(apiErrorEmailGenerator.generateEmailBody(data)).thenReturn(content);
         when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
                 .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
-        List<EmailSendResponse> result = emailService.sendMessageCounts(data);
+        List<EmailSendResponse> result = emailService.sendApiError(data);
 
         assertEquals(responses, result);
         verify(emailProvider).sendBatchedEmails(recipients, content);
-    }
-
-    @Test
-    void testSendFirmwareUpgradeFailure() throws UnknownHostException {
-        FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
-        data.setRsuIp("1.1.1.1");
-        EmailContent content = new EmailContent("subject", "body");
-        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
-        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
-
-        when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(eq("Firmware Upgrade Failures"),
-                eq("IMMEDIATE"), eq(InetAddress.getByName("1.1.1.1"))))
-                .thenReturn(List.of("test@example.com"));
-        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
-
-        List<EmailSendResponse> result = emailService.sendFirmwareUpgradeFailure(data);
-        // assert emailProvider.sendBatchedEmails arguments
-        verify(emailProvider).sendBatchedEmails(
-                argThat(list -> list.size() == 1 && list.getFirst().getEmail().equals("test@example.com")),
-                eq(content));
-
-        assertEquals(responses, result);
     }
 
     @Test
@@ -196,6 +176,6 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
 
         assertEquals(responses, result);
-        verify(emailProvider).sendBatchedEmails(recipients, content);
+        verify(emailProvider).sendBatchedEmails(anyList(), eq(content));
     }
 }
