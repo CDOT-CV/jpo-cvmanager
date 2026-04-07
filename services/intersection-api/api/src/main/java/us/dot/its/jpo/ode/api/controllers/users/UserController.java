@@ -24,15 +24,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
-import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +43,6 @@ import java.util.Map;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
-    private final EmailService emailService;
     private final UserManagementService userManagementService;
     private final PermissionService permissionService;
 
@@ -139,18 +135,6 @@ public class UserController {
         userManagementService.deleteMultipleUsersByEmail(emails);
 
         return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Send Support Request Email", description = "Send a support request email")
-    @RequestMapping(value = "/submit-support-request", method = RequestMethod.POST, produces = "application/json")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "400", description = "Invalid message body"),
-    })
-    public @ResponseBody ResponseEntity<String> decode_request(
-            @RequestBody SupportRequestEmailContents body) {
-
-        return EmailSendResponse.getCombinedResponseEntity(emailService.sendSupportRequest(body));
     }
 
     /*
