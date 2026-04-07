@@ -3,9 +3,6 @@ package us.dot.its.jpo.ode.api.controllers.users;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Page;
@@ -30,8 +27,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
+import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController

@@ -7,14 +7,20 @@ import org.mockito.*;
 import us.dot.its.jpo.ode.api.emails.generators.*;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 import us.dot.its.jpo.ode.api.models.emails.*;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 
 import java.net.InetAddress;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -25,6 +31,12 @@ class EmailServiceTest {
     private UserEmailNotificationRepository userEmailNotificationRepository;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    @Mock
+    private SupportRequestEmailGenerator supportRequestEmailGenerator;
+    @Mock
+    private ApiErrorEmailGenerator apiErrorEmailGenerator;
+    @Mock
+    private RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
     @InjectMocks
     private EmailService emailService;
@@ -103,4 +115,57 @@ class EmailServiceTest {
         assertEquals(responses, result);
     }
 
+    @Test
+    void testSendSupportRequest() {
+        SupportRequestEmailContents data = new SupportRequestEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(supportRequestEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendSupportRequest(data);
+
+        assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
+    }
+
+    @Test
+    void testSendApiError() {
+        ApiErrorEmailContents data = new ApiErrorEmailContents();
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(apiErrorEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendApiError(data);
+
+        assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
+    }
+
+    @Test
+    void testSendRsuErrorSummary() {
+        List<String> recipientNames = List.of("test@example.com");
+        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents(recipientNames, "subject", "message");
+        EmailContent content = new EmailContent("subject", "body");
+        List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
+        when(emailProvider.sendBatchedEmails(anyList(), eq(content))).thenReturn(responses);
+
+        List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
+
+        assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(anyList(), eq(content));
+    }
 }

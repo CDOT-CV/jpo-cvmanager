@@ -83,6 +83,7 @@ services:
       kafka-setup:
         condition: service_started
         required: false
+
   smtp4dev:
     profiles:
       - smtp4dev

@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title></title>
+    <title th:text="${head_title}">head_title</title>
     <style media="all" type="text/css">
       body {
         font-family: Helvetica, sans-serif;
@@ -12,14 +12,14 @@
         line-height: 1.3;
         -ms-text-size-adjust: 100%;
         -webkit-text-size-adjust: 100%;
-        background-color: #f4f5f6;
+        background-color: [[${backgroundColor}]];
         margin: 0;
         padding: 0;
       }
 
       table.body {
         border-collapse: separate;
-        background-color: #f4f5f6;
+        background-color: [[${contentBackgroundColor}]];
         width: 100%;
       }
 
@@ -59,8 +59,8 @@
 
       table.main {
         border-collapse: separate;
-        background: #ffffff;
-        border: 1px solid #eaebed;
+        background: [[${tableMainBackgroundColor}]];
+        border: 1px solid [[${tableMainBorderColor}]];
         border-radius: 16px;
         width: 100%;
       }
@@ -76,7 +76,7 @@
         font-weight: normal;
         margin: 0;
         margin-bottom: 16px;
-        color: #9a9ea6;
+        color: [[${footerFontColor}]];
       }
 
       /* Styles for embedded content tables */
@@ -88,13 +88,13 @@
 
       .content-table th,
       .content-table td {
-        border: 1px solid #eaebed;
+        border: 1px solid [[${tableMainBorderColor}]];
         padding: 8px;
         text-align: left;
       }
 
       .content-table th {
-        background-color: #eaebed;
+        background-color: [[${tableMainBorderColor}]];
         font-weight: bold;
       }
 
@@ -147,20 +147,20 @@
       .content-block {
         font-family: Helvetica, sans-serif;
         vertical-align: top;
-        color: #f4f5f6;
+        color: [[${backgroundColor}]];
         font-size: 16px;
         text-align: center;
       }
 
       .apple-link {
-        color: #9a9ea6;
+        color: [[${footerFontColor}]];
         font-size: 16px;
         text-align: center;
       }
 
       .footer a {
         text-decoration: underline;
-        color: #9a9ea6;
+        color: [[${footerFontColor}]];
         font-size: 16px;
         text-align: center;
       }
@@ -255,68 +255,24 @@
           <td class="container">
             <div class="content">
               <!-- START CENTERED WHITE CONTAINER -->
-              <span class="preheader">New Notifications in CV Manager</span>
+              <span class="preheader" th:text="${preview_text}">preview_text</span>
               <table role="presentation" class="main">
                 <tbody>
                   <!-- START MAIN CONTENT AREA -->
                   <tr>
                     <td class="wrapper">
-                      <p>Hello CV-Manager User,</p>
-                      <div>
-                        <p>
-                          There are new Notifications to review in the conflict monitor application. Please review the
-                          Notifications below, or log into the CV-Manager to Analyze these notifications<br /><br /><strong
-                            >Heading:</strong
-                          >
-                          Connection of Travel Issue Detected<br /><strong>Description:</strong> Connection of travel
-                          assessment detected an issue with lane connectivity between ingress lane 5 and egress lane
-                          12.<br /><strong>Intersection ID:</strong> 12345<br /><strong>Generated At:</strong>
-                          2023-12-22 16:00:00<br /><br /><strong>Heading:</strong> Critical: Signal State Conflict<br /><strong
-                            >Description:</strong
-                          >
-                          Signal state conflict detected: Signal groups 2 and 5 both showing green simultaneously,
-                          creating a potential safety hazard.<br /><strong>Intersection ID:</strong> 67890<br /><strong
-                            >Generated At:</strong
-                          >
-                          2023-12-22 16:10:00<br /><br /><strong>Heading:</strong> Signal Group Alignment Issue<br /><strong
-                            >Description:</strong
-                          >
-                          Signal group alignment mismatch detected. MAP message defines 8 signal groups but SPaT message
-                          only contains 6 signal groups.<br /><strong>Intersection ID:</strong> 11111<br /><strong
-                            >Generated At:</strong
-                          >
-                          2023-12-22 16:20:00<br />
-                        </p>
-                      </div>
+                      <p th:text="${greeting}"></p>
+                      <div th:utext="${content_1}"></div>
                       <p>
-                        <a href="http://localhost:3000" target="_blank">Navigate to the CV-Manager</a>
+                        <a th:href="${action_button_href}" target="_blank" th:text="${action_button_text}"></a>
                       </p>
-                      <p>If not actionable, please forward this request on to the relevant party.</p>
-                      <p>This was an automated email from the CV Manager. Please do not reply to this email.</p>
+                      <p th:text="${content_2}">content_2</p>
+                      <p th:text="${signature}">signature</p>
                     </td>
                   </tr>
                   <!-- END MAIN CONTENT AREA -->
                 </tbody>
               </table>
-
-              <!-- START FOOTER -->
-              <div class="footer">
-                <table role="presentation">
-                  <tbody>
-                    <tr>
-                      <td class="content-block">
-                        <span class="apple-link">CV-Manager Automated Notifications</span>
-                        <br />
-                        <p>
-                          <span>If you no longer wish to receive these emails, please </span>
-                          <a href="http://localhost:3000/unsubscribe?token=fake_token">Unsubscribe</a>
-                        </p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <!-- END FOOTER -->
 
               <!-- END CENTERED WHITE CONTAINER -->
             </div>

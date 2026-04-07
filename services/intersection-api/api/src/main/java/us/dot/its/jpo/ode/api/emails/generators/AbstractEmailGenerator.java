@@ -117,6 +117,26 @@ public abstract class AbstractEmailGenerator<T> {
     }
 
     /**
+     * Utility method to escape HTML special characters in a string and replace
+     * newlines with <br>
+     * tags for proper formatting in HTML emails.
+     * 
+     * @param input The raw string input that may contain special characters and
+     *              newlines
+     * @return A string with HTML special characters escaped and newlines converted
+     *         to <br>
+     *         tags
+     */
+    public String escapeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
+        String escapedText = org.apache.commons.text.StringEscapeUtils.escapeHtml4(input);
+        escapedText = escapedText.replace("\n", "<br>");
+        return escapedText;
+    }
+
+    /**
      * Template method to generate the email body and complete email content.
      * 
      * <p>
