@@ -63,7 +63,7 @@ public class SnapshotTestUtils {
     /**
      * Normalize line endings for cross-platform compatibility
      */
-    public static String normalizeLineEndings(String content) {
+    private static String normalizeLineEndings(String content) {
         return content.replaceAll("\r\n", "\n").trim();
     }
 
@@ -71,7 +71,7 @@ public class SnapshotTestUtils {
      * Generate a unified diff between expected and actual content using
      * java-diff-utils
      */
-    public static String generateDiff(String expected, String actual) {
+    private static String generateDiff(String expected, String actual) {
         List<String> expectedLines = List.of(expected.split("\n"));
         List<String> actualLines = List.of(actual.split("\n"));
 
