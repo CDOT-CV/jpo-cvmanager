@@ -24,7 +24,9 @@ public class SupportRequestEmailGenerator extends AbstractEmailGenerator<Support
         Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "New Support Request in CV Manager");
         context.setVariable("content_1",
-                String.format("<p>New support request from %s:<br><br>%s</p>", data.getEmail(), data.getMessage()));
+                String.format("<p>New support request from %s:<br><br>%s</p>",
+                        escapeHtml(data.getEmail()),
+                        escapeHtml(data.getMessage())));
         context.setVariable("footer_address", "CV-Manager User-Submitted Support Request");
 
         String htmlContent = templateEngine.process("emails/email_template", context);
