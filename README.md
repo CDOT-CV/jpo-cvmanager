@@ -407,6 +407,9 @@ Note that it is recommended to work with the Python API from a [virtual environm
 - MONGO_SSM_COLLECTION_NAME: The database name for SSM visualization data.
 - MONGO_SRM_COLLECTION_NAME: The database name for SRM visualization data.
 - FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
+- IAPI_ENDPOINT: Intersection API endpoint for making REST requests to send emails
+- KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API
+- KC_SA_CLIENT_SECRET: Keycloak service account client secret for generating authenticating to the Intersection API
 - API_LOGGING_LEVEL: The level of which the CV Manager API will log. (DEBUG, INFO, WARNING, ERROR)
 - WZDX_ENDPOINT: WZDX datafeed endpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.

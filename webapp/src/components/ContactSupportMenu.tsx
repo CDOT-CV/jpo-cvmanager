@@ -3,7 +3,6 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import 'react-widgets/styles.css'
-import RsuApi from '../apis/rsu-api'
 
 import './css/ContactSupportMenu.css'
 import toast from 'react-hot-toast'
@@ -11,6 +10,7 @@ import Dialog from '@mui/material/Dialog'
 import { Button, DialogActions, DialogContent, DialogTitle } from '@mui/material'
 import { AdminButton } from '../styles/components/AdminButton'
 import '../styles/fonts/museo-slab.css'
+import { useSendContactSupportEmailMutation } from '../features/api/emailApiSlice'
 
 const ContactSupportMenu = () => {
   const [hidden, setHidden] = useState(true) // hidden by default
@@ -21,22 +21,23 @@ const ContactSupportMenu = () => {
     formState: { errors },
   } = useForm()
 
-  const onSubmit = async (data: object) => {
-    try {
-      const res = await RsuApi.postContactSupport(data)
-      const status = res.status
-      if (status === 200) {
-        toast.success('Successfully sent email')
-        reset()
-      } else {
-        toast.error('Something went wrong: ' + status)
+    const [submitSupportRequest] = useSendContactSupportEmailMutation()
+
+    const onSubmit = async (data: SupportRequestEmailContents) => {
+      try {
+        const response = await submitSupportRequest(data).unwrap()
+        if (response.failureCount === 0) {
+          toast.success(`Successfully sent support request`)
+          reset()
+        } else {
+          toast.error(`Failed to send support request`)
+        }
+      } catch (exception_var) {
+        console.error('Error in ContactSupportMenu onSubmit', exception_var)
+        toast.error('An exception occurred, please try again later')
       }
-    } catch (exception_var) {
-      console.error('Error in ContactSupportMenu onSubmit', exception_var)
-      toast.error('An exception occurred, please try again later')
+      setHidden(true)
     }
-    setHidden(true)
-  }
 
   if (hidden) {
     return (

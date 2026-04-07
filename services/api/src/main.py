@@ -57,7 +57,6 @@ api.add_resource(AdminOrgTimDeposit, "/admin-org-tim-deposit")
 api.add_resource(AdminOrgSnmpMonitoring, "/admin-org-snmp-monitoring")
 api.add_resource(AdminNotification, "/admin-notification")
 api.add_resource(AdminNewNotification, "/admin-new-notification")
-api.add_resource(ContactSupportResource, "/contact-support")
 
 if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuInfo, "/rsuinfo")
@@ -70,7 +69,6 @@ if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuGeoData, "/rsu-geo-msg-data")
     api.add_resource(IssScmsStatus, "/iss-scms-status")
     api.add_resource(RsuSsmSrmData, "/rsu-ssm-srm-data")
-    api.add_resource(RSUErrorSummaryResource, "/rsu-error-summary")
 if api_environment.ENABLE_WZDX_FEATURES:
     api.add_resource(WzdxFeed, "/wzdx-feed")
 if api_environment.ENABLE_INTERSECTION_FEATURES:
