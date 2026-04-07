@@ -128,6 +128,9 @@ public abstract class AbstractEmailGenerator<T> {
      *         tags
      */
     public String escapeHtml(String input) {
+        if (input == null) {
+            return "";
+        }
         String escapedText = org.apache.commons.text.StringEscapeUtils.escapeHtml4(input);
         escapedText = escapedText.replace("\n", "<br>");
         return escapedText;
