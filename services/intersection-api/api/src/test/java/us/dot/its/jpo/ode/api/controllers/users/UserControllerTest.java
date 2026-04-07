@@ -18,6 +18,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
@@ -360,7 +361,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
@@ -392,7 +393,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg", "AnotherOrg")))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
@@ -420,7 +421,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
@@ -533,7 +534,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of()))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
@@ -569,7 +570,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg1", "TestOrg2", "TestOrg3")))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
@@ -597,7 +598,7 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
                 .thenReturn(true);
-        doNothing().when(userManagementService).createUser(newUser);
+        when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
         ResponseEntity<Void> result = userController.createUser(newUser);
