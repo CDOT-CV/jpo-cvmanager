@@ -65,8 +65,10 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
                         "<span style=\"background-color: #ff7373; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Red: >5%% deviation</span>"
                         +
                         "</div>",
-                data.getOrganizationName(), data.getDeploymentTitle(), data.getStartDate().toString(),
-                data.getEndDate().toString());
+                escapeHtml(data.getOrganizationName()),
+                escapeHtml(data.getDeploymentTitle()),
+                escapeHtml(data.getStartDate().toString()),
+                escapeHtml(data.getEndDate().toString()));
         String countsTable = generateCountTable(data);
 
         return String.format("%s %s", content, countsTable);

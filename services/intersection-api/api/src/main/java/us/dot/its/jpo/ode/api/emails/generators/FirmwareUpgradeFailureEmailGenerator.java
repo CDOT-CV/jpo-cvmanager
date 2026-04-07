@@ -26,7 +26,10 @@ public class FirmwareUpgradeFailureEmailGenerator extends AbstractEmailGenerator
         context.setVariable("content_1",
                 String.format(
                         "<p>A firmware upgrade command failed on RSU %s.<br><br><strong>Update type:</strong> %s<br><strong>Error message:</strong> %s<br><strong>Stack Trace:</strong> %s</p>",
-                        data.getRsuIp(), data.getFailureType(), data.getMessage(), data.getStackTrace()));
+                        escapeHtml(data.getRsuIp()),
+                        escapeHtml(data.getFailureType()),
+                        escapeHtml(data.getMessage()),
+                        escapeHtml(data.getStackTrace())));
         context.setVariable("footer_address", "CV-Manager Firmware Upgrade Failure");
 
         String htmlContent = templateEngine.process("emails/announcement", context);

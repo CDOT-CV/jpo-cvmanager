@@ -167,7 +167,7 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(firmwareUpgradeFailureEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu(anyString(), anyString(), any()))
                 .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
