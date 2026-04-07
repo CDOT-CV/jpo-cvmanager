@@ -166,34 +166,6 @@ class EmailApi:
             )
         return response.status_code, response.json()
 
-    def send_rsu_error_summary(
-        self, recipients: list[str], subject: str, message: str
-    ) -> tuple[int, dict]:
-        """
-        Send an RSU error summary email via the API.
-
-        Args:
-            recipients (list[str]): List of recipient email addresses.
-            subject (str): Email subject.
-            message (str): Email message body.
-
-        Returns:
-            tuple[int, str]: The HTTP status code and the response JSON.
-        """
-        token = self.get_kc_token()
-        if not token:
-            return 500, {"error": "Unable to obtain Keycloak token."}
-        response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-rsu-error-summary",
-            headers={"Authorization": f"bearer {token['access_token']}"},
-            json={"recipients": recipients, "subject": subject, "message": message},
-        )
-        if not (200 <= response.status_code < 300):
-            logging.error(
-                f"Failed to send RSU error summary email: {response.status_code} - {response.text}"
-            )
-        return response.status_code, response.json()
-
     def send_api_error_email(
         self,
         error_message: str,

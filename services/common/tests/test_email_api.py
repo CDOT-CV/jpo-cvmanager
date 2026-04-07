@@ -197,91 +197,47 @@ class TestSendMessageCounts:
 
 class TestSendFirmwareUpgradeFailure:
     """Tests for send_firmware_upgrade_failure method."""
-    
+
     @patch('email_api.requests.post')
     def test_send_firmware_upgrade_failure_success(self, mock_post, email_api, mock_token):
         """Test successful firmware upgrade failure email send."""
         email_api.token = mock_token
         email_api.token_expiration_date = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        
+
         mock_response = Mock()
         mock_response.status_code = 201
         mock_response.json.return_value = {"message": "email sent"}
         mock_post.return_value = mock_response
-        
+
         status_code, response = email_api.send_firmware_upgrade_failure(
             rsu_ip="192.168.1.100",
             error_message="SNMP timeout",
             failure_type="ConnectionError",
             stack_trace="Traceback..."
         )
-        
+
         assert status_code == 201
         assert response["message"] == "email sent"
-    
+
     @patch('email_api.requests.post')
     def test_send_firmware_upgrade_failure_invalid_rsu(self, mock_post, email_api, mock_token):
         """Test firmware upgrade failure email with invalid RSU."""
         email_api.token = mock_token
         email_api.token_expiration_date = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        
+
         mock_response = Mock()
         mock_response.status_code = 400
         mock_response.text = "Invalid RSU IP"
         mock_response.json.return_value = {"error": "validation_error"}
         mock_post.return_value = mock_response
-        
+
         status_code, response = email_api.send_firmware_upgrade_failure(
             rsu_ip="invalid_ip",
             error_message="Error",
             failure_type="Error",
             stack_trace=""
         )
-        
-        assert status_code == 400
 
-
-class TestSendRsuErrorSummary:
-    """Tests for send_rsu_error_summary method."""
-    
-    @patch('email_api.requests.post')
-    def test_send_rsu_error_summary_success(self, mock_post, email_api, mock_token):
-        """Test successful RSU error summary email send."""
-        email_api.token = mock_token
-        email_api.token_expiration_date = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"recipients_count": 2}
-        mock_post.return_value = mock_response
-        
-        status_code, response = email_api.send_rsu_error_summary(
-            recipients=["admin@example.com", "ops@example.com"],
-            subject="RSU Errors",
-            message="Multiple RSUs offline"
-        )
-        
-        assert status_code == 200
-        assert response["recipients_count"] == 2
-    
-    @patch('email_api.requests.post')
-    def test_send_rsu_error_summary_no_recipients(self, mock_post, email_api, mock_token):
-        """Test RSU error summary with empty recipients list."""
-        email_api.token = mock_token
-        email_api.token_expiration_date = datetime.datetime.now() + datetime.timedelta(minutes=5)
-        
-        mock_response = Mock()
-        mock_response.status_code = 400
-        mock_response.text = "No recipients"
-        mock_response.json.return_value = {"error": "no_recipients"}
-        mock_post.return_value = mock_response
-        
-        status_code, response = email_api.send_rsu_error_summary(
-            recipients=[],
-            subject="Test",
-            message="Test"
-        )
-        
         assert status_code == 400
 
 
