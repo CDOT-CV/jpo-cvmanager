@@ -2,7 +2,6 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 
 import 'react-widgets/styles.css'
-import RsuApi from '../apis/rsu-api'
 
 import './css/ContactSupportMenu.css'
 import '../styles/fonts/museo-slab.css'
@@ -11,6 +10,7 @@ import Dialog from '@mui/material/Dialog'
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material'
 import { RsuOnlineStatus } from '../models/RsuApi'
 import { AdminButton } from '../styles/components/AdminButton'
+import { useSendRsuErrorSummaryEmailMutation } from '../features/api/emailApiSlice'
 
 type RsuErrorSummaryType = {
   rsu: string
@@ -28,15 +28,16 @@ const RsuErrorSummary = (props: RsuErrorSummaryType) => {
     formState: { errors },
   } = useForm()
 
-  const onSubmit = async (data: object) => {
+  const [submitRsuErrorSummary] = useSendRsuErrorSummaryEmailMutation()
+
+  const onSubmit = async (data: RsuErrorSummaryEmailContents) => {
     try {
-      const res = await RsuApi.postRsuErrorSummary(data)
-      const status = res.status
-      if (status === 200) {
-        toast.success('Successfully sent RSU summary email')
+      const response = await submitRsuErrorSummary(data).unwrap()
+      if (response.failureCount === 0) {
+        toast.success(`Successfully sent ${response.successCount} RSU summary email`)
         reset()
       } else {
-        toast.error('Something went wrong: ' + status)
+        toast.error(`${response.failureCount} emails failed to send`)
       }
     } catch (exception_var) {
       console.error('Error in RsuErrorSummary onSubmit', exception_var)
@@ -59,9 +60,6 @@ const RsuErrorSummary = (props: RsuErrorSummaryType) => {
 `
 
   const message = `
-    <h2>RSU Error Summary Email</h2>
-    <br />
-    <p>Hello,</p>
     <p>Below is the error summary for RSU ${props.rsu} at ${new Date().toISOString()} UTC:</p>
     ${messageTable}
 `
