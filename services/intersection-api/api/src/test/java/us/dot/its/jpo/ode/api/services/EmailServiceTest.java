@@ -126,6 +126,7 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendSupportRequest(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(recipients, content);
     }
 
     @Test
@@ -143,5 +144,6 @@ class EmailServiceTest {
         List<EmailSendResponse> result = emailService.sendRsuErrorSummary(data);
 
         assertEquals(responses, result);
+        verify(emailProvider).sendBatchedEmails(anyList(), eq(content));
     }
 }
