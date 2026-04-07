@@ -83,7 +83,7 @@ spring:
 
 enable:
   api: true
-  email: true
+  email: false
   report: false
   asn1-decoder: false
 
