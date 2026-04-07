@@ -63,11 +63,7 @@ export const convertApiJsonToKeyedFormat = (
  * @returns {boolean} - Returns true if the form is valid, otherwise false.
  */
 export const validateFormContents = (state: RootState['adminAddIntersection']) => {
-  if (state.value.selectedOrganizations.length === 0) {
-    return false
-  } else {
-    return true
-  }
+  return state.value.selectedOrganizations.length !== 0;
 }
 
 /**
