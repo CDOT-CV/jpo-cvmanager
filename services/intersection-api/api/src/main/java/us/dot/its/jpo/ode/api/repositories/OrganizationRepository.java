@@ -16,6 +16,8 @@ public interface OrganizationRepository extends JpaRepository<Organization, Inte
 
     Optional<Organization> findByNameIgnoreCase(String name);
 
+    List<Organization> findByNameIn(List<String> names);
+
     @Query("SELECT o.name FROM Organization o ORDER BY o.name ASC")
     List<String> findAllOrganizationNames();
 }
