@@ -1,59 +1,24 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
-import EnvironmentVars from '../../EnvironmentVars'
-import apiHelper from '../../apis/api-helper'
 import { RootState } from '../../store'
 import {
   AdminOrgIntersectionDeleteMultiple,
   AdminOrgIntersectionDeleteSingle,
-  AdminOrgIntersectionWithId,
-  AdminOrgTabIntersectionAddMultiple,
 } from './AdminOrganizationTabIntersectionTypes'
 import { adminOrgPatch, editOrg } from '../adminOrganizationTab/adminOrganizationTabSlice'
-
-const initialState = {
-  availableIntersectionList: [] as AdminOrgIntersectionWithId[],
-  selectedIntersectionList: [] as AdminOrgIntersectionWithId[],
-}
-
-export const getIntersectionDataById = async (intersection_id: string, token: string) => {
-  const data = await apiHelper._getDataWithCodes({
-    url: EnvironmentVars.adminIntersection,
-    token,
-    query_params: { intersection_id },
-  })
-
-  return data
-}
-
-export const getIntersectionData = createAsyncThunk(
-  'adminOrganizationTabIntersection/getIntersectionData',
-  async (orgName: string, { getState }) => {
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
-
-    const data = await getIntersectionDataById('all', token)
-
-    switch (data.status) {
-      case 200:
-        return { success: true, message: '', data: data.body, orgName }
-      default:
-        return { success: false, message: data.message }
-    }
-  },
-  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
-)
+import { adminIntersectionApiSlice } from '../api/adminIntersectionApiSlice'
 
 export const intersectionDeleteSingle = createAsyncThunk(
   'adminOrganizationTabIntersection/intersectionDeleteSingle',
   async (payload: AdminOrgIntersectionDeleteSingle, { getState, dispatch }) => {
     const { intersection, selectedOrg, selectedOrgEmail, updateTableData } = payload
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
+
+    const result = await dispatch(
+      adminIntersectionApiSlice.endpoints.getIntersection.initiate(intersection.intersection_id)
+    ).unwrap()
 
     const promises = []
-    const intersectionData = (await getIntersectionDataById(intersection.intersection_id, token)).body
-    if (intersectionData?.intersection_data?.organizations?.length > 1) {
+    if (result?.intersection_data?.organizations?.length > 1) {
       const patchJson: adminOrgPatch = {
         name: selectedOrg,
         email: selectedOrgEmail,
@@ -85,8 +50,6 @@ export const intersectionDeleteMultiple = createAsyncThunk(
   'adminOrganizationTabIntersection/intersectionDeleteMultiple',
   async (payload: AdminOrgIntersectionDeleteMultiple, { getState, dispatch }) => {
     const { rows, selectedOrg, selectedOrgEmail, updateTableData } = payload
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
 
     const invalidIntersections = []
     const patchJson: adminOrgPatch = {
@@ -95,8 +58,10 @@ export const intersectionDeleteMultiple = createAsyncThunk(
       intersections_to_remove: [],
     }
     for (const row of rows) {
-      const intersectionData = (await getIntersectionDataById(row.intersection_id, token)).body
-      if (intersectionData?.intersection_data?.organizations?.length > 1) {
+      const result = await dispatch(
+        adminIntersectionApiSlice.endpoints.getIntersection.initiate(row.intersection_id)
+      ).unwrap()
+      if (result?.intersection_data?.organizations?.length > 1) {
         patchJson.intersections_to_remove.push(row.intersection_id)
       } else {
         invalidIntersections.push(row.intersection_id)
@@ -123,30 +88,6 @@ export const intersectionDeleteMultiple = createAsyncThunk(
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
 
-export const intersectionAddMultiple = createAsyncThunk(
-  'adminOrganizationTabIntersection/intersectionAddMultiple',
-  async (payload: AdminOrgTabIntersectionAddMultiple, { dispatch }) => {
-    const { intersectionList, selectedOrg, selectedOrgEmail, updateTableData } = payload
-
-    const patchJson: adminOrgPatch = {
-      name: selectedOrg,
-      email: selectedOrgEmail,
-      intersections_to_add: [],
-    }
-    for (const row of intersectionList) {
-      patchJson.intersections_to_add.push(row.intersection_id)
-    }
-    const res = await dispatch(editOrg(patchJson))
-    dispatch(refresh({ selectedOrg, updateTableData }))
-    if ((res.payload as any).success) {
-      return { success: true, message: 'Intersection(s) added successfully' }
-    } else {
-      return { success: false, message: 'Failed to add Intersection(s)' }
-    }
-  },
-  { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
-)
-
 export const refresh = createAsyncThunk(
   'adminOrganizationTabIntersection/refresh',
   async (
@@ -158,7 +99,7 @@ export const refresh = createAsyncThunk(
   ) => {
     const { selectedOrg, updateTableData } = payload
     updateTableData(selectedOrg)
-    dispatch(getIntersectionData(selectedOrg))
+    dispatch(adminIntersectionApiSlice.util.invalidateTags([{ type: 'AdminIntersection', id: 'LIST' }]))
   },
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
@@ -167,55 +108,16 @@ export const adminOrganizationTabIntersectionSlice = createSlice({
   name: 'adminOrganizationTabIntersection',
   initialState: {
     loading: false,
-    value: initialState,
+    value: {},
   },
-  reducers: {
-    setSelectedIntersectionList: (state, action) => {
-      state.value.selectedIntersectionList = action.payload
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
-    builder
-      .addCase(getIntersectionData.pending, (state) => {
-        state.loading = true
-      })
-      .addCase(getIntersectionData.fulfilled, (state, action) => {
-        state.loading = false
-        if (action.payload.success) {
-          const intersectionData = action.payload.data
-          const availableIntersectionList = [] as AdminOrgIntersectionWithId[]
-          let counter = 0
-          if (intersectionData?.intersection_data) {
-            for (const intersection of intersectionData.intersection_data) {
-              const intersectionOrgs = intersection?.organizations
-              if (!intersectionOrgs.includes(action.payload.orgName)) {
-                const tempValue = {
-                  id: counter,
-                  intersection_id: intersection.intersection_id,
-                } as AdminOrgIntersectionWithId
-                availableIntersectionList.push(tempValue)
-                counter += 1
-              }
-            }
-          }
-          state.value.availableIntersectionList = availableIntersectionList
-        }
-      })
-      .addCase(getIntersectionData.rejected, (state) => {
-        state.loading = false
-      })
-      .addCase(refresh.fulfilled, (state) => {
-        state.value.selectedIntersectionList = []
-      })
+    builder.addCase(refresh.fulfilled, () => {
+      // no-op, kept for potential future use
+    })
   },
 })
 
-export const { setSelectedIntersectionList } = adminOrganizationTabIntersectionSlice.actions
-
 export const selectLoading = (state: RootState) => state.adminOrganizationTabIntersection.loading
-export const selectAvailableIntersectionList = (state: RootState) =>
-  state.adminOrganizationTabIntersection.value.availableIntersectionList
-export const selectSelectedIntersectionList = (state: RootState) =>
-  state.adminOrganizationTabIntersection.value.selectedIntersectionList
 
 export default adminOrganizationTabIntersectionSlice.reducer

@@ -62,7 +62,7 @@ export const adminIntersectionApiSlice = createApi({
         }
       },
     }),
-    createIntersection: builder.mutation<{ success: boolean; message: string }, AdminIntersectionCreationBody>({
+    createIntersection: builder.mutation<void, AdminIntersectionCreationBody>({
       query: (body) => ({
         url: '',
         method: 'POST',
