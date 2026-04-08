@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import { createAsyncThunk } from '@reduxjs/toolkit'
 import { selectToken } from '../../generalSlices/userSlice'
 import { RootState } from '../../store'
 import {
@@ -103,21 +103,3 @@ export const refresh = createAsyncThunk(
   },
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
-
-export const adminOrganizationTabIntersectionSlice = createSlice({
-  name: 'adminOrganizationTabIntersection',
-  initialState: {
-    loading: false,
-    value: {},
-  },
-  reducers: {},
-  extraReducers: (builder) => {
-    builder.addCase(refresh.fulfilled, () => {
-      // no-op, kept for potential future use
-    })
-  },
-})
-
-export const selectLoading = (state: RootState) => state.adminOrganizationTabIntersection.loading
-
-export default adminOrganizationTabIntersectionSlice.reducer
