@@ -19,7 +19,7 @@ import us.dot.its.jpo.ode.api.services.ScmsHealthService;
 @Slf4j
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
-@RequestMapping("/scms")
+@RequestMapping("/devices/scms")
 @RequiredArgsConstructor
 @Tag(name = "SCMS Health Status", description = "Manage SCMS health status for RSUs")
 public class ScmsHealthController {
@@ -43,7 +43,7 @@ public class ScmsHealthController {
     @GetMapping(value = "/status", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     public ScmsHealthResponse getAllStatuses(@RequestHeader(name = "Organization") String organization) {
-        log.info("GET /scms/status. organization: {}", organization);
+        log.info("GET /devices/scms/status. organization: {}", organization);
         return scmsHealthMapper.toResponse(scmsHealthService.getScmsStatuses(organization));
     }
 }

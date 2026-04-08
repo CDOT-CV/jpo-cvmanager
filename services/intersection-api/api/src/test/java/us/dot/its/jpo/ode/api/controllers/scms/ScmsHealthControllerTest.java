@@ -58,7 +58,7 @@ class ScmsHealthControllerTest {
         when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
 
         // Act & Assert
-        mockMvc.perform(get("/scms/status")
+        mockMvc.perform(get("/devices/scms/status")
                         .header("Organization", "TestOrg"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value("1"));
@@ -70,7 +70,7 @@ class ScmsHealthControllerTest {
     @DisplayName("Retrieval fails when Organization header is missing")
     void testGetScmsStatus_FAILURE_OrganizationHeaderMissing() throws Exception {
         // Act & Assert
-        mockMvc.perform(get("/scms/status"))
+        mockMvc.perform(get("/devices/scms/status"))
             .andExpect(status().isBadRequest());
     }
 
@@ -83,7 +83,7 @@ class ScmsHealthControllerTest {
         when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(List.of());
 
         // Act & Assert
-        mockMvc.perform(get("/scms/status")
+        mockMvc.perform(get("/devices/scms/status")
                         .header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scmsHealthByIp").isMap())
@@ -101,7 +101,7 @@ class ScmsHealthControllerTest {
         when(scmsHealthService.getScmsStatuses(anyString())).thenThrow(new EntityNotFoundException("Organization not found"));
 
         // Act & Assert
-        mockMvc.perform(get("/scms/status")
+        mockMvc.perform(get("/devices/scms/status")
                         .header("Organization", "TestOrg"))
             .andExpect(status().isNotFound());
     }
@@ -118,7 +118,7 @@ class ScmsHealthControllerTest {
         when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
 
         // Act & Assert
-        mockMvc.perform(get("/scms/status")
+        mockMvc.perform(get("/devices/scms/status")
                         .header("Organization", "AnyOrg"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value("1"));
@@ -136,7 +136,7 @@ class ScmsHealthControllerTest {
         when(permissionService.hasRoleInOrg("UnauthorizedOrg", "USER")).thenReturn(false);
 
         // Act & Assert
-        mockMvc.perform(get("/scms/status")
+        mockMvc.perform(get("/devices/scms/status")
                         .header("Organization", "UnauthorizedOrg"))
             .andExpect(status().isForbidden());
 

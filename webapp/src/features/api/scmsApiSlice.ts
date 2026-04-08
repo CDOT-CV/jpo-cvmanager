@@ -34,7 +34,7 @@ const SCMS_API_STATUS_TAG = 'ScmsStatus' as const
 export const scmsApiSlice = createApi({
   reducerPath: 'scmsApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/scms`,
+    baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/scms`,
     prepareHeaders: (headers, { getState, endpoint }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
