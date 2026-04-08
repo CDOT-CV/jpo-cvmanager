@@ -19,7 +19,6 @@ from wzdx_feed import WzdxFeed
 from rsu_geo_msg_query import RsuGeoData
 from iss_scms_status import IssScmsStatus
 from rsu_ssm_srm import RsuSsmSrmData
-from admin_new_intersection import AdminNewIntersection
 from admin_new_user import AdminNewUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
