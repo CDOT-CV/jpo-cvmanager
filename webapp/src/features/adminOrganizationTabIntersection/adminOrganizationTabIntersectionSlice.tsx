@@ -6,7 +6,11 @@ import {
   AdminOrgIntersectionDeleteSingle,
 } from './AdminOrganizationTabIntersectionTypes'
 import { adminOrgPatch, editOrg } from '../adminOrganizationTab/adminOrganizationTabSlice'
-import { adminIntersectionApiSlice } from '../api/adminIntersectionApiSlice'
+import {
+  ADMIN_INTERSECTION_LIST_ID,
+  ADMIN_INTERSECTION_TAG,
+  adminIntersectionApiSlice,
+} from '../api/adminIntersectionApiSlice'
 
 export const intersectionDeleteSingle = createAsyncThunk(
   'adminOrganizationTabIntersection/intersectionDeleteSingle',
@@ -99,7 +103,7 @@ export const refresh = createAsyncThunk(
   ) => {
     const { selectedOrg, updateTableData } = payload
     updateTableData(selectedOrg)
-    dispatch(adminIntersectionApiSlice.util.invalidateTags([{ type: 'AdminIntersection', id: 'LIST' }]))
+    dispatch(adminIntersectionApiSlice.util.invalidateTags([{ type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID }]))
   },
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }
 )
