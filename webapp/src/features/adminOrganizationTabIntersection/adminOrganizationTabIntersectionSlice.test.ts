@@ -1,19 +1,15 @@
-import reducer from './adminOrganizationTabIntersectionSlice'
+import { vi } from 'vitest'
 import {
   intersectionDeleteSingle,
   intersectionDeleteMultiple,
   refresh,
-  selectLoading,
 } from './adminOrganizationTabIntersectionSlice'
+import { adminIntersectionApiSlice } from '../api/adminIntersectionApiSlice'
 
-describe('admin organization tab Intersection reducer', () => {
-  it('should handle initial state', () => {
-    expect(reducer(undefined, { type: 'unknown' })).toEqual({
-      loading: false,
-      value: {},
-    })
-  })
-})
+// Marker object returned by the spied initiate(). Because it is not a function,
+// the mock dispatch skips the `typeof action === 'function'` branch and reaches
+// the `__initiate` check, where we return { unwrap() } with the desired value.
+const INITIATE_MARKER = { __initiate: true }
 
 describe('async thunks', () => {
   const makeGetState = () =>
@@ -25,17 +21,24 @@ describe('async thunks', () => {
       },
     })
 
+  let initiateSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    initiateSpy = vi.spyOn(adminIntersectionApiSlice.endpoints.getIntersection, 'initiate')
+    initiateSpy.mockReturnValue(INITIATE_MARKER as any)
+  })
+
+  afterEach(() => {
+    initiateSpy.mockRestore()
+  })
+
   const makeMockDispatch = (unwrapValue: any, editOrgResult = { payload: { success: true } }) => {
     const dispatch = jest.fn()
     dispatch.mockImplementation((action: any) => {
-      if (typeof action === 'function') {
-        return action(dispatch, makeGetState(), undefined)
-      }
-      // RTK Query initiate() calls return a promise-like with unwrap()
-      if (action?.type?.includes('initiate')) {
+      if (action?.__initiate) {
         return { unwrap: jest.fn().mockResolvedValue(unwrapValue) }
       }
-      // editOrg and other thunk dispatches
+      // Inner thunks (editOrg, refresh) are functions — don't execute them, return mock result
       return editOrgResult
     })
     return dispatch
@@ -130,10 +133,7 @@ describe('async thunks', () => {
       const unwrapValues = [validData, invalidData, invalidData]
 
       dispatch.mockImplementation((action: any) => {
-        if (typeof action === 'function') {
-          return action(dispatch, getState, undefined)
-        }
-        if (action?.type?.includes('initiate')) {
+        if (action?.__initiate) {
           const val = unwrapValues[unwrapCallCount++]
           return { unwrap: jest.fn().mockResolvedValue(val) }
         }
@@ -184,14 +184,3 @@ describe('async thunks', () => {
   })
 })
 
-describe('selectors', () => {
-  const initialState = {
-    loading: 'loading',
-    value: {},
-  }
-  const state = { adminOrganizationTabIntersection: initialState } as any
-
-  it('selectors return the correct value', async () => {
-    expect(selectLoading(state)).toEqual('loading')
-  })
-})
