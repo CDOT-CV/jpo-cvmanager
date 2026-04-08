@@ -24,8 +24,7 @@ public class RsuErrorSummaryEmailGenerator extends AbstractEmailGenerator<RsuErr
         Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "RSU Error Summary from CV Manager");
         context.setVariable("content_1", data.getMessage());
-        // NOTE: Not escaping content in data.getMessage() because HTML format is
-        // expected
+        // NOTE: Not escaping HTML in message because message is in HTML format
 
         String htmlContent = templateEngine.process("emails/email_template_no_unsubscribe", context);
 

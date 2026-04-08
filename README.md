@@ -411,6 +411,8 @@ Note that it is recommended to work with the Python API from a [virtual environm
 - KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API
 - KC_SA_CLIENT_SECRET: Keycloak service account client secret for generating authenticating to the Intersection API
 - API_LOGGING_LEVEL: The level of which the CV Manager API will log. (DEBUG, INFO, WARNING, ERROR)
+- CSM_TLS_ENABLED: Set to "true" if the SMTP server requires TLS.
+- CSM_AUTH_ENABLED: Set to "true" if the SMTP server requires authentication.
 - WZDX_ENDPOINT: WZDX datafeed endpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.
 - TIMEZONE: Timezone to be used for the API.
