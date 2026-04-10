@@ -3,20 +3,16 @@ package us.dot.its.jpo.ode.api.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
+import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
 import us.dot.its.jpo.ode.api.models.postgres.tables.*;
 import us.dot.its.jpo.ode.api.repositories.*;
 
-import java.net.InetAddress;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
@@ -60,6 +56,8 @@ class ScmsHealthServiceTest {
     @Autowired
     private SnmpProtocolRepository snmpProtocolRepository;
 
+    private final TestFixtures fixtures = new TestFixtures();
+
     @BeforeEach
     void setUp() {
         scmsHealthRepository.deleteAll();
@@ -77,18 +75,21 @@ class ScmsHealthServiceTest {
     @DisplayName("Returns latest health status for each RSU in organization")
     void testGetScmsStatuses_ReturnsLatestForEachRsuInOrganization() throws Exception {
         // Arrange
-        Organization org1 = saveOrganization("Org1");
-        Organization org2 = saveOrganization("Org2");
+        Organization org1 = organizationRepository.save(fixtures.createOrg("Org1"));
+        Organization org2 = organizationRepository.save(fixtures.createOrg("Org2"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer1");
-        RsuModel model = saveRsuModel("Model1", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3");
-        SnmpCredential snmpCred = saveSnmpCredential("snmp", org1);
-        RsuCredential rsuCred = saveRsuCredential("rsu", org1);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org1));
+        RsuCredential rsuCred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org1));
 
-        Rsu rsu1 = saveRsu("10.0.0.1", model, snmpCred, rsuCred, protocol, org1);
-        Rsu rsu2 = saveRsu("10.0.0.2", model, snmpCred, rsuCred, protocol, org1);
-        Rsu rsu3 = saveRsu("10.0.0.3", model, snmpCred, rsuCred, protocol, org2);
+        Rsu rsu1 = rsuRepository.save(fixtures.createRsu("10.0.0.1", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu1, org1));
+        Rsu rsu2 = rsuRepository.save(fixtures.createRsu("10.0.0.2", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu2, org1));
+        Rsu rsu3 = rsuRepository.save(fixtures.createRsu("10.0.0.3", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu3, org2));
 
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
         Instant oneHourEarlier = now.minus(1, ChronoUnit.HOURS);
@@ -124,7 +125,7 @@ class ScmsHealthServiceTest {
     @DisplayName("Returns empty list when organization has no RSUs")
     void testGetScmsStatuses_ReturnsEmpty_WhenOrganizationHasNoRsus() {
         // Arrange
-        saveOrganization("EmptyOrg");
+        organizationRepository.save(fixtures.createOrg("EmptyOrg"));
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("EmptyOrg");
@@ -137,15 +138,16 @@ class ScmsHealthServiceTest {
     @DisplayName("When an organization has RSUs but no health records, the health fields are null")
     void testGetScmsStatuses_ReturnsNullHealth_WhenOrganizationHasRsusButNoHealthRecords() throws Exception {
         // Arrange
-        Organization org = saveOrganization("NoHealthOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("NoHealthOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer2");
-        RsuModel model = saveRsuModel("Model2", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-2");
-        SnmpCredential snmpCred = saveSnmpCredential("snmp2", org);
-        RsuCredential rsuCred = saveRsuCredential("rsu2", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
-        saveRsu("10.0.0.10", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsu = rsuRepository.save(fixtures.createRsu("10.0.0.10", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("NoHealthOrg");
@@ -170,15 +172,16 @@ class ScmsHealthServiceTest {
     @DisplayName("Given two records with the same timestamp, only one row is returned")
     void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = saveOrganization("SameTimestampOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("SameTimestampOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer3");
-        RsuModel model = saveRsuModel("Model3", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-3");
-        SnmpCredential snmpCred = saveSnmpCredential("snmp3", org);
-        RsuCredential rsuCred = saveRsuCredential("rsu3", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
-        Rsu rsu = saveRsu("10.0.0.20", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsu = rsuRepository.save(fixtures.createRsu("10.0.0.20", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
 
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
@@ -202,15 +205,16 @@ class ScmsHealthServiceTest {
     @DisplayName("Given many tied timestamps, exactly one row is returned")
     void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMoreThanTwoRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = saveOrganization("ManyTiesOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("ManyTiesOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer4");
-        RsuModel model = saveRsuModel("Model4", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-4");
-        SnmpCredential snmpCredential = saveSnmpCredential("snmp4", org);
-        RsuCredential rsuCredential = saveRsuCredential("rsu4", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCredential = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCredential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
-        Rsu rsu = saveRsu("10.0.0.30", model, snmpCredential, rsuCredential, protocol, org);
+        Rsu rsu = rsuRepository.save(fixtures.createRsu("10.0.0.30", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
 
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
@@ -233,20 +237,23 @@ class ScmsHealthServiceTest {
     @DisplayName("Results ordered by IPv4 address")
     void testGetScmsStatuses_ResultsOrderedByIpv4Address() throws Exception {
         // Arrange
-        Organization org = saveOrganization("OrderedOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("OrderedOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer5");
-        RsuModel model = saveRsuModel("Model5", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-5");
-        SnmpCredential snmpCredential = saveSnmpCredential("snmp5", org);
-        RsuCredential rsuCredential = saveRsuCredential("rsu5", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCredential = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCredential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         // Create RSUs in non-sorted order
-        Rsu rsu3 = saveRsu("10.0.0.103", model, snmpCredential, rsuCredential, protocol, org);
-        Rsu rsu1 = saveRsu("10.0.0.101", model, snmpCredential, rsuCredential, protocol, org);
-        Rsu rsu2 = saveRsu("10.0.0.102", model, snmpCredential, rsuCredential, protocol, org);
+        Rsu rsu3 = rsuRepository.save(fixtures.createRsu("10.0.0.103", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu3, org));
+        Rsu rsu1 = rsuRepository.save(fixtures.createRsu("10.0.0.101", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu1, org));
+        Rsu rsu2 = rsuRepository.save(fixtures.createRsu("10.0.0.102", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu2, org));
 
         saveScmsHealth(rsu3, now, true);
         saveScmsHealth(rsu1, now, true);
@@ -269,19 +276,19 @@ class ScmsHealthServiceTest {
     @DisplayName("RSU in multiple organizations appears in each organization's query")
     void testGetScmsStatuses_RsuInMultipleOrganizations_AppearsInEachOrgQuery() throws Exception {
         // Arrange - An RSU can belong to multiple organizations
-        Organization org1 = saveOrganization("MultiOrg1");
-        Organization org2 = saveOrganization("MultiOrg2");
+        Organization org1 = organizationRepository.save(fixtures.createOrg("MultiOrg1"));
+        Organization org2 = organizationRepository.save(fixtures.createOrg("MultiOrg2"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer6");
-        RsuModel model = saveRsuModel("Model6", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-6");
-        SnmpCredential snmpCredential = saveSnmpCredential("snmp6", org1);
-        RsuCredential rsuCredential = saveRsuCredential("rsu6", org1);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCredential = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org1));
+        RsuCredential rsuCredential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org1));
 
         // Create RSU and associate with both organizations
-        Rsu sharedRsu = saveRsuWithoutOrg(model, snmpCredential, rsuCredential, protocol);
-        saveRsuOrganization(sharedRsu, org1);
-        saveRsuOrganization(sharedRsu, org2);
+        Rsu sharedRsu = rsuRepository.save(fixtures.createRsu("10.0.0.80", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(sharedRsu, org1));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(sharedRsu, org2));
 
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
         ScmsHealth healthRecord = saveScmsHealth(sharedRsu, now, true);
@@ -301,22 +308,24 @@ class ScmsHealthServiceTest {
     @DisplayName("RSUs without health records are included")
     void testGetScmsStatuses_MixedRsusWithAndWithoutHealthRecords() throws Exception {
         // Arrange
-        Organization org = saveOrganization("MixedOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("MixedOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer7");
-        RsuModel model = saveRsuModel("Model7", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-7");
-        SnmpCredential snmpCred = saveSnmpCredential("snmp7", org);
-        RsuCredential rsuCred = saveRsuCredential("rsu7", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         // RSU with health records
-        Rsu rsuWithHealth = saveRsu("10.0.0.60", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsuWithHealth = rsuRepository.save(fixtures.createRsu("10.0.0.60", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsuWithHealth, org));
         ScmsHealth healthRecord = saveScmsHealth(rsuWithHealth, now, true);
 
         // RSU without health records
-        saveRsu("10.0.0.61", model, snmpCred, rsuCred, protocol, org);
+        Rsu rsuWithoutHealth = rsuRepository.save(fixtures.createRsu("10.0.0.61", model, rsuCred, snmpCred, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsuWithoutHealth, org));
 
         // Act
         List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("MixedOrg");
@@ -338,18 +347,20 @@ class ScmsHealthServiceTest {
     @DisplayName("Query returns deterministic results on repeated calls")
     void testGetScmsStatuses_DeterministicResults_MultipleCallsReturnSameOrder() throws Exception {
         // Arrange
-        Organization org = saveOrganization("DeterministicOrg");
+        Organization org = organizationRepository.save(fixtures.createOrg("DeterministicOrg"));
 
-        Manufacturer manufacturer = saveManufacturer("Manufacturer8");
-        RsuModel model = saveRsuModel("Model8", manufacturer);
-        SnmpProtocol protocol = saveSnmpProtocol("v3-8");
-        SnmpCredential snmpCredential = saveSnmpCredential("snmp8", org);
-        RsuCredential rsuCredential = saveRsuCredential("rsu8", org);
+        Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
+        SnmpProtocol protocol = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        SnmpCredential snmpCredential = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        RsuCredential rsuCredential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
 
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
-        Rsu rsu1 = saveRsu("10.0.0.70", model, snmpCredential, rsuCredential, protocol, org);
-        Rsu rsu2 = saveRsu("10.0.0.71", model, snmpCredential, rsuCredential, protocol, org);
+        Rsu rsu1 = rsuRepository.save(fixtures.createRsu("10.0.0.70", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu1, org));
+        Rsu rsu2 = rsuRepository.save(fixtures.createRsu("10.0.0.71", model, rsuCredential, snmpCredential, protocol));
+        rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu2, org));
 
         // Create multiple records with same timestamp for each RSU
         saveScmsHealth(rsu1, sameTime, true);
@@ -374,84 +385,6 @@ class ScmsHealthServiceTest {
         assertEquals(results1.get(1).getHealth(), results3.get(1).getHealth());
     }
 
-    private Organization saveOrganization(String name) {
-        Organization organization = new Organization();
-        organization.setName(name);
-        return organizationRepository.save(organization);
-    }
-
-    private Manufacturer saveManufacturer(String name) {
-        Manufacturer manufacturer = new Manufacturer();
-        manufacturer.setName(name);
-        return manufacturerRepository.save(manufacturer);
-    }
-
-    private RsuModel saveRsuModel(String name, Manufacturer manufacturer) {
-        RsuModel model = new RsuModel();
-        model.setName(name);
-        model.setSupportedRadio("DSRC");
-        model.setManufacturer(manufacturer);
-        return rsuModelRepository.save(model);
-    }
-
-    private SnmpProtocol saveSnmpProtocol(String nickname) {
-        SnmpProtocol protocol = new SnmpProtocol();
-        protocol.setNickname(nickname);
-        protocol.setProtocolCode("v3");
-        return snmpProtocolRepository.save(protocol);
-    }
-
-    private SnmpCredential saveSnmpCredential(String nickname, Organization org) {
-        SnmpCredential snmpCredential = new SnmpCredential();
-        snmpCredential.setNickname(nickname);
-        snmpCredential.setUsername("user");
-        snmpCredential.setPassword("pass");
-        snmpCredential.setOwnerOrganization(org);
-        return snmpCredentialRepository.save(snmpCredential);
-    }
-
-    private RsuCredential saveRsuCredential(String nickname, Organization org) {
-        RsuCredential rsuCredential = new RsuCredential();
-        rsuCredential.setNickname(nickname);
-        rsuCredential.setUsername("user");
-        rsuCredential.setPassword("pass");
-        rsuCredential.setOwnerOrganization(org);
-        return rsuCredentialRepository.save(rsuCredential);
-    }
-
-    private Rsu saveRsu(String ip, RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol, Organization org) throws Exception {
-        Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
-        rsu.setModel(model);
-        rsu.setSnmpCredential(snmpCred);
-        rsu.setCredential(rsuCred);
-        rsu.setSnmpProtocol(protocol);
-        rsu.setSerialNumber("SN-" + ip);
-        rsu.setMilepost(100.0);
-        rsu.setIssScmsId("ISS-" + ip);
-        rsu.setPrimaryRoute("I-25");
-        
-        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        Point point = geometryFactory.createPoint(new Coordinate(0, 0));
-        rsu.setGeography(point);
-        
-        rsu = rsuRepository.save(rsu);
-        if (org != null) {
-            saveRsuOrganization(rsu, org);
-        }
-        return rsu;
-    }
-
-    private Rsu saveRsuWithoutOrg(RsuModel model, SnmpCredential snmpCred, RsuCredential rsuCred, SnmpProtocol protocol) throws Exception {
-        return saveRsu("10.0.0.80", model, snmpCred, rsuCred, protocol, null);
-    }
-
-    private void saveRsuOrganization(Rsu rsu, Organization org) {
-        RsuOrganization rsuOrganization = new RsuOrganization();
-        rsuOrganization.setRsu(rsu);
-        rsuOrganization.setOrganization(org);
-        rsuOrganizationRepository.save(rsuOrganization);
-    }
 
     private ScmsHealth saveScmsHealth(Rsu rsu, Instant timestamp, boolean health) {
         ScmsHealth scmsHealth = new ScmsHealth();
