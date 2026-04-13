@@ -23,9 +23,6 @@
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true
   },
-  "[html]": {
-    "editor.formatOnSave": false
-  },
   "cSpell.words": [
     "assertj",
     "authpriv",
