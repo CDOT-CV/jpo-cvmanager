@@ -24,8 +24,6 @@ from admin_intersection import AdminIntersection
 from admin_new_user import AdminNewUser
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
-from contact_support import ContactSupportResource
-from rsu_error_summary import RSUErrorSummaryResource
 import smtp_error_handler
 from common import common_environment
 
