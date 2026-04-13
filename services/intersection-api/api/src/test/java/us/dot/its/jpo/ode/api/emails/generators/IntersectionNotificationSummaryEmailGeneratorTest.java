@@ -10,7 +10,6 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.SnapshotTestUtils;
@@ -25,14 +24,10 @@ import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-@Slf4j
-@SpringBootTest
 class IntersectionNotificationSummaryEmailGeneratorTest {
-
-    @Autowired
-    private TemplateEngine templateEngine;
 
     @Mock
     private UnsubscribeTokenGenerator unsubscribeTokenGenerator;
@@ -40,13 +35,14 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
     @Mock
     private EmailProperties emailProperties;
 
+    private TemplateEngine templateEngine;
     private IntersectionNotificationSummaryEmailGenerator generator;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.example.com");
+        when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.com");
 
         // Configure the template resolver
         ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
@@ -63,6 +59,9 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
 
         generator = new IntersectionNotificationSummaryEmailGenerator(templateEngine, unsubscribeTokenGenerator,
                 emailProperties);
+
+        when(unsubscribeTokenGenerator.generateUnsubscribeUrl(anyString()))
+                .thenReturn("https://cvmanager.com/unsubscribe?token=abc123");
     }
 
     @Test

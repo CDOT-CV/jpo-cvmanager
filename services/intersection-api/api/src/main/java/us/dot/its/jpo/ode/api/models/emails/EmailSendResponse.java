@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class EmailSendResponse {
+    @Schema(description = "HTTP status code of the email send response")
     private Integer statusCode;
+    @Schema(description = "Message detailing the result of the email send attempt")
     private String message;
 
     public ResponseEntity<String> getResponseEntity() {
