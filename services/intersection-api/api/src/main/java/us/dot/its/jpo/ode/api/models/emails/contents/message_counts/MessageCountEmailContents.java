@@ -30,5 +30,5 @@ public class MessageCountEmailContents {
 
     @Schema(description = "RSU message counts by message type and RSU")
     @JsonProperty("rsu_counts")
-    private List<MessageCountRsuItem> rsuCounts; // TODO: define message count contents
+    private List<MessageCountRsuItem> rsuCounts;
 }
