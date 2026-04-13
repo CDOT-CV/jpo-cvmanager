@@ -34,7 +34,7 @@ class SupportRequestEmailGeneratorTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.example.com");
+        when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.com");
 
         // Configure the template resolver
         ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
