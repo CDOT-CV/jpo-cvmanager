@@ -1,4 +1,3 @@
-import React from 'react'
 import { render } from '@testing-library/react'
 import DisplayRsuErrors from './DisplayRsuErrors'
 import { Provider } from 'react-redux'
@@ -6,10 +5,17 @@ import { ThemeProvider } from '@mui/material'
 import { testTheme } from '../../styles'
 import { setupStore } from '../../store'
 import { replaceChaoticIds } from '../../utils/test-utils'
+import { RsuProperties } from '../../models/RsuApi'
+import RsuApi from '../../apis/rsu-api'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-10-01'))
 
 it('should take a snapshot', () => {
+  RsuApi.getRsuOnline = jest.fn().mockReturnValue({
+    ip: '1.1.1.1',
+    current_status: 'offline',
+    last_online: undefined,
+  })
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
@@ -30,7 +36,7 @@ it('should take a snapshot', () => {
               primary_route: 'primary_route',
               serial_number: 'serial_number',
               manufacturer_name: 'manufacturer_name',
-            },
+            } as RsuProperties,
           }}
         />
       </Provider>
