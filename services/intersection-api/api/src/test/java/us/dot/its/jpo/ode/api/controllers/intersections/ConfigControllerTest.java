@@ -37,7 +37,6 @@ import us.dot.its.jpo.conflictmonitor.monitor.models.config.IntersectionConfigMa
 import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 import us.dot.its.jpo.ode.api.accessors.config.default_config.DefaultConfigRepository;
 import us.dot.its.jpo.ode.api.accessors.config.intersection_config.IntersectionConfigRepository;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
 public class ConfigControllerTest {
@@ -66,7 +65,7 @@ public class ConfigControllerTest {
                 defaultConfigRepository,
                 intersectionConfigRepository,
                 props,
-                        permissionService);
+                permissionService);
 
         ReflectionTestUtils.setField(controller, "restTemplate", restTemplate);
         when(props.getCmServerURL()).thenReturn("http://localhost");

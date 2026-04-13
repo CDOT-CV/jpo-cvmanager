@@ -36,6 +36,10 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         @SuppressWarnings("unchecked")
         List<Map<String, String>> orgList = (List<Map<String, String>>) claims.get("organizations");
 
+        if (orgList == null) {
+            return Map.of();
+        }
+
         return orgList.stream()
                 .collect(Collectors.toMap(m -> m.get("org"), m -> UserRole.fromString(m.get("role"))));
     }

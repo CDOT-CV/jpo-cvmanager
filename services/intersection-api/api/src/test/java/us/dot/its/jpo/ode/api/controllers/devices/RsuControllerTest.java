@@ -658,7 +658,6 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_ServiceException() {
             List<String> orgsToAdd = Arrays.asList("TestOrg");
-            UserRole role = UserRole.OPERATOR;
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -683,7 +682,6 @@ class RsuControllerTest {
         @Test
         void testCreateRsu_OrgRelationshipCreationFails() {
             List<String> orgsToAdd = Arrays.asList("TestOrg");
-            UserRole role = UserRole.OPERATOR;
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
