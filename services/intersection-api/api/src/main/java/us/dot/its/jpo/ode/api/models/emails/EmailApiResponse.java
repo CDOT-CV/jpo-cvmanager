@@ -2,8 +2,7 @@ package us.dot.its.jpo.ode.api.models.emails;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,25 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class EmailApiResponse {
+    @Schema(description = "List of individual email send responses")
     private List<EmailSendResponse> responses;
+    @Schema(description = "Number of successfully sent emails")
     private int successCount;
+    @Schema(description = "Number of failed email sends")
     private int failureCount;
-
-    public HttpStatus getHttpStatus() {
-        if (failureCount == 0) {
-            return HttpStatus.OK; // 200
-        } else if (successCount > 0) {
-            return HttpStatus.MULTI_STATUS; // 207
-        } else {
-            return HttpStatus.INTERNAL_SERVER_ERROR; // 500
-        }
-    }
-
-    public boolean hasPartialFailure() {
-        return successCount > 0 && failureCount > 0;
-    }
-
-    public boolean hasCompleteFailure() {
-        return successCount == 0 && failureCount > 0;
-    }
 }
