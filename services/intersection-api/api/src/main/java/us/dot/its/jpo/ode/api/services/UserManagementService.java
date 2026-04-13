@@ -54,7 +54,12 @@ public class UserManagementService {
         ModifyUserAllowedSelections allowed = new ModifyUserAllowedSelections();
 
         allowed.setRoles(roleRepository.findAllRoleNames());
-        allowed.setOrganizations(authToken.getQualifiedOrgList("ADMIN"));
+
+        if (authToken.isSuperUser()) {
+            allowed.setOrganizations(organizationRepository.findAllOrganizationNames());
+        } else {
+            allowed.setOrganizations(authToken.getQualifiedOrgList("ADMIN"));
+        }
 
         return allowed;
     }
@@ -196,7 +201,7 @@ public class UserManagementService {
                 userOrganizationRepository.findByUserAndOrganization_Name(
                         user,
                         org.getOrganization()).ifPresent(userOrg -> {
-                            Role role = roleRepository.findByName(org.getRole())
+                            Role role = roleRepository.findByNameIgnoreCase(org.getRole())
                                     .orElseThrow(
                                             () -> new IllegalArgumentException(
                                                     "Role not found: " + org.getRole()));

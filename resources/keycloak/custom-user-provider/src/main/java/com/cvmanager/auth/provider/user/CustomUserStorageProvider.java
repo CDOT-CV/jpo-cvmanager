@@ -338,7 +338,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         // - 9df45cb2-8582-4550-8140-dfb4712cd6c3
         // - f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:9df45cb2-8582-4550-8140-dfb4712cd6c3
         if (keycloakId.contains(":")) {
-            return keycloakId.split(":")[1];
+            return keycloakId.substring(keycloakId.lastIndexOf(':') + 1);
         } else {
             return keycloakId;
         }

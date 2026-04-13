@@ -121,6 +121,10 @@ public class PermissionService {
         }
 
         List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
         return qualifiedOrgs.containsAll(organizations);
     }
 
@@ -181,6 +185,11 @@ public class PermissionService {
             }
         }
 
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
+
         return intersectionRepository.existsByIdAndOrganizations(
                 intersectionID.toString(),
                 qualifiedOrgs);
@@ -214,6 +223,11 @@ public class PermissionService {
             } else {
                 return false;
             }
+        }
+
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
         }
 
         return rsuRepository.existsByIpAndOrganizations(ipv4Address, qualifiedOrgs);
@@ -285,6 +299,10 @@ public class PermissionService {
         }
 
         List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
 
         return userRepository.allUsersExistInOrganizations(distinctEmails, qualifiedOrgs, distinctEmails.size());
     }

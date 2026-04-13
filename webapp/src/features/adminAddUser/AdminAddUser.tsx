@@ -88,9 +88,11 @@ const AdminAddUser = () => {
         toast.error('This organization has already been added')
         return
       }
+      updated[index] = { ...updated[index], organization: value }
+    } else {
+      updated[index] = { ...updated[index], role: value as UserOrganization['role'] }
     }
 
-    updated[index] = { ...updated[index], [field]: value }
     setSelectedOrganizations(updated)
   }
 

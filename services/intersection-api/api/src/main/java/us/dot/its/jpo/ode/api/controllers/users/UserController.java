@@ -110,6 +110,9 @@ public class UserController {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "User not qualified to modify all specified organizations");
+        } else if (!permissionService.isSuperUser() && body.getSuperUser()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Non-super user not qualified to create super user");
         }
 
         userManagementService.createUser(body);
