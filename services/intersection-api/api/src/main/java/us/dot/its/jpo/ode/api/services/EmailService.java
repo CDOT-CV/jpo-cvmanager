@@ -103,7 +103,6 @@ public class EmailService {
 
     public List<EmailSendResponse> sendFirmwareUpgradeFailure(FirmwareUpgradeFailureEmailContents data) {
         EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
-        // TODO: Use email addresses from RSU org only
         List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
                 data.getRsuIp(), EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
