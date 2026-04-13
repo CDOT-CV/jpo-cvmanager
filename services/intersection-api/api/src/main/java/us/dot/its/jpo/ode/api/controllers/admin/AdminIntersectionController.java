@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
@@ -144,7 +146,7 @@ public class AdminIntersectionController {
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
             List<String> qualifiedOrgs = token != null
-                    ? token.getQualifiedOrgList("OPERATOR")
+                    ? token.getQualifiedOrgList(UserRole.OPERATOR)
                     : Collections.emptyList();
             Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
             boolean allOrgsAllowed = qualifiedOrgSet.containsAll(patch.getOrganizationsToAdd())

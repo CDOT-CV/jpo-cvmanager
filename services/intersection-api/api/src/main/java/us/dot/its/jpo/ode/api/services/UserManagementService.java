@@ -17,6 +17,7 @@ import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;

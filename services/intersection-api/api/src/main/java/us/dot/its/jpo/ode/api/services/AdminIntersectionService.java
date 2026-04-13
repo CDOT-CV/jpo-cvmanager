@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.INetMapper;
 import us.dot.its.jpo.ode.api.mappers.IntersectionMapper;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
@@ -115,7 +116,7 @@ public class AdminIntersectionService {
             return new AllowedSelections(allOrgNames, allRsuIps);
         }
         var token = permissionService.getCvManagerAuthToken();
-        List<String> operatorOrgs = token.getQualifiedOrgList("OPERATOR");
+        List<String> operatorOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
         List<String> rsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
                 .map(inetMapper::mapInetAddressToString)
                 .collect(Collectors.toList());
