@@ -120,8 +120,8 @@ class EmailApi:
             json={
                 "org_name": org_name,
                 "deployment_title": deployment_title,
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
                 "message_type_list": message_type_list,
                 "counts": counts,
             },
