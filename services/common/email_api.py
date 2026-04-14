@@ -41,10 +41,11 @@ class EmailApi:
         """
         response = requests.post(
             f"{self.iapi_endpoint}/auth/token-service-account",
-            data={
+            json={
                 "client_id": self.kc_client_id,
                 "client_secret": self.kc_client_secret,
             },
+            headers={"Content-Type": "application/json"},
         )
         if response.status_code != 200:
             logging.error(

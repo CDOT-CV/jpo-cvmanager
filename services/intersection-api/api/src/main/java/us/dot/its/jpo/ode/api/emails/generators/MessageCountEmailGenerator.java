@@ -31,7 +31,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
         context.setVariable("content_1", getContent(data));
         context.setVariable("footer_address", "CV-Manager Message Counts");
 
-        String htmlContent = templateEngine.process("emails/announcement", context);
+        String htmlContent = templateEngine.process("emails/email_template", context);
 
         return new EmailContent(
                 "CV-Manager Message Counts",

@@ -32,7 +32,7 @@ public class FirmwareUpgradeFailureEmailGenerator extends AbstractEmailGenerator
                         escapeHtml(data.getStackTrace())));
         context.setVariable("footer_address", "CV-Manager Firmware Upgrade Failure");
 
-        String htmlContent = templateEngine.process("emails/announcement", context);
+        String htmlContent = templateEngine.process("emails/email_template", context);
 
         return new EmailContent(
                 "CV-Manager Support Request",
