@@ -421,6 +421,8 @@ class UserControllerTest {
 
         when(permissionService.hasRoleInOrgs("ADMIN", List.of("TestOrg")))
                 .thenReturn(true);
+        when(permissionService.isSuperUser())
+                .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         // Act
