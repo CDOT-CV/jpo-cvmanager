@@ -53,7 +53,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Send Message Counts Emails", description = "Send message counts emails")
-    @RequestMapping(value = "/send-message-counts", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/message-counts", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_MESSAGE_COUNTS_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -66,7 +66,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Send Firmware Upgrade Failure Emails", description = "Send firmware upgrade failure emails")
-    @RequestMapping(value = "/send-firmware-upgrade-failure", method = RequestMethod.POST, produces = "application/json")
+    @RequestMapping(value = "/firmware-upgrade-failures", method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_FIRMWARE_UPGRADE_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

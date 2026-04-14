@@ -115,7 +115,7 @@ class EmailApi:
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-message-counts",
+            f"{self.iapi_endpoint}/emails/message-counts",
             headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "org_name": org_name,
@@ -152,7 +152,7 @@ class EmailApi:
             return 500, {"error": "Unable to obtain Keycloak token."}
 
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-firmware-upgrade-failure",
+            f"{self.iapi_endpoint}/emails/firmware-upgrade-failures",
             headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "rsu_ip": rsu_ip,
@@ -190,7 +190,7 @@ class EmailApi:
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-api-error",
+            f"{self.iapi_endpoint}/emails/api-errors",
             headers={"Authorization": f"bearer {token['access_token']}"},
             json={
                 "error_message": error_message,
