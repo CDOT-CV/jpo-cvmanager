@@ -38,6 +38,7 @@ services:
       WZDX_API_KEY: ${WZDX_API_KEY}
       WZDX_ENDPOINT: ${WZDX_ENDPOINT}
 
+      ENABLE_ERROR_EMAILS: ${ENABLE_ERROR_EMAILS:-false}
       IAPI_ENDPOINT: ${IAPI_ENDPOINT:-http://localhost:8089}
       KC_SA_CLIENT_ID: ${KEYCLOAK_SA_COUNT_METRIC_CLIENT_ID:-sa_cvmanager_python_api}
       KC_SA_CLIENT_SECRET: ${KEYCLOAK_SA_PYTHON_API_CLIENT_SECRET_KEY:-sa-python-api-secret-key}
