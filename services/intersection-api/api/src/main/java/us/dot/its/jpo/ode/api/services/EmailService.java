@@ -96,8 +96,8 @@ public class EmailService {
 
     public List<EmailSendResponse> sendMessageCounts(MessageCountEmailContents data) {
         EmailContent content = messageCountEmailGenerator.generateEmailBody(data);
-        List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.MESSAGE_COUNTS,
-                EmailFrequency.IMMEDIATE);
+        List<EmailRecipient> recipients = getUsersForNotificationTypeByOrganization(EmailCategory.MESSAGE_COUNTS,
+                data.getOrganizationName(), EmailFrequency.IMMEDIATE);
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 

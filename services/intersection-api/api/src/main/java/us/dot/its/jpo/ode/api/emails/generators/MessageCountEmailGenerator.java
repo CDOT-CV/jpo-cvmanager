@@ -144,12 +144,21 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
 
                 double diffPercent;
                 if (type.equalsIgnoreCase("bsm") || type.equalsIgnoreCase("tim")) {
+                    // For unique deduplication situations, don't validate counts unless zero
+                    // Assign the percentage difference between the in and out counts as pass or
+                    // fail since no validation is occurring
+                    // 6 being 6% and 0 being 0% difference. The 6% is enough to flag the table cell
+                    // value
                     diffPercent = (inCount != 0 && outCount == 0) || (outCount > inCount) ? 6 : 0;
                 } else {
+                    // Normalize the diff_percent depending on message types that are deduplicated
+                    // to 1/hour
                     int x = type.equalsIgnoreCase("map") ? 3600 : 1;
+                    // Assign the calculated percentage difference between the in and out counts
                     if (inCount != 0) {
                         diffPercent = Math.abs(outCount / Math.ceil((double) inCount / x) - 1) * 100;
                     } else {
+                        // If inCount is zero, assign 6% to trigger error coloring
                         diffPercent = outCount > inCount ? 6 : 0;
                     }
                 }
