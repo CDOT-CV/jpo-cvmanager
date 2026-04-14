@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -68,6 +68,7 @@
       .wrapper {
         box-sizing: border-box;
         padding: 24px;
+        overflow-x: auto;
       }
 
       p span {
@@ -84,6 +85,8 @@
         border-collapse: collapse;
         width: 100%;
         margin: 16px 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .content-table th,
@@ -278,6 +281,20 @@ And a message with 'quotes', "double quotes", and <html> tags & ampersands
                   <!-- END MAIN CONTENT AREA -->
                 </tbody>
               </table>
+
+              <!-- START FOOTER -->
+              <div class="footer">
+                <table role="presentation">
+                  <tbody>
+                    <tr>
+                      <td class="content-block">
+                        <span class="apple-link"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- END FOOTER -->
 
               <!-- END CENTERED WHITE CONTAINER -->
             </div>
