@@ -94,7 +94,7 @@ class EmailApi:
         start_date: datetime.datetime,
         end_date: datetime.datetime,
         message_type_list: list[str],
-        counts: list[dict],
+        rsu_counts: list[dict],
     ) -> tuple[int, dict]:
         """
         Send a message counts email via the API.
@@ -106,7 +106,7 @@ class EmailApi:
             start_date (datetime.datetime): Start date.
             end_date (datetime.datetime): End date.
             message_type_list (list[str]): List of message types.
-            counts (list[dict]): List of count dictionaries.
+            rsu_counts (list[dict]): List of count dictionaries by RSU.
 
         Returns:
             tuple[int, str]: The HTTP status code and the response JSON.
@@ -123,7 +123,7 @@ class EmailApi:
                 "start_date": int(start_date.timestamp() * 1000),
                 "end_date": int(end_date.timestamp() * 1000),
                 "message_type_list": message_type_list,
-                "counts": counts,
+                "rsu_counts": rsu_counts,
             },
         )
         if not (200 <= response.status_code < 300):
