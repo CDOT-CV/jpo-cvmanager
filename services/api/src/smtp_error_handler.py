@@ -1,6 +1,7 @@
 import logging
 from logging import Handler
 import datetime
+import traceback
 import api_environment
 from common.email_api import EmailApi
 from common.keycloak_api import KeycloakServiceAccountApi
@@ -36,9 +37,12 @@ class ErrorEmailHandler(Handler):
                 )[:-3]
 
             # Ensure stack_trace is always a string
-            stack_trace = (
-                record.exc_text if record.exc_text else "No stack trace available"
-            )
+            if record.exc_info:
+                stack_trace = "".join(traceback.format_exception(*record.exc_info))
+            elif record.exc_text:
+                stack_trace = record.exc_text
+            else:
+                stack_trace = "No stack trace available"
             stack_trace = str(stack_trace).replace("\n", "<br>")
 
             self.email_api.send_api_error_email(
