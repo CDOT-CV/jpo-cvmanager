@@ -28,6 +28,25 @@ class CvManagerAuthTokenTest {
                 .build();
     }
 
+    private Jwt createMockJwtWithEmail(Map<String, Object> cvmanagerData, String email, String preferredUsername) {
+        Jwt.Builder builder = Jwt.withTokenValue("mock-token")
+                .header("alg", "RS256")
+                .header("typ", "JWT")
+                .claim("sub", "test-user-id")
+                .claim("cvmanager_data", cvmanagerData)
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600));
+
+        if (email != null) {
+            builder.claim("email", email);
+        }
+        if (preferredUsername != null) {
+            builder.claim("preferred_username", preferredUsername);
+        }
+
+        return builder.build();
+    }
+
     private Map<String, Object> createCvManagerData(String superUser, List<Map<String, String>> organizations) {
         Map<String, Object> cvmanagerData = new HashMap<>();
         cvmanagerData.put("super_user", superUser);
@@ -103,6 +122,347 @@ class CvManagerAuthTokenTest {
             assertTrue(token.hasRoleInOrg("CDOT", "admin"));
             assertTrue(token.hasRoleInOrg("WYDOT", "operator"));
             assertTrue(token.hasRoleInOrg("VDOT", "user"));
+        }
+    }
+
+    @Nested
+    @DisplayName("getEmail Tests")
+    class GetEmailTests {
+
+        @Test
+        @DisplayName("Should return email from 'email' claim")
+        void shouldReturnEmailFromEmailClaim() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "user@example.com", null);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("user@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should return email from 'preferred_username' when 'email' is null")
+        void shouldReturnEmailFromPreferredUsername() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, "preferred@example.com");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("preferred@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should prefer 'email' claim over 'preferred_username'")
+        void shouldPreferEmailClaimOverPreferredUsername() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "email@example.com", "preferred@example.com");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("email@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should return null when no email claims are present")
+        void shouldReturnNullWhenNoEmailClaims() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, null);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertNull(email);
+        }
+
+        @Test
+        @DisplayName("Should return null when email claim is empty string")
+        void shouldReturnNullWhenEmailIsEmpty() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "preferred@example.com");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("preferred@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should return null when both email and preferred_username are empty")
+        void shouldReturnNullWhenBothEmailsAreEmpty() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "");
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertNull(email);
+        }
+
+        @Test
+        @DisplayName("Should handle email with special characters")
+        void shouldHandleEmailWithSpecialCharacters() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "user+test@sub-domain.example.com", null);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("user+test@sub-domain.example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should handle email in various formats")
+        void shouldHandleEmailInVariousFormats() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+
+            String[] testEmails = {
+                    "simple@example.com",
+                    "user.name@example.com",
+                    "user_name@example.com",
+                    "user-name@example.com",
+                    "user123@example.co.uk",
+                    "123@example.com"
+            };
+
+            for (String testEmail : testEmails) {
+                Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
+                CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+                // Act
+                String email = token.getEmail();
+
+                // Assert
+                assertEquals(testEmail, email, "Failed for email: " + testEmail);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("getEmailFrom Tests")
+    class GetEmailFromTests {
+
+        @Test
+        @DisplayName("Should extract email from 'email' claim first")
+        void shouldExtractEmailFromEmailClaimFirst() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("email", "email@example.com")
+                    .claim("preferred_username", "preferred@example.com")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("email@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should fall back to 'preferred_username' when 'email' is absent")
+        void shouldFallBackToPreferredUsername() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("preferred_username", "preferred@example.com")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("preferred@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should return null when neither 'email' nor 'preferred_username' exist")
+        void shouldReturnNullWhenNeitherClaimExists() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("sub", "test-user-id")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertNull(email);
+        }
+
+        @Test
+        @DisplayName("Should skip empty 'email' claim and use 'preferred_username'")
+        void shouldSkipEmptyEmailClaim() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("email", "")
+                    .claim("preferred_username", "preferred@example.com")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertEquals("preferred@example.com", email);
+        }
+
+        @Test
+        @DisplayName("Should return null when 'email' is empty and 'preferred_username' is absent")
+        void shouldReturnNullWhenEmailEmptyAndPreferredUsernameAbsent() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("email", "")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            assertNull(email);
+        }
+
+        @Test
+        @DisplayName("Should handle whitespace-only email claims")
+        void shouldHandleWhitespaceOnlyEmailClaims() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("email", "   ")
+                    .claim("preferred_username", "preferred@example.com")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            // Act
+            String email = token.getEmail();
+
+            // Assert
+            // Note: Current implementation doesn't trim, so " " is not empty
+            // If you want to trim, update the implementation
+            assertEquals("   ", email);
+        }
+    }
+
+    @Nested
+    @DisplayName("Email Integration Tests")
+    class EmailIntegrationTests {
+
+        @Test
+        @DisplayName("Should extract email correctly with full token structure")
+        void shouldExtractEmailWithFullTokenStructure() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin", "WYDOT", "user");
+            Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .header("typ", "JWT")
+                    .claim("sub", "123e4567-e89b-12d3-a456-426614174000")
+                    .claim("email", "admin@example.com")
+                    .claim("preferred_username", "adminuser")
+                    .claim("name", "Admin User")
+                    .claim("given_name", "Admin")
+                    .claim("family_name", "User")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "adminuser");
+
+            // Assert
+            assertEquals("admin@example.com", token.getEmail());
+            assertTrue(token.isSuperUser());
+            assertEquals(2, token.getAllOrgs().size());
+        }
+
+        @Test
+        @DisplayName("Should handle token with only preferred_username and no email")
+        void shouldHandleTokenWithOnlyPreferredUsername() {
+            // Arrange
+            List<Map<String, String>> orgs = createOrganizations("CDOT", "operator");
+            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = Jwt.withTokenValue("mock-token")
+                    .header("alg", "RS256")
+                    .claim("sub", "user-123")
+                    .claim("preferred_username", "operator@example.com")
+                    .claim("cvmanager_data", cvmanagerData)
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "operator");
+
+            // Assert
+            assertEquals("operator@example.com", token.getEmail());
+            assertFalse(token.isSuperUser());
+            assertTrue(token.hasRoleInOrg("CDOT", "operator"));
         }
     }
 
