@@ -22,9 +22,10 @@ class KeycloakServiceAccountApi:
         Initialize the KeycloakServiceAccountApi with the base URL, client ID, and client secret.
 
         Args:
-            keycloak_endpoint (str): The base URL for the Keycloak endpoint.
-            kc_client_id (str): The Keycloak client ID for authentication.
-            kc_client_secret (str): The Keycloak client secret for authentication.
+            endpoint (str): The Keycloak server URL.
+            realm (str): The Keycloak realm name.
+            client_id (str): The Keycloak client ID for authentication.
+            client_secret (str): The Keycloak client secret for authentication.
         """
         self.endpoint = endpoint
         self.realm = realm

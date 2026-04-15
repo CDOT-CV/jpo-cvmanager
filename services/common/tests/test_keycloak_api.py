@@ -1,13 +1,13 @@
 import pytest
 import datetime
 from unittest.mock import MagicMock, patch
-from keycloak_api import KeycloakServiceAccountApi
+from common.keycloak_api import KeycloakServiceAccountApi
 
 
 @pytest.fixture
 def mock_keycloak_openid():
     """Fixture to mock KeycloakOpenID."""
-    with patch("keycloak_api.KeycloakOpenID") as mock:
+    with patch("common.keycloak_api.KeycloakOpenID") as mock:
         yield mock
 
 
@@ -145,7 +145,7 @@ class TestKeycloakServiceAccountApi:
         """Test _update_token method correctly sets token and expiration dates."""
         current_time = datetime.datetime.now()
 
-        with patch("keycloak_api.datetime") as mock_datetime:
+        with patch("common.keycloak_api.datetime") as mock_datetime:
             mock_datetime.datetime.now.return_value = current_time
             mock_datetime.timedelta = datetime.timedelta
 
@@ -277,7 +277,7 @@ class TestKeycloakServiceAccountApi:
         """Test that token expiration dates are calculated accurately."""
         freeze_time = datetime.datetime(2024, 1, 15, 12, 0, 0)
 
-        with patch("keycloak_api.datetime") as mock_datetime:
+        with patch("common.keycloak_api.datetime") as mock_datetime:
             mock_datetime.datetime.now.return_value = freeze_time
             mock_datetime.timedelta = datetime.timedelta
 
@@ -327,7 +327,7 @@ class TestKeycloakServiceAccountApi:
         }
 
         current_time = datetime.datetime.now()
-        with patch("keycloak_api.datetime") as mock_datetime:
+        with patch("common.keycloak_api.datetime") as mock_datetime:
             mock_datetime.datetime.now.return_value = current_time
             mock_datetime.timedelta = datetime.timedelta
 

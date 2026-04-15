@@ -37,7 +37,7 @@ class EmailApi:
         start_date: datetime.datetime,
         end_date: datetime.datetime,
         message_type_list: list[str],
-        counts: list[dict],
+        rsu_counts: list[dict],
     ) -> tuple[int, dict]:
         """
         Send a message counts email via the API.
@@ -49,7 +49,7 @@ class EmailApi:
             start_date (datetime.datetime): Start date.
             end_date (datetime.datetime): End date.
             message_type_list (list[str]): List of message types.
-            counts (list[dict]): List of count dictionaries.
+            rsu_counts (list[dict]): List of count dictionaries.
 
         Returns:
             tuple[int, str]: The HTTP status code and the response JSON.
@@ -58,15 +58,15 @@ class EmailApi:
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-message-counts",
-            headers={"Authorization": f"bearer {token['access_token']}"},
+            f"{self.iapi_endpoint}/emails/message-counts",
+            headers={"Authorization": f"Bearer {token['access_token']}"},
             json={
                 "org_name": org_name,
                 "deployment_title": deployment_title,
-                "start_date": start_date,
-                "end_date": end_date,
+                "start_date": start_date.timestamp(),
+                "end_date": end_date.timestamp(),
                 "message_type_list": message_type_list,
-                "counts": counts,
+                "rsu_counts": rsu_counts,
             },
         )
         if not (200 <= response.status_code < 300):
@@ -95,8 +95,8 @@ class EmailApi:
             return 500, {"error": "Unable to obtain Keycloak token."}
 
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-firmware-upgrade-failure",
-            headers={"Authorization": f"bearer {token['access_token']}"},
+            f"{self.iapi_endpoint}/emails/firmware-upgrade-failures",
+            headers={"Authorization": f"Bearer {token['access_token']}"},
             json={
                 "rsu_ip": rsu_ip,
                 "error_message": error_message,
@@ -133,14 +133,15 @@ class EmailApi:
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
-            f"{self.iapi_endpoint}/emails/send-api-error",
-            headers={"Authorization": f"bearer {token['access_token']}"},
+            f"{self.iapi_endpoint}/emails/api-errors",
+            headers={"Authorization": f"Bearer {token['access_token']}"},
             json={
                 "error_message": error_message,
                 "stack_trace": stack_trace,
                 "timestamp": timestamp,
                 "logs_link": logs_link,
             },
+            timeout=10,
         )
         if not (200 <= response.status_code < 300):
             logging.error(

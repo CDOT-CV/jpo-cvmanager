@@ -1,8 +1,8 @@
 import pytest
 import datetime
 from unittest.mock import Mock, patch
-from email_api import EmailApi
-from keycloak_api import KeycloakServiceAccountApi
+from common.email_api import EmailApi
+from common.keycloak_api import KeycloakServiceAccountApi
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ class TestEmailApiInitialization:
 class TestSendMessageCounts:
     """Tests for send_message_counts method."""
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_message_counts_success(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -77,7 +77,7 @@ class TestSendMessageCounts:
             start_date=start_date,
             end_date=end_date,
             message_type_list=["BSM", "TIM"],
-            counts=[{"rsu": "192.168.1.1", "count": 100}],
+            rsu_counts=[{"rsu": "192.168.1.1", "count": 100}],
         )
 
         assert status_code == 200
@@ -86,13 +86,13 @@ class TestSendMessageCounts:
         mock_post.assert_called_once()
 
         call_args = mock_post.call_args
-        assert call_args[0][0] == "http://localhost:8089/emails/send-message-counts"
-        assert call_args[1]["headers"]["Authorization"] == "bearer mock_access_token"
+        assert call_args[0][0] == "http://localhost:8089/emails/message-counts"
+        assert call_args[1]["headers"]["Authorization"] == "Bearer mock_access_token"
         assert call_args[1]["json"]["org_name"] == "Test Org"
         assert call_args[1]["json"]["deployment_title"] == "Test Deployment"
         assert call_args[1]["json"]["message_type_list"] == ["BSM", "TIM"]
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_message_counts_no_token(self, mock_post, email_api, mock_kc_api):
         """Test message counts email when token cannot be obtained."""
         mock_kc_api.get_kc_token.return_value = None
@@ -103,7 +103,7 @@ class TestSendMessageCounts:
             start_date=datetime.datetime.now(),
             end_date=datetime.datetime.now(),
             message_type_list=["BSM"],
-            counts=[],
+            rsu_counts=[],
         )
 
         assert status_code == 500
@@ -111,7 +111,7 @@ class TestSendMessageCounts:
         assert response["error"] == "Unable to obtain Keycloak token."
         mock_post.assert_not_called()
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_message_counts_api_failure(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -130,13 +130,13 @@ class TestSendMessageCounts:
             start_date=datetime.datetime.now(),
             end_date=datetime.datetime.now(),
             message_type_list=["BSM"],
-            counts=[],
+            rsu_counts=[],
         )
 
         assert status_code == 500
         assert "error" in response
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_message_counts_with_empty_counts(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -154,18 +154,18 @@ class TestSendMessageCounts:
             start_date=datetime.datetime.now(),
             end_date=datetime.datetime.now(),
             message_type_list=["BSM"],
-            counts=[],
+            rsu_counts=[],
         )
 
         assert status_code == 200
         call_args = mock_post.call_args
-        assert call_args[1]["json"]["counts"] == []
+        assert call_args[1]["json"]["rsu_counts"] == []
 
 
 class TestSendFirmwareUpgradeFailure:
     """Tests for send_firmware_upgrade_failure method."""
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_firmware_upgrade_failure_success(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -190,14 +190,13 @@ class TestSendFirmwareUpgradeFailure:
 
         call_args = mock_post.call_args
         assert (
-            call_args[0][0]
-            == "http://localhost:8089/emails/send-firmware-upgrade-failure"
+            call_args[0][0] == "http://localhost:8089/emails/firmware-upgrade-failures"
         )
-        assert call_args[1]["headers"]["Authorization"] == "bearer mock_access_token"
+        assert call_args[1]["headers"]["Authorization"] == "Bearer mock_access_token"
         assert call_args[1]["json"]["rsu_ip"] == "192.168.1.100"
         assert call_args[1]["json"]["error_message"] == "SNMP timeout"
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_firmware_upgrade_failure_no_token(
         self, mock_post, email_api, mock_kc_api
     ):
@@ -216,7 +215,7 @@ class TestSendFirmwareUpgradeFailure:
         assert response["error"] == "Unable to obtain Keycloak token."
         mock_post.assert_not_called()
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_firmware_upgrade_failure_api_error(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -238,7 +237,7 @@ class TestSendFirmwareUpgradeFailure:
 
         assert status_code == 400
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_firmware_upgrade_failure_with_long_stack_trace(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -267,7 +266,7 @@ class TestSendFirmwareUpgradeFailure:
 class TestSendApiErrorEmail:
     """Tests for send_api_error_email method."""
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_api_error_email_success(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -291,10 +290,10 @@ class TestSendApiErrorEmail:
         mock_kc_api.get_kc_token.assert_called_once()
 
         call_args = mock_post.call_args
-        assert call_args[0][0] == "http://localhost:8089/emails/send-api-error"
-        assert call_args[1]["headers"]["Authorization"] == "bearer mock_access_token"
+        assert call_args[0][0] == "http://localhost:8089/emails/api-errors"
+        assert call_args[1]["headers"]["Authorization"] == "Bearer mock_access_token"
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_api_error_email_no_token(self, mock_post, email_api, mock_kc_api):
         """Test API error email when token cannot be obtained."""
         mock_kc_api.get_kc_token.return_value = None
@@ -311,7 +310,7 @@ class TestSendApiErrorEmail:
         assert response["error"] == "Unable to obtain Keycloak token."
         mock_post.assert_not_called()
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_api_error_email_with_all_fields(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -340,7 +339,7 @@ class TestSendApiErrorEmail:
             json_data["logs_link"] == "https://cvmanager.example.com/logs?level=error"
         )
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_send_api_error_email_api_failure(
         self, mock_post, email_api, mock_kc_api, mock_token
     ):
@@ -366,7 +365,7 @@ class TestSendApiErrorEmail:
 class TestEmailApiIntegration:
     """Integration tests for EmailApi with KeycloakServiceAccountApi."""
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_token_refresh_between_calls(self, mock_post, mock_kc_api, mock_token):
         """Test that token is refreshed between email calls."""
         email_api = EmailApi(iapi_base_url="http://localhost:8089", kc_api=mock_kc_api)
@@ -402,10 +401,10 @@ class TestEmailApiIntegration:
         second_call_args = mock_post.call_args_list[1]
         assert (
             second_call_args[1]["headers"]["Authorization"]
-            == "bearer refreshed_access_token"
+            == "Bearer refreshed_access_token"
         )
 
-    @patch("email_api.requests.post")
+    @patch("common.email_api.requests.post")
     def test_multiple_email_types_same_token(self, mock_post, mock_kc_api, mock_token):
         """Test that multiple email types can use the same token."""
         email_api = EmailApi(iapi_base_url="http://localhost:8089", kc_api=mock_kc_api)
@@ -437,7 +436,7 @@ class TestEmailApiIntegration:
             start_date=datetime.datetime.now(),
             end_date=datetime.datetime.now(),
             message_type_list=["BSM"],
-            counts=[],
+            rsu_counts=[],
         )
 
         # Token should be requested once and reused
