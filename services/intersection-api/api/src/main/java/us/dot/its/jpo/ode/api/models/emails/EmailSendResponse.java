@@ -45,13 +45,15 @@ public class EmailSendResponse {
             return new EmailApiResponse(List.of(), 0, 0);
         }
 
+        responses = responses.stream().filter(resp -> resp != null).toList();
+
         // Separate successful and failed responses
         List<EmailSendResponse> successfulResponses = responses.stream()
-                .filter(resp -> resp != null && resp.getMappedStatusCode() == 200)
+                .filter(resp -> resp.getMappedStatusCode() == 200)
                 .toList();
 
         List<EmailSendResponse> failedResponses = responses.stream()
-                .filter(resp -> resp != null && resp.getMappedStatusCode() != 200)
+                .filter(resp -> resp.getMappedStatusCode() != 200)
                 .toList();
 
         int successCount = successfulResponses.size();
