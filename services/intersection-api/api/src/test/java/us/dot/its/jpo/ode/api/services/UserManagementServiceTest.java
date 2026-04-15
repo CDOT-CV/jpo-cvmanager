@@ -584,6 +584,7 @@ class UserManagementServiceTest {
         when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
         when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(adminRole));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
+        when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
         User result = userManagementService.createUser(userDto);
@@ -592,7 +593,7 @@ class UserManagementServiceTest {
         assertEquals("newuser@example.com", result.getEmail());
         verify(organizationRepository).findByName("TestOrg");
         verify(organizationRepository).findByName("AnotherOrg");
-        verify(roleRepository).findByName("ADMIN");
+        verify(roleRepository).findByNameIgnoreCase("ADMIN");
         verify(roleRepository).findByNameIgnoreCase("USER");
         verify(userOrganizationRepository).saveAll(argThat(list -> {
             List<UserOrganization> listCopy = new ArrayList<>();
