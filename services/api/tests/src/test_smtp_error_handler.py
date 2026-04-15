@@ -122,8 +122,8 @@ def test_emit_with_newlines():
     email_handler.emit(record)
 
     email_handler.email_api.send_api_error_email.assert_called_once_with(
-        error_message="Error line 1<br>Error line 2",
-        stack_trace="Line 1<br>Line 2<br>Line 3",
+        error_message="Error line 1\nError line 2",
+        stack_trace="Line 1\nLine 2\nLine 3",
         timestamp="2023-09-15 00:00:00,000",
         logs_link=LOGS_LINK,
     )
@@ -182,6 +182,6 @@ def test_emit_with_real_exception():
     # Check that stack trace contains expected elements
     assert "ValueError: Test exception" in call_args["stack_trace"]
     assert "raise ValueError" in call_args["stack_trace"]
-    assert "<br>" in call_args["stack_trace"]  # Newlines converted to <br>
+    assert "\n" in call_args["stack_trace"]  # Newlines preserved
     assert call_args["error_message"] == "ValueError occurred"
     assert call_args["timestamp"] == "2023-09-15 00:00:00,000"
