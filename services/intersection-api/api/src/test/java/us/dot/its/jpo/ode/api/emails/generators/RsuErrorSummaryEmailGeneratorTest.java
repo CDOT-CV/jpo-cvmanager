@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +57,6 @@ class RsuErrorSummaryEmailGeneratorTest {
 
     @Test
     void testGenerateEmailBody_SnapshotTest() throws IOException {
-        List<String> recipients = List.of("admin@example.com");
         String subject = "Support Request: System Issues";
         String message = """
                 Summary of RSU errors:\n- RSU 192.168.1.1: Connection timeout\n- RSU 192.168.1.2: Authentication failed
@@ -66,7 +64,7 @@ class RsuErrorSummaryEmailGeneratorTest {
                 And a message with 'quotes', \"double quotes\", and <html> tags & ampersands
                 """;
 
-        RsuErrorSummaryEmailContents contents = new RsuErrorSummaryEmailContents(recipients, subject, message);
+        RsuErrorSummaryEmailContents contents = new RsuErrorSummaryEmailContents(subject, message);
 
         EmailContent result = generator.generateEmailBody(contents);
 

@@ -16,12 +16,14 @@ import us.dot.its.jpo.ode.api.utils.AuthUtils;
 public class CvManagerAuthToken extends JwtAuthenticationToken {
     private final Map<String, String> orgRoles; // Map<Org, Role>
     private final boolean isSuperUser;
+    private final String email;
 
     public CvManagerAuthToken(Jwt jwt, Collection<? extends GrantedAuthority> authorities, String username) {
         super(jwt, authorities, username);
         Map<String, Object> cvmanagerClaims = Optional.ofNullable(jwt.getClaimAsMap("cvmanager_data")).orElse(Map.of());
         this.orgRoles = getOrgRolesFrom(cvmanagerClaims);
         this.isSuperUser = getIsSuperUserFrom(cvmanagerClaims);
+        this.email = getEmailFrom(jwt);
     }
 
     protected Boolean getIsSuperUserFrom(Map<String, Object> claims) {
@@ -42,6 +44,32 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
 
         return orgList.stream()
                 .collect(Collectors.toMap(m -> m.get("org"), m -> m.get("role")));
+    }
+
+    /**
+     * Extracts email address from JWT token.
+     * Tries multiple standard claim names in order of preference:
+     * 1. "email" (standard OIDC claim)
+     * 2. "preferred_username" (Keycloak often uses this for email)
+     * 3. "upn" (User Principal Name - used in some systems)
+     * 
+     * @param jwt The JWT token
+     * @return Email address if found, null otherwise
+     */
+    protected String getEmailFrom(Jwt jwt) {
+        // Try standard "email" claim first
+        String email = jwt.getClaimAsString("email");
+        if (email != null && !email.isEmpty()) {
+            return email;
+        }
+
+        // Try "preferred_username" (often contains email in Keycloak)
+        String preferredUsername = jwt.getClaimAsString("preferred_username");
+        if (preferredUsername != null && !preferredUsername.isEmpty()) {
+            return preferredUsername;
+        }
+
+        return null;
     }
 
     public boolean hasRoleInOrg(String orgId, String role) {
@@ -96,5 +124,14 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
      */
     public boolean isSuperUser() {
         return isSuperUser;
+    }
+
+    /**
+     * Gets the user's email address from the JWT token.
+     * 
+     * @return Email address if present, null otherwise
+     */
+    public String getEmail() {
+        return email;
     }
 }

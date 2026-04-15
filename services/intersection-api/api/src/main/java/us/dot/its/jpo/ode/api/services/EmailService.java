@@ -33,6 +33,7 @@ public class EmailService {
     private final EmailProvider emailProvider;
     private final UserEmailNotificationRepository userEmailNotificationRepository;
     private final IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    private final PermissionService permissionService;
     private final SupportRequestEmailGenerator supportRequestEmailGenerator;
     private final ApiErrorEmailGenerator apiErrorEmailGenerator;
     private final RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
@@ -97,9 +98,8 @@ public class EmailService {
 
     public List<EmailSendResponse> sendRsuErrorSummary(RsuErrorSummaryEmailContents data) {
         EmailContent content = rsuErrorSummaryEmailGenerator.generateEmailBody(data);
-        List<EmailRecipient> recipients = data.getRecipients().stream()
-                .map(email -> new EmailRecipient(email, ""))
-                .toList();
+        String email = permissionService.getCvManagerAuthToken().getEmail();
+        List<EmailRecipient> recipients = List.of(new EmailRecipient(email, ""));
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 }
