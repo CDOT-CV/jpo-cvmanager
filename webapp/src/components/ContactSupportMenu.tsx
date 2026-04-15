@@ -21,23 +21,23 @@ const ContactSupportMenu = () => {
     formState: { errors },
   } = useForm()
 
-    const [submitSupportRequest] = useSendContactSupportEmailMutation()
+  const [submitSupportRequest] = useSendContactSupportEmailMutation()
 
-    const onSubmit = async (data: SupportRequestEmailContents) => {
-      try {
-        const response = await submitSupportRequest(data).unwrap()
-        if (response.failureCount === 0) {
-          toast.success(`Successfully sent support request`)
-          reset()
-        } else {
-          toast.error(`Failed to send support request`)
-        }
-      } catch (exception_var) {
-        console.error('Error in ContactSupportMenu onSubmit', exception_var)
-        toast.error('An exception occurred, please try again later')
+  const onSubmit = async (data: SupportRequestEmailContents) => {
+    try {
+      const response = await submitSupportRequest(data).unwrap()
+      if (response.failureCount === 0) {
+        toast.success(`Successfully sent support request`)
+        reset()
+      } else {
+        toast.error(`Failed to send support request`)
       }
-      setHidden(true)
+    } catch (exception_var) {
+      console.error('Error in ContactSupportMenu onSubmit', exception_var)
+      toast.error('An exception occurred, please try again later')
     }
+    setHidden(true)
+  }
 
   if (hidden) {
     return (
