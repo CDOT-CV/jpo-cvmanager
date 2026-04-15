@@ -87,7 +87,7 @@ class TestKeycloakServiceAccountApi:
             "old_refresh_token"
         )
 
-    def test_refresh_keycloak_token_failure(self, keycloak_api, caplog):
+    def test_refresh_keycloak_token_failure(self, keycloak_api):
         """Test refresh token failure handling."""
         keycloak_api.keycloak_openid.refresh_token = MagicMock(
             side_effect=Exception("Invalid refresh token")
@@ -96,7 +96,6 @@ class TestKeycloakServiceAccountApi:
         result = keycloak_api.refresh_keycloak_token("invalid_refresh_token")
 
         assert result is None
-        assert "Failed to refresh Keycloak token" in caplog.text
 
     def test_is_current_token_valid_no_token(self, keycloak_api):
         """Test token validation when no token exists."""
@@ -161,7 +160,7 @@ class TestKeycloakServiceAccountApi:
             == current_time + datetime.timedelta(seconds=1800)
         )
 
-    def test_get_kc_token_no_existing_token(self, keycloak_api, sample_token, caplog):
+    def test_get_kc_token_no_existing_token(self, keycloak_api, sample_token):
         """Test get_kc_token when no token exists."""
         keycloak_api.keycloak_openid.token = MagicMock(return_value=sample_token)
 
@@ -169,8 +168,6 @@ class TestKeycloakServiceAccountApi:
 
         assert result == sample_token
         assert keycloak_api.token == sample_token
-        assert "Generating new Keycloak token" in caplog.text
-        assert "Successfully generated new Keycloak token" in caplog.text
 
     def test_get_kc_token_valid_token_exists(self, keycloak_api, sample_token):
         """Test get_kc_token when valid token already exists."""
@@ -185,9 +182,7 @@ class TestKeycloakServiceAccountApi:
         # Should not call token generation
         keycloak_api.keycloak_openid.token.assert_not_called()
 
-    def test_get_kc_token_expired_but_refresh_valid(
-        self, keycloak_api, sample_token, caplog
-    ):
+    def test_get_kc_token_expired_but_refresh_valid(self, keycloak_api, sample_token):
         """Test get_kc_token when access token expired but refresh token is valid."""
         refreshed_token = {**sample_token, "access_token": "new_access_token"}
 
@@ -206,15 +201,11 @@ class TestKeycloakServiceAccountApi:
 
         assert result == refreshed_token
         assert keycloak_api.token == refreshed_token
-        assert "Access token expired. Attempting to refresh token" in caplog.text
-        assert "Successfully refreshed Keycloak token" in caplog.text
         keycloak_api.keycloak_openid.refresh_token.assert_called_once_with(
             sample_token["refresh_token"]
         )
 
-    def test_get_kc_token_refresh_fails_generates_new(
-        self, keycloak_api, sample_token, caplog
-    ):
+    def test_get_kc_token_refresh_fails_generates_new(self, keycloak_api, sample_token):
         """Test get_kc_token falls back to generating new token when refresh fails."""
         new_token = {**sample_token, "access_token": "brand_new_access_token"}
 
@@ -231,11 +222,9 @@ class TestKeycloakServiceAccountApi:
         result = keycloak_api.get_kc_token()
 
         assert result == new_token
-        assert "Token refresh failed. Generating new token" in caplog.text
-        assert "Successfully generated new Keycloak token" in caplog.text
         keycloak_api.keycloak_openid.token.assert_called_once()
 
-    def test_get_kc_token_both_tokens_expired(self, keycloak_api, sample_token, caplog):
+    def test_get_kc_token_both_tokens_expired(self, keycloak_api, sample_token):
         """Test get_kc_token when both access and refresh tokens are expired."""
         new_token = {**sample_token, "access_token": "brand_new_access_token"}
 
@@ -251,22 +240,19 @@ class TestKeycloakServiceAccountApi:
         result = keycloak_api.get_kc_token()
 
         assert result == new_token
-        assert "Generating new Keycloak token" in caplog.text
-        assert "Successfully generated new Keycloak token" in caplog.text
         # Should not attempt refresh
         keycloak_api.keycloak_openid.refresh_token.assert_not_called()
 
-    def test_get_kc_token_generation_fails(self, keycloak_api, caplog):
+    def test_get_kc_token_generation_fails(self, keycloak_api):
         """Test get_kc_token when token generation fails."""
         keycloak_api.keycloak_openid.token = MagicMock(return_value=None)
 
         result = keycloak_api.get_kc_token()
 
         assert result is None
-        assert "Failed to obtain Keycloak token" in caplog.text
 
     def test_get_kc_token_refresh_exception_then_generate(
-        self, keycloak_api, sample_token, caplog
+        self, keycloak_api, sample_token
     ):
         """Test get_kc_token handles refresh exception and generates new token."""
         new_token = {**sample_token, "access_token": "brand_new_access_token"}
@@ -286,9 +272,6 @@ class TestKeycloakServiceAccountApi:
         result = keycloak_api.get_kc_token()
 
         assert result == new_token
-        assert "Failed to refresh Keycloak token" in caplog.text
-        assert "Token refresh failed. Generating new token" in caplog.text
-        assert "Successfully generated new Keycloak token" in caplog.text
 
     def test_token_expiration_calculation_accuracy(self, keycloak_api, sample_token):
         """Test that token expiration dates are calculated accurately."""

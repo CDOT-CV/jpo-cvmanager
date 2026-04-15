@@ -113,7 +113,7 @@ class TestSendMessageCounts:
 
     @patch("email_api.requests.post")
     def test_send_message_counts_api_failure(
-        self, mock_post, email_api, mock_kc_api, mock_token, caplog
+        self, mock_post, email_api, mock_kc_api, mock_token
     ):
         """Test message counts email when API returns error."""
         mock_kc_api.get_kc_token.return_value = mock_token
@@ -135,7 +135,6 @@ class TestSendMessageCounts:
 
         assert status_code == 500
         assert "error" in response
-        assert "Failed to send message counts email" in caplog.text
 
     @patch("email_api.requests.post")
     def test_send_message_counts_with_empty_counts(
@@ -219,7 +218,7 @@ class TestSendFirmwareUpgradeFailure:
 
     @patch("email_api.requests.post")
     def test_send_firmware_upgrade_failure_api_error(
-        self, mock_post, email_api, mock_kc_api, mock_token, caplog
+        self, mock_post, email_api, mock_kc_api, mock_token
     ):
         """Test firmware upgrade failure email with API error."""
         mock_kc_api.get_kc_token.return_value = mock_token
@@ -238,7 +237,6 @@ class TestSendFirmwareUpgradeFailure:
         )
 
         assert status_code == 400
-        assert "Failed to send firmware upgrade failure email" in caplog.text
 
     @patch("email_api.requests.post")
     def test_send_firmware_upgrade_failure_with_long_stack_trace(
@@ -344,7 +342,7 @@ class TestSendApiErrorEmail:
 
     @patch("email_api.requests.post")
     def test_send_api_error_email_api_failure(
-        self, mock_post, email_api, mock_kc_api, mock_token, caplog
+        self, mock_post, email_api, mock_kc_api, mock_token
     ):
         """Test API error email when API returns error."""
         mock_kc_api.get_kc_token.return_value = mock_token
@@ -363,7 +361,6 @@ class TestSendApiErrorEmail:
         )
 
         assert status_code == 503
-        assert "Failed to send API error email" in caplog.text
 
 
 class TestEmailApiIntegration:

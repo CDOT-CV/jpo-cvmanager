@@ -2,8 +2,7 @@ import logging
 import datetime
 from typing import TypedDict
 import requests
-
-from services.common.keycloak_api import KeycloakServiceAccountApi
+from common.keycloak_api import KeycloakServiceAccountApi
 
 
 class KeycloakToken(TypedDict):
