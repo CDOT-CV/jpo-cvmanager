@@ -363,6 +363,8 @@ public class GlobalExceptionHandler {
             return "organization";
         } else if (lowerMessage.contains("credential")) {
             return "credential";
+        } else if (lowerMessage.contains("intersection")) {
+            return "intersection";
         }
 
         return "record";
