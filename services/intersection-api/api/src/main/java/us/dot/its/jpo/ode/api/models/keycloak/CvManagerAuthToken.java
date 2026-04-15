@@ -51,7 +51,6 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
      * Tries multiple standard claim names in order of preference:
      * 1. "email" (standard OIDC claim)
      * 2. "preferred_username" (Keycloak often uses this for email)
-     * 3. "upn" (User Principal Name - used in some systems)
      * 
      * @param jwt The JWT token
      * @return Email address if found, null otherwise
