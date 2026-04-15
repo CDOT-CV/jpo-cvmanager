@@ -33,7 +33,8 @@ logging.info(
 
 app = Flask(__name__)
 
-smtp_error_handler.configure_error_emails(app)
+if api_environment.ENABLE_ERROR_EMAILS:
+    smtp_error_handler.configure_error_emails(app)
 
 app.wsgi_app = Middleware(app.wsgi_app)
 

@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.models.emails.contents;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,9 +12,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RsuErrorSummaryEmailContents {
-    @Schema(description = "List of email addresses of recipients to email rsu error summary to")
-    @JsonProperty("recipients")
-    private List<String> recipients;
     @Schema(description = "Email subject")
     @JsonProperty("subject")
     private String subject;

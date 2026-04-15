@@ -13,6 +13,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSum
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 
 import java.net.InetAddress;
@@ -34,6 +35,8 @@ class EmailServiceTest {
     private UserEmailNotificationRepository userEmailNotificationRepository;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
+    @Mock
+    private PermissionService permissionService;
     @Mock
     private SupportRequestEmailGenerator supportRequestEmailGenerator;
     @Mock
@@ -197,11 +200,13 @@ class EmailServiceTest {
 
     @Test
     void testSendRsuErrorSummary() {
-        List<String> recipientNames = List.of("test@example.com");
-        List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", ""));
-        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents(recipientNames, "subject", "message");
+        RsuErrorSummaryEmailContents data = new RsuErrorSummaryEmailContents("subject", "message");
         EmailContent content = new EmailContent("subject", "body");
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
+
+        CvManagerAuthToken authToken = mock(CvManagerAuthToken.class);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+        when(authToken.getEmail()).thenReturn("test@example.com");
 
         when(rsuErrorSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
         when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))

@@ -2,11 +2,6 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
-import { PaginatedQueryParams } from '../../models/pagination'
-
-export interface GetAllRsusParams extends PaginatedQueryParams {
-  organization: string
-}
 
 export const emailApiSlice = createApi({
   reducerPath: 'emailApi',

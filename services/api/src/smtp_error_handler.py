@@ -3,6 +3,7 @@ from logging import Handler
 import datetime
 import api_environment
 from common.email_api import EmailApi
+from common.keycloak_api import KeycloakServiceAccountApi
 
 
 def configure_error_emails(app):
@@ -18,8 +19,12 @@ class ErrorEmailHandler(Handler):
         super().__init__()  # initialize handler
         self.email_api = EmailApi(
             api_environment.IAPI_ENDPOINT,
-            api_environment.KC_SA_CLIENT_ID,
-            api_environment.KC_SA_CLIENT_SECRET,
+            kc_api=KeycloakServiceAccountApi(
+                api_environment.KEYCLOAK_ENDPOINT,
+                api_environment.KEYCLOAK_REALM,
+                api_environment.KC_SA_CLIENT_ID,
+                api_environment.KC_SA_CLIENT_SECRET,
+            ),
         )
 
     def emit(self, record):
