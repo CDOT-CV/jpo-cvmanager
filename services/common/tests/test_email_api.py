@@ -439,6 +439,6 @@ class TestEmailApiIntegration:
             rsu_counts=[],
         )
 
-        # Token should be requested once and reused
+        # Each email send requests a token; all three email types should send successfully.
         assert mock_kc_api.get_kc_token.call_count == 3
         assert mock_post.call_count == 3

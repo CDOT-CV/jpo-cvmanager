@@ -51,14 +51,13 @@ class EmailApi:
         Args:
             org_name (str): Organization name.
             deployment_title (str): Deployment title.
-            primary_route (str): Primary route.
             start_date (datetime.datetime): Start date.
             end_date (datetime.datetime): End date.
             message_type_list (list[str]): List of message types.
             rsu_counts (list[dict]): List of count dictionaries.
 
         Returns:
-            tuple[int, str]: The HTTP status code and the response JSON.
+            tuple[int, dict]: The HTTP status code and the response JSON.
         """
         token = self.kc_api.get_kc_token()
         if not token:
