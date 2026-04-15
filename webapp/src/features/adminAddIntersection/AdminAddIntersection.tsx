@@ -90,8 +90,12 @@ const AdminAddIntersection = () => {
       toast.success('Intersection created successfully')
       setOpen(false)
       navigate('/dashboard/admin/intersections')
-    } catch (e) {
-      toast.error('Failed to add Intersection')
+    } catch (error) {
+      const detail =
+        error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
+          ? (error.data as { detail?: string }).detail
+          : undefined
+      toast.error(detail ? `Failed to add Intersection: ${detail}` : 'Failed to add Intersection')
     }
   }
 
