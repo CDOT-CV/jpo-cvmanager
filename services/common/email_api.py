@@ -20,12 +20,12 @@ class KeycloakToken(TypedDict):
 class EmailApi:
     def __init__(self, iapi_base_url, kc_api: KeycloakServiceAccountApi):
         """
-        Initialize the EmailApi with the base URL, username, and password.
+        Initialize the EmailApi with the base URL and Keycloak service account API.
 
         Args:
             iapi_base_url (str): The base URL for the email API.
-            kc_client_id (str): The Keycloak client ID for authentication.
-            kc_client_secret (str): The Keycloak client secret for authentication.
+            kc_api (KeycloakServiceAccountApi): The Keycloak service account API
+                used to obtain authentication tokens for email API requests.
         """
         self.iapi_endpoint = iapi_base_url
         self.kc_api = kc_api
