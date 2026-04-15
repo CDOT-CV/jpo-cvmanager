@@ -82,7 +82,7 @@ public class UserManagementService {
     }
 
     public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user) {
-        Organization organization = organizationRepository.findByNameIgnoreCase(userOrgDto.getOrganization())
+        Organization organization = organizationRepository.findByName(userOrgDto.getOrganization())
                 .orElseThrow(
                         () -> new IllegalArgumentException("Organization not found: " + userOrgDto.getOrganization()));
 
@@ -151,7 +151,7 @@ public class UserManagementService {
                         List.of(org.getOrganization()));
 
                 if (!exists) {
-                    Organization organization = organizationRepository.findByNameIgnoreCase(org.getOrganization())
+                    Organization organization = organizationRepository.findByName(org.getOrganization())
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Organization not found: " + org.getOrganization()));
 

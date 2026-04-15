@@ -10,9 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
@@ -235,7 +233,7 @@ class UserManagementServiceTest {
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                        () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
+                () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
 
         assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository).findByEmail("nonexistent@example.com");
@@ -253,7 +251,7 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
@@ -261,7 +259,7 @@ class UserManagementServiceTest {
         UserDto result = userManagementService.modifyUser("test@example.com", patch, authToken);
 
         assertNotNull(result);
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
+        verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("admin");
         verify(userOrganizationRepository).save(any(UserOrganization.class));
     }
@@ -318,10 +316,10 @@ class UserManagementServiceTest {
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("NonexistentOrg")))
                 .thenReturn(false);
-        when(organizationRepository.findByNameIgnoreCase("NonexistentOrg")).thenReturn(Optional.empty());
+        when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                        () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals("Organization not found: NonexistentOrg", exception.getMessage());
         verify(userOrganizationRepository, never()).save(any());
@@ -338,11 +336,11 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("nonexistent_role")).thenReturn(Optional.empty());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                        () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals("Role not found: nonexistent_role", exception.getMessage());
         verify(userOrganizationRepository, never()).save(any());
@@ -386,7 +384,7 @@ class UserManagementServiceTest {
         when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
 
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                        () -> userManagementService.modifyUser("test@example.com", patch, authToken));
+                () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
         assertEquals("User does not have permission to remove User from organization(s): UnauthorizedOrg",
                 exception.getMessage());
@@ -433,7 +431,7 @@ class UserManagementServiceTest {
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                        () -> userManagementService.deleteUserByEmail("nonexistent@example.com"));
+                () -> userManagementService.deleteUserByEmail("nonexistent@example.com"));
 
         assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository, never()).delete(any());
@@ -484,7 +482,7 @@ class UserManagementServiceTest {
         when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                        () -> userManagementService.deleteMultipleUsersByEmail(emails));
+                () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
         assertEquals("No valid user emails provided", exception.getMessage());
         verify(userRepository, never()).deleteAll(any());
@@ -497,7 +495,7 @@ class UserManagementServiceTest {
         when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                        () -> userManagementService.deleteMultipleUsersByEmail(emails));
+                () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
         assertEquals("User(s) not found with email(s): nonexistent1@example.com, nonexistent2@example.com",
                 exception.getMessage());
@@ -532,7 +530,7 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(List.of(userOrg));
 
@@ -544,7 +542,7 @@ class UserManagementServiceTest {
         assertNotNull(result.getCreatedTimestamp());
         verify(userMapper).toEntity(userDto);
         verify(userRepository).save(newUser);
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
+        verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("USER");
         verify(userOrganizationRepository).saveAll(anyList());
     }
@@ -582,9 +580,9 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
-        when(organizationRepository.findByNameIgnoreCase("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
-        when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(adminRole));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
+        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(adminRole));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
@@ -592,9 +590,9 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         assertEquals("newuser@example.com", result.getEmail());
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
-        verify(organizationRepository).findByNameIgnoreCase("AnotherOrg");
-        verify(roleRepository).findByNameIgnoreCase("ADMIN");
+        verify(organizationRepository).findByName("TestOrg");
+        verify(organizationRepository).findByName("AnotherOrg");
+        verify(roleRepository).findByName("ADMIN");
         verify(roleRepository).findByNameIgnoreCase("USER");
         verify(userOrganizationRepository).saveAll(argThat(list -> {
             List<UserOrganization> listCopy = new ArrayList<>();
@@ -633,7 +631,7 @@ class UserManagementServiceTest {
             list.forEach(listCopy::add);
             return listCopy.size() == 0;
         }));
-        verify(organizationRepository, never()).findByNameIgnoreCase(anyString());
+        verify(organizationRepository, never()).findByName(anyString());
         verify(roleRepository, never()).findByNameIgnoreCase(anyString());
     }
 
@@ -658,7 +656,7 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
@@ -712,7 +710,7 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("NonexistentOrg")).thenReturn(Optional.empty());
+        when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -722,7 +720,7 @@ class UserManagementServiceTest {
         assertTrue(exception.getMessage().contains("Organization not found"));
         assertTrue(exception.getMessage().contains("NonexistentOrg"));
         verify(userRepository).save(newUser);
-        verify(organizationRepository).findByNameIgnoreCase("NonexistentOrg");
+        verify(organizationRepository).findByName("NonexistentOrg");
         verify(userOrganizationRepository, never()).saveAll(anyList());
     }
 
@@ -744,7 +742,7 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("NONEXISTENT_ROLE")).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -755,7 +753,7 @@ class UserManagementServiceTest {
         assertTrue(exception.getMessage().contains("Role not found"));
         assertTrue(exception.getMessage().contains("NONEXISTENT_ROLE"));
         verify(userRepository).save(newUser);
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
+        verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("NONEXISTENT_ROLE");
         verify(userOrganizationRepository, never()).saveAll(anyList());
     }
@@ -778,14 +776,14 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("testorg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("testorg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
         User result = userManagementService.createUser(userDto);
 
         assertNotNull(result);
-        verify(organizationRepository).findByNameIgnoreCase("testorg");
+        verify(organizationRepository).findByName("testorg");
     }
 
     @Test
@@ -806,7 +804,7 @@ class UserManagementServiceTest {
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
@@ -824,7 +822,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("TestOrg");
         orgDto.setRole("USER");
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
@@ -833,7 +831,7 @@ class UserManagementServiceTest {
         assertEquals(testOrganization, result.getOrganization());
         assertEquals(testUser, result.getUser());
         assertEquals(testRole, result.getRole());
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
+        verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("USER");
     }
 
@@ -847,7 +845,7 @@ class UserManagementServiceTest {
         adminRole.setId(2);
         adminRole.setName("ADMIN");
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(adminRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
@@ -867,7 +865,7 @@ class UserManagementServiceTest {
         operatorRole.setId(3);
         operatorRole.setName("OPERATOR");
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("OPERATOR")).thenReturn(Optional.of(operatorRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
@@ -883,7 +881,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("NonexistentOrg");
         orgDto.setRole("USER");
 
-        when(organizationRepository.findByNameIgnoreCase("NonexistentOrg")).thenReturn(Optional.empty());
+        when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -892,7 +890,7 @@ class UserManagementServiceTest {
 
         assertTrue(exception.getMessage().contains("Organization not found"));
         assertTrue(exception.getMessage().contains("NonexistentOrg"));
-        verify(organizationRepository).findByNameIgnoreCase("NonexistentOrg");
+        verify(organizationRepository).findByName("NonexistentOrg");
         verify(roleRepository, never()).findByNameIgnoreCase(anyString());
     }
 
@@ -902,7 +900,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("TestOrg");
         orgDto.setRole("INVALID_ROLE");
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("INVALID_ROLE")).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -912,7 +910,7 @@ class UserManagementServiceTest {
 
         assertTrue(exception.getMessage().contains("Role not found"));
         assertTrue(exception.getMessage().contains("INVALID_ROLE"));
-        verify(organizationRepository).findByNameIgnoreCase("TestOrg");
+        verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("INVALID_ROLE");
     }
 
@@ -922,14 +920,14 @@ class UserManagementServiceTest {
         orgDto.setOrganization("TESTORG"); // uppercase
         orgDto.setRole("USER");
 
-        when(organizationRepository.findByNameIgnoreCase("TESTORG")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TESTORG")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
 
         assertNotNull(result);
         assertEquals(testOrganization, result.getOrganization());
-        verify(organizationRepository).findByNameIgnoreCase("TESTORG");
+        verify(organizationRepository).findByName("TESTORG");
     }
 
     @Test
@@ -938,7 +936,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("TestOrg");
         orgDto.setRole("user"); // lowercase
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("user")).thenReturn(Optional.of(testRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
@@ -958,7 +956,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("AnotherOrg");
         orgDto.setRole("USER");
 
-        when(organizationRepository.findByNameIgnoreCase("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
+        when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
@@ -966,7 +964,7 @@ class UserManagementServiceTest {
         assertNotNull(result);
         assertEquals(anotherOrg, result.getOrganization());
         assertEquals("AnotherOrg", result.getOrganization().getName());
-        verify(organizationRepository).findByNameIgnoreCase("AnotherOrg");
+        verify(organizationRepository).findByName("AnotherOrg");
     }
 
     @Test
@@ -975,7 +973,7 @@ class UserManagementServiceTest {
         orgDto.setOrganization("TestOrg");
         orgDto.setRole("USER");
 
-        when(organizationRepository.findByNameIgnoreCase("TestOrg")).thenReturn(Optional.of(testOrganization));
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
 
         UserOrganization result = userManagementService.createUserOrgRelationship(orgDto, testUser);
