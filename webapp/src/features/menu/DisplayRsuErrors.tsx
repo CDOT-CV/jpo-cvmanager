@@ -141,16 +141,11 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
       message: message,
     }
 
-    try {
-      toast.promise(submitRsuErrorSummary(data).unwrap(), {
-        loading: `Sending RSU error summary email to ${userEmail}...`,
-        success: `RSU error summary email sent successfully to ${userEmail}!`,
-        error: `Failed to send RSU error summary email to ${userEmail}`,
-      })
-    } catch (exception_var) {
-      console.error('Error in RsuErrorSummary onSubmit', exception_var)
-      toast.error('An exception occurred, please try again later')
-    }
+    toast.promise(submitRsuErrorSummary(data).unwrap(), {
+      loading: `Sending RSU error summary email to ${userEmail}...`,
+      success: `RSU error summary email sent successfully to ${userEmail}!`,
+      error: `Failed to send RSU error summary email to ${userEmail}`,
+    })
   }
 
   // Create RSU Errors Table Data
