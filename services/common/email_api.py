@@ -30,6 +30,23 @@ class EmailApi:
         self.iapi_endpoint = iapi_base_url
         self.kc_api = kc_api
 
+    def _build_response(self, response: requests.Response) -> tuple[int, dict]:
+        if not (200 <= response.status_code < 300):
+            logging.error(
+                f"Email API request failed: {response.status_code} - {response.text}"
+            )
+        try:
+            response_data = response.json()
+            if isinstance(response_data, dict):
+                return response.status_code, response_data
+            return response.status_code, {"data": response_data}
+        except ValueError:
+            return response.status_code, {"error": response.text}
+
+    def _handle_request_exception(self, exc: requests.RequestException) -> tuple[int, dict]:
+        logging.exception("Email API request failed: %s", exc)
+        return 500, {"error": str(exc)}
+
     def send_message_counts(
         self,
         org_name: str,
@@ -57,23 +74,23 @@ class EmailApi:
         token = self.kc_api.get_kc_token()
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
-        response = requests.post(
-            f"{self.iapi_endpoint}/emails/message-counts",
-            headers={"Authorization": f"Bearer {token['access_token']}"},
-            json={
-                "org_name": org_name,
-                "deployment_title": deployment_title,
-                "start_date": start_date.timestamp(),
-                "end_date": end_date.timestamp(),
-                "message_type_list": message_type_list,
-                "rsu_counts": rsu_counts,
-            },
-        )
-        if not (200 <= response.status_code < 300):
-            logging.error(
-                f"Failed to send message counts email: {response.status_code} - {response.text}"
+        try:
+            response = requests.post(
+                f"{self.iapi_endpoint}/emails/message-counts",
+                headers={"Authorization": f"Bearer {token['access_token']}"},
+                json={
+                    "org_name": org_name,
+                    "deployment_title": deployment_title,
+                    "start_date": start_date.timestamp(),
+                    "end_date": end_date.timestamp(),
+                    "message_type_list": message_type_list,
+                    "rsu_counts": rsu_counts,
+                },
+                timeout=10,
             )
-        return response.status_code, response.json()
+        except requests.RequestException as exc:
+            return self._handle_request_exception(exc)
+        return self._build_response(response)
 
     def send_firmware_upgrade_failure(
         self, rsu_ip: str, error_message: str, failure_type: str, stack_trace: str
@@ -94,21 +111,21 @@ class EmailApi:
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
 
-        response = requests.post(
-            f"{self.iapi_endpoint}/emails/firmware-upgrade-failures",
-            headers={"Authorization": f"Bearer {token['access_token']}"},
-            json={
-                "rsu_ip": rsu_ip,
-                "error_message": error_message,
-                "failure_type": failure_type,
-                "stack_trace": stack_trace,
-            },
-        )
-        if not (200 <= response.status_code < 300):
-            logging.error(
-                f"Failed to send firmware upgrade failure email: {response.status_code} - {response.text}"
+        try:
+            response = requests.post(
+                f"{self.iapi_endpoint}/emails/firmware-upgrade-failures",
+                headers={"Authorization": f"Bearer {token['access_token']}"},
+                json={
+                    "rsu_ip": rsu_ip,
+                    "error_message": error_message,
+                    "failure_type": failure_type,
+                    "stack_trace": stack_trace,
+                },
+                timeout=10,
             )
-        return response.status_code, response.json()
+        except requests.RequestException as exc:
+            return self._handle_request_exception(exc)
+        return self._build_response(response)
 
     def send_api_error_email(
         self,
