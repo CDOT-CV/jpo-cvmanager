@@ -284,6 +284,9 @@ public class PermissionService {
 
     // Allow Connection if the users organization(s) control the specified Users
     public boolean hasUsers(List<String> emails, String role) {
+        if (emails == null || emails.isEmpty()) {
+            return true; // No emails to check, so allow connection
+        }
         List<String> distinctEmails = emails.stream().distinct().toList();
         if (distinctEmails.isEmpty()) {
             return true; // No emails to check, so allow connection
