@@ -42,19 +42,23 @@ class KeycloakServiceAccountApi:
         self.token_expiration_date: datetime.datetime | None = None
         self.refresh_token_expiration_date: datetime.datetime | None = None
 
-    def gen_keycloak_token(self) -> KeycloakToken:
+    def gen_keycloak_token(self) -> KeycloakToken | None:
         """
         Request a new Keycloak token from the authentication endpoint.
 
         Returns:
-            KeycloakToken: The token dictionary.
+            KeycloakToken | None: The token dictionary, or None if generation fails.
         """
-        return self.keycloak_openid.token(
-            grant_type="client_credentials",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            scope="openid",
-        )
+        try:
+            return self.keycloak_openid.token(
+                grant_type="client_credentials",
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                scope="openid",
+            )
+        except Exception as e:
+            logging.warning(f"Failed to generate Keycloak token: {e}")
+            return None
 
     def refresh_keycloak_token(self, refresh_token: str) -> KeycloakToken | None:
         """

@@ -1,20 +1,7 @@
 import logging
 import datetime
-from typing import TypedDict
 import requests
 from common.keycloak_api import KeycloakServiceAccountApi
-
-
-class KeycloakToken(TypedDict):
-    access_token: str
-    expires_in: int
-    refresh_expires_in: int
-    refresh_token: str
-    token_type: str
-    id_token: str
-    not_before_policy: str
-    session_state: str
-    scope: str
 
 
 class EmailApi:
@@ -43,7 +30,9 @@ class EmailApi:
         except ValueError:
             return response.status_code, {"error": response.text}
 
-    def _handle_request_exception(self, exc: requests.RequestException) -> tuple[int, dict]:
+    def _handle_request_exception(
+        self, exc: requests.RequestException
+    ) -> tuple[int, dict]:
         logging.exception("Email API request failed: %s", exc)
         return 500, {"error": str(exc)}
 
@@ -149,19 +138,19 @@ class EmailApi:
         token = self.kc_api.get_kc_token()
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
-        response = requests.post(
-            f"{self.iapi_endpoint}/emails/api-errors",
-            headers={"Authorization": f"Bearer {token['access_token']}"},
-            json={
-                "error_message": error_message,
-                "stack_trace": stack_trace,
-                "timestamp": timestamp,
-                "logs_link": logs_link,
-            },
-            timeout=10,
-        )
-        if not (200 <= response.status_code < 300):
-            logging.error(
-                f"Failed to send API error email: {response.status_code} - {response.text}"
+
+        try:
+            response = requests.post(
+                f"{self.iapi_endpoint}/emails/api-errors",
+                headers={"Authorization": f"Bearer {token['access_token']}"},
+                json={
+                    "error_message": error_message,
+                    "stack_trace": stack_trace,
+                    "timestamp": timestamp,
+                    "logs_link": logs_link,
+                },
+                timeout=10,
             )
-        return response.status_code, response.json()
+        except requests.RequestException as exc:
+            return self._handle_request_exception(exc)
+        return self._build_response(response)
