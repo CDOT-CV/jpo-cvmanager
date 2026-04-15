@@ -258,8 +258,9 @@ public class PermissionService {
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
-    }// Allow Connection if the users organization(s) control the specified User
+    }
 
+    // Allow Connection if the users organization(s) control the specified User
     public boolean hasUser(String email, String role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
@@ -283,6 +284,9 @@ public class PermissionService {
 
     // Allow Connection if the users organization(s) control the specified Users
     public boolean hasUsers(List<String> emails, String role) {
+        if (emails == null || emails.isEmpty()) {
+            return true; // No emails to check, so allow connection
+        }
         List<String> distinctEmails = emails.stream().distinct().toList();
         if (distinctEmails.isEmpty()) {
             return true; // No emails to check, so allow connection
