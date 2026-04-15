@@ -20,6 +20,8 @@ export const adminIntersectionApiSlice = createApi({
 
       if (token) {
         headers.set('Authorization', `Bearer ${token}`)
+        headers.set('Content-Type', 'application/json')
+        headers.set('Accept', 'application/json')
       }
 
       return headers
