@@ -3,6 +3,8 @@ import datetime
 from typing import TypedDict
 import requests
 
+from services.common.keycloak_api import KeycloakServiceAccountApi
+
 
 class KeycloakToken(TypedDict):
     access_token: str
@@ -17,7 +19,7 @@ class KeycloakToken(TypedDict):
 
 
 class EmailApi:
-    def __init__(self, iapi_base_url, kc_client_id, kc_client_secret):
+    def __init__(self, iapi_base_url, kc_api: KeycloakServiceAccountApi):
         """
         Initialize the EmailApi with the base URL, username, and password.
 
@@ -27,64 +29,7 @@ class EmailApi:
             kc_client_secret (str): The Keycloak client secret for authentication.
         """
         self.iapi_endpoint = iapi_base_url
-        self.kc_client_id = kc_client_id
-        self.kc_client_secret = kc_client_secret
-        self.token: KeycloakToken | None = None
-        self.token_expiration_date: datetime.datetime | None = None
-
-    def gen_keycloak_token(self) -> tuple[int, KeycloakToken]:
-        """
-        Request a new Keycloak token from the authentication endpoint.
-
-        Returns:
-            tuple[int, KeycloakToken]: The HTTP status code and the token dictionary.
-        """
-        response = requests.post(
-            f"{self.iapi_endpoint}/auth/token-service-account",
-            data={
-                "client_id": self.kc_client_id,
-                "client_secret": self.kc_client_secret,
-            },
-        )
-        if response.status_code != 200:
-            logging.error(
-                f"Failed to generate Keycloak token: {response.status_code} - {response.text}"
-            )
-        return response.status_code, response.json()
-
-    def is_current_token_valid(self) -> bool:
-        """
-        Check if the current Keycloak token is valid (not expired).
-
-        Returns:
-            bool: True if the token exists and is not expired, False otherwise.
-        """
-        return (
-            self.token is not None
-            and datetime.datetime.now() < self.token_expiration_date
-        )
-
-    def get_kc_token(self) -> KeycloakToken | None:
-        """
-        Get a valid Keycloak token, regenerating it if necessary.
-
-        Returns:
-            KeycloakToken | None: The valid token dictionary, or None if unable to obtain one.
-        """
-        if self.is_current_token_valid():
-            return self.token
-
-        # TODO: Implement token refresh logic if refresh_token still valid
-        status_code, token = self.gen_keycloak_token()
-        if status_code == 200:
-            self.token = token
-            self.token_expiration_date = datetime.datetime.now() + datetime.timedelta(
-                milliseconds=token["expires_in"]
-            )
-        else:
-            logging.error("Failed to obtain initial Keycloak token.")
-            return None
-        return self.token
+        self.kc_api = kc_api
 
     def send_message_counts(
         self,
@@ -110,7 +55,7 @@ class EmailApi:
         Returns:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
-        token = self.get_kc_token()
+        token = self.kc_api.get_kc_token()
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
@@ -146,7 +91,7 @@ class EmailApi:
         Returns:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
-        token = self.get_kc_token()
+        token = self.kc_api.get_kc_token()
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
 
@@ -185,7 +130,7 @@ class EmailApi:
         Returns:
             tuple[int, str]: The HTTP status code and the response JSON.
         """
-        token = self.get_kc_token()
+        token = self.kc_api.get_kc_token()
         if not token:
             return 500, {"error": "Unable to obtain Keycloak token."}
         response = requests.post(
