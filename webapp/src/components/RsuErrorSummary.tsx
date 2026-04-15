@@ -66,25 +66,13 @@ const RsuErrorSummary = (props: RsuErrorSummaryType) => {
 
   return (
     <Dialog open={!props.hidden}>
-      <DialogTitle style={{ textAlign: 'center' }}>RSU Error Summary Email</DialogTitle>
+      <DialogTitle style={{ textAlign: 'center' }}>RSU Error Summary Email (Sent to User)</DialogTitle>
       <DialogContent>
         <Form
           id="rsu-error-summary-form"
           onSubmit={handleSubmit(onSubmit)}
           style={{ fontFamily: '"museo-slab", Arial, Helvetica, sans-serif' }}
         >
-          <Form.Group className="mb-3" controlId="email">
-            <Form.Label className="label">Send To</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Comma-delimited list of emails (Required)"
-              {...register('emails', {
-                required: 'Email list is required',
-              })}
-              style={{ marginTop: '0.5rem', borderRadius: '5px' }}
-            />
-            {errors.email && <Form.Text className="text-danger">{errors.email.message}</Form.Text>}
-          </Form.Group>
           <Form.Group className="mb-3" controlId="subject">
             <Form.Label className="label">Subject</Form.Label>
             <Form.Control
