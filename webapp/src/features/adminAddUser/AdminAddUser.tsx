@@ -136,6 +136,7 @@ const AdminAddUser = () => {
     try {
       const requestBody = {
         ...data,
+        super_user: isSuperUser ? Boolean(data.super_user) : false,
         organizations: selectedOrganizations,
       }
 
