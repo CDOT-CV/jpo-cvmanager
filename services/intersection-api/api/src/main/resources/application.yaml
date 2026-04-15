@@ -5,6 +5,8 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
+  error:
+    include-stacktrace: never
 
 ### keycloak configuration
 keycloak:
@@ -63,20 +65,23 @@ spring:
     url: ${POSTGRES_SERVER_URL:jdbc:postgresql://cvmanager_postgres:5432}/postgres
     username: ${PG_DB_USER:postgres}
     password: ${PG_DB_PASS}
-    driver-class-name: org.postgresql.Driver
   jpa:
-    hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
+    database: postgresql
   ### Spring Mail Settings (If using emailBroker SMTP)
   mail:
-    host: ${INTERSECTION_SMTP_SERVER_IP:localhost}
+    host: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
     port: ${INTERSECTION_SMTP_SERVER_PORT:25}
+    username: ${INTERSECTION_SMTP_USERNAME:}
+    password: ${INTERSECTION_SMTP_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          ssl:
+            trust: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
+          auth: ${INTERSECTION_SMTP_AUTH:false}
           starttls:
-            enable: true
+            enable: ${INTERSECTION_SMTP_STARTTLS:false}
+            required: ${INTERSECTION_SMTP_STARTTLS:false}
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
@@ -91,7 +96,7 @@ cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
 
 spring.main.allow-circular-references: true
-
+spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
 server.servlet.context-path: ${BASE_ROUTE_PREFIX:/}
 
 ### General Email Settings

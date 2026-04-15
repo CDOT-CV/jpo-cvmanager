@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { ErrorMessage } from '@hookform/error-message'
@@ -340,7 +340,6 @@ const AdminEditIntersection = () => {
                     defaultValue={selectedRsus.map((rsu) => rsu.name)}
                     onChange={(event) => {
                       const selectedRsus = event.target.value as string[]
-                      const filteredRsus = rsus.filter((rsu) => selectedRsus.includes(rsu.name))
                       dispatch(setSelectedRsus(rsus.filter((rsu) => selectedRsus.includes(rsu.name))))
                     }}
                   >

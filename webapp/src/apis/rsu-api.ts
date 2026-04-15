@@ -1,11 +1,9 @@
 import EnvironmentVars from '../EnvironmentVars'
 import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
-import { MooveAiFeature } from '../models/moove-ai/MooveAiData'
 import apiHelper from './api-helper'
 import {
   ApiMsgRespWithCodes,
   GetRsuCommandResp,
-  GetRsuUserAuthResp,
   IssScmsStatus,
   RsuCommandPostBody,
   RsuCounts,
@@ -57,7 +55,7 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getRsuMsgFwdConfigs = async (
+  getCachedRsuMsgFwdConfigsFromDatabase = async (
     token: string,
     org: string,
     url_ext = '',
@@ -70,14 +68,14 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getRsuAuth = async (
+  getRsuMsgConfigsFromRsu = async (
     token: string,
     org: string,
     url_ext = '',
     query_params: Record<string, string> = {}
-  ): Promise<GetRsuUserAuthResp> =>
+  ): Promise<RsuMsgFwdConfigs> =>
     apiHelper._getData({
-      url: EnvironmentVars.authEndpoint + url_ext,
+      url: EnvironmentVars.rsuMsgFwdFetchEndpoint + url_ext,
       token,
       query_params,
       additional_headers: { Organization: org },
@@ -124,15 +122,6 @@ class RsuApi {
       token,
       query_params,
       tag: 'wzdx',
-    })
-
-  // Moove AI
-  postMooveAiData = async (token: string, body: string, url_ext = ''): Promise<ApiMsgRespWithCodes<MooveAiFeature[]>> =>
-    apiHelper._postData({
-      url: EnvironmentVars.mooveAiDataEndpoint + url_ext,
-      body,
-      token,
-      tag: 'mooveai',
     })
 
   // POST

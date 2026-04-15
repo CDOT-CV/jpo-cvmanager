@@ -22,15 +22,7 @@ The middleware makes the following assumptions:
 Expected headers for all endpoints:
 
 - `"Content-Type": "application/json"`
-- `"Authorization": "tokenId"`
-
-### <b>/user-auth</b> <b>(GET)</b>
-
-Returns authorized user information including full name, email, and role.
-
-Example return value:
-
-- {"name": "John Doe", "email": "jdoe@gmail.com", "role": "admin"}
+- `"Authorization": "token"`
 
 ### <b>/contact-support</b> <b>(POST)</b>
 
@@ -143,50 +135,6 @@ body example:
 }
 ```
 
-### <b>/admin-rsu</b> <b>(GET)</b>
-
-Depending upon the rsu_ip argument's value, this endpoint returns a list of all RSUs in the CV Manager's PostgreSQL DB or the details of a single RSU along with the options for specific RSU fields that do not take free-form responses.
-
-HTTP URL Arguments:
-
-- rsu_ip:
-  - Set to "all" if you want a list of all RSUs regardless of organization affiliation. Will not return the RSU field options.
-  - Set to a specific RSU IP such as "10.0.0.1" to return all of the RSU details of that single RSU along with the allowed RSU field options.
-
-### <b>/admin-rsu</b> <b>(PATCH)</b>
-
-Modifies an RSU within the CV Manager database, including RSUs that may not have been made through the /admin-new-rsu endpoint. Currently supports Commsignia, Kapsch and Yunex.
-
-body example:
-
-```
-{
-  "ip": "10.0.0.1",
-  "geo_position": {
-    "latitude": 40.00,
-    "longitude": -100.00
-  },
-  "milepost": 56.8,
-  "primary_route": "I25",
-  "serial_number": "55EE002211",
-  "model": "Commsignia",
-  "scms_id": "",
-  "ssh_credential_group": "ssh profile",
-  "snmp_credential_group": "snmp profile",
-  "snmp_version_group": "snmp version",
-  "organizations_to_add": ["Organization 1"],
-  "organizations_to_remove": []
-}
-```
-
-### <b>/admin-rsu</b> <b>(DELETE)</b>
-
-Deletes the specified RSU from the CV Manager PostgreSQL database based off the IP specified in the rsu_ip argument.
-
-HTTP URL Arguments:
-
-- rsu_ip: Delete a specific RSU specified by its IP such as "10.0.0.1" from the CV Manager's PostgreSQL database.
-
 ## Users
 
 ### <b>/admin-new-user</b> <b>(GET)</b>
@@ -213,48 +161,6 @@ body example:
   ]
 }
 ```
-
-### <b>/admin-user</b> <b>(GET)</b>
-
-Depending upon the user_email argument's value, this endpoint returns a list of all users in the CV Manager's PostgreSQL DB or the details of a single user along with the options for specific user fields that do not take free-form responses.
-
-HTTP URL Arguments:
-
-- user_email:
-  - Set to "all" if you want a list of all users regardless of organization affiliation. Will not return the user field options.
-  - Set to a specific user email such as "user@email.com" to return all of the user details of that single user along with the allowed user field options.
-
-### <b>/admin-user</b> <b>(PATCH)</b>
-
-Modifies a user within the CV Manager database, including users that may not have been made through the /admin-new-user endpoint.
-
-body example:
-
-```
-{
-  "email": "jdoe@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "super_user": True,
-  "organizations_to_add": [
-    {"name": "Test Org3", "role": "admin"}
-  ],
-  "organizations_to_modify": [
-    {"name": "Test Org2", "role": "user"}
-  ],
-  "organizations_to_remove": [
-    {"name": "Test Org", "role": "user"}
-  ]
-}
-```
-
-### <b>/admin-user</b> <b>(DELETE)</b>
-
-Deletes the specified user from the CV Manager PostgreSQL database based off the user email specified in the user_email argument.
-
-HTTP URL Arguments:
-
-- user_email: Delete a specific user specified by its email such as "user@email.com" from the CV Manager's PostgreSQL database.
 
 ## Organizations
 
@@ -354,10 +260,6 @@ HTTP URL Arguments:
 - CSM_TARGET_SMTP_SERVER_PORT: Destination SMTP server port.
 - WZDX_ENDPOINT: WZDX datafeed enpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.
-- GOOGLE_ACCESS_KEY_NAME: The required Google environment variable for authenticating with Google Cloud.
-- GCP_PROJECT_ID: The Google Cloud project ID for which the service account associated with GOOGLE_ACCESS_KEY_NAME is for.
-- MOOVE_AI_SEGMENT_AGG_STATS_TABLE: The BigQuery table name for Moove.Ai's segment aggregate statistics.
-- MOOVE_AI_SEGMENT_EVENT_STATS_TABLE: The BigQuery table name for Moove.Ai's segment event statistics.
 - TIMEZONE: Timezone to be used for the API.
 
 1. Configure the Cloud Run deployment connections settings

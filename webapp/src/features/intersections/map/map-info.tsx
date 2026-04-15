@@ -1,5 +1,3 @@
-import React from 'react'
-
 import { Paper, Box, IconButton, Typography, Fab, AccordionSummary } from '@mui/material'
 import MuiAccordion, { AccordionProps } from '@mui/material/Accordion'
 
@@ -17,6 +15,7 @@ import { RootState } from '../../../store'
 import { selectSelectedIntersection } from '../../../generalSlices/intersectionSlice'
 import '../../../components/css/RsuMapView.css'
 import { InfoOutlined, Close, ExpandMoreOutlined } from '@mui/icons-material'
+import { ConnectionOfTravelNotification } from '../../../models/jpo-conflictmonitor/notifications/ConnectionOfTravelNotification'
 
 const Accordion = styled((props: AccordionProps) => <MuiAccordion disableGutters elevation={0} square {...props} />)(
   () => ({})

@@ -3,6 +3,8 @@ package us.dot.its.jpo.ode.api.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
+import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
 
@@ -24,6 +27,7 @@ public class EmailService {
 
     private final EmailProvider emailProvider;
     private final PostgresService postgresService;
+    private final UserEmailNotificationRepository userEmailNotificationRepository;
     private final IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
 
     public void sendEmails(List<EmailRecipient> recipients, EmailContent content) {
@@ -31,21 +35,31 @@ public class EmailService {
     }
 
     public List<EmailRecipient> getUsersForNotificationType(EmailCategory category, EmailFrequency frequency) {
-        return postgresService.getUsersByNotificationType(category.getCategoryKey(), frequency).stream()
+        return userEmailNotificationRepository
+                .findUsersByNotificationType(category.getCategoryKey(), frequency.toString()).stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
 
     public List<EmailRecipient> getUsersForNotificationTypeByRsu(EmailCategory category, String rsuIp,
             EmailFrequency frequency) {
-        return postgresService.getUsersByNotificationTypeAndRsu(category.getCategoryKey(), rsuIp, frequency).stream()
-                .map(email -> new EmailRecipient(email, null))
-                .toList();
+        try {
+            return userEmailNotificationRepository
+                    .findUsersByNotificationTypeAndRsu(category.getCategoryKey(), frequency.toString(),
+                            InetAddress.getByName(rsuIp))
+                    .stream()
+                    .map(email -> new EmailRecipient(email, null))
+                    .toList();
+        } catch (UnknownHostException e) {
+            log.error("Invalid RSU IP address: {}", rsuIp, e);
+            return Collections.emptyList();
+        }
     }
 
     public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName,
             EmailFrequency frequency) {
-        return postgresService.getUsersByNotificationTypeAndOrganization(category.getCategoryKey(), orgName, frequency)
+        return userEmailNotificationRepository
+                .findUsersByNotificationTypeAndOrganization(category.getCategoryKey(), frequency.toString(), orgName)
                 .stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
@@ -56,7 +70,8 @@ public class EmailService {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.IMMEDIATE);
-        return emailProvider.sendBatchedEmails(recipients, content);
+        ArrayList<EmailRecipient> newRecipients = new ArrayList<>(recipients);
+        return emailProvider.sendBatchedEmails(newRecipients, content);
     }
 
     // TODO: Filter by user's role and required role

@@ -1,45 +1,60 @@
 package us.dot.its.jpo.ode.api.models.postgres.tables;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.EqualsAndHashCode;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
-@ToString
-@Setter
-@EqualsAndHashCode
 @Getter
+@Setter
 @Entity
 @Table(name = "user_email_notification")
 public class UserEmailNotification {
-
     @Id
-    @Column(name = "user_email_notification_id")
-    private int userEmailNotificationId;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_email_notification_id_gen")
+    @SequenceGenerator(name = "user_email_notification_id_gen", sequenceName = "user_email_notification_user_email_notification_id_seq", allocationSize = 1)
+    @Column(name = "user_email_notification_id", nullable = false)
+    private Integer id;
 
-    @Column(name = "user_id")
-    private int userId;
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "email_type_id")
-    private int emailTypeId;
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "email_type_id", nullable = false)
+    private EmailType emailType;
 
-    @Column(name = "immediate")
-    private boolean immediate;
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "immediate", nullable = false)
+    private Boolean immediate;
 
-    @Column(name = "hourly")
-    private boolean hourly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "hourly", nullable = false)
+    private Boolean hourly;
 
-    @Column(name = "daily")
-    private boolean daily;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "daily", nullable = false)
+    private Boolean daily;
 
-    @Column(name = "weekly")
-    private boolean weekly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "weekly", nullable = false)
+    private Boolean weekly;
 
-    @Column(name = "monthly")
-    private boolean monthly;
+    @NotNull
+    @ColumnDefault("false")
+    @Column(name = "monthly", nullable = false)
+    private Boolean monthly;
+
 
 }

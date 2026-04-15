@@ -23,6 +23,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
+
+import java.net.InetAddress;
+
 import static org.mockito.Mockito.*;
 
 class EmailServiceTest {
@@ -31,6 +35,7 @@ class EmailServiceTest {
     private EmailProvider emailProvider;
     @Mock
     private PostgresService postgresService;
+    private UserEmailNotificationRepository userEmailNotificationRepository;
     @Mock
     private IntersectionNotificationSummaryEmailGenerator intersectionNotificationSummaryEmailGenerator;
 
@@ -78,7 +83,7 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationType() {
-        when(postgresService.getUsersByNotificationType("Support Requests", EmailFrequency.IMMEDIATE))
+        when(userEmailNotificationRepository.findUsersByNotificationType("Support Requests", "IMMEDIATE"))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationType(
@@ -90,8 +95,9 @@ class EmailServiceTest {
     }
 
     @Test
-    void testGetUsersForNotificationTypeByRsu() {
-        when(postgresService.getUsersByNotificationTypeAndRsu("Support Requests", "1.1.1.1", EmailFrequency.IMMEDIATE))
+    void testGetUsersForNotificationTypeByRsu() throws Throwable {
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu("Support Requests",
+                "IMMEDIATE", InetAddress.getByName("1.1.1.1")))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByRsu(
@@ -104,8 +110,8 @@ class EmailServiceTest {
 
     @Test
     void testGetUsersForNotificationTypeByOrganization() {
-        when(postgresService.getUsersByNotificationTypeAndOrganization("Support Requests", "Test Org",
-                EmailFrequency.IMMEDIATE))
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndOrganization("Support Requests", "IMMEDIATE",
+                "Test Org"))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByOrganization(
@@ -124,7 +130,8 @@ class EmailServiceTest {
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
 
         when(intersectionNotificationSummaryEmailGenerator.generateEmailBody(data)).thenReturn(content);
-        when(postgresService.getUsersByNotificationType(anyString(), any())).thenReturn(List.of("test@example.com"));
+        when(userEmailNotificationRepository.findUsersByNotificationType(anyString(), any()))
+                .thenReturn(List.of("test@example.com"));
         when(emailProvider.sendBatchedEmails(recipients, content)).thenReturn(responses);
 
         List<EmailSendResponse> result = emailService.sendIntersectionNotificationSummaryEmailSendResponses(data);

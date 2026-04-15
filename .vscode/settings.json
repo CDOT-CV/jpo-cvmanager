@@ -52,6 +52,7 @@
     "dont",
     "drivername",
     "Dsrc",
+    "dtos",
     "formik",
     "fromaddr",
     "Fwding",
@@ -78,8 +79,6 @@
     "MESSAGETYPE",
     "millis",
     "mongosh",
-    "moove",
-    "mooveai",
     "msgfwd",
     "multidict",
     "Multivalued",
@@ -129,7 +128,6 @@
     "upgrader",
     "usdot",
     "usdotjpoode",
-    "userauth",
     "utctimestamp",
     "writedb",
     "WSMP",
@@ -156,5 +154,6 @@
     "json",
     "jsonc",
     "markdown"
-  ]
+  ],
+  "java.debug.settings.onBuildFailureProceed": true
 }

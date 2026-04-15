@@ -18,27 +18,30 @@ import reducer, {
   selectCountsEndDate,
 } from './menuSlice'
 import { RootState } from '../../store'
-import dayjs from 'dayjs'
 import { configureStore } from '@reduxjs/toolkit'
+import { vi } from 'vitest'
 
 // Mock dayjs to ensure consistent test results
-jest.mock('dayjs', () => {
-  const actualDayjs = jest.requireActual('dayjs')
-  const mockNow = actualDayjs('2024-01-15T12:00:00.000Z')
+vi.mock('dayjs', async (importOriginal) => {
+  const actualDayjs: any = await importOriginal()
+  const defaultExport = actualDayjs.default || actualDayjs
+  const mockNow = defaultExport('2024-01-15T12:00:00.000Z')
 
-  const dayjsMock = jest.fn((date?: any) => {
+  const dayjsMock = vi.fn((date?: any) => {
     if (date) {
-      return actualDayjs(date)
+      return defaultExport(date)
     }
     return mockNow
   })
 
   // Copy all dayjs methods
-  Object.keys(actualDayjs).forEach((key) => {
-    dayjsMock[key] = actualDayjs[key]
+  Object.keys(defaultExport).forEach((key) => {
+    dayjsMock[key] = defaultExport[key]
   })
 
-  return dayjsMock
+  return {
+    default: dayjsMock,
+  }
 })
 
 describe('menu reducer', () => {
@@ -79,7 +82,7 @@ describe('reducers', () => {
   }
 
   it('setCountsMsgType reducer updates state correctly', () => {
-    const newMsgType = 'SPaT'
+    const newMsgType = 'SPAT'
     expect(reducer(initialState, setCountsMsgType(newMsgType))).toEqual({
       ...initialState,
       value: { ...initialState.value, countsMsgType: newMsgType },
@@ -87,7 +90,7 @@ describe('reducers', () => {
   })
 
   it('setCountsMsgType handles different message types', () => {
-    const messageTypes = ['BSM', 'SPaT', 'MAP', 'SSM', 'SRM', 'TIM', 'PSM']
+    const messageTypes = ['BSM', 'SPAT', 'MAP', 'SSM', 'SRM', 'TIM', 'PSM']
 
     messageTypes.forEach((msgType) => {
       const result = reducer(initialState, setCountsMsgType(msgType as any))
@@ -155,7 +158,7 @@ describe('reducers', () => {
 })
 
 describe('thunks', () => {
-  let store: ReturnType<typeof configureStore>
+  let store
 
   beforeEach(() => {
     store = configureStore({
@@ -167,9 +170,7 @@ describe('thunks', () => {
 
   describe('toggleMapMenuSelection', () => {
     it('adds "Display Message Counts" to menu selection and sets displayCounts', async () => {
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display Message Counts')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       expect(result.payload).toEqual(['Display Message Counts'])
 
@@ -180,9 +181,7 @@ describe('thunks', () => {
     })
 
     it('adds "Display RSU Status" to menu selection and sets displayRsuErrors', async () => {
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display RSU Status')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display RSU Status'))
 
       expect(result.payload).toEqual(['Display RSU Status'])
 
@@ -197,9 +196,7 @@ describe('thunks', () => {
       await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       // Then remove it
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display Message Counts')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       expect(result.payload).toEqual([])
 
@@ -214,9 +211,7 @@ describe('thunks', () => {
       await store.dispatch(toggleMapMenuSelection('Display RSU Status'))
 
       // Then toggle Message Counts (should replace RSU Status)
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display Message Counts')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       expect(result.payload).toEqual(['Display Message Counts'])
 
@@ -231,9 +226,7 @@ describe('thunks', () => {
       await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       // Then toggle RSU Status (should replace Message Counts)
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display RSU Status')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display RSU Status'))
 
       expect(result.payload).toEqual(['Display RSU Status'])
 
@@ -244,9 +237,7 @@ describe('thunks', () => {
     })
 
     it('handles adding other menu items without affecting displays', async () => {
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Some Other Item')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Some Other Item'))
 
       expect(result.payload).toEqual(['Some Other Item'])
 
@@ -273,9 +264,7 @@ describe('thunks', () => {
       await store.dispatch(toggleMapMenuSelection('Other Item'))
 
       // Add Display Message Counts
-      const result = await store.dispatch(
-        toggleMapMenuSelection('Display Message Counts')
-      )
+      const result = await store.dispatch(toggleMapMenuSelection('Display Message Counts'))
 
       expect(result.payload).toContain('Other Item')
       expect(result.payload).toContain('Display Message Counts')
@@ -290,11 +279,11 @@ describe('selectors', () => {
   const mockStartDate = new Date('2024-01-14T12:00:00.000Z')
   const mockEndDate = new Date('2024-01-15T12:00:00.000Z')
 
-  const initialState: RootState = {
+  const initialState = {
     menu: {
       loading: true,
       value: {
-        countsMsgType: 'SPaT',
+        countsMsgType: 'SPAT',
         countsStartDate: mockStartDate,
         countsEndDate: mockEndDate,
         displayCounts: true,
@@ -315,7 +304,7 @@ describe('selectors', () => {
   })
 
   it('selectCountsMsgType returns the correct value', () => {
-    expect(selectCountsMsgType(initialState)).toBe('SPaT')
+    expect(selectCountsMsgType(initialState)).toBe('SPAT')
 
     const bsmState = {
       ...initialState,
@@ -354,10 +343,7 @@ describe('selectors', () => {
   })
 
   it('selectMenuSelection returns the correct value', () => {
-    expect(selectMenuSelection(initialState)).toEqual([
-      'Display Message Counts',
-      'Other Item',
-    ])
+    expect(selectMenuSelection(initialState)).toEqual(['Display Message Counts', 'Other Item'])
 
     const emptyState = {
       ...initialState,
