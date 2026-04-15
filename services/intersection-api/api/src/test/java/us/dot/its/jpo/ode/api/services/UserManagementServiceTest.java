@@ -582,9 +582,8 @@ class UserManagementServiceTest {
         when(userRepository.save(newUser)).thenReturn(newUser);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(adminRole));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
-        when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(testRole));
+        when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(adminRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
         User result = userManagementService.createUser(userDto);
