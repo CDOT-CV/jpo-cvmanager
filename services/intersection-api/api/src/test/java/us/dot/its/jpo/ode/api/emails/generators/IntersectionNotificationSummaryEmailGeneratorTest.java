@@ -2,8 +2,9 @@ package us.dot.its.jpo.ode.api.emails.generators;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -22,9 +23,9 @@ import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class IntersectionNotificationSummaryEmailGeneratorTest {
 
     @Mock
@@ -38,8 +39,6 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
         when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.com");
 
         // Configure the template resolver
@@ -57,9 +56,6 @@ class IntersectionNotificationSummaryEmailGeneratorTest {
 
         generator = new IntersectionNotificationSummaryEmailGenerator(templateEngine, unsubscribeTokenGenerator,
                 emailProperties);
-
-        when(unsubscribeTokenGenerator.generateUnsubscribeUrl(anyString()))
-                .thenReturn("https://cvmanager.com/unsubscribe?token=abc123");
     }
 
     @Test

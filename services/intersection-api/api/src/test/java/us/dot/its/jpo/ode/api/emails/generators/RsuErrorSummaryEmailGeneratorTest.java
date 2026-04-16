@@ -1,14 +1,14 @@
 package us.dot.its.jpo.ode.api.emails.generators;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -19,6 +19,7 @@ import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 
+@ExtendWith(MockitoExtension.class)
 class RsuErrorSummaryEmailGeneratorTest {
 
     @Mock
@@ -32,8 +33,6 @@ class RsuErrorSummaryEmailGeneratorTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
         when(emailProperties.getCvmgrFrontEndUri()).thenReturn("https://cvmanager.com");
 
         // Configure the template resolver
@@ -50,9 +49,6 @@ class RsuErrorSummaryEmailGeneratorTest {
         this.templateEngine = springTemplateEngine;
 
         generator = new RsuErrorSummaryEmailGenerator(templateEngine, unsubscribeTokenGenerator, emailProperties);
-
-        when(unsubscribeTokenGenerator.generateUnsubscribeUrl(anyString()))
-                .thenReturn("https://cvmanager.com/unsubscribe?token=abc123");
     }
 
     @Test
