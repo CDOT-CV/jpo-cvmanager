@@ -171,7 +171,7 @@ public class AdminIntersectionController {
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
             List<String> qualifiedOrgs = token != null
-                    ? token.getQualifiedOrgList("OPERATOR")
+                    ? token.getQualifiedOrgList(UserRole.OPERATOR)
                     : Collections.emptyList();
             Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
 
