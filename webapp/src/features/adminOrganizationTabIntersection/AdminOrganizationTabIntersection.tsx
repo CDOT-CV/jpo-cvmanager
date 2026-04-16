@@ -8,16 +8,22 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import {
-  intersectionDeleteSingle,
-  intersectionDeleteMultiple,
-} from './adminOrganizationTabIntersectionSlice'
+  AdminOrgIntersection,
+  adminOrgPatch,
+  editOrg,
+} from '../adminOrganizationTab/adminOrganizationTabSlice'
+import {
+  ADMIN_INTERSECTION_LIST_ID,
+  ADMIN_INTERSECTION_TAG,
+  adminIntersectionApiSlice,
+  useLazyGetIntersectionQuery,
+} from '../api/adminIntersectionApiSlice'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
 import { Action, Column } from '@material-table/core'
-import { AdminOrgIntersection } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 import { useTheme } from '@mui/material'
 import { DeleteOutline } from '@mui/icons-material'
@@ -33,12 +39,22 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const { selectedOrg, selectedOrgEmail, updateTableData } = props
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
+  const [fetchIntersection] = useLazyGetIntersectionQuery()
 
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const [intersectionColumns] = useState<Column<any>[]>([
     { title: 'ID', field: 'intersection_id', id: 0, width: '45%' },
     { title: 'Name', field: 'intersection_name', id: 1, width: '45%' },
   ])
+
+  const refreshTable = () => {
+    updateTableData(selectedOrg)
+    dispatch(
+      adminIntersectionApiSlice.util.invalidateTags([
+        { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID },
+      ])
+    )
+  }
 
   const intersectionActions: Action<AdminOrgIntersection>[] = [
     {
@@ -83,25 +99,64 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   ]
 
   const intersectionOnDelete = async (intersection: AdminOrgIntersection) => {
-    dispatch(intersectionDeleteSingle({ intersection, selectedOrg, selectedOrgEmail, updateTableData })).then(
-      (data) => {
-        if (!(data.payload as any).success) {
-          toast.error((data.payload as any).message)
-        } else {
-          toast.success((data.payload as any).message)
-        }
+    const result = await fetchIntersection(intersection.intersection_id).unwrap()
+
+    if (result?.intersection_data?.organizations?.length > 1) {
+      const patchJson: adminOrgPatch = {
+        name: selectedOrg,
+        email: selectedOrgEmail,
+        intersections_to_remove: [intersection.intersection_id],
       }
-    )
+      const res = await dispatch(editOrg(patchJson))
+      refreshTable()
+      if ((res.payload as any).success) {
+        toast.success('Intersection deleted successfully')
+      } else {
+        toast.error('Failed to delete Intersection')
+      }
+    } else {
+      alert(
+        'Cannot remove Intersection ' +
+          intersection.intersection_id +
+          ' from ' +
+          selectedOrg +
+          ' because it must belong to at least one organization.'
+      )
+    }
   }
 
   const intersectionMultiDelete = async (rows: AdminOrgIntersection[]) => {
-    dispatch(intersectionDeleteMultiple({ rows, selectedOrg, selectedOrgEmail, updateTableData })).then((data) => {
-      if (!(data.payload as any).success) {
-        toast.error((data.payload as any).message)
+    const invalidIntersections: string[] = []
+    const patchJson: adminOrgPatch = {
+      name: selectedOrg,
+      email: selectedOrgEmail,
+      intersections_to_remove: [],
+    }
+    for (const row of rows) {
+      const result = await fetchIntersection(row.intersection_id).unwrap()
+      if (result?.intersection_data?.organizations?.length > 1) {
+        patchJson.intersections_to_remove!.push(row.intersection_id)
       } else {
-        toast.success((data.payload as any).message)
+        invalidIntersections.push(row.intersection_id)
       }
-    })
+    }
+    if (invalidIntersections.length === 0) {
+      const res = await dispatch(editOrg(patchJson))
+      refreshTable()
+      if ((res.payload as any).success) {
+        toast.success('Intersection(s) deleted successfully')
+      } else {
+        toast.error('Failed to delete Intersection(s)')
+      }
+    } else {
+      alert(
+        'Cannot remove Intersection(s) ' +
+          invalidIntersections.join(', ') +
+          ' from ' +
+          selectedOrg +
+          ' because they must belong to at least one organization.'
+      )
+    }
   }
 
   return (
