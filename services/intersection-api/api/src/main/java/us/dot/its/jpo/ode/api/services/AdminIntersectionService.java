@@ -223,24 +223,7 @@ public class AdminIntersectionService {
             return new IntersectionListResponse(Collections.emptyList());
         }
 
-        List<IntersectionDto> dtos = intersections.stream()
-                .map(intersectionMapper::toDto)
-                .collect(Collectors.toList());
-
-        List<String> intersectionNumbers = intersections.stream()
-                .map(Intersection::getIntersectionNumber)
-                .collect(Collectors.toList());
-
-        Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
-        log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(),
-                intersectionNumbers.size());
-
-        for (IntersectionDto dto : dtos) {
-            dto.setRsus(rsusByIntersection.getOrDefault(dto.getIntersectionId(), Collections.emptyList()));
-        }
-
-        log.debug("Successfully fetched {} intersections.", dtos.size());
-        return new IntersectionListResponse(dtos);
+        return getIntersectionListResponse(intersections);
     }
 
     /**
@@ -263,13 +246,18 @@ public class AdminIntersectionService {
             return new IntersectionListResponse(Collections.emptyList());
         }
 
+        return getIntersectionListResponse(intersections);
+    }
+
+    private IntersectionListResponse getIntersectionListResponse(List<Intersection> intersections) {
         List<IntersectionDto> dtos = intersections.stream()
-                .map(intersectionMapper::toDto)
-                .collect(Collectors.toList());
+          .map(intersectionMapper::toDto)
+          .collect(Collectors.toList());
 
         List<String> intersectionNumbers = intersections.stream()
-                .map(Intersection::getIntersectionNumber)
-                .collect(Collectors.toList());
+          .map(Intersection::getIntersectionNumber)
+          .collect(Collectors.toList());
+
         Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
         log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(),
                 intersectionNumbers.size());
@@ -278,7 +266,7 @@ public class AdminIntersectionService {
             dto.setRsus(rsusByIntersection.getOrDefault(dto.getIntersectionId(), Collections.emptyList()));
         }
 
-        log.debug("Successfully fetched {} intersections not in organization '{}'.", dtos.size(), organization);
+        log.debug("Successfully fetched {} intersections.", dtos.size());
         return new IntersectionListResponse(dtos);
     }
 
