@@ -112,6 +112,7 @@ public abstract class AbstractEmailGenerator<T> {
         context.setVariable("btnFontColor", BUTTON_FONT_COLOR);
         context.setVariable("btnHoverColor", BUTTON_HOVER_COLOR);
         context.setVariable("footerFontColor", FOOTER_FONT_COLOR);
+        context.setVariable("showUnsubscribeLink", true);
 
         return context;
     }
