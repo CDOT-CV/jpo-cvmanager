@@ -864,7 +864,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
 
       mockMvc.perform(post("/admin/intersections")
           .contentType(MediaType.APPLICATION_JSON)
@@ -886,7 +886,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
 
       mockMvc.perform(post("/admin/intersections")
@@ -904,7 +904,7 @@ class AdminIntersectionControllerTest {
       when(permissionService.isSuperUser()).thenReturn(false);
       when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
 
       mockMvc.perform(post("/admin/intersections")
