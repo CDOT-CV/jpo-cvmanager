@@ -244,6 +244,45 @@ public class AdminIntersectionService {
     }
 
     /**
+     * Returns all intersections not associated with the specified organization.
+     * Used to populate the "available to add" dropdown when adding intersections to
+     * an organization. The controller enforces authorization (ADMIN role or
+     * superuser) before this is called.
+     *
+     * @param organization the organization to exclude intersections from
+     * @return response containing intersection_data as a list of intersections
+     *         currently not assigned to the organization
+     */
+    public IntersectionListResponse getIntersectionsNotInOrganization(String organization) {
+        log.info("Fetching intersections not in organization: {}", organization);
+        List<Intersection> intersections = intersectionOrganizationRepository
+                .findAllIntersectionsNotInOrganizationName(organization);
+
+        if (intersections.isEmpty()) {
+            log.info("No intersections found outside organization '{}'", organization);
+            return new IntersectionListResponse(Collections.emptyList());
+        }
+
+        List<IntersectionDto> dtos = intersections.stream()
+                .map(intersectionMapper::toDto)
+                .collect(Collectors.toList());
+
+        List<String> intersectionNumbers = intersections.stream()
+                .map(Intersection::getIntersectionNumber)
+                .collect(Collectors.toList());
+        Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
+        log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(),
+                intersectionNumbers.size());
+
+        for (IntersectionDto dto : dtos) {
+            dto.setRsus(rsusByIntersection.getOrDefault(dto.getIntersectionId(), Collections.emptyList()));
+        }
+
+        log.debug("Successfully fetched {} intersections not in organization '{}'.", dtos.size(), organization);
+        return new IntersectionListResponse(dtos);
+    }
+
+    /**
      * Updates an intersection's properties and modifies its org/RSU relationships.
      * The controller has already enforced all authorization before this is called.
      * Wraps all writes in a single transaction.
