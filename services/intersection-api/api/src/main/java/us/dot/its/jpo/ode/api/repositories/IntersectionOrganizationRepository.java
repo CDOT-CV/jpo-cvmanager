@@ -25,9 +25,12 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
     void deleteByIntersectionNumberAndOrganizationNameIn(@Param("intersectionNumber") String intersectionNumber,
             @Param("orgNames") List<String> orgNames);
 
-    @Query("SELECT DISTINCT i FROM Intersection i WHERE NOT EXISTS " +
-            "(SELECT 1 FROM IntersectionOrganization io " +
-            "WHERE io.intersection.id = i.id AND io.organization.name = :organizationName)")
+    @Query("SELECT DISTINCT i FROM Intersection i " +
+            "LEFT JOIN FETCH i.intersectionOrganizations io " +
+            "LEFT JOIN FETCH io.organization " +
+            "WHERE NOT EXISTS " +
+            "(SELECT 1 FROM IntersectionOrganization io2 " +
+            "WHERE io2.intersection.id = i.id AND io2.organization.name = :organizationName)")
     List<Intersection> findAllIntersectionsNotInOrganizationName(
             @Param("organizationName") String organizationName);
 }
