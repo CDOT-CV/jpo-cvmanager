@@ -660,7 +660,7 @@ class AdminIntersectionControllerTest {
     @DisplayName("returns 403 when authenticated but neither isSuperUser nor hasRole('USER')")
     void authenticated_insufficientPermissions_returns403() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("USER")).thenReturn(false);
+      when(permissionService.hasRole(UserRole.USER)).thenReturn(false);
 
       mockMvc.perform(get("/admin/intersections/allowed-selections"))
         .andExpect(status().isForbidden());
@@ -686,7 +686,7 @@ class AdminIntersectionControllerTest {
     @DisplayName("non-superuser with USER role returns 200")
     void userWithRole_returns200() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("USER")).thenReturn(true);
+      when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
       when(adminIntersectionService.getAllowedSelections()).thenReturn(sampleAllowedSelections);
 
       mockMvc.perform(get("/admin/intersections/allowed-selections"))
@@ -715,7 +715,7 @@ class AdminIntersectionControllerTest {
     @DisplayName("returns 403 when authenticated but hasRole('OPERATOR') returns false")
     void noOperatorRole_returns403() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("OPERATOR")).thenReturn(false);
+      when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(false);
 
       mockMvc.perform(post("/admin/intersections")
           .contentType(MediaType.APPLICATION_JSON)
@@ -752,9 +752,9 @@ class AdminIntersectionControllerTest {
         null, null, null);
 
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
 
       mockMvc.perform(post("/admin/intersections")
           .contentType(MediaType.APPLICATION_JSON)
@@ -774,9 +774,9 @@ class AdminIntersectionControllerTest {
         null, null, null);
 
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
 
       mockMvc.perform(post("/admin/intersections")
@@ -792,9 +792,9 @@ class AdminIntersectionControllerTest {
     @DisplayName("qualified operator with valid orgs and RSUs returns 200")
     void qualifiedOperator_returns200() throws Exception {
       when(permissionService.isSuperUser()).thenReturn(false);
-      when(permissionService.hasRole("OPERATOR")).thenReturn(true);
+      when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
       when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-      when(authToken.getQualifiedOrgList("OPERATOR")).thenReturn(List.of("TestOrg"));
+      when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
       when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
 
       mockMvc.perform(post("/admin/intersections")
