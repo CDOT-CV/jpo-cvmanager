@@ -130,7 +130,13 @@ const AdminEditIntersection = () => {
         setOpen(false)
         navigate('/dashboard/admin/intersections')
       })
-      .catch(() => toast.error('Failed to update Intersection'))
+      .catch((error) => {
+        const detail =
+          error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
+            ? (error.data as { detail?: string }).detail
+            : undefined
+        toast.error(detail ? `Failed to update Intersection: ${detail}` : 'Failed to update Intersection')
+      })
   }
 
   return (
