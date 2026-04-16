@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdminTable from '../../components/AdminTable'
 import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -13,9 +13,11 @@ import {
   editOrg,
 } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import {
+  ADMIN_INTERSECTION_AVAILABLE_LIST_ID,
   ADMIN_INTERSECTION_LIST_ID,
   ADMIN_INTERSECTION_TAG,
   adminIntersectionApiSlice,
+  useGetIntersectionsNotInOrganizationQuery,
   useLazyGetIntersectionQuery,
 } from '../api/adminIntersectionApiSlice'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
@@ -26,7 +28,10 @@ import { RootState } from '../../store'
 import { Action, Column } from '@material-table/core'
 import toast from 'react-hot-toast'
 import { useTheme } from '@mui/material'
-import { DeleteOutline } from '@mui/icons-material'
+import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
+import { Multiselect } from 'react-widgets/cjs'
+import '../css/multiselect.css'
+import { AdminIntersection } from '../../models/Intersection'
 
 interface AdminOrganizationTabIntersectionProps {
   selectedOrg: string
@@ -41,6 +46,17 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const theme = useTheme()
   const [fetchIntersection] = useLazyGetIntersectionQuery()
 
+  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrg, {
+    skip: !selectedOrg,
+  })
+  const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
+
+  const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])
+
+  useEffect(() => {
+    setSelectedIntersectionList([])
+  }, [selectedOrg])
+
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const [intersectionColumns] = useState<Column<any>[]>([
     { title: 'ID', field: 'intersection_id', id: 0, width: '45%' },
@@ -52,6 +68,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     dispatch(
       adminIntersectionApiSlice.util.invalidateTags([
         { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID },
+        { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID },
       ])
     )
   }
@@ -96,6 +113,38 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         confirmAlert(alertOptions)
       },
     },
+    {
+      position: 'toolbar',
+      iconProps: {
+        itemType: 'displayIcon',
+      },
+      icon: () => (
+        <Multiselect
+          dataKey="intersection_id"
+          textField="intersection_name"
+          placeholder="Click to add Intersections"
+          data={availableIntersectionList}
+          value={selectedIntersectionList}
+          onChange={(value) => {
+            setSelectedIntersectionList(value as AdminIntersection[])
+          }}
+          style={{
+            fontSize: '1rem',
+          }}
+        />
+      ),
+      onClick: () => {},
+    },
+    {
+      position: 'toolbar',
+      iconProps: {
+        title: 'Add Intersection',
+        color: 'primary',
+        itemType: 'contained',
+      },
+      icon: () => <AddCircleOutline />,
+      onClick: () => intersectionMultiAdd(selectedIntersectionList),
+    },
   ]
 
   const intersectionOnDelete = async (intersection: AdminOrgIntersection) => {
@@ -122,6 +171,26 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           selectedOrg +
           ' because it must belong to at least one organization.'
       )
+    }
+  }
+
+  const intersectionMultiAdd = async (intersectionList: AdminIntersection[]) => {
+    if (intersectionList.length === 0) {
+      toast.error('Please select Intersections to add')
+      return
+    }
+    const patchJson: adminOrgPatch = {
+      name: selectedOrg,
+      email: selectedOrgEmail,
+      intersections_to_add: intersectionList.map((intersection) => intersection.intersection_id),
+    }
+    const res = await dispatch(editOrg(patchJson))
+    setSelectedIntersectionList([])
+    refreshTable()
+    if ((res.payload as any).success) {
+      toast.success('Intersection(s) added successfully')
+    } else {
+      toast.error('Failed to add Intersection(s)')
     }
   }
 
