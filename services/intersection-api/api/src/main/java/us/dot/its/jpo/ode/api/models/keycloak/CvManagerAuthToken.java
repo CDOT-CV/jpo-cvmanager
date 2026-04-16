@@ -11,8 +11,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
+import lombok.Getter;
 import us.dot.its.jpo.ode.api.utils.AuthUtils;
 
+@Getter
 public class CvManagerAuthToken extends JwtAuthenticationToken {
     private final Map<String, String> orgRoles; // Map<Org, Role>
     private final boolean isSuperUser;
@@ -114,23 +116,5 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
             }
         }
         return Optional.empty();
-    }
-
-    /**
-     * Checks if the user is a super user (has global admin privileges).
-     * 
-     * @return true if super_user is "1", false otherwise
-     */
-    public boolean isSuperUser() {
-        return isSuperUser;
-    }
-
-    /**
-     * Gets the user's email address from the JWT token.
-     * 
-     * @return Email address if present, null otherwise
-     */
-    public String getEmail() {
-        return email;
     }
 }
