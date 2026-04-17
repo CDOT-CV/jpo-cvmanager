@@ -7,10 +7,8 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.thymeleaf.TemplateEngine;
@@ -22,7 +20,6 @@ import us.dot.its.jpo.ode.api.SnapshotTestUtils;
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
-import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +34,6 @@ class SupportRequestEmailGeneratorTest {
     @Mock
     private TemplateEngine templateEngine;
 
-    // @InjectMocks
     private SupportRequestEmailGenerator supportRequestEmailGenerator;
 
     @Test
@@ -89,7 +85,7 @@ class SupportRequestEmailGeneratorTest {
         supportRequestEmailGenerator = spy(supportRequestEmailGenerator);
 
         Context thymeLeafContext = mock(Context.class);
-        SupportRequestEmailContents data = new SupportRequestEmailContents("email", "subject", "message");
+        SupportRequestEmailContents data = new SupportRequestEmailContents("admin@example.com", "subject", "message");
 
         doCallRealMethod().when(supportRequestEmailGenerator).generateEmailBody(any());
 
@@ -102,5 +98,12 @@ class SupportRequestEmailGeneratorTest {
 
         EmailContent expectedResult = new EmailContent("subject", "HTML CONTENT");
         assertEquals(expectedResult, result);
+
+        verify(thymeLeafContext, times(3)).setVariable(anyString(), any());
+        verify(thymeLeafContext).setVariable("preview_text", "New Support Request in CV Manager");
+        verify(thymeLeafContext).setVariable("content_1",
+                "<p>New support request from admin@example.com:<br><br>message</p>");
+        verify(thymeLeafContext).setVariable("footer_address", "CV-Manager User-Submitted Support Request");
+        verify(templateEngine).process("emails/email_template", thymeLeafContext);
     }
 }
