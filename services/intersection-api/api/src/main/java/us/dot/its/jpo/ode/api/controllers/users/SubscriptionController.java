@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
-import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
@@ -45,7 +45,7 @@ public class SubscriptionController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
-            @RequestBody List<EmailSubscription> requestedSubscriptions) {
+            @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
@@ -66,7 +66,7 @@ public class SubscriptionController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
 
-        List<EmailSubscription> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
+        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 
 import java.net.InetAddress;
@@ -52,4 +53,15 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
             "OR (:frequency = 'MONTHLY' AND uen.monthly = true))")
     List<String> findUsersByNotificationTypeAndOrganization(@Param("notificationType") String notificationType,
             @Param("frequency") String frequency, @Param("organizationName") String organizationName);
+
+    @Query("SELECT uen " +
+            "FROM UserEmailNotification uen " +
+            "WHERE uen.user.email = :userEmail")
+    List<UserEmailNotification> findNotificationsByUser(@Param("userEmail") String userEmail);
+
+    @Transactional
+    @Query("DELETE FROM UserEmailNotification uen " +
+            "WHERE uen.emailType.emailType IN :emailType " +
+            "AND uen.user.email = :userEmail")
+    void deleteByTypeAndUserEmail(@Param("emailType") List<String> emailTypes, @Param("userEmail") String userEmail);
 }

@@ -15,8 +15,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
+import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
-import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
 import org.springframework.http.ResponseEntity;
@@ -44,7 +44,7 @@ public class UnsubscribeController {
     })
     public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
             @RequestParam(required = false) String token,
-            @RequestBody List<EmailSubscription> requestedSubscriptions) {
+            @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
@@ -66,7 +66,7 @@ public class UnsubscribeController {
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
-        List<EmailSubscription> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
+        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
 }

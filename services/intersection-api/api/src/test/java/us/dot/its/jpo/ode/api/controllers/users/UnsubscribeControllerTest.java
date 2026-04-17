@@ -18,8 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
+import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
-import us.dot.its.jpo.ode.api.models.postgres.derived.EmailSubscription;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,22 +37,25 @@ public class UnsubscribeControllerTest {
     private static final String INVALID_TOKEN = "invalid-token-456";
     private static final String TEST_EMAIL = "test@example.com";
 
-    private static final List<EmailSubscription> SUBSCRIPTION_LIST = Arrays.asList(
-            new EmailSubscription("Support Requests", "Receive support requests from users", "admin", true, false, false, false, false,
+    private static final List<UserEmailNotificationDto> SUBSCRIPTION_LIST = Arrays.asList(
+                    new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
+                    false, false, false, false,
                 true, false, false, false, false),
-            new EmailSubscription("Firmware Upgrade Failures", "Receive automated firmware upgrade failure emails",
-                    "operator", true, false, false, false, false,
+            new UserEmailNotificationDto("Firmware Upgrade Failures",
+                    "Receive automated firmware upgrade failure emails",
+                            "operator", true, false, false, false, false,
                 true, false, false, false, false),
-            new EmailSubscription("Intersection Notification Summary",
-                    "Receive automated intersection notification summary emails", "user", true, false, false, false, false,
+            new UserEmailNotificationDto("Intersection Notification Summary",
+                            "Receive automated intersection notification summary emails", "user", true, false, false, false, false,
                 true, true, true, true, true),
-            new EmailSubscription("Daily Message Counts", "Receive automated daily message count emails", "user",
+            new UserEmailNotificationDto("Daily Message Counts", "Receive automated daily message count emails", "user",
+                            false, false, false, false, false,
+                true, false, false, false, false),
+            new UserEmailNotificationDto("Access Requests", "Receive organization access requests from users", "admin",
                     false, false, false, false, false,
-                true, false, false, false, false),
-            new EmailSubscription("Access Requests", "Receive organization access requests from users", "admin", false, false, false, false, false,
-                true, false, false, false, false),
-            new EmailSubscription("Critical Error Messages", "Receive automated critical error message emails",
-                    "operator", false, false, false, false, false,
+                        true, false, false, false, false),
+            new UserEmailNotificationDto("Critical Error Messages", "Receive automated critical error message emails",
+                            "operator", false, false, false, false, false,
                 true, false, false, false, false));
 
     @BeforeEach

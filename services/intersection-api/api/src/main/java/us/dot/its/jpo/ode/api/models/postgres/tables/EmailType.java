@@ -28,8 +28,9 @@ public class EmailType {
     private String description;
 
     @NotNull
-    @Column(name = "required_role")
-    private int requiredRole;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "required_role", nullable = false)
+    private Role requiredRole;
 
     @NotNull
     @ColumnDefault("true")
