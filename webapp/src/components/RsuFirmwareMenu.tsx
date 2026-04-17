@@ -82,7 +82,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
             <div>
               <div id="firmwarediv" style={{ marginBottom: '15px' }}>
                 <p id="firmwaretext">Check for the latest available RSU firmware upgrades and install them</p>
-                {firmwareUpgradeMsg !== '' && (
+                {firmwareUpgradeMsg && (
                   <div
                     style={{
                       marginTop: '10px',
@@ -127,7 +127,7 @@ const RsuFirmwareMenu = (props: RsuFirmwareMenuProps) => {
               will be skipped. If the RSU is offline, it will be marked for an upgrade and will be upgraded when it
               comes back online.
             </p>
-            {firmwareUpgradeMsg !== '' && (
+            {firmwareUpgradeMsg && (
               <div
                 style={{
                   marginTop: '10px',
