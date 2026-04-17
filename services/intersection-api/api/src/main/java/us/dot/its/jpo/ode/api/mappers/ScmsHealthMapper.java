@@ -45,17 +45,9 @@ public abstract class ScmsHealthMapper {
     /**
      * Maps a single projection to DTO. MapStruct generates this method.
      */
-    @Mapping(target = "health", source = "health", qualifiedByName = "healthToString")
+    @Mapping(target = "health", source = "health")
     @Mapping(target = "expiration", source = "expiration", qualifiedByName = "formatInstant")
     public abstract ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
-
-    @Named("healthToString")
-    protected String healthToString(Boolean health) {
-        if (health == null) {
-            return null;
-        }
-        return health ? "1" : "0";
-    }
 
     @Named("formatInstant")
     protected String formatInstant(Instant instant) {

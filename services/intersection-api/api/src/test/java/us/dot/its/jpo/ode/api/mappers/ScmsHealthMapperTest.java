@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,14 +58,14 @@ class ScmsHealthMapperTest {
         assertTrue(result.containsKey(ip));
         ScmsHealthDto dto = result.get(ip);
         assertNotNull(dto);
-        assertEquals("1", dto.getHealth());
+        assertTrue(dto.getHealth());
         // Denver time for 15:00:00 UTC is 09:00:00 AM (Daylight savings)
         assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 
     @Test
     @DisplayName("Maps projections with inactive health")
-    void testToResponse_InactiveHealth_ReturnsDtoWithZero() throws UnknownHostException {
+    void testToResponse_InactiveHealth_ReturnsDtoWithFalse() throws UnknownHostException {
         // Arrange
         String ip = "10.0.0.1";
         InetAddress inetAddress = InetAddress.getByName(ip);
@@ -83,7 +84,7 @@ class ScmsHealthMapperTest {
         assertEquals(1, result.size());
         assertTrue(result.containsKey(ip));
         assertNotNull(result.get(ip));
-        assertEquals("0", result.get(ip).getHealth());
+        assertFalse(result.get(ip).getHealth());
     }
 
     @Test
@@ -158,7 +159,7 @@ class ScmsHealthMapperTest {
 
         // Assert
         assertNotNull(dto);
-        assertEquals("1", dto.getHealth());
+        assertTrue(dto.getHealth());
         assertEquals("03/27/2024 09:00:00 AM", dto.getExpiration());
     }
 
@@ -181,7 +182,7 @@ class ScmsHealthMapperTest {
 
         // Assert
         assertNotNull(dto);
-        assertEquals("1", dto.getHealth());
+        assertTrue(dto.getHealth());
         // UTC time should be 15:00:00 (3:00 PM)
         assertEquals("03/27/2024 03:00:00 PM", dto.getExpiration());
     }
