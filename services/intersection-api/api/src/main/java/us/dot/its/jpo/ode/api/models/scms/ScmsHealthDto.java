@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Schema(description = "A single SCMS health record")
 @Getter
 @Setter
@@ -15,6 +17,6 @@ public class ScmsHealthDto {
     @Schema(description = "Whether SCMS certificates associated with an RSU are up-to-date (true) or out-of-date (false)", example = "true")
     private Boolean health;
 
-    @Schema(description = "The expiration time of the SCMS certificates associated with an RSU", example = "04/10/2026 01:28:01 PM")
-    private String expiration;
+    @Schema(description = "The expiration time of the SCMS certificates associated with an RSU (ISO-8601, UTC)", example = "2026-04-10T13:28:01Z")
+    private Instant expiration;
 }

@@ -1,18 +1,12 @@
 package us.dot.its.jpo.ode.api.mappers;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
-import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
-import org.springframework.beans.factory.annotation.Autowired;
-import us.dot.its.jpo.ode.api.config.DateTimeConfig;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthResponse;
 
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +20,10 @@ import java.util.Map;
  *
  * <p>{@link #toResponse(List)} is manually implemented because MapStruct does not yet support
  * {@code List → Map} conversions keyed by a property. It delegates to the generated {@code toDto()}
- * to preserve compile-time checking.</p>
+ * to preserve compile-time field checking.</p>
+ *
+ * <p>The {@code expiration} field is mapped directly as {@link java.time.Instant}. Jackson's
+ * {@code JavaTimeModule} (auto-registered by Spring Boot) serializes it as ISO-8601 UTC.</p>
  *
  * @see <a href="https://github.com/mapstruct/mapstruct/discussions/3263">MapStruct Discussion #3263</a>
  * @see <a href="https://github.com/mapstruct/mapstruct/issues/3580">MapStruct Issue #3580</a>
@@ -35,35 +32,18 @@ import java.util.Map;
         componentModel = MappingConstants.ComponentModel.SPRING,
         unmappedTargetPolicy = ReportingPolicy.ERROR
 )
-public abstract class ScmsHealthMapper {
-
-    private static final String DATE_TIME_PATTERN = "MM/dd/yyyy hh:mm:ss a";
-
-    @Autowired
-    protected DateTimeConfig dateTimeConfig;
+public interface ScmsHealthMapper {
 
     /**
      * Maps a single projection to DTO. MapStruct generates this method.
      */
-    @Mapping(target = "health", source = "health")
-    @Mapping(target = "expiration", source = "expiration", qualifiedByName = "formatInstant")
-    public abstract ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
-
-    @Named("formatInstant")
-    protected String formatInstant(Instant instant) {
-        if (instant == null) {
-            return null;
-        }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)
-                .withZone(dateTimeConfig.getZoneId());
-        return formatter.format(instant);
-    }
+    ScmsHealthDto toDto(ScmsHealthRsuProjection projection);
 
     /**
      * Converts projections to a response keyed by IP address.
      * Delegates to {@link #toDto} to preserve compile-time field checking.
      */
-    public ScmsHealthResponse toResponse(List<ScmsHealthRsuProjection> projections) {
+    default ScmsHealthResponse toResponse(List<ScmsHealthRsuProjection> projections) {
         if (projections == null) {
             return null;
         }
