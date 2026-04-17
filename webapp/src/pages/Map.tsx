@@ -129,7 +129,7 @@ import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
 import { DateTime } from 'luxon'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
-import { useLazyGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { formatScmsExpiration, useLazyGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 
@@ -1464,7 +1464,7 @@ function MapPage() {
                         <Grid2 size={12}>
                           <Typography fontSize="small">
                             {issScmsStatusData[rsuIpv4].expiration
-                              ? issScmsStatusData[rsuIpv4].expiration
+                              ? formatScmsExpiration(issScmsStatusData[rsuIpv4].expiration)
                               : 'Never downloaded certificates'}
                           </Typography>
                         </Grid2>

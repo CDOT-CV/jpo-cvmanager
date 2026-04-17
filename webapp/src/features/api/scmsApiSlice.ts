@@ -14,7 +14,7 @@ import { selectToken } from '../../generalSlices/userSlice'
 export type ScmsHealthDto = {
   // "1" = healthy/up-to-date, "0" = unhealthy/out-of-date, null = unknown
   health: '0' | '1' | null
-  // Certificate expiration timestamp, e.g. "04/10/2026 01:28:01 PM"
+  // Certificate expiration timestamp as ISO-8601 UTC, e.g. "2026-04-10T13:28:01Z". Parse with new Date() and format for display with toLocaleString().
   expiration: string | null
 }
 
@@ -65,4 +65,19 @@ export const scmsApiSlice = createApi({
 })
 
 export const { useGetScmsStatusQuery, useLazyGetScmsStatusQuery } = scmsApiSlice
+
+// Formats an ISO-8601 expiration timestamp as "MM/DD/YYYY hh:mm:ss AM/PM" in the viewer's local timezone.
+// Returns empty string for null/undefined input.
+export const formatScmsExpiration = (iso: string | null | undefined): string => {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
+}
 

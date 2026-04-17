@@ -8,7 +8,7 @@ import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
 import { selectRsuOnlineStatus } from '../../generalSlices/rsuSlice'
-import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { formatScmsExpiration, useGetScmsStatusQuery } from '../api/scmsApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 
 import { GpsFixedSharp } from '@mui/icons-material'
@@ -73,21 +73,30 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
       : '0'
   }
 
-  const getRSUSCMSExpiration = (rsuIpv4: string) => {
+  const NEVER_DOWNLOADED = 'Never downloaded certificates'
+
+  // Raw ISO-8601 expiration string from the API, or NEVER_DOWNLOADED sentinel if unavailable.
+  const getRSUSCMSExpirationRaw = (rsuIpv4: string) => {
     return Object.prototype.hasOwnProperty.call(issScmsStatusData, rsuIpv4) &&
       issScmsStatusData[rsuIpv4] !== null &&
       Object.prototype.hasOwnProperty.call(issScmsStatusData[rsuIpv4], 'expiration')
       ? issScmsStatusData[rsuIpv4].expiration
-      : 'Never downloaded certificates'
+      : NEVER_DOWNLOADED
+  }
+
+  // Human-friendly expiration rendered in the viewer's local timezone, or the NEVER_DOWNLOADED sentinel.
+  const getRSUSCMSExpirationDisplay = (rsuIpv4: string) => {
+    const raw = getRSUSCMSExpirationRaw(rsuIpv4)
+    return raw === NEVER_DOWNLOADED ? raw : formatScmsExpiration(raw)
   }
 
   const getRSUSCMSDisplay = (rsuIpv4: string) => {
     if (getRSUSCMSStatus(rsuIpv4) === '0') {
       // eslint-disable-next-line no-var
       var rsu_scms_status = 'SCMS Unhealthy'
-      const rsu_scms_expiration = getRSUSCMSExpiration(rsuIpv4)
+      const rsu_scms_expiration = getRSUSCMSExpirationRaw(rsuIpv4)
       switch (rsu_scms_expiration) {
-        case 'Never downloaded certificates':
+        case NEVER_DOWNLOADED:
           rsu_scms_status += ' (RSU Never downloaded certificates)'
           break
         default:
@@ -104,7 +113,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
           break
       }
     } else {
-      rsu_scms_status = 'SCMS Healthy (Expires ' + getRSUSCMSExpiration(rsuIpv4) + ')'
+      rsu_scms_status = 'SCMS Healthy (Expires ' + getRSUSCMSExpirationDisplay(rsuIpv4) + ')'
     }
     return rsu_scms_status
   }
@@ -118,7 +127,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
       lon: rsu.geometry.coordinates[0],
       online_status: getRSUOnlineStatus(rsu.properties.ipv4_address),
       scms_status: getRSUSCMSStatus(rsu.properties.ipv4_address),
-      cert_expiration: getRSUSCMSExpiration(rsu.properties.ipv4_address),
+      cert_expiration: getRSUSCMSExpirationDisplay(rsu.properties.ipv4_address),
       milepost: rsu.properties.milepost,
       primary_route: rsu.properties.primary_route,
     }
@@ -207,7 +216,7 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
                   </Typography>
                   <Typography fontSize="small" sx={{ color: theme.palette.text.secondary }}>
                     <b>SCMS Expiration: </b>
-                    {getRSUSCMSExpiration(selectedRSU.properties.ipv4_address)}
+                    {getRSUSCMSExpirationDisplay(selectedRSU.properties.ipv4_address)}
                   </Typography>
                 </div>
               </AccordionDetails>
