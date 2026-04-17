@@ -1183,7 +1183,7 @@ function MapPage() {
                         Object.prototype.hasOwnProperty.call(issScmsStatusData, rsu.properties.ipv4_address) &&
                         issScmsStatusData[rsu.properties.ipv4_address]
                           ? issScmsStatusData[rsu.properties.ipv4_address].health
-                          : '0'
+                          : null
                       }
                     />
                   </button>
