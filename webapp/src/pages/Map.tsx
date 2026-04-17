@@ -129,7 +129,7 @@ import { ConditionalRenderRsu, evaluateFeatureFlags } from '../feature-flags'
 import { DateTime } from 'luxon'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
-import { formatScmsExpiration, useLazyGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { formatScmsExpiration, useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 
@@ -148,7 +148,7 @@ function MapPage() {
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
-  const [triggerGetScmsStatus, { data: issScmsStatusData = {} }] = useLazyGetScmsStatusQuery()
+  const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
   const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
   const rsuIpv4 = useSelector(selectRsuIpv4)
   const addConfigPoint = useSelector(selectAddConfigPoint)
@@ -700,7 +700,6 @@ function MapPage() {
   }
 
   const handleScmsStatus = () => {
-    triggerGetScmsStatus(organization)
     setDisplayType('scms')
   }
 
@@ -1158,7 +1157,6 @@ function MapPage() {
                     setSelectedWZDxMarker(null)
                     dispatch(clearFirmware()) // TODO: Should remove??
                     dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                    triggerGetScmsStatus(organization)
                   }}
                 >
                   <button
@@ -1172,7 +1170,6 @@ function MapPage() {
                       setSelectedWZDxMarkerIndex(null)
                       setSelectedWZDxMarker(null)
                       dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
-                      triggerGetScmsStatus(organization)
                     }}
                   >
                     <RsuMarker
@@ -1453,12 +1450,12 @@ function MapPage() {
                           <Typography
                             sx={{
                               color:
-                                issScmsStatusData[rsuIpv4].health === '1'
+                                issScmsStatusData[rsuIpv4].health
                                   ? theme.palette.success.light
                                   : theme.palette.error.light,
                             }}
                           >
-                            {issScmsStatusData[rsuIpv4].health === '1' ? 'Healthy' : 'Unhealthy'}
+                            {issScmsStatusData[rsuIpv4].health ? 'Healthy' : 'Unhealthy'}
                           </Typography>
                         </Grid2>
                         <Grid2 size={12}>
