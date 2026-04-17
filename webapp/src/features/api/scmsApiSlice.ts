@@ -35,13 +35,11 @@ export const scmsApiSlice = createApi({
   reducerPath: 'scmsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/scms`,
-    prepareHeaders: (headers, { getState, endpoint }) => {
+    prepareHeaders: (headers, { getState }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
-      // Endpoint names must match the keys in the endpoints object below
-      const endpointsWithoutToken: string[] = []
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
+      if (token) {
         headers.set('Authorization', `Bearer ${token}`)
       }
 
