@@ -123,13 +123,11 @@ class UpgradeControllerTest {
 
     @Test
     void checkUpgrade_Success() throws Exception {
-        Map<String, Object> serviceResponse = Map.of("upgrade_available", true);
-        FirmwareUpgradeCheckResponseDto mappedResponse = new FirmwareUpgradeCheckResponseDto(
+        FirmwareUpgradeCheckResponseDto serviceResponse = new FirmwareUpgradeCheckResponseDto(
                 true, 42L, "RSU Firmware v2.0", "2.0");
 
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.checkFirmwareUpgrade(anyString())).willReturn(serviceResponse);
-        given(firmwareUpgradeMapper.mapCheckUpgradeResponse(any())).willReturn(mappedResponse);
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
@@ -145,8 +143,7 @@ class UpgradeControllerTest {
     @Test
     void checkUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
         given(permissionService.isSuperUser()).willReturn(true);
-        given(rsuUpgradeService.checkFirmwareUpgrade(anyString())).willReturn(Map.of("upgrade_available", false));
-        given(firmwareUpgradeMapper.mapCheckUpgradeResponse(any()))
+        given(rsuUpgradeService.checkFirmwareUpgrade(anyString()))
                 .willReturn(new FirmwareUpgradeCheckResponseDto(false, -1L, "", ""));
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")

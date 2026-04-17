@@ -30,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -77,12 +78,12 @@ class RsuUpgradeServiceTest {
         when(rsuUpgradeContextService.findRsuByIp(rsuIp)).thenReturn(rsu);
         when(firmwareUpgradeRuleRepository.findFirstByFrom_Id(1)).thenReturn(Optional.of(rule));
 
-        Map<String, Object> result = rsuUpgradeService.checkFirmwareUpgrade(rsuIp);
+        FirmwareUpgradeCheckResponseDto result = rsuUpgradeService.checkFirmwareUpgrade(rsuIp);
 
-        assertEquals(true, result.get("upgrade_available"));
-        assertEquals(2, result.get("upgrade_id"));
-        assertEquals("RSU Firmware 2.0", result.get("upgrade_name"));
-        assertEquals("2.0", result.get("upgrade_version"));
+        assertEquals(true, result.getUpgradeAvailable());
+        assertEquals(2L, result.getUpgradeId());
+        assertEquals("RSU Firmware 2.0", result.getUpgradeName());
+        assertEquals("2.0", result.getUpgradeVersion());
     }
 
     @Test

@@ -21,6 +21,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -42,7 +43,7 @@ public class RsuUpgradeService {
     private final RestTemplate restTemplate;
     private final PlatformTransactionManager transactionManager;
 
-    public Map<String, Object> checkFirmwareUpgrade(String rsuIp) {
+    public FirmwareUpgradeCheckResponseDto checkFirmwareUpgrade(String rsuIp) {
         Rsu rsu = rsuUpgradeContextService.findRsuByIp(rsuIp);
         if (rsu == null) {
             throw new EntityNotFoundException(
@@ -52,11 +53,10 @@ public class RsuUpgradeService {
         FirmwareUpgradeInfo upgradeInfo = checkForUpgrade(rsu);
         FirmwareImage upgradeImage = upgradeInfo.upgradeImage();
 
-        return Map.of(
-                "upgrade_available", upgradeInfo.upgradeAvailable(),
-                "upgrade_id", upgradeImage != null && upgradeImage.getId() != null ? upgradeImage.getId() : -1,
-                "upgrade_name", upgradeImage != null && upgradeImage.getName() != null ? upgradeImage.getName() : "",
-                "upgrade_version",
+        return new FirmwareUpgradeCheckResponseDto(
+                upgradeInfo.upgradeAvailable(),
+                upgradeImage != null && upgradeImage.getId() != null ? upgradeImage.getId().longValue() : -1L,
+                upgradeImage != null && upgradeImage.getName() != null ? upgradeImage.getName() : "",
                 upgradeImage != null && upgradeImage.getVersion() != null ? upgradeImage.getVersion() : "");
     }
 

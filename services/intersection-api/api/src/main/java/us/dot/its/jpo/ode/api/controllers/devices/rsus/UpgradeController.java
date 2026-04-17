@@ -60,8 +60,7 @@ public class UpgradeController {
     })
     public ResponseEntity<FirmwareUpgradeCheckResponseDto> checkUpgrade(
             @Validated @RequestBody RsuSingleUpgradeCheckRequest body) {
-        Map<String, Object> response = rsuUpgradeService.checkFirmwareUpgrade(body.getRsuIp());
-        FirmwareUpgradeCheckResponseDto mappedResponse = firmwareUpgradeMapper.mapCheckUpgradeResponse(response);
-        return ResponseEntity.ok(mappedResponse);
+        FirmwareUpgradeCheckResponseDto response = rsuUpgradeService.checkFirmwareUpgrade(body.getRsuIp());
+        return ResponseEntity.ok(response);
     }
 }
