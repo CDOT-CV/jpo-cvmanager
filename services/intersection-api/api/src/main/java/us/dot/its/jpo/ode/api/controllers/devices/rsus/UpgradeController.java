@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuSingleUpgradeCheckRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
@@ -35,7 +34,6 @@ import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 public class UpgradeController {
 
     private final RsuUpgradeService rsuUpgradeService;
-    private final FirmwareUpgradeMapper firmwareUpgradeMapper;
 
     @Operation(summary = "Start RSU Firmware Upgrade", description = "Marks the supplied RSUs for upgrade and triggers firmware manager processing.")
     @PostMapping(produces = "application/json")
@@ -46,9 +44,9 @@ public class UpgradeController {
     })
     public ResponseEntity<Map<String, FirmwareUpgradeResultDto>> startUpgrade(
             @Validated @RequestBody RsuUpgradeRequest body) {
-        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(body.getRsuIps());
-        Map<String, FirmwareUpgradeResultDto> mappedResponse = firmwareUpgradeMapper.mapStartUpgradeResponse(response);
-        return ResponseEntity.ok(mappedResponse);
+        Map<String, FirmwareUpgradeResultDto> response = rsuUpgradeService
+                .startFirmwareUpgradeForRsus(body.getRsuIps());
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Check RSU Firmware Upgrade Availability", description = "Checks whether a firmware upgrade is available for the requested RSU.")

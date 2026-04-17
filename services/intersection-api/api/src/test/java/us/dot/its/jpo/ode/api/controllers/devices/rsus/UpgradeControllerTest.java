@@ -21,7 +21,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
-import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
@@ -44,9 +43,6 @@ class UpgradeControllerTest {
     RsuUpgradeService rsuUpgradeService;
 
     @MockitoBean
-    FirmwareUpgradeMapper firmwareUpgradeMapper;
-
-    @MockitoBean
     PermissionService permissionService;
 
     // POST /devices/rsus/upgrade (startUpgrade) Tests
@@ -54,13 +50,11 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_Success() throws Exception {
         List<String> rsuIps = List.of("10.0.0.10", "10.0.0.11");
-        Map<String, Object> serviceResponse = Map.of("rsu1", Map.of("code", 200));
-        Map<String, FirmwareUpgradeResultDto> mappedResponse = Map.of(
+        Map<String, FirmwareUpgradeResultDto> serviceResponse = Map.of(
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
-        given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(mappedResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIps(rsuIps);
@@ -77,7 +71,6 @@ class UpgradeControllerTest {
     void startUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
         given(permissionService.isSuperUser()).willReturn(true);
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(Map.of());
-        given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(Map.of());
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIps(List.of("10.0.0.10"));

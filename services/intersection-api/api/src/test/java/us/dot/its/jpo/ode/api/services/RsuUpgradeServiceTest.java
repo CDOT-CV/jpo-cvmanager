@@ -31,6 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -97,14 +98,13 @@ class RsuUpgradeServiceTest {
         doReturn(new RsuUpgradeService.UpgradeExecutionResult(Map.of("message", "started"), 201))
                 .when(serviceSpy).executeUpgradeForRsu(successIp);
 
-        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(List.of(successIp, missingIp));
+        Map<String, FirmwareUpgradeResultDto> result = serviceSpy
+                .startFirmwareUpgradeForRsus(List.of(successIp, missingIp));
 
-        assertEquals(Map.of("code", 201, "data", Map.of("message", "started")), result.get(successIp));
-        assertEquals(
-                Map.of(
-                        "code", 404,
-                        "data", "Provided RSU IP does not have complete RSU data: 10.0.0.11"),
-                result.get(missingIp));
+        assertEquals(201, result.get(successIp).getCode());
+        assertEquals(Map.of("message", "started"), result.get(successIp).getData());
+        assertEquals(404, result.get(missingIp).getCode());
+        assertEquals("Provided RSU IP does not have complete RSU data: 10.0.0.11", result.get(missingIp).getData());
     }
 
     @Test
@@ -116,9 +116,10 @@ class RsuUpgradeServiceTest {
         doThrow(new RsuUpgradeService.FirmwareUpgradeUnavailableException("Requested RSU is already up to date"))
                 .when(serviceSpy).executeUpgradeForRsu(rsuIp);
 
-        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(List.of(rsuIp));
+        Map<String, FirmwareUpgradeResultDto> result = serviceSpy.startFirmwareUpgradeForRsus(List.of(rsuIp));
 
-        assertEquals(Map.of("code", 409, "data", "Requested RSU is already up to date"), result.get(rsuIp));
+        assertEquals(409, result.get(rsuIp).getCode());
+        assertEquals("Requested RSU is already up to date", result.get(rsuIp).getData());
     }
 
     @Test
@@ -130,9 +131,10 @@ class RsuUpgradeServiceTest {
         doThrow(new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "The firmware manager is not supported"))
                 .when(serviceSpy).executeUpgradeForRsu(rsuIp);
 
-        Map<String, Object> result = serviceSpy.startFirmwareUpgradeForRsus(List.of(rsuIp));
+        Map<String, FirmwareUpgradeResultDto> result = serviceSpy.startFirmwareUpgradeForRsus(List.of(rsuIp));
 
-        assertEquals(Map.of("code", 501, "data", "The firmware manager is not supported"), result.get(rsuIp));
+        assertEquals(501, result.get(rsuIp).getCode());
+        assertEquals("The firmware manager is not supported", result.get(rsuIp).getData());
     }
 
     @Test

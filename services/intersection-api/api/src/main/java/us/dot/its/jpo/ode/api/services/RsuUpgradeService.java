@@ -22,6 +22,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
+import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -60,12 +61,12 @@ public class RsuUpgradeService {
                 upgradeImage != null && upgradeImage.getVersion() != null ? upgradeImage.getVersion() : "");
     }
 
-    public Map<String, Object> startFirmwareUpgradeForRsus(List<String> rsuIps) {
-        Map<String, Object> response = new LinkedHashMap<>();
+    public Map<String, FirmwareUpgradeResultDto> startFirmwareUpgradeForRsus(List<String> rsuIps) {
+        Map<String, FirmwareUpgradeResultDto> response = new LinkedHashMap<>();
 
         for (String rsuIp : rsuIps) {
             if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp)) {
-                response.put(rsuIp, createUpgradeResult(
+                response.put(rsuIp, new FirmwareUpgradeResultDto(
                         HttpStatus.NOT_FOUND.value(),
                         "Provided RSU IP does not have complete RSU data: " + rsuIp));
                 continue;
@@ -73,18 +74,18 @@ public class RsuUpgradeService {
 
             try {
                 UpgradeExecutionResult result = executeUpgradeForRsu(rsuIp);
-                response.put(rsuIp, createUpgradeResult(result.statusCode(), result.body()));
+                response.put(rsuIp, new FirmwareUpgradeResultDto(result.statusCode(), result.body()));
             } catch (EntityNotFoundException ex) {
-                response.put(rsuIp, createUpgradeResult(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
+                response.put(rsuIp, new FirmwareUpgradeResultDto(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
             } catch (FirmwareUpgradeUnavailableException ex) {
-                response.put(rsuIp, createUpgradeResult(HttpStatus.CONFLICT.value(), ex.getMessage()));
+                response.put(rsuIp, new FirmwareUpgradeResultDto(HttpStatus.CONFLICT.value(), ex.getMessage()));
             } catch (ResponseStatusException ex) {
-                response.put(rsuIp, createUpgradeResult(
+                response.put(rsuIp, new FirmwareUpgradeResultDto(
                         ex.getStatusCode().value(),
                         ex.getReason() == null || ex.getReason().isBlank() ? ex.getMessage() : ex.getReason()));
             } catch (RuntimeException ex) {
                 log.warn("Failed to start firmware upgrade for RSU {}", rsuIp, ex);
-                response.put(rsuIp, createUpgradeResult(
+                response.put(rsuIp, new FirmwareUpgradeResultDto(
                         HttpStatus.INTERNAL_SERVER_ERROR.value(),
                         ex.getMessage() == null || ex.getMessage().isBlank()
                                 ? "Failed to initiate firmware upgrade for RSU '" + rsuIp + "'"
@@ -101,12 +102,6 @@ public class RsuUpgradeService {
         return Objects.requireNonNull(
                 transactionTemplate.execute(status -> markRsuForUpgrade(rsuIp)),
                 "Upgrade execution result must not be null");
-    }
-
-    private Map<String, Object> createUpgradeResult(int statusCode, Object data) {
-        return Map.of(
-                "code", statusCode,
-                "data", data == null ? "" : data);
     }
 
     protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp) {
