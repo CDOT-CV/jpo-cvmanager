@@ -29,6 +29,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -105,7 +106,7 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public ResponseEntity<Void> createUser(@Validated @RequestBody UserDto body) {
-        if (!permissionService.hasRoleInOrgs("ADMIN",
+        if (!permissionService.hasRoleInOrgs(UserRole.ADMIN,
                 body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
