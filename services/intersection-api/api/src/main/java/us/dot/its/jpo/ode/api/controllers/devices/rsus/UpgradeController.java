@@ -1,7 +1,13 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,14 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuSingleUpgradeCheckRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
@@ -42,7 +40,7 @@ public class UpgradeController {
 
     @Operation(summary = "Start RSU Firmware Upgrade", description = "Marks the supplied RSUs for upgrade and triggers firmware manager processing.")
     @PostMapping(produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#body.rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#body.rsuIps, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(description = "Map of RSU IPs to their upgrade results", example = "{\"192.168.1.1\": {\"code\": 200, \"data\": {\"message\": \"started\"}}, \"192.168.1.2\": {\"code\": 409, \"data\": \"already up to date\"}}"))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
@@ -50,7 +48,7 @@ public class UpgradeController {
     public ResponseEntity<Map<String, FirmwareUpgradeResultDto>> startUpgrade(
             @RequestHeader(name = "Organization", required = true) String organization,
             @Validated @RequestBody RsuUpgradeRequest body) {
-        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIp());
+        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIps());
         Map<String, FirmwareUpgradeResultDto> mappedResponse = firmwareUpgradeMapper.mapStartUpgradeResponse(response);
         return ResponseEntity.ok(mappedResponse);
     }

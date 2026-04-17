@@ -699,7 +699,7 @@ describe('async thunks', () => {
         'token',
         'name',
         {
-          rsu_ip: arg,
+          rsu_ips: arg,
           args: {},
         },
         ''

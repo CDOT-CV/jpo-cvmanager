@@ -67,7 +67,7 @@ class UpgradeControllerTest {
         given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(mappedResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
-        request.setRsuIp(rsuIps);
+        request.setRsuIps(rsuIps);
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
@@ -81,7 +81,7 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_MissingOrganizationHeader_ReturnsBadRequest() throws Exception {
         RsuUpgradeRequest request = new RsuUpgradeRequest();
-        request.setRsuIp(List.of("10.0.0.10"));
+        request.setRsuIps(List.of("10.0.0.10"));
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
@@ -96,7 +96,7 @@ class UpgradeControllerTest {
                 .with(jwt())
                 .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rsu_ip\": []}"))
+                .content("{\"rsu_ips\": []}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -119,7 +119,7 @@ class UpgradeControllerTest {
                 .with(jwt())
                 .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rsu_ip\": [\"10.0.0.10\"]}"))
+                .content("{\"rsu_ips\": [\"10.0.0.10\"]}"))
                 .andExpect(status().isForbidden());
     }
 

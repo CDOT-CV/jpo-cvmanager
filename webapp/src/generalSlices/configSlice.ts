@@ -162,8 +162,8 @@ export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: str
 
 export const checkFirmwareUpgrade = createAsyncThunk(
   'config/checkFirmwareUpgrade',
-  async (rsuIp: string[], { getState, rejectWithValue }) => {
-    if (rsuIp.length !== 1) {
+  async (rsuIps: string[], { getState, rejectWithValue }) => {
+    if (rsuIps.length !== 1) {
       return rejectWithValue('Firmware upgrade availability check requires exactly one RSU')
     }
 
@@ -172,7 +172,7 @@ export const checkFirmwareUpgrade = createAsyncThunk(
     const organization = selectOrganizationName(currentState)
 
     const body: RsuUpgradeCheckPostBody = {
-      rsu_ip: rsuIp[0],
+      rsu_ip: rsuIps[0],
       args: {},
     }
 
@@ -192,13 +192,13 @@ export const checkFirmwareUpgrade = createAsyncThunk(
 
 export const startFirmwareUpgrade = createAsyncThunk(
   'config/startFirmwareUpgrade',
-  async (ipList: string[], { getState, rejectWithValue }) => {
+  async (rsuIps: string[], { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
 
     const body: RsuUpgradePostBody = {
-      rsu_ip: ipList,
+      rsu_ips: rsuIps,
       args: {},
     }
 
@@ -232,7 +232,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
       return ''
     }
 
-    ipList.forEach((ip) => {
+    rsuIps.forEach((ip) => {
       const code = perRsuResults?.[ip]?.code
       const dataMessage = extractDataMessage(perRsuResults?.[ip]?.data)
       const isUpToDate = code === 409 && dataMessage.toLowerCase().includes('already up to date')
@@ -246,7 +246,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
       }
     })
 
-    if (ipList.length === 1) {
+    if (rsuIps.length === 1) {
       if (upToDateIps.length > 0) {
         return {
           message: 'Selected RSU is already up to date.',
@@ -255,7 +255,7 @@ export const startFirmwareUpgrade = createAsyncThunk(
       }
 
       return failedIps.length > 0
-        ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[ipList[0]]?.code ?? 500 }
+        ? { message: 'Firmware upgrade failed to start.', statusCode: perRsuResults?.[rsuIps[0]]?.code ?? 500 }
         : { message: 'Firmware upgrade started successfully.', statusCode: 200 }
     }
 

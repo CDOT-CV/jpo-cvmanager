@@ -1,10 +1,8 @@
 package us.dot.its.jpo.ode.api.models.devices.management;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,6 +11,6 @@ import lombok.Setter;
 public class RsuUpgradeRequest {
 
     @NotEmpty
-    @JsonProperty("rsu_ip")
-    private List<String> rsuIp;
+    @JsonProperty("rsu_ips")
+    private List<String> rsuIps;
 }

@@ -94,7 +94,7 @@ export type RsuCommandPostBody = {
 }
 
 export type RsuUpgradePostBody = {
-  rsu_ip: string[]
+  rsu_ips: string[]
   args: object
 }
 
