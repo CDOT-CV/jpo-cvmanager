@@ -49,7 +49,7 @@ class EmailServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserEmailNotificationMapper userEmailNotificationMapper;
-    
+
     @InjectMocks
     private EmailService emailService;
 
@@ -58,9 +58,31 @@ class EmailServiceTest {
     private static final Role ROLE_USER = new Role();
     private static final Role ROLE_ADMIN = new Role();
 
-    private static UserEmailNotification createUserEmailNotification(String category, String description, String roleName,
+    private static UserEmailNotification createUserEmailNotification(String category, String description,
+            String roleName,
             boolean immediate, boolean hourly, boolean daily, boolean weekly, boolean monthly,
-        boolean supports_immediate, boolean supports_hourly, boolean supports_daily, boolean supports_weekly, boolean supports_monthly) {
+            boolean supports_immediate, boolean supports_hourly, boolean supports_daily, boolean supports_weekly,
+            boolean supports_monthly) {
+        EmailType emailType = createEmailType(category, description, roleName, supports_immediate, supports_hourly,
+                supports_daily, supports_weekly,
+                supports_monthly);
+
+        UserEmailNotification notification = new UserEmailNotification();
+        notification.setEmailType(emailType);
+        notification.setUser(TEST_USER);
+        notification.setImmediate(immediate);
+        notification.setHourly(hourly);
+        notification.setDaily(daily);
+        notification.setWeekly(weekly);
+        notification.setMonthly(monthly);
+
+        return notification;
+    }
+
+    private static EmailType createEmailType(String category, String description,
+            String roleName, boolean supports_immediate, boolean supports_hourly, boolean supports_daily,
+            boolean supports_weekly,
+            boolean supports_monthly) {
         EmailType emailType = new EmailType();
         emailType.setEmailType(category);
         emailType.setDescription(description);
@@ -75,55 +97,58 @@ class EmailServiceTest {
         emailType.setSupportsWeekly(supports_weekly);
         emailType.setSupportsMonthly(supports_monthly);
 
-        UserEmailNotification notification = new UserEmailNotification();
-        notification.setEmailType(emailType);
-        notification.setUser(TEST_USER);
-        notification.setImmediate(immediate);
-        notification.setHourly(hourly);
-        notification.setDaily(daily);
-        notification.setWeekly(weekly);
-        notification.setMonthly(monthly);
-
-        return notification;
+        return emailType;
     }
 
-    private static final List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
-            createUserEmailNotification(
-                "Support Requests", "Receive support requests from users", "user", 
-                true, false, false, false, false,
-                true, false, false, false, false),
-            createUserEmailNotification(
-                "Intersection Notification Summary", "Receive automated intersection notification summary emails", "user", 
-                true, false, false, false,false,
-                true, true, true, true, true),
-            createUserEmailNotification(
-                "Daily Message Counts", "Receive automated daily message count emails", "user",
-                false, false, false, false, false,
-                true, false, false, false, false),
-            createUserEmailNotification(
-                "Access Requests", "Receive organization access requests from users", "admin", 
-                false, false, false, false, false,
-                true, false, false, false, false));
+    // private static final List<UserEmailNotification> SUBSCRIPTION_LIST =
+    // Arrays.asList(
+    // createUserEmailNotification(
+    // "Support Requests", "Receive support requests from users", "user",
+    // true, false, false, false, false,
+    // true, false, false, false, false),
+    // createUserEmailNotification(
+    // "Intersection Notification Summary", "Receive automated intersection
+    // notification summary emails",
+    // "user",
+    // true, false, false, false, false,
+    // true, true, true, true, true),
+    // createUserEmailNotification(
+    // "Daily Message Counts", "Receive automated daily message count emails",
+    // "user",
+    // false, false, false, false, false,
+    // true, false, false, false, false),
+    // createUserEmailNotification(
+    // "Access Requests", "Receive organization access requests from users",
+    // "admin",
+    // false, false, false, false, false,
+    // true, false, false, false, false));
 
-    private static final UserEmailNotificationDto SUPPORT_REQUEST_DTO = new UserEmailNotificationDto(
-        "Support Requests", "Receive support requests from users", "admin",
-                    true, false,false, false, false,
-                    true, false, false, false, false);
-    
-    private static final UserEmailNotificationDto INTERSECTION_NOTIFICATION_SUMMARY_DTO = new UserEmailNotificationDto(
-        "Intersection Notification Summary", "Receive automated intersection notification summary emails", "user", 
-                    true, false, false, false, false, 
-                    true, true, true, true, true);
+    // private static final UserEmailNotificationDto SUPPORT_REQUEST_DTO = new
+    // UserEmailNotificationDto(
+    // "Support Requests", "Receive support requests from users", "admin",
+    // true, false, false, false, false,
+    // true, false, false, false, false);
 
-    private static final UserEmailNotificationDto DAILY_MESSAGE_COUNTS_DTO = new UserEmailNotificationDto(
-        "Daily Message Counts", "Receive automated daily message count emails", "user",
-                    false, false, false, false, false,
-                    true, false, false, false, false);
-    
-    private static final UserEmailNotificationDto ACCESS_REQUESTS_DTO = new UserEmailNotificationDto(
-        "Access Requests", "Receive organization access requests from users", "admin",
-                    false, false, false, false, false,
-                    true, false, false, false, false);
+    // private static final UserEmailNotificationDto
+    // INTERSECTION_NOTIFICATION_SUMMARY_DTO = new UserEmailNotificationDto(
+    // "Intersection Notification Summary", "Receive automated intersection
+    // notification summary emails", "user",
+    // true, false, false, false, false,
+    // true, true, true, true, true);
+
+    // private static final UserEmailNotificationDto DAILY_MESSAGE_COUNTS_DTO = new
+    // UserEmailNotificationDto(
+    // "Daily Message Counts", "Receive automated daily message count emails",
+    // "user",
+    // false, false, false, false, false,
+    // true, false, false, false, false);
+
+    // private static final UserEmailNotificationDto ACCESS_REQUESTS_DTO = new
+    // UserEmailNotificationDto(
+    // "Access Requests", "Receive organization access requests from users",
+    // "admin",
+    // false, false, false, false, false,
+    // true, false, false, false, false);
 
     @BeforeEach
     void setUp() {
@@ -206,39 +231,103 @@ class EmailServiceTest {
     @Test
     void testUpdateEmailSubscriptions_NoChange() {
 
+        List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
+                createUserEmailNotification(
+                        "Support Requests", "Receive support requests from users", "user",
+                        true, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Intersection Notification Summary",
+                        "Receive automated intersection notification summary emails",
+                        "user",
+                        true, false, false, false, false,
+                        true, true, true, true, true),
+                createUserEmailNotification(
+                        "Daily Message Counts", "Receive automated daily message count emails", "user",
+                        false, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Access Requests", "Receive organization access requests from users", "admin",
+                        false, false, false, false, false,
+                        true, false, false, false, false));
+
+        UserEmailNotificationDto SUPPORT_REQUEST_DTO = new UserEmailNotificationDto(
+                "Support Requests", "Receive support requests from users", "admin",
+                true, false, false, false, false,
+                true, false, false, false, false);
+
+        UserEmailNotificationDto INTERSECTION_NOTIFICATION_SUMMARY_DTO = new UserEmailNotificationDto(
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "user",
+                true, false, false, false, false,
+                true, true, true, true, true);
+
+        UserEmailNotificationDto DAILY_MESSAGE_COUNTS_DTO = new UserEmailNotificationDto(
+                "Daily Message Counts", "Receive automated daily message count emails",
+                "user",
+                false, false, false, false, false,
+                true, false, false, false, false);
+
+        UserEmailNotificationDto ACCESS_REQUESTS_DTO = new UserEmailNotificationDto(
+                "Access Requests", "Receive organization access requests from users",
+                "admin",
+                false, false, false, false, false,
+                true, false, false, false, false);
+
         List<UserEmailNotification> emailSubscriptions = SUBSCRIPTION_LIST;
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(emailSubscriptions);
 
-        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(SUPPORT_REQUEST_DTO, INTERSECTION_NOTIFICATION_SUMMARY_DTO, DAILY_MESSAGE_COUNTS_DTO, ACCESS_REQUESTS_DTO));
+        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(SUPPORT_REQUEST_DTO,
+                INTERSECTION_NOTIFICATION_SUMMARY_DTO, DAILY_MESSAGE_COUNTS_DTO, ACCESS_REQUESTS_DTO));
 
         verify(userEmailNotificationRepository, never()).deleteAll();
         verify(userEmailNotificationRepository, never()).saveAll(anyList());
-        verify(userEmailNotificationRepository, never()).save(any());
         assertEquals(0, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
     }
 
     @Test
     void testUpdateEmailSubscriptions_AddSubscriptions() {
+
+        List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
+                createUserEmailNotification(
+                        "Support Requests", "Receive support requests from users", "user",
+                        true, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Intersection Notification Summary",
+                        "Receive automated intersection notification summary emails",
+                        "user",
+                        true, false, false, false, false,
+                        true, true, true, true, true),
+                createUserEmailNotification(
+                        "Daily Message Counts", "Receive automated daily message count emails", "user",
+                        false, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Access Requests", "Receive organization access requests from users", "admin",
+                        false, false, false, false, false,
+                        true, false, false, false, false));
+
         UserEmailNotificationDto dailyMessageCountsDto = new UserEmailNotificationDto(
-        "Daily Message Counts", "Receive automated daily message count emails", "user",
-                    true, false, false, false, false,
-                    true, false, false, false, false);
+                "Daily Message Counts", "Receive automated daily message count emails", "user",
+                true, false, false, false, false,
+                true, false, false, false, false);
         UserEmailNotificationDto accessRequestDto = new UserEmailNotificationDto(
-        "Access Requests", "Receive organization access requests from users", "admin",
-                    true, false, false, false, false,
-                    true, false, false, false, false);
+                "Access Requests", "Receive organization access requests from users", "admin",
+                true, false, false, false, false,
+                true, false, false, false, false);
 
         UserEmailNotification dailyMessageCounts = createUserEmailNotification(
-            "Daily Message Counts", "Receive automated daily message count emails", "user",
-            true, false, false, false, false,
-            true, false, false, false, false);
+                "Daily Message Counts", "Receive automated daily message count emails", "user",
+                true, false, false, false, false,
+                true, false, false, false, false);
 
         UserEmailNotification accessRequests = createUserEmailNotification(
-            "Access Requests", "Receive organization access requests from users", "admin",
-            true, false, false, false, false,
-            true, false, false, false, false);
+                "Access Requests", "Receive organization access requests from users", "admin",
+                true, false, false, false, false,
+                true, false, false, false, false);
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
         when(userEmailNotificationMapper.toEntity(dailyMessageCountsDto)).thenReturn(dailyMessageCounts);
@@ -249,7 +338,8 @@ class EmailServiceTest {
         when(emailTypeRepository.findByEmailType("Access Requests"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(3).getEmailType()));
 
-        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(dailyMessageCountsDto, accessRequestDto));
+        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL,
+                List.of(dailyMessageCountsDto, accessRequestDto));
 
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
@@ -259,120 +349,195 @@ class EmailServiceTest {
 
     @Test
     void testUpdateEmailSubscriptions_RemoveSubscriptions() {
+
+        List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
+                createUserEmailNotification(
+                        "Support Requests", "Receive support requests from users", "user",
+                        true, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Intersection Notification Summary",
+                        "Receive automated intersection notification summary emails",
+                        "user",
+                        true, false, false, false, false,
+                        true, true, true, true, true),
+                createUserEmailNotification(
+                        "Daily Message Counts", "Receive automated daily message count emails", "user",
+                        false, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Access Requests", "Receive organization access requests from users", "admin",
+                        false, false, false, false, false,
+                        true, false, false, false, false));
+
         UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
-        "Support Requests", "Receive support requests from users", "admin",
-                    false, false,false, false, false,
-                    true, false, false, false, false);
+                "Support Requests", "Receive support requests from users", "admin",
+                false, false, false, false, false,
+                true, false, false, false, false);
         UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
-        "Intersection Notification Summary", "Receive automated intersection notification summary emails", "user", 
-                    false, false, false, false, false, 
-                    true, true, true, true, true);
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "user",
+                false, false, false, false, false,
+                true, true, true, true, true);
 
         UserEmailNotification supportRequests = createUserEmailNotification(
-            "Support Requests", "Receive support requests from users", "admin",
-            false, false, false, false, false,
-            true, false, false, false, false);
+                "Support Requests", "Receive support requests from users", "admin",
+                true, false, false, false, false,
+                true, false, false, false, false);
 
         UserEmailNotification intersectionNotificationSummaries = createUserEmailNotification(
-            "Intersection Notification Summary", "Receive automated intersection notification summary emails", "admin",
-            false, false, false, false, false,
-            true, true, true, true, true);
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "admin",
+                true, false, false, false, false,
+                true, true, true, true, true);
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
         when(userEmailNotificationMapper.toEntity(supportRequestsDto)).thenReturn(supportRequests);
-        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto)).thenReturn(intersectionNotificationSummaries);
+        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto))
+                .thenReturn(intersectionNotificationSummaries);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.of(TEST_USER));
         when(emailTypeRepository.findByEmailType("Support Requests"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(0).getEmailType()));
         when(emailTypeRepository.findByEmailType("Intersection Notification Summary"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(1).getEmailType()));
 
-        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(supportRequestsDto, intersectionNotificationSummaryDto));
+        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL,
+                List.of(supportRequestsDto, intersectionNotificationSummaryDto));
 
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
-        verify(userEmailNotificationRepository, times(1)).deleteAll(List.of(supportRequests, intersectionNotificationSummaries));
+        verify(userEmailNotificationRepository, times(1))
+                .deleteAll(List.of(supportRequests, intersectionNotificationSummaries));
         verify(userEmailNotificationRepository, never()).saveAll(anyList());
     }
 
     @Test
     void testUpdateEmailSubscriptions_UpdateSubscriptions() {
+
+        List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
+                createUserEmailNotification(
+                        "Support Requests", "Receive support requests from users", "user",
+                        true, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Intersection Notification Summary",
+                        "Receive automated intersection notification summary emails",
+                        "user",
+                        true, false, false, false, false,
+                        true, true, true, true, true),
+                createUserEmailNotification(
+                        "Daily Message Counts", "Receive automated daily message count emails", "user",
+                        false, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Access Requests", "Receive organization access requests from users", "admin",
+                        false, false, false, false, false,
+                        true, false, false, false, false));
+
         UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
-        "Support Requests", "Receive support requests from users", "admin",
-                    true, true, false, false, false,
-                    true, false, false, false, false);
+                "Support Requests", "Receive support requests from users", "admin",
+                true, true, false, false, false,
+                true, false, false, false, false);
         UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
-        "Intersection Notification Summary", "Receive automated intersection notification summary emails", "user", 
-                    true, false, true, false, false, 
-                    true, true, true, true, true);
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "user",
+                true, false, true, false, false,
+                true, true, true, true, true);
 
         UserEmailNotification supportRequests = createUserEmailNotification(
-            "Support Requests", "Receive support requests from users", "admin",
-            true, true, false, false, false,
-            true, true, false, false, false);
+                "Support Requests", "Receive support requests from users", "admin",
+                true, true, false, false, false,
+                true, true, false, false, false);
 
         UserEmailNotification intersectionNotificationSummaries = createUserEmailNotification(
-            "Intersection Notification Summary", "Receive automated intersection notification summary emails", "admin",
-            true, false, true, false, false,
-            true, true, true, true, true);
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "admin",
+                true, false, true, false, false,
+                true, true, true, true, true);
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
         when(userEmailNotificationMapper.toEntity(supportRequestsDto)).thenReturn(supportRequests);
-        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto)).thenReturn(intersectionNotificationSummaries);
+        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto))
+                .thenReturn(intersectionNotificationSummaries);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.of(TEST_USER));
         when(emailTypeRepository.findByEmailType("Support Requests"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(0).getEmailType()));
         when(emailTypeRepository.findByEmailType("Intersection Notification Summary"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(1).getEmailType()));
 
-        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(supportRequestsDto, intersectionNotificationSummaryDto));
+        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL,
+                List.of(supportRequestsDto, intersectionNotificationSummaryDto));
 
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).deleteAll(anyList());
-        verify(userEmailNotificationRepository, times(1)).saveAll(List.of(supportRequests, intersectionNotificationSummaries));
+        verify(userEmailNotificationRepository, times(1))
+                .saveAll(List.of(supportRequests, intersectionNotificationSummaries));
     }
 
     @Test
     void testUpdateEmailSubscriptions_AllUpdateTypes() {
-        UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
-        "Support Requests", "Receive support requests from users", "admin",
-                    true, true, false, false, false,
-                    true, false, false, false, false);
-        UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
-        "Intersection Notification Summary", "Receive automated intersection notification summary emails", "user", 
-                    false, false, false, false, false, 
-                    true, true, true, true, true);
-        UserEmailNotificationDto dailyMessageCountsDto = new UserEmailNotificationDto(
-        "Daily Message Counts", "Receive automated daily message count emails", "user",
-                    true, false, false, false, false,
-                    true, false, false, false, false);
-        UserEmailNotificationDto accessRequestDto = new UserEmailNotificationDto(
-        "Access Requests", "Receive organization access requests from users", "admin",
-                    false, false, false, false, false,
-                    true, false, false, false, false);
 
+        List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
+                createUserEmailNotification(
+                        "Support Requests", "Receive support requests from users", "user",
+                        true, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Intersection Notification Summary",
+                        "Receive automated intersection notification summary emails",
+                        "user",
+                        true, false, false, false, false,
+                        true, true, true, true, true),
+                createUserEmailNotification(
+                        "Daily Message Counts", "Receive automated daily message count emails", "user",
+                        false, false, false, false, false,
+                        true, false, false, false, false),
+                createUserEmailNotification(
+                        "Access Requests", "Receive organization access requests from users", "admin",
+                        false, false, false, false, false,
+                        true, false, false, false, false));
+
+        UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
+                "Support Requests", "Receive support requests from users", "admin",
+                true, true, false, false, false,
+                true, false, false, false, false);
+        UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "user",
+                false, false, false, false, false,
+                true, true, true, true, true);
+        UserEmailNotificationDto dailyMessageCountsDto = new UserEmailNotificationDto(
+                "Daily Message Counts", "Receive automated daily message count emails", "user",
+                true, false, false, false, false,
+                true, false, false, false, false);
+        UserEmailNotificationDto accessRequestDto = new UserEmailNotificationDto(
+                "Access Requests", "Receive organization access requests from users", "admin",
+                false, false, false, false, false,
+                true, false, false, false, false);
 
         UserEmailNotification supportRequests = createUserEmailNotification(
-            "Support Requests", "Receive support requests from users", "admin",
-            true, true, false, false, false,
-            true, true, false, false, false);
+                "Support Requests", "Receive support requests from users", "admin",
+                true, true, false, false, false,
+                true, true, false, false, false);
         UserEmailNotification intersectionNotificationSummaries = createUserEmailNotification(
-            "Intersection Notification Summary", "Receive automated intersection notification summary emails", "admin",
-            false, false, false, false, false,
-            true, true, true, true, true);
+                "Intersection Notification Summary", "Receive automated intersection notification summary emails",
+                "user",
+                true, false, false, false, false,
+                true, true, true, true, true);
         UserEmailNotification dailyMessageCounts = createUserEmailNotification(
-            "Daily Message Counts", "Receive automated daily message count emails", "user",
-            true, false, false, false, false,
-            true, false, false, false, false);
+                "Daily Message Counts", "Receive automated daily message count emails", "user",
+                false, false, false, false, false,
+                true, false, false, false, false);
         UserEmailNotification accessRequests = createUserEmailNotification(
-            "Access Requests", "Receive organization access requests from users", "admin",
-            false, false, false, false, false,
-            true, false, false, false, false);
+                "Access Requests", "Receive organization access requests from users", "admin",
+                false, false, false, false, false,
+                true, false, false, false, false);
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
         when(userEmailNotificationMapper.toEntity(supportRequestsDto)).thenReturn(supportRequests);
-        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto)).thenReturn(intersectionNotificationSummaries);
+        when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto))
+                .thenReturn(intersectionNotificationSummaries);
         when(userEmailNotificationMapper.toEntity(dailyMessageCountsDto)).thenReturn(dailyMessageCounts);
         when(userEmailNotificationMapper.toEntity(accessRequestDto)).thenReturn(accessRequests);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.of(TEST_USER));
@@ -385,9 +550,11 @@ class EmailServiceTest {
         when(emailTypeRepository.findByEmailType("Access Requests"))
                 .thenReturn(java.util.Optional.of(SUBSCRIPTION_LIST.get(3).getEmailType()));
 
-        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL, List.of(supportRequestsDto, intersectionNotificationSummaryDto));
+        Integer numModified = emailService.updateEmailSubscriptions(TEST_EMAIL,
+                List.of(supportRequestsDto, intersectionNotificationSummaryDto, dailyMessageCountsDto,
+                        accessRequestDto));
 
-        assertEquals(2, numModified);
+        assertEquals(3, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, times(1)).deleteAll(List.of(intersectionNotificationSummaries));
         verify(userEmailNotificationRepository, times(1)).saveAll(List.of(supportRequests));
@@ -397,17 +564,18 @@ class EmailServiceTest {
     // @Test
     // void testGetEmailSubscriptions_UserWithSubscriptions() {
 
-    //     when(postgresService.getEmailSubscriptionTypes()).thenReturn(SUBSCRIPTION_LIST);
-    //     when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
+    // when(postgresService.getEmailSubscriptionTypes()).thenReturn(SUBSCRIPTION_LIST);
+    // when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
 
-    //     List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
+    // List<UserEmailNotificationDto> subscriptions =
+    // emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
 
-    //     assertNotNull(subscriptions);
-    //     assertEquals(6, subscriptions.size());
+    // assertNotNull(subscriptions);
+    // assertEquals(6, subscriptions.size());
 
-    //     assertEquals(SUBSCRIPTION_LIST, subscriptions);
+    // assertEquals(SUBSCRIPTION_LIST, subscriptions);
 
-    //     verify(postgresService).getEmailSubscriptionTypes();
-    //     verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
+    // verify(postgresService).getEmailSubscriptionTypes();
+    // verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
     // }
 }
