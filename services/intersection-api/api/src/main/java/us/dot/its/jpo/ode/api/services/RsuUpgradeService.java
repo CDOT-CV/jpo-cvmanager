@@ -1,12 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import jakarta.persistence.EntityNotFoundException;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,9 +21,6 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -45,11 +42,11 @@ public class RsuUpgradeService {
     private final RestTemplate restTemplate;
     private final PlatformTransactionManager transactionManager;
 
-    public Map<String, Object> checkFirmwareUpgrade(String organization, String rsuIp) {
-        Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
+    public Map<String, Object> checkFirmwareUpgrade(String rsuIp) {
+        Rsu rsu = rsuUpgradeContextService.findRsuByIp(rsuIp);
         if (rsu == null) {
             throw new EntityNotFoundException(
-                    "Provided RSU IP does not have complete RSU data for organization: " + organization + "::" + rsuIp);
+                    "Provided RSU IP does not have complete RSU data: " + rsuIp);
         }
 
         FirmwareUpgradeInfo upgradeInfo = checkForUpgrade(rsu);
@@ -63,20 +60,19 @@ public class RsuUpgradeService {
                 upgradeImage != null && upgradeImage.getVersion() != null ? upgradeImage.getVersion() : "");
     }
 
-    public Map<String, Object> startFirmwareUpgradeForRsus(String organization, List<String> rsuIps) {
+    public Map<String, Object> startFirmwareUpgradeForRsus(List<String> rsuIps) {
         Map<String, Object> response = new LinkedHashMap<>();
 
         for (String rsuIp : rsuIps) {
-            if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp, organization)) {
+            if (!rsuUpgradeContextService.hasCompleteRsuData(rsuIp)) {
                 response.put(rsuIp, createUpgradeResult(
                         HttpStatus.NOT_FOUND.value(),
-                        "Provided RSU IP does not have complete RSU data for organization: " + organization + "::"
-                                + rsuIp));
+                        "Provided RSU IP does not have complete RSU data: " + rsuIp));
                 continue;
             }
 
             try {
-                UpgradeExecutionResult result = executeUpgradeForRsu(rsuIp, organization);
+                UpgradeExecutionResult result = executeUpgradeForRsu(rsuIp);
                 response.put(rsuIp, createUpgradeResult(result.statusCode(), result.body()));
             } catch (EntityNotFoundException ex) {
                 response.put(rsuIp, createUpgradeResult(HttpStatus.NOT_FOUND.value(), ex.getMessage()));
@@ -99,11 +95,11 @@ public class RsuUpgradeService {
         return response;
     }
 
-    protected UpgradeExecutionResult executeUpgradeForRsu(String rsuIp, String organization) {
+    protected UpgradeExecutionResult executeUpgradeForRsu(String rsuIp) {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return Objects.requireNonNull(
-                transactionTemplate.execute(status -> markRsuForUpgrade(rsuIp, organization)),
+                transactionTemplate.execute(status -> markRsuForUpgrade(rsuIp)),
                 "Upgrade execution result must not be null");
     }
 
@@ -113,16 +109,16 @@ public class RsuUpgradeService {
                 "data", data == null ? "" : data);
     }
 
-    protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp, String organization) {
+    protected UpgradeExecutionResult markRsuForUpgrade(String rsuIp) {
         if (firmwareManagerEndpoint == null || firmwareManagerEndpoint.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
                     "The firmware manager is not supported for this CV Manager deployment");
         }
 
-        Rsu rsu = rsuUpgradeContextService.findRsuForOrganization(rsuIp, organization);
+        Rsu rsu = rsuUpgradeContextService.findRsuByIp(rsuIp);
         if (rsu == null) {
             throw new EntityNotFoundException(
-                    "Provided RSU IP does not have complete RSU data for organization: " + organization + "::" + rsuIp);
+                    "Provided RSU IP does not have complete RSU data: " + rsuIp);
         }
 
         FirmwareUpgradeInfo upgradeInfo = checkForUpgrade(rsu);

@@ -2,32 +2,26 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
-
-import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
-import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @Service
 @RequiredArgsConstructor
 public class RsuUpgradeContextService {
 
-    private final RsuOrganizationRepository rsuOrganizationRepository;
+    private final RsuRepository rsuRepository;
 
-    public boolean hasCompleteRsuData(String rsuIp, String organization) {
-        return findRsuForOrganization(rsuIp, organization) != null;
+    public boolean hasCompleteRsuData(String rsuIp) {
+        return findRsuByIp(rsuIp) != null;
     }
 
-    public Rsu findRsuForOrganization(String rsuIp, String organization) {
+    public Rsu findRsuByIp(String rsuIp) {
         InetAddress inetAddress = parseIpv4Address(rsuIp);
-
-        return rsuOrganizationRepository
-                .findByRsuIpv4AddressAndOrganization_Name(inetAddress, organization)
-                .map(ro -> ro.getRsu())
-                .orElse(null);
+        return rsuRepository.findByIpv4Address(inetAddress);
     }
 
     private InetAddress parseIpv4Address(String rsuIp) {

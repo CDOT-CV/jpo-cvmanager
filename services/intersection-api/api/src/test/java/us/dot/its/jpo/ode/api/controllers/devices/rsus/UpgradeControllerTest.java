@@ -1,29 +1,25 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.util.List;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.springframework.context.annotation.Import;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
@@ -63,7 +59,7 @@ class UpgradeControllerTest {
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(true);
-        given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyString(), anyList())).willReturn(serviceResponse);
+        given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
         given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(mappedResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
@@ -71,7 +67,6 @@ class UpgradeControllerTest {
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -79,7 +74,11 @@ class UpgradeControllerTest {
     }
 
     @Test
-    void startUpgrade_MissingOrganizationHeader_ReturnsBadRequest() throws Exception {
+    void startUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
+        given(permissionService.isSuperUser()).willReturn(true);
+        given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(Map.of());
+        given(firmwareUpgradeMapper.mapStartUpgradeResponse(any())).willReturn(Map.of());
+
         RsuUpgradeRequest request = new RsuUpgradeRequest();
         request.setRsuIps(List.of("10.0.0.10"));
 
@@ -87,14 +86,13 @@ class UpgradeControllerTest {
                 .with(jwt())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
     }
 
     @Test
     void startUpgrade_EmptyRsuIpList_ReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ips\": []}"))
                 .andExpect(status().isBadRequest());
@@ -104,7 +102,6 @@ class UpgradeControllerTest {
     void startUpgrade_NullRsuIpField_ReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -117,7 +114,6 @@ class UpgradeControllerTest {
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ips\": [\"10.0.0.10\"]}"))
                 .andExpect(status().isForbidden());
@@ -132,12 +128,11 @@ class UpgradeControllerTest {
                 true, 42L, "RSU Firmware v2.0", "2.0");
 
         given(permissionService.isSuperUser()).willReturn(true);
-        given(rsuUpgradeService.checkFirmwareUpgrade(anyString(), anyString())).willReturn(serviceResponse);
+        given(rsuUpgradeService.checkFirmwareUpgrade(anyString())).willReturn(serviceResponse);
         given(firmwareUpgradeMapper.mapCheckUpgradeResponse(any())).willReturn(mappedResponse);
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ip\": \"10.0.0.10\"}"))
                 .andExpect(status().isOk())
@@ -148,19 +143,23 @@ class UpgradeControllerTest {
     }
 
     @Test
-    void checkUpgrade_MissingOrganizationHeader_ReturnsBadRequest() throws Exception {
+    void checkUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
+        given(permissionService.isSuperUser()).willReturn(true);
+        given(rsuUpgradeService.checkFirmwareUpgrade(anyString())).willReturn(Map.of("upgrade_available", false));
+        given(firmwareUpgradeMapper.mapCheckUpgradeResponse(any()))
+                .willReturn(new FirmwareUpgradeCheckResponseDto(false, -1L, "", ""));
+
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ip\": \"10.0.0.10\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
     }
 
     @Test
     void checkUpgrade_BlankRsuIp_ReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ip\": \"\"}"))
                 .andExpect(status().isBadRequest());
@@ -173,7 +172,6 @@ class UpgradeControllerTest {
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
-                .header("Organization", "TestOrg")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ip\": \"10.0.0.10\"}"))
                 .andExpect(status().isForbidden());

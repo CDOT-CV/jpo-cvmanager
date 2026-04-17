@@ -4,7 +4,6 @@ import { authApiHelper } from './api-helper-cviz'
 class RsuFirmwareApi {
   async postRsuUpgradeData(
     token: string,
-    org: string,
     body: RsuUpgradePostBody | RsuUpgradeCheckPostBody,
     url_ext = ''
   ): Promise<ApiMsgRespWithCodes<any> | null> {
@@ -12,7 +11,6 @@ class RsuFirmwareApi {
       path: `/devices/rsus/upgrade${url_ext}`,
       method: 'POST',
       token,
-      headers: { Organization: org },
       body,
       tag: 'rsu',
       toastOnFailure: false,

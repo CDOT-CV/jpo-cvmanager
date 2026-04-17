@@ -169,14 +169,13 @@ export const checkFirmwareUpgrade = createAsyncThunk(
 
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-    const organization = selectOrganizationName(currentState)
 
     const body: RsuUpgradeCheckPostBody = {
       rsu_ip: rsuIps[0],
       args: {},
     }
 
-    const response = await RsuFirmwareApi.postRsuUpgradeData(token, organization, body, '/check')
+    const response = await RsuFirmwareApi.postRsuUpgradeData(token, body, '/check')
     if (!response) {
       return rejectWithValue('Failed to check firmware upgrade availability')
     }
@@ -195,14 +194,13 @@ export const startFirmwareUpgrade = createAsyncThunk(
   async (rsuIps: string[], { getState, rejectWithValue }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
-    const organization = selectOrganizationName(currentState)
 
     const body: RsuUpgradePostBody = {
       rsu_ips: rsuIps,
       args: {},
     }
 
-    const response = await RsuFirmwareApi.postRsuUpgradeData(token, organization, body, '')
+    const response = await RsuFirmwareApi.postRsuUpgradeData(token, body, '')
     if (!response) {
       return rejectWithValue('Firmware upgrades failed to be started')
     }

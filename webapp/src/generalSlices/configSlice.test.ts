@@ -532,7 +532,6 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
       expect(RsuFirmwareApi.postRsuUpgradeData).toHaveBeenCalledWith(
         'token',
-        'name',
         {
           rsu_ip: arg[0],
           args: {},
@@ -626,9 +625,9 @@ describe('async thunks', () => {
         __isErrorResponse: true,
         status: 404,
         body: {
-          detail: 'Provided RSU IP does not have complete RSU data for organization: name::1.2.3.4',
+          detail: 'Provided RSU IP does not have complete RSU data: 1.2.3.4',
         },
-        message: 'Provided RSU IP does not have complete RSU data for organization: name::1.2.3.4',
+        message: 'Provided RSU IP does not have complete RSU data: 1.2.3.4',
       })
 
       const arg = ['1.2.3.4']
@@ -636,7 +635,7 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
 
       expect(resp.type).toBe('config/checkFirmwareUpgrade/rejected')
-      expect(resp.payload).toBe('Provided RSU IP does not have complete RSU data for organization: name::1.2.3.4')
+      expect(resp.payload).toBe('Provided RSU IP does not have complete RSU data: 1.2.3.4')
     })
 
     it('handles 409 FirmwareUpgradeUnavailableException from backend (already up to date)', async () => {
@@ -697,7 +696,6 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
       expect(RsuFirmwareApi.postRsuUpgradeData).toHaveBeenCalledWith(
         'token',
-        'name',
         {
           rsu_ips: arg,
           args: {},
@@ -871,7 +869,7 @@ describe('async thunks', () => {
         body: {
           '1.2.3.4': {
             code: 404,
-            data: 'Provided RSU IP does not have complete RSU data for organization: name::1.2.3.4',
+            data: 'Provided RSU IP does not have complete RSU data: 1.2.3.4',
           },
         },
       })
@@ -976,7 +974,7 @@ describe('reducers', () => {
   } as RootState['config']
 
   it('reducer displays 404 EntityNotFoundException error from check thunk', async () => {
-    const errorMsg = 'Provided RSU IP does not have complete RSU data for organization: name::1.2.3.4'
+    const errorMsg = 'Provided RSU IP does not have complete RSU data: 1.2.3.4'
     const state = reducer(initialState, {
       type: 'config/checkFirmwareUpgrade/rejected',
       payload: errorMsg,

@@ -14,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUpgradeMapper;
@@ -46,9 +45,8 @@ public class UpgradeController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
     })
     public ResponseEntity<Map<String, FirmwareUpgradeResultDto>> startUpgrade(
-            @RequestHeader(name = "Organization", required = true) String organization,
             @Validated @RequestBody RsuUpgradeRequest body) {
-        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(organization, body.getRsuIps());
+        Map<String, Object> response = rsuUpgradeService.startFirmwareUpgradeForRsus(body.getRsuIps());
         Map<String, FirmwareUpgradeResultDto> mappedResponse = firmwareUpgradeMapper.mapStartUpgradeResponse(response);
         return ResponseEntity.ok(mappedResponse);
     }
@@ -61,9 +59,8 @@ public class UpgradeController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
     })
     public ResponseEntity<FirmwareUpgradeCheckResponseDto> checkUpgrade(
-            @RequestHeader(name = "Organization", required = true) String organization,
             @Validated @RequestBody RsuSingleUpgradeCheckRequest body) {
-        Map<String, Object> response = rsuUpgradeService.checkFirmwareUpgrade(organization, body.getRsuIp());
+        Map<String, Object> response = rsuUpgradeService.checkFirmwareUpgrade(body.getRsuIp());
         FirmwareUpgradeCheckResponseDto mappedResponse = firmwareUpgradeMapper.mapCheckUpgradeResponse(response);
         return ResponseEntity.ok(mappedResponse);
     }
