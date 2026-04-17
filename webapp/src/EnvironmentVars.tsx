@@ -52,8 +52,6 @@ class EnvironmentVars {
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
   static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
-  static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
-  static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`
   static adminNotification = `${this.getBaseApiUrl()}/admin-notification`
   static adminAddNotification = `${this.getBaseApiUrl()}/admin-new-notification`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`

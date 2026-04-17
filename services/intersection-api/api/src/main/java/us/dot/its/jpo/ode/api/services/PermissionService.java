@@ -11,10 +11,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
-import us.dot.its.jpo.ode.api.utils.AuthUtils;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
@@ -89,7 +89,7 @@ public class PermissionService {
      *         organization,
      *         or is a superuser; otherwise, false
      */
-    public boolean hasRole(String role) {
+    public boolean hasRole(UserRole role) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
             return false;
@@ -103,13 +103,13 @@ public class PermissionService {
         String organization = getOrganizationFromHeader();
 
         if (organization != null) {
-            Optional<String> userRole = authToken.findRoleInOrg(organization);
-            return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
+            Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
+            return userRole.map(roleValue -> roleValue.hasMinimumRole(role)).orElse(false);
         }
         return !authToken.getQualifiedOrgList(role).isEmpty();
     }
 
-    public boolean hasRoleInOrgs(String role, List<String> organizations) {
+    public boolean hasRoleInOrgs(UserRole role, List<String> organizations) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
             return false;
@@ -150,8 +150,8 @@ public class PermissionService {
             return true;
         }
 
-        Optional<String> userRole = authToken.findRoleInOrg(organization);
-        return userRole.map(roleValue -> AuthUtils.checkRoleAbove(roleValue, role)).orElse(false);
+        Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
+        return userRole.map(roleValue -> roleValue.hasMinimumRole(UserRole.fromString(role))).orElse(false);
     }
 
     // Allow Connection if the users organization controls the specified
@@ -172,7 +172,7 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -214,7 +214,7 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
 
         String organization = getOrganizationFromHeader();
         if (organization != null) {
@@ -254,7 +254,7 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
 
         List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
         return allowedRsuIps.containsAll(ipv4Addresses);
@@ -272,7 +272,7 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
         if (email == null || email.isBlank() || qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
             // No valid email or no qualified organizations: deny access without hitting the
             // repository
@@ -302,7 +302,7 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
         if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
             // No qualified organizations: deny access without hitting the repository
             return false;
@@ -341,7 +341,7 @@ public class PermissionService {
         }
 
         return rsuCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                authToken.getQualifiedOrgList(role));
+                authToken.getQualifiedOrgList(UserRole.fromString(role)));
     }
 
     /**
@@ -374,7 +374,7 @@ public class PermissionService {
         }
 
         return snmpCredentialRepository.existsByNicknameAndOrganizations(nickname,
-                authToken.getQualifiedOrgList(role));
+                authToken.getQualifiedOrgList(UserRole.fromString(role)));
     }
 
     // helper method to make sure authentication is valid

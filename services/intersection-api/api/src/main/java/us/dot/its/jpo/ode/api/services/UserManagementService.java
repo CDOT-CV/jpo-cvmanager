@@ -19,6 +19,7 @@ import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
@@ -58,7 +59,7 @@ public class UserManagementService {
         if (authToken.isSuperUser()) {
             allowed.setOrganizations(organizationRepository.findAllOrganizationNames());
         } else {
-            allowed.setOrganizations(authToken.getQualifiedOrgList("ADMIN"));
+            allowed.setOrganizations(authToken.getQualifiedOrgList(UserRole.ADMIN));
         }
 
         return allowed;
@@ -102,7 +103,7 @@ public class UserManagementService {
         if (authToken.isSuperUser()) {
             authorizedOrgs = organizationRepository.findAllOrganizationNames();
         } else {
-            authorizedOrgs = authToken.getQualifiedOrgList("ADMIN");
+            authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
         }
 
         // 1. Find existing User by email

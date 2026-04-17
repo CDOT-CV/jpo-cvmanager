@@ -15,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
@@ -180,7 +181,7 @@ class UserManagementServiceTest {
         List<String> organizations = List.of("TestOrg", "AnotherOrg");
 
         when(roleRepository.findAllRoleNames()).thenReturn(roles);
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(organizations);
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(organizations);
 
         ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(authToken);
 
@@ -188,13 +189,13 @@ class UserManagementServiceTest {
         assertEquals(roles, result.getRoles());
         assertEquals(organizations, result.getOrganizations());
         verify(roleRepository).findAllRoleNames();
-        verify(authToken).getQualifiedOrgList("ADMIN");
+        verify(authToken).getQualifiedOrgList(UserRole.ADMIN);
     }
 
     @Test
     void testGetAllowedSelections_EmptyLists() {
         when(roleRepository.findAllRoleNames()).thenReturn(List.of());
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of());
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
 
         ModifyUserAllowedSelections result = userManagementService.getAllowedSelections(authToken);
 
@@ -212,7 +213,7 @@ class UserManagementServiceTest {
         patch.setLastName("Name");
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
@@ -230,7 +231,7 @@ class UserManagementServiceTest {
         UserPatch patch = new UserPatch();
 
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
@@ -249,7 +250,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
@@ -273,7 +274,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
 
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
@@ -292,7 +293,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(true);
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
@@ -313,7 +314,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("NonexistentOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("NonexistentOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("NonexistentOrg")))
                 .thenReturn(false);
         when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
@@ -334,7 +335,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userRepository.existsByEmailAndOrganizations("test@example.com", List.of("TestOrg"))).thenReturn(false);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("nonexistent_role")).thenReturn(Optional.empty());
@@ -360,7 +361,7 @@ class UserManagementServiceTest {
         userOrg.setRole(testRole);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.of(userOrg));
         when(userRepository.save(testUser)).thenReturn(testUser);
@@ -381,7 +382,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
 
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
@@ -400,7 +401,7 @@ class UserManagementServiceTest {
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(authToken.getQualifiedOrgList("ADMIN")).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.empty());
         when(userRepository.save(testUser)).thenReturn(testUser);
