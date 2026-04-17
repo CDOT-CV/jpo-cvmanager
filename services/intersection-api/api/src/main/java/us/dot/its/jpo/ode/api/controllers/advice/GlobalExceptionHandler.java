@@ -19,8 +19,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
@@ -202,6 +202,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle missing required request header exceptions
+     */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ProblemDetail handleMissingRequestHeaderException(MissingRequestHeaderException ex) {
+        log.warn("Missing required request header: {}", ex.getHeaderName());
+
+        String message = String.format("Required request header '%s' is not present", ex.getHeaderName());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
+        problemDetail.setTitle("Missing Header");
+
+        return problemDetail;
+    }
+
+    /**
      * Handles database constraint violations with user-friendly messages.
      * Extracts constraint details and provides human-readable error messages
      * without exposing SQL implementation details.
@@ -306,7 +320,7 @@ public class GlobalExceptionHandler {
             }
 
             String resourceType = determineResourceType(message);
-            return String.format("A %s with %s already exists.", resourceType, details.toString());
+            return String.format("%s with %s already exists.", resourceType, details.toString());
         }
 
         return "A record with these values already exists. Please use different values.";
@@ -363,11 +377,13 @@ public class GlobalExceptionHandler {
         if (lowerMessage.contains("rsu") || lowerMessage.contains("rsus")) {
             return "RSU";
         } else if (lowerMessage.contains("user")) {
-            return "user";
+            return "User";
         } else if (lowerMessage.contains("organization")) {
-            return "organization";
+            return "Organization";
         } else if (lowerMessage.contains("credential")) {
-            return "credential";
+            return "Credential";
+        } else if (lowerMessage.contains("intersection")) {
+            return "Intersection";
         }
 
         return "record";

@@ -14,6 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
@@ -372,6 +373,35 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
+    class HandleMissingRequestHeaderExceptionTests {
+
+        @Test
+        void testReturnsBadRequestWithHeaderName() {
+            MissingRequestHeaderException ex = mock(MissingRequestHeaderException.class);
+            when(ex.getHeaderName()).thenReturn("X-Organization-Name");
+
+            ProblemDetail problemDetail = handler.handleMissingRequestHeaderException(ex);
+
+            assertNotNull(problemDetail);
+            assertEquals(HttpStatus.BAD_REQUEST.value(), problemDetail.getStatus());
+            assertEquals("Required request header 'X-Organization-Name' is not present", problemDetail.getDetail());
+            assertEquals("Missing Header", problemDetail.getTitle());
+        }
+
+        @Test
+        void testWithDifferentHeaderName() {
+            MissingRequestHeaderException ex = mock(MissingRequestHeaderException.class);
+            when(ex.getHeaderName()).thenReturn("Authorization");
+
+            ProblemDetail problemDetail = handler.handleMissingRequestHeaderException(ex);
+
+            assertEquals(HttpStatus.BAD_REQUEST.value(), problemDetail.getStatus());
+            assertEquals("Required request header 'Authorization' is not present", problemDetail.getDetail());
+            assertEquals("Missing Header", problemDetail.getTitle());
+        }
+    }
+
+    @Nested
     class HandleDataIntegrityViolationTests {
 
         @Test
@@ -411,7 +441,7 @@ class GlobalExceptionHandlerTest {
 
             assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
             ProblemDetail body = response.getBody();
-            assertTrue(body.getDetail().equals("A RSU with milepost '1' and primary route 'I999' already exists."));
+            assertEquals("RSU with milepost '1' and primary route 'I999' already exists.", body.getDetail());
 
             assertEquals("rsu_milepost_primary_route", body.getProperties().get("constraint"));
         }
