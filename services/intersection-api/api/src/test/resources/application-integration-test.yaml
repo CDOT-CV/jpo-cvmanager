@@ -58,7 +58,7 @@ spring:
       uri: mongodb://localhost:27017/testdb
       database: testdb
       host: localhost
-      port: "27017"
+      port: '27017'
       username: test
       password: test
       authenticationDatabase: admin
