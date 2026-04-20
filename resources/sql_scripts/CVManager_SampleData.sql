@@ -79,8 +79,8 @@ INSERT INTO public.email_type(
 	email_type, required_role, description, supports_immediate, supports_daily, supports_weekly, supports_monthly)
 	VALUES ('Support Requests', 1, 'Receive support requests from users', true, false, false, false), 
     ('Firmware Upgrade Failures', 2, 'Receive automated firmware upgrade failure emails', true, false, false, false), 
-    ('Daily Message Counts', 3, 'Receive automated daily message count emails', true, false, false, false), 
-    ('Access Requests', 3, 'Receive organization access requests from users', true, false, false, false), 
+    ('Daily Message Counts', 3, 'Receive automated daily message count emails', false, true, false, false), 
+    ('Access Requests', 1, 'Receive organization access requests from users', true, false, false, false), 
     ('Intersection Notification Summary', 3, 'Receive automated intersection notification summary emails', true, true, true, true), 
     ('Critical Error Messages', 2, 'Receive automated critical error message emails', true, false, false, false);
 
@@ -88,7 +88,7 @@ INSERT INTO public.user_email_notification(
 	user_email_notification_id, user_id, email_type_id, immediate, daily, weekly, monthly)
 	VALUES (1, 1, 1, true, false, false, false),
     (2, 1, 2, true, false, false, false),
-    (3, 1, 3, true, false, false, false),
+    (3, 1, 3, false, true, false, false),
     (4, 1, 4, true, false, false, false),
     (5, 1, 5, true, true, true, true),
     (6, 1, 6, true, false, false, false);
