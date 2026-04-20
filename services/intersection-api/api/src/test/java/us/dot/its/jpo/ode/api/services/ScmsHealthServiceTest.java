@@ -60,15 +60,18 @@ class ScmsHealthServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Delete in reverse FK-dependency order: child tables before parents.
+        // organizations must be last because rsu_credentials and snmp_credentials
+        // have NOT NULL FKs to it.
         scmsHealthRepository.deleteAll();
         rsuOrganizationRepository.deleteAll();
         rsuRepository.deleteAll();
-        organizationRepository.deleteAll();
-        rsuModelRepository.deleteAll();
-        manufacturerRepository.deleteAll();
         rsuCredentialRepository.deleteAll();
         snmpCredentialRepository.deleteAll();
         snmpProtocolRepository.deleteAll();
+        rsuModelRepository.deleteAll();
+        manufacturerRepository.deleteAll();
+        organizationRepository.deleteAll();
     }
 
     @Test
