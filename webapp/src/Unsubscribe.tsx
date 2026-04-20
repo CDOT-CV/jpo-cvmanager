@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Box,
@@ -17,7 +17,7 @@ import {
 import HomeIcon from '@mui/icons-material/Home'
 import { SecureStorageManager } from './managers'
 import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from './features/api/unsubscribeApiSlice'
-import { EmailSubscription } from './models/email-subscriptions'
+import { EmailSubscription, isSubscribed } from './models/email-subscriptions'
 
 const Unsubscribe = () => {
   const theme = useTheme()
@@ -36,7 +36,6 @@ const Unsubscribe = () => {
   const { data } = useGetEmailSubscriptionsQuery(token)
   const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
   const availableCategories = data?.subscriptions || []
-  const userEmail = data?.email || ''
 
   // Initialize subscriptions
   useEffect(() => {
@@ -82,7 +81,7 @@ const Unsubscribe = () => {
   const handleToggle = (categoryId: string) => {
     setSubscriptions((prev) => ({
       ...prev,
-      [categoryId]: { ...prev[categoryId], subscribed: !prev[categoryId].subscribed },
+      [categoryId]: { ...prev[categoryId], subscribed: !isSubscribed(prev[categoryId]) },
     }))
   }
 
@@ -172,7 +171,7 @@ const Unsubscribe = () => {
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={subscriptions[cat.category]?.subscribed || false}
+                      checked={isSubscribed(subscriptions[cat.category]) || false}
                       onChange={() => handleToggle(cat.category)}
                       color="primary"
                     />

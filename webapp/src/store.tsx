@@ -80,7 +80,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(intersectionApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
         .concat(unsubscribeApiSlice.middleware)
-        .concat(subscriptionManagementApiSlice.middleware),
+        .concat(subscriptionManagementApiSlice.middleware)
         .concat(organizationApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
         .concat(rsuApiSlice.middleware)

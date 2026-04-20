@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Paper,
@@ -53,26 +52,6 @@ const SubscriptionManagement = () => {
     }
   }, [data])
 
-  const handleToggle = (categoryId: string) => {
-    setSubscriptions((prev) => {
-      const subscription = prev[categoryId]
-      const newSubscribed = !isSubscribed(subscription)
-
-      // If has frequencies, just toggle subscribed
-      return {
-        ...prev,
-        [categoryId]: {
-          ...subscription,
-          immediate: subscription.supports_immediate && newSubscribed,
-          hourly: subscription.supports_hourly && newSubscribed,
-          daily: subscription.supports_daily && newSubscribed,
-          weekly: subscription.supports_weekly && newSubscribed,
-          monthly: subscription.supports_monthly && newSubscribed,
-        },
-      }
-    })
-  }
-
   const handleFrequencyToggle = (
     categoryId: string,
     frequency: 'immediate' | 'hourly' | 'daily' | 'weekly' | 'monthly'
@@ -119,16 +98,6 @@ const SubscriptionManagement = () => {
       })
       return updated
     })
-  }
-
-  const isSubscribed = (subscription: EmailSubscription) => {
-    return (
-      subscription?.immediate ||
-      subscription?.hourly ||
-      subscription?.daily ||
-      subscription?.weekly ||
-      subscription?.monthly
-    )
   }
 
   const availableCategories = useMemo(() => {

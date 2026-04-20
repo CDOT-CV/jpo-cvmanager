@@ -23,3 +23,11 @@ export type EmailSubscription = {
   supports_weekly: boolean
   supports_monthly: boolean
 }
+
+// Helper function to check if a subscription is active
+export function isSubscribed(subscription: EmailSubscription | undefined): boolean {
+  if (!subscription) return false
+  return (
+    subscription.immediate || subscription.hourly || subscription.daily || subscription.weekly || subscription.monthly
+  )
+}
