@@ -12,7 +12,6 @@ import { selectToken } from '../../generalSlices/userSlice'
 
 // Individual SCMS health record for an RSU
 export type ScmsHealthDto = {
-  // "1" = healthy/up-to-date, "0" = unhealthy/out-of-date, null = unknown
   health: boolean | null
   // Certificate expiration timestamp as ISO-8601 UTC, e.g. "2026-04-10T13:28:01Z". Parse with new Date() and format for display with toLocaleString().
   expiration: string | null
