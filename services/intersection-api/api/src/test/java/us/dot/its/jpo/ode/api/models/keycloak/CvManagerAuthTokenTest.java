@@ -243,32 +243,27 @@ class CvManagerAuthTokenTest {
             assertEquals("user+test@sub-domain.example.com", email);
         }
 
-        @Test
-        @DisplayName("Should handle email in various formats")
-        void shouldHandleEmailInVariousFormats() {
+        @ParameterizedTest(name = "Should handle email format: {0}")
+        @ValueSource(strings = {
+                "simple@example.com",
+                "user.name@example.com",
+                "user_name@example.com",
+                "user-name@example.com",
+                "user123@example.co.uk",
+                "123@example.com"
+        })
+        void shouldHandleEmailInVariousFormats(String testEmail) {
             // Arrange
             List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
-            String[] testEmails = {
-                    "simple@example.com",
-                    "user.name@example.com",
-                    "user_name@example.com",
-                    "user-name@example.com",
-                    "user123@example.co.uk",
-                    "123@example.com"
-            };
+            // Act
+            String email = token.getEmail();
 
-            for (String testEmail : testEmails) {
-                Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
-                CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-                // Act
-                String email = token.getEmail();
-
-                // Assert
-                assertEquals(testEmail, email, "Failed for email: " + testEmail);
-            }
+            // Assert
+            assertEquals(testEmail, email);
         }
     }
 
