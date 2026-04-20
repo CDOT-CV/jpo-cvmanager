@@ -2,6 +2,9 @@ package us.dot.its.jpo.ode.api.controllers.users;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +22,9 @@ import org.springframework.http.ResponseEntity;
 
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
+import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
+import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
@@ -31,6 +37,9 @@ public class UnsubscribeControllerTest {
     @Mock
     private UnsubscribeTokenGenerator tokenGenerator;
 
+    @Mock
+    private UserOrganizationRepository userOrganizationRepository;
+
     private UnsubscribeController userController;
 
     private static final String VALID_TOKEN = "valid-token-123";
@@ -38,29 +47,30 @@ public class UnsubscribeControllerTest {
     private static final String TEST_EMAIL = "test@example.com";
 
     private static final List<UserEmailNotificationDto> SUBSCRIPTION_LIST = Arrays.asList(
-                    new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
+            new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
                     false, false, false, false,
-                true, false, false, false, false),
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Firmware Upgrade Failures",
                     "Receive automated firmware upgrade failure emails",
-                            "operator", true, false, false, false, false,
-                true, false, false, false, false),
+                    "operator", true, false, false, false, false,
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Intersection Notification Summary",
-                            "Receive automated intersection notification summary emails", "user", true, false, false, false, false,
-                true, true, true, true, true),
+                    "Receive automated intersection notification summary emails", "user", true, false, false, false,
+                    false,
+                    true, true, true, true, true),
             new UserEmailNotificationDto("Daily Message Counts", "Receive automated daily message count emails", "user",
-                            false, false, false, false, false,
-                true, false, false, false, false),
+                    false, false, false, false, false,
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Access Requests", "Receive organization access requests from users", "admin",
                     false, false, false, false, false,
-                        true, false, false, false, false),
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Critical Error Messages", "Receive automated critical error message emails",
-                            "operator", false, false, false, false, false,
-                true, false, false, false, false));
+                    "operator", false, false, false, false, false,
+                    true, false, false, false, false));
 
     @BeforeEach
     void setUp() {
-        userController = new UnsubscribeController(emailService, tokenGenerator);
+        userController = new UnsubscribeController(emailService, userOrganizationRepository, tokenGenerator);
     }
 
     @Test
@@ -74,7 +84,7 @@ public class UnsubscribeControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
         verify(emailService).updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST);
-    }    
+    }
 
     @Test
     void testUpdateEmailSubscriptions_InvalidToken() {
@@ -88,9 +98,21 @@ public class UnsubscribeControllerTest {
 
     @Test
     void testGetEmailSubscriptions_ValidToken_UserWithSubscriptions() {
+        Role roleOperator = mock(Role.class);
+        when(roleOperator.getName()).thenReturn("operator");
+        UserOrganization orgOperator = mock(UserOrganization.class);
+        when(orgOperator.getRole()).thenReturn(roleOperator);
+
+        Role roleAdmin = mock(Role.class);
+        when(roleAdmin.getName()).thenReturn("admin");
+        UserOrganization orgAdmin = mock(UserOrganization.class);
+        when(orgAdmin.getRole()).thenReturn(roleAdmin);
+
+        List<UserOrganization> authToken = Arrays.asList(orgAdmin, orgOperator);
+        when(userOrganizationRepository.findAllByEmail(TEST_EMAIL)).thenReturn(authToken);
 
         when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
+        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true)).thenReturn(SUBSCRIPTION_LIST);
 
         ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions(VALID_TOKEN);
 
@@ -101,20 +123,17 @@ public class UnsubscribeControllerTest {
         assertEquals(SUBSCRIPTION_LIST, response.getBody().getSubscriptions());
 
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
+        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true);
     }
 
     @Test
     void testGetEmailSubscriptions_InvalidToken() {
-        // Arrange
         when(tokenGenerator.parseAndValidateToken(INVALID_TOKEN)).thenReturn(null);
 
-        // Act
         ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions(INVALID_TOKEN);
 
-        // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
-        verify(emailService, never()).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
+        verify(emailService, never()).getAllEmailSubscriptionOptionsForUser(eq(TEST_EMAIL), anyBoolean(), anyBoolean());
     }
 }

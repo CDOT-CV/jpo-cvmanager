@@ -23,14 +23,20 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
+import us.dot.its.jpo.ode.api.services.PermissionService;
 
 @ExtendWith(MockitoExtension.class)
 public class SubscriptionControllerTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private PermissionService permissionService;
 
     @Mock
     private JwtAuthenticationToken authentication;
@@ -41,31 +47,35 @@ public class SubscriptionControllerTest {
     @Mock
     private Jwt jwtToken;
 
+    @Mock
+    private CvManagerAuthToken authToken;
+
     @InjectMocks
     private SubscriptionController userController;
 
     private static final String TEST_EMAIL = "user@example.com";
 
     private static final List<UserEmailNotificationDto> SUBSCRIPTION_LIST = Arrays.asList(
-                    new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
+            new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
                     false, false, false, false,
-                true, false, false, false, false),
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Firmware Upgrade Failures",
                     "Receive automated firmware upgrade failure emails",
-                            "operator", true, false, false, false, false,
-                true, false, false, false, false),
+                    "operator", true, false, false, false, false,
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Intersection Notification Summary",
-                            "Receive automated intersection notification summary emails", "user", true, false, false, false, false,
-                true, true, true, true, true),
+                    "Receive automated intersection notification summary emails", "user", true, false, false, false,
+                    false,
+                    true, true, true, true, true),
             new UserEmailNotificationDto("Daily Message Counts", "Receive automated daily message count emails", "user",
-                            false, false, false, false, false,
-                true, false, false, false, false),
+                    false, false, false, false, false,
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Access Requests", "Receive organization access requests from users", "admin",
                     false, false, false, false, false,
-                        true, false, false, false, false),
+                    true, false, false, false, false),
             new UserEmailNotificationDto("Critical Error Messages", "Receive automated critical error message emails",
-                            "operator", false, false, false, false, false,
-                true, false, false, false, false));
+                    "operator", false, false, false, false, false,
+                    true, false, false, false, false));
 
     @BeforeEach
     void setUp() {
@@ -74,12 +84,11 @@ public class SubscriptionControllerTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getToken()).thenReturn(jwtToken);
         when(jwtToken.getClaimAsString("preferred_username")).thenReturn("user@example.com");
-        userController = new SubscriptionController(emailService);
+        userController = new SubscriptionController(emailService, permissionService);
     }
 
     @Test
     void testUpdateEmailSubscriptions_Success() {
-
         when(emailService.updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST)).thenReturn(0);
 
         ResponseEntity<String> response = userController.updateEmailSubscriptions(SUBSCRIPTION_LIST);
@@ -90,7 +99,10 @@ public class SubscriptionControllerTest {
 
     @Test
     void testGetEmailSubscriptions_Success() {
-        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("Org1"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("Org1"));
+        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true)).thenReturn(SUBSCRIPTION_LIST);
 
         ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions();
 
@@ -100,6 +112,6 @@ public class SubscriptionControllerTest {
 
         assertEquals(SUBSCRIPTION_LIST, response.getBody().getSubscriptions());
 
-        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
+        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true);
     }
 }

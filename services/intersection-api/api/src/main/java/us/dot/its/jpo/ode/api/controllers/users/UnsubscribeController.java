@@ -16,6 +16,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
+import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
+import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
@@ -34,6 +37,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequiredArgsConstructor
 public class UnsubscribeController {
     private final EmailService emailService;
+    private final UserOrganizationRepository userOrganizationRepository;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
@@ -66,7 +70,15 @@ public class UnsubscribeController {
         if (userEmail == null) {
             return ResponseEntity.status(401).build();
         }
-        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
+
+        List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
+        boolean isOperator = userOrganizations.stream()
+                .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
+        boolean isAdmin = userOrganizations.stream()
+                .anyMatch(org -> UserRole.ADMIN.equals(UserRole.fromString(org.getRole().getName())));
+
+        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
+                isOperator, isAdmin);
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
 }

@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -36,6 +38,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequiredArgsConstructor
 public class SubscriptionController {
     private final EmailService emailService;
+    private final PermissionService permissionService;
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
@@ -65,8 +68,11 @@ public class SubscriptionController {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
-
-        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail);
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+        boolean isOperator = !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
+        boolean isAdmin = !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
+        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
+                isOperator, isAdmin);
         return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
     }
 }

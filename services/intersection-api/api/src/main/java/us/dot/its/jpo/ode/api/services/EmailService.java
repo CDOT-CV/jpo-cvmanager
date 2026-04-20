@@ -10,6 +10,7 @@ import java.util.*;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
@@ -82,11 +83,12 @@ public class EmailService {
         return emailProvider.sendBatchedEmails(newRecipients, content);
     }
 
-    // TODO: Filter by user's role and required role
-    public List<UserEmailNotificationDto> getAllEmailSubscriptionOptionsForUser(String userEmail) {
+    public List<UserEmailNotificationDto> getAllEmailSubscriptionOptionsForUser(String userEmail, Boolean isOperator,
+            Boolean isAdmin) {
         List<UserEmailNotification> userSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
-        List<EmailType> allSubscriptionTypes = emailTypeRepository.findAll();
+        List<EmailType> allSubscriptionTypes = filterNotificationTypesByRole(userEmail, isOperator, isAdmin,
+                emailTypeRepository.findAll());
         return allSubscriptionTypes.stream().map(subType -> {
             for (UserEmailNotification subscribedType : userSubscriptions) {
                 if (subscribedType.getEmailType().getEmailType().equals(subType.getEmailType())) {
@@ -95,6 +97,19 @@ public class EmailService {
             }
             return userEmailNotificationMapper.fromEmailType(subType);
         }).toList();
+    }
+
+    private List<EmailType> filterNotificationTypesByRole(String userEmail, Boolean isOperator,
+            Boolean isAdmin, List<EmailType> notifications) {
+        return notifications.stream()
+                .filter(notification -> {
+                    UserRole requiredRole = UserRole.fromString(notification.getRequiredRole().getName());
+                    return UserRole.USER.equals(requiredRole) ||
+                            isOperator && UserRole.OPERATOR.equals(requiredRole) ||
+                            isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
+                            isAdmin && UserRole.ADMIN.equals(requiredRole);
+                })
+                .toList();
     }
 
     public int updateEmailSubscriptions(String userEmail, List<UserEmailNotificationDto> requestedSubscriptions) {
