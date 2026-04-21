@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
-import { Box, CircularProgress, Container } from '@mui/material'
+import { Box, CircularProgress, Container, LinearProgress } from '@mui/material'
 import { useGetEmailSubscriptionsQuery, useUpdateEmailSubscriptionsMutation } from './features/api/unsubscribeApiSlice'
 import SubscriptionForm from './components/SubscriptionForm'
 import { EmailSubscription } from './models/email-subscriptions'
@@ -15,7 +15,7 @@ const Unsubscribe = () => {
   const handleSave = async (subscriptions: EmailSubscription[]) =>
     updateEmailSubscriptions({ token, subscriptions }).unwrap()
 
-  if (isLoading || isFetching) {
+  if (isLoading) {
     return (
       <Container maxWidth="md">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -27,7 +27,19 @@ const Unsubscribe = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ py: 4, position: 'relative' }}>
+        {/* Show progress bar during refetch, but keep form mounted */}
+        {isFetching && (
+          <LinearProgress
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+            }}
+          />
+        )}
         <SubscriptionForm
           subscriptions={Object.values(data?.subscriptions || {})}
           onSave={handleSave}

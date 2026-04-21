@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Box, CircularProgress, Container, useTheme } from '@mui/material'
+import { Box, CircularProgress, Container, LinearProgress, useTheme } from '@mui/material'
 import {
   useGetEmailSubscriptionsQuery,
   useUpdateEmailSubscriptionsMutation,
@@ -50,7 +50,7 @@ const SubscriptionManagement = () => {
   }, [data?.subscriptions, userRole])
 
   // Show loading while fetching data OR while subscriptions state is being initialized
-  if (isLoading || isFetching) {
+  if (isLoading) {
     return (
       <Container maxWidth="md">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -66,7 +66,19 @@ const SubscriptionManagement = () => {
       sx={{ backgroundColor: theme.palette.background.default, height: `calc(100vh - ${headerTabHeight}px)` }}
     >
       <Container maxWidth="md">
-        <Box sx={{ py: 4 }}>
+        <Box sx={{ py: 4, position: 'relative' }}>
+          {/* Show progress bar during refetch, but keep form mounted */}
+          {isFetching && (
+            <LinearProgress
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+              }}
+            />
+          )}
           <SubscriptionForm
             subscriptions={availableCategories}
             onSave={handleSave}

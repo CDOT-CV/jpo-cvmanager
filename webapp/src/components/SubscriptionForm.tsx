@@ -57,7 +57,10 @@ const SubscriptionForm = ({
     }))
   }
 
-  const handleSave = async () => {
+  const handleSave = async (e?: React.FormEvent) => {
+    // Prevent form submission if triggered by form submit event
+    e?.preventDefault()
+
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -107,9 +110,11 @@ const SubscriptionForm = ({
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Subscription preferences saved successfully!
-        </Alert>
+        <>
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Subscription preferences saved successfully!
+          </Alert>
+        </>
       )}
 
       <Divider sx={{ my: 3 }} />
