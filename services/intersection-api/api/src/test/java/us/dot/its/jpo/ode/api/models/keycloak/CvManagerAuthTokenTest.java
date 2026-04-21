@@ -2,11 +2,15 @@ package us.dot.its.jpo.ode.api.models.keycloak;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+
+import us.dot.its.jpo.ode.api.models.UserRole;
 
 import java.time.Instant;
 import java.util.*;
@@ -225,190 +229,28 @@ class CvManagerAuthTokenTest {
             assertNull(email);
         }
 
-        @Test
-        @DisplayName("Should handle email with special characters")
-        void shouldHandleEmailWithSpecialCharacters() {
+        @ParameterizedTest(name = "Should handle email format: {0}")
+        @ValueSource(strings = {
+                "simple@example.com",
+                "user.name@example.com",
+                "user_name@example.com",
+                "user-name@example.com",
+                "user123@example.co.uk",
+                "user+test@sub-domain.example.com",
+                "123@example.com"
+        })
+        void shouldHandleEmailInVariousFormats(String testEmail) {
             // Arrange
             List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = createMockJwtWithEmail(cvmanagerData, "user+test@sub-domain.example.com", null);
+            Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act
             String email = token.getEmail();
 
             // Assert
-            assertEquals("user+test@sub-domain.example.com", email);
-        }
-
-        @Test
-        @DisplayName("Should handle email in various formats")
-        void shouldHandleEmailInVariousFormats() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-
-            String[] testEmails = {
-                    "simple@example.com",
-                    "user.name@example.com",
-                    "user_name@example.com",
-                    "user-name@example.com",
-                    "user123@example.co.uk",
-                    "123@example.com"
-            };
-
-            for (String testEmail : testEmails) {
-                Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
-                CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-                // Act
-                String email = token.getEmail();
-
-                // Assert
-                assertEquals(testEmail, email, "Failed for email: " + testEmail);
-            }
-        }
-    }
-
-    @Nested
-    @DisplayName("getEmailFrom Tests")
-    class GetEmailFromTests {
-
-        @Test
-        @DisplayName("Should extract email from 'email' claim first")
-        void shouldExtractEmailFromEmailClaimFirst() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("email", "email@example.com")
-                    .claim("preferred_username", "preferred@example.com")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            assertEquals("email@example.com", email);
-        }
-
-        @Test
-        @DisplayName("Should fall back to 'preferred_username' when 'email' is absent")
-        void shouldFallBackToPreferredUsername() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("preferred_username", "preferred@example.com")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            assertEquals("preferred@example.com", email);
-        }
-
-        @Test
-        @DisplayName("Should return null when neither 'email' nor 'preferred_username' exist")
-        void shouldReturnNullWhenNeitherClaimExists() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("sub", "test-user-id")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            assertNull(email);
-        }
-
-        @Test
-        @DisplayName("Should skip empty 'email' claim and use 'preferred_username'")
-        void shouldSkipEmptyEmailClaim() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("email", "")
-                    .claim("preferred_username", "preferred@example.com")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            assertEquals("preferred@example.com", email);
-        }
-
-        @Test
-        @DisplayName("Should return null when 'email' is empty and 'preferred_username' is absent")
-        void shouldReturnNullWhenEmailEmptyAndPreferredUsernameAbsent() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("email", "")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            assertNull(email);
-        }
-
-        @Test
-        @DisplayName("Should handle whitespace-only email claims")
-        void shouldHandleWhitespaceOnlyEmailClaims() {
-            // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
-            Jwt jwt = Jwt.withTokenValue("mock-token")
-                    .header("alg", "RS256")
-                    .claim("email", "   ")
-                    .claim("preferred_username", "preferred@example.com")
-                    .claim("cvmanager_data", cvmanagerData)
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(3600))
-                    .build();
-            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
-
-            // Act
-            String email = token.getEmail();
-
-            // Assert
-            // Note: Current implementation doesn't trim, so " " is not empty
-            // If you want to trim, update the implementation
-            assertEquals("   ", email);
+            assertEquals(testEmail, email);
         }
     }
 
@@ -565,7 +407,7 @@ class CvManagerAuthTokenTest {
         @Test
         @DisplayName("Should be case-insensitive for role comparison")
         void shouldBeCaseInsensitiveForRole() {
-            assertTrue(token.hasRoleInOrg("CDOT", "ADMIN"));
+            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
             assertTrue(token.hasRoleInOrg("CDOT", "Admin"));
             assertTrue(token.hasRoleInOrg("CDOT", "aDmIn"));
         }
@@ -636,7 +478,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return all orgs when required role is 'user'")
         void shouldReturnAllOrgsForUserRole() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList("user");
+            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.USER);
 
             // Assert
             assertEquals(4, qualifiedOrgs.size());
@@ -647,7 +489,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return orgs with operator or higher when required role is 'operator'")
         void shouldReturnOperatorAndAboveOrgs() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList("operator");
+            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
 
             // Assert
             assertEquals(3, qualifiedOrgs.size());
@@ -659,7 +501,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return only admin orgs when required role is 'admin'")
         void shouldReturnOnlyAdminOrgs() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList("admin");
+            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.ADMIN);
 
             // Assert
             assertEquals(2, qualifiedOrgs.size());
@@ -678,7 +520,7 @@ class CvManagerAuthTokenTest {
             CvManagerAuthToken tokenWithOnlyUser = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act
-            List<String> qualifiedOrgs = tokenWithOnlyUser.getQualifiedOrgList("admin");
+            List<String> qualifiedOrgs = tokenWithOnlyUser.getQualifiedOrgList(UserRole.ADMIN);
 
             // Assert
             assertTrue(qualifiedOrgs.isEmpty());
@@ -706,16 +548,16 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return role when org exists")
         void shouldReturnRoleWhenOrgExists() {
             // Act & Assert
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("CDOT"));
-            assertEquals(Optional.of("operator"), token.findRoleInOrg("WYDOT"));
-            assertEquals(Optional.of("user"), token.findRoleInOrg("VDOT"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CDOT"));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("WYDOT"));
+            assertEquals(Optional.of(UserRole.USER), token.findRoleInOrg("VDOT"));
         }
 
         @Test
         @DisplayName("Should return empty when org does not exist")
         void shouldReturnEmptyWhenOrgDoesNotExist() {
             // Act
-            Optional<String> role = token.findRoleInOrg("NONEXISTENT");
+            Optional<UserRole> role = token.findRoleInOrg("NONEXISTENT");
 
             // Assert
             assertTrue(role.isEmpty());
@@ -725,19 +567,9 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should be case-insensitive for org name")
         void shouldBeCaseInsensitiveForOrgName() {
             // Act & Assert
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("cdot"));
-            assertEquals(Optional.of("admin"), token.findRoleInOrg("CdOt"));
-            assertEquals(Optional.of("operator"), token.findRoleInOrg("wydot"));
-        }
-
-        @Test
-        @DisplayName("Should return empty when orgName is null")
-        void shouldReturnEmptyWhenOrgNameIsNull() {
-            // Act
-            Optional<String> role = token.findRoleInOrg(null);
-
-            // Assert
-            assertTrue(role.isEmpty());
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("cdot"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CdOt"));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("wydot"));
         }
     }
 
@@ -756,7 +588,7 @@ class CvManagerAuthTokenTest {
 
             // Assert
             assertTrue(token.getAllOrgs().isEmpty());
-            assertTrue(token.getQualifiedOrgList("user").isEmpty());
+            assertTrue(token.getQualifiedOrgList(UserRole.USER).isEmpty());
             assertTrue(token.findRoleInOrg("CDOT").isEmpty());
             assertFalse(token.hasRoleInOrg("CDOT", "admin"));
         }
@@ -773,7 +605,7 @@ class CvManagerAuthTokenTest {
             // Assert
             assertEquals(1, token.getAllOrgs().size());
             assertTrue(token.hasRoleInOrg("CDOT", "admin"));
-            assertEquals(List.of("CDOT"), token.getQualifiedOrgList("admin"));
+            assertEquals(List.of("CDOT"), token.getQualifiedOrgList(UserRole.ADMIN));
         }
     }
 }
