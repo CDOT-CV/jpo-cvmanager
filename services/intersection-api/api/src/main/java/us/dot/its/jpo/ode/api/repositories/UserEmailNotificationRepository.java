@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -59,6 +60,7 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
             "WHERE uen.user.email = :userEmail")
     List<UserEmailNotification> findNotificationsByUser(@Param("userEmail") String userEmail);
 
+    @Modifying
     @Transactional
     @Query("DELETE FROM UserEmailNotification uen " +
             "WHERE uen.emailType.emailType IN :emailType " +

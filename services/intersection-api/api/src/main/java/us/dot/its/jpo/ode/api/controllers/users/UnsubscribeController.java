@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
@@ -48,7 +49,7 @@ public class UnsubscribeController {
     })
     public void updateEmailSubscriptions(
             @RequestParam(required = false) String token,
-            @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
+            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             throw new NotAuthorizedException("Invalid or expired token");

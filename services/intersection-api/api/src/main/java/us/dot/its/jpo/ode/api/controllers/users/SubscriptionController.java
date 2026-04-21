@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.UserRole;
@@ -46,7 +47,7 @@ public class SubscriptionController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public void updateEmailSubscriptions(
-            @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
+            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
