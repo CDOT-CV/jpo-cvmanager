@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Paper,
@@ -46,6 +46,30 @@ const SubscriptionForm = ({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  const isModified = useMemo(() => {
+    return initialSubscriptions.some((sub) => {
+      const current = subscriptions[sub.category]
+      return (
+        current?.immediate !== sub.immediate ||
+        current?.hourly !== sub.hourly ||
+        current?.daily !== sub.daily ||
+        current?.weekly !== sub.weekly ||
+        current?.monthly !== sub.monthly
+      )
+    })
+  }, [initialSubscriptions, subscriptions])
+
+  useEffect(() => {
+    // If the user has made changes, we don't want to overwrite their selections when initialSubscriptions updates
+    if (isModified) return
+
+    const initial: Record<string, EmailSubscription> = {}
+    initialSubscriptions.forEach((sub) => {
+      initial[sub.category] = { ...sub }
+    })
+    setSubscriptions(initial)
+  }, [initialSubscriptions])
 
   const handleFrequencyToggle = (
     categoryId: string,
@@ -271,7 +295,7 @@ const SubscriptionForm = ({
           variant="contained"
           color="primary"
           onClick={handleSave}
-          disabled={saving || initialSubscriptions.length === 0}
+          disabled={saving || initialSubscriptions.length === 0 || !isModified}
           startIcon={saving && <CircularProgress size={20} />}
           sx={{ ml: showUnsubscribeAll ? 0 : 'auto' }}
         >
