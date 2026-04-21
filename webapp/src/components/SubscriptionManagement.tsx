@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Box, CircularProgress, Container, LinearProgress, useTheme } from '@mui/material'
 import {
   useGetEmailSubscriptionsQuery,
@@ -6,24 +5,7 @@ import {
 } from '../features/api/subscriptionManagementApiSlice'
 import { EmailSubscription } from '../models/email-subscriptions'
 import { headerTabHeight } from '../styles/index'
-import { selectRole } from '../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
 import SubscriptionForm from './SubscriptionForm'
-
-const isRoleOperator = (role: string): boolean => {
-  const normalizedRole = role.toLowerCase()
-  return normalizedRole === 'operator'
-}
-
-const isRoleAdmin = (role: string): boolean => {
-  const normalizedRole = role.toLowerCase()
-  return normalizedRole === 'admin'
-}
-
-const isRoleOperatorOrAbove = (role: string): boolean => {
-  const normalizedRole = role.toLowerCase()
-  return normalizedRole === 'operator' || normalizedRole === 'admin'
-}
 
 const SubscriptionManagement = () => {
   const theme = useTheme()
@@ -32,22 +14,7 @@ const SubscriptionManagement = () => {
   const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery()
   const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
 
-  const userRole = useSelector(selectRole)
-
   const handleSave = async (subscriptions: EmailSubscription[]) => updateEmailSubscriptions(subscriptions).unwrap()
-
-  const availableCategories = useMemo(() => {
-    const categories = data?.subscriptions || []
-    return categories.filter((cat) => {
-      if (isRoleAdmin(cat.required_role)) {
-        return isRoleAdmin(userRole)
-      }
-      if (isRoleOperator(cat.required_role)) {
-        return isRoleOperatorOrAbove(userRole)
-      }
-      return true // 'user' role is available to everyone
-    })
-  }, [data?.subscriptions, userRole])
 
   // Show loading while fetching data OR while subscriptions state is being initialized
   if (isLoading) {
@@ -80,7 +47,7 @@ const SubscriptionManagement = () => {
             />
           )}
           <SubscriptionForm
-            subscriptions={availableCategories}
+            subscriptions={Object.values(data?.subscriptions || {})}
             onSave={handleSave}
             title="Manage Your Email Subscriptions"
             showUnsubscribeAll={true}
