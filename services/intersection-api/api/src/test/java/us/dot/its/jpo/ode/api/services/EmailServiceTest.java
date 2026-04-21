@@ -100,55 +100,62 @@ class EmailServiceTest {
         return emailType;
     }
 
-    // private static final List<UserEmailNotification> SUBSCRIPTION_LIST =
-    // Arrays.asList(
-    // createUserEmailNotification(
-    // "Support Requests", "Receive support requests from users", "user",
-    // true, false, false, false, false,
-    // true, false, false, false, false),
-    // createUserEmailNotification(
-    // "Intersection Notification Summary", "Receive automated intersection
-    // notification summary emails",
-    // "user",
-    // true, false, false, false, false,
-    // true, true, true, true, true),
-    // createUserEmailNotification(
-    // "Daily Message Counts", "Receive automated daily message count emails",
-    // "user",
-    // false, false, false, false, false,
-    // true, false, false, false, false),
-    // createUserEmailNotification(
-    // "Access Requests", "Receive organization access requests from users",
-    // "admin",
-    // false, false, false, false, false,
-    // true, false, false, false, false));
+    /**
+     * Custom assertion method with optional message.
+     */
+    private void assertNotificationEquals(UserEmailNotification expected, UserEmailNotification actual,
+            String message) {
+        String prefix = message != null ? message + ": " : "";
 
-    // private static final UserEmailNotificationDto SUPPORT_REQUEST_DTO = new
-    // UserEmailNotificationDto(
-    // "Support Requests", "Receive support requests from users", "admin",
-    // true, false, false, false, false,
-    // true, false, false, false, false);
+        assertNotNull(actual, prefix + "Actual notification should not be null");
+        assertNotNull(expected, prefix + "Expected notification should not be null");
 
-    // private static final UserEmailNotificationDto
-    // INTERSECTION_NOTIFICATION_SUMMARY_DTO = new UserEmailNotificationDto(
-    // "Intersection Notification Summary", "Receive automated intersection
-    // notification summary emails", "user",
-    // true, false, false, false, false,
-    // true, true, true, true, true);
+        // Compare email type
+        assertEquals(expected.getEmailType().getEmailType(), actual.getEmailType().getEmailType(),
+                prefix + "Email type mismatch");
+        assertEquals(expected.getEmailType().getDescription(), actual.getEmailType().getDescription(),
+                prefix + "Description mismatch");
+        assertEquals(expected.getEmailType().getRequiredRole().getName(),
+                actual.getEmailType().getRequiredRole().getName(),
+                prefix + "Required role mismatch");
 
-    // private static final UserEmailNotificationDto DAILY_MESSAGE_COUNTS_DTO = new
-    // UserEmailNotificationDto(
-    // "Daily Message Counts", "Receive automated daily message count emails",
-    // "user",
-    // false, false, false, false, false,
-    // true, false, false, false, false);
+        // Compare frequency flags
+        assertEquals(expected.getImmediate(), actual.getImmediate(), prefix + "Immediate flag mismatch");
+        assertEquals(expected.getHourly(), actual.getHourly(), prefix + "Hourly flag mismatch");
+        assertEquals(expected.getDaily(), actual.getDaily(), prefix + "Daily flag mismatch");
+        assertEquals(expected.getWeekly(), actual.getWeekly(), prefix + "Weekly flag mismatch");
+        assertEquals(expected.getMonthly(), actual.getMonthly(), prefix + "Monthly flag mismatch");
 
-    // private static final UserEmailNotificationDto ACCESS_REQUESTS_DTO = new
-    // UserEmailNotificationDto(
-    // "Access Requests", "Receive organization access requests from users",
-    // "admin",
-    // false, false, false, false, false,
-    // true, false, false, false, false);
+        // Compare supports flags
+        assertEquals(expected.getEmailType().getSupportsImmediate(),
+                actual.getEmailType().getSupportsImmediate(),
+                prefix + "Supports immediate mismatch");
+        assertEquals(expected.getEmailType().getSupportsHourly(),
+                actual.getEmailType().getSupportsHourly(),
+                prefix + "Supports hourly mismatch");
+        assertEquals(expected.getEmailType().getSupportsDaily(),
+                actual.getEmailType().getSupportsDaily(),
+                prefix + "Supports daily mismatch");
+        assertEquals(expected.getEmailType().getSupportsWeekly(),
+                actual.getEmailType().getSupportsWeekly(),
+                prefix + "Supports weekly mismatch");
+        assertEquals(expected.getEmailType().getSupportsMonthly(),
+                actual.getEmailType().getSupportsMonthly(),
+                prefix + "Supports monthly mismatch");
+    }
+
+    /**
+     * Compare lists of UserEmailNotification objects.
+     */
+    private void assertNotificationListEquals(List<UserEmailNotification> expected,
+            List<UserEmailNotification> actual) {
+        assertEquals(expected.size(), actual.size(), "List sizes should match");
+
+        for (int i = 0; i < expected.size(); i++) {
+            assertNotificationEquals(expected.get(i), actual.get(i),
+                    "Notification at index " + i);
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -233,7 +240,7 @@ class EmailServiceTest {
 
         List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
                 createUserEmailNotification(
-                        "Support Requests", "Receive support requests from users", "user",
+                        "Support Requests", "Receive support requests from users", "admin",
                         true, false, false, false, false,
                         true, false, false, false, false),
                 createUserEmailNotification(
@@ -292,7 +299,7 @@ class EmailServiceTest {
 
         List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
                 createUserEmailNotification(
-                        "Support Requests", "Receive support requests from users", "user",
+                        "Support Requests", "Receive support requests from users", "admin",
                         true, false, false, false, false,
                         true, false, false, false, false),
                 createUserEmailNotification(
@@ -344,7 +351,14 @@ class EmailServiceTest {
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).deleteAll(anyList());
-        verify(userEmailNotificationRepository, times(1)).saveAll(List.of(dailyMessageCounts, accessRequests));
+
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        verify(userEmailNotificationRepository, times(1)).saveAll(captor.capture());
+
+        List<UserEmailNotification> savedNotifications = captor.getValue();
+        assertNotificationListEquals(
+                List.of(dailyMessageCounts, accessRequests),
+                savedNotifications);
     }
 
     @Test
@@ -352,7 +366,7 @@ class EmailServiceTest {
 
         List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
                 createUserEmailNotification(
-                        "Support Requests", "Receive support requests from users", "user",
+                        "Support Requests", "Receive support requests from users", "admin",
                         true, false, false, false, false,
                         true, false, false, false, false),
                 createUserEmailNotification(
@@ -387,7 +401,7 @@ class EmailServiceTest {
 
         UserEmailNotification intersectionNotificationSummaries = createUserEmailNotification(
                 "Intersection Notification Summary", "Receive automated intersection notification summary emails",
-                "admin",
+                "user",
                 true, false, false, false, false,
                 true, true, true, true, true);
 
@@ -406,9 +420,15 @@ class EmailServiceTest {
 
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
-        verify(userEmailNotificationRepository, times(1))
-                .deleteAll(List.of(supportRequests, intersectionNotificationSummaries));
         verify(userEmailNotificationRepository, never()).saveAll(anyList());
+
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        verify(userEmailNotificationRepository, times(1)).deleteAll(captor.capture());
+
+        List<UserEmailNotification> deletedNotifications = captor.getValue();
+        assertNotificationListEquals(
+                List.of(supportRequests, intersectionNotificationSummaries),
+                deletedNotifications);
     }
 
     @Test
@@ -416,9 +436,9 @@ class EmailServiceTest {
 
         List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
                 createUserEmailNotification(
-                        "Support Requests", "Receive support requests from users", "user",
+                        "Support Requests", "Receive support requests from users", "admin",
                         true, false, false, false, false,
-                        true, false, false, false, false),
+                        true, true, false, false, false),
                 createUserEmailNotification(
                         "Intersection Notification Summary",
                         "Receive automated intersection notification summary emails",
@@ -437,7 +457,7 @@ class EmailServiceTest {
         UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
                 "Support Requests", "Receive support requests from users", "admin",
                 true, true, false, false, false,
-                true, false, false, false, false);
+                true, true, false, false, false);
         UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
                 "Intersection Notification Summary", "Receive automated intersection notification summary emails",
                 "user",
@@ -451,7 +471,7 @@ class EmailServiceTest {
 
         UserEmailNotification intersectionNotificationSummaries = createUserEmailNotification(
                 "Intersection Notification Summary", "Receive automated intersection notification summary emails",
-                "admin",
+                "user",
                 true, false, true, false, false,
                 true, true, true, true, true);
 
@@ -471,8 +491,14 @@ class EmailServiceTest {
         assertEquals(2, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).deleteAll(anyList());
-        verify(userEmailNotificationRepository, times(1))
-                .saveAll(List.of(supportRequests, intersectionNotificationSummaries));
+
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        verify(userEmailNotificationRepository, times(1)).saveAll(captor.capture());
+
+        List<UserEmailNotification> updatedNotifications = captor.getValue();
+        assertNotificationListEquals(
+                List.of(supportRequests, intersectionNotificationSummaries),
+                updatedNotifications);
     }
 
     @Test
@@ -480,9 +506,9 @@ class EmailServiceTest {
 
         List<UserEmailNotification> SUBSCRIPTION_LIST = Arrays.asList(
                 createUserEmailNotification(
-                        "Support Requests", "Receive support requests from users", "user",
+                        "Support Requests", "Receive support requests from users", "admin",
                         true, false, false, false, false,
-                        true, false, false, false, false),
+                        true, true, false, false, false),
                 createUserEmailNotification(
                         "Intersection Notification Summary",
                         "Receive automated intersection notification summary emails",
@@ -501,7 +527,7 @@ class EmailServiceTest {
         UserEmailNotificationDto supportRequestsDto = new UserEmailNotificationDto(
                 "Support Requests", "Receive support requests from users", "admin",
                 true, true, false, false, false,
-                true, false, false, false, false);
+                true, true, false, false, false);
         UserEmailNotificationDto intersectionNotificationSummaryDto = new UserEmailNotificationDto(
                 "Intersection Notification Summary", "Receive automated intersection notification summary emails",
                 "user",
@@ -556,26 +582,28 @@ class EmailServiceTest {
 
         assertEquals(3, numModified);
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
-        verify(userEmailNotificationRepository, times(1)).deleteAll(List.of(intersectionNotificationSummaries));
-        verify(userEmailNotificationRepository, times(1)).saveAll(List.of(supportRequests));
-        verify(userEmailNotificationRepository, times(1)).saveAll(List.of(dailyMessageCounts));
+
+        // Deleted Intersection Notification Summary notification
+        ArgumentCaptor<List<UserEmailNotification>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        verify(userEmailNotificationRepository, times(1)).deleteAll(deleteCaptor.capture());
+
+        List<UserEmailNotification> deletedNotifications = deleteCaptor.getValue();
+        assertNotificationListEquals(List.of(intersectionNotificationSummaries), deletedNotifications);
+
+        // Added Daily Message Counts notification
+        ArgumentCaptor<List<UserEmailNotification>> saveCaptor = ArgumentCaptor.forClass(List.class);
+        verify(userEmailNotificationRepository, times(2)).saveAll(saveCaptor.capture());
+
+        // Get all captured values
+        List<List<UserEmailNotification>> allSaveInvocations = saveCaptor.getAllValues();
+        assertEquals(2, allSaveInvocations.size(), "Should have 2 saveAll invocations");
+
+        // First saveAll call should be for updating Support Requests
+        List<UserEmailNotification> updatedNotifications = allSaveInvocations.get(0);
+        assertNotificationListEquals(List.of(supportRequests), updatedNotifications);
+
+        // Second saveAll call should be for adding Daily Message Counts
+        List<UserEmailNotification> addedNotifications = allSaveInvocations.get(1);
+        assertNotificationListEquals(List.of(dailyMessageCounts), addedNotifications);
     }
-
-    // @Test
-    // void testGetEmailSubscriptions_UserWithSubscriptions() {
-
-    // when(postgresService.getEmailSubscriptionTypes()).thenReturn(SUBSCRIPTION_LIST);
-    // when(postgresService.getEmailSubscriptionsByUser(TEST_EMAIL)).thenReturn(SUBSCRIPTION_LIST);
-
-    // List<UserEmailNotificationDto> subscriptions =
-    // emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL);
-
-    // assertNotNull(subscriptions);
-    // assertEquals(6, subscriptions.size());
-
-    // assertEquals(SUBSCRIPTION_LIST, subscriptions);
-
-    // verify(postgresService).getEmailSubscriptionTypes();
-    // verify(postgresService).getEmailSubscriptionsByUser(TEST_EMAIL);
-    // }
 }
