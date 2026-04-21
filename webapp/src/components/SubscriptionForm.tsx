@@ -43,12 +43,19 @@ const SubscriptionForm = ({
     })
     return initial
   })
+  const [prevSubscriptions, setPrevSubscriptions] = useState<Record<string, EmailSubscription>>(() => {
+    const initial: Record<string, EmailSubscription> = {}
+    initialSubscriptions.forEach((sub) => {
+      initial[sub.category] = { ...sub }
+    })
+    return initial
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   const isModified = useMemo(() => {
-    return initialSubscriptions.some((sub) => {
+    return Object.values(prevSubscriptions).some((sub) => {
       const current = subscriptions[sub.category]
       return (
         current?.immediate !== sub.immediate ||
@@ -58,7 +65,7 @@ const SubscriptionForm = ({
         current?.monthly !== sub.monthly
       )
     })
-  }, [initialSubscriptions, subscriptions])
+  }, [prevSubscriptions, subscriptions])
 
   useEffect(() => {
     // If the user has made changes, we don't want to overwrite their selections when initialSubscriptions updates
@@ -69,6 +76,7 @@ const SubscriptionForm = ({
       initial[sub.category] = { ...sub }
     })
     setSubscriptions(initial)
+    setPrevSubscriptions(initial)
   }, [initialSubscriptions])
 
   const handleFrequencyToggle = (
@@ -91,6 +99,7 @@ const SubscriptionForm = ({
 
     try {
       await onSave(Object.values(subscriptions))
+      setPrevSubscriptions({ ...subscriptions })
       setSuccess(true)
 
       // Clear success message after 3 seconds
