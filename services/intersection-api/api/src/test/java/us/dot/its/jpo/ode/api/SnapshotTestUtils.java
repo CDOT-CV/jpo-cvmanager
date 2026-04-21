@@ -12,6 +12,9 @@ import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
 import com.github.difflib.patch.Patch;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class SnapshotTestUtils {
     private static final String SNAPSHOT_DIR = "src/test/resources/snapshots";
 
@@ -32,7 +35,7 @@ public class SnapshotTestUtils {
         if (!existedBefore || updateSnapshots) {
             // Create or update snapshot
             Files.writeString(path, actualContent);
-            System.out.println("Snapshot " + (existedBefore ? "updated" : "created") + ": " + snapshotPath);
+            log.info("Snapshot {}: {}", (existedBefore ? "updated" : "created"), snapshotPath);
 
             if (!updateSnapshots && !existedBefore) {
                 fail("Snapshot file created. Please review and commit: " + snapshotPath);

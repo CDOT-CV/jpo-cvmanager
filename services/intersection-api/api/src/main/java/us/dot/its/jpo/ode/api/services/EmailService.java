@@ -119,6 +119,10 @@ public class EmailService {
     public List<EmailSendResponse> sendRsuErrorSummary(RsuErrorSummaryEmailContents data) {
         EmailContent content = rsuErrorSummaryEmailGenerator.generateEmailBody(data);
         String email = permissionService.getCvManagerAuthToken().getEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("Unable to send RSU error summary: authenticated user token does not contain a valid email");
+            throw new IllegalArgumentException("Authenticated user email is missing or blank");
+        }
         List<EmailRecipient> recipients = List.of(new EmailRecipient(email, ""));
         return emailProvider.sendBatchedEmails(recipients, content);
     }

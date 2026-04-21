@@ -13,9 +13,7 @@ export const emailApiSlice = createApi({
 
       headers.set('Accept', 'application/json')
 
-      // Endpoint names must match the keys in the endpoints objects below
-      const endpointsWithoutToken = []
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
+      if (token) {
         headers.set('Authorization', `Bearer ${token}`)
       }
 
@@ -35,16 +33,13 @@ export const emailApiSlice = createApi({
     sendRsuErrorSummaryEmail: builder.mutation<EmailApiResponse, RsuErrorSummaryEmailContents>({
       query: (emailContents) => {
         return {
-          url: 'rsu-errors',
+          url: '/rsu-errors',
           method: 'POST',
           body: emailContents,
         }
       },
-    })
+    }),
   }),
 })
 
-export const {
-    useSendContactSupportEmailMutation,
-    useSendRsuErrorSummaryEmailMutation,
-} = emailApiSlice
+export const { useSendContactSupportEmailMutation, useSendRsuErrorSummaryEmailMutation } = emailApiSlice

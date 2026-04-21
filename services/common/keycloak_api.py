@@ -42,21 +42,25 @@ class KeycloakServiceAccountApi:
         self.token_expiration_date: datetime.datetime | None = None
         self.refresh_token_expiration_date: datetime.datetime | None = None
 
-    def gen_keycloak_token(self) -> KeycloakToken:
+    def _gen_keycloak_token(self) -> KeycloakToken | None:
         """
         Request a new Keycloak token from the authentication endpoint.
 
         Returns:
-            KeycloakToken: The token dictionary.
+            KeycloakToken | None: The token dictionary, or None if generation fails.
         """
-        return self.keycloak_openid.token(
-            grant_type="client_credentials",
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            scope="openid",
-        )
+        try:
+            return self.keycloak_openid.token(
+                grant_type="client_credentials",
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                scope="openid",
+            )
+        except Exception as e:
+            logging.warning(f"Failed to generate Keycloak token: {e}")
+            return None
 
-    def refresh_keycloak_token(self, refresh_token: str) -> KeycloakToken | None:
+    def _refresh_keycloak_token(self, refresh_token: str) -> KeycloakToken | None:
         """
         Refresh an existing Keycloak token using the refresh token.
 
@@ -72,7 +76,7 @@ class KeycloakServiceAccountApi:
             logging.warning(f"Failed to refresh Keycloak token: {e}")
             return None
 
-    def is_current_token_valid(self) -> bool:
+    def _is_current_token_valid(self) -> bool:
         """
         Check if the current Keycloak token is valid (not expired).
 
@@ -85,7 +89,7 @@ class KeycloakServiceAccountApi:
             and datetime.datetime.now() < self.token_expiration_date
         )
 
-    def is_refresh_token_valid(self) -> bool:
+    def _is_refresh_token_valid(self) -> bool:
         """
         Check if the refresh token is still valid (not expired).
 
@@ -106,13 +110,13 @@ class KeycloakServiceAccountApi:
             KeycloakToken | None: The valid token dictionary, or None if unable to obtain one.
         """
         # If current token is valid, return it
-        if self.is_current_token_valid():
+        if self._is_current_token_valid():
             return self.token
 
         # If access token expired but refresh token is still valid, try to refresh
-        if self.token is not None and self.is_refresh_token_valid():
+        if self.token is not None and self._is_refresh_token_valid():
             logging.info("Access token expired. Attempting to refresh token.")
-            refreshed_token = self.refresh_keycloak_token(self.token["refresh_token"])
+            refreshed_token = self._refresh_keycloak_token(self.token["refresh_token"])
             if refreshed_token:
                 self._update_token(refreshed_token)
                 logging.info("Successfully refreshed Keycloak token.")
@@ -122,7 +126,7 @@ class KeycloakServiceAccountApi:
 
         # If no token exists, or refresh failed, generate a new token
         logging.info("Generating new Keycloak token.")
-        new_token = self.gen_keycloak_token()
+        new_token = self._gen_keycloak_token()
         if new_token:
             self._update_token(new_token)
             logging.info("Successfully generated new Keycloak token.")

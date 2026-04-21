@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import patch, MagicMock
 from api.src.smtp_error_handler import ErrorEmailHandler
 import api.src.smtp_error_handler as smtp_error_handler
@@ -29,6 +30,7 @@ def test_emit_with_asctime():
     record = MagicMock()
     record.asctime = "2023-09-15 00:00:00,000"
     record.exc_text = "Test stack trace"
+    record.exc_info = None
     record.getMessage.return_value = "Test error message"
 
     email_handler.emit(record)
@@ -54,6 +56,7 @@ def test_emit_without_asctime():
     record = MagicMock()
     record.getMessage = MagicMock(return_value="Test error message")
     record.exc_text = "Test stack trace"
+    record.exc_info = None
     # Remove asctime attribute
     delattr(record, "asctime")
 
@@ -88,6 +91,7 @@ def test_emit_without_stack_trace():
     record = MagicMock()
     record.asctime = "2023-09-15 00:00:00,000"
     record.exc_text = None
+    record.exc_info = None
     record.getMessage.return_value = "Test error message"
 
     email_handler.emit(record)
@@ -112,13 +116,14 @@ def test_emit_with_newlines():
     record = MagicMock()
     record.asctime = "2023-09-15 00:00:00,000"
     record.exc_text = "Line 1\nLine 2\nLine 3"
+    record.exc_info = None
     record.getMessage.return_value = "Error line 1\nError line 2"
 
     email_handler.emit(record)
 
     email_handler.email_api.send_api_error_email.assert_called_once_with(
-        error_message="Error line 1<br>Error line 2",
-        stack_trace="Line 1<br>Line 2<br>Line 3",
+        error_message="Error line 1\nError line 2",
+        stack_trace="Line 1\nLine 2\nLine 3",
         timestamp="2023-09-15 00:00:00,000",
         logs_link=LOGS_LINK,
     )
@@ -138,9 +143,45 @@ def test_emit_handles_exception():
     record = MagicMock()
     record.asctime = "2023-09-15 00:00:00,000"
     record.exc_text = "Test stack trace"
+    record.exc_info = None
     record.getMessage.return_value = "Test error message"
 
     email_handler.emit(record)
 
     # Verify handleError was called when exception occurred
     email_handler.handleError.assert_called_once_with(record)
+
+
+@patch("api_environment.LOGS_LINK", LOGS_LINK)
+@patch("api_environment.IAPI_ENDPOINT", IAPI_ENDPOINT)
+@patch("api_environment.KC_SA_CLIENT_ID", KC_SA_CLIENT_ID)
+@patch("api_environment.KC_SA_CLIENT_SECRET", KC_SA_CLIENT_SECRET)
+def test_emit_with_real_exception():
+    """Test emit with a real exception and traceback (exc_info)"""
+    email_handler = ErrorEmailHandler()
+    email_handler.email_api = MagicMock()
+
+    # Create a real exception with traceback
+    try:
+        raise ValueError("Test exception")
+    except ValueError:
+        exc_info = sys.exc_info()
+
+    record = MagicMock()
+    record.asctime = "2023-09-15 00:00:00,000"
+    record.exc_info = exc_info
+    record.exc_text = None
+    record.getMessage.return_value = "ValueError occurred"
+
+    email_handler.emit(record)
+
+    # Verify the email was sent
+    assert email_handler.email_api.send_api_error_email.called
+    call_args = email_handler.email_api.send_api_error_email.call_args[1]
+
+    # Check that stack trace contains expected elements
+    assert "ValueError: Test exception" in call_args["stack_trace"]
+    assert "raise ValueError" in call_args["stack_trace"]
+    assert "\n" in call_args["stack_trace"]  # Newlines preserved
+    assert call_args["error_message"] == "ValueError occurred"
+    assert call_args["timestamp"] == "2023-09-15 00:00:00,000"

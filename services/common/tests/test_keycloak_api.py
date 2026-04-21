@@ -6,14 +6,39 @@ from common.keycloak_api import KeycloakServiceAccountApi
 
 @pytest.fixture
 def mock_keycloak_openid():
-    """Fixture to mock KeycloakOpenID."""
+    """
+    Fixture to mock the KeycloakOpenID class from python-keycloak library.
+    
+    This fixture patches the KeycloakOpenID class to prevent actual network calls
+    to Keycloak during testing. The mock is yielded and automatically cleaned up
+    after each test function completes.
+    
+    Yields:
+        MagicMock: A mock object replacing the KeycloakOpenID class.
+    """
     with patch("common.keycloak_api.KeycloakOpenID") as mock:
         yield mock
 
 
 @pytest.fixture
 def keycloak_api(mock_keycloak_openid):
-    """Fixture to create a KeycloakServiceAccountApi instance."""
+    """
+    Fixture to create a KeycloakServiceAccountApi instance with mocked dependencies.
+    
+    This fixture creates a fresh instance of KeycloakServiceAccountApi for each test,
+    using the mocked KeycloakOpenID class to prevent real authentication attempts.
+    All configuration values are test doubles.
+    
+    Args:
+        mock_keycloak_openid: The mocked KeycloakOpenID class from the fixture above.
+    
+    Returns:
+        KeycloakServiceAccountApi: A configured instance ready for testing with:
+            - endpoint: "https://keycloak.example.com"
+            - realm: "test-realm"
+            - client_id: "test-client"
+            - client_secret: "test-secret"
+    """
     return KeycloakServiceAccountApi(
         endpoint="https://keycloak.example.com",
         realm="test-realm",
@@ -24,7 +49,25 @@ def keycloak_api(mock_keycloak_openid):
 
 @pytest.fixture
 def sample_token():
-    """Fixture to provide a sample token dictionary."""
+    """
+    Fixture to provide a sample Keycloak token response dictionary.
+    
+    This fixture returns a realistic token response structure that mimics what
+    the actual Keycloak server would return. It includes all standard OAuth2/OIDC
+    fields with test values.
+    
+    Returns:
+        dict: A dictionary containing:
+            - access_token: JWT access token for API authentication
+            - expires_in: Access token validity period (300 seconds = 5 minutes)
+            - refresh_expires_in: Refresh token validity period (1800 seconds = 30 minutes)
+            - refresh_token: Token used to obtain new access tokens
+            - token_type: OAuth2 token type (Bearer)
+            - id_token: OIDC identity token
+            - not_before_policy: Keycloak security policy timestamp
+            - session_state: Keycloak session identifier
+            - scope: Requested OAuth2 scopes (openid, email, profile)
+    """
     return {
         "access_token": "sample_access_token",
         "expires_in": 300,  # 5 minutes
@@ -63,7 +106,7 @@ class TestKeycloakServiceAccountApi:
         """Test generating a new Keycloak token."""
         keycloak_api.keycloak_openid.token = MagicMock(return_value=sample_token)
 
-        result = keycloak_api.gen_keycloak_token()
+        result = keycloak_api._gen_keycloak_token()
 
         assert result == sample_token
         keycloak_api.keycloak_openid.token.assert_called_once_with(
@@ -80,7 +123,7 @@ class TestKeycloakServiceAccountApi:
             return_value=refreshed_token
         )
 
-        result = keycloak_api.refresh_keycloak_token("old_refresh_token")
+        result = keycloak_api._refresh_keycloak_token("old_refresh_token")
 
         assert result == refreshed_token
         keycloak_api.keycloak_openid.refresh_token.assert_called_once_with(
@@ -93,13 +136,13 @@ class TestKeycloakServiceAccountApi:
             side_effect=Exception("Invalid refresh token")
         )
 
-        result = keycloak_api.refresh_keycloak_token("invalid_refresh_token")
+        result = keycloak_api._refresh_keycloak_token("invalid_refresh_token")
 
         assert result is None
 
     def test_is_current_token_valid_no_token(self, keycloak_api):
         """Test token validation when no token exists."""
-        assert keycloak_api.is_current_token_valid() is False
+        assert keycloak_api._is_current_token_valid() is False
 
     def test_is_current_token_valid_expired(self, keycloak_api, sample_token):
         """Test token validation when token is expired."""
@@ -108,7 +151,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() - datetime.timedelta(minutes=1)
         )
 
-        assert keycloak_api.is_current_token_valid() is False
+        assert keycloak_api._is_current_token_valid() is False
 
     def test_is_current_token_valid_not_expired(self, keycloak_api, sample_token):
         """Test token validation when token is still valid."""
@@ -117,11 +160,11 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() + datetime.timedelta(minutes=5)
         )
 
-        assert keycloak_api.is_current_token_valid() is True
+        assert keycloak_api._is_current_token_valid() is True
 
     def test_is_refresh_token_valid_no_token(self, keycloak_api):
         """Test refresh token validation when no token exists."""
-        assert keycloak_api.is_refresh_token_valid() is False
+        assert keycloak_api._is_refresh_token_valid() is False
 
     def test_is_refresh_token_valid_expired(self, keycloak_api, sample_token):
         """Test refresh token validation when refresh token is expired."""
@@ -130,7 +173,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() - datetime.timedelta(minutes=1)
         )
 
-        assert keycloak_api.is_refresh_token_valid() is False
+        assert keycloak_api._is_refresh_token_valid() is False
 
     def test_is_refresh_token_valid_not_expired(self, keycloak_api, sample_token):
         """Test refresh token validation when refresh token is still valid."""
@@ -139,7 +182,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() + datetime.timedelta(minutes=30)
         )
 
-        assert keycloak_api.is_refresh_token_valid() is True
+        assert keycloak_api._is_refresh_token_valid() is True
 
     def test_update_token(self, keycloak_api, sample_token):
         """Test _update_token method correctly sets token and expiration dates."""
@@ -180,7 +223,7 @@ class TestKeycloakServiceAccountApi:
 
         assert result == sample_token
         # Should not call token generation
-        keycloak_api.keycloak_openid.token.assert_not_called()
+        keycloak_api.keycloak_openid._token.assert_not_called()
 
     def test_get_kc_token_expired_but_refresh_valid(self, keycloak_api, sample_token):
         """Test get_kc_token when access token expired but refresh token is valid."""
@@ -305,7 +348,6 @@ class TestKeycloakServiceAccountApi:
             )
 
             result = keycloak_api.get_kc_token()
-
             assert result["access_token"] == f"token_{i}"
 
     @pytest.mark.parametrize(
