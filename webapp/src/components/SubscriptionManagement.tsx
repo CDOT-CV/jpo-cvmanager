@@ -47,7 +47,7 @@ const SubscriptionManagement = () => {
             />
           )}
           <SubscriptionForm
-            subscriptions={Object.values(data?.subscriptions || {})}
+            subscriptions={data?.subscriptions ?? []}
             onSave={handleSave}
             title="Manage Your Email Subscriptions"
             showUnsubscribeAll={true}

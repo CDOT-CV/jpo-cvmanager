@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
+import javax.ws.rs.NotAuthorizedException;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -22,9 +24,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 @Slf4j
 @RestController
@@ -46,17 +46,17 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
+    public void updateEmailSubscriptions(
             @RequestParam(required = false) String token,
             @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
-            return ResponseEntity.status(401).build();
+            throw new NotAuthorizedException("Invalid or expired token");
         }
 
         emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
 
-        return ResponseEntity.ok("Email subscriptions updated successfully");
+        return;
     }
 
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
@@ -64,11 +64,11 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<EmailSubscriptionGetResponse> getEmailSubscriptions(
+    public EmailSubscriptionGetResponse getEmailSubscriptions(
             @RequestParam(required = false) String token) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
-            return ResponseEntity.status(401).build();
+            throw new NotAuthorizedException("Invalid or expired token");
         }
 
         List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
@@ -79,6 +79,6 @@ public class UnsubscribeController {
 
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
                 isOperator, isAdmin);
-        return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
+        return new EmailSubscriptionGetResponse(subscriptions, userEmail);
     }
 }

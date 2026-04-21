@@ -7,9 +7,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -124,9 +124,9 @@ public class EmailService {
                 .map(subDto -> {
                     UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto);
                     User user = userRepository.findByEmail(userEmail)
-                            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userEmail));
+                            .orElseThrow(() -> new EntityNotFoundException("User not found: " + userEmail));
                     EmailType emailType = emailTypeRepository.findByEmailType(subDto.getCategory())
-                            .orElseThrow(() -> new ResourceNotFoundException(
+                            .orElseThrow(() -> new EntityNotFoundException(
                                     "Email type not found: " + subDto.getCategory()));
                     sub.setUser(user);
                     sub.setEmailType(emailType);

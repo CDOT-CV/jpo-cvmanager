@@ -20,12 +20,10 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 @Slf4j
 @RestController
@@ -47,7 +45,7 @@ public class SubscriptionController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<String> updateEmailSubscriptions(
+    public void updateEmailSubscriptions(
             @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -55,7 +53,7 @@ public class SubscriptionController {
 
         emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
 
-        return ResponseEntity.ok("Email subscriptions updated successfully");
+        return;
     }
 
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
@@ -64,7 +62,7 @@ public class SubscriptionController {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
-    public @ResponseBody ResponseEntity<EmailSubscriptionGetResponse> getEmailSubscriptions() {
+    public EmailSubscriptionGetResponse getEmailSubscriptions() {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = PermissionService.getUsername(auth);
@@ -73,6 +71,6 @@ public class SubscriptionController {
         boolean isAdmin = !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
                 isOperator, isAdmin);
-        return ResponseEntity.ok(new EmailSubscriptionGetResponse(subscriptions, userEmail));
+        return new EmailSubscriptionGetResponse(subscriptions, userEmail);
     }
 }
