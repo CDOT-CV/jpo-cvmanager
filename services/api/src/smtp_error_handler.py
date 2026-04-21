@@ -41,7 +41,6 @@ class ErrorEmailHandler(Handler):
                 stack_trace = record.exc_text
             else:
                 stack_trace = "No stack trace available"
-            stack_trace = str(stack_trace)
 
             self.email_api.send_api_error_email(
                 error_message=record.getMessage(),
