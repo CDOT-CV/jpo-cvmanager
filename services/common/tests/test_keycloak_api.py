@@ -6,14 +6,39 @@ from common.keycloak_api import KeycloakServiceAccountApi
 
 @pytest.fixture
 def mock_keycloak_openid():
-    """Fixture to mock KeycloakOpenID."""
+    """
+    Fixture to mock the KeycloakOpenID class from python-keycloak library.
+    
+    This fixture patches the KeycloakOpenID class to prevent actual network calls
+    to Keycloak during testing. The mock is yielded and automatically cleaned up
+    after each test function completes.
+    
+    Yields:
+        MagicMock: A mock object replacing the KeycloakOpenID class.
+    """
     with patch("common.keycloak_api.KeycloakOpenID") as mock:
         yield mock
 
 
 @pytest.fixture
 def keycloak_api(mock_keycloak_openid):
-    """Fixture to create a KeycloakServiceAccountApi instance."""
+    """
+    Fixture to create a KeycloakServiceAccountApi instance with mocked dependencies.
+    
+    This fixture creates a fresh instance of KeycloakServiceAccountApi for each test,
+    using the mocked KeycloakOpenID class to prevent real authentication attempts.
+    All configuration values are test doubles.
+    
+    Args:
+        mock_keycloak_openid: The mocked KeycloakOpenID class from the fixture above.
+    
+    Returns:
+        KeycloakServiceAccountApi: A configured instance ready for testing with:
+            - endpoint: "https://keycloak.example.com"
+            - realm: "test-realm"
+            - client_id: "test-client"
+            - client_secret: "test-secret"
+    """
     return KeycloakServiceAccountApi(
         endpoint="https://keycloak.example.com",
         realm="test-realm",
@@ -24,7 +49,25 @@ def keycloak_api(mock_keycloak_openid):
 
 @pytest.fixture
 def sample_token():
-    """Fixture to provide a sample token dictionary."""
+    """
+    Fixture to provide a sample Keycloak token response dictionary.
+    
+    This fixture returns a realistic token response structure that mimics what
+    the actual Keycloak server would return. It includes all standard OAuth2/OIDC
+    fields with test values.
+    
+    Returns:
+        dict: A dictionary containing:
+            - access_token: JWT access token for API authentication
+            - expires_in: Access token validity period (300 seconds = 5 minutes)
+            - refresh_expires_in: Refresh token validity period (1800 seconds = 30 minutes)
+            - refresh_token: Token used to obtain new access tokens
+            - token_type: OAuth2 token type (Bearer)
+            - id_token: OIDC identity token
+            - not_before_policy: Keycloak security policy timestamp
+            - session_state: Keycloak session identifier
+            - scope: Requested OAuth2 scopes (openid, email, profile)
+    """
     return {
         "access_token": "sample_access_token",
         "expires_in": 300,  # 5 minutes
