@@ -15,8 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -91,9 +89,8 @@ public class SubscriptionControllerTest {
     void testUpdateEmailSubscriptions_Success() {
         when(emailService.updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST)).thenReturn(0);
 
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(SUBSCRIPTION_LIST);
+        userController.updateEmailSubscriptions(SUBSCRIPTION_LIST);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(emailService).updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST);
     }
 
@@ -104,13 +101,12 @@ public class SubscriptionControllerTest {
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("Org1"));
         when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true)).thenReturn(SUBSCRIPTION_LIST);
 
-        ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions();
+        EmailSubscriptionGetResponse response = userController.getEmailSubscriptions();
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(TEST_EMAIL, response.getBody().getEmail());
+        assertNotNull(response);
+        assertEquals(TEST_EMAIL, response.getEmail());
 
-        assertEquals(SUBSCRIPTION_LIST, response.getBody().getSubscriptions());
+        assertEquals(SUBSCRIPTION_LIST, response.getSubscriptions());
 
         verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true);
     }

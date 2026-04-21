@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.users;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -12,13 +13,13 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.ws.rs.NotAuthorizedException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
@@ -79,9 +80,8 @@ public class UnsubscribeControllerTest {
         when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
         when(emailService.updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST)).thenReturn(0);
 
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(VALID_TOKEN, SUBSCRIPTION_LIST);
+        userController.updateEmailSubscriptions(VALID_TOKEN, SUBSCRIPTION_LIST);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
         verify(emailService).updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST);
     }
@@ -90,9 +90,9 @@ public class UnsubscribeControllerTest {
     void testUpdateEmailSubscriptions_InvalidToken() {
         when(tokenGenerator.parseAndValidateToken(INVALID_TOKEN)).thenReturn(null);
 
-        ResponseEntity<String> response = userController.updateEmailSubscriptions(INVALID_TOKEN, SUBSCRIPTION_LIST);
+        assertThrows(NotAuthorizedException.class,
+                () -> userController.updateEmailSubscriptions(INVALID_TOKEN, SUBSCRIPTION_LIST));
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
     }
 
@@ -114,13 +114,12 @@ public class UnsubscribeControllerTest {
         when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
         when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true)).thenReturn(SUBSCRIPTION_LIST);
 
-        ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions(VALID_TOKEN);
+        EmailSubscriptionGetResponse response = userController.getEmailSubscriptions(VALID_TOKEN);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(TEST_EMAIL, response.getBody().getEmail());
+        assertNotNull(response);
+        assertEquals(TEST_EMAIL, response.getEmail());
 
-        assertEquals(SUBSCRIPTION_LIST, response.getBody().getSubscriptions());
+        assertEquals(SUBSCRIPTION_LIST, response.getSubscriptions());
 
         verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
         verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true);
@@ -130,9 +129,8 @@ public class UnsubscribeControllerTest {
     void testGetEmailSubscriptions_InvalidToken() {
         when(tokenGenerator.parseAndValidateToken(INVALID_TOKEN)).thenReturn(null);
 
-        ResponseEntity<EmailSubscriptionGetResponse> response = userController.getEmailSubscriptions(INVALID_TOKEN);
+        assertThrows(NotAuthorizedException.class, () -> userController.getEmailSubscriptions(INVALID_TOKEN));
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
         verify(emailService, never()).getAllEmailSubscriptionOptionsForUser(eq(TEST_EMAIL), anyBoolean(), anyBoolean());
     }
