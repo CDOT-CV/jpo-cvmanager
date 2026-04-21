@@ -63,7 +63,7 @@ class TestKeycloakServiceAccountApi:
         """Test generating a new Keycloak token."""
         keycloak_api.keycloak_openid.token = MagicMock(return_value=sample_token)
 
-        result = keycloak_api.gen_keycloak_token()
+        result = keycloak_api._gen_keycloak_token()
 
         assert result == sample_token
         keycloak_api.keycloak_openid.token.assert_called_once_with(
@@ -80,7 +80,7 @@ class TestKeycloakServiceAccountApi:
             return_value=refreshed_token
         )
 
-        result = keycloak_api.refresh_keycloak_token("old_refresh_token")
+        result = keycloak_api._refresh_keycloak_token("old_refresh_token")
 
         assert result == refreshed_token
         keycloak_api.keycloak_openid.refresh_token.assert_called_once_with(
@@ -93,13 +93,13 @@ class TestKeycloakServiceAccountApi:
             side_effect=Exception("Invalid refresh token")
         )
 
-        result = keycloak_api.refresh_keycloak_token("invalid_refresh_token")
+        result = keycloak_api._refresh_keycloak_token("invalid_refresh_token")
 
         assert result is None
 
     def test_is_current_token_valid_no_token(self, keycloak_api):
         """Test token validation when no token exists."""
-        assert keycloak_api.is_current_token_valid() is False
+        assert keycloak_api._is_current_token_valid() is False
 
     def test_is_current_token_valid_expired(self, keycloak_api, sample_token):
         """Test token validation when token is expired."""
@@ -108,7 +108,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() - datetime.timedelta(minutes=1)
         )
 
-        assert keycloak_api.is_current_token_valid() is False
+        assert keycloak_api._is_current_token_valid() is False
 
     def test_is_current_token_valid_not_expired(self, keycloak_api, sample_token):
         """Test token validation when token is still valid."""
@@ -117,11 +117,11 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() + datetime.timedelta(minutes=5)
         )
 
-        assert keycloak_api.is_current_token_valid() is True
+        assert keycloak_api._is_current_token_valid() is True
 
     def test_is_refresh_token_valid_no_token(self, keycloak_api):
         """Test refresh token validation when no token exists."""
-        assert keycloak_api.is_refresh_token_valid() is False
+        assert keycloak_api._is_refresh_token_valid() is False
 
     def test_is_refresh_token_valid_expired(self, keycloak_api, sample_token):
         """Test refresh token validation when refresh token is expired."""
@@ -130,7 +130,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() - datetime.timedelta(minutes=1)
         )
 
-        assert keycloak_api.is_refresh_token_valid() is False
+        assert keycloak_api._is_refresh_token_valid() is False
 
     def test_is_refresh_token_valid_not_expired(self, keycloak_api, sample_token):
         """Test refresh token validation when refresh token is still valid."""
@@ -139,7 +139,7 @@ class TestKeycloakServiceAccountApi:
             datetime.datetime.now() + datetime.timedelta(minutes=30)
         )
 
-        assert keycloak_api.is_refresh_token_valid() is True
+        assert keycloak_api._is_refresh_token_valid() is True
 
     def test_update_token(self, keycloak_api, sample_token):
         """Test _update_token method correctly sets token and expiration dates."""
@@ -180,7 +180,7 @@ class TestKeycloakServiceAccountApi:
 
         assert result == sample_token
         # Should not call token generation
-        keycloak_api.keycloak_openid.token.assert_not_called()
+        keycloak_api.keycloak_openid._token.assert_not_called()
 
     def test_get_kc_token_expired_but_refresh_valid(self, keycloak_api, sample_token):
         """Test get_kc_token when access token expired but refresh token is valid."""
@@ -305,7 +305,6 @@ class TestKeycloakServiceAccountApi:
             )
 
             result = keycloak_api.get_kc_token()
-
             assert result["access_token"] == f"token_{i}"
 
     @pytest.mark.parametrize(
