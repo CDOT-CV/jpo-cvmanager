@@ -5,12 +5,15 @@ import { testTheme } from './styles'
 import { setupStore } from './store'
 import { replaceChaoticIds } from './utils/test-utils'
 import { Unsubscribe } from '@mui/icons-material'
+import { BrowserRouter } from 'react-router-dom'
 
 it('should take a snapshot', () => {
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
-        <Unsubscribe />
+        <BrowserRouter>
+          <Unsubscribe />
+        </BrowserRouter>
       </Provider>
     </ThemeProvider>
   )

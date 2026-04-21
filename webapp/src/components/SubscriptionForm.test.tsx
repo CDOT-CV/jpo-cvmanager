@@ -3,7 +3,11 @@ import SubscriptionForm from './SubscriptionForm'
 import { replaceChaoticIds } from '../utils/test-utils'
 
 it('should take a snapshot', () => {
-  const { container } = render(<SubscriptionForm subscriptions={[]} onSave={async () => {}} />)
+  const { container } = render(
+    <BrowserRouter>
+      <SubscriptionForm subscriptions={[]} onSave={async () => {}} />
+    </BrowserRouter>
+  )
 
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
