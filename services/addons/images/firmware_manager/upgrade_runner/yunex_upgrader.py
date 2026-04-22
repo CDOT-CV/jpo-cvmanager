@@ -57,6 +57,10 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
             # Download firmware installation package TAR file
             self.download_blob()
 
+            raise Exception(
+                "Testing exception handling for Yunex Upgrader"
+            )  # TODO: Remove after testing
+
             # Unpack TAR file which must contain the following:
             # - Core upgrade file
             # - SDK upgrade file
@@ -133,7 +137,7 @@ if __name__ == "__main__":
     # Trimming outer single quotes from the json.loads
     upgrade_info = json.loads(sys.argv[1][1:-1])
     yunex_upgrader = YunexUpgrader(upgrade_info)
-    if yunex_upgrader.check_online() or True:
+    if yunex_upgrader.check_online() or True:  # TODO: Remove after testing
         yunex_upgrader.upgrade()
     else:
         logging.error(f"RSU {upgrade_info['ipv4_address']} is offline")

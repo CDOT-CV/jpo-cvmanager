@@ -40,31 +40,23 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
 
     String getContent(MessageCountEmailContents data) {
         String content = String.format(
-                "<p>This is an automated email to report yesterday's ODE message counts for J2735 messages going in and out of the ODE. </p>"
-                        +
-                        "<p>Organization: %s<br>Deployment: %s<br>Start Date: %s UTC<br>End Date: %s UTC</p>"
-                        +
-                        "<p>`In counts` are the number of encoded messages received by the ODE from the load balancer. "
-                        +
-                        "`Out counts` are the number of decoded messages that have come out of the ODE in JSON form and "
-                        +
-                        "are available for querying in mongoDB. Ideally these two counts should be identical, "
-                        +
-                        "although some deviation is expected due to count recording timings.<br>"
-                        +
-                        "Map and TIM Out counts are deduplicated so these are going to be lower at 1 per hour. The deviation is normalized with this in mind."
-                        +
-                        "<h3>RSU Message Counts</h3>"
-                        +
-                        "<div style=\"margin: 16px 0; padding: 12px; background-color: #f5f5f5; border-radius: 4px; display: inline-block;\">"
-                        +
-                        "<strong>Out Counts:</strong>&nbsp;&nbsp;"
-                        +
-                        "<span style=\"background-color: #a4ffa1; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Green: ≤5%% deviation</span>"
-                        +
-                        "<span style=\"background-color: #ff7373; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Red: >5%% deviation</span>"
-                        +
-                        "</div>",
+                "<p>This is an automated email reporting yesterday's J2735 message counts for messages processed by the ODE.</p>"
+                        + "<p><strong>Organization:</strong> %s<br>"
+                        + "<strong>Deployment:</strong> %s<br>"
+                        + "<strong>Start Date:</strong> %s UTC<br>"
+                        + "<strong>End Date:</strong> %s UTC</p>"
+                        + "<p>Each cell in the table below shows: <strong>[Inbound Message Count] / [Outbound Message Count]</strong>.<br>"
+                        + "Cells are <span style=\"background-color: #a4ffa1; color: #000; padding: 2px 8px; border-radius: 3px;\">green</span> if inbound and outbound counts are within 5%% of each other, and <span style=\"background-color: #ff7373; color: #000; padding: 2px 8px; border-radius: 3px;\">red</span> if the difference is greater than 5%%.</p>"
+                        + "<p><strong>Inbound Message Count</strong>: Number of encoded messages received by the ODE from the load balancer.<br>"
+                        + "<strong>Outbound Message Count</strong>: Number of decoded messages output by the ODE in JSON format, available for querying in MongoDB.<br>"
+                        + "Ideally, these counts should match, but small differences can occur due to timing.<br>"
+                        + "Note: Map and TIM outbound counts are deduplicated (one per hour), so these may be lower. The deviation calculation accounts for this.</p>"
+                        + "<h3>RSU Message Counts</h3>"
+                        + "<div style=\"margin: 16px 0; padding: 12px; background-color: #f5f5f5; border-radius: 4px; display: inline-block;\">"
+                        + "<strong>Legend:</strong>&nbsp;&nbsp;"
+                        + "<span style=\"background-color: #a4ffa1; color: #000; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Green: ≤5%% deviation</span>"
+                        + "<span style=\"background-color: #ff7373; color: #000; padding: 4px 12px; margin: 0 4px; border-radius: 3px;\">Red: >5%% deviation</span>"
+                        + "</div>",
                 escapeHtml(data.getOrganizationName()),
                 escapeHtml(data.getDeploymentTitle()),
                 escapeHtml(data.getStartDate().toString()),
@@ -82,8 +74,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
                 .append("<th style=\"padding: 12px;\">Road</th>\n");
 
         for (String type : messageTypeList) {
-            html.append("<th style=\"padding: 12px;\">").append(type).append(" In</th>\n");
-            html.append("<th style=\"padding: 12px;\">").append(type).append(" Out</th>\n");
+            html.append("<th style=\"padding: 12px;\">").append(type).append("</th>\n");
         }
 
         html.append("</tr>\n</thead>\n");
@@ -103,12 +94,10 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
         Map<String, MessageCountCountsItem> counts = rsuCountsItem.getMessageCountsByType();
         for (String type : messageTypeList) {
             MessageCountCountsItem countsItem = counts.get(type);
-            html.append("<td>").append(countsItem.getIn()).append("</td>\n");
             html.append("<td style=\"background-color: ")
                     .append(diffToColor(countsItem.getDiffPercent()))
                     .append(";\">")
-                    .append(countsItem.getOut())
-                    .append("</td>\n");
+                    .append(countsItem.getIn()).append(" / ").append(countsItem.getOut()).append("</td>\n");
         }
 
         html.append("</tr>\n");
