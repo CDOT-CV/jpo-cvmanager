@@ -34,7 +34,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
         String htmlContent = templateEngine.process("emails/email_template", context);
 
         return new EmailContent(
-                "CV-Manager Message Counts",
+                "CDOT-CV " + data.getDeploymentTitle() + " ODE Counts ",
                 htmlContent);
     }
 
