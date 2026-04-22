@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.emails.EmailProperties;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -14,6 +15,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCount
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
 
+@Slf4j
 @Component
 public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCountEmailContents> {
 
@@ -74,7 +76,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
                 .append("<th style=\"padding: 12px;\">Road</th>\n");
 
         for (String type : messageTypeList) {
-            html.append("<th style=\"padding: 12px;\">").append(type).append("</th>\n");
+            html.append("<th style=\"padding: 12px;\">").append(escapeHtml(type)).append("</th>\n");
         }
 
         html.append("</tr>\n</thead>\n");
@@ -88,8 +90,8 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
             List<String> messageTypeList) {
         StringBuilder html = new StringBuilder();
         html.append("<tr style=\"").append(rowStyle).append("\">\n")
-                .append("<td>").append(rsuIp).append("</td>\n")
-                .append("<td>").append(rsuCountsItem.getPrimaryRoute()).append("</td>\n");
+                .append("<td>").append(escapeHtml(rsuIp)).append("</td>\n")
+                .append("<td>").append(escapeHtml(rsuCountsItem.getPrimaryRoute())).append("</td>\n");
 
         Map<String, MessageCountCountsItem> counts = rsuCountsItem.getMessageCountsByType();
         for (String type : messageTypeList) {
@@ -106,8 +108,8 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
 
     public static String generateCountTable(
             MessageCountEmailContents countsData) {
-        if (countsData == null || countsData.getRsuCounts().isEmpty()) {
-            System.err.println("RSU dictionary is empty. Most likely an issue with PostgreSQL");
+        if (countsData == null || countsData.getRsuCounts() == null || countsData.getRsuCounts().isEmpty()) {
+            log.error("RSU dictionary is empty. Most likely an issue with PostgreSQL");
             return "";
         }
 
