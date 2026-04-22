@@ -201,7 +201,8 @@ def test_prepare_org_rsu_dict(mock_query_db):
 @patch("count_metric_environment.KC_SA_CLIENT_ID", "sa_client_id")
 @patch("count_metric_environment.KC_SA_CLIENT_SECRET", "sa_client_secret")
 @patch("addons.images.count_metric.daily_emailer.EmailApi")
-def test_email_daily_counts(mock_email_api):
+@patch("addons.images.count_metric.daily_emailer.KeycloakServiceAccountApi")
+def test_email_daily_counts(mock_kc_api, mock_email_api):
     email_api_obj = mock_email_api.return_value
 
     org_name = "Test Org"
@@ -222,7 +223,7 @@ def test_email_daily_counts(mock_email_api):
     )
 
     mock_email_api.assert_called_once_with(
-        "http://test.test", "sa_client_id", "sa_client_secret"
+        iapi_base_url="http://test.test", kc_api=mock_kc_api()
     )
     email_api_obj.send_message_counts.assert_called_once_with(
         org_name, deployment_title, start_date, end_date, message_type_list, counts
