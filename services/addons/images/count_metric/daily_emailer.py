@@ -4,6 +4,7 @@ import common.pgquery as pgquery
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 import count_metric_environment
+from common.keycloak_api import KeycloakServiceAccountApi
 
 message_types = ["BSM", "TIM", "Map", "SPaT", "SRM", "SSM"]
 
@@ -130,10 +131,14 @@ def email_daily_counts(
 ):
     logging.info("Attempting to send the count emails...")
     try:
+        kc_api = KeycloakServiceAccountApi(
+            endpoint=count_metric_environment.KC_ENDPOINT,
+            realm=count_metric_environment.KC_REALM,
+            client_id=count_metric_environment.KC_SA_CLIENT_ID,
+            client_secret=count_metric_environment.KC_SA_CLIENT_SECRET,
+        )
         email_api = EmailApi(
-            count_metric_environment.IAPI_ENDPOINT,
-            count_metric_environment.KC_SA_CLIENT_ID,
-            count_metric_environment.KC_SA_CLIENT_SECRET,
+            iapi_base_url=count_metric_environment.IAPI_ENDPOINT, kc_api=kc_api
         )
 
         email_api.send_message_counts(

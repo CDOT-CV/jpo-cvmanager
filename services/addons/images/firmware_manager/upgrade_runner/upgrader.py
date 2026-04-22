@@ -8,6 +8,7 @@ import requests
 import shutil
 from common.email_api import EmailApi
 import download_blob
+from common.keycloak_api import KeycloakServiceAccountApi
 import upgrade_runner_environment
 
 
@@ -117,10 +118,14 @@ class UpgraderAbstractClass(abc.ABC):
 
     def send_error_email(self, err: Exception, stack_trace: str, type: str):
         try:
+            kc_api = KeycloakServiceAccountApi(
+                endpoint=upgrade_runner_environment.KC_ENDPOINT,
+                realm=upgrade_runner_environment.KC_REALM,
+                client_id=upgrade_runner_environment.KC_SA_CLIENT_ID,
+                client_secret=upgrade_runner_environment.KC_SA_CLIENT_SECRET,
+            )
             email_api = EmailApi(
-                upgrade_runner_environment.IAPI_ENDPOINT,
-                upgrade_runner_environment.KC_SA_CLIENT_ID,
-                upgrade_runner_environment.KC_SA_CLIENT_SECRET,
+                iapi_base_url=upgrade_runner_environment.IAPI_ENDPOINT, kc_api=kc_api
             )
 
             email_api.send_firmware_upgrade_failure(
