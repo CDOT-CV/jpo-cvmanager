@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
-import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
 
