@@ -122,7 +122,9 @@ const AdminEditUser = () => {
       setOpen(false)
       navigate('/dashboard/admin/users')
     } catch (error: any) {
-      toast.error('Failed to update user: ' + (error?.data?.message || error?.message || 'Unknown error'))
+      toast.error(
+        'Failed to update user: ' + (error?.data?.message || error?.message || error?.data?.detail || 'Unknown error')
+      )
     }
   }
 
