@@ -110,16 +110,6 @@ public class UserManagementService {
         User existingUser = userRepository.findByEmail(email).orElseThrow(
                 () -> new EntityNotFoundException("User not found with email: " + email));
 
-        // 2. If email is being changed, check for conflicts
-        if (userPatch.getEmail() != null && !userPatch.getEmail().equals(email)) {
-            String newEmail = userPatch.getEmail();
-            User conflictingUser = userRepository.findByEmail(newEmail).orElse(null);
-            if (conflictingUser != null && !conflictingUser.getEmail().equals(existingUser.getEmail())) {
-                throw new UserEmailAlreadyExistsException(
-                        "User with email " + newEmail + " already exists");
-            }
-        }
-
         // 2. Update only non-null fields using MapStruct
         userPatchMapper.updateUserFromPatch(userPatch, existingUser);
 
