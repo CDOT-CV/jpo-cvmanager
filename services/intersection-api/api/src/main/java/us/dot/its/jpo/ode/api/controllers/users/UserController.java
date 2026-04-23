@@ -105,7 +105,8 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
-    public ResponseEntity<Void> createUser(@Validated @RequestBody UserDto body) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createUser(@Validated @RequestBody UserDto body) {
         if (!permissionService.hasRoleInOrgs(UserRole.ADMIN,
                 body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
             // This catches unqualified orgs or nonexistent orgs
