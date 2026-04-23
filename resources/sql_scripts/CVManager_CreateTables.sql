@@ -378,6 +378,10 @@ CREATE TABLE IF NOT EXISTS public.scms_health
 		ON DELETE NO ACTION
 );
 
+CREATE INDEX IF NOT EXISTS idx_scms_health_timestamp
+    ON scms_health(timestamp);
+
+
 -- Create snmp_msgfwd_type table
 CREATE SEQUENCE public.snmp_msgfwd_type_id_seq
    INCREMENT 1
