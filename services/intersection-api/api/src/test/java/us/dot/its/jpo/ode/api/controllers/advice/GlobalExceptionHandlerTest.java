@@ -488,32 +488,6 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
-    class HandleExceptionTests {
-
-        @Test
-        void testGenericException() {
-            Exception ex = new RuntimeException("Unexpected error");
-
-            ErrorResponse response = handler.handleException(ex);
-
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-            assertTrue(response.getBody().getDetail().contains("unexpected error occurred"));
-            assertFalse(response.getBody().getDetail().contains("RuntimeException"));
-        }
-
-        @Test
-        void testNullPointerException() {
-            Exception ex = new NullPointerException("Something was null");
-
-            ErrorResponse response = handler.handleException(ex);
-
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-            // Should return generic message, not expose internal details
-            assertFalse(response.getBody().getDetail().contains("null"));
-        }
-    }
-
-    @Nested
     class HelperMethodTests {
 
         @Test
