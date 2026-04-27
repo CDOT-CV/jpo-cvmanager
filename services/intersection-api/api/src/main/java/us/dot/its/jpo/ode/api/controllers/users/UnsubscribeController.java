@@ -41,25 +41,6 @@ public class UnsubscribeController {
     private final UserOrganizationRepository userOrganizationRepository;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
-    @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
-    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "400", description = "Invalid message body"),
-    })
-    public void updateEmailSubscriptions(
-            @RequestParam(required = false) String token,
-            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
-        String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
-        if (userEmail == null) {
-            throw new NotAuthorizedException("Invalid or expired token");
-        }
-
-        emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
-
-        return;
-    }
-
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -81,5 +62,24 @@ public class UnsubscribeController {
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
                 isOperator, isAdmin);
         return new EmailSubscriptionGetResponse(subscriptions, userEmail);
+    }
+
+    @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
+    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    public void updateEmailSubscriptions(
+            @RequestParam(required = false) String token,
+            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
+        String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
+        if (userEmail == null) {
+            throw new NotAuthorizedException("Invalid or expired token");
+        }
+
+        emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
+
+        return;
     }
 }

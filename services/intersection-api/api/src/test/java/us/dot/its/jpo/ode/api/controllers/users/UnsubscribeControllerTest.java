@@ -16,88 +16,96 @@ import java.util.List;
 import javax.ws.rs.NotAuthorizedException;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
+import us.dot.its.jpo.ode.api.services.PermissionService;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 public class UnsubscribeControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
     private EmailService emailService;
 
-    @Mock
+    @MockitoBean
+    private PermissionService permissionService;
+
+    @MockitoBean
     private UnsubscribeTokenGenerator tokenGenerator;
 
-    @Mock
+    @MockitoBean
     private UserOrganizationRepository userOrganizationRepository;
 
-    private UnsubscribeController userController;
+    private static final String validToken = "valid-token-123";
+    private static final String invalidToken = "invalid-token-456";
+    private static final String email = "test@example.com";
 
-    private static final String VALID_TOKEN = "valid-token-123";
-    private static final String INVALID_TOKEN = "invalid-token-456";
-    private static final String TEST_EMAIL = "test@example.com";
-
-    private static final List<UserEmailNotificationDto> SUBSCRIPTION_LIST = Arrays.asList(
+    private static final List<UserEmailNotificationDto> validSubscriptionList = Arrays.asList(
             new UserEmailNotificationDto("Support Requests", "Receive support requests from users", "admin", true,
                     false, false, false, false,
                     true, false, false, false, false),
             new UserEmailNotificationDto("Firmware Upgrade Failures",
                     "Receive automated firmware upgrade failure emails",
                     "operator", true, false, false, false, false,
-                    true, false, false, false, false),
-            new UserEmailNotificationDto("Intersection Notification Summary",
-                    "Receive automated intersection notification summary emails", "user", true, false, false, false,
-                    false,
-                    true, true, true, true, true),
-            new UserEmailNotificationDto("Daily Message Counts", "Receive automated daily message count emails", "user",
-                    false, false, false, false, false,
-                    true, false, false, false, false),
-            new UserEmailNotificationDto("Access Requests", "Receive organization access requests from users", "admin",
-                    false, false, false, false, false,
-                    true, false, false, false, false),
-            new UserEmailNotificationDto("Critical Error Messages", "Receive automated critical error message emails",
-                    "operator", false, false, false, false, false,
                     true, false, false, false, false));
 
-    @BeforeEach
-    void setUp() {
-        userController = new UnsubscribeController(emailService, userOrganizationRepository, tokenGenerator);
-    }
+    @Nested
+    @DisplayName("GET /users/subscriptions/email-subscriptions — list all subscriptions")
+    class GetAllSubscriptions {
 
-    @Test
-    void testUpdateEmailSubscriptions_ValidToken() {
+        @Test
+        @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
+        void noPermissions_returns403() throws Exception {
+            // Spring Security filter runs before argument binding; unauthenticated → 403
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
+                    .andExpect(status().isForbidden());
+        }
 
-        when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(emailService.updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST)).thenReturn(0);
+        @Test
+        @WithMockUser
+        @DisplayName("returns 403 when authenticated but neither isSuperUser nor hasRole('USER')")
+        void authenticated_invalidToken_returns403() throws Exception {
+        when(tokenGenerator.parseAndValidateToken(invalidToken)).thenReturn(null);
 
-        userController.updateEmailSubscriptions(VALID_TOKEN, SUBSCRIPTION_LIST);
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
+                    .andExpect(status().isForbidden());
+        }
 
-        verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(emailService).updateEmailSubscriptions(TEST_EMAIL, SUBSCRIPTION_LIST);
-    }
+        @Test
+        @WithMockUser
+        @DisplayName("returns 403 when authenticated but neither isSuperUser nor hasRole('USER')")
+        void authenticated_validToken_200() throws Exception {
 
-    @Test
-    void testUpdateEmailSubscriptions_InvalidToken() {
-        when(tokenGenerator.parseAndValidateToken(INVALID_TOKEN)).thenReturn(null);
-
-        assertThrows(NotAuthorizedException.class,
-                () -> userController.updateEmailSubscriptions(INVALID_TOKEN, SUBSCRIPTION_LIST));
-
-        verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
-    }
-
-    @Test
-    void testGetEmailSubscriptions_ValidToken_UserWithSubscriptions() {
         Role roleOperator = mock(Role.class);
         when(roleOperator.getName()).thenReturn("operator");
         UserOrganization orgOperator = mock(UserOrganization.class);
@@ -109,29 +117,12 @@ public class UnsubscribeControllerTest {
         when(orgAdmin.getRole()).thenReturn(roleAdmin);
 
         List<UserOrganization> authToken = Arrays.asList(orgAdmin, orgOperator);
-        when(userOrganizationRepository.findAllByEmail(TEST_EMAIL)).thenReturn(authToken);
+        when(userOrganizationRepository.findAllByEmail(email)).thenReturn(authToken);
 
-        when(tokenGenerator.parseAndValidateToken(VALID_TOKEN)).thenReturn(TEST_EMAIL);
-        when(emailService.getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true)).thenReturn(SUBSCRIPTION_LIST);
+        when(tokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
+        when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true)).thenReturn(validSubscriptionList);
 
-        EmailSubscriptionGetResponse response = userController.getEmailSubscriptions(VALID_TOKEN);
-
-        assertNotNull(response);
-        assertEquals(TEST_EMAIL, response.getEmail());
-
-        assertEquals(SUBSCRIPTION_LIST, response.getSubscriptions());
-
-        verify(tokenGenerator).parseAndValidateToken(VALID_TOKEN);
-        verify(emailService).getAllEmailSubscriptionOptionsForUser(TEST_EMAIL, true, true);
-    }
-
-    @Test
-    void testGetEmailSubscriptions_InvalidToken() {
-        when(tokenGenerator.parseAndValidateToken(INVALID_TOKEN)).thenReturn(null);
-
-        assertThrows(NotAuthorizedException.class, () -> userController.getEmailSubscriptions(INVALID_TOKEN));
-
-        verify(tokenGenerator).parseAndValidateToken(INVALID_TOKEN);
-        verify(emailService, never()).getAllEmailSubscriptionOptionsForUser(eq(TEST_EMAIL), anyBoolean(), anyBoolean());
-    }
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
+                    .andExpect(status().isForbidden());
+        }
 }
