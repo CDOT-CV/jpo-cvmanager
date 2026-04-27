@@ -130,7 +130,7 @@ services:
       PG_DB_USER: ${PG_DB_USER:-postgres}
       PG_DB_PASS: ${PG_DB_PASS:-postgres}
 
-      UPGRADE_RUNNER_ENDPOINT: ${FIRMWARE_MANAGER_UPGRADE_RUNNER_ENDPOINT:-http://firmware_manager_upgrade_runner:8090}
+      UPGRADE_RUNNER_ENDPOINT: ${FIRMWARE_MANAGER_UPGRADE_RUNNER_ENDPOINT:-http://firmware_manager_upgrade_runner:8080}
 
       LOGGING_LEVEL: ${FIRMWARE_MANAGER_LOGGING_LEVEL:-}
     volumes:

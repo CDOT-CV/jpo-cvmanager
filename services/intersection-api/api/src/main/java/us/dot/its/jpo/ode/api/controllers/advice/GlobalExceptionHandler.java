@@ -19,6 +19,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 
 /**
@@ -71,6 +73,15 @@ public class GlobalExceptionHandler {
             SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareUpgradeUnavailableException(
+            RsuUpgradeService.FirmwareUpgradeUnavailableException e) {
+        String message = e.getMessage();
+        log.warn(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
     }
 
@@ -250,6 +261,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler()
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleServletRequestBinding(ServletRequestBindingException ex) {
+        log.warn("Request binding error: {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        return ErrorResponse.builder(ex, problemDetail).build();
+    }
+
+    @ExceptionHandler()
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleException(Exception ex) {
         log.error("Unexpected server error:", ex);
@@ -311,7 +330,7 @@ public class GlobalExceptionHandler {
             }
 
             String resourceType = determineResourceType(message);
-            return String.format("A %s with %s already exists.", resourceType, details.toString());
+            return String.format("%s with %s already exists.", resourceType, details.toString());
         }
 
         return "A record with these values already exists. Please use different values.";
@@ -368,11 +387,13 @@ public class GlobalExceptionHandler {
         if (lowerMessage.contains("rsu") || lowerMessage.contains("rsus")) {
             return "RSU";
         } else if (lowerMessage.contains("user")) {
-            return "user";
+            return "User";
         } else if (lowerMessage.contains("organization")) {
-            return "organization";
+            return "Organization";
         } else if (lowerMessage.contains("credential")) {
-            return "credential";
+            return "Credential";
+        } else if (lowerMessage.contains("intersection")) {
+            return "Intersection";
         }
 
         return "record";
