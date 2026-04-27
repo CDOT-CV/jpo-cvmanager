@@ -20,6 +20,7 @@ import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slic
 import intersectionMapReducer from './features/intersections/map/map-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import { emailApiSlice } from './features/api/emailApiSlice'
 import { intersectionApiSlice } from './features/api/intersectionApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
@@ -58,6 +59,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       asn1Decoder: asn1DecoderSlice,
       timeSync: timeSyncReducer,
       haas: haasSliceReducer,
+      [emailApiSlice.reducerPath]: emailApiSlice.reducer,
       [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
       [organizationApiSlice.reducerPath]: organizationApiSlice.reducer,
       [rsuCountsApiSlice.reducerPath]: rsuCountsApiSlice.reducer,
@@ -73,6 +75,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         serializableCheck: false,
         immutableCheck: false,
       })
+        .concat(emailApiSlice.middleware)
         .concat(intersectionApiSlice.middleware)
         .concat(organizationApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
