@@ -6,8 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,8 +24,6 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Slf4j
@@ -39,24 +39,6 @@ public class SubscriptionController {
     private final EmailService emailService;
     private final PermissionService permissionService;
 
-    @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
-    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "400", description = "Invalid message body"),
-    })
-    public void updateEmailSubscriptions(
-            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = PermissionService.getUsername(auth);
-
-        emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
-
-        return;
-    }
-
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
@@ -65,13 +47,30 @@ public class SubscriptionController {
     })
     public EmailSubscriptionGetResponse getEmailSubscriptions() {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = PermissionService.getUsername(auth);
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
         boolean isOperator = !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
         boolean isAdmin = !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
-        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
+        List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(
+                authToken.getEmail(),
                 isOperator, isAdmin);
-        return new EmailSubscriptionGetResponse(subscriptions, userEmail);
+        return new EmailSubscriptionGetResponse(subscriptions, authToken.getEmail());
+    }
+
+    @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
+    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Invalid message body"),
+    })
+    @ResponseStatus(HttpStatus.OK)
+    public void updateEmailSubscriptions(
+            @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
+
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+
+        emailService.updateEmailSubscriptions(authToken.getEmail(), requestedSubscriptions);
+
+        return;
     }
 }
