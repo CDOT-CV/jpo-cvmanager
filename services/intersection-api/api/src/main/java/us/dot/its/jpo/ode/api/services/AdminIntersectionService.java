@@ -12,6 +12,7 @@ import us.dot.its.jpo.ode.api.mappers.INetMapper;
 import us.dot.its.jpo.ode.api.mappers.IntersectionMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
+import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionCreate;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
@@ -95,17 +96,17 @@ public class AdminIntersectionService {
 
         log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgNames.size(),
                 rsuIps.size());
-        return new IntersectionSingleResponse(dto, buildAllowedSelections());
+        return new IntersectionSingleResponse(dto, getAllowedSelections());
     }
 
     /**
-     * Builds the AllowedSelections for the current user: the orgs and RSUs they may
-     * assign
-     * to an intersection. Scoped to OPERATOR-qualified orgs since OPERATOR is
-     * required to modify.
-     * Superusers receive all orgs and RSUs.
+     * Returns the organizations and RSU IPs the current user may assign to an intersection.
+     * Superusers receive all orgs and RSUs; non-superusers receive only those within their
+     * OPERATOR-qualified organizations.
+     *
+     * @return allowed organizations and RSU IP addresses
      */
-    private AllowedSelections buildAllowedSelections() {
+    public AllowedSelections getAllowedSelections() {
         if (permissionService.isSuperUser()) {
             List<String> allOrgNames = organizationRepository.findAll().stream()
                     .map(Organization::getName)
@@ -124,6 +125,86 @@ public class AdminIntersectionService {
     }
 
     /**
+     * Creates a new intersection with organization and RSU associations.
+     * The controller has already enforced all authorization before this is called.
+     * All writes are wrapped in a single transaction; a failure at any step rolls back entirely.
+     * Validates that all referenced organizations and RSUs exist before writing.
+     *
+     * @param create the create request body
+     */
+    @Transactional
+    public void createIntersection(IntersectionCreate create) {
+        log.info("Creating intersection with id: {}", create.getIntersectionId());
+
+        // Step 1: Build and save the Intersection entity
+        Intersection intersection = intersectionMapper.toEntity(create);
+        intersection = intersectionRepository.save(intersection);
+        log.debug("Intersection saved with PK: {}", intersection.getId());
+
+        // Step 2: Create organization associations
+        List<Organization> orgs = organizationRepository.findByNameIn(create.getOrganizations());
+        if (orgs.size() != create.getOrganizations().size()) {
+            List<String> foundNames = orgs.stream().map(Organization::getName).toList();
+            List<String> missing = create.getOrganizations().stream()
+                    .filter(name -> !foundNames.contains(name))
+                    .toList();
+            throw new EntityNotFoundException("Organization(s) not found: " + missing);
+        }
+        Intersection savedIntersection = intersection;
+        saveOrgAssociations(orgs, savedIntersection);
+
+        // Step 3: Create RSU associations (skip if empty)
+        if (!create.getRsus().isEmpty()) {
+            List<InetAddress> inetAddresses = create.getRsus().stream()
+                    .map(inetMapper::mapStringToInetAddress)
+                    .collect(Collectors.toList());
+            List<Rsu> rsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
+            if (rsus.size() != create.getRsus().size()) {
+                List<String> foundIps = rsus.stream()
+                        .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
+                        .toList();
+                List<String> missing = create.getRsus().stream()
+                        .filter(ip -> !foundIps.contains(ip))
+                        .toList();
+                throw new EntityNotFoundException("RSU(s) not found: " + missing);
+            }
+            List<RsuIntersection> rsuAssocs = rsus.stream()
+                    .map(rsu -> {
+                        RsuIntersection ri = new RsuIntersection();
+                        ri.setIntersection(savedIntersection);
+                        ri.setRsu(rsu);
+                        return ri;
+                    })
+                    .collect(Collectors.toList());
+            rsuIntersectionRepository.saveAll(rsuAssocs);
+            log.debug("Step 3: Saved {} RSU association(s).", rsuAssocs.size());
+        } else {
+            log.debug("Step 3: No RSU associations to create.");
+        }
+
+        log.info("Successfully created intersection {}", create.getIntersectionId());
+    }
+
+    /**
+     * Saves the associations between a given list of organizations and an intersection.
+     *
+     * @param orgs the list of organizations to be associated with the intersection
+     * @param savedIntersection the intersection with which the organizations will be associated
+     */
+    private void saveOrgAssociations(List<Organization> orgs, Intersection savedIntersection) {
+        List<IntersectionOrganization> orgAssocs = orgs.stream()
+                .map(org -> {
+                    IntersectionOrganization io = new IntersectionOrganization();
+                    io.setIntersection(savedIntersection);
+                    io.setOrganization(org);
+                    return io;
+                })
+                .collect(Collectors.toList());
+        intersectionOrganizationRepository.saveAll(orgAssocs);
+        log.debug("Step 2: Saved {} org association(s).", orgAssocs.size());
+    }
+
+    /**
      * Returns all intersections for the specified organization.
      * The organization parameter is always required; the controller enforces this
      * via a
@@ -138,18 +219,44 @@ public class AdminIntersectionService {
         List<Intersection> intersections = intersectionRepository.findAllByOrgNameWithOrgs(organization);
 
         if (intersections.isEmpty()) {
-            log.warn("No intersections found for organization '{}'", organization);
-            throw new EntityNotFoundException(
-                    "No accessible intersections found for organization '" + organization + "'");
+            log.info("No intersections found for organization '{}'", organization);
+            return new IntersectionListResponse(Collections.emptyList());
         }
 
+        return getIntersectionListResponse(intersections);
+    }
+
+    /**
+     * Returns all intersections not associated with the specified organization.
+     * Used to populate the "available to add" dropdown when adding intersections to
+     * an organization. The controller enforces authorization (ADMIN role or
+     * superuser) before this is called.
+     *
+     * @param organization the organization to exclude intersections from
+     * @return response containing intersection_data as a list of intersections
+     *         currently not assigned to the organization
+     */
+    public IntersectionListResponse getIntersectionsNotInOrganization(String organization) {
+        log.info("Fetching intersections not in organization: {}", organization);
+        List<Intersection> intersections = intersectionOrganizationRepository
+                .findAllIntersectionsNotInOrganizationName(organization);
+
+        if (intersections.isEmpty()) {
+            log.info("No intersections found outside organization '{}'", organization);
+            return new IntersectionListResponse(Collections.emptyList());
+        }
+
+        return getIntersectionListResponse(intersections);
+    }
+
+    private IntersectionListResponse getIntersectionListResponse(List<Intersection> intersections) {
         List<IntersectionDto> dtos = intersections.stream()
-                .map(intersectionMapper::toDto)
-                .collect(Collectors.toList());
+          .map(intersectionMapper::toDto)
+          .collect(Collectors.toList());
 
         List<String> intersectionNumbers = intersections.stream()
-                .map(Intersection::getIntersectionNumber)
-                .collect(Collectors.toList());
+          .map(Intersection::getIntersectionNumber)
+          .collect(Collectors.toList());
 
         Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
         log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(),
@@ -207,16 +314,7 @@ public class AdminIntersectionService {
                 log.warn("Step 2: Requested {} org(s) to add but only {} resolved in DB. Requested: {}",
                         patch.getOrganizationsToAdd().size(), orgs.size(), patch.getOrganizationsToAdd());
             }
-            List<IntersectionOrganization> newAssocs = orgs.stream()
-                    .map(org -> {
-                        IntersectionOrganization io = new IntersectionOrganization();
-                        io.setIntersection(intersection);
-                        io.setOrganization(org);
-                        return io;
-                    })
-                    .collect(Collectors.toList());
-            intersectionOrganizationRepository.saveAll(newAssocs);
-            log.debug("Step 2: Saved {} org association(s).", newAssocs.size());
+            saveOrgAssociations(orgs, intersection);
         } else {
             log.debug("Step 2: No org associations to add.");
         }

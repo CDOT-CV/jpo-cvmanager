@@ -45,15 +45,14 @@ class EnvironmentVars {
   static rsuOnlineEndpoint = `${this.getBaseApiUrl()}/rsu-online-status`
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
   static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
+  static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`
   static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-config-geo-query`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
-  static issScmsStatusEndpoint = `${this.getBaseApiUrl()}/iss-scms-status`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
-  static adminAddIntersection = `${this.getBaseApiUrl()}/admin-new-intersection`
-  static adminIntersection = `${this.getBaseApiUrl()}/admin-intersection`
+
   static adminAddUser = `${this.getBaseApiUrl()}/admin-new-user`
   static adminNotification = `${this.getBaseApiUrl()}/admin-notification`
   static adminAddNotification = `${this.getBaseApiUrl()}/admin-new-notification`
