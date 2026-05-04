@@ -51,3 +51,9 @@ vi.mock('luxon', async () => {
 // the new version of jspdf (4.0.0) requires this to be defined during tests
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder as any
+
+vi.doMock('./EnvironmentVars', () => ({
+  default: {
+    CVIZ_API_SERVER_URL: 'http://localhost:8080',
+  },
+}))
