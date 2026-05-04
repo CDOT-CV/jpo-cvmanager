@@ -5,9 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import javax.ws.rs.NotAuthorizedException;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,7 +49,7 @@ public class UnsubscribeController {
             @RequestParam(required = false) String token) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
-            throw new NotAuthorizedException("Invalid or expired token");
+            throw new AccessDeniedException("Invalid or expired token");
         }
 
         List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
@@ -75,7 +74,7 @@ public class UnsubscribeController {
             @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
-            throw new NotAuthorizedException("Invalid or expired token");
+            throw new AccessDeniedException("Invalid or expired token");
         }
 
         emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);

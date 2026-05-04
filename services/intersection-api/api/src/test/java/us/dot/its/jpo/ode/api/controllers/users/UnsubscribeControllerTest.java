@@ -1,10 +1,5 @@
 package us.dot.its.jpo.ode.api.controllers.users;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,39 +8,38 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.ws.rs.NotAuthorizedException;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
-import us.dot.its.jpo.ode.api.models.UserRole;
-import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@ActiveProfiles("integration-test")
+@AutoConfigureMockMvc
+@Import(TestcontainersConfiguration.class)
 public class UnsubscribeControllerTest {
 
     @Autowired
@@ -61,7 +55,7 @@ public class UnsubscribeControllerTest {
     private PermissionService permissionService;
 
     @MockitoBean
-    private UnsubscribeTokenGenerator tokenGenerator;
+    private UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
     @MockitoBean
     private UserOrganizationRepository userOrganizationRepository;
@@ -80,7 +74,7 @@ public class UnsubscribeControllerTest {
                     true, false, false, false, false));
 
     @Nested
-    @DisplayName("GET /users/subscriptions/email-subscriptions — list all subscriptions")
+    @DisplayName("GET /users/unsubscribe/email-subscriptions — list all subscriptions")
     class GetAllSubscriptions {
 
         @Test
@@ -93,36 +87,107 @@ public class UnsubscribeControllerTest {
 
         @Test
         @WithMockUser
-        @DisplayName("returns 403 when authenticated but neither isSuperUser nor hasRole('USER')")
+        @DisplayName("returns 403 when token is invalid")
         void authenticated_invalidToken_returns403() throws Exception {
-        when(tokenGenerator.parseAndValidateToken(invalidToken)).thenReturn(null);
+            when(unsubscribeTokenGenerator.parseAndValidateToken(invalidToken)).thenReturn(null);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", invalidToken))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @WithMockUser
-        @DisplayName("returns 403 when authenticated but neither isSuperUser nor hasRole('USER')")
+        @DisplayName("returns 200 with valid token and permissions")
         void authenticated_validToken_200() throws Exception {
 
-        Role roleOperator = mock(Role.class);
-        when(roleOperator.getName()).thenReturn("operator");
-        UserOrganization orgOperator = mock(UserOrganization.class);
-        when(orgOperator.getRole()).thenReturn(roleOperator);
+            Role roleOperator = mock(Role.class);
+            when(roleOperator.getName()).thenReturn("operator");
+            UserOrganization orgOperator = mock(UserOrganization.class);
+            when(orgOperator.getRole()).thenReturn(roleOperator);
 
-        Role roleAdmin = mock(Role.class);
-        when(roleAdmin.getName()).thenReturn("admin");
-        UserOrganization orgAdmin = mock(UserOrganization.class);
-        when(orgAdmin.getRole()).thenReturn(roleAdmin);
+            Role roleAdmin = mock(Role.class);
+            when(roleAdmin.getName()).thenReturn("admin");
+            UserOrganization orgAdmin = mock(UserOrganization.class);
+            when(orgAdmin.getRole()).thenReturn(roleAdmin);
 
-        List<UserOrganization> authToken = Arrays.asList(orgAdmin, orgOperator);
-        when(userOrganizationRepository.findAllByEmail(email)).thenReturn(authToken);
+            List<UserOrganization> authToken = Arrays.asList(orgAdmin, orgOperator);
+            when(userOrganizationRepository.findAllByEmail(email)).thenReturn(authToken);
 
-        when(tokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-        when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true)).thenReturn(validSubscriptionList);
+            when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
+            when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true))
+                    .thenReturn(validSubscriptionList);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
-                    .andExpect(status().isForbidden());
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", validToken))
+                    .andExpect(status().isOk());
+
+            verify(emailService).getAllEmailSubscriptionOptionsForUser(email, true, true);
         }
+    }
+
+    @Nested
+    @DisplayName("POST /users/unsubscribe/email-subscriptions — update all subscriptions")
+    class UpdateAllSubscriptions {
+
+        @Test
+        @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
+        void noPermissions_returns403() throws Exception {
+            when(unsubscribeTokenGenerator.parseAndValidateToken(null)).thenReturn(null);
+            // Spring Security filter runs before argument binding; unauthenticated → 403
+            mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
+                    .param("token", validToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validSubscriptionList)))
+                    .andExpect(status().isForbidden());
+
+            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 403 when token is invalid")
+        void authenticated_invalidToken_returns403() throws Exception {
+            when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(null);
+
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+                    .param("token", invalidToken)
+                    .param("token", validToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validSubscriptionList)))
+                    .andExpect(status().isForbidden());
+
+            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 200 with valid subscriptions list")
+        void superUser_returns200() throws Exception {
+            when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
+            when(emailService.updateEmailSubscriptions(email, validSubscriptionList)).thenReturn(1);
+
+            mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
+                    .param("token", validToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(validSubscriptionList)))
+                    .andExpect(status().isOk());
+
+            verify(emailService).updateEmailSubscriptions(email, validSubscriptionList);
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 400 with invalid subscriptions list")
+        void superUser_returns400() throws Exception {
+            when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
+            when(emailService.updateEmailSubscriptions(email, validSubscriptionList)).thenReturn(1);
+
+            mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
+                    .param("token", validToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"invalid\": true}"))
+                    .andExpect(status().isBadRequest());
+
+            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
+        }
+    }
 }
