@@ -78,7 +78,7 @@ public class UserManagementService {
         kcUser.setEnabled(true);
 
         Response userCreationResponse = keycloakAdminConfig.keyCloakBuilder()
-                .realm(keycloakAdminConfig.realm)
+                .realm(keycloakAdminConfig.getRealm())
                 .users()
                 .create(kcUser);
         if (userCreationResponse.getStatus() != 201) {

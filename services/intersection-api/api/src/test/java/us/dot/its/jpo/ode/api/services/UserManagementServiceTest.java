@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.context.ActiveProfiles;
 
 import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.keycloak.config.KeycloakAdminConfig;
@@ -45,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ActiveProfiles("integration-test")
 @ExtendWith(MockitoExtension.class)
 class UserManagementServiceTest {
 
@@ -540,16 +543,20 @@ class UserManagementServiceTest {
 
         Response mockResponse = mock(Response.class);
         when(mockResponse.getStatus()).thenReturn(201);
-        when(keycloakAdminConfig.keyCloakBuilder()
-                .realm(anyString())
-                .users()
-                .create(any(UserRepresentation.class)))
-                .thenReturn(mockResponse);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
         when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(List.of(userOrg));
@@ -558,10 +565,7 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         assertEquals("newuser@example.com", result.getEmail());
-        assertNotNull(result.getKeycloakId());
-        assertNotNull(result.getCreatedTimestamp());
-        verify(userMapper).toEntity(userDto);
-        verify(userRepository).save(newUser);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("USER");
         verify(userOrganizationRepository).saveAll(anyList());
@@ -598,8 +602,22 @@ class UserManagementServiceTest {
         adminRole.setId(2);
         adminRole.setName("ADMIN");
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
@@ -610,6 +628,7 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         assertEquals("newuser@example.com", result.getEmail());
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(organizationRepository).findByName("TestOrg");
         verify(organizationRepository).findByName("AnotherOrg");
         verify(roleRepository).findByNameIgnoreCase("ADMIN");
@@ -637,15 +656,29 @@ class UserManagementServiceTest {
         newUser.setLastName("User");
         newUser.setSuperUser(false);
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
         User result = userManagementService.createUser(userDto);
 
         assertNotNull(result);
         assertEquals("newuser@example.com", result.getEmail());
-        verify(userRepository).save(newUser);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(userOrganizationRepository).saveAll(argThat(list -> {
             List<UserOrganization> listCopy = new ArrayList<>();
             list.forEach(listCopy::add);
@@ -674,7 +707,22 @@ class UserManagementServiceTest {
         newUser.setLastName("User");
         newUser.setSuperUser(true);
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("superuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(userRepository.save(newUser)).thenReturn(newUser);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("ADMIN")).thenReturn(Optional.of(testRole));
@@ -685,30 +733,7 @@ class UserManagementServiceTest {
         assertNotNull(result);
         assertEquals("superuser@example.com", result.getEmail());
         assertTrue(result.getSuperUser());
-        verify(userRepository).save(newUser);
-    }
-
-    @Test
-    void testCreateUser_SetsTimestampAndKeycloakId() {
-        UserDto userDto = new UserDto(
-                "newuser@example.com",
-                "New",
-                "User",
-                false,
-                List.of());
-
-        User newUser = new User();
-        newUser.setEmail("newuser@example.com");
-
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
-        when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
-
-        User result = userManagementService.createUser(userDto);
-
-        assertNotNull(result.getKeycloakId(), "Keycloak ID should be set");
-        assertNotNull(result.getCreatedTimestamp(), "Created timestamp should be set");
-        assertTrue(result.getCreatedTimestamp() > 0, "Created timestamp should be positive");
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(userRepository).save(newUser);
     }
 
@@ -728,8 +753,22 @@ class UserManagementServiceTest {
         User newUser = new User();
         newUser.setEmail("newuser@example.com");
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -739,7 +778,7 @@ class UserManagementServiceTest {
 
         assertTrue(exception.getMessage().contains("Organization not found"));
         assertTrue(exception.getMessage().contains("NonexistentOrg"));
-        verify(userRepository).save(newUser);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(organizationRepository).findByName("NonexistentOrg");
         verify(userOrganizationRepository, never()).saveAll(anyList());
     }
@@ -760,8 +799,22 @@ class UserManagementServiceTest {
         User newUser = new User();
         newUser.setEmail("newuser@example.com");
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("NONEXISTENT_ROLE")).thenReturn(Optional.empty());
 
@@ -772,7 +825,7 @@ class UserManagementServiceTest {
 
         assertTrue(exception.getMessage().contains("Role not found"));
         assertTrue(exception.getMessage().contains("NONEXISTENT_ROLE"));
-        verify(userRepository).save(newUser);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(organizationRepository).findByName("TestOrg");
         verify(roleRepository).findByNameIgnoreCase("NONEXISTENT_ROLE");
         verify(userOrganizationRepository, never()).saveAll(anyList());
@@ -794,8 +847,22 @@ class UserManagementServiceTest {
         User newUser = new User();
         newUser.setEmail("newuser@example.com");
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(organizationRepository.findByName("testorg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
@@ -803,6 +870,7 @@ class UserManagementServiceTest {
         User result = userManagementService.createUser(userDto);
 
         assertNotNull(result);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(organizationRepository).findByName("testorg");
     }
 
@@ -822,8 +890,22 @@ class UserManagementServiceTest {
         User newUser = new User();
         newUser.setEmail("newuser@example.com");
 
-        when(userMapper.toEntity(userDto)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+
+        Keycloak keycloak = mock(Keycloak.class);
+        RealmResource realmResource = mock(RealmResource.class);
+        UsersResource usersResource = mock(UsersResource.class);
+        String realm = "cvmanager";
+
+        when(keycloakAdminConfig.getRealm()).thenReturn(realm);
+        when(keycloakAdminConfig.keyCloakBuilder()).thenReturn(keycloak);
+        when(keycloak.realm(realm)).thenReturn(realmResource);
+        when(realmResource.users()).thenReturn(usersResource);
+        when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
@@ -831,6 +913,7 @@ class UserManagementServiceTest {
         User result = userManagementService.createUser(userDto);
 
         assertNotNull(result);
+        verify(usersResource).create(any(UserRepresentation.class));
         verify(roleRepository).findByNameIgnoreCase("admin");
     }
 

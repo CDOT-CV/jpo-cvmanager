@@ -9,12 +9,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import lombok.Getter;
+
 @Configuration
+@Getter
 public class KeycloakAdminConfig {
     private static final Logger logger = LoggerFactory.getLogger(KeycloakAdminConfig.class);
 
     @Value("${keycloak.realm}")
-    public String realm;
+    private String realm;
 
     @Value("${keycloak.client-id}")
     private String clientId;
