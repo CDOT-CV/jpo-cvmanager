@@ -52,13 +52,4 @@ vi.mock('luxon', async () => {
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder as any
 
-vi.doMock('./EnvironmentVars', async () => {
-  const actualEnviron: any = await vi.importActual('./EnvironmentVars')
-  return {
-    ...actualEnviron,
-    default: {
-      ...actualEnviron.default,
-      CVIZ_API_SERVER_URL: 'http://localhost:8080',
-    },
-  }
-})
+vi.stubEnv('VITE_CVIZ_API_SERVER_URL', 'http://localhost:8080')
