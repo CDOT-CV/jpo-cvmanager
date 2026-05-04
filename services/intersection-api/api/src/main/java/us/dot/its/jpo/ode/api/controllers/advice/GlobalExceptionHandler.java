@@ -268,6 +268,17 @@ public class GlobalExceptionHandler {
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
+    @ExceptionHandler()
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleException(Exception ex) {
+        log.error("Unexpected server error:", ex);
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An unexpected error occurred. Please try again later.");
+        var errorRes = ErrorResponse.builder(ex, problemDetail);
+        return errorRes.build();
+    }
+
     private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
         if (message == null) {
             return "A database constraint was violated. Please check your input and try again.";
