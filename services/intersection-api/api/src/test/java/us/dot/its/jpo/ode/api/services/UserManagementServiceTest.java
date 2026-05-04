@@ -3,6 +3,9 @@ package us.dot.its.jpo.ode.api.services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
 import jakarta.persistence.EntityNotFoundException;
+import us.dot.its.jpo.ode.api.keycloak.config.KeycloakAdminConfig;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
@@ -34,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import javax.ws.rs.core.Response;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -62,6 +68,9 @@ class UserManagementServiceTest {
 
     @Mock
     private CvManagerAuthToken authToken;
+
+    @Mock
+    private KeycloakAdminConfig keycloakAdminConfig;
 
     @InjectMocks
     private UserManagementService userManagementService;
@@ -528,6 +537,16 @@ class UserManagementServiceTest {
         userOrg.setUser(newUser);
         userOrg.setOrganization(testOrganization);
         userOrg.setRole(testRole);
+
+        Response mockResponse = mock(Response.class);
+        when(mockResponse.getStatus()).thenReturn(201);
+        when(keycloakAdminConfig.keyCloakBuilder()
+                .realm(anyString())
+                .users()
+                .create(any(UserRepresentation.class)))
+                .thenReturn(mockResponse);
+
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
 
         when(userMapper.toEntity(userDto)).thenReturn(newUser);
         when(userRepository.save(newUser)).thenReturn(newUser);

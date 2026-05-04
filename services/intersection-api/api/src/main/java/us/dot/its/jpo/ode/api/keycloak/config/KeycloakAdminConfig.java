@@ -14,7 +14,7 @@ public class KeycloakAdminConfig {
     private static final Logger logger = LoggerFactory.getLogger(KeycloakAdminConfig.class);
 
     @Value("${keycloak.realm}")
-    private String realm;
+    public String realm;
 
     @Value("${keycloak.client-id}")
     private String clientId;

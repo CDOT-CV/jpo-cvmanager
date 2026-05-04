@@ -2,8 +2,10 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
+import javax.ws.rs.core.Response;
+
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-
+import us.dot.its.jpo.ode.api.keycloak.config.KeycloakAdminConfig;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
@@ -40,6 +42,7 @@ public class UserManagementService {
     private final OrganizationRepository organizationRepository;
     private final UserMapper userMapper;
     private final UserPatchMapper userPatchMapper;
+    private final KeycloakAdminConfig keycloakAdminConfig;
 
     public UserDto getUser(String email) {
         return userMapper.toDto(userRepository.findByEmail(email).orElseThrow(
@@ -67,11 +70,34 @@ public class UserManagementService {
 
     @Transactional
     public User createUser(UserDto userDto) {
-        User user = userMapper.toEntity(userDto);
-        user.setCreatedTimestamp(System.currentTimeMillis());
-        user.setKeycloakId(UUID.randomUUID());
+        UserRepresentation kcUser = new UserRepresentation();
+        kcUser.setUsername(userDto.getEmail());
+        kcUser.setEmail(userDto.getEmail());
+        kcUser.setFirstName(userDto.getFirstName());
+        kcUser.setLastName(userDto.getLastName());
+        kcUser.setEnabled(true);
 
-        User createdUser = userRepository.save(user);
+        Response userCreationResponse = keycloakAdminConfig.keyCloakBuilder()
+                .realm(keycloakAdminConfig.realm)
+                .users()
+                .create(kcUser);
+        if (userCreationResponse.getStatus() != 201) {
+            if (userCreationResponse.getStatus() == 409) {
+                throw new UserEmailAlreadyExistsException(
+                        "A user with the email " + userDto.getEmail() + " already exists in keycloak.");
+            } else {
+                throw new RuntimeException("Failed to create user in Keycloak: " + userCreationResponse.getEntity());
+            }
+        }
+
+        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(
+                () -> new RuntimeException("Unable to complete creation of user with email: " + userDto.getEmail()));
+
+        // Add super user
+        if (userDto.getSuperUser()) {
+            createdUser.setSuperUser(true);
+            createdUser = userRepository.save(createdUser);
+        }
 
         var toCreate = new ArrayList<UserOrganization>();
         for (UserOrganizationDto userOrgDto : userDto.getOrganizations()) {
@@ -79,7 +105,7 @@ public class UserManagementService {
         }
         userOrganizationRepository.saveAll(toCreate);
 
-        return user;
+        return createdUser;
     }
 
     public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user) {
