@@ -54,6 +54,7 @@ class EmailServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserEmailNotificationMapper userEmailNotificationMapper;
+    @Mock
     private PermissionService permissionService;
     @Mock
     private SupportRequestEmailGenerator supportRequestEmailGenerator;

@@ -15,9 +15,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -25,6 +27,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
@@ -268,15 +275,48 @@ public class GlobalExceptionHandler {
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
-    @ExceptionHandler()
+    /**
+     * Handles malformed/invalid JSON request bodies.
+     * Covers Jackson errors such as:
+     * - MismatchedInputException
+     * - InvalidFormatException
+     * - UnrecognizedPropertyException
+     * - JsonParseException
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+
+        String message = "Request body is invalid or malformed JSON.";
+
+        if (root instanceof MismatchedInputException) {
+            message = "JSON structure does not match the expected request format.";
+        } else if (root instanceof InvalidFormatException ife) {
+            String field = ife.getPath().isEmpty() ? "unknown" : ife.getPath().get(0).getFieldName();
+            message = String.format("Invalid value for field '%s'.", field);
+        } else if (root instanceof UnrecognizedPropertyException upe) {
+            message = String.format("Unknown field '%s' in request body.", upe.getPropertyName());
+        } else if (root instanceof JsonParseException) {
+            message = "Malformed JSON syntax in request body.";
+        }
+
+        log.warn("Request body parse error: {}", root != null ? root.getMessage() : ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
+        return ErrorResponse.builder(ex, problemDetail).build();
+    }
+
+    @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleException(Exception ex) {
+    public ErrorResponse handleException(RuntimeException ex) {
         log.error("Unexpected server error:", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred. Please try again later.");
-        var errorRes = ErrorResponse.builder(ex, problemDetail);
-        return errorRes.build();
+        return ErrorResponse.builder(ex, problemDetail).build();
     }
 
     private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
