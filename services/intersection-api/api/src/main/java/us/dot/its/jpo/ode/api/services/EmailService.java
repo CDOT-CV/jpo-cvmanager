@@ -122,7 +122,7 @@ public class EmailService {
             Boolean isAdmin) {
         List<UserEmailNotification> userSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
-        List<EmailType> allSubscriptionTypes = filterNotificationTypesByRole(userEmail, isOperator, isAdmin,
+        List<EmailType> allSubscriptionTypes = filterNotificationTypesByRole(isOperator, isAdmin,
                 emailTypeRepository.findAll());
         return allSubscriptionTypes.stream().map(subType -> {
             for (UserEmailNotification subscribedType : userSubscriptions) {
@@ -134,7 +134,7 @@ public class EmailService {
         }).toList();
     }
 
-    private List<EmailType> filterNotificationTypesByRole(String userEmail, Boolean isOperator,
+    private List<EmailType> filterNotificationTypesByRole(Boolean isOperator,
             Boolean isAdmin, List<EmailType> notifications) {
         return notifications.stream()
                 .filter(notification -> {
