@@ -1,3 +1,5 @@
+BEGIN;
+
 -- Update public.email_type table definition
 -- omit NOT NULL constraint on required_role for now to allow for smooth transition, will set to NOT NULL after backfilling data
 ALTER TABLE public.email_type
@@ -33,3 +35,5 @@ WHERE email_type IN ('Daily Message Counts', 'Intersection Notification Summary'
 -- Make the column NOT NULL after setting all values
 ALTER TABLE public.email_type
 ALTER COLUMN required_role SET NOT NULL;
+
+COMMIT;
