@@ -49,6 +49,8 @@ public class PermissionService {
 
     /**
      * Gets the decoded token from the current security context.
+     * Throws an IllegalStateException if the authentication context is invalid or
+     * if the authentication token is not of type CvManagerAuthToken
      * 
      * @return CvManagerAuthToken containing user claims
      * @throws IllegalStateException if authentication is not valid
@@ -68,11 +70,6 @@ public class PermissionService {
 
     // Allow Connection if the user is a SuperUser
     public boolean isSuperUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         return authToken.isSuperUser();
     }
@@ -90,11 +87,6 @@ public class PermissionService {
      *         or is a superuser; otherwise, false
      */
     public boolean hasRole(UserRole role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -110,11 +102,6 @@ public class PermissionService {
     }
 
     public boolean hasRoleInOrgs(UserRole role, List<String> organizations) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -140,11 +127,6 @@ public class PermissionService {
      *         or if the user is a superuser; false otherwise
      */
     public boolean hasRoleInOrg(String organization, String role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -157,11 +139,6 @@ public class PermissionService {
     // Allow Connection if the users organization controls the specified
     // intersection
     public boolean hasIntersection(Integer intersectionID, String role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         // Must be null check first, otherwise throws null pointer exception (if null)
         if (intersectionID == null || intersectionID == -1) {
             return true;
@@ -204,11 +181,6 @@ public class PermissionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -244,11 +216,6 @@ public class PermissionService {
             }
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -262,11 +229,6 @@ public class PermissionService {
 
     // Allow Connection if the users organization(s) control the specified User
     public boolean hasUser(String email, String role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -290,11 +252,6 @@ public class PermissionService {
         List<String> distinctEmails = emails.stream().distinct().toList();
         if (distinctEmails.isEmpty()) {
             return true; // No emails to check, so allow connection
-        }
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
         }
 
         CvManagerAuthToken authToken = getCvManagerAuthToken();
@@ -330,11 +287,6 @@ public class PermissionService {
      *         {@code false} otherwise, including when authentication is invalid
      */
     public boolean hasRsuCredential(String nickname, String role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -363,11 +315,6 @@ public class PermissionService {
      *         {@code false} otherwise, including when authentication is invalid
      */
     public boolean hasSnmpCredential(String nickname, String role) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!isAuthValid(auth)) {
-            return false;
-        }
-
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
