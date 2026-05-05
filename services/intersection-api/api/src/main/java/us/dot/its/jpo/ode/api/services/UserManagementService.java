@@ -77,16 +77,18 @@ public class UserManagementService {
         kcUser.setLastName(userDto.getLastName());
         kcUser.setEnabled(true);
 
-        Response userCreationResponse = keycloakAdminConfig.keyCloakBuilder()
+        try (Response userCreationResponse = keycloakAdminConfig.keyCloakBuilder()
                 .realm(keycloakAdminConfig.getRealm())
                 .users()
-                .create(kcUser);
-        if (userCreationResponse.getStatus() != 201) {
-            if (userCreationResponse.getStatus() == 409) {
-                throw new UserEmailAlreadyExistsException(
-                        "A user with the email " + userDto.getEmail() + " already exists in keycloak.");
-            } else {
-                throw new RuntimeException("Failed to create user in Keycloak: " + userCreationResponse.getEntity());
+                .create(kcUser)) {
+            if (userCreationResponse.getStatus() != 201) {
+                if (userCreationResponse.getStatus() == 409) {
+                    throw new UserEmailAlreadyExistsException(
+                            "A user with the email " + userDto.getEmail() + " already exists in keycloak.");
+                } else {
+                    throw new RuntimeException(
+                            "Failed to create user in Keycloak: " + userCreationResponse.getEntity());
+                }
             }
         }
 
