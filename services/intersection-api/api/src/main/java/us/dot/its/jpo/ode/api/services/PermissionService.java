@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.services;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -59,14 +60,14 @@ public class PermissionService {
     public CvManagerAuthToken getCvManagerAuthToken() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthValid(auth)) {
-            throw new IllegalStateException("Invalid authentication context");
+            throw new AccessDeniedException("Authentication token not provided");
         }
 
         if (auth instanceof CvManagerAuthToken authToken) {
             return authToken;
         }
 
-        throw new IllegalStateException("Authentication is not a CvManagerAuthToken");
+        throw new AccessDeniedException("Invalid authentication token");
     }
 
     // Allow Connection if the user is a SuperUser
