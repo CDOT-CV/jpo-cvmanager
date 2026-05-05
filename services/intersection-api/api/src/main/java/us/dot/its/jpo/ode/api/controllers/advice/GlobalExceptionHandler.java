@@ -28,9 +28,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
@@ -293,13 +291,10 @@ public class GlobalExceptionHandler {
         String message = "Request body is invalid or malformed JSON.";
 
         if (root instanceof MismatchedInputException) {
+            // ex. "asdf", or {"asdf": "asdf"} for json body
             message = "JSON structure does not match the expected request format.";
-        } else if (root instanceof InvalidFormatException ife) {
-            String field = ife.getPath().isEmpty() ? "unknown" : ife.getPath().get(0).getFieldName();
-            message = String.format("Invalid value for field '%s'.", field);
-        } else if (root instanceof UnrecognizedPropertyException upe) {
-            message = String.format("Unknown field '%s' in request body.", upe.getPropertyName());
         } else if (root instanceof JsonParseException) {
+            // ex. {asdf} for json body
             message = "Malformed JSON syntax in request body.";
         }
 
@@ -308,9 +303,9 @@ public class GlobalExceptionHandler {
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
-    @ExceptionHandler(RuntimeException.class)
+    @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleException(RuntimeException ex) {
+    public ErrorResponse handleException(Exception ex) {
         log.error("Unexpected server error:", ex);
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
