@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -72,6 +73,46 @@ public class PermissionService {
     public boolean isSuperUser() {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         return authToken.isSuperUser();
+    }
+
+    /**
+     * Runs an organization-based permission check for the current user.
+     * Invalid authentication returns false. Super users are always allowed.
+     * If an Organization header was specified, then it will be verified to match
+     * the qualified orgs.
+     *
+     * @param role              required minimum role
+     * @param qualifiedOrgCheck check to perform against the user's qualified
+     *                          organizations
+     * @return true if the current user is authorized
+     */
+    private boolean checkQualifiedOrgs(String role, Predicate<List<String>> qualifiedOrgCheck) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
+
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
+
+        // Verify that organization header matches qualified orgs, if specified
+        String organization = getOrganizationFromHeader();
+        if (organization != null) {
+            if (!qualifiedOrgs.contains(organization)) {
+                // If an organization is specified in the header, ensure it's in the qualified
+                // orgs list
+                return false;
+            } else {
+                return qualifiedOrgCheck.test(List.of(organization));
+            }
+        } else {
+            return qualifiedOrgCheck.test(qualifiedOrgs);
+        }
     }
 
     /**
@@ -149,27 +190,10 @@ public class PermissionService {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
-
-        String organization = getOrganizationFromHeader();
-        if (organization != null) {
-            if (qualifiedOrgs.contains(organization)) {
-                return intersectionRepository.existsByIdAndOrganizations(
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> intersectionRepository.existsByIdAndOrganizations(
                         intersectionID.toString(),
-                        List.of(organization));
-            } else {
-                return false;
-            }
-        }
-
-        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
-            // No qualified organizations: deny access without hitting the repository
-            return false;
-        }
-
-        return intersectionRepository.existsByIdAndOrganizations(
-                intersectionID.toString(),
-                qualifiedOrgs);
+                        qualifiedOrgs));
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
@@ -181,28 +205,10 @@ public class PermissionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
         }
 
-        CvManagerAuthToken authToken = getCvManagerAuthToken();
-        if (authToken.isSuperUser()) {
-            return true;
-        }
-
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
-
-        String organization = getOrganizationFromHeader();
-        if (organization != null) {
-            if (qualifiedOrgs.contains(organization)) {
-                return rsuRepository.existsByIpAndOrganizations(ipv4Address, List.of(organization));
-            } else {
-                return false;
-            }
-        }
-
-        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
-            // No qualified organizations: deny access without hitting the repository
-            return false;
-        }
-
-        return rsuRepository.existsByIpAndOrganizations(ipv4Address, qualifiedOrgs);
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> rsuRepository.existsByIpAndOrganizations(
+                        ipv4Address,
+                        qualifiedOrgs));
     }
 
     // Allow Connection if the users organization controls the specified RSU unit
@@ -216,32 +222,23 @@ public class PermissionService {
             }
         }
 
-        CvManagerAuthToken authToken = getCvManagerAuthToken();
-        if (authToken.isSuperUser()) {
-            return true;
-        }
-
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
-
-        List<InetAddress> allowedRsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs);
-        return allowedRsuIps.containsAll(ipv4Addresses);
+        return checkQualifiedOrgs(role, qualifiedOrgs -> rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs)
+                .containsAll(ipv4Addresses));
     }
 
     // Allow Connection if the users organization(s) control the specified User
     public boolean hasUser(String email, String role) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
-        if (email == null || email.isBlank() || qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
-            // No valid email or no qualified organizations: deny access without hitting the
-            // repository
-            return false;
-        }
-
-        return userRepository.existsByEmailAndOrganizations(email, qualifiedOrgs);
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> userRepository.existsByEmailAndOrganizations(email, qualifiedOrgs));
     }
 
     // Allow Connection if the users organization(s) control the specified Users
@@ -254,18 +251,9 @@ public class PermissionService {
             return true; // No emails to check, so allow connection
         }
 
-        CvManagerAuthToken authToken = getCvManagerAuthToken();
-        if (authToken.isSuperUser()) {
-            return true;
-        }
-
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
-        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
-            // No qualified organizations: deny access without hitting the repository
-            return false;
-        }
-
-        return userRepository.allUsersExistInOrganizations(distinctEmails, qualifiedOrgs, distinctEmails.size());
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> userRepository.allUsersExistInOrganizations(distinctEmails, qualifiedOrgs,
+                        distinctEmails.size()));
     }
 
     /**
