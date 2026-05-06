@@ -78,11 +78,10 @@ public class UnsubscribeControllerTest {
     class GetAllSubscriptions {
 
         @Test
-        @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
-        void noPermissions_returns403() throws Exception {
-            // Spring Security filter runs before argument binding; unauthenticated → 403
+        @DisplayName("returns 400 when no token is provided")
+        void noToken_returns400() throws Exception {
             mockMvc.perform(get("/users/unsubscribe/email-subscriptions"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
@@ -127,6 +126,13 @@ public class UnsubscribeControllerTest {
     @Nested
     @DisplayName("POST /users/unsubscribe/email-subscriptions — update all subscriptions")
     class UpdateAllSubscriptions {
+
+        @Test
+        @DisplayName("returns 400 when no token is provided")
+        void noToken_returns400() throws Exception {
+            mockMvc.perform(post("/users/unsubscribe/email-subscriptions"))
+                    .andExpect(status().isBadRequest());
+        }
 
         @Test
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
