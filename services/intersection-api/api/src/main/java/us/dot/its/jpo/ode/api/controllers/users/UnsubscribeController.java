@@ -46,7 +46,7 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public EmailSubscriptionGetResponse getEmailSubscriptions(
-            @RequestParam(required = false) String token) {
+            @RequestParam() String token) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             throw new AccessDeniedException("Invalid or expired token");
@@ -70,7 +70,7 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public void updateEmailSubscriptions(
-            @RequestParam(required = false) String token,
+            @RequestParam() String token,
             @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
