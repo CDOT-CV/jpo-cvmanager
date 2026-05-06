@@ -11,6 +11,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface IntersectionOrganizationRepository extends JpaRepository<IntersectionOrganization, Integer> {
@@ -33,4 +34,13 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
             "WHERE io2.intersection.id = i.id AND io2.organization.name = :organizationName)")
     List<Intersection> findAllIntersectionsNotInOrganizationName(
             @Param("organizationName") String organizationName);
+
+    Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization_Name(
+            String intersectionNumber, String organizationName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber IN :intersectionNumbers AND io.organization.name = :orgName")
+    void deleteByIntersectionNumbersAndOrganizationName(@Param("intersectionNumbers") List<String> intersectionNumbers,
+            @Param("orgName") String orgName);
 }

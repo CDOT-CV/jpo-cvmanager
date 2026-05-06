@@ -33,6 +33,13 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
 
     Optional<UserOrganization> findByUserAndOrganization_Name(User user, String organizationName);
 
+    Optional<UserOrganization> findByUser_EmailAndOrganization_Name(String email, String organizationName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM UserOrganization uo WHERE uo.user.email IN :emails AND uo.organization.name = :orgName")
+    void deleteByUserEmailsAndOrganizationName(@Param("emails") List<String> emails, @Param("orgName") String orgName);
+
     @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.name = :organizationName")
     List<String> findAllUserEmailsByOrganizationName(@Param("organizationName") String organizationName);
 
