@@ -10,25 +10,20 @@ export interface GetUsersParams extends PaginatedQueryParams {
 }
 
 // Tag type constants
-const USER_API_USER_TAG = 'User' as const
-const USER_API_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
-const USER_API_USER_LIST_ID = 'LIST' as const
+export const USER_API_USER_TAG = 'User' as const
+export const USER_API_ALLOWED_SELECTIONS_TAG = 'AllowedSelections' as const
+export const USER_API_USER_LIST_ID = 'LIST' as const
 
 export const userApiSlice = createApi({
   reducerPath: 'userApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/users`,
-    prepareHeaders: (headers, { getState, endpoint }) => {
+    prepareHeaders: (headers, { getState }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
       headers.set('Accept', 'application/json')
-
-      // Endpoint names must match the keys in the endpoints objects below
-      const endpointsWithoutToken = []
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
-        headers.set('Authorization', `Bearer ${token}`)
-      }
+      headers.set('Authorization', `Bearer ${token}`)
 
       return headers
     },

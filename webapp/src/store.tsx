@@ -9,7 +9,6 @@ import adminAddIntersectionReducer from './features/adminAddIntersection/adminAd
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
 import adminOrganizationTabReducer from './features/adminOrganizationTab/adminOrganizationTabSlice'
 import adminOrganizationTabUserReducer from './features/adminOrganizationTabUser/adminOrganizationTabUserSlice'
-import adminOrganizationTabRsuReducer from './features/adminOrganizationTabRsu/adminOrganizationTabRsuSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
 import adminNotificationTabReducer from './features/adminNotificationTab/adminNotificationTabSlice'
 import adminAddNotificationReducer from './features/adminAddNotification/adminAddNotificationSlice'
@@ -21,12 +20,21 @@ import intersectionMapLayerStyleReducer from './features/intersections/map/map-l
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
 import { emailApiSlice } from './features/api/emailApiSlice'
 import { intersectionApiSlice } from './features/api/intersectionApiSlice'
-import { organizationApiSlice } from './features/api/organizationApiSlice'
+import {
+  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
+  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+  ORGANIZATION_API_RSU_LIST_TAG,
+  ORGANIZATION_API_RSU_TAG,
+  ORGANIZATION_API_USER_LIST_TAG,
+  ORGANIZATION_API_USER_TAG,
+  organizationApiSlice,
+} from './features/api/organizationApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
-import { rsuApiSlice } from './features/api/rsuApiSlice'
+import { RSU_API_RSU_TAG, rsuApiSlice } from './features/api/rsuApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
-import { userApiSlice } from './features/api/userApiSlice'
+import { USER_API_USER_TAG, userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { ADMIN_INTERSECTION_AVAILABLE_LIST_ID, ADMIN_INTERSECTION_TAG } from './features/api/adminIntersectionApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -44,7 +52,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       adminEditIntersection: adminEditIntersectionReducer,
       adminOrganizationTab: adminOrganizationTabReducer,
       adminOrganizationTabUser: adminOrganizationTabUserReducer,
-      adminOrganizationTabRsu: adminOrganizationTabRsuReducer,
       adminIntersectionTab: adminIntersectionTabReducer,
       adminNotificationTab: adminNotificationTabReducer,
       adminAddNotification: adminAddNotificationReducer,
@@ -80,7 +87,112 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(rsuApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
-        .concat(adminIntersectionApiSlice.middleware),
+        .concat(adminIntersectionApiSlice.middleware)
+        .concat((api) => (next) => (action) => {
+          const result = next(action)
+          // After any patchOrganization succeeds, invalidate adminIntersectionApiSlice
+          // caches so the available-intersections dropdown and org intersection lists refresh.
+          if (organizationApiSlice.endpoints.patchOrganization.matchFulfilled(action)) {
+            if (
+              action.meta.arg.originalArgs.intersections_to_add.length > 0 ||
+              action.meta.arg.originalArgs.intersections_to_remove.length > 0
+            ) {
+              api.dispatch(
+                adminIntersectionApiSlice.util.invalidateTags([
+                  // List of intersections not in org
+                  { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID },
+                  // Intersection info (includes organizations list)
+                  ...action.meta.arg.originalArgs.intersections_to_add.map((i) => ({
+                    type: ADMIN_INTERSECTION_TAG,
+                    id: i,
+                  })),
+                  // Intersection info (includes organizations list)
+                  ...action.meta.arg.originalArgs.intersections_to_remove.map((i) => ({
+                    type: ADMIN_INTERSECTION_TAG,
+                    id: i,
+                  })),
+                ])
+              )
+            }
+            if (
+              action.meta.arg.originalArgs.users_to_add.length > 0 ||
+              action.meta.arg.originalArgs.users_to_modify.length > 0 ||
+              action.meta.arg.originalArgs.users_to_remove.length > 0
+            ) {
+              api.dispatch(
+                userApiSlice.util.invalidateTags([
+                  // User info (includes organizations and roles list)
+                  ...action.meta.arg.originalArgs.users_to_add.map((u) => ({ type: USER_API_USER_TAG, id: u.email })),
+                  // User info (includes organizations and roles list)
+                  ...action.meta.arg.originalArgs.users_to_modify.map((u) => ({
+                    type: USER_API_USER_TAG,
+                    id: u.email,
+                  })),
+                  // User info (includes organizations and roles list)
+                  ...action.meta.arg.originalArgs.users_to_remove.map((u) => ({
+                    type: USER_API_USER_TAG,
+                    id: u,
+                  })),
+                ])
+              )
+              api.dispatch(
+                organizationApiSlice.util.invalidateTags([
+                  // List of users in org
+                  ORGANIZATION_API_USER_LIST_TAG,
+                  // List of available users in org
+                  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+                  // Organizations by user including role
+                  ...action.meta.arg.originalArgs.users_to_add.map((u) => ({
+                    type: ORGANIZATION_API_USER_TAG,
+                    id: u.email,
+                  })),
+                  // Organizations by user including role
+                  ...action.meta.arg.originalArgs.users_to_modify.map((u) => ({
+                    type: ORGANIZATION_API_USER_TAG,
+                    id: u.email,
+                  })),
+                  // Organizations by user including role
+                  ...action.meta.arg.originalArgs.users_to_remove.map((u) => ({
+                    type: ORGANIZATION_API_USER_TAG,
+                    id: u,
+                  })),
+                ])
+              )
+            }
+            if (
+              action.meta.arg.originalArgs.rsus_to_add.length > 0 ||
+              action.meta.arg.originalArgs.rsus_to_remove.length > 0
+            ) {
+              api.dispatch(
+                rsuApiSlice.util.invalidateTags([
+                  // Rsu info (includes organizations list)
+                  ...action.meta.arg.originalArgs.rsus_to_add.map((r) => ({ type: RSU_API_RSU_TAG, id: r })),
+                  // Rsu info (includes organizations list)
+                  ...action.meta.arg.originalArgs.rsus_to_remove.map((r) => ({
+                    type: RSU_API_RSU_TAG,
+                    id: r,
+                  })),
+                ])
+              )
+              api.dispatch(
+                organizationApiSlice.util.invalidateTags([
+                  // List of RSUs in org
+                  ORGANIZATION_API_RSU_LIST_TAG,
+                  // List of available RSUs in org
+                  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
+                  // Organizations by rsu
+                  ...action.meta.arg.originalArgs.rsus_to_add.map((r) => ({ type: ORGANIZATION_API_RSU_TAG, id: r })),
+                  // Organizations by rsu
+                  ...action.meta.arg.originalArgs.rsus_to_remove.map((r) => ({
+                    type: ORGANIZATION_API_RSU_TAG,
+                    id: r,
+                  })),
+                ])
+              )
+            }
+          }
+          return result
+        }),
     devTools: true,
   })
 }
