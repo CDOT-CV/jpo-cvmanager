@@ -1,16 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import {
-  selectSuccessMsg,
-
-  // actions
-  updateStates,
-  editOrganization,
-  setSuccessMsg,
-  selectLoading,
-} from './adminEditOrganizationSlice'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import toast from 'react-hot-toast'
 
 import '../adminRsuTab/Admin.css'
@@ -18,91 +9,93 @@ import 'react-widgets/styles.css'
 import '../../styles/fonts/museo-slab.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
-import {
-  AdminOrgSummary,
-  adminOrgPatch,
-  getOrgData,
-  selectOrgData,
-  selectSelectedOrg,
-  setSelectedOrg,
-} from '../adminOrganizationTab/adminOrganizationTabSlice'
+import { getOrgData } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Button, DialogActions, DialogContent, FormControl, TextField, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import { useGetOrganizationsQuery, usePatchOrganizationMutation } from '../api/organizationApiSlice'
+
+interface OrganizationFormData {
+  orig_name: string
+  name: string
+  email: string
+}
 
 const AdminEditOrganization = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const { orgName } = useParams<{ orgName: string }>()
+  const navigate = useNavigate()
+
+  const { data: organizations, isLoading } = useGetOrganizationsQuery()
+  const [patchOrganization, { isLoading: isPatching }] = usePatchOrganizationMutation()
+
+  const orgInfo = organizations?.find((o) => o.name === orgName)
 
   const [open, setOpen] = useState(true)
-  const successMsg = useSelector(selectSuccessMsg)
-  const selectedOrg = useSelector(selectSelectedOrg)
-  const orgData = useSelector(selectOrgData)
-  const loading = useSelector(selectLoading)
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-  } = useForm<adminOrgPatch>({
+    reset,
+  } = useForm<OrganizationFormData>({
     defaultValues: {
+      orig_name: '',
       name: '',
       email: '',
     },
   })
 
-  const { orgName } = useParams<{ orgName: string }>()
-  const navigate = useNavigate()
-
   useEffect(() => {
-    dispatch(getOrgData({ orgName }))
-  }, [orgName])
-
-  useEffect(() => {
-    const selectedOrg = (orgData ?? []).find((organization: AdminOrgSummary) => organization?.name === orgName)
-    dispatch(setSelectedOrg(selectedOrg))
-  }, [orgData])
-
-  useEffect(() => {
-    dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: undefined }))
-  }, [dispatch])
-
-  useEffect(() => {
-    if (selectedOrg) {
-      updateStates(setValue, selectedOrg?.name, selectedOrg?.email)
+    if (orgInfo) {
+      reset({
+        orig_name: orgInfo.name,
+        name: orgInfo.name,
+        email: orgInfo.email ?? '',
+      })
     }
-  }, [setValue, selectedOrg?.name, selectedOrg?.email, selectedOrg])
+  }, [orgInfo, reset])
 
-  const onSubmit = (data: adminOrgPatch) => {
-    dispatch(editOrganization({ json: data, setValue, selectedOrg: selectedOrg?.name })).then((data: any) => {
-      if (data.payload.success) {
-        toast.success(data.payload.message)
-      } else {
-        toast.error('Failed to apply changes to organization due to error: ' + data.payload.message)
-      }
-    })
+  const handleClose = () => {
     setOpen(false)
-    navigate('..')
+    navigate('/dashboard/admin/organizations')
   }
 
-  useEffect(() => {
-    if (successMsg) navigate('..')
-    dispatch(setSuccessMsg(''))
-  }, [successMsg])
+  const onSubmit = async (data: OrganizationFormData) => {
+    try {
+      await patchOrganization({
+        orig_name: data.orig_name,
+        name: data.name,
+        email: data.email,
+        users_to_add: [],
+        users_to_modify: [],
+        users_to_remove: [],
+        rsus_to_add: [],
+        rsus_to_remove: [],
+        intersections_to_add: [],
+        intersections_to_remove: [],
+      }).unwrap()
+      toast.success('Organization updated successfully')
+      // Keep the parent tab's Redux state fresh
+      dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: data.name }))
+      setOpen(false)
+      navigate('/dashboard/admin/organizations')
+    } catch (error: any) {
+      toast.error(
+        'Failed to update organization: ' +
+          (error?.data?.message || error?.message || error?.data?.detail || 'Unknown error')
+      )
+    }
+  }
 
   return (
-    <Dialog open={open}>
-      {selectedOrg && !loading ? (
+    <Dialog open={open} onClose={handleClose}>
+      {!isLoading && orgInfo ? (
         <>
           <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
-            <SideBarHeader
-              onClick={() => {
-                setOpen(false)
-                navigate('..')
-              }}
-              title="Edit Organization"
-            />
-            <Form id="admin-edit-org" onSubmit={handleSubmit((data) => onSubmit(data))}>
+            <SideBarHeader onClick={handleClose} title="Edit Organization" />
+            <Form id="admin-edit-org" onSubmit={handleSubmit(onSubmit)}>
               <Form.Group controlId="name">
                 <FormControl fullWidth margin="normal">
                   <TextField
@@ -120,6 +113,11 @@ const AdminEditOrganization = () => {
                       },
                     }}
                   />
+                  {errors.name && (
+                    <p className="errorMsg" role="alert">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </FormControl>
                 <FormControl fullWidth margin="normal">
                   <TextField
@@ -127,7 +125,6 @@ const AdminEditOrganization = () => {
                     placeholder="Enter Organization Email"
                     color="info"
                     variant="outlined"
-                    required
                     {...register('email')}
                     slotProps={{
                       inputLabel: {
@@ -136,20 +133,12 @@ const AdminEditOrganization = () => {
                     }}
                   />
                 </FormControl>
-                {errors.name && (
-                  <p className="errorMsg" role="alert">
-                    {errors.name.message}
-                  </p>
-                )}
               </Form.Group>
             </Form>
           </DialogContent>
           <DialogActions sx={{ padding: '20px' }}>
             <Button
-              onClick={() => {
-                setOpen(false)
-                navigate('/dashboard/admin/organizations')
-              }}
+              onClick={handleClose}
               variant="outlined"
               color="info"
               style={{ position: 'absolute', bottom: 10, left: 10 }}
@@ -161,23 +150,22 @@ const AdminEditOrganization = () => {
               form="admin-edit-org"
               type="submit"
               variant="contained"
+              disabled={isPatching}
               style={{ position: 'absolute', bottom: 10, right: 10 }}
               className="museo-slab capital-case"
             >
-              Apply Changes
+              {isPatching ? 'Saving...' : 'Apply Changes'}
             </Button>
           </DialogActions>
         </>
       ) : (
-        !loading && (
-          <Dialog open={open}>
-            <DialogContent>
-              <Typography variant={'h4'}>
-                Unknown organization. Either this organization does not exist, or you do not have access to it.{' '}
-                <Link to="../">Organizations</Link>
-              </Typography>
-            </DialogContent>
-          </Dialog>
+        !isLoading && (
+          <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
+            <Typography variant={'h4'}>
+              Unknown organization. Either this organization does not exist, or you do not have access to it.{' '}
+              <Link to="../">Organizations</Link>
+            </Typography>
+          </DialogContent>
         )
       )}
     </Dialog>

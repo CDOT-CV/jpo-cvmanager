@@ -11,20 +11,18 @@ export const ORGANIZATION_API_RSU_TAG = 'Rsu' as const
 export const ORGANIZATION_API_USER_LIST_TAG = 'UserList' as const
 export const ORGANIZATION_API_AVAILABLE_USER_LIST_TAG = 'AvailableUserList' as const
 export const ORGANIZATION_API_USER_TAG = 'User' as const
+export const ORGANIZATION_API_ORG_TAG = 'Organization' as const
+export const ORGANIZATION_API_ORG_LIST_ID = 'LIST' as const
 
 export const organizationApiSlice = createApi({
   reducerPath: 'organizationApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/organizations`,
-    prepareHeaders: (headers, { getState, endpoint }) => {
+    prepareHeaders: (headers, { getState }) => {
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
-      // Endpoint names must match the keys in the endpoints objects below
-      const endpointsWithoutToken = []
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
-        headers.set('Authorization', `Bearer ${token}`)
-      }
+      headers.set('Authorization', `Bearer ${token}`)
 
       return headers
     },
@@ -36,6 +34,7 @@ export const organizationApiSlice = createApi({
     ORGANIZATION_API_USER_LIST_TAG,
     ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
     ORGANIZATION_API_USER_TAG,
+    ORGANIZATION_API_ORG_TAG,
   ],
   endpoints: (builder) => ({
     getAllRsuIpsInOrganization: builder.query<string[], string>({
@@ -98,6 +97,30 @@ export const organizationApiSlice = createApi({
       },
       providesTags: [ORGANIZATION_API_AVAILABLE_USER_LIST_TAG],
     }),
+    getOrganizations: builder.query<OrganizationDto[], void>({
+      query: () => ({
+        url: '',
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ name }) => ({ type: ORGANIZATION_API_ORG_TAG, id: name })),
+              { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
+            ]
+          : [{ type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID }],
+    }),
+    patchOrganization: builder.mutation<OrganizationDto, OrganizationPatch>({
+      query: (patch) => ({
+        url: '',
+        method: 'PATCH',
+        body: patch,
+      }),
+      invalidatesTags: (result, error, { orig_name, name }) => [
+        { type: ORGANIZATION_API_ORG_TAG, id: orig_name },
+        { type: ORGANIZATION_API_ORG_TAG, id: name },
+        { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
+      ],
+    }),
   }),
 })
 
@@ -114,4 +137,7 @@ export const {
   useLazyGetAllUsersNotInOrganizationQuery,
   useGetUserOrganizationsQuery,
   useLazyGetUserOrganizationsQuery,
+  useGetOrganizationsQuery,
+  useLazyGetOrganizationsQuery,
+  usePatchOrganizationMutation,
 } = organizationApiSlice
