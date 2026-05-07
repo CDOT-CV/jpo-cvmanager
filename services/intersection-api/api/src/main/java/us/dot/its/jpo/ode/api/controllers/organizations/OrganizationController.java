@@ -181,4 +181,19 @@ public class OrganizationController {
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Operation(summary = "Delete Organization", description = "Deletes an organization and all its junction-table relationships. Refuses deletion if any RSU, intersection, or user would become orphaned.")
+    @RequestMapping(path = "/{orgName}", method = RequestMethod.DELETE, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#orgName, 'ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Success"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role in the target organization"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Organization not found"),
+            @ApiResponse(responseCode = "409", description = "Conflict - Organization has RSUs, intersections, or users that would become orphaned"),
+    })
+    public ResponseEntity<Void> deleteOrganization(
+            @Parameter(description = "Organization name", example = "TestOrg", required = true) @PathVariable(name = "orgName") String orgName) {
+        organizationManagementService.deleteOrganization(orgName);
+        return ResponseEntity.noContent().build();
+    }
 }

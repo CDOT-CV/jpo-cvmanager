@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -692,6 +693,81 @@ class OrganizationControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0].email").value("user@example.com"));
+        }
+    }
+
+    // ==================== DELETE /organizations/{orgName} ====================
+
+    @Nested
+    @DisplayName("DELETE /organizations/{orgName} \u2014 deleteOrganization")
+    class DeleteOrganization {
+
+        @Test
+        @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
+        void noPermissions_returns403() throws Exception {
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 403 when authenticated but isSuperUser and hasRoleInOrg both return false")
+        void authenticated_insufficientPermissions_returns403() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(false);
+
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 204 when isSuperUser returns true and deletion succeeds")
+        void superUser_returns204() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(true);
+
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isNoContent());
+
+            verify(organizationManagementService).deleteOrganization("TestOrg");
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 204 when hasRoleInOrg returns true (non-superuser path)")
+        void adminInOrg_returns204() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(true);
+
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isNoContent());
+
+            verify(organizationManagementService).deleteOrganization("TestOrg");
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 404 when service throws ResponseStatusException with NOT_FOUND")
+        void orgNotFound_returns404() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(true);
+            doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: TestOrg"))
+                    .when(organizationManagementService).deleteOrganization("TestOrg");
+
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @WithMockUser
+        @DisplayName("returns 409 when service throws OrganizationHasDependentsException")
+        void hasDependents_returns409() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(true);
+            doThrow(new OrganizationManagementService.OrganizationHasDependentsException(
+                    "Cannot delete organization that has one or more RSUs only associated with this organization"))
+                    .when(organizationManagementService).deleteOrganization("TestOrg");
+
+            mockMvc.perform(delete("/organizations/TestOrg"))
+                    .andExpect(status().isConflict());
         }
     }
 }

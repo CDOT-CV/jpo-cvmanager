@@ -43,4 +43,15 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
     @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber IN :intersectionNumbers AND io.organization.name = :orgName")
     void deleteByIntersectionNumbersAndOrganizationName(@Param("intersectionNumbers") List<String> intersectionNumbers,
             @Param("orgName") String orgName);
+
+    @Query("SELECT CASE WHEN COUNT(io) > 0 THEN true ELSE false END "
+            + "FROM IntersectionOrganization io "
+            + "WHERE io.organization.name = :orgName "
+            + "AND (SELECT COUNT(io2) FROM IntersectionOrganization io2 WHERE io2.intersection.id = io.intersection.id) = 1")
+    boolean existsOrphanIntersectionInOrganization(@Param("orgName") String orgName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.organization.name = :orgName")
+    void deleteAllByOrganizationName(@Param("orgName") String orgName);
 }

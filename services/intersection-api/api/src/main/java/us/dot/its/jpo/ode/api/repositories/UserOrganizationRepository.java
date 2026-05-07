@@ -47,4 +47,13 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
             "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.name = :organizationName)")
     List<User> findAllUserEmailsNotInOrganizationName(
             @Param("organizationName") String organizationName);
-}
+    @Query("SELECT CASE WHEN COUNT(uo) > 0 THEN true ELSE false END "
+            + "FROM UserOrganization uo "
+            + "WHERE uo.organization.name = :orgName "
+            + "AND (SELECT COUNT(uo2) FROM UserOrganization uo2 WHERE uo2.user.id = uo.user.id) = 1")
+    boolean existsOrphanUserInOrganization(@Param("orgName") String orgName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM UserOrganization uo WHERE uo.organization.name = :orgName")
+    void deleteAllByOrganizationName(@Param("orgName") String orgName);}

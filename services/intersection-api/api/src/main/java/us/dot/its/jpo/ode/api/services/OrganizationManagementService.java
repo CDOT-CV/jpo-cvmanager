@@ -141,6 +141,46 @@ public class OrganizationManagementService {
         return organizationMapper.toDto(savedOrg);
     }
 
+    /**
+     * Deletes an organization and all its junction-table relationships.
+     * Refuses deletion if any RSU, intersection, or user would become orphaned
+     * (i.e., associated with no organization after the delete).
+     *
+     * @param orgName the name of the organization to delete
+     * @throws ResponseStatusException            with 404 if the organization does
+     *                                            not exist
+     * @throws OrganizationHasDependentsException with 409 if orphaned RSUs,
+     *                                            intersections, or users would
+     *                                            result
+     */
+    @Transactional
+    public void deleteOrganization(String orgName) {
+        Organization org = organizationRepository.findByName(orgName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Organization not found: " + orgName));
+
+        if (rsuOrganizationRepository.existsOrphanRsuInOrganization(orgName)) {
+            throw new OrganizationHasDependentsException(
+                    "Cannot delete organization that has one or more RSUs only associated with this organization");
+        }
+
+        if (intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(orgName)) {
+            throw new OrganizationHasDependentsException(
+                    "Cannot delete organization that has one or more Intersections only associated with this organization");
+        }
+
+        if (userOrganizationRepository.existsOrphanUserInOrganization(orgName)) {
+            throw new OrganizationHasDependentsException(
+                    "Cannot delete organization that has one or more users only associated with this organization");
+        }
+
+        userOrganizationRepository.deleteAllByOrganizationName(orgName);
+        rsuOrganizationRepository.deleteAllByOrganizationName(orgName);
+        intersectionOrganizationRepository.deleteAllByOrganizationName(orgName);
+        organizationRepository.delete(org);
+        log.debug("Organization '{}' deleted", orgName);
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
@@ -343,6 +383,12 @@ public class OrganizationManagementService {
         return ipStrings.stream()
                 .map(this::resolveIpAddress)
                 .toList();
+    }
+
+    public static class OrganizationHasDependentsException extends RuntimeException {
+        public OrganizationHasDependentsException(String message) {
+            super(message);
+        }
     }
 
     private InetAddress resolveIpAddress(String ipString) {

@@ -44,6 +44,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import org.mockito.InOrder;
+
 @ExtendWith(MockitoExtension.class)
 class OrganizationManagementServiceTest {
 
@@ -876,5 +878,103 @@ class OrganizationManagementServiceTest {
 
         verify(intersectionOrganizationRepository).deleteByIntersectionNumbersAndOrganizationName(
                 List.of("1001", "1002"), "TestOrg");
+    }
+
+    // =========================================================================
+    // deleteOrganization
+    // =========================================================================
+
+    @Test
+    void testDeleteOrganization_OrgNotFound_ThrowsNotFound() {
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.deleteOrganization("TestOrg"));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(rsuOrganizationRepository, never()).existsOrphanRsuInOrganization(any());
+        verify(organizationRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteOrganization_OrphanRsu_ThrowsConflict() {
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.deleteOrganization("TestOrg"));
+
+        assertTrue(ex.getMessage().contains("RSU"));
+        verify(intersectionOrganizationRepository, never()).existsOrphanIntersectionInOrganization(any());
+        verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
+        verify(organizationRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteOrganization_OrphanIntersection_ThrowsConflict() {
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.deleteOrganization("TestOrg"));
+
+        assertTrue(ex.getMessage().contains("Intersection"));
+        verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
+        verify(organizationRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteOrganization_OrphanUser_ThrowsConflict() {
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.deleteOrganization("TestOrg"));
+
+        assertTrue(ex.getMessage().contains("user"));
+        verify(organizationRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteOrganization_NoOrphans_DeletesJunctionTablesAndOrg() {
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(false);
+
+        service.deleteOrganization("TestOrg");
+
+        verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        verify(organizationRepository).delete(testOrg);
+    }
+
+    @Test
+    void testDeleteOrganization_NoOrphans_JunctionTablesDeletedBeforeOrg() {
+        // Verify deletion order: junction tables first, then org record
+        InOrder inOrder = inOrder(
+                userOrganizationRepository,
+                rsuOrganizationRepository,
+                intersectionOrganizationRepository,
+                organizationRepository);
+
+        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(false);
+
+        service.deleteOrganization("TestOrg");
+
+        inOrder.verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        inOrder.verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        inOrder.verify(organizationRepository).delete(testOrg);
     }
 }
