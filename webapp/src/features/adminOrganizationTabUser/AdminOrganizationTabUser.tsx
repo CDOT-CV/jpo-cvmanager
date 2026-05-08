@@ -9,17 +9,6 @@ import { DropdownList, Multiselect } from 'react-widgets'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import {
-  selectSelectedUserList,
-
-  // actions
-  userDeleteSingle,
-  userDeleteMultiple,
-  userAddMultiple,
-  userBulkEdit as userBulkEditAction,
-  setSelectedUserRole,
-  setSelectedUserList,
-} from './adminOrganizationTabUserSlice'
-import {
   selectAuthLoginData,
   selectEmail,
   selectLoadingGlobal,
@@ -28,15 +17,17 @@ import {
 import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
 import { Action, Column } from '@material-table/core'
-import { AdminOrgUser, selectSelectedOrgName } from '../adminOrganizationTab/adminOrganizationTabSlice'
+import { AdminOrgUser } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 
 import { useTheme } from '@mui/material'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
-import { useGetAllUsersNotInOrganizationQuery } from '../api/organizationApiSlice'
+import {
+  useGetAllUsersNotInOrganizationQuery,
+  useLazyGetUserOrganizationsQuery,
+  usePatchOrganizationMutation,
+} from '../api/organizationApiSlice'
 import { useGetUserAllowedSelectionsQuery } from '../api/userApiSlice'
 
 interface AdminOrganizationTabUserProps {
@@ -47,17 +38,18 @@ interface AdminOrganizationTabUserProps {
 }
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
-  const { selectedOrg } = props
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const { selectedOrg, selectedOrgEmail } = props
+  const dispatch = useDispatch()
   const theme = useTheme()
-  const organizationName = useSelector(selectSelectedOrgName)
 
-  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(organizationName, {
-    skip: !organizationName, // Skip if no organization selected
+  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrg, {
+    skip: !selectedOrg,
   })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
+  const [patchOrganization] = usePatchOrganizationMutation()
+  const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
 
-  const selectedUserList = useSelector(selectSelectedUserList)
+  const [selectedUserList, setSelectedUserList] = useState<AdminOrgUser[]>([])
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const authLoginData = useSelector(selectAuthLoginData)
   const userEmail = useSelector(selectEmail)
@@ -90,11 +82,17 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         itemType: 'rowAction',
       },
       position: 'row',
-      onClick: (event, rowData: AdminOrgUser) => {
+      onClick: (event, rowData: AdminOrgUser | AdminOrgUser[]) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => userOnDelete(rowData),
+            onClick: () => {
+              if (Array.isArray(rowData)) {
+                userMultiDelete(rowData)
+              } else {
+                userOnDelete(rowData)
+              }
+            },
           },
           {
             label: 'No',
@@ -103,7 +101,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         ]
         const alertOptions = Options(
           'Delete User',
-          'Are you sure you want to delete "' + rowData.email + '" from ' + props.selectedOrg + ' organization?',
+          'Are you sure you want to delete "' +
+            (Array.isArray(rowData) ? rowData.map((user) => user.email).join(', ') : rowData.email) +
+            '" from ' +
+            selectedOrg +
+            ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -116,11 +118,17 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminOrgUser[]) => {
+      onClick: (event, rowData: AdminOrgUser | AdminOrgUser[]) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => userMultiDelete(rowData),
+            onClick: () => {
+              if (Array.isArray(rowData)) {
+                userMultiDelete(rowData)
+              } else {
+                userOnDelete(rowData)
+              }
+            },
           },
           {
             label: 'No',
@@ -129,7 +137,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         ]
         const alertOptions = Options(
           'Delete Selected Users',
-          'Are you sure you want to delete ' + rowData.length + ' users from ' + props.selectedOrg + ' organization?',
+          'Are you sure you want to delete ' +
+            (Array.isArray(rowData) ? rowData.length : 1) +
+            ' user(s) from ' +
+            selectedOrg +
+            ' organization?',
           buttons
         )
         confirmAlert(alertOptions)
@@ -148,7 +160,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           placeholder="Click to add users"
           data={availableUserList}
           value={selectedUserList}
-          onChange={(value) => dispatch(setSelectedUserList(value))}
+          onChange={(value) => handleUserSelectionChange(value as AdminUser[])}
           style={{
             fontSize: '1rem',
           }}
@@ -187,50 +199,105 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   }
 
   useEffect(() => {
-    dispatch(setSelectedUserList([]))
-  }, [selectedOrg, dispatch])
+    setSelectedUserList([])
+  }, [selectedOrg])
+
+  const handleUserSelectionChange = (value: AdminUser[]) => {
+    setSelectedUserList(
+      value.map((user) => ({
+        ...user,
+        role: '',
+        organizations: user.organizations.map((org) => ({ name: org.organization, role: org.role })),
+      }))
+    )
+  }
+
+  const handleUserRoleChange = (email: string, role: string) => {
+    setSelectedUserList((prev) => prev.map((u) => (u.email === email ? { ...u, role } : u)))
+  }
 
   const userOnDelete = async (row: AdminOrgUser) => {
-    dispatch(
-      userDeleteSingle({
-        user: row,
-        selectedOrg: props.selectedOrg,
-        selectedOrgEmail: props.selectedOrgEmail,
-        updateTableData: props.updateTableData,
-      })
-    ).then((data) => {
-      if (!(data.payload as any).success) {
-        toast.error((data.payload as any).message)
+    const loadingToast = toast.loading(`Deleting User ${row.email}...`)
+    try {
+      const userOrgs = await getUserOrganizations(row.email).unwrap()
+      if (userOrgs.length > 1) {
+        await patchOrganization({
+          orig_name: selectedOrg,
+          name: selectedOrg,
+          email: selectedOrgEmail,
+          users_to_remove: [row.email],
+          users_to_add: [],
+          users_to_modify: [],
+          rsus_to_add: [],
+          rsus_to_remove: [],
+          intersections_to_add: [],
+          intersections_to_remove: [],
+        }).unwrap()
+        props.updateTableData(selectedOrg)
+        if (row.email === authLoginData?.data?.email) {
+          dispatch(setOrganizationList({ value: { name: selectedOrg, role: row.role }, type: 'delete' }))
+        }
+        toast.success('User deleted successfully', { id: loadingToast })
       } else {
-        toast.success((data.payload as any).message)
+        toast.dismiss(loadingToast)
+        alert(
+          'Cannot remove User ' +
+            row.email +
+            ' from ' +
+            selectedOrg +
+            ' because they must belong to at least one organization.'
+        )
       }
-    })
-
-    if (row.email === authLoginData?.data?.email) {
-      dispatch(setOrganizationList({ value: { name: props.selectedOrg, role: row.role }, type: 'delete' }))
+    } catch (error) {
+      toast.error('Failed to delete User due to error: ' + error, { id: loadingToast })
     }
   }
 
   const userMultiDelete = async (rows: AdminOrgUser[]) => {
-    dispatch(
-      userDeleteMultiple({
-        users: rows,
-        selectedOrg: props.selectedOrg,
-        selectedOrgEmail: props.selectedOrgEmail,
-        updateTableData: props.updateTableData,
-      })
-    ).then((data) => {
-      if (!(data.payload as any).success) {
-        toast.error((data.payload as any).message)
-      } else {
-        toast.success((data.payload as any).message)
+    const loadingToast = toast.loading(`Deleting ${rows.length} User(s)...`)
+    try {
+      const invalidUsers: string[] = []
+      const validEmails: string[] = []
+      for (const user of rows) {
+        const userOrgs = await getUserOrganizations(user.email).unwrap()
+        if (userOrgs.length > 1) {
+          validEmails.push(user.email)
+        } else {
+          invalidUsers.push(user.email)
+        }
       }
-    })
-
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].email === authLoginData?.data?.email) {
-        dispatch(setOrganizationList({ value: { name: props.selectedOrg, role: rows[i].role }, type: 'delete' }))
+      if (invalidUsers.length > 0) {
+        toast.dismiss(loadingToast)
+        alert(
+          'Cannot remove User(s) ' +
+            invalidUsers.join(', ') +
+            ' from ' +
+            selectedOrg +
+            ' because they must belong to at least one organization.'
+        )
+        return
       }
+      await patchOrganization({
+        orig_name: selectedOrg,
+        name: selectedOrg,
+        email: selectedOrgEmail,
+        users_to_remove: validEmails,
+        users_to_add: [],
+        users_to_modify: [],
+        rsus_to_add: [],
+        rsus_to_remove: [],
+        intersections_to_add: [],
+        intersections_to_remove: [],
+      }).unwrap()
+      props.updateTableData(selectedOrg)
+      for (const user of rows) {
+        if (user.email === authLoginData?.data?.email) {
+          dispatch(setOrganizationList({ value: { name: selectedOrg, role: user.role }, type: 'delete' }))
+        }
+      }
+      toast.success('User(s) deleted successfully', { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to delete User(s) due to error: ' + error, { id: loadingToast })
     }
   }
 
@@ -239,25 +306,35 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       toast.error('Please select users to add')
       return
     }
-    dispatch(
-      userAddMultiple({
-        userList,
-        selectedOrg: props.selectedOrg,
-        selectedOrgEmail: props.selectedOrgEmail,
-        updateTableData: props.updateTableData,
-      })
-    ).then((data) => {
-      if (!(data.payload as any).success) {
-        toast.error((data.payload as any).message)
-      } else {
-        toast.success((data.payload as any).message)
+    const missingRole = userList.find((u) => !u.role)
+    if (missingRole) {
+      toast.error('Please select a role for all users to add')
+      return
+    }
+    const loadingToast = toast.loading(`Adding ${userList.length} User(s)...`)
+    try {
+      await patchOrganization({
+        orig_name: selectedOrg,
+        name: selectedOrg,
+        email: selectedOrgEmail,
+        users_to_add: userList.map((u) => ({ email: u.email, role: u.role })),
+        users_to_remove: [],
+        users_to_modify: [],
+        rsus_to_add: [],
+        rsus_to_remove: [],
+        intersections_to_add: [],
+        intersections_to_remove: [],
+      }).unwrap()
+      setSelectedUserList([])
+      props.updateTableData(selectedOrg)
+      for (const user of userList) {
+        if (user.email === authLoginData?.data?.email) {
+          dispatch(setOrganizationList({ value: { name: selectedOrg, role: user.role }, type: 'add' }))
+        }
       }
-    })
-
-    for (let i = 0; i < userList.length; i++) {
-      if (userList[i].email === authLoginData?.data?.email) {
-        dispatch(setOrganizationList({ value: { name: props.selectedOrg, role: userList[i].role }, type: 'add' }))
-      }
+      toast.success('User(s) added successfully', { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to add User(s) due to error: ' + error, { id: loadingToast })
     }
   }
 
@@ -270,21 +347,37 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       }
     >
   ) => {
-    dispatch(
-      userBulkEditAction({
-        json,
-        selectedUser: userEmail,
-        selectedOrg: props.selectedOrg,
-        selectedOrgEmail: props.selectedOrgEmail,
-        updateTableData: props.updateTableData,
-      })
-    ).then((data) => {
-      if (!(data.payload as any).success) {
-        toast.error((data.payload as any).message)
-      } else {
-        toast.success((data.payload as any).message)
+    const loadingToast = toast.loading('Updating User(s)...')
+    try {
+      const rows = Object.values(json)
+      await patchOrganization({
+        orig_name: selectedOrg,
+        name: selectedOrg,
+        email: selectedOrgEmail,
+        users_to_modify: rows.map((r) => ({ email: r.newData.email, role: r.newData.role })),
+        users_to_add: [],
+        users_to_remove: [],
+        rsus_to_add: [],
+        rsus_to_remove: [],
+        intersections_to_add: [],
+        intersections_to_remove: [],
+      }).unwrap()
+      for (const row of rows) {
+        if (row.newData.email === userEmail) {
+          dispatch(
+            setOrganizationList({
+              value: { name: selectedOrg, role: row.newData.role },
+              orgName: selectedOrg,
+              type: 'update',
+            })
+          )
+        }
       }
-    })
+      props.updateTableData(selectedOrg)
+      toast.success('User(s) updated successfully', { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to update User(s) due to error: ' + error, { id: loadingToast })
+    }
   }
 
   return (
@@ -307,7 +400,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
                       data={allowedSelections?.roles || []}
                       value={user}
                       onChange={(value) => {
-                        dispatch(setSelectedUserRole({ email: user.email, role: value }))
+                        handleUserRoleChange(user.email, value)
                       }}
                     />
                   </div>

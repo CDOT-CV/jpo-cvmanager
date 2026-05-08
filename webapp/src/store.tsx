@@ -8,7 +8,6 @@ import adminAddOrganizationReducer from './features/adminAddOrganization/adminAd
 import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
 import adminOrganizationTabReducer from './features/adminOrganizationTab/adminOrganizationTabSlice'
-import adminOrganizationTabUserReducer from './features/adminOrganizationTabUser/adminOrganizationTabUserSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
 import adminNotificationTabReducer from './features/adminNotificationTab/adminNotificationTabSlice'
 import adminAddNotificationReducer from './features/adminAddNotification/adminAddNotificationSlice'
@@ -20,15 +19,7 @@ import intersectionMapLayerStyleReducer from './features/intersections/map/map-l
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
 import { emailApiSlice } from './features/api/emailApiSlice'
 import { intersectionApiSlice } from './features/api/intersectionApiSlice'
-import {
-  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
-  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
-  ORGANIZATION_API_RSU_LIST_TAG,
-  ORGANIZATION_API_RSU_TAG,
-  ORGANIZATION_API_USER_LIST_TAG,
-  ORGANIZATION_API_USER_TAG,
-  organizationApiSlice,
-} from './features/api/organizationApiSlice'
+import { organizationApiSlice } from './features/api/organizationApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
 import { RSU_API_RSU_TAG, rsuApiSlice } from './features/api/rsuApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
@@ -51,7 +42,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       adminAddIntersection: adminAddIntersectionReducer,
       adminEditIntersection: adminEditIntersectionReducer,
       adminOrganizationTab: adminOrganizationTabReducer,
-      adminOrganizationTabUser: adminOrganizationTabUserReducer,
       adminIntersectionTab: adminIntersectionTabReducer,
       adminNotificationTab: adminNotificationTabReducer,
       adminAddNotification: adminAddNotificationReducer,
@@ -135,29 +125,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
                   })),
                 ])
               )
-              api.dispatch(
-                organizationApiSlice.util.invalidateTags([
-                  // List of users in org
-                  ORGANIZATION_API_USER_LIST_TAG,
-                  // List of available users in org
-                  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
-                  // Organizations by user including role
-                  ...action.meta.arg.originalArgs.users_to_add.map((u) => ({
-                    type: ORGANIZATION_API_USER_TAG,
-                    id: u.email,
-                  })),
-                  // Organizations by user including role
-                  ...action.meta.arg.originalArgs.users_to_modify.map((u) => ({
-                    type: ORGANIZATION_API_USER_TAG,
-                    id: u.email,
-                  })),
-                  // Organizations by user including role
-                  ...action.meta.arg.originalArgs.users_to_remove.map((u) => ({
-                    type: ORGANIZATION_API_USER_TAG,
-                    id: u,
-                  })),
-                ])
-              )
             }
             if (
               action.meta.arg.originalArgs.rsus_to_add.length > 0 ||
@@ -170,21 +137,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
                   // Rsu info (includes organizations list)
                   ...action.meta.arg.originalArgs.rsus_to_remove.map((r) => ({
                     type: RSU_API_RSU_TAG,
-                    id: r,
-                  })),
-                ])
-              )
-              api.dispatch(
-                organizationApiSlice.util.invalidateTags([
-                  // List of RSUs in org
-                  ORGANIZATION_API_RSU_LIST_TAG,
-                  // List of available RSUs in org
-                  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
-                  // Organizations by rsu
-                  ...action.meta.arg.originalArgs.rsus_to_add.map((r) => ({ type: ORGANIZATION_API_RSU_TAG, id: r })),
-                  // Organizations by rsu
-                  ...action.meta.arg.originalArgs.rsus_to_remove.map((r) => ({
-                    type: ORGANIZATION_API_RSU_TAG,
                     id: r,
                   })),
                 ])

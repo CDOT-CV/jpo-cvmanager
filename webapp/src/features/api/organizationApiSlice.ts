@@ -115,10 +115,27 @@ export const organizationApiSlice = createApi({
         method: 'PATCH',
         body: patch,
       }),
-      invalidatesTags: (result, error, { orig_name, name }) => [
-        { type: ORGANIZATION_API_ORG_TAG, id: orig_name },
-        { type: ORGANIZATION_API_ORG_TAG, id: name },
+      invalidatesTags: (result, error, vars) => [
+        { type: ORGANIZATION_API_ORG_TAG, id: vars.orig_name },
+        { type: ORGANIZATION_API_ORG_TAG, id: vars.name },
         { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
+        ...(vars.rsus_to_add.length > 0 || vars.rsus_to_remove.length > 0
+          ? [
+              ORGANIZATION_API_RSU_LIST_TAG,
+              ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
+              ...vars.rsus_to_add.map((ip) => ({ type: ORGANIZATION_API_RSU_TAG, id: ip })),
+              ...vars.rsus_to_remove.map((ip) => ({ type: ORGANIZATION_API_RSU_TAG, id: ip })),
+            ]
+          : []),
+        ...(vars.users_to_add.length > 0 || vars.users_to_remove.length > 0 || vars.users_to_modify.length > 0
+          ? [
+              ORGANIZATION_API_USER_LIST_TAG,
+              ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+              ...vars.users_to_add.map(({ email }) => ({ type: ORGANIZATION_API_USER_TAG, id: email })),
+              ...vars.users_to_remove.map((email) => ({ type: ORGANIZATION_API_USER_TAG, id: email })),
+              ...vars.users_to_modify.map(({ email }) => ({ type: ORGANIZATION_API_USER_TAG, id: email })),
+            ]
+          : []),
       ],
     }),
   }),
