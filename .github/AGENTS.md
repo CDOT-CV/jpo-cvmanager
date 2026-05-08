@@ -22,10 +22,7 @@
 ```sh
 cd webapp
 npm ci               # install dependencies
-npm run dev          # start dev server (Vite)
 npm test             # typecheck + vitest
-npm run test:coverage
-npm run lint
 npm run typecheck    # tsc --noEmit only
 ```
 
@@ -35,6 +32,14 @@ npm run typecheck    # tsc --noEmit only
 cd services
 python -m pip install -r requirements.txt
 python -m pytest -v  # uses pytest.ini; sets PYTHONPATH for all sub-services
+```
+
+### Java services
+
+```sh
+cd services/intersection-api/api
+mvn clean install
+mvn test
 ```
 
 ### Full stack (Docker)
