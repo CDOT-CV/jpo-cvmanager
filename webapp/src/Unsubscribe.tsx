@@ -8,7 +8,7 @@ const Unsubscribe = () => {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
 
-  // Filter categories based on admin status
+  // Fetch the current email subscriptions for the unsubscribe token
   const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery(token)
   const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
 
