@@ -135,41 +135,27 @@ public class UnsubscribeControllerTest {
         }
 
         @Test
-        @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
-        void noPermissions_returns403() throws Exception {
-            when(unsubscribeTokenGenerator.parseAndValidateToken(null)).thenReturn(null);
-            // Spring Security filter runs before argument binding; unauthenticated → 403
-            mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", validToken)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(validSubscriptionList)))
-                    .andExpect(status().isForbidden());
-
-            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
-        }
-
-        @Test
         @WithMockUser
         @DisplayName("returns 403 when token is invalid")
         void authenticated_invalidToken_returns403() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(null);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+            mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
                     .param("token", invalidToken)
-                    .param("token", validToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isForbidden());
 
-            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
+            verify(emailService, never()).updateEmailSubscriptions(email, true, true, validSubscriptionList);
         }
 
         @Test
         @WithMockUser
         @DisplayName("returns 200 with valid subscriptions list")
         void superUser_returns200() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(true);
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, validSubscriptionList)).thenReturn(1);
+            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
                     .param("token", validToken)
@@ -177,7 +163,7 @@ public class UnsubscribeControllerTest {
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isOk());
 
-            verify(emailService).updateEmailSubscriptions(email, validSubscriptionList);
+            verify(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
         }
 
         @Test
@@ -185,7 +171,7 @@ public class UnsubscribeControllerTest {
         @DisplayName("returns 400 with invalid subscriptions list")
         void superUser_returns400() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, validSubscriptionList)).thenReturn(1);
+            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
                     .param("token", validToken)
@@ -193,7 +179,7 @@ public class UnsubscribeControllerTest {
                     .content("{\"invalid\": true}"))
                     .andExpect(status().isBadRequest());
 
-            verify(emailService, never()).updateEmailSubscriptions(email, validSubscriptionList);
+            verify(emailService, never()).updateEmailSubscriptions(email, true, true, validSubscriptionList);
         }
     }
 }

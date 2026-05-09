@@ -23,6 +23,7 @@ import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
+import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -30,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 @ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
 @ApiResponses(value = {
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Invalid or expired token"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
 })
 @RequestMapping("/users/unsubscribe")
@@ -39,6 +40,7 @@ public class UnsubscribeController {
     private final EmailService emailService;
     private final UserOrganizationRepository userOrganizationRepository;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
+    private final PermissionService permissionService;
 
     @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
     @ApiResponses(value = {
@@ -52,10 +54,11 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
+        boolean isSuperUser = permissionService.isSuperUser();
         List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
-        boolean isOperator = userOrganizations.stream()
+        boolean isOperator = isSuperUser || userOrganizations.stream()
                 .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
-        boolean isAdmin = userOrganizations.stream()
+        boolean isAdmin = isSuperUser || userOrganizations.stream()
                 .anyMatch(org -> UserRole.ADMIN.equals(UserRole.fromString(org.getRole().getName())));
 
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(userEmail,
@@ -77,7 +80,13 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
-        emailService.updateEmailSubscriptions(userEmail, requestedSubscriptions);
+        boolean isSuperUser = permissionService.isSuperUser();
+        List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
+        boolean isOperator = isSuperUser || userOrganizations.stream()
+                .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
+        boolean isAdmin = isSuperUser || userOrganizations.stream()
+                .anyMatch(org -> UserRole.ADMIN.equals(UserRole.fromString(org.getRole().getName())));
+        emailService.updateEmailSubscriptions(userEmail, isOperator, isAdmin, requestedSubscriptions);
 
         return;
     }

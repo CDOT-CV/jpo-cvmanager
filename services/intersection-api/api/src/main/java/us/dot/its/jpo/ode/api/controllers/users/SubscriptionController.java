@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
@@ -48,8 +49,9 @@ public class SubscriptionController {
     public EmailSubscriptionGetResponse getEmailSubscriptions() {
 
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
-        boolean isOperator = !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
-        boolean isAdmin = !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
+        boolean isSuperUser = permissionService.isSuperUser();
+        boolean isOperator = isSuperUser || !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
+        boolean isAdmin = isSuperUser || !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(
                 authToken.getEmail(),
                 isOperator, isAdmin);
@@ -68,8 +70,10 @@ public class SubscriptionController {
             @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
 
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
-
-        emailService.updateEmailSubscriptions(authToken.getEmail(), requestedSubscriptions);
+        boolean isSuperUser = permissionService.isSuperUser();
+        boolean isOperator = isSuperUser || !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
+        boolean isAdmin = isSuperUser || !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
+        emailService.updateEmailSubscriptions(authToken.getEmail(), isOperator, isAdmin, requestedSubscriptions);
 
         return;
     }

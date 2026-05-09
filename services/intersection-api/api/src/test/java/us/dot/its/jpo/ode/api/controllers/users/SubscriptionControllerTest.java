@@ -98,8 +98,9 @@ public class SubscriptionControllerTest {
         @Test
         @WithMockUser
         @DisplayName("returns 200 with subscriptions list when has only user role")
-        void superUser_returns200User() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
+        void authenticated_returns200User() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of());
@@ -117,8 +118,9 @@ public class SubscriptionControllerTest {
         @Test
         @WithMockUser
         @DisplayName("returns 200 with subscriptions list when has operator role")
-        void superUser_returns200Operator() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
+        void authenticated_returns200Operator() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(operatorOrgList);
@@ -137,8 +139,9 @@ public class SubscriptionControllerTest {
         @Test
         @WithMockUser
         @DisplayName("returns 200 with subscriptions list when has admin role")
-        void superUser_returns200Admin() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
+        void authenticated_returns200Admin() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(operatorOrgList);
@@ -176,7 +179,7 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.USER)).thenReturn(false);
 
-            mockMvc.perform(get("/users/subscriptions/email-subscriptions")
+            mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionsList)))
                     .andExpect(status().isForbidden());
@@ -189,7 +192,7 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, validSubscriptionsList)).thenReturn(1);
+            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionsList)).thenReturn(1);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -204,7 +207,7 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, validSubscriptionsList)).thenReturn(1);
+            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionsList)).thenReturn(1);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
