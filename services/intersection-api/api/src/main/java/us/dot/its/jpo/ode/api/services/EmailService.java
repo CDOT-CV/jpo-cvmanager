@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -147,12 +148,49 @@ public class EmailService {
                 .toList();
     }
 
-    public int updateEmailSubscriptions(String userEmail, List<UserEmailNotificationDto> requestedSubscriptions) {
+    private static List<UserEmailNotificationDto> filterValidSubscriptionsForUser(
+            List<UserEmailNotificationDto> requestedSubscriptions, Boolean isOperator,
+            Boolean isAdmin, List<EmailType> validEmailTypes) {
+        return requestedSubscriptions.stream()
+                .filter(subscription -> {
+                    EmailType emailType = validEmailTypes.stream()
+                            .filter(type -> type.getEmailType().equals(subscription.getCategory()))
+                            .findFirst()
+                            .orElse(null);
+                    if (emailType == null) {
+                        throw new IllegalArgumentException("Invalid email category: " + subscription.getCategory());
+                    }
+                    UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
+                    Boolean authorized = UserRole.USER.equals(requiredRole) ||
+                            isOperator && UserRole.OPERATOR.equals(requiredRole) ||
+                            isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
+                            isAdmin && UserRole.ADMIN.equals(requiredRole);
+                    if (!authorized) {
+                        throw new AccessDeniedException("User does not have required role " + requiredRole
+                                + " for email type " + emailType.getEmailType());
+                    }
+
+                    if ((subscription.getImmediate() && !emailType.getSupportsImmediate()) ||
+                            (subscription.getHourly() && !emailType.getSupportsHourly()) ||
+                            (subscription.getDaily() && !emailType.getSupportsDaily()) ||
+                            (subscription.getWeekly() && !emailType.getSupportsWeekly()) ||
+                            (subscription.getMonthly() && !emailType.getSupportsMonthly())) {
+                        throw new IllegalArgumentException(
+                                "Invalid subscription frequency for email type " + emailType.getEmailType());
+                    }
+                    return true;
+                })
+                .toList();
+    }
+
+    public int updateEmailSubscriptions(String userEmail, Boolean isOperator,
+            Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail)
                 .stream()
                 .filter(sub -> sub.getSubscribed()).toList();
-        List<UserEmailNotification> addedSubscriptions = requestedSubscriptions.stream()
+        List<UserEmailNotification> addedSubscriptions = filterValidSubscriptionsForUser(requestedSubscriptions,
+                isOperator, isAdmin, emailTypeRepository.findAll()).stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
                         .noneMatch(currentSub -> currentSub.getEmailType().getEmailType().equals(sub.getCategory())))
