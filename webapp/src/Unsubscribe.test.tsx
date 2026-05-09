@@ -4,16 +4,16 @@ import { ThemeProvider } from '@mui/material'
 import { testTheme } from './styles'
 import { setupStore } from './store'
 import { replaceChaoticIds } from './utils/test-utils'
-import { Unsubscribe } from '@mui/icons-material'
-import { BrowserRouter } from 'react-router-dom'
+import Unsubscribe from './Unsubscribe'
+import { MemoryRouter } from 'react-router-dom'
 
 it('should take a snapshot', () => {
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
-        <BrowserRouter>
+        <MemoryRouter initialEntries={['/?token=fake-test-token']}>
           <Unsubscribe />
-        </BrowserRouter>
+        </MemoryRouter>
       </Provider>
     </ThemeProvider>
   )
