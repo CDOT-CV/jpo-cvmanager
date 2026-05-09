@@ -8,18 +8,39 @@ const Unsubscribe = () => {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
 
+  if (!token) {
+    return (
+      <Container maxWidth="md">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+          <p>Invalid or missing token. Please check your email link.</p>
+        </Box>
+      </Container>
+    )
+  }
+
   // Filter categories based on admin status
   const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery(token)
   const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
 
-  const handleSave = async (subscriptions: EmailSubscription[]) =>
-    updateEmailSubscriptions({ token, subscriptions }).unwrap()
+  const handleSave = async (subscriptions: EmailSubscription[]) => {
+    await updateEmailSubscriptions({ token, subscriptions }).unwrap()
+  }
 
   if (isLoading) {
     return (
       <Container maxWidth="md">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
           <CircularProgress />
+        </Box>
+      </Container>
+    )
+  }
+
+  if (!token) {
+    return (
+      <Container maxWidth="md">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+          <p>Invalid or missing token. Please check your email link.</p>
         </Box>
       </Container>
     )
