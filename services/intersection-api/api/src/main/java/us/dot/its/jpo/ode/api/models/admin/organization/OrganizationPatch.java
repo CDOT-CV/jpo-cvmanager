@@ -27,49 +27,41 @@ public class OrganizationPatch {
     @JsonProperty("orig_name")
     private String origName;
 
-    @Schema(description = "New organization name (may equal orig_name)", example = "CDOT", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "New organization name; omit or null to leave unchanged", example = "CDOT")
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "New contact email for the organization; omit or null to clear", example = "contact@cdot.gov")
+    @Schema(description = "New contact email for the organization; omit or null to leave unchanged", example = "contact@cdot.gov")
     @JsonProperty("email")
     private String email;
 
-    @Schema(description = "User email + role pairs to add to this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "User email + role pairs to add to this organization; omit or null to skip")
     @Valid
     @JsonProperty("users_to_add")
     private List<UserRoleAssignment> usersToAdd;
 
-    @Schema(description = "User email + role pairs whose role should be changed within this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "User email + role pairs whose role should be changed within this organization; omit or null to skip")
     @Valid
     @JsonProperty("users_to_modify")
     private List<UserRoleAssignment> usersToModify;
 
-    @Schema(description = "Email addresses of users to remove from this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "Email addresses of users to remove from this organization; omit or null to skip")
     @JsonProperty("users_to_remove")
     private List<String> usersToRemove;
 
-    @Schema(description = "RSU IPv4 addresses to associate with this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "RSU IPv4 addresses to associate with this organization; omit or null to skip")
     @JsonProperty("rsus_to_add")
     private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", message = "must be a valid IPv4 address") String> rsusToAdd;
 
-    @Schema(description = "RSU IPv4 addresses to disassociate from this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "RSU IPv4 addresses to disassociate from this organization; omit or null to skip")
     @JsonProperty("rsus_to_remove")
     private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", message = "must be a valid IPv4 address") String> rsusToRemove;
 
-    @Schema(description = "Intersection IDs (intersection_number) to associate with this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "Intersection IDs (intersection_number) to associate with this organization; omit or null to skip")
     @JsonProperty("intersections_to_add")
     private List<Integer> intersectionsToAdd;
 
-    @Schema(description = "Intersection IDs (intersection_number) to disassociate from this organization", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
+    @Schema(description = "Intersection IDs (intersection_number) to disassociate from this organization; omit or null to skip")
     @JsonProperty("intersections_to_remove")
     private List<Integer> intersectionsToRemove;
 

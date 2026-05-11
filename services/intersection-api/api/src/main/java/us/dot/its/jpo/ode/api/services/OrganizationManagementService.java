@@ -92,50 +92,54 @@ public class OrganizationManagementService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Organization not found: " + patch.getOrigName()));
 
-        org.setName(patch.getName());
-        org.setEmail(patch.getEmail());
+        if (patch.getName() != null) {
+            org.setName(patch.getName());
+        }
+        if (patch.getEmail() != null) {
+            org.setEmail(patch.getEmail());
+        }
         Organization savedOrg = organizationRepository.save(org);
-        log.debug("Organization '{}' renamed/updated to '{}'", patch.getOrigName(), patch.getName());
+        log.debug("Organization '{}' updated", patch.getOrigName());
 
         // Step 3: Bulk-apply RSU option flags (tim_deposit / snmp_monitoring)
         if (patch.getTimDeposit() != null || patch.getSnmpMonitoring() != null) {
-            applyBulkRsuOptions(patch.getName(), patch.getTimDeposit(), patch.getSnmpMonitoring());
+            applyBulkRsuOptions(org.getName(), patch.getTimDeposit(), patch.getSnmpMonitoring());
         }
 
         // Step 4: Add users
-        handleUsersToAdd(patch.getUsersToAdd(), patch.getName(), authorizedOrgs, authToken.isSuperUser());
+        handleUsersToAdd(patch.getUsersToAdd(), org.getName(), authorizedOrgs, authToken.isSuperUser());
 
         // Step 5: Modify user roles
-        handleUsersToModify(patch.getUsersToModify(), patch.getName());
+        handleUsersToModify(patch.getUsersToModify(), org.getName());
 
         // Step 6: Remove users
-        if (!patch.getUsersToRemove().isEmpty()) {
+        if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
             userOrganizationRepository.deleteByUserEmailsAndOrganizationName(
-                    patch.getUsersToRemove(), patch.getName());
-            log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), patch.getName());
+                    patch.getUsersToRemove(), org.getName());
+            log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
         }
 
         // Step 7: Add RSU associations
-        handleRsusToAdd(patch.getRsusToAdd(), patch.getName());
+        handleRsusToAdd(patch.getRsusToAdd(), org.getName());
 
         // Step 8: Remove RSU associations
-        if (!patch.getRsusToRemove().isEmpty()) {
+        if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
-            rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganizationName(addresses, patch.getName());
-            log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), patch.getName());
+            rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganizationName(addresses, org.getName());
+            log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
 
         // Step 9: Add intersection associations
-        handleIntersectionsToAdd(patch.getIntersectionsToAdd(), patch.getName());
+        handleIntersectionsToAdd(patch.getIntersectionsToAdd(), org.getName());
 
         // Step 10: Remove intersection associations
-        if (!patch.getIntersectionsToRemove().isEmpty()) {
+        if (patch.getIntersectionsToRemove() != null && !patch.getIntersectionsToRemove().isEmpty()) {
             List<String> numberStrings = patch.getIntersectionsToRemove().stream()
                     .map(Object::toString)
                     .toList();
             intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganizationName(
-                    numberStrings, patch.getName());
-            log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), patch.getName());
+                    numberStrings, org.getName());
+            log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), org.getName());
         }
 
         return organizationMapper.toDto(savedOrg);
