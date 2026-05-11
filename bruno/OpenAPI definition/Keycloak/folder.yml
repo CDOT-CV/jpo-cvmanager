@@ -1,0 +1,18 @@
+info:
+  name: Keycloak
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit
+  variables:
+    - name: kc-endpoint
+      value: http://localhost:8084
+    - name: kc-realm
+      value: cvmanager
+    - name: kc-client-id
+      value: cvmanager-gui
+    - name: kc-username
+      value: test@gmail.com
+    - name: kc-password
+      value: tester
