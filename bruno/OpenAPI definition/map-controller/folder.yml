@@ -1,0 +1,7 @@
+info:
+  name: map-controller
+  type: folder
+  seq: 16
+
+request:
+  auth: inherit

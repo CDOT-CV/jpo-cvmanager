@@ -1,0 +1,7 @@
+info:
+  name: rsu-controller
+  type: folder
+  seq: 21
+
+request:
+  auth: inherit

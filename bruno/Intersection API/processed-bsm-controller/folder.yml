@@ -1,7 +1,0 @@
-info:
-  name: processed-bsm-controller
-  type: folder
-  seq: 17
-
-request:
-  auth: inherit

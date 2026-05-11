@@ -1,7 +1,0 @@
-info:
-  name: reports-controller
-  type: folder
-  seq: 19
-
-request:
-  auth: inherit
