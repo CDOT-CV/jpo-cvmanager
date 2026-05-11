@@ -1,7 +1,0 @@
-info:
-  name: snmp-credential-controller
-  type: folder
-  seq: 24
-
-request:
-  auth: inherit

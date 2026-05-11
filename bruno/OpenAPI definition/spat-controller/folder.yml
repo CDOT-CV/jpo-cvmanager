@@ -1,7 +1,0 @@
-info:
-  name: spat-controller
-  type: folder
-  seq: 25
-
-request:
-  auth: inherit

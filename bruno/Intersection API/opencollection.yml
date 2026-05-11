@@ -1,0 +1,42 @@
+opencollection: 1.0.0
+
+info:
+  name: Intersection API
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  auth:
+    type: oauth2
+    flow: resource_owner_password_credentials
+    accessTokenUrl: "{{kc-endpoint}}/realms/{{kc-realm}}/protocol/openid-connect/token"
+    credentials:
+      clientId: "{{kc-client-id}}"
+      placement: body
+    resourceOwner:
+      username: "{{kc-username}}"
+      password: "{{kc-password}}"
+    scope: openid
+    tokenConfig:
+      id: credentials
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: true
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

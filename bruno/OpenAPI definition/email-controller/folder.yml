@@ -1,7 +1,0 @@
-info:
-  name: email-controller
-  type: folder
-  seq: 13
-
-request:
-  auth: inherit

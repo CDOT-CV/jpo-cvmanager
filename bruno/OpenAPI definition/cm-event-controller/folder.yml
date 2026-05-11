@@ -1,7 +1,0 @@
-info:
-  name: cm-event-controller
-  type: folder
-  seq: 10
-
-request:
-  auth: inherit
