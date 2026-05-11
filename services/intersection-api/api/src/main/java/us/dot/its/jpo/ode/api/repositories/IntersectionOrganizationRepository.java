@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
@@ -13,6 +14,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 import java.util.List;
 
 @Repository
+@RepositoryRestResource(exported = false)
 public interface IntersectionOrganizationRepository extends JpaRepository<IntersectionOrganization, Integer> {
 
     @Modifying

@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
@@ -15,10 +16,12 @@ import java.net.InetAddress;
 import java.util.List;
 
 @Repository
+@RepositoryRestResource(exported = false)
 public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection, Integer> {
 
     /**
-     * Projection for fetching RSU IPs alongside the intersection number they belong to.
+     * Projection for fetching RSU IPs alongside the intersection number they belong
+     * to.
      */
     interface IntersectionRsuProjection {
         Integer getIntersectionNumber();
@@ -44,8 +47,6 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
             "WHERE ri.intersection.intersectionNumber = :intersectionNumber")
     List<InetAddress> findRsuIpsByIntersectionNumber(
             @Param("intersectionNumber") Integer intersectionNumber);
-
-
 
     boolean existsByRsuAndIntersection(Rsu rsu, Intersection intersection);
 
