@@ -1,7 +1,0 @@
-info:
-  name: intersection-controller
-  type: folder
-  seq: 15
-
-request:
-  auth: inherit

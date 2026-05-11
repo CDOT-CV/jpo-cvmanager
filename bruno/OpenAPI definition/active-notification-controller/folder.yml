@@ -1,7 +1,0 @@
-info:
-  name: active-notification-controller
-  type: folder
-  seq: 1
-
-request:
-  auth: inherit
