@@ -1,0 +1,7 @@
+info:
+  name: profile-controller
+  type: folder
+  seq: 19
+
+request:
+  auth: inherit

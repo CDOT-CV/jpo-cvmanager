@@ -1,0 +1,7 @@
+info:
+  name: SCMS_Health_Status
+  type: folder
+  seq: 22
+
+request:
+  auth: inherit

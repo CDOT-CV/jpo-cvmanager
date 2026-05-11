@@ -1,0 +1,51 @@
+info:
+  name: generate-token
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{kc-endpoint}}/realms/{{kc-realm}}/protocol/openid-connect/token"
+  body:
+    type: form-urlencoded
+    data:
+      - name: client_id
+        value: "{{kc-client-id}}"
+      - name: grant_type
+        value: password
+      - name: username
+        value: "{{kc-username}}"
+      - name: password
+        value: "{{kc-password}}"
+      - name: scope
+        value: openid
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Parse the response body as JSON
+        const responseJson = res.getBody()
+
+        // Extract the desired field from the response
+        const desiredFieldValue = responseJson.access_token;
+
+        // Check if the desired field exists
+        if (desiredFieldValue) {
+            // Save the value to an environment variable
+            bru.setVar("KEYCLOAK_ACCESS_TOKEN", desiredFieldValue);
+            
+            // Alternatively, to save it as a global variable, use:
+            // pm.globals.set("myVariable", desiredFieldValue);
+            
+            console.log("Field value saved to variable: " + desiredFieldValue);
+        } else {
+            console.log("Desired field not found in response.");
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

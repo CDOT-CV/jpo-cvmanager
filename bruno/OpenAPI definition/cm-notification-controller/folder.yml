@@ -1,0 +1,7 @@
+info:
+  name: cm-notification-controller
+  type: folder
+  seq: 11
+
+request:
+  auth: inherit
