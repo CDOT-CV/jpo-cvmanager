@@ -22,13 +22,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Parameter;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -95,6 +99,29 @@ public class UserController {
                 .getAllowedSelections(permissionService.getCvManagerAuthToken());
 
         return allowedSelections;
+    }
+
+    @Operation(summary = "Create User", description = "Create a new User")
+    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
+    })
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createUser(@Validated @RequestBody UserDto body) {
+        if (!permissionService.hasRoleInOrgs(UserRole.ADMIN,
+                body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
+            // This catches unqualified orgs or nonexistent orgs
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "User not qualified to modify all specified organizations");
+        } else if (!permissionService.isSuperUser() && body.getSuperUser()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Non-super user not qualified to create super user");
+        }
+
+        userManagementService.createUser(body);
+        return;
     }
 
     @Operation(summary = "Modify User", description = "Modify User information")
