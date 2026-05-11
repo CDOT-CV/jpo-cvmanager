@@ -35,6 +35,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.UserManagementService;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -75,6 +76,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler()
     public ProblemDetail handleSnmpCredentialAlreadyExistsException(
             SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException e) {
+        String message = e.getMessage();
+        log.error(message);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleUserEmailAlreadyExistsException(
+            UserManagementService.UserEmailAlreadyExistsException e) {
         String message = e.getMessage();
         log.error(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
