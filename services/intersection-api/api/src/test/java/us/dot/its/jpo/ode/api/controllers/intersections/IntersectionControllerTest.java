@@ -54,10 +54,10 @@ public class IntersectionControllerTest {
         List<IntersectionReferenceData> allIntersections = Collections.singletonList(intersection);
 
         when(processedMapRepo.getIntersectionIDs()).thenReturn(allIntersections);
-        when(permissionService.getAllowedIntersectionIdsByOrganization("org"))
+        when(permissionService.getAllowedIntersectionIdsByOrganization(1))
                 .thenReturn(Collections.singletonList(1));
 
-        ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersections("org", false);
+        ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersections(1, false);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains(intersection);
     }
@@ -99,10 +99,10 @@ public class IntersectionControllerTest {
         List<IntersectionReferenceData> allIntersections = Collections.singletonList(intersection);
 
         when(processedMapRepo.getIntersectionsContainingPoint(1.0, 2.0)).thenReturn(allIntersections);
-        when(permissionService.getAllowedIntersectionIdsByOrganization("org"))
+        when(permissionService.getAllowedIntersectionIdsByOrganization(1))
                 .thenReturn(Collections.singletonList(3));
 
-        ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation("org", 1.0,
+        ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation(1, 1.0,
                 2.0, false);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains(intersection);
@@ -124,7 +124,7 @@ public class IntersectionControllerTest {
 
             ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation(null, 5.0,
                     6.0, false);
-            assertThat(response.getStatusCodeValue()).isEqualTo(200);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).contains(intersection);
         }
     }

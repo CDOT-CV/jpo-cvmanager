@@ -38,18 +38,19 @@ class RsuCredentialManagementServiceTest {
     RsuCredentialManagementService rsuCredentialManagementService;
 
     @Test
-    void testCreate_Success() throws RsuCredentialManagementService.RsuCredentialAlreadyExistsException, EntityNotFoundException {
+    void testCreate_Success()
+            throws RsuCredentialManagementService.RsuCredentialAlreadyExistsException, EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
-        int ownerOrganizationId = 1;
-        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        Integer organization = 1;
+        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(
+                nickname, username, password, organization);
 
         Organization mockOrganization = mock(Organization.class);
-        when(mockOrganization.getId()).thenReturn(ownerOrganizationId);
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.of(mockOrganization));
+        when(mockOrganization.getId()).thenReturn(organization);
+        when(mockOrganizationRepository.findById(organization)).thenReturn(Optional.of(mockOrganization));
 
         RsuCredential mockRsuCredential = new RsuCredential();
         mockRsuCredential.setNickname(nickname);
@@ -76,13 +77,15 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
-        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        Integer organization = 1;
+        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(
+                nickname, username, password, organization);
 
         when(mockRsuCredentialRepository.existsByNickname(nickname)).thenReturn(true);
 
         // Act & Assert
-        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class, () -> rsuCredentialManagementService.create(request));
+        assertThrows(RsuCredentialManagementService.RsuCredentialAlreadyExistsException.class,
+                () -> rsuCredentialManagementService.create(request));
     }
 
     @Test
@@ -91,10 +94,11 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
-        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(nickname, username, password, organization);
+        Integer organization = 1;
+        RsuCredentialController.RsuCredentialCreateRequest request = new RsuCredentialController.RsuCredentialCreateRequest(
+                nickname, username, password, organization);
 
-        when(mockOrganizationRepository.findByName(organization)).thenReturn(Optional.empty());
+        when(mockOrganizationRepository.findById(organization)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.create(request));
@@ -104,12 +108,12 @@ class RsuCredentialManagementServiceTest {
     void testGetByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
+        String organizationName = "organization";
         int organizationId = 1;
         RsuCredential mockRsuCredential = new RsuCredential();
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
-        lenient().when(mockOrganization.getName()).thenReturn(organization);
+        lenient().when(mockOrganization.getName()).thenReturn(organizationName);
         mockRsuCredential.setOwnerOrganization(mockOrganization);
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(mockRsuCredential));
 
@@ -138,20 +142,21 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
+        String organizationName = "organization";
         int organizationId = 1;
         String newPassword = "mynewpassword";
-        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(
+                nickname);
         rsuCredentialPatch.setPassword(newPassword);
 
         RsuCredential existingCredential = new RsuCredential();
         existingCredential.setNickname(nickname);
         existingCredential.setUsername(username);
         existingCredential.setPassword(password);
-        
+
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
-        lenient().when(mockOrganization.getName()).thenReturn(organization);
+        lenient().when(mockOrganization.getName()).thenReturn(organizationName);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
@@ -181,49 +186,50 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String oldOrganization = "oldOrganization";
+        String oldOrganizationName = "oldOrganization";
         int oldOrganizationId = 1;
-        String newOrganization = "newOrganization";
+        String newOrganizationName = "newOrganization";
         int newOrganizationId = 2;
-        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
-        rsuCredentialPatch.setOrganization(newOrganization);
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(
+                nickname);
+        rsuCredentialPatch.setOrganization(newOrganizationId);
 
         RsuCredential existingCredential = new RsuCredential();
         existingCredential.setNickname(nickname);
         existingCredential.setUsername(username);
         existingCredential.setPassword(password);
-        
+
         Organization mockOldOrganization = mock(Organization.class);
         lenient().when(mockOldOrganization.getId()).thenReturn(oldOrganizationId);
-        lenient().when(mockOldOrganization.getName()).thenReturn(oldOrganization);
+        lenient().when(mockOldOrganization.getName()).thenReturn(oldOrganizationName);
         existingCredential.setOwnerOrganization(mockOldOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
         expectedCredential.setNickname(nickname);
         expectedCredential.setUsername(username);
         expectedCredential.setPassword(password);
-        
+
         Organization mockNewOrganization = mock(Organization.class);
         lenient().when(mockNewOrganization.getId()).thenReturn(newOrganizationId);
-        lenient().when(mockNewOrganization.getName()).thenReturn(newOrganization);
+        lenient().when(mockNewOrganization.getName()).thenReturn(newOrganizationName);
         expectedCredential.setOwnerOrganization(mockNewOrganization);
 
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
         when(mockRsuCredentialRepository.save(any())).thenReturn(expectedCredential);
 
-        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.of(mockNewOrganization));
+        when(mockOrganizationRepository.findById(newOrganizationId)).thenReturn(Optional.of(mockNewOrganization));
 
-       // Act
-       RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
+        // Act
+        RsuCredential updatedCredential = rsuCredentialManagementService.update(rsuCredentialPatch);
 
-       // Assert
-       assertNotNull(updatedCredential);
-       assertEquals(nickname, updatedCredential.getNickname());
-       assertEquals(username, updatedCredential.getUsername());
-       assertEquals(password, updatedCredential.getPassword());
-       assertEquals(newOrganizationId, updatedCredential.getOwnerOrganization().getId());
-       verify(mockRsuCredentialRepository).findByNickname(nickname);
-       verify(mockRsuCredentialRepository).save(any());
+        // Assert
+        assertNotNull(updatedCredential);
+        assertEquals(nickname, updatedCredential.getNickname());
+        assertEquals(username, updatedCredential.getUsername());
+        assertEquals(password, updatedCredential.getPassword());
+        assertEquals(newOrganizationId, updatedCredential.getOwnerOrganization().getId());
+        verify(mockRsuCredentialRepository).findByNickname(nickname);
+        verify(mockRsuCredentialRepository).save(any());
     }
 
     @Test
@@ -232,20 +238,21 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
+        String organizationName = "organization";
         int organizationId = 1;
         String newUsername = "newUsername";
-        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(
+                nickname);
         rsuCredentialPatch.setUsername(newUsername);
 
         RsuCredential existingCredential = new RsuCredential();
         existingCredential.setNickname(nickname);
         existingCredential.setUsername(username);
         existingCredential.setPassword(password);
-        
+
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
-        lenient().when(mockOrganization.getName()).thenReturn(organization);
+        lenient().when(mockOrganization.getName()).thenReturn(organizationName);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         RsuCredential expectedCredential = new RsuCredential();
@@ -276,7 +283,8 @@ class RsuCredentialManagementServiceTest {
         // Arrange
         String nickname = "nickname";
         String newPassword = "mynewpassword";
-        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(
+                nickname);
         rsuCredentialPatch.setPassword(newPassword);
 
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.empty());
@@ -291,24 +299,25 @@ class RsuCredentialManagementServiceTest {
         String nickname = "nickname";
         String username = "username";
         String password = "password";
-        String organization = "organization";
+        String organizationName = "organization";
         int organizationId = 1;
-        String newOrganization = "newOrganization";
-        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(nickname);
-        rsuCredentialPatch.setOrganization(newOrganization);
+        int newOrganizationId = 2;
+        RsuCredentialController.RsuCredentialPatch rsuCredentialPatch = new RsuCredentialController.RsuCredentialPatch(
+                nickname);
+        rsuCredentialPatch.setOrganization(newOrganizationId);
 
         RsuCredential existingCredential = new RsuCredential();
         existingCredential.setNickname(nickname);
         existingCredential.setUsername(username);
         existingCredential.setPassword(password);
-        
+
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
-        lenient().when(mockOrganization.getName()).thenReturn(organization);
+        lenient().when(mockOrganization.getName()).thenReturn(organizationName);
         existingCredential.setOwnerOrganization(mockOrganization);
 
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
-        when(mockOrganizationRepository.findByName(newOrganization)).thenReturn(Optional.empty());
+        when(mockOrganizationRepository.findById(newOrganizationId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> rsuCredentialManagementService.update(rsuCredentialPatch));
@@ -318,13 +327,13 @@ class RsuCredentialManagementServiceTest {
     void testDeleteByNickname_Success() throws EntityNotFoundException {
         // Arrange
         String nickname = "nickname";
-        String organization = "organization";
+        String organizationName = "organization";
         int organizationId = 1;
 
         RsuCredential existingCredential = new RsuCredential();
         Organization mockOrganization = mock(Organization.class);
         lenient().when(mockOrganization.getId()).thenReturn(organizationId);
-        lenient().when(mockOrganization.getName()).thenReturn(organization);
+        lenient().when(mockOrganization.getName()).thenReturn(organizationName);
         existingCredential.setOwnerOrganization(mockOrganization);
         when(mockRsuCredentialRepository.findByNickname(nickname)).thenReturn(Optional.of(existingCredential));
 

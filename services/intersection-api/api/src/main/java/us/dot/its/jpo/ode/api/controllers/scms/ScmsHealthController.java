@@ -27,13 +27,10 @@ public class ScmsHealthController {
     private final ScmsHealthService scmsHealthService;
     private final ScmsHealthMapper scmsHealthMapper;
 
-    @Operation(
-            summary = "Retrieve SCMS health status for RSUs in the given organization",
-            description = """
-                    Returns a map of RSU IDs to their health status for the specified organization.
-                    The Organization header is required for all users, including super users.
-                    """
-    )
+    @Operation(summary = "Retrieve SCMS health status for RSUs in the given organization", description = """
+            Returns a map of RSU IDs to their health status for the specified organization.
+            The Organization header is required for all users, including super users.
+            """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Organization header is missing"),
@@ -42,8 +39,8 @@ public class ScmsHealthController {
     })
     @GetMapping(value = "/status", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
-    public ScmsHealthResponse getAllStatuses(@RequestHeader(name = "Organization") String organization) {
-        log.info("GET /devices/scms/status. organization: {}", organization);
-        return scmsHealthMapper.toResponse(scmsHealthService.getScmsStatuses(organization));
+    public ScmsHealthResponse getAllStatuses(@RequestHeader(name = "Organization") Integer orgId) {
+        log.info("GET /devices/scms/status. organization: {}", orgId);
+        return scmsHealthMapper.toResponse(scmsHealthService.getScmsStatuses(orgId));
     }
 }

@@ -49,16 +49,16 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "FROM User user " +
             "JOIN user.userOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE o.name = :orgName " +
+            "WHERE o.id = :orgId " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(CAST(user.email AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(user.firstName AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(user.lastName AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(user.superUser AS string)) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<User> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
+    Page<User> findAllByOrganization(@Param("orgId") Integer orgId, @Param("search") String search,
             Pageable pageable);
 
-    @Query("SELECT o.name " +
+    @Query("SELECT o.id " +
             "FROM User u " +
             "JOIN u.userOrganizations ro " +
             "JOIN ro.organization o " +

@@ -82,11 +82,11 @@ public class AdminIntersectionService {
 
         IntersectionDto dto = intersectionMapper.toDto(intersection);
 
-        List<String> orgNames = intersection.getIntersectionOrganizations().stream()
+        List<Integer> orgIds = intersection.getIntersectionOrganizations().stream()
                 .filter(io -> io.getOrganization() != null)
-                .map(io -> io.getOrganization().getName())
+                .map(io -> io.getOrganization().getId())
                 .collect(Collectors.toList());
-        dto.setOrganizations(orgNames);
+        dto.setOrganizations(orgIds);
 
         List<String> rsuIps = rsuIntersectionRepository.findRsuIpsByIntersectionNumber(intersectionId)
                 .stream()
@@ -94,7 +94,7 @@ public class AdminIntersectionService {
                 .collect(Collectors.toList());
         dto.setRsus(rsuIps);
 
-        log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgNames.size(),
+        log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgIds.size(),
                 rsuIps.size());
         return new IntersectionSingleResponse(dto, getAllowedSelections());
     }

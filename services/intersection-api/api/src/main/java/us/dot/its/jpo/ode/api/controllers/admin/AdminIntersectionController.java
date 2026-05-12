@@ -210,9 +210,10 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('USER') && @PermissionService.hasIntersection(#intersectionId, 'USER'))")
     public IntersectionSingleResponse getIntersection(
             @Parameter(description = "Intersection number to retrieve", example = "12109") @PathVariable Integer intersectionId,
-            @Parameter(description = "Scope results to a specific organization") @RequestHeader(name = "Organization", required = false) String organization) {
+            @Parameter(description = "Scope results to a specific organization") @RequestHeader(name = "Organization", required = false) Integer orgId) {
+        // TODO: Remove Organization header
 
-        log.info("GET /admin/intersections/{}. organization={}", intersectionId, organization);
+        log.info("GET /admin/intersections/{}. organization={}", intersectionId, orgId);
         return adminIntersectionService.getIntersection(intersectionId);
     }
 

@@ -67,7 +67,7 @@ class RsuControllerTest {
     class GetAllRsusTests {
         @Test
         void testGetAllRsus_Success() {
-            String organization = "TestOrg";
+            Integer organization = 1;
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 100);
 
@@ -82,7 +82,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"),
+                    Arrays.asList(1),
                     Boolean.TRUE,
                     Boolean.TRUE);
 
@@ -97,7 +97,7 @@ class RsuControllerTest {
                     "ssh-group-2",
                     "snmp-group-2",
                     "v2c",
-                    Arrays.asList("TestOrg"),
+                    Arrays.asList(1),
                     Boolean.TRUE,
                     Boolean.TRUE);
 
@@ -119,7 +119,7 @@ class RsuControllerTest {
 
         @Test
         void testGetAllRsus_Sorting_TimDeposit() {
-            String organization = "TestOrg";
+            Integer organization = 1;
             String search = "";
             Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "tim_deposit"));
             Pageable expectedMappedPageable = PageRequest.of(0, 100,
@@ -138,7 +138,7 @@ class RsuControllerTest {
 
         @Test
         void testGetAllRsus_Sorting_SnmpMonitoring() {
-            String organization = "TestOrg";
+            Integer organization = 1;
             String search = "";
             Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "snmp_monitoring"));
             Pageable expectedMappedPageable = PageRequest.of(0, 100,
@@ -157,7 +157,7 @@ class RsuControllerTest {
 
         @Test
         void testGetAllRsus_EmptyResult() {
-            String organization = "EmptyOrg";
+            Integer organization = 4;
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 100);
             Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), pageable, 0);
@@ -175,7 +175,7 @@ class RsuControllerTest {
 
         @Test
         void testGetAllRsus_WithCustomPageSize() {
-            String organization = "TestOrg";
+            Integer organization = 1;
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 50);
 
@@ -190,7 +190,7 @@ class RsuControllerTest {
                     "ssh-group",
                     "snmp-group",
                     "v3",
-                    Arrays.asList("TestOrg"),
+                    Arrays.asList(1),
                     Boolean.TRUE,
                     Boolean.TRUE);
 
@@ -226,7 +226,7 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"),
+                    Arrays.asList(1),
                     Boolean.TRUE,
                     Boolean.TRUE);
 
@@ -286,7 +286,7 @@ class RsuControllerTest {
                     Arrays.asList("ssh-group-1", "ssh-group-2"),
                     Arrays.asList("snmp-group-1", "snmp-group-2"),
                     Arrays.asList("v2c", "v3"),
-                    Arrays.asList("TestOrg", "OtherOrg"));
+                    Arrays.asList(1, 2));
 
             when(rsuManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
                     .thenReturn(allowedSelections);
@@ -556,7 +556,7 @@ class RsuControllerTest {
         class CreateRsuTests {
             @Test
             void testCreateRsu_Success() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg");
+                List<Integer> orgsToAdd = Arrays.asList(1);
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -591,7 +591,7 @@ class RsuControllerTest {
 
             @Test
             void testCreateRsu_UnqualifiedOrganization() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg", "UnqualifiedOrg");
+                List<Integer> orgsToAdd = Arrays.asList(1, 4);
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -623,7 +623,7 @@ class RsuControllerTest {
 
             @Test
             void testCreateRsu_DuplicateIpAddress() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg");
+                List<Integer> orgsToAdd = Arrays.asList(1);
                 UserRole role = UserRole.OPERATOR;
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
@@ -657,7 +657,7 @@ class RsuControllerTest {
 
         @Test
         void testCreateRsu_ServiceException() {
-            List<String> orgsToAdd = Arrays.asList("TestOrg");
+            List<Integer> orgsToAdd = Arrays.asList(1);
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -681,7 +681,7 @@ class RsuControllerTest {
 
         @Test
         void testCreateRsu_OrgRelationshipCreationFails() {
-            List<String> orgsToAdd = Arrays.asList("TestOrg");
+            List<Integer> orgsToAdd = Arrays.asList(1);
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",

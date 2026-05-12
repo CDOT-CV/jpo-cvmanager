@@ -56,7 +56,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY m.name ASC, rm.name ASC")
     List<RsuModelProjection> findAllRsuModels();
 
-    @Query("SELECT o.name " +
+    @Query("SELECT o.id " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +

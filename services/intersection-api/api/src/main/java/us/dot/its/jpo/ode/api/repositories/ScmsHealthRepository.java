@@ -27,24 +27,31 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
     void removeMultipleScmsHealthByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     /**
-     * Retrieves the latest SCMS health record for each RSU within a specific organization.
+     * Retrieves the latest SCMS health record for each RSU within a specific
+     * organization.
      * <p>
-     * This query is functionally equivalent to the legacy Python implementation which uses:
+     * This query is functionally equivalent to the legacy Python implementation
+     * which uses:
      * {@code ROW_NUMBER() OVER (PARTITION BY sh.rsu_id ORDER BY sh.timestamp DESC)}
      * <p>
      * It achieves parity by:
      * <ul>
-     *     <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are returned, even those without health
-     *     records (matching Python's LEFT JOIN).</li>
-     *     <li>Using a <b>subquery with ROW_NUMBER()</b> window function to efficiently select only the most recent
-     *     health record per RSU (single pass, no correlated subquery).</li>
-     *     <li>Filtering by the <b>organization name</b> and sorting by <b>IPv4 address</b>.</li>
+     * <li>Using a <b>LEFT JOIN</b> to ensure all RSUs in the organization are
+     * returned, even those without health
+     * records (matching Python's LEFT JOIN).</li>
+     * <li>Using a <b>subquery with ROW_NUMBER()</b> window function to efficiently
+     * select only the most recent
+     * health record per RSU (single pass, no correlated subquery).</li>
+     * <li>Filtering by the <b>organization name</b> and sorting by <b>IPv4
+     * address</b>.</li>
      * </ul>
      * <p>
-     * Note: Uses native SQL for PostgreSQL-specific ROW_NUMBER() window function for performance.
+     * Note: Uses native SQL for PostgreSQL-specific ROW_NUMBER() window function
+     * for performance.
      *
      * @param organization The name of the organization to filter by.
-     * @return A list of projections containing RSU and their latest SCMS health data.
+     * @return A list of projections containing RSU and their latest SCMS health
+     *         data.
      */
     @Query(value = """
             SELECT rd.ipv4_address, sh.health, sh.expiration
@@ -60,9 +67,9 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
                 ) ranked
                 WHERE row_num = 1
             ) sh ON sh.rsu_id = rd.rsu_id
-            WHERE o.name = :organization
+            WHERE o.id = :orgId
             ORDER BY rd.ipv4_address
             """, nativeQuery = true)
     @Transactional(readOnly = true)
-    List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("organization") String organization);
+    List<ScmsHealthRsuProjection> findLatestScmsHealthByOrganization(@Param("orgId") Integer orgId);
 }

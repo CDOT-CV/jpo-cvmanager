@@ -78,8 +78,8 @@ class ScmsHealthServiceTest {
     @DisplayName("Returns latest health status for each RSU in organization")
     void testGetScmsStatuses_ReturnsLatestForEachRsuInOrganization() throws Exception {
         // Arrange
-        Organization org1 = organizationRepository.save(fixtures.createOrg("Org1"));
-        Organization org2 = organizationRepository.save(fixtures.createOrg("Org2"));
+        Organization org1 = organizationRepository.save(fixtures.createOrg(1));
+        Organization org2 = organizationRepository.save(fixtures.createOrg(2));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -108,11 +108,11 @@ class ScmsHealthServiceTest {
         saveScmsHealth(rsu3, now, true);
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("Org1");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(1);
 
         // Assert
         assertEquals(2, results.size(), "Should return 2 records for Org1");
-        
+
         ScmsHealthRsuProjection result1 = results.stream()
                 .filter(res -> res.getIpv4Address().getHostAddress().equals("10.0.0.1"))
                 .findFirst().orElseThrow();
@@ -128,10 +128,10 @@ class ScmsHealthServiceTest {
     @DisplayName("Returns empty list when organization has no RSUs")
     void testGetScmsStatuses_ReturnsEmpty_WhenOrganizationHasNoRsus() {
         // Arrange
-        organizationRepository.save(fixtures.createOrg("EmptyOrg"));
+        organizationRepository.save(fixtures.createOrg(3));
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("EmptyOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(3);
 
         // Assert
         assertTrue(results.isEmpty(), "Should return an empty list for an organization with no RSUs");
@@ -141,7 +141,7 @@ class ScmsHealthServiceTest {
     @DisplayName("When an organization has RSUs but no health records, the health fields are null")
     void testGetScmsStatuses_ReturnsNullHealth_WhenOrganizationHasRsusButNoHealthRecords() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("NoHealthOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(4));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -153,7 +153,7 @@ class ScmsHealthServiceTest {
         rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("NoHealthOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(4);
 
         // Assert
         assertEquals(1, results.size(), "Should return 1 entry even when RSU has no health records");
@@ -165,7 +165,7 @@ class ScmsHealthServiceTest {
     @DisplayName("Returns empty list when organization does not exist")
     void testGetScmsStatuses_ReturnsEmpty_WhenOrganizationDoesNotExist() {
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("NonExistentOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(4);
 
         // Assert
         assertTrue(results.isEmpty(), "Should return an empty list for a non-existent organization");
@@ -175,7 +175,7 @@ class ScmsHealthServiceTest {
     @DisplayName("Given two records with the same timestamp, only one row is returned")
     void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMultipleRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("SameTimestampOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(1));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -189,16 +189,17 @@ class ScmsHealthServiceTest {
         Instant sameTime = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         // Create multiple health records with identical timestamps.
-        // The query must return exactly one row per RSU (matching legacy ROW_NUMBER behavior).
+        // The query must return exactly one row per RSU (matching legacy ROW_NUMBER
+        // behavior).
         saveScmsHealth(rsu, sameTime, true);
         saveScmsHealth(rsu, sameTime, false);
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("SameTimestampOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(1);
 
         // Assert
         assertEquals(1, results.size(),
-            "Should return exactly one record per RSU even when multiple records have the same timestamp");
+                "Should return exactly one record per RSU even when multiple records have the same timestamp");
 
         ScmsHealthRsuProjection result = results.getFirst();
         assertNotNull(result.getHealth(), "Health should not be null");
@@ -208,7 +209,7 @@ class ScmsHealthServiceTest {
     @DisplayName("Given many tied timestamps, exactly one row is returned")
     void testGetScmsStatuses_ReturnsExactlyOneRowPerRsu_WhenMoreThanTwoRecordsHaveSameTimestamp() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("ManyTiesOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(1));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -229,18 +230,18 @@ class ScmsHealthServiceTest {
         saveScmsHealth(rsu, sameTime, true);
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("ManyTiesOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(1);
 
         // Assert
         assertEquals(1, results.size(),
-            "Should return exactly one record per RSU even with many timestamp ties");
+                "Should return exactly one record per RSU even with many timestamp ties");
     }
 
     @Test
     @DisplayName("Results ordered by IPv4 address")
     void testGetScmsStatuses_ResultsOrderedByIpv4Address() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("OrderedOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(1));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -263,24 +264,24 @@ class ScmsHealthServiceTest {
         saveScmsHealth(rsu2, now, true);
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("OrderedOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(1);
 
         // Assert - Results should be sorted by IPv4 address
         assertEquals(3, results.size());
         assertEquals("10.0.0.101", results.get(0).getIpv4Address().getHostAddress(),
-            "First result should be 10.0.0.101");
+                "First result should be 10.0.0.101");
         assertEquals("10.0.0.102", results.get(1).getIpv4Address().getHostAddress(),
-            "Second result should be 10.0.0.102");
+                "Second result should be 10.0.0.102");
         assertEquals("10.0.0.103", results.get(2).getIpv4Address().getHostAddress(),
-            "Third result should be 10.0.0.103");
+                "Third result should be 10.0.0.103");
     }
 
     @Test
     @DisplayName("RSU in multiple organizations appears in each organization's query")
     void testGetScmsStatuses_RsuInMultipleOrganizations_AppearsInEachOrgQuery() throws Exception {
         // Arrange - An RSU can belong to multiple organizations
-        Organization org1 = organizationRepository.save(fixtures.createOrg("MultiOrg1"));
-        Organization org2 = organizationRepository.save(fixtures.createOrg("MultiOrg2"));
+        Organization org1 = organizationRepository.save(fixtures.createOrg(1));
+        Organization org2 = organizationRepository.save(fixtures.createOrg(2));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -289,7 +290,8 @@ class ScmsHealthServiceTest {
         RsuCredential rsuCredential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org1));
 
         // Create RSU and associate with both organizations
-        Rsu sharedRsu = rsuRepository.save(fixtures.createRsu("10.0.0.80", model, rsuCredential, snmpCredential, protocol));
+        Rsu sharedRsu = rsuRepository
+                .save(fixtures.createRsu("10.0.0.80", model, rsuCredential, snmpCredential, protocol));
         rsuOrganizationRepository.save(fixtures.createRsuOrganization(sharedRsu, org1));
         rsuOrganizationRepository.save(fixtures.createRsuOrganization(sharedRsu, org2));
 
@@ -297,12 +299,12 @@ class ScmsHealthServiceTest {
         ScmsHealth healthRecord = saveScmsHealth(sharedRsu, now, true);
 
         // Act
-        List<ScmsHealthRsuProjection> resultsOrg1 = scmsHealthService.getScmsStatuses("MultiOrg1");
-        List<ScmsHealthRsuProjection> resultsOrg2 = scmsHealthService.getScmsStatuses("MultiOrg2");
+        List<ScmsHealthRsuProjection> resultsOrg1 = scmsHealthService.getScmsStatuses(1);
+        List<ScmsHealthRsuProjection> resultsOrg2 = scmsHealthService.getScmsStatuses(2);
 
         // Assert - RSU should appear in both organization queries
-        assertEquals(1, resultsOrg1.size(), "RSU should appear in MultiOrg1 results");
-        assertEquals(1, resultsOrg2.size(), "RSU should appear in MultiOrg2 results");
+        assertEquals(1, resultsOrg1.size(), "RSU should appear in 1 results");
+        assertEquals(1, resultsOrg2.size(), "RSU should appear in 2 results");
         assertEquals(healthRecord.getHealth(), resultsOrg1.getFirst().getHealth());
         assertEquals(healthRecord.getHealth(), resultsOrg2.getFirst().getHealth());
     }
@@ -311,7 +313,7 @@ class ScmsHealthServiceTest {
     @DisplayName("RSUs without health records are included")
     void testGetScmsStatuses_MixedRsusWithAndWithoutHealthRecords() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("MixedOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(3));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -331,7 +333,7 @@ class ScmsHealthServiceTest {
         rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsuWithoutHealth, org));
 
         // Act
-        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses("MixedOrg");
+        List<ScmsHealthRsuProjection> results = scmsHealthService.getScmsStatuses(3);
 
         // Assert - Both RSUs should be returned, sorted by IP
         assertEquals(2, results.size(), "Should return both RSUs");
@@ -350,7 +352,7 @@ class ScmsHealthServiceTest {
     @DisplayName("Query returns deterministic results on repeated calls")
     void testGetScmsStatuses_DeterministicResults_MultipleCallsReturnSameOrder() throws Exception {
         // Arrange
-        Organization org = organizationRepository.save(fixtures.createOrg("DeterministicOrg"));
+        Organization org = organizationRepository.save(fixtures.createOrg(1));
 
         Manufacturer manufacturer = manufacturerRepository.save(fixtures.createRandomManufacturer());
         RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(manufacturer));
@@ -372,9 +374,9 @@ class ScmsHealthServiceTest {
         saveScmsHealth(rsu2, sameTime, true);
 
         // Act - Call multiple times
-        List<ScmsHealthRsuProjection> results1 = scmsHealthService.getScmsStatuses("DeterministicOrg");
-        List<ScmsHealthRsuProjection> results2 = scmsHealthService.getScmsStatuses("DeterministicOrg");
-        List<ScmsHealthRsuProjection> results3 = scmsHealthService.getScmsStatuses("DeterministicOrg");
+        List<ScmsHealthRsuProjection> results1 = scmsHealthService.getScmsStatuses(1);
+        List<ScmsHealthRsuProjection> results2 = scmsHealthService.getScmsStatuses(1);
+        List<ScmsHealthRsuProjection> results3 = scmsHealthService.getScmsStatuses(1);
 
         // Assert - All calls should return identical results
         assertEquals(2, results1.size());
@@ -387,7 +389,6 @@ class ScmsHealthServiceTest {
         assertEquals(results1.get(1).getHealth(), results2.get(1).getHealth());
         assertEquals(results1.get(1).getHealth(), results3.get(1).getHealth());
     }
-
 
     private ScmsHealth saveScmsHealth(Rsu rsu, Instant timestamp, boolean health) {
         ScmsHealth scmsHealth = new ScmsHealth();

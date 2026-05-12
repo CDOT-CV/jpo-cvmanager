@@ -11,7 +11,8 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * Represents a single intersection record as returned by GET /admin/intersections.
+ * Represents a single intersection record as returned by GET
+ * /admin/intersections.
  */
 @Schema(description = "A single intersection record")
 @Getter
@@ -42,7 +43,7 @@ public class IntersectionDto {
 
     @Schema(description = "Organizations associated with this intersection")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses associated with this intersection")
     @JsonProperty("rsus")

@@ -68,56 +68,56 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_Success() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("test@example.com", result.getContent().get(0).getEmail());
-        verify(userManagementService).getUsers(eq(organization), eq(search), any(Pageable.class));
+        verify(userManagementService).getUsers(eq(orgId), eq(search), any(Pageable.class));
     }
 
     @Test
     void testGetUsers_WithSearch() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "test";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userManagementService).getUsers(eq(organization), eq(search), any(Pageable.class));
+        verify(userManagementService).getUsers(eq(orgId), eq(search), any(Pageable.class));
     }
 
     @Test
     void testGetUsers_WithSorting_FirstName() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("first_name").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(orgId), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "firstName".equals(order.getProperty()) && order.isAscending();
         }));
@@ -125,19 +125,19 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_LastName() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("last_name").descending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(orgId), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "lastName".equals(order.getProperty()) && order.isDescending();
         }));
@@ -145,19 +145,19 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_SuperUser() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("super_user").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(orgId), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "superUser".equals(order.getProperty());
         }));
@@ -165,20 +165,20 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_UnmappedField() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("email").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
         // Should keep original field name if not in mapping
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(orgId), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "email".equals(order.getProperty());
         }));
@@ -186,32 +186,32 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_NoSorting() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> !p.getSort().isSorted()));
+        verify(userManagementService).getUsers(eq(orgId), eq(search), argThat(p -> !p.getSort().isSorted()));
     }
 
     @Test
     void testGetUsers_EmptyResults() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "nonexistent";
         Pageable pageable = PageRequest.of(0, 100);
         Page<UserDto> userPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
@@ -220,16 +220,16 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_Pagination() {
-        String organization = "TestOrg";
+        int orgId = 1;
         String search = "";
         Pageable pageable = PageRequest.of(1, 25); // Page 2, size 25
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 100); // 100 total
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(orgId), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(orgId, search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getNumber()); // Page number
@@ -271,7 +271,7 @@ class UserControllerTest {
     void testGetAllowedSelections_Success() {
         ModifyUserAllowedSelections allowedSelections = new ModifyUserAllowedSelections();
         allowedSelections.setRoles(List.of("admin", "operator", "user"));
-        allowedSelections.setOrganizations(List.of("TestOrg", "AnotherOrg"));
+        allowedSelections.setOrganizations(List.of(1, 2));
 
         when(userManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
                 .thenReturn(allowedSelections);
@@ -284,7 +284,7 @@ class UserControllerTest {
         assertEquals(3, result.getRoles().size());
         assertEquals(2, result.getOrganizations().size());
         assertTrue(result.getRoles().contains("admin"));
-        assertTrue(result.getOrganizations().contains("TestOrg"));
+        assertTrue(result.getOrganizations().contains(1));
         verify(userManagementService).getAllowedSelections(authToken);
     }
 
@@ -311,7 +311,7 @@ class UserControllerTest {
     @Test
     void testCreateUser_Success() {
         UserOrganizationDto org1 = new UserOrganizationDto();
-        org1.setOrganization("TestOrg");
+        org1.setOrganization(1);
         org1.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -321,24 +321,24 @@ class UserControllerTest {
                 false,
                 List.of(org1));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1)))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1));
         verify(userManagementService).createUser(newUser);
     }
 
     @Test
     void testCreateUser_MultipleOrganizations() {
         UserOrganizationDto org1 = new UserOrganizationDto();
-        org1.setOrganization("TestOrg");
+        org1.setOrganization(1);
         org1.setRole("USER");
 
         UserOrganizationDto org2 = new UserOrganizationDto();
-        org2.setOrganization("AnotherOrg");
+        org2.setOrganization(2);
         org2.setRole("OPERATOR");
 
         UserDto newUser = new UserDto(
@@ -348,20 +348,20 @@ class UserControllerTest {
                 false,
                 List.of(org1, org2));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1, 2)))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1, 2));
         verify(userManagementService).createUser(newUser);
     }
 
     @Test
     void testCreateUser_WithSuperUserFlag() {
         UserOrganizationDto org = new UserOrganizationDto();
-        org.setOrganization("TestOrg");
+        org.setOrganization(1);
         org.setRole("ADMIN");
 
         UserDto newUser = new UserDto(
@@ -371,7 +371,7 @@ class UserControllerTest {
                 true, // super_user = true
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1)))
                 .thenReturn(true);
         when(permissionService.isSuperUser())
                 .thenReturn(true);
@@ -386,7 +386,7 @@ class UserControllerTest {
     @Test
     void testCreateUser_Forbidden_NoAdminRoleInOrganization() {
         UserOrganizationDto org = new UserOrganizationDto();
-        org.setOrganization("TestOrg");
+        org.setOrganization(1);
         org.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -396,7 +396,7 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1)))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -405,18 +405,18 @@ class UserControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertEquals("User not qualified to modify all specified organizations", exception.getReason());
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1));
         verify(userManagementService, never()).createUser(any());
     }
 
     @Test
     void testCreateUser_Forbidden_NoAdminRoleInOneOfMultipleOrganizations() {
         UserOrganizationDto org1 = new UserOrganizationDto();
-        org1.setOrganization("TestOrg");
+        org1.setOrganization(1);
         org1.setRole("USER");
 
         UserOrganizationDto org2 = new UserOrganizationDto();
-        org2.setOrganization("UnauthorizedOrg");
+        org2.setOrganization(4);
         org2.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -426,7 +426,7 @@ class UserControllerTest {
                 false,
                 List.of(org1, org2));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1, 4)))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -435,14 +435,14 @@ class UserControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertEquals("User not qualified to modify all specified organizations", exception.getReason());
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1, 4));
         verify(userManagementService, never()).createUser(any());
     }
 
     @Test
     void testCreateUser_NonexistentOrganization() {
         UserOrganizationDto org = new UserOrganizationDto();
-        org.setOrganization("NonexistentOrg");
+        org.setOrganization(4);
         org.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -453,7 +453,7 @@ class UserControllerTest {
                 List.of(org));
 
         // hasRoleInOrgs returns false for nonexistent organizations
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("NonexistentOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(4)))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -488,15 +488,15 @@ class UserControllerTest {
     @Test
     void testCreateUser_WithDifferentRoles() {
         UserOrganizationDto orgAdmin = new UserOrganizationDto();
-        orgAdmin.setOrganization("TestOrg1");
+        orgAdmin.setOrganization(1);
         orgAdmin.setRole("ADMIN");
 
         UserOrganizationDto orgOperator = new UserOrganizationDto();
-        orgOperator.setOrganization("TestOrg2");
+        orgOperator.setOrganization(2);
         orgOperator.setRole("OPERATOR");
 
         UserOrganizationDto orgUser = new UserOrganizationDto();
-        orgUser.setOrganization("TestOrg3");
+        orgUser.setOrganization(3);
         orgUser.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -506,20 +506,20 @@ class UserControllerTest {
                 false,
                 List.of(orgAdmin, orgOperator, orgUser));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1, 2, 3)))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1, 2, 3));
         verify(userManagementService).createUser(newUser);
     }
 
     @Test
     void testCreateUser_WithSpecialCharactersInEmail() {
         UserOrganizationDto org = new UserOrganizationDto();
-        org.setOrganization("TestOrg");
+        org.setOrganization(1);
         org.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -529,7 +529,7 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1)))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
@@ -542,7 +542,7 @@ class UserControllerTest {
     @Test
     void testCreateUser_ServiceLayerValidationHandled() {
         UserOrganizationDto org = new UserOrganizationDto();
-        org.setOrganization("TestOrg");
+        org.setOrganization(1);
         org.setRole("USER");
 
         UserDto newUser = new UserDto(
@@ -552,13 +552,13 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of(1)))
                 .thenReturn(true);
         doThrow(new IllegalArgumentException("User with email already exists"))
                 .when(userManagementService).createUser(newUser);
 
         assertThrows(IllegalArgumentException.class, () -> userController.createUser(newUser));
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of(1));
         verify(userManagementService).createUser(newUser);
     }
 

@@ -49,8 +49,8 @@ public class UserManagementService {
                 () -> new EntityNotFoundException("User not found with email: " + email)));
     }
 
-    public Page<UserDto> getUsers(String orgName, String search, Pageable pageable) {
-        Page<User> users = userRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<UserDto> getUsers(Integer orgId, String search, Pageable pageable) {
+        Page<User> users = userRepository.findAllByOrganization(orgId, search, pageable);
         return users.map(userMapper::toDto);
     }
 

@@ -77,7 +77,7 @@ class PermissionServiceTest {
     /**
      * Sets up both Authorization and Organization headers
      */
-    private void setupRequestWithHeaders(String bearerToken, String organization) {
+    private void setupRequestWithHeaders(String bearerToken, Integer organization) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + bearerToken);
         if (organization != null) {
@@ -101,13 +101,13 @@ class PermissionServiceTest {
 
     @Test
     void testGetAllowedIntersectionIdsByOrganization() {
-        when(intersectionRepository.findIntersectionsByOrganization("TestOrg"))
+        when(intersectionRepository.findIntersectionsByOrganization(1))
                 .thenReturn(List.of("111", "222"));
 
-        List<Integer> result = permissionService.getAllowedIntersectionIdsByOrganization("TestOrg");
+        List<Integer> result = permissionService.getAllowedIntersectionIdsByOrganization(1);
 
         assertEquals(List.of(111, 222), result);
-        verify(intersectionRepository).findIntersectionsByOrganization("TestOrg");
+        verify(intersectionRepository).findIntersectionsByOrganization(1);
     }
 
     // ==================== hasRole Tests ====================
@@ -124,22 +124,22 @@ class PermissionServiceTest {
 
     @Test
     void testHasRole_WithOrganizationHeader_HasSufficientRole() {
-        setupRequestWithHeaders(tokenString, "TestOrg");
+        setupRequestWithHeaders(tokenString, 1);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.findRoleInOrg("TestOrg")).thenReturn(Optional.of(UserRole.ADMIN));
+        when(authToken.findRoleInOrg(1)).thenReturn(Optional.of(UserRole.ADMIN));
 
         assertTrue(permissionService.hasRole(UserRole.OPERATOR));
     }
 
     @Test
     void testHasRole_WithOrganizationHeader_InsufficientRole() {
-        setupRequestWithHeaders(tokenString, "TestOrg");
+        setupRequestWithHeaders(tokenString, 1);
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.findRoleInOrg("TestOrg")).thenReturn(Optional.of(UserRole.USER));
+        when(authToken.findRoleInOrg(1)).thenReturn(Optional.of(UserRole.USER));
 
         assertFalse(permissionService.hasRole(UserRole.ADMIN));
     }
@@ -148,7 +148,7 @@ class PermissionServiceTest {
     void testHasRole_WithoutOrganizationHeader_HasRoleInSomeOrg() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(1));
 
         assertTrue(permissionService.hasRole(UserRole.OPERATOR));
     }
@@ -188,42 +188,42 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         doReturn(true).when(authToken).isSuperUser();
 
-        assertTrue(permissionService.hasRoleInOrg("TestOrg", "ADMIN"));
-        verify(authToken, never()).findRoleInOrg(anyString());
+        assertTrue(permissionService.hasRoleInOrg(1, "ADMIN"));
+        verify(authToken, never()).findRoleInOrg(anyInt());
     }
 
     @Test
     void testHasRoleInOrg_HasExactRole() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn(Optional.of(UserRole.OPERATOR)).when(authToken).findRoleInOrg("TestOrg");
+        doReturn(Optional.of(UserRole.OPERATOR)).when(authToken).findRoleInOrg(1);
 
-        assertTrue(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
+        assertTrue(permissionService.hasRoleInOrg(1, "OPERATOR"));
     }
 
     @Test
     void testHasRoleInOrg_HasSufficientRole() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn(Optional.of(UserRole.ADMIN)).when(authToken).findRoleInOrg("TestOrg");
+        doReturn(Optional.of(UserRole.ADMIN)).when(authToken).findRoleInOrg(1);
 
-        assertTrue(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
-        assertTrue(permissionService.hasRoleInOrg("TestOrg", "USER"));
+        assertTrue(permissionService.hasRoleInOrg(1, "OPERATOR"));
+        assertTrue(permissionService.hasRoleInOrg(1, "USER"));
     }
 
     @Test
     void testHasRoleInOrg_InsufficientRole() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn(Optional.of(UserRole.USER)).when(authToken).findRoleInOrg("TestOrg");
+        doReturn(Optional.of(UserRole.USER)).when(authToken).findRoleInOrg(1);
 
-        assertFalse(permissionService.hasRoleInOrg("TestOrg", "OPERATOR"));
-        assertFalse(permissionService.hasRoleInOrg("TestOrg", "ADMIN"));
+        assertFalse(permissionService.hasRoleInOrg(1, "OPERATOR"));
+        assertFalse(permissionService.hasRoleInOrg(1, "ADMIN"));
     }
 
     @Test
     void testHasRoleInOrg_NoRoleInOrganization() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        doReturn(Optional.empty()).when(authToken).findRoleInOrg("TestOrg");
+        doReturn(Optional.empty()).when(authToken).findRoleInOrg(1);
 
-        assertFalse(permissionService.hasRoleInOrg("TestOrg", "USER"));
+        assertFalse(permissionService.hasRoleInOrg(1, "USER"));
     }
 
     // ==================== hasIntersection Tests ====================
@@ -254,12 +254,12 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
+        request.addHeader("Organization", 1);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(1));
+        when(intersectionRepository.existsByIdAndOrganizations("123", List.of(1)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasIntersection(123, "USER"));
@@ -270,16 +270,16 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
+        request.addHeader("Organization", 1);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(1));
+        when(intersectionRepository.existsByIdAndOrganizations("123", List.of(1)))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasIntersection(123, "USER"));
-        verify(intersectionRepository).existsByIdAndOrganizations("123", List.of("TestOrg"));
+        verify(intersectionRepository).existsByIdAndOrganizations("123", List.of(1));
     }
 
     @Test
@@ -287,8 +287,8 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(1));
+        when(intersectionRepository.existsByIdAndOrganizations("123", List.of(1)))
                 .thenReturn(true);
         assertTrue(permissionService.hasIntersection(123, "OPERATOR"));
     }
@@ -310,11 +310,11 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(false);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
+        request.addHeader("Organization", 1);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(1));
+        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of(1)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
@@ -325,16 +325,16 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
+        request.addHeader("Organization", 1);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(1));
+        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of(1)))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
         verify(rsuRepository).existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"),
-                List.of("TestOrg"));
+                List.of(1));
     }
 
     @Test
@@ -342,8 +342,8 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(1));
+        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of(1)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
@@ -387,12 +387,12 @@ class PermissionServiceTest {
     @Test
     void testGetOrganizationFromHeader_WithHeader() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Organization", "TestOrg");
+        request.addHeader("Organization", 1);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        String organization = PermissionService.getOrganizationFromHeader();
+        Integer organization = PermissionService.getOrganizationFromHeader();
 
-        assertEquals("TestOrg", organization);
+        assertEquals(1, organization);
     }
 
     @Test
@@ -400,7 +400,7 @@ class PermissionServiceTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        String organization = PermissionService.getOrganizationFromHeader();
+        Integer organization = PermissionService.getOrganizationFromHeader();
 
         assertNull(organization);
     }
@@ -409,7 +409,7 @@ class PermissionServiceTest {
     void testGetOrganizationFromHeader_NoRequestContext() {
         RequestContextHolder.resetRequestAttributes();
 
-        String organization = PermissionService.getOrganizationFromHeader();
+        Integer organization = PermissionService.getOrganizationFromHeader();
 
         assertNull(organization);
     }

@@ -12,7 +12,7 @@ import java.util.List;
 public class ScmsHealthService {
     private final ScmsHealthRepository scmsHealthRepository;
 
-    public List<ScmsHealthRsuProjection> getScmsStatuses(String organization) {
-        return scmsHealthRepository.findLatestScmsHealthByOrganization(organization);
+    public List<ScmsHealthRsuProjection> getScmsStatuses(Integer orgId) {
+        return scmsHealthRepository.findLatestScmsHealthByOrganization(orgId);
     }
 }

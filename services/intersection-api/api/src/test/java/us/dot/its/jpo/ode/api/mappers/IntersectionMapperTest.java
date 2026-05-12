@@ -213,17 +213,17 @@ class IntersectionMapperTest {
     }
 
     // -------------------------------------------------------------------------
-    // mapOrgNames (default method, tested via the interface)
+    // mapOrgIds (default method, tested via the interface)
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("mapOrgNames — IntersectionOrganization list to String list")
+    @DisplayName("mapOrgIds — IntersectionOrganization list to String list")
     class MapOrgNamesTests {
 
         @Test
         @DisplayName("null input returns empty list")
         void mapOrgNames_null_returnsEmptyList() {
-            List<String> result = mapper.mapOrgNames(null);
+            List<Integer> result = mapper.mapOrgIds(null);
 
             assertNotNull(result);
             assertTrue(result.isEmpty());
@@ -232,7 +232,7 @@ class IntersectionMapperTest {
         @Test
         @DisplayName("empty list returns empty list")
         void mapOrgNames_emptyList_returnsEmptyList() {
-            List<String> result = mapper.mapOrgNames(Collections.emptyList());
+            List<Integer> result = mapper.mapOrgIds(Collections.emptyList());
 
             assertNotNull(result);
             assertTrue(result.isEmpty());
@@ -241,7 +241,7 @@ class IntersectionMapperTest {
         @Test
         @DisplayName("single valid entry returns list with that name")
         void mapOrgNames_singleValidEntry_returnsName() {
-            List<String> result = mapper.mapOrgNames(List.of(orgEntry("CDOT")));
+            List<Integer> result = mapper.mapOrgIds(List.of(orgEntry("CDOT")));
 
             assertEquals(List.of("CDOT"), result);
         }
@@ -252,7 +252,7 @@ class IntersectionMapperTest {
             List<IntersectionOrganization> orgs = List.of(
                     orgEntry("CDOT"), orgEntry("Denver"), orgEntry("USDOT"));
 
-            List<String> result = mapper.mapOrgNames(orgs);
+            List<Integer> result = mapper.mapOrgIds(orgs);
 
             assertEquals(List.of("CDOT", "Denver", "USDOT"), result);
         }
@@ -262,7 +262,7 @@ class IntersectionMapperTest {
         void mapOrgNames_nullOrganization_filtered() {
             List<IntersectionOrganization> orgs = Arrays.asList(orgEntryNullOrg(), orgEntry("CDOT"));
 
-            List<String> result = mapper.mapOrgNames(orgs);
+            List<Integer> result = mapper.mapOrgIds(orgs);
 
             assertEquals(List.of("CDOT"), result);
         }
@@ -272,7 +272,7 @@ class IntersectionMapperTest {
         void mapOrgNames_nullOrgName_filtered() {
             List<IntersectionOrganization> orgs = Arrays.asList(orgEntryNullName(), orgEntry("Denver"));
 
-            List<String> result = mapper.mapOrgNames(orgs);
+            List<Integer> result = mapper.mapOrgIds(orgs);
 
             assertEquals(List.of("Denver"), result);
         }
@@ -282,7 +282,7 @@ class IntersectionMapperTest {
         void mapOrgNames_allInvalidEntries_returnsEmptyList() {
             List<IntersectionOrganization> orgs = Arrays.asList(orgEntryNullOrg(), orgEntryNullName());
 
-            List<String> result = mapper.mapOrgNames(orgs);
+            List<Integer> result = mapper.mapOrgIds(orgs);
 
             assertNotNull(result);
             assertTrue(result.isEmpty());
@@ -298,7 +298,7 @@ class IntersectionMapperTest {
                     orgEntryNullName(),
                     orgEntry("USDOT"));
 
-            List<String> result = mapper.mapOrgNames(orgs);
+            List<Integer> result = mapper.mapOrgIds(orgs);
 
             assertEquals(List.of("CDOT", "Denver", "USDOT"), result);
         }

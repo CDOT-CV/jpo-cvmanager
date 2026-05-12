@@ -12,7 +12,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -54,16 +54,16 @@ class ScmsHealthControllerTest {
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
-        when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
+        when(permissionService.hasRoleInOrg(1, "USER")).thenReturn(true);
+        when(scmsHealthService.getScmsStatuses(anyInt())).thenReturn(queryResults);
 
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status")
-                        .header("Organization", "TestOrg"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value(true));
+                .header("Organization", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value(true));
 
-        verify(scmsHealthService).getScmsStatuses(anyString());
+        verify(scmsHealthService).getScmsStatuses(anyInt());
     }
 
     @Test
@@ -71,7 +71,7 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_FAILURE_OrganizationHeaderMissing() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status"))
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -79,17 +79,17 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_SUCCESS_EmptyResults() throws Exception {
         // Arrange
         when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
-        when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(List.of());
+        when(permissionService.hasRoleInOrg(1, "USER")).thenReturn(true);
+        when(scmsHealthService.getScmsStatuses(anyInt())).thenReturn(List.of());
 
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status")
-                        .header("Organization", "TestOrg"))
+                .header("Organization", 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scmsHealthByIp").isMap())
                 .andExpect(jsonPath("$.scmsHealthByIp.*").isEmpty());
 
-        verify(scmsHealthService).getScmsStatuses(anyString());
+        verify(scmsHealthService).getScmsStatuses(anyInt());
     }
 
     @Test
@@ -97,13 +97,14 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_FAILURE_OrganizationNotFound() throws Exception {
         // Arrange
         when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
-        when(scmsHealthService.getScmsStatuses(anyString())).thenThrow(new EntityNotFoundException("Organization not found"));
+        when(permissionService.hasRoleInOrg(1, "USER")).thenReturn(true);
+        when(scmsHealthService.getScmsStatuses(anyInt()))
+                .thenThrow(new EntityNotFoundException("Organization not found"));
 
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status")
-                        .header("Organization", "TestOrg"))
-            .andExpect(status().isNotFound());
+                .header("Organization", 1))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -115,17 +116,17 @@ class ScmsHealthControllerTest {
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(true);
-        when(scmsHealthService.getScmsStatuses(anyString())).thenReturn(queryResults);
+        when(scmsHealthService.getScmsStatuses(anyInt())).thenReturn(queryResults);
 
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status")
-                        .header("Organization", "AnyOrg"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value(true));
+                .header("Organization", "AnyOrg"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scmsHealthByIp['10.0.0.1'].health").value(true));
 
-        verify(scmsHealthService).getScmsStatuses(anyString());
+        verify(scmsHealthService).getScmsStatuses(anyInt());
         // hasRoleInOrg should NOT be called since isSuperUser returns true
-        verify(permissionService, never()).hasRoleInOrg(anyString(), eq("USER"));
+        verify(permissionService, never()).hasRoleInOrg(anyInt(), eq("USER"));
     }
 
     @Test
@@ -133,14 +134,14 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_FORBIDDEN_UserNotInOrganization() throws Exception {
         // Arrange - user does not have access to the requested organization
         when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("UnauthorizedOrg", "USER")).thenReturn(false);
+        when(permissionService.hasRoleInOrg(4, "USER")).thenReturn(false);
 
         // Act & Assert
         mockMvc.perform(get("/devices/scms/status")
-                        .header("Organization", "UnauthorizedOrg"))
-            .andExpect(status().isForbidden());
+                .header("Organization", 4))
+                .andExpect(status().isForbidden());
 
         // Service should NOT be called since authorization failed
-        verify(scmsHealthService, never()).getScmsStatuses(anyString());
+        verify(scmsHealthService, never()).getScmsStatuses(anyInt());
     }
 }

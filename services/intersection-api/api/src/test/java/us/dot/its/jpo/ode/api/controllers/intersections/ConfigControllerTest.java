@@ -339,10 +339,10 @@ public class ConfigControllerTest {
         String resourceURL = "http://localhost/config/intersections";
         when(restTemplate.getForEntity(resourceURL, IntersectionConfigMap.class))
                 .thenReturn(new ResponseEntity<>(configMap, HttpStatus.OK));
-        when(permissionService.getAllowedIntersectionIdsByOrganization(eq("org")))
+        when(permissionService.getAllowedIntersectionIdsByOrganization(eq(1)))
                 .thenReturn(Collections.singletonList(1));
 
-        ResponseEntity<List<IntersectionConfig<?>>> response = controller.intersection_config_all("org");
+        ResponseEntity<List<IntersectionConfig<?>>> response = controller.intersection_config_all(1);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains(config1);

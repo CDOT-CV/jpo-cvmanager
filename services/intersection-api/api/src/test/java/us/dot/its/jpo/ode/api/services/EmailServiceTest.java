@@ -90,11 +90,11 @@ class EmailServiceTest {
     @Test
     void testGetUsersForNotificationTypeByOrganization() {
         when(userEmailNotificationRepository.findUsersByNotificationTypeAndOrganization("Support Requests", "IMMEDIATE",
-                "Test Org"))
+                1))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByOrganization(
-                EmailCategory.SUPPORT_REQUEST, "Test Org", EmailFrequency.IMMEDIATE);
+                EmailCategory.SUPPORT_REQUEST, 1, EmailFrequency.IMMEDIATE);
 
         assertEquals(2, recipients.size());
         assertEquals("user1@example.com", recipients.get(0).getEmail());
