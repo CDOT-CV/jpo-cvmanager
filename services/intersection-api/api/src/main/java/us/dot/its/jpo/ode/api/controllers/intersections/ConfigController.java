@@ -230,7 +230,7 @@ public class ConfigController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or USER role"),
     })
     public @ResponseBody ResponseEntity<List<IntersectionConfig<?>>> intersection_config_all(
-            @RequestHeader(name = "Organization", required = false) String organization) {
+            @RequestHeader(name = "Organization", required = false) Integer organization) {
 
         String resourceURL = String.format(intersectionConfigAllTemplate, props.getCmServerURL());
         ResponseEntity<IntersectionConfigMap> response = restTemplate.getForEntity(resourceURL,

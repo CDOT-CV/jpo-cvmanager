@@ -147,12 +147,12 @@ class GlobalExceptionHandlerTest {
         @Test
         void testInvalidParameter() {
             IllegalArgumentException ex = new IllegalArgumentException(
-                    "Parameter 'organizationName' cannot be null or empty");
+                    "Parameter 'organizationId' cannot be null or empty");
 
             ErrorResponse response = handler.handleIllegalArgument(ex);
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertTrue(response.getBody().getDetail().contains("organizationName"));
+            assertTrue(response.getBody().getDetail().contains("organizationId"));
             assertTrue(response.getBody().getDetail().contains("cannot be null or empty"));
         }
 

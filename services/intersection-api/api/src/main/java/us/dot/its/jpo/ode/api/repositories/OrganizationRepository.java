@@ -12,10 +12,10 @@ import java.util.Optional;
 @Repository
 public interface OrganizationRepository extends JpaRepository<Organization, Integer> {
 
-    Optional<Organization> findByName(String name);
+    Optional<Organization> findById(Integer id);
 
-    List<Organization> findByNameIn(List<String> names);
+    List<Organization> findByIdIn(List<Integer> ids);
 
-    @Query("SELECT o.name FROM Organization o ORDER BY o.name ASC")
-    List<String> findAllOrganizationNames();
+    @Query("SELECT o.id FROM Organization o ORDER BY o.id ASC")
+    List<Integer> findAllOrganizationIds();
 }

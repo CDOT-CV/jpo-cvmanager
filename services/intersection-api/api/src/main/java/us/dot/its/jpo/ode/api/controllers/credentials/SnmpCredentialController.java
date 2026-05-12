@@ -33,7 +33,8 @@ public class SnmpCredentialController {
     @PostMapping("/create")
     @PreAuthorize("@PermissionService.hasRoleInOrg(#request.getOrganization(), 'ADMIN')")
     public SnmpCredentialDTO createSnmpCredential(
-            @RequestBody SnmpCredentialCreateRequest request) throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
+            @RequestBody SnmpCredentialCreateRequest request)
+            throws SnmpCredentialManagementService.SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         return snmpCredentialMapper.toDto(snmpCredentialManagementService.create(request));
     }
 
@@ -65,7 +66,7 @@ public class SnmpCredentialController {
         private final String nickname;
         private final String username;
         private final String password;
-        private final String organization;
+        private final Integer organization;
     }
 
     @Data
@@ -78,7 +79,7 @@ public class SnmpCredentialController {
         private final String nickname;
         private String username;
         private String password;
-        private String organization;
+        private Integer organization;
     }
 
     @Data

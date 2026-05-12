@@ -44,7 +44,7 @@ public class IntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<List<IntersectionReferenceData>> getIntersections(
-            @RequestHeader(name = "Organization", required = false) String organization,
+            @RequestHeader(name = "Organization", required = false) Integer organization,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
@@ -83,7 +83,7 @@ public class IntersectionController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public ResponseEntity<List<IntersectionReferenceData>> getIntersectionsByLocation(
-            @RequestHeader(name = "Organization", required = false) String organization,
+            @RequestHeader(name = "Organization", required = false) Integer organization,
             @RequestParam(name = "longitude", defaultValue = "false") Double longitude,
             @RequestParam(name = "latitude", defaultValue = "false") Double latitude,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {

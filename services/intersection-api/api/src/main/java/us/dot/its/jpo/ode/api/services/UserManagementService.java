@@ -60,7 +60,7 @@ public class UserManagementService {
         allowed.setRoles(roleRepository.findAllRoleNames());
 
         if (authToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAllOrganizationNames());
+            allowed.setOrganizations(organizationRepository.findAllOrganizationIds());
         } else {
             allowed.setOrganizations(authToken.getQualifiedOrgList(UserRole.ADMIN));
         }
@@ -111,7 +111,7 @@ public class UserManagementService {
     }
 
     public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user) {
-        Organization organization = organizationRepository.findByName(userOrgDto.getOrganization())
+        Organization organization = organizationRepository.findById(userOrgDto.getOrganization())
                 .orElseThrow(
                         () -> new IllegalArgumentException("Organization not found: " + userOrgDto.getOrganization()));
 
@@ -127,9 +127,9 @@ public class UserManagementService {
 
     @Transactional
     public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
-        List<String> authorizedOrgs;
+        List<Integer> authorizedOrgs;
         if (authToken.isSuperUser()) {
-            authorizedOrgs = organizationRepository.findAllOrganizationNames();
+            authorizedOrgs = organizationRepository.findAllOrganizationIds();
         } else {
             authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
         }
@@ -151,7 +151,7 @@ public class UserManagementService {
         return userMapper.toDto(savedUser);
     }
 
-    private void handleOrganizationChanges(User user, UserPatch patch, List<String> authorizedOrgs) {
+    private void handleOrganizationChanges(User user, UserPatch patch, List<Integer> authorizedOrgs) {
 
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
@@ -161,7 +161,7 @@ public class UserManagementService {
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add User to organization(s): "
                         + String.join(", ",
-                                unqualifiedAdds.stream().map(UserOrganizationDto::getOrganization).toList()));
+                                unqualifiedAdds.stream().map(org -> org.getOrganization().toString()).toList()));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
                 // Check if already associated
@@ -170,7 +170,7 @@ public class UserManagementService {
                         List.of(org.getOrganization()));
 
                 if (!exists) {
-                    Organization organization = organizationRepository.findByName(org.getOrganization())
+                    Organization organization = organizationRepository.findById(org.getOrganization())
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Organization not found: " + org.getOrganization()));
 
@@ -196,11 +196,11 @@ public class UserManagementService {
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
                         + String.join(", ", unqualifiedRemoves.stream()
-                                .map(UserOrganizationDto::getOrganization).toList()));
+                                .map(org -> org.getOrganization().toString()).toList()));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToRemove()) {
                 // Find and delete the specific association
-                userOrganizationRepository.findByUserAndOrganization_Name(
+                userOrganizationRepository.findByUserAndOrganization_Id(
                         user,
                         org.getOrganization()).ifPresent(userOrganizationRepository::delete);
             }
@@ -214,10 +214,10 @@ public class UserManagementService {
                 throw new AccessDeniedException(
                         "User does not have permission to modify User's role in organization(s): "
                                 + String.join(", ", unqualifiedModifies.stream()
-                                        .map(UserOrganizationDto::getOrganization).toList()));
+                                        .map(org -> org.getOrganization().toString()).toList()));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
-                userOrganizationRepository.findByUserAndOrganization_Name(
+                userOrganizationRepository.findByUserAndOrganization_Id(
                         user,
                         org.getOrganization()).ifPresent(userOrg -> {
                             Role role = roleRepository.findByNameIgnoreCase(org.getRole())

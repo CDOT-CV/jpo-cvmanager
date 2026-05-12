@@ -17,16 +17,18 @@ public class SnmpCredentialManagementService {
     private final SnmpCredentialRepository snmpCredentialRepository;
     private final OrganizationRepository organizationRepository;
 
-    public SnmpCredential create(SnmpCredentialController.SnmpCredentialCreateRequest request) throws SnmpCredentialAlreadyExistsException, EntityNotFoundException {
+    public SnmpCredential create(SnmpCredentialController.SnmpCredentialCreateRequest request)
+            throws SnmpCredentialAlreadyExistsException, EntityNotFoundException {
         if (snmpCredentialRepository.existsByNickname(request.getNickname())) {
-            throw new SnmpCredentialAlreadyExistsException("A credential with nickname " + request.getNickname() + " already exists.");
+            throw new SnmpCredentialAlreadyExistsException(
+                    "A credential with nickname " + request.getNickname() + " already exists.");
         }
         SnmpCredential snmpCredential = new SnmpCredential();
         snmpCredential.setNickname(request.getNickname());
         snmpCredential.setUsername(request.getUsername());
         snmpCredential.setPassword(request.getPassword());
 
-        Optional<Organization> organization = organizationRepository.findByName(request.getOrganization());
+        Optional<Organization> organization = organizationRepository.findById(request.getOrganization());
         if (organization.isEmpty()) {
             throw new EntityNotFoundException("Organization " + request.getOrganization() + " not found.");
         }
@@ -36,11 +38,13 @@ public class SnmpCredentialManagementService {
     }
 
     public SnmpCredential getByNickname(String nickname) throws EntityNotFoundException {
-        return snmpCredentialRepository.findByNickname(nickname).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + nickname));
+        return snmpCredentialRepository.findByNickname(nickname)
+                .orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + nickname));
     }
 
     public SnmpCredential update(SnmpCredentialController.SnmpCredentialPatch patch) throws EntityNotFoundException {
-        SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(() -> new EntityNotFoundException("No credential found with nickname " + patch.getNickname()));
+        SnmpCredential credential = snmpCredentialRepository.findByNickname(patch.getNickname()).orElseThrow(
+                () -> new EntityNotFoundException("No credential found with nickname " + patch.getNickname()));
 
         if (patch.getUsername() != null) {
             credential.setUsername(patch.getUsername());
@@ -49,7 +53,7 @@ public class SnmpCredentialManagementService {
             credential.setPassword(patch.getPassword());
         }
         if (patch.getOrganization() != null) {
-            Optional<Organization> newOrganization = organizationRepository.findByName(patch.getOrganization());
+            Optional<Organization> newOrganization = organizationRepository.findById(patch.getOrganization());
             if (newOrganization.isEmpty()) {
                 throw new EntityNotFoundException("Organization " + patch.getOrganization() + " not found.");
             }

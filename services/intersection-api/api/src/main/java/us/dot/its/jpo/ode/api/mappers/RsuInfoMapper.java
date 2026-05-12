@@ -28,7 +28,7 @@ public interface RsuInfoMapper {
     @Mapping(source = "credential.nickname", target = "sshCredentialGroup")
     @Mapping(source = "snmpCredential.nickname", target = "snmpCredentialGroup")
     @Mapping(source = "snmpProtocol.nickname", target = "snmpVersionGroup")
-    @Mapping(source = "rsuOrganizations", target = "organizations", qualifiedByName = "mapOrganizationNames")
+    @Mapping(source = "rsuOrganizations", target = "organizations", qualifiedByName = "mapOrganizationIds")
     @Mapping(source = "rsuOption", target = "timDeposit", qualifiedByName = "mapTimDeposit")
     @Mapping(source = "rsuOption", target = "snmpMonitoring", qualifiedByName = "mapSnmpMonitoring")
     RsuInfoDto toDto(Rsu rsu);
@@ -75,14 +75,14 @@ public interface RsuInfoMapper {
      * Extract organization names from RsuOrganization list.
      * Returns a list of organization name strings.
      */
-    @Named("mapOrganizationNames")
-    default List<String> mapOrganizationNames(Set<RsuOrganization> rsuOrganizations) {
+    @Named("mapOrganizationIds")
+    default List<Integer> mapOrganizationIds(Set<RsuOrganization> rsuOrganizations) {
         if (rsuOrganizations == null) {
             return null;
         }
         return rsuOrganizations.stream()
-                .filter(ro -> ro != null && ro.getOrganization() != null && ro.getOrganization().getName() != null)
-                .map(ro -> ro.getOrganization().getName())
+                .filter(ro -> ro != null && ro.getOrganization() != null && ro.getOrganization().getId() != null)
+                .map(ro -> ro.getOrganization().getId())
                 .collect(Collectors.toList());
     }
 

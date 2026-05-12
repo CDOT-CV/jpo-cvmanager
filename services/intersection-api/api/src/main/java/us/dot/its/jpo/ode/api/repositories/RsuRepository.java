@@ -24,9 +24,9 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE r.ipv4Address = :ipv4Address AND o.name IN :organizations")
+            "WHERE r.ipv4Address = :ipv4Address AND o.id IN :orgIds")
     boolean existsByIpAndOrganizations(@Param("ipv4Address") InetAddress ipv4Address,
-            @Param("organizations") List<String> organizations);
+            @Param("orgIds") List<Integer> orgIds);
 
     Rsu findByIpv4Address(InetAddress ipv4Address);
 
@@ -36,7 +36,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "FROM Rsu rsu " +
             "JOIN rsu.rsuOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE o.name = :orgName " +
+            "WHERE o.id = :orgId " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(CAST(rsu.ipv4Address AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(rsu.milepost AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -44,7 +44,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "LOWER(rsu.model.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.model.manufacturer.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.serialNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<Rsu> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
+    Page<Rsu> findAllByOrganization(@Param("orgId") Integer orgId, @Param("search") String search,
             Pageable pageable);
 
     @Query("SELECT DISTINCT r.primaryRoute FROM Rsu r ORDER BY r.primaryRoute ASC")
@@ -61,15 +61,15 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
-            "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+            "ORDER BY o.id ASC")
+    List<Integer> findAllOrganizationIdsByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE o.name in :organizationNames")
-    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+            "WHERE o.id in :organizationIds")
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationIds") List<Integer> organizationIds);
 
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);

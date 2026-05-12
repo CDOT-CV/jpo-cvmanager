@@ -44,12 +44,12 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
             "JOIN UserOrganization uo " +
             "JOIN Organization o " +
             "WHERE uen.emailType.emailType = :notification_type " +
-            "AND o.name = :organizationName " +
+            "AND o.id = :organizationId " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +
             "OR (:frequency = 'DAILY' AND uen.daily = true) " +
             "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
             "OR (:frequency = 'MONTHLY' AND uen.monthly = true))")
     List<String> findUsersByNotificationTypeAndOrganization(@Param("notificationType") String notificationType,
-            @Param("frequency") String frequency, @Param("organizationName") String organizationName);
+            @Param("frequency") String frequency, @Param("organizationId") Integer organizationId);
 }

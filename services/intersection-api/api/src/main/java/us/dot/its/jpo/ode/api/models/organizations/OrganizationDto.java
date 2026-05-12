@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.models.organizations;
 
 import java.io.Serializable;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Value;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -11,6 +12,9 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
  */
 @Value
 public class OrganizationDto implements Serializable {
+
+    @NotNull
+    Integer id;
 
     @Size(max = 128)
     String name;

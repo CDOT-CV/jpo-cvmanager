@@ -79,18 +79,18 @@ public class OrganizationManagementService {
      */
     @Transactional
     public OrganizationDto modifyOrganization(OrganizationPatch patch, CvManagerAuthToken authToken) {
-        List<String> authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
+        List<Integer> authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
 
         // Step 1: Authorization guard — the caller must be ADMIN in the target org
-        if (!authToken.isSuperUser() && !authorizedOrgs.contains(patch.getOrigName())) {
+        if (!authToken.isSuperUser() && !authorizedOrgs.contains(patch.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User does not have ADMIN permission over organization: " + patch.getOrigName());
+                    "User does not have ADMIN permission over organization: " + patch.getId());
         }
 
         // Step 2: Load and update the organization record
-        Organization org = organizationRepository.findByName(patch.getOrigName())
+        Organization org = organizationRepository.findById(patch.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + patch.getOrigName()));
+                        "Organization not found: " + patch.getId()));
 
         if (patch.getName() != null) {
             org.setName(patch.getName());
@@ -99,46 +99,46 @@ public class OrganizationManagementService {
             org.setEmail(patch.getEmail());
         }
         Organization savedOrg = organizationRepository.save(org);
-        log.debug("Organization '{}' updated", patch.getOrigName());
+        log.debug("Organization '{}' updated", patch.getId());
 
         // Step 3: Bulk-apply RSU option flags (tim_deposit / snmp_monitoring)
         if (patch.getTimDeposit() != null || patch.getSnmpMonitoring() != null) {
-            applyBulkRsuOptions(org.getName(), patch.getTimDeposit(), patch.getSnmpMonitoring());
+            applyBulkRsuOptions(org.getId(), patch.getTimDeposit(), patch.getSnmpMonitoring());
         }
 
         // Step 4: Add users
-        handleUsersToAdd(patch.getUsersToAdd(), org.getName(), authorizedOrgs, authToken.isSuperUser());
+        handleUsersToAdd(patch.getUsersToAdd(), org.getId(), authorizedOrgs, authToken.isSuperUser());
 
         // Step 5: Modify user roles
-        handleUsersToModify(patch.getUsersToModify(), org.getName());
+        handleUsersToModify(patch.getUsersToModify(), org.getId());
 
         // Step 6: Remove users
         if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
-            userOrganizationRepository.deleteByUserEmailsAndOrganizationName(
-                    patch.getUsersToRemove(), org.getName());
+            userOrganizationRepository.deleteByUserEmailsAndOrganizationId(
+                    patch.getUsersToRemove(), org.getId());
             log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
         }
 
         // Step 7: Add RSU associations
-        handleRsusToAdd(patch.getRsusToAdd(), org.getName());
+        handleRsusToAdd(patch.getRsusToAdd(), org.getId());
 
         // Step 8: Remove RSU associations
         if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
-            rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganizationName(addresses, org.getName());
+            rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganizationId(addresses, org.getId());
             log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
 
         // Step 9: Add intersection associations
-        handleIntersectionsToAdd(patch.getIntersectionsToAdd(), org.getName());
+        handleIntersectionsToAdd(patch.getIntersectionsToAdd(), org.getId());
 
         // Step 10: Remove intersection associations
         if (patch.getIntersectionsToRemove() != null && !patch.getIntersectionsToRemove().isEmpty()) {
             List<String> numberStrings = patch.getIntersectionsToRemove().stream()
                     .map(Object::toString)
                     .toList();
-            intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganizationName(
-                    numberStrings, org.getName());
+            intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganizationId(
+                    numberStrings, org.getId());
             log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), org.getName());
         }
 
@@ -150,7 +150,7 @@ public class OrganizationManagementService {
      * Refuses deletion if any RSU, intersection, or user would become orphaned
      * (i.e., associated with no organization after the delete).
      *
-     * @param orgName the name of the organization to delete
+     * @param orgId the ID of the organization to delete
      * @throws ResponseStatusException            with 404 if the organization does
      *                                            not exist
      * @throws OrganizationHasDependentsException with 409 if orphaned RSUs,
@@ -158,39 +158,39 @@ public class OrganizationManagementService {
      *                                            result
      */
     @Transactional
-    public void deleteOrganization(String orgName) {
-        Organization org = organizationRepository.findByName(orgName)
+    public void deleteOrganization(Integer orgId) {
+        Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
+                        "Organization not found: " + orgId));
 
-        if (rsuOrganizationRepository.existsOrphanRsuInOrganization(orgName)) {
+        if (rsuOrganizationRepository.existsOrphanRsuInOrganization(orgId)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more RSUs only associated with this organization");
         }
 
-        if (intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(orgName)) {
+        if (intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(orgId)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more Intersections only associated with this organization");
         }
 
-        if (userOrganizationRepository.existsOrphanUserInOrganization(orgName)) {
+        if (userOrganizationRepository.existsOrphanUserInOrganization(orgId)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more users only associated with this organization");
         }
 
-        userOrganizationRepository.deleteAllByOrganizationName(orgName);
-        rsuOrganizationRepository.deleteAllByOrganizationName(orgName);
-        intersectionOrganizationRepository.deleteAllByOrganizationName(orgName);
+        userOrganizationRepository.deleteAllByOrganizationId(orgId);
+        rsuOrganizationRepository.deleteAllByOrganizationId(orgId);
+        intersectionOrganizationRepository.deleteAllByOrganizationId(orgId);
         organizationRepository.delete(org);
-        log.debug("Organization '{}' deleted", orgName);
+        log.debug("Organization '{}' deleted", orgId);
     }
 
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private void applyBulkRsuOptions(String orgName, Boolean timDeposit, Boolean snmpMonitoring) {
-        List<InetAddress> rsuIps = rsuOrganizationRepository.findAllRsuIpsByOrganizationName(orgName);
+    private void applyBulkRsuOptions(Integer orgId, Boolean timDeposit, Boolean snmpMonitoring) {
+        List<InetAddress> rsuIps = rsuOrganizationRepository.findAllRsuIpsByOrganizationId(orgId);
         if (rsuIps.isEmpty()) {
             return;
         }
@@ -225,25 +225,25 @@ public class OrganizationManagementService {
             }
         }
         rsuOptionRepository.saveAll(optionsToSave);
-        log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), orgName);
+        log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), orgId);
     }
 
-    private void handleUsersToAdd(List<UserRoleAssignment> assignments, String orgName,
-            List<String> authorizedOrgs, boolean isSuperUser) {
+    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Integer orgId,
+            List<Integer> authorizedOrgs, boolean isSuperUser) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }
 
         // Non-superusers may only add users to organizations they administer
-        if (!isSuperUser && !authorizedOrgs.contains(orgName)) {
+        if (!isSuperUser && !authorizedOrgs.contains(orgId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User does not have permission to add users to organization: " + orgName);
+                    "User does not have permission to add users to organization: " + orgId);
         }
 
         // Load organization once for all additions
-        Organization organization = organizationRepository.findByName(orgName)
+        Organization organization = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
+                        "Organization not found: " + orgId));
 
         // Cache role lookups to avoid redundant DB hits across assignments
         Map<String, Role> roleCache = new HashMap<>();
@@ -252,10 +252,10 @@ public class OrganizationManagementService {
         for (UserRoleAssignment assignment : assignments) {
             // Check membership first — skip user/role loading if already a member
             boolean alreadyMember = userOrganizationRepository
-                    .findByUser_EmailAndOrganization_Name(assignment.getEmail(), orgName)
+                    .findByUser_EmailAndOrganization_Id(assignment.getEmail(), orgId)
                     .isPresent();
             if (alreadyMember) {
-                log.debug("User '{}' is already a member of org '{}', skipping add", assignment.getEmail(), orgName);
+                log.debug("User '{}' is already a member of org '{}', skipping add", assignment.getEmail(), orgId);
                 continue;
             }
 
@@ -274,12 +274,12 @@ public class OrganizationManagementService {
             userOrg.setOrganization(organization);
             toSave.add(userOrg);
             log.debug("Queued user '{}' with role '{}' for addition to org '{}'", assignment.getEmail(),
-                    assignment.getRole(), orgName);
+                    assignment.getRole(), orgId);
         }
         userOrganizationRepository.saveAll(toSave);
     }
 
-    private void handleUsersToModify(List<UserRoleAssignment> assignments, String orgName) {
+    private void handleUsersToModify(List<UserRoleAssignment> assignments, Integer orgId) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }
@@ -291,9 +291,9 @@ public class OrganizationManagementService {
 
         for (UserRoleAssignment assignment : assignments) {
             UserOrganization userOrg = userOrganizationRepository
-                    .findByUser_EmailAndOrganization_Name(assignment.getEmail(), orgName)
+                    .findByUser_EmailAndOrganization_Id(assignment.getEmail(), orgId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "User '" + assignment.getEmail() + "' is not a member of organization: " + orgName));
+                            "User '" + assignment.getEmail() + "' is not a member of organization: " + orgId));
 
             Role role = roleCache.computeIfAbsent(assignment.getRole(),
                     r -> roleRepository.findByName(r)
@@ -303,20 +303,20 @@ public class OrganizationManagementService {
             userOrg.setRole(role);
             toSave.add(userOrg);
             log.debug("Queued user '{}' for role update to '{}' in org '{}'", assignment.getEmail(),
-                    assignment.getRole(), orgName);
+                    assignment.getRole(), orgId);
         }
         userOrganizationRepository.saveAll(toSave);
     }
 
-    private void handleRsusToAdd(List<String> ipStrings, String orgName) {
+    private void handleRsusToAdd(List<String> ipStrings, Integer orgId) {
         if (ipStrings == null || ipStrings.isEmpty()) {
             return;
         }
 
         // Load organization once for all additions
-        Organization organization = organizationRepository.findByName(orgName)
+        Organization organization = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
+                        "Organization not found: " + orgId));
 
         List<RsuOrganization> toSave = new ArrayList<>();
         for (String ipString : ipStrings) {
@@ -324,10 +324,10 @@ public class OrganizationManagementService {
 
             // Check assignment first — skip loading the RSU entity if already assigned
             boolean alreadyAssigned = rsuOrganizationRepository
-                    .findByRsuIpv4AddressAndOrganization_NameIgnoreCase(ip, orgName)
+                    .findByRsuIpv4AddressAndOrganization_Id(ip, orgId)
                     .isPresent();
             if (alreadyAssigned) {
-                log.debug("RSU '{}' is already assigned to org '{}', skipping add", ipString, orgName);
+                log.debug("RSU '{}' is already assigned to org '{}', skipping add", ipString, orgId);
                 continue;
             }
 
@@ -341,20 +341,20 @@ public class OrganizationManagementService {
             rsuOrg.setRsu(rsu);
             rsuOrg.setOrganization(organization);
             toSave.add(rsuOrg);
-            log.debug("Queued RSU '{}' for addition to org '{}'", ipString, orgName);
+            log.debug("Queued RSU '{}' for addition to org '{}'", ipString, orgId);
         }
         rsuOrganizationRepository.saveAll(toSave);
     }
 
-    private void handleIntersectionsToAdd(List<Integer> intersectionIds, String orgName) {
+    private void handleIntersectionsToAdd(List<Integer> intersectionIds, Integer orgId) {
         if (intersectionIds == null || intersectionIds.isEmpty()) {
             return;
         }
 
         // Load organization once for all additions
-        Organization organization = organizationRepository.findByName(orgName)
+        Organization organization = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
+                        "Organization not found: " + orgId));
 
         List<IntersectionOrganization> toSave = new ArrayList<>();
         for (Integer intersectionId : intersectionIds) {
@@ -363,10 +363,10 @@ public class OrganizationManagementService {
             // Check assignment first — skip loading the intersection entity if already
             // assigned
             boolean alreadyAssigned = intersectionOrganizationRepository
-                    .findByIntersection_IntersectionNumberAndOrganization_Name(idString, orgName)
+                    .findByIntersection_IntersectionNumberAndOrganization_Id(idString, orgId)
                     .isPresent();
             if (alreadyAssigned) {
-                log.debug("Intersection '{}' is already assigned to org '{}', skipping add", intersectionId, orgName);
+                log.debug("Intersection '{}' is already assigned to org '{}', skipping add", intersectionId, orgId);
                 continue;
             }
 
@@ -378,7 +378,7 @@ public class OrganizationManagementService {
             io.setIntersection(intersection);
             io.setOrganization(organization);
             toSave.add(io);
-            log.debug("Queued intersection '{}' for addition to org '{}'", intersectionId, orgName);
+            log.debug("Queued intersection '{}' for addition to org '{}'", intersectionId, orgId);
         }
         intersectionOrganizationRepository.saveAll(toSave);
     }

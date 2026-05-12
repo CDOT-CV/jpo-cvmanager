@@ -65,7 +65,7 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public Page<RsuInfoDto> getAllRsus(
-            @RequestHeader(name = "Organization", required = true) String organization,
+            @RequestHeader(name = "Organization", required = true) Integer organization,
             @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);

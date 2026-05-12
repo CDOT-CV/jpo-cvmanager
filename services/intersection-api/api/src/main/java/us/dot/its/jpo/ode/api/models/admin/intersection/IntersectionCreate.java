@@ -37,13 +37,12 @@ public class IntersectionCreate {
     @NotNull
     @Size(min = 1, message = "At least one organization is required")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("rsus")
-    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            message = "must be a valid IPv4 address") String> rsus;
+    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", message = "must be a valid IPv4 address") String> rsus;
 
     @Schema(description = "Bounding box; omit if not applicable")
     @Valid
@@ -55,8 +54,7 @@ public class IntersectionCreate {
     private String intersectionName;
 
     @Schema(description = "Origin IP address of the intersection controller", example = "10.0.0.1")
-    @Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            message = "must be a valid IPv4 address")
+    @Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", message = "must be a valid IPv4 address")
     @JsonProperty("origin_ip")
     private String originIp;
 }

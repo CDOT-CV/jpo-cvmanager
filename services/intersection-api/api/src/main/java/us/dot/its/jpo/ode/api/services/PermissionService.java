@@ -44,8 +44,8 @@ public class PermissionService {
                 .collect(Collectors.toList());
     }
 
-    public List<Integer> getAllowedIntersectionIdsByOrganization(String email) {
-        return intersectionRepository.findIntersectionsByOrganization(email).stream().map(Integer::parseInt)
+    public List<Integer> getAllowedIntersectionIdsByOrganization(Integer orgId) {
+        return intersectionRepository.findIntersectionsByOrganization(orgId).stream().map(Integer::parseInt)
                 .collect(Collectors.toList());
     }
 
@@ -87,14 +87,14 @@ public class PermissionService {
      *                          organizations
      * @return true if the current user is authorized
      */
-    private boolean checkQualifiedOrgs(String role, Predicate<List<String>> qualifiedOrgCheck) {
+    private boolean checkQualifiedOrgs(String role, Predicate<List<Integer>> qualifiedOrgCheck) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
 
         if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
+        List<Integer> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
 
         if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
             // No qualified organizations: deny access without hitting the repository
@@ -102,7 +102,7 @@ public class PermissionService {
         }
 
         // Verify that organization header matches qualified orgs, if specified
-        String organization = getOrganizationFromHeader();
+        Integer organization = getOrganizationFromHeader();
         if (organization != null) {
             if (!qualifiedOrgs.contains(organization)) {
                 // If an organization is specified in the header, ensure it's in the qualified
@@ -134,7 +134,7 @@ public class PermissionService {
             return true;
         }
 
-        String organization = getOrganizationFromHeader();
+        Integer organization = getOrganizationFromHeader();
 
         if (organization != null) {
             Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
@@ -143,13 +143,13 @@ public class PermissionService {
         return !authToken.getQualifiedOrgList(role).isEmpty();
     }
 
-    public boolean hasRoleInOrgs(UserRole role, List<String> organizations) {
+    public boolean hasRoleInOrgs(UserRole role, List<Integer> organizations) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
         }
 
-        List<String> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        List<Integer> qualifiedOrgs = authToken.getQualifiedOrgList(role);
         if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
             // No qualified organizations: deny access without hitting the repository
             return false;
@@ -161,20 +161,20 @@ public class PermissionService {
      * Determines if the authenticated user has a specific role in the given
      * organization.
      *
-     * @param organization the name of the organization to check the user's role in
-     * @param role         the role to be validated within the specified
-     *                     organization
+     * @param orgId the ID of the organization to check the user's role in
+     * @param role  the role to be validated within the specified
+     *              organization
      * @return true if the user has the specified role or a role above it in the
      *         organization,
      *         or if the user is a superuser; false otherwise
      */
-    public boolean hasRoleInOrg(String organization, String role) {
+    public boolean hasRoleInOrg(Integer orgId, String role) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
         }
 
-        Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
+        Optional<UserRole> userRole = authToken.findRoleInOrg(orgId);
         return userRole.map(roleValue -> roleValue.hasMinimumRole(UserRole.fromString(role))).orElse(false);
     }
 
@@ -327,11 +327,19 @@ public class PermissionService {
         return jwtAuth.getToken().getClaimAsString("preferred_username");
     }
 
-    public static String getOrganizationFromHeader() {
+    public static Integer getOrganizationFromHeader() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        String organization = null;
+        Integer organization = null;
         if (attributes != null) {
-            organization = attributes.getRequest().getHeader("Organization");
+            String orgHeader = attributes.getRequest().getHeader("Organization");
+            if (orgHeader != null) {
+                try {
+                    organization = Integer.parseInt(orgHeader);
+                } catch (NumberFormatException e) {
+                    // Handle the case where the header is not a valid integer
+                    organization = null;
+                }
+            }
         }
         return organization;
     }

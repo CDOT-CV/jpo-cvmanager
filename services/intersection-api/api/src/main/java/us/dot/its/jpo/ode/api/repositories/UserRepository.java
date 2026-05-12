@@ -22,9 +22,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "FROM User r " +
             "JOIN r.userOrganizations ro " +
             "JOIN ro.organization o " +
-            "WHERE r.email = :email AND o.name IN :organizations")
+            "WHERE r.email = :email AND o.id IN :orgIds")
     boolean existsByEmailAndOrganizations(@Param("email") String email,
-            @Param("organizations") List<String> organizations);
+            @Param("orgIds") List<Integer> orgIds);
 
     /**
      * Check if all users in the list exist in at least one of the given
@@ -36,9 +36,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "FROM User u " +
             "JOIN u.userOrganizations uo " +
             "JOIN uo.organization o " +
-            "WHERE u.email IN :emails AND o.name IN :organizations")
+            "WHERE u.email IN :emails AND o.id IN :orgIds")
     boolean allUsersExistInOrganizations(@Param("emails") List<String> emails,
-            @Param("organizations") List<String> organizations,
+            @Param("orgIds") List<Integer> orgIds,
             @Param("emailCount") long emailCount);
 
     Optional<User> findByEmail(String email);
@@ -63,6 +63,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "JOIN u.userOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE u.email = :email " +
-            "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByEmail(@Param("email") String email);
+            "ORDER BY o.id ASC")
+    List<Integer> findAllOrganizationIdsByEmail(@Param("email") String email);
 }

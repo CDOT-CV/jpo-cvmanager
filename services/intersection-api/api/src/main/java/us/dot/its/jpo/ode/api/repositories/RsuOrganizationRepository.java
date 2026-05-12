@@ -30,36 +30,33 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     @Query("SELECT ro FROM RsuOrganization ro WHERE ro.rsu.ipv4Address = :ipv4Address")
     List<RsuOrganization> findAllByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
-    Optional<RsuOrganization> findByOrganization_Name(String organizationName);
+    Optional<RsuOrganization> findByOrganization_Id(Integer orgId);
 
-    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_Name(InetAddress ipv4Address,
-            String organizationName);
+    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_Id(InetAddress ipv4Address,
+            Integer orgId);
 
-    @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.name = :organizationName")
-    List<InetAddress> findAllRsuIpsByOrganizationName(@Param("organizationName") String organizationName);
+    @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.id = :orgId")
+    List<InetAddress> findAllRsuIpsByOrganizationId(@Param("orgId") Integer orgId);
 
     @Query("SELECT DISTINCT r FROM Rsu r WHERE NOT EXISTS " +
-            "(SELECT 1 FROM RsuOrganization ro WHERE ro.rsu.id = r.id AND ro.organization.name = :organizationName)")
-    List<Rsu> findAllRsusNotInOrganizationName(
-            @Param("organizationName") String organizationName);
-
-    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_NameIgnoreCase(InetAddress ipv4Address,
-            String organizationName);
+            "(SELECT 1 FROM RsuOrganization ro WHERE ro.rsu.id = r.id AND ro.organization.id = :orgId)")
+    List<Rsu> findAllRsusNotInOrganizationId(
+            @Param("orgId") Integer orgId);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses AND ro.organization.name = :orgName")
-    void deleteByRsuIpv4AddressesAndOrganizationName(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses,
-            @Param("orgName") String orgName);
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses AND ro.organization.id = :orgId")
+    void deleteByRsuIpv4AddressesAndOrganizationId(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses,
+            @Param("orgId") Integer orgId);
 
     @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
             + "FROM RsuOrganization ro "
-            + "WHERE ro.organization.name = :orgName "
+            + "WHERE ro.organization.id = :orgId "
             + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
-    boolean existsOrphanRsuInOrganization(@Param("orgName") String orgName);
+    boolean existsOrphanRsuInOrganization(@Param("orgId") Integer orgId);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM RsuOrganization ro WHERE ro.organization.name = :orgName")
-    void deleteAllByOrganizationName(@Param("orgName") String orgName);
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.organization.id = :orgId")
+    void deleteAllByOrganizationId(@Param("orgId") Integer orgId);
 }

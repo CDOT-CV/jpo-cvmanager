@@ -46,7 +46,8 @@ import java.util.Set;
  * service:
  * - Role checks and intersection resource access are enforced via @PreAuthorize
  * expressions.
- * - Org/RSU restriction enforcement on POST and PATCH (requested orgs/RSUs must be
+ * - Org/RSU restriction enforcement on POST and PATCH (requested orgs/RSUs must
+ * be
  * within the
  * user's qualified set) is enforced in the method body via PermissionService.
  * - AdminIntersectionService is responsible only for database operations.
@@ -85,26 +86,24 @@ public class AdminIntersectionController {
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public IntersectionListResponse getAllIntersections(
-            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") String organization) {
+            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer organization) {
 
         log.info("GET /admin/intersections. organization={}", organization);
         return adminIntersectionService.getAllIntersections(organization);
     }
 
     /**
-     * Returns the organizations and RSUs the requesting user may assign to a new intersection.
+     * Returns the organizations and RSUs the requesting user may assign to a new
+     * intersection.
      * Used to populate UI dropdowns when creating or editing an intersection.
      *
      * @return allowed organizations and RSU IP addresses for the current user
      */
-    @Operation(
-            summary = "Get allowed selections for creating an intersection",
-            description = """
-                    Returns the organizations and RSU IP addresses the requesting user may assign
-                    when creating or editing an intersection. Superusers receive all; non-superusers
-                    receive only those within their OPERATOR-qualified organizations.
-                    """
-    )
+    @Operation(summary = "Get allowed selections for creating an intersection", description = """
+            Returns the organizations and RSU IP addresses the requesting user may assign
+            when creating or editing an intersection. Superusers receive all; non-superusers
+            receive only those within their OPERATOR-qualified organizations.
+            """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires USER role"),
@@ -117,7 +116,8 @@ public class AdminIntersectionController {
     }
 
     /**
-     * Returns intersections that are not associated with the specified organization.
+     * Returns intersections that are not associated with the specified
+     * organization.
      * Used to populate the "available to add" dropdown when adding intersections to
      * an organization.
      */
@@ -133,7 +133,7 @@ public class AdminIntersectionController {
     @GetMapping(value = "/available", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public IntersectionListResponse getIntersectionsNotInOrganization(
-            @Parameter(description = "Organization to exclude intersections from", required = true) @RequestHeader(name = "Organization") String organization) {
+            @Parameter(description = "Organization to exclude intersections from", required = true) @RequestHeader(name = "Organization") Integer organization) {
 
         log.info("GET /admin/intersections/available. organization={}", organization);
         return adminIntersectionService.getIntersectionsNotInOrganization(organization);
@@ -144,19 +144,16 @@ public class AdminIntersectionController {
      * Authorization:
      * 1. {@code @PreAuthorize}: OPERATOR role required.
      * 2. Method body: each org in organizations must be in the user's
-     *    qualified orgs, and each RSU must be accessible (superusers exempt).
+     * qualified orgs, and each RSU must be accessible (superusers exempt).
      *
      * @param create the intersection creation request body
      */
-    @Operation(
-            summary = "Create a new intersection",
-            description = """
-                    Creates a new intersection record with organization and RSU associations.
-                    Role check: OPERATOR required.
-                    Org enforcement: all organizations must be within the user's qualified organizations (superusers exempt).
-                    RSU enforcement: all RSUs must be accessible to the user (superusers exempt).
-                    """
-    )
+    @Operation(summary = "Create a new intersection", description = """
+            Creates a new intersection record with organization and RSU associations.
+            Role check: OPERATOR required.
+            Org enforcement: all organizations must be within the user's qualified organizations (superusers exempt).
+            RSU enforcement: all RSUs must be accessible to the user (superusers exempt).
+            """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Intersection successfully created"),
             @ApiResponse(responseCode = "400", description = "Missing or invalid required fields"),
@@ -170,10 +167,10 @@ public class AdminIntersectionController {
 
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-            List<String> qualifiedOrgs = token != null
+            List<Integer> qualifiedOrgs = token != null
                     ? token.getQualifiedOrgList(UserRole.OPERATOR)
                     : Collections.emptyList();
-            Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
+            Set<Integer> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
 
             if (!qualifiedOrgSet.containsAll(create.getOrganizations())) {
                 log.warn("Org enforcement rejected POST. Requested orgs not in qualified set.");
@@ -195,7 +192,8 @@ public class AdminIntersectionController {
      * Returns a single intersection and allowed_selections for UI dropdown
      * population.
      * Authorization: USER role + intersection access enforced by @PreAuthorize.
-     * allowed_selections is the same data returned by GET /allowed-selections, included here
+     * allowed_selections is the same data returned by GET /allowed-selections,
+     * included here
      * for convenience so the edit form can populate dropdowns in a single request.
      */
     @Operation(summary = "Get a single intersection", description = """
@@ -247,10 +245,10 @@ public class AdminIntersectionController {
         log.info("PATCH /admin/intersections. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
             CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-            List<String> qualifiedOrgs = token != null
+            List<Integer> qualifiedOrgs = token != null
                     ? token.getQualifiedOrgList(UserRole.OPERATOR)
                     : Collections.emptyList();
-            Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
+            Set<Integer> qualifiedOrgSet = new HashSet<>(qualifiedOrgs);
             boolean allOrgsAllowed = qualifiedOrgSet.containsAll(patch.getOrganizationsToAdd())
                     && qualifiedOrgSet.containsAll(patch.getOrganizationsToRemove());
             if (!allOrgsAllowed) {

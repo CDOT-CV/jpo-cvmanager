@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -75,8 +76,8 @@ public class RsuManagementService {
         }
     }
 
-    public Page<RsuInfoDto> getAllRsuInfo(String orgName, String search, Pageable pageable) {
-        Page<Rsu> rsus = rsuRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<RsuInfoDto> getAllRsuInfo(Integer orgId, String search, Pageable pageable) {
+        Page<Rsu> rsus = rsuRepository.findAllByOrganization(orgId, search, pageable);
         return rsus.map(rsuMapper::toDto);
     }
 
@@ -97,7 +98,7 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<Integer> orgsToAdd) {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
@@ -117,18 +118,18 @@ public class RsuManagementService {
         rsuOptionRepository.save(rsuOption);
 
         var toCreate = new ArrayList<RsuOrganization>();
-        for (String orgName : orgsToAdd) {
-            toCreate.add(createRsuOrgRelationship(orgName, rsu));
+        for (Integer orgId : orgsToAdd) {
+            toCreate.add(createRsuOrgRelationship(orgId, rsu));
         }
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
     }
 
-    public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
-        Organization organization = organizationRepository.findByName(orgName)
+    public RsuOrganization createRsuOrgRelationship(Integer orgId, Rsu rsu) {
+        Organization organization = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Organization not found: " + orgName));
+                        "Organization not found: " + orgId));
 
         RsuOrganization rsuOrg = new RsuOrganization();
         rsuOrg.setOrganization(organization);
@@ -174,7 +175,7 @@ public class RsuManagementService {
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
-            List<String> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
+            List<Integer> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
@@ -249,28 +250,28 @@ public class RsuManagementService {
         }
     }
 
-    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
+    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Integer> authorizedOrgs) {
 
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
+            List<Integer> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
                     .filter(org -> !authorizedOrgs.contains(org))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "User does not have permission to add RSU to organization(s): "
-                                + String.join(", ", unqualifiedAdds));
+                                + unqualifiedAdds.stream().map(String::valueOf).collect(Collectors.joining(", ")));
             }
-            for (String orgName : patch.getOrganizationsToAdd()) {
+            for (Integer orgId : patch.getOrganizationsToAdd()) {
                 // Check if already associated
                 boolean exists = rsuRepository.existsByIpAndOrganizations(
                         rsu.getIpv4Address(),
-                        List.of(orgName));
+                        List.of(orgId));
 
                 if (!exists) {
-                    Organization org = organizationRepository.findByName(orgName)
+                    Organization org = organizationRepository.findById(orgId)
                             .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                    "Organization not found: " + orgName));
+                                    "Organization not found: " + orgId));
 
                     RsuOrganization rsuOrg = new RsuOrganization();
                     rsuOrg.setRsu(rsu);
@@ -283,19 +284,19 @@ public class RsuManagementService {
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
+            List<Integer> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
                     .filter(org -> !authorizedOrgs.contains(org))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "User does not have permission to remove RSU from organization(s): "
-                                + String.join(", ", unqualifiedRemoves));
+                                + unqualifiedRemoves.stream().map(String::valueOf).collect(Collectors.joining(", ")));
             }
-            for (String orgName : patch.getOrganizationsToRemove()) {
+            for (Integer orgId : patch.getOrganizationsToRemove()) {
                 // Find and delete the specific association
-                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
+                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Id(
                         rsu.getIpv4Address(),
-                        orgName).ifPresent(rsuOrganizationRepository::delete);
+                        orgId).ifPresent(rsuOrganizationRepository::delete);
             }
         }
     }

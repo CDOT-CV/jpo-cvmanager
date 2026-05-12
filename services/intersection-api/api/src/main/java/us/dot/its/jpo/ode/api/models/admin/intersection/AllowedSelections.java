@@ -10,8 +10,10 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * The set of organizations and RSUs the requesting user is allowed to assign to an intersection.
- * Superusers receive all orgs/RSUs; non-superusers receive only those within their qualified organizations.
+ * The set of organizations and RSUs the requesting user is allowed to assign to
+ * an intersection.
+ * Superusers receive all orgs/RSUs; non-superusers receive only those within
+ * their qualified organizations.
  */
 @Schema(description = "Organizations and RSUs the requesting user is authorized to assign to an intersection")
 @Getter
@@ -19,9 +21,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AllowedSelections {
-    @Schema(description = "Organization names available for assignment")
+    @Schema(description = "Organization IDs available for assignment")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses available for assignment")
     @JsonProperty("rsus")

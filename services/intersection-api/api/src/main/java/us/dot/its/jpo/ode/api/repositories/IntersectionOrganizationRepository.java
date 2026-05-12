@@ -22,36 +22,36 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.name IN :orgNames")
-    void deleteByIntersectionNumberAndOrganizationNameIn(@Param("intersectionNumber") String intersectionNumber,
-            @Param("orgNames") List<String> orgNames);
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.id IN :orgIds")
+    void deleteByIntersectionNumberAndOrganizationIdIn(@Param("intersectionNumber") String intersectionNumber,
+            @Param("orgIds") List<Integer> orgIds);
 
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
             "LEFT JOIN FETCH io.organization " +
             "WHERE NOT EXISTS " +
             "(SELECT 1 FROM IntersectionOrganization io2 " +
-            "WHERE io2.intersection.id = i.id AND io2.organization.name = :organizationName)")
-    List<Intersection> findAllIntersectionsNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "WHERE io2.intersection.id = i.id AND io2.organization.id = :organizationId)")
+    List<Intersection> findAllIntersectionsNotInOrganizationId(
+            @Param("organizationId") Integer organizationId);
 
-    Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization_Name(
-            String intersectionNumber, String organizationName);
+    Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization_Id(
+            String intersectionNumber, Integer organizationId);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber IN :intersectionNumbers AND io.organization.name = :orgName")
-    void deleteByIntersectionNumbersAndOrganizationName(@Param("intersectionNumbers") List<String> intersectionNumbers,
-            @Param("orgName") String orgName);
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber IN :intersectionNumbers AND io.organization.id = :orgId")
+    void deleteByIntersectionNumbersAndOrganizationId(@Param("intersectionNumbers") List<String> intersectionNumbers,
+            @Param("orgId") Integer orgId);
 
     @Query("SELECT CASE WHEN COUNT(io) > 0 THEN true ELSE false END "
             + "FROM IntersectionOrganization io "
-            + "WHERE io.organization.name = :orgName "
+            + "WHERE io.organization.id = :orgId "
             + "AND (SELECT COUNT(io2) FROM IntersectionOrganization io2 WHERE io2.intersection.id = io.intersection.id) = 1")
-    boolean existsOrphanIntersectionInOrganization(@Param("orgName") String orgName);
+    boolean existsOrphanIntersectionInOrganization(@Param("orgId") Integer orgId);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM IntersectionOrganization io WHERE io.organization.name = :orgName")
-    void deleteAllByOrganizationName(@Param("orgName") String orgName);
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.organization.id = :orgId")
+    void deleteAllByOrganizationId(@Param("orgId") Integer orgId);
 }

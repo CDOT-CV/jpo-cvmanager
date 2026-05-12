@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.models.keycloak;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,12 +60,12 @@ class CvManagerAuthTokenTest {
         return cvmanagerData;
     }
 
-    private List<Map<String, String>> createOrganizations(String... orgRolePairs) {
+    private List<Map<String, String>> createOrganizations(List<Pair<Integer, String>> orgRolePairs) {
         List<Map<String, String>> organizations = new ArrayList<>();
-        for (int i = 0; i < orgRolePairs.length; i += 2) {
+        for (Pair<Integer, String> pair : orgRolePairs) {
             Map<String, String> org = new HashMap<>();
-            org.put("org", orgRolePairs[i]);
-            org.put("role", orgRolePairs[i + 1]);
+            org.put("org", String.valueOf(pair.getLeft()));
+            org.put("role", pair.getRight());
             organizations.add(org);
         }
         return organizations;
@@ -78,7 +79,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should create token with super user flag set to true")
         void shouldCreateTokenWithSuperUserTrue() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
@@ -94,7 +95,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should create token with super user flag set to false")
         void shouldCreateTokenWithSuperUserFalse() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
@@ -110,10 +111,10 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should parse multiple organizations correctly")
         void shouldParseMultipleOrganizations() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations(
-                    "CDOT", "admin",
-                    "WYDOT", "operator",
-                    "VDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(
+                    Pair.of(1, "admin"),
+                    Pair.of(2, "operator"),
+                    Pair.of(3, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
@@ -123,9 +124,9 @@ class CvManagerAuthTokenTest {
 
             // Assert
             assertEquals(3, token.getAllOrgs().size());
-            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
-            assertTrue(token.hasRoleInOrg("WYDOT", "operator"));
-            assertTrue(token.hasRoleInOrg("VDOT", "user"));
+            assertTrue(token.hasRoleInOrg(1, "admin"));
+            assertTrue(token.hasRoleInOrg(2, "operator"));
+            assertTrue(token.hasRoleInOrg(3, "user"));
         }
     }
 
@@ -137,7 +138,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return email from 'email' claim")
         void shouldReturnEmailFromEmailClaim() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "user@example.com", null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -153,7 +154,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return email from 'preferred_username' when 'email' is null")
         void shouldReturnEmailFromPreferredUsername() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -169,7 +170,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should prefer 'email' claim over 'preferred_username'")
         void shouldPreferEmailClaimOverPreferredUsername() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "email@example.com", "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -185,7 +186,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return null when no email claims are present")
         void shouldReturnNullWhenNoEmailClaims() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -201,7 +202,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return null when email claim is empty string")
         void shouldReturnNullWhenEmailIsEmpty() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -217,7 +218,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return null when both email and preferred_username are empty")
         void shouldReturnNullWhenBothEmailsAreEmpty() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -241,7 +242,7 @@ class CvManagerAuthTokenTest {
         })
         void shouldHandleEmailInVariousFormats(String testEmail) {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -262,7 +263,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should extract email correctly with full token structure")
         void shouldExtractEmailWithFullTokenStructure() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin", "WYDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin"), Pair.of(2, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
@@ -289,7 +290,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should handle token with only preferred_username and no email")
         void shouldHandleTokenWithOnlyPreferredUsername() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "operator");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "operator")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
@@ -304,7 +305,7 @@ class CvManagerAuthTokenTest {
             // Assert
             assertEquals("operator@example.com", token.getEmail());
             assertFalse(token.isSuperUser());
-            assertTrue(token.hasRoleInOrg("CDOT", "operator"));
+            assertTrue(token.hasRoleInOrg(1, "operator"));
         }
     }
 
@@ -316,7 +317,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return true when super_user is '1'")
         void shouldReturnTrueWhenSuperUserIs1() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -329,7 +330,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return false when super_user is '0'")
         void shouldReturnFalseWhenSuperUserIs0() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -342,7 +343,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return false when super_user is null")
         void shouldReturnFalseWhenSuperUserIsNull() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData(null, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -355,7 +356,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return false when super_user is any other string")
         void shouldReturnFalseWhenSuperUserIsOtherString() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("true", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -373,10 +374,10 @@ class CvManagerAuthTokenTest {
 
         @BeforeEach
         void setUp() {
-            List<Map<String, String>> orgs = createOrganizations(
-                    "CDOT", "admin",
-                    "WYDOT", "operator",
-                    "VDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(
+                    Pair.of(1, "admin"),
+                    Pair.of(2, "operator"),
+                    Pair.of(3, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -385,31 +386,31 @@ class CvManagerAuthTokenTest {
         @Test
         @DisplayName("Should return true when user has exact role in org")
         void shouldReturnTrueWhenUserHasExactRole() {
-            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
-            assertTrue(token.hasRoleInOrg("WYDOT", "operator"));
-            assertTrue(token.hasRoleInOrg("VDOT", "user"));
+            assertTrue(token.hasRoleInOrg(1, "admin"));
+            assertTrue(token.hasRoleInOrg(2, "operator"));
+            assertTrue(token.hasRoleInOrg(3, "user"));
         }
 
         @Test
         @DisplayName("Should return false when user has different role in org")
         void shouldReturnFalseWhenUserHasDifferentRole() {
-            assertFalse(token.hasRoleInOrg("CDOT", "operator"));
-            assertFalse(token.hasRoleInOrg("WYDOT", "admin"));
-            assertFalse(token.hasRoleInOrg("VDOT", "operator"));
+            assertFalse(token.hasRoleInOrg(1, "operator"));
+            assertFalse(token.hasRoleInOrg(2, "admin"));
+            assertFalse(token.hasRoleInOrg(3, "operator"));
         }
 
         @Test
         @DisplayName("Should return false when org does not exist")
         void shouldReturnFalseWhenOrgDoesNotExist() {
-            assertFalse(token.hasRoleInOrg("NONEXISTENT", "admin"));
+            assertFalse(token.hasRoleInOrg(4, "admin"));
         }
 
         @Test
         @DisplayName("Should be case-insensitive for role comparison")
         void shouldBeCaseInsensitiveForRole() {
-            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
-            assertTrue(token.hasRoleInOrg("CDOT", "Admin"));
-            assertTrue(token.hasRoleInOrg("CDOT", "aDmIn"));
+            assertTrue(token.hasRoleInOrg(1, "admin"));
+            assertTrue(token.hasRoleInOrg(1, "Admin"));
+            assertTrue(token.hasRoleInOrg(1, "aDmIn"));
         }
     }
 
@@ -418,38 +419,38 @@ class CvManagerAuthTokenTest {
     class GetAllOrgsTests {
 
         @Test
-        @DisplayName("Should return all organization names")
-        void shouldReturnAllOrganizationNames() {
+        @DisplayName("Should return all organization ids")
+        void shouldReturnAllOrganizationIds() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations(
-                    "CDOT", "admin",
-                    "WYDOT", "operator",
-                    "VDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(
+                    Pair.of(1, "admin"),
+                    Pair.of(2, "operator"),
+                    Pair.of(3, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act
-            Set<String> allOrgs = token.getAllOrgs();
+            Set<Integer> allOrgs = token.getAllOrgs();
 
             // Assert
             assertEquals(3, allOrgs.size());
-            assertTrue(allOrgs.contains("CDOT"));
-            assertTrue(allOrgs.contains("WYDOT"));
-            assertTrue(allOrgs.contains("VDOT"));
+            assertTrue(allOrgs.contains(1));
+            assertTrue(allOrgs.contains(2));
+            assertTrue(allOrgs.contains(3));
         }
 
         @Test
         @DisplayName("Should return empty set when user has no organizations")
         void shouldReturnEmptySetWhenNoOrganizations() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations();
+            List<Map<String, String>> orgs = createOrganizations(List.of());
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act
-            Set<String> allOrgs = token.getAllOrgs();
+            Set<Integer> allOrgs = token.getAllOrgs();
 
             // Assert
             assertTrue(allOrgs.isEmpty());
@@ -464,11 +465,11 @@ class CvManagerAuthTokenTest {
 
         @BeforeEach
         void setUp() {
-            List<Map<String, String>> orgs = createOrganizations(
-                    "CDOT", "admin",
-                    "WYDOT", "operator",
-                    "VDOT", "user",
-                    "TXDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(
+                    Pair.of(1, "admin"),
+                    Pair.of(2, "operator"),
+                    Pair.of(3, "user"),
+                    Pair.of(4, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -478,49 +479,49 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return all orgs when required role is 'user'")
         void shouldReturnAllOrgsForUserRole() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.USER);
+            List<Integer> qualifiedOrgs = token.getQualifiedOrgList(UserRole.USER);
 
             // Assert
             assertEquals(4, qualifiedOrgs.size());
-            assertTrue(qualifiedOrgs.containsAll(List.of("CDOT", "WYDOT", "VDOT", "TXDOT")));
+            assertTrue(qualifiedOrgs.containsAll(List.of(1, 2, 3, 4)));
         }
 
         @Test
         @DisplayName("Should return orgs with operator or higher when required role is 'operator'")
         void shouldReturnOperatorAndAboveOrgs() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
+            List<Integer> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
 
             // Assert
             assertEquals(3, qualifiedOrgs.size());
-            assertTrue(qualifiedOrgs.containsAll(List.of("CDOT", "WYDOT", "TXDOT")));
-            assertFalse(qualifiedOrgs.contains("VDOT"));
+            assertTrue(qualifiedOrgs.containsAll(List.of(1, 2, 4)));
+            assertFalse(qualifiedOrgs.contains(3));
         }
 
         @Test
         @DisplayName("Should return only admin orgs when required role is 'admin'")
         void shouldReturnOnlyAdminOrgs() {
             // Act
-            List<String> qualifiedOrgs = token.getQualifiedOrgList(UserRole.ADMIN);
+            List<Integer> qualifiedOrgs = token.getQualifiedOrgList(UserRole.ADMIN);
 
             // Assert
             assertEquals(2, qualifiedOrgs.size());
-            assertTrue(qualifiedOrgs.containsAll(List.of("CDOT", "TXDOT")));
-            assertFalse(qualifiedOrgs.contains("WYDOT"));
-            assertFalse(qualifiedOrgs.contains("VDOT"));
+            assertTrue(qualifiedOrgs.containsAll(List.of(1, 4)));
+            assertFalse(qualifiedOrgs.contains(2));
+            assertFalse(qualifiedOrgs.contains(3));
         }
 
         @Test
         @DisplayName("Should return empty list when no orgs meet the requirement")
         void shouldReturnEmptyListWhenNoOrgsMeetRequirement() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken tokenWithOnlyUser = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act
-            List<String> qualifiedOrgs = tokenWithOnlyUser.getQualifiedOrgList(UserRole.ADMIN);
+            List<Integer> qualifiedOrgs = tokenWithOnlyUser.getQualifiedOrgList(UserRole.ADMIN);
 
             // Assert
             assertTrue(qualifiedOrgs.isEmpty());
@@ -535,10 +536,10 @@ class CvManagerAuthTokenTest {
 
         @BeforeEach
         void setUp() {
-            List<Map<String, String>> orgs = createOrganizations(
-                    "CDOT", "admin",
-                    "WYDOT", "operator",
-                    "VDOT", "user");
+            List<Map<String, String>> orgs = createOrganizations(List.of(
+                    Pair.of(1, "admin"),
+                    Pair.of(2, "operator"),
+                    Pair.of(3, "user")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -548,16 +549,16 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should return role when org exists")
         void shouldReturnRoleWhenOrgExists() {
             // Act & Assert
-            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CDOT"));
-            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("WYDOT"));
-            assertEquals(Optional.of(UserRole.USER), token.findRoleInOrg("VDOT"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg(1));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg(2));
+            assertEquals(Optional.of(UserRole.USER), token.findRoleInOrg(3));
         }
 
         @Test
         @DisplayName("Should return empty when org does not exist")
         void shouldReturnEmptyWhenOrgDoesNotExist() {
             // Act
-            Optional<UserRole> role = token.findRoleInOrg("NONEXISTENT");
+            Optional<UserRole> role = token.findRoleInOrg(4);
 
             // Assert
             assertTrue(role.isEmpty());
@@ -567,9 +568,9 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should be case-insensitive for org name")
         void shouldBeCaseInsensitiveForOrgName() {
             // Act & Assert
-            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("cdot"));
-            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CdOt"));
-            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("wydot"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg(1));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg(1));
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg(2));
         }
     }
 
@@ -581,7 +582,7 @@ class CvManagerAuthTokenTest {
         @DisplayName("Should handle empty organizations list")
         void shouldHandleEmptyOrganizationsList() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations();
+            List<Map<String, String>> orgs = createOrganizations(List.of());
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
@@ -589,23 +590,23 @@ class CvManagerAuthTokenTest {
             // Assert
             assertTrue(token.getAllOrgs().isEmpty());
             assertTrue(token.getQualifiedOrgList(UserRole.USER).isEmpty());
-            assertTrue(token.findRoleInOrg("CDOT").isEmpty());
-            assertFalse(token.hasRoleInOrg("CDOT", "admin"));
+            assertTrue(token.findRoleInOrg(1).isEmpty());
+            assertFalse(token.hasRoleInOrg(1, "admin"));
         }
 
         @Test
         @DisplayName("Should handle single organization")
         void shouldHandleSingleOrganization() {
             // Arrange
-            List<Map<String, String>> orgs = createOrganizations("CDOT", "admin");
+            List<Map<String, String>> orgs = createOrganizations(List.of(Pair.of(1, "admin")));
             Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Assert
             assertEquals(1, token.getAllOrgs().size());
-            assertTrue(token.hasRoleInOrg("CDOT", "admin"));
-            assertEquals(List.of("CDOT"), token.getQualifiedOrgList(UserRole.ADMIN));
+            assertTrue(token.hasRoleInOrg(1, "admin"));
+            assertEquals(List.of(1), token.getQualifiedOrgList(UserRole.ADMIN));
         }
     }
 }

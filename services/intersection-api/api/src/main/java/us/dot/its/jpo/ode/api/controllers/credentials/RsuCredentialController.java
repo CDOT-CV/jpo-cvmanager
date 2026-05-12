@@ -23,7 +23,7 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 @ApiResponses(value = {
         @ApiResponse(responseCode = "401", description = "Unauthorized"),
         @ApiResponse(responseCode = "500", description = "Internal Server Error")
-}) 
+})
 @RequestMapping("/credentials/rsu")
 @RequiredArgsConstructor
 public class RsuCredentialController {
@@ -33,7 +33,8 @@ public class RsuCredentialController {
     @PostMapping("/create")
     @PreAuthorize("@PermissionService.hasRoleInOrg(#rsuCredentialCreateRequest.getOrganization(), 'ADMIN')")
     public RsuCredentialDTO createRsuCredential(
-            @RequestBody RsuCredentialCreateRequest rsuCredentialCreateRequest) throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
+            @RequestBody RsuCredentialCreateRequest rsuCredentialCreateRequest)
+            throws EntityNotFoundException, RsuCredentialManagementService.RsuCredentialAlreadyExistsException {
         return rsuCredentialMapper.toDto(rsuCredentialManagementService.create(rsuCredentialCreateRequest));
     }
 
@@ -41,7 +42,8 @@ public class RsuCredentialController {
     @PreAuthorize("@PermissionService.hasRsuCredential(#rsuCredentialGetRequest.getNickname(), 'ADMIN')")
     public RsuCredentialDTO getByNickname(
             RsuCredentialGetRequest rsuCredentialGetRequest) throws EntityNotFoundException {
-        return rsuCredentialMapper.toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
+        return rsuCredentialMapper
+                .toDto(rsuCredentialManagementService.getByNickname(rsuCredentialGetRequest.getNickname()));
     }
 
     @PostMapping("/update")
@@ -65,7 +67,7 @@ public class RsuCredentialController {
         private final String nickname;
         private final String username;
         private final String password;
-        private final String organization;
+        private final Integer organization;
     }
 
     @Data
@@ -78,7 +80,7 @@ public class RsuCredentialController {
         private final String nickname;
         private String username;
         private String password;
-        private String organization;
+        private Integer organization;
     }
 
     @Data

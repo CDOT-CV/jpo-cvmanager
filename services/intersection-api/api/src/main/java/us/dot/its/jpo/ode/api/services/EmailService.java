@@ -64,10 +64,10 @@ public class EmailService {
         }
     }
 
-    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName,
+    public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, Integer orgId,
             EmailFrequency frequency) {
         return userEmailNotificationRepository
-                .findUsersByNotificationTypeAndOrganization(category.getCategoryKey(), frequency.toString(), orgName)
+                .findUsersByNotificationTypeAndOrganization(category.getCategoryKey(), frequency.toString(), orgId)
                 .stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();

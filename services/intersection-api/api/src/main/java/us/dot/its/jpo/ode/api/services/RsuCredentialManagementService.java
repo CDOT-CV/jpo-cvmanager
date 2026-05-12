@@ -25,7 +25,7 @@ public class RsuCredentialManagementService {
         rsuCredential.setUsername(rsuCredentialCreateRequest.getUsername());
         rsuCredential.setPassword(rsuCredentialCreateRequest.getPassword());
 
-        Organization organization = organizationRepository.findByName(rsuCredentialCreateRequest.getOrganization())
+        Organization organization = organizationRepository.findById(rsuCredentialCreateRequest.getOrganization())
                 .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
         rsuCredential.setOwnerOrganization(organization);
 
@@ -49,7 +49,7 @@ public class RsuCredentialManagementService {
             rsuCredential.setPassword(rsuCredentialPatch.getPassword());
         }
         if (rsuCredentialPatch.getOrganization() != null) {
-            Organization newOrganization = organizationRepository.findByName(rsuCredentialPatch.getOrganization())
+            Organization newOrganization = organizationRepository.findById(rsuCredentialPatch.getOrganization())
                     .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
             rsuCredential.setOwnerOrganization(newOrganization);
         }
