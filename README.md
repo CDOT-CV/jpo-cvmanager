@@ -74,6 +74,19 @@ docker compose up --build -d
 
 For more details on running the CV-Manager through Docker, see the [Getting Started](#getting-started) section below.
 
+## API Testing with Bruno
+
+The [bruno/](bruno/) directory contains a [Bruno](https://www.usebruno.com/) API collection for the Intersection API. Bruno is an open-source desktop API client (similar to Postman) that stores collections as plain files alongside the codebase.
+
+To use it:
+
+1. [Download and install Bruno](https://www.usebruno.com/downloads)
+2. Open Bruno and select **Open Collection**, then browse to the `bruno/` directory in this repo
+3. Select the appropriate environment (e.g. `Localhost`) and configure the environment variables for your Keycloak credentials
+4. Requests will automatically fetch and attach OAuth2 tokens
+
+For more information, see [bruno/README.md](bruno/README.md)
+
 ## Release Notes
 
 The current version and release history of the JPO CV Manager: [Release Notes](docs/Release_notes.md)
@@ -245,6 +258,10 @@ docker cp jpo-cvmanager-mongo-1:/dump ./resources/mongodumps/dump_$(date +%Y_%m_
 docker compose up -d
 ```
 
+##### REST API Testing
+
+This repository now features a bruno collection.
+
 #### MongoDB
 
 MongoDB is the backing database of the intersection api. This database holds configuration parameters, archived data (SPATs, MAPs, BSMs, ...), and processed data (notifications, assessments, events). For local development, a mongodump has been created in the conflictmonitor/mongo/dump_2024_08_20 directory. This includes notifications, assessments, events, as well as SPATs, MAPs, and BSMs. All of this data is available through the intersection api. To disable starting the mongo container with sample data, set the INSERT_SAMPLE_DATA environment variable to `false` in the .env file.
@@ -270,7 +287,6 @@ The following steps are intended to help get a new user up and running the JPO C
     1. Make sure at least the DOCKER_HOST_IP, MAVEN_GITHUB_TOKEN, and MAPBOX_TOKEN are set for this.
     2. For other services or different configuration, please make a copy of the sample-full.env. Some of these variables, delineated by sections, pertain to the [jpo-conflictmonitor](https://github.com/usdot-jpo-ode/jpo-conflictmonitor), [jpo-geojsonconverter](https://github.com/usdot-jpo-ode/jpo-geojsonconverter), and [jpo-ode](https://github.com/usdot-jpo-ode/jpo-ode). Please see the documentation provided for these projects when setting these variables.
 4.  The CV Manager has four core components that need to be built and run: the API, the PostgreSQL database, Keycloak, and the webapp. Ensure that both of the following profiles are specified in the COMPOSE_PROFILES variable of your .env file:
-
     - basic: brings up the API, PostgreSQL, and Keycloak
     - webapp: brings up the CV-Manager webapp component
     - intersection: Optional, brings up the Intersection API and enables visualization/management of connected intersections
