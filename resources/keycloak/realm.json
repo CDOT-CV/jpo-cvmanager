@@ -536,7 +536,7 @@
         "emailVerified": false,
         "attributes": {
           "super_user": ["1"],
-          "organizations": ["[{\"org\":\"Test Org\",\"role\":\"admin\"},{\"org\":\"Test Org 2\",\"role\":\"user\"}]"],
+          "organizations": ["[{\"org\":1,\"role\":\"admin\"},{\"org\":2,\"role\":\"user\"}]"],
           "created_timestamp": ["1746773527283"]
         },
         "origin": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",

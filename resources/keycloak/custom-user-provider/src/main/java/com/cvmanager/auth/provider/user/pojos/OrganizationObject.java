@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,8 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
-* OrganizationObject represents a user's organization and role association object from the user_organization postgresql table
-*/
+ * OrganizationObject represents a user's organization and role association
+ * object from the user_organization postgresql table
+ */
 @JsonSerialize
 public class OrganizationObject {
 
@@ -23,14 +23,14 @@ public class OrganizationObject {
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     @JsonProperty("org")
-    private String org;
+    private Integer org;
     @JsonProperty("role")
     private String role;
 
     public OrganizationObject() {
     }
 
-    public OrganizationObject(String org, String role) {
+    public OrganizationObject(Integer org, String role) {
         this.org = org;
         this.role = role;
     }
@@ -84,11 +84,11 @@ public class OrganizationObject {
         return objs == null ? null : objs.stream().map(OrganizationObject::toMap).toList();
     }
 
-    public String getOrg() {
+    public Integer getOrg() {
         return org;
     }
 
-    public void setOrg(String org) {
+    public void setOrg(Integer org) {
         this.org = org;
     }
 

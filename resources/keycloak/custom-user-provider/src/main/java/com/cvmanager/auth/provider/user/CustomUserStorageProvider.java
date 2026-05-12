@@ -52,8 +52,8 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                 super_user,
                 COALESCE(
                     jsonb_agg(
-                        jsonb_build_object('org', org_name, 'role', role)
-                    ) FILTER (WHERE org_name IS NOT NULL AND role IS NOT NULL),
+                        jsonb_build_object('org', org_id, 'role', role)
+                    ) FILTER (WHERE org_id IS NOT NULL AND role IS NOT NULL),
                     '[]'::jsonb
                 ) AS organizations
             FROM (
@@ -65,14 +65,12 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                     users.last_name,
                     users.created_timestamp,
                     users.super_user,
-                    org.name AS org_name,
+                    uo.organization_id AS org_id,
                     roles.name AS role
                 FROM
                     public.users
                 LEFT JOIN
                     public.user_organization AS uo ON uo.user_id = users.user_id
-                LEFT JOIN
-                    public.organizations AS org ON org.organization_id = uo.organization_id
                 LEFT JOIN
                     public.roles ON roles.role_id = uo.role_id
             ) AS subquery
