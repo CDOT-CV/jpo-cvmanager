@@ -536,7 +536,9 @@
         "emailVerified": false,
         "attributes": {
           "super_user": ["1"],
-          "organizations": ["[{\"org\":\"Test Org\",\"role\":\"admin\"},{\"org\":\"Test Org 2\",\"role\":\"user\"}]"],
+          "organizations": [
+            "[{\"org_id\": 1,\"org_name\":\"Test Org\",\"org_email\":\"\",\"role\":\"admin\"},{\"org_id\": 2,\"org_name\":\"Test Org 2\",\"org_email\":\"\",\"role\":\"user\"}]"
+          ],
           "created_timestamp": ["1746773527283"]
         },
         "origin": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
