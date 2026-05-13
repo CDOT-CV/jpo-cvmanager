@@ -39,7 +39,7 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
  * Verifies Bucket4j rate limiting on /emails/* endpoints:
  * - Per-user limit: EMAIL_RATE_LIMIT_PER_USER req/hr, keyed on Authorization
  * header
- * - Global limit: EMAIL_RATE_LIMIT_GLOBAL req/hr across all callers
+ * - Global limit: EMAIL_RATE_LIMIT_PER_INSTANCE req/hr across all callers
  *
  * Limits are overridden to 3 per-user / 6 global for fast test execution.
  * The Caffeine cache is cleared before each test for a fresh bucket state.
