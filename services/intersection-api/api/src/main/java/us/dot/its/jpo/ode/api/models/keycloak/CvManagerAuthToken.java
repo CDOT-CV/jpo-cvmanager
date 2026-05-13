@@ -49,7 +49,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         return orgList.stream()
                 .map(value -> {
                     Organization org = new Organization();
-                    org.setId(((Integer) value.get("org_id")));
+                    org.setId(((Long) value.get("org_id")).intValue());
                     org.setName((String) value.get("org_name"));
                     org.setEmail((String) value.get("org_email"));
                     return Pair.of(org, UserRole.fromString((String) value.get("role")));

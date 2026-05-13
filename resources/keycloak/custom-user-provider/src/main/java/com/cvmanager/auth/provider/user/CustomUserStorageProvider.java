@@ -65,7 +65,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                     users.last_name,
                     users.created_timestamp,
                     users.super_user,
-                    org.id AS org_id,
+                    org.organization_id AS org_id,
                     org.name AS org_name,
                     org.email AS org_email,
                     roles.name AS role

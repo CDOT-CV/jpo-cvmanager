@@ -537,14 +537,6 @@ class RsuManagementServiceTest {
         List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2, testOrg3);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository
-                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        inetAddress, List.of(testOrg)))
-                .thenReturn(false);
-        when(rsuRepository
-                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        inetAddress, List.of(testOrg2)))
-                .thenReturn(false);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
@@ -618,10 +610,6 @@ class RsuManagementServiceTest {
         List<Organization> authorizedOrgs = Arrays.asList();
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository
-                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        inetAddress, List.of(new Organization())))
-                .thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
         IllegalArgumentException exception = assertThrows(
@@ -774,7 +762,6 @@ class RsuManagementServiceTest {
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
-        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
     @Test

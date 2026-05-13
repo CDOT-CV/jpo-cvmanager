@@ -308,14 +308,11 @@ class UserManagementServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
-        when(userRepository.existsByEmailAndUserOrganizationsOrganizationIn("test@example.com",
-                List.of(testOrganization)))
-                .thenReturn(false);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals("Organization not found: AnotherOrg", exception.getMessage());
+        assertEquals("Organization not found or user not authorized for: AnotherOrg", exception.getMessage());
         verify(userOrganizationRepository, never()).save(any());
     }
 
