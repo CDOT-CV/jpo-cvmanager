@@ -1,10 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -113,6 +115,17 @@ class RsuManagementServiceTest {
 
     @InjectMocks
     private RsuManagementService rsuManagementService;
+
+    private Organization testOrg = new Organization();
+    private Organization testOrg2 = new Organization();
+    private Organization testOrg3 = new Organization();
+
+    @BeforeEach
+    void setUp() {
+        testOrg.setName("Org1");
+        testOrg2.setName("Org2");
+        testOrg3.setName("Org3");
+    }
 
     // ==================== GET RSU INFO TESTS ====================
 
@@ -272,7 +285,7 @@ class RsuManagementServiceTest {
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(sshCredentials);
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(snmpCredentials);
         when(snmpProtocolRepository.findAllNicknames()).thenReturn(snmpVersions);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(Arrays.asList("Org1", "Org2"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(Arrays.asList(testOrg, testOrg2));
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
 
@@ -362,7 +375,7 @@ class RsuManagementServiceTest {
         doNothing().when(rsuPatchMapper).updateRsuFromPatch(patch, existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(expectedDto);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("Org1"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
 
         RsuInfoDto result = rsuManagementService.modifyRsu(rsuIp, patch, authToken);
 
@@ -395,7 +408,7 @@ class RsuManagementServiceTest {
                 .thenReturn(Optional.of(newModel));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("Org1"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
 
         rsuManagementService.modifyRsu(rsuIp, patch, authToken);
 
@@ -427,7 +440,7 @@ class RsuManagementServiceTest {
         when(snmpProtocolRepository.findByNickname("v3")).thenReturn(Optional.of(snmpProtocol));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("Org1"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
 
         rsuManagementService.modifyRsu(rsuIp, patch, authToken);
 
@@ -521,20 +534,17 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        Organization org1 = new Organization();
-        org1.setName("Org1");
-        Organization org2 = new Organization();
-        org2.setName("Org2");
-
-        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2, testOrg3);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        inetAddress, List.of(testOrg)))
                 .thenReturn(false);
-        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org2")))
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        inetAddress, List.of(testOrg2)))
                 .thenReturn(false);
-        when(organizationRepository.findByName("Org1")).thenReturn(Optional.of(org1));
-        when(organizationRepository.findByName("Org2")).thenReturn(Optional.of(org2));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
@@ -542,8 +552,6 @@ class RsuManagementServiceTest {
         rsuManagementService.modifyRsu(rsuIp, patch, authToken);
 
         verify(rsuOrganizationRepository, times(2)).save(any(RsuOrganization.class));
-        verify(organizationRepository).findByName("Org1");
-        verify(organizationRepository).findByName("Org2");
     }
 
     @Test
@@ -558,19 +566,15 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("Org1")))
-                .thenReturn(true);
-        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
-        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
+        when(rsuOrganizationRepository.save(any(RsuOrganization.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry"));
 
-        rsuManagementService.modifyRsu(rsuIp, patch, authToken);
-
-        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
-        verify(organizationRepository, never()).findByName(anyString());
+        assertThrows(DataIntegrityViolationException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
     }
 
     @Test
@@ -585,18 +589,17 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getMessage().contains("User does not have permission to add RSU to organization(s)"));
-        assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
+        assertTrue(
+                exception.getMessage().contains("Organization not found or user not authorized for: UnauthorizedOrg"));
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
@@ -612,20 +615,21 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("NonExistentOrg");
+        List<Organization> authorizedOrgs = Arrays.asList();
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NonExistentOrg")))
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        inetAddress, List.of(new Organization())))
                 .thenReturn(false);
-        when(organizationRepository.findByName("NonExistentOrg")).thenReturn(Optional.empty());
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getMessage().contains("Organization not found: NonExistentOrg"));
+        assertTrue(
+                exception.getMessage().contains("Organization not found or user not authorized for: NonExistentOrg"));
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
@@ -641,20 +645,15 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        Organization org1 = new Organization();
-        org1.setName("Org1");
-        Organization org2 = new Organization();
-        org2.setName("Org2");
-
         RsuOrganization rsuOrg1 = new RsuOrganization();
         rsuOrg1.setRsu(existingRsu);
-        rsuOrg1.setOrganization(org1);
+        rsuOrg1.setOrganization(testOrg);
 
         RsuOrganization rsuOrg2 = new RsuOrganization();
         rsuOrg2.setRsu(existingRsu);
-        rsuOrg2.setOrganization(org2);
+        rsuOrg2.setOrganization(testOrg2);
 
-        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2", "Org3");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2, testOrg3);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
@@ -683,7 +682,7 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org1"))
@@ -709,18 +708,17 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1", "Org2");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getMessage().contains("User does not have permission to remove RSU from organization(s)"));
-        assertTrue(exception.getMessage().contains("UnauthorizedOrg"));
+        assertTrue(
+                exception.getMessage().contains("Organization not found or user not authorized for: UnauthorizedOrg"));
         verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
@@ -730,30 +728,20 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizationsToAdd(Arrays.asList("NewOrg"));
-        patch.setOrganizationsToRemove(Arrays.asList("OldOrg"));
+        patch.setOrganizationsToAdd(Arrays.asList("Org1"));
+        patch.setOrganizationsToRemove(Arrays.asList("Org2"));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        Organization newOrg = new Organization();
-        newOrg.setName("NewOrg");
-        Organization oldOrg = new Organization();
-        oldOrg.setName("OldOrg");
-
         RsuOrganization rsuOrgToRemove = new RsuOrganization();
         rsuOrgToRemove.setRsu(existingRsu);
-        rsuOrgToRemove.setOrganization(oldOrg);
+        rsuOrgToRemove.setOrganization(testOrg2);
 
-        List<String> authorizedOrgs = Arrays.asList("NewOrg", "OldOrg");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
-        when(rsuRepository.existsByIpAndOrganizations(inetAddress, List.of("NewOrg")))
-                .thenReturn(false);
-        when(organizationRepository.findByName("NewOrg")).thenReturn(Optional.of(newOrg));
-        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "OldOrg"))
-                .thenReturn(Optional.of(rsuOrgToRemove));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
@@ -776,18 +764,16 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
-        assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
@@ -803,18 +789,16 @@ class RsuManagementServiceTest {
         existingRsu.setIpv4Address(inetAddress);
         existingRsu.setRsuOrganizations(new HashSet<>());
 
-        List<String> authorizedOrgs = Arrays.asList("Org1");
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
-        assertTrue(exception.getMessage().contains("UnauthorizedOrg2"));
         verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
