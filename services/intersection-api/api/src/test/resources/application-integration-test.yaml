@@ -89,7 +89,7 @@ spring:
           starttls:
             enable: false
   cache:
-    cache-names: email-rate-limit
+    cache-names: []
     caffeine:
       spec: maximumSize=100000,expireAfterWrite=1h
 

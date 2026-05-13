@@ -52,6 +52,7 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
         "enable.api=true",
         "enable.email=true",
         "bucket4j.enabled=true",
+        "spring.cache.cache-names=email-rate-limit",
 })
 @ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
