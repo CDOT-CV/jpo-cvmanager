@@ -139,6 +139,6 @@ bucket4j:
               unit: hours
         - cache-key: "'email_global'"
           bandwidths:
-            - capacity: ${EMAIL_RATE_LIMIT_GLOBAL:120}
+            - capacity: ${EMAIL_RATE_LIMIT_PER_INSTANCE:120}
               time: 1
               unit: hours
