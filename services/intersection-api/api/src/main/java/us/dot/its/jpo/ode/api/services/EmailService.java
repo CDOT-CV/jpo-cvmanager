@@ -84,14 +84,19 @@ public class EmailService {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.IMMEDIATE);
-        ArrayList<EmailRecipient> newRecipients = new ArrayList<>(recipients);
-        return emailProvider.sendBatchedEmails(newRecipients, content);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for intersection notification summary email");
+        }
+        return emailProvider.sendBatchedEmails(recipients, content);
     }
 
     public List<EmailSendResponse> sendSupportRequest(SupportRequestEmailContents data) {
         EmailContent content = supportRequestEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
                 EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for support request email");
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -99,6 +104,9 @@ public class EmailService {
         EmailContent content = messageCountEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationTypeByOrganization(EmailCategory.MESSAGE_COUNTS,
                 data.getOrganizationName(), EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for message count email for organization: {}", data.getOrganizationName());
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -106,6 +114,9 @@ public class EmailService {
         EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
                 data.getRsuIp(), EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for firmware upgrade failure email for RSU IP: {}", data.getRsuIp());
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -113,6 +124,9 @@ public class EmailService {
         EmailContent content = apiErrorEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.CRITICAL_ERROR_MESSAGE,
                 EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for API error email");
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 

@@ -20,13 +20,18 @@ public class FirmwareUpgradeFailureEmailGenerator extends AbstractEmailGenerator
 
     @Override
     public EmailContent generateEmailBody(FirmwareUpgradeFailureEmailContents data) {
+        String stackTrace = data.getStackTrace();
+        // Limit stack trace to 1000 characters to prevent excessively long emails
+        if (stackTrace != null && stackTrace.length() > 1000) {
+            stackTrace = stackTrace.substring(0, 1000) + "... (truncated)";
+        }
 
         Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "Firmware Upgrade Failure in CV Manager");
         context.setVariable("rsu_ip", escapeHtml(data.getRsuIp()));
         context.setVariable("failure_type", escapeHtml(data.getFailureType()));
         context.setVariable("error_message", escapeHtml(data.getMessage()));
-        context.setVariable("stack_trace", escapeHtml(data.getStackTrace()));
+        context.setVariable("stack_trace", escapeHtml(stackTrace));
         context.setVariable("footer_address", "CV-Manager Firmware Upgrade Failure");
 
         String htmlContent = templateEngine.process("emails/email_template_firmware_upgrade_failure", context);

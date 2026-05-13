@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
@@ -46,7 +47,7 @@ public class EmailController {
             @ApiResponse(responseCode = "500", description = "All emails failed to send"),
     })
     public @ResponseBody EmailApiResponse sendIntersectionNotificationSummaryEmails(
-            @RequestBody IntersectionNotificationSummaryEmailContents body) {
+            @RequestBody @Valid IntersectionNotificationSummaryEmailContents body) {
 
         return EmailSendResponse
                 .getCombinedResponseEntity(emailService.sendIntersectionNotificationSummaryEmailSendResponses(body));
@@ -60,7 +61,7 @@ public class EmailController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody EmailApiResponse sendMessageCountsEmails(
-            @RequestBody MessageCountEmailContents body) {
+            @RequestBody @Valid MessageCountEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendMessageCounts(body));
     }
@@ -73,7 +74,7 @@ public class EmailController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody EmailApiResponse sendFirmwareUpgradeFailureEmails(
-            @RequestBody FirmwareUpgradeFailureEmailContents body) {
+            @RequestBody @Valid FirmwareUpgradeFailureEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendFirmwareUpgradeFailure(body));
     }
@@ -87,7 +88,7 @@ public class EmailController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody EmailApiResponse sendApiErrorEmails(
-            @RequestBody ApiErrorEmailContents body) {
+            @RequestBody @Valid ApiErrorEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendApiError(body));
     }
@@ -101,7 +102,7 @@ public class EmailController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody EmailApiResponse sendRsuErrorSummaryEmails(
-            @RequestBody RsuErrorSummaryEmailContents body) {
+            @RequestBody @Valid RsuErrorSummaryEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendRsuErrorSummary(body));
     }
@@ -114,7 +115,7 @@ public class EmailController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public @ResponseBody EmailApiResponse sendSupportRequestEmails(
-            @RequestBody SupportRequestEmailContents body) {
+            @RequestBody @Valid SupportRequestEmailContents body) {
 
         return EmailSendResponse.getCombinedResponseEntity(emailService.sendSupportRequest(body));
     }
