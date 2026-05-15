@@ -22,6 +22,7 @@ import {
   updateTitle,
   setSelectedOrg,
   AdminOrgSummary,
+  selectSelectedOrgId,
 } from './adminOrganizationTabSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -48,6 +49,7 @@ const AdminOrganizationTab = () => {
   const orgData = useSelector(selectOrgData)
   const selectedOrg = useSelector(selectSelectedOrg)
   const selectedOrgName = useSelector(selectSelectedOrgName)
+  const selectedOrgId = useSelector(selectSelectedOrgId)
   const selectedOrgEmail = useSelector(selectSelectedOrgEmail)
   const rsuTableData = useSelector(selectRsuTableData)
   const intersectionTableData = useSelector(selectIntersectionTableData)
@@ -222,6 +224,7 @@ const AdminOrganizationTab = () => {
                 <ConditionalRenderIntersection>
                   <AdminOrganizationTabIntersection
                     selectedOrg={selectedOrgName}
+                    selectedOrgId={selectedOrgId}
                     selectedOrgEmail={selectedOrgEmail}
                     updateTableData={updateTableData}
                     tableData={intersectionTableData}

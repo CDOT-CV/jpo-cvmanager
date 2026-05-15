@@ -16,6 +16,8 @@ type UserRole = 'ADMIN' | 'OPERATOR' | 'USER'
 type UserOrganization = {
   role: UserRole
   organization: string
+  id: number
+  email: string
 }
 
 type UserOrganizationWithId = UserOrganization & {

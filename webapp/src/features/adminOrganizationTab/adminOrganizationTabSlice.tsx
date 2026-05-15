@@ -6,6 +6,7 @@ import { RootState } from '../../store'
 
 export type AdminOrgSummary = {
   name: string
+  id: number
   email: string
   user_count: number
   rsu_count: number
@@ -356,6 +357,7 @@ export const selectActiveDiv = (state: RootState) => state.adminOrganizationTab.
 export const selectTitle = (state: RootState) => state.adminOrganizationTab.value.title
 export const selectOrgData = (state: RootState) => state.adminOrganizationTab.value.orgData
 export const selectSelectedOrg = (state: RootState) => state.adminOrganizationTab.value.selectedOrg
+export const selectSelectedOrgId = (state: RootState) => state.adminOrganizationTab.value.selectedOrg?.id
 export const selectSelectedOrgName = (state: RootState) => state.adminOrganizationTab.value.selectedOrg?.name
 export const selectSelectedOrgEmail = (state: RootState) => state.adminOrganizationTab.value.selectedOrg?.email
 export const selectRsuTableData = (state: RootState) => state.adminOrganizationTab.value.rsuTableData

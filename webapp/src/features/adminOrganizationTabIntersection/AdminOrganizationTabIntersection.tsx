@@ -25,17 +25,18 @@ import { AdminIntersection } from '../../models/Intersection'
 
 interface AdminOrganizationTabIntersectionProps {
   selectedOrg: string
+  selectedOrgId: number
   selectedOrgEmail: string
   tableData: AdminOrgIntersection[]
 }
 
 const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectionProps) => {
-  const { selectedOrg, selectedOrgEmail } = props
+  const { selectedOrg, selectedOrgId, selectedOrgEmail } = props
   const theme = useTheme()
   const [fetchIntersection] = useLazyGetIntersectionQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
 
-  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrg)
+  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])
