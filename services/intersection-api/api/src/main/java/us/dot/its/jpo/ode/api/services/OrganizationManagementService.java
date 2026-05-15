@@ -104,11 +104,11 @@ public class OrganizationManagementService {
 
         // Step 3: Bulk-apply RSU option flags (tim_deposit / snmp_monitoring)
         if (patch.getTimDeposit() != null || patch.getSnmpMonitoring() != null) {
-            applyBulkRsuOptions(org.getName(), patch.getTimDeposit(), patch.getSnmpMonitoring());
+            applyBulkRsuOptions(org, patch.getTimDeposit(), patch.getSnmpMonitoring());
         }
 
         // Step 4: Add users
-        handleUsersToAdd(patch.getUsersToAdd(), org.getName(), authorizedOrgs, authToken.isSuperUser());
+        handleUsersToAdd(patch.getUsersToAdd(), org, authorizedOrgs, authToken.isSuperUser());
 
         // Step 5: Modify user roles
         handleUsersToModify(patch.getUsersToModify(), org.getName());
@@ -190,8 +190,8 @@ public class OrganizationManagementService {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private void applyBulkRsuOptions(String orgName, Boolean timDeposit, Boolean snmpMonitoring) {
-        List<InetAddress> rsuIps = rsuOrganizationRepository.findAllRsuIpsByOrganizationName(orgName);
+    private void applyBulkRsuOptions(Organization org, Boolean timDeposit, Boolean snmpMonitoring) {
+        List<InetAddress> rsuIps = rsuOrganizationRepository.findAllRsuIpsByOrganizationId(org.getId());
         if (rsuIps.isEmpty()) {
             return;
         }
@@ -226,25 +226,20 @@ public class OrganizationManagementService {
             }
         }
         rsuOptionRepository.saveAll(optionsToSave);
-        log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), orgName);
+        log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), org.getName());
     }
 
-    private void handleUsersToAdd(List<UserRoleAssignment> assignments, String orgName,
+    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Organization org,
             List<Organization> authorizedOrgs, boolean isSuperUser) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }
 
         // Non-superusers may only add users to organizations they administer
-        if (!isSuperUser && authorizedOrgs.stream().noneMatch(org -> org.getName().equals(orgName))) {
+        if (!isSuperUser && authorizedOrgs.stream().noneMatch(a -> a.equals(org))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User does not have permission to add users to organization: " + orgName);
+                    "User does not have permission to add users to organization: " + org.getName());
         }
-
-        // Load organization once for all additions
-        Organization organization = organizationRepository.findByName(orgName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
 
         // Cache role lookups to avoid redundant DB hits across assignments
         Map<String, Role> roleCache = new HashMap<>();
@@ -253,10 +248,11 @@ public class OrganizationManagementService {
         for (UserRoleAssignment assignment : assignments) {
             // Check membership first — skip user/role loading if already a member
             boolean alreadyMember = userOrganizationRepository
-                    .findByUser_EmailAndOrganization_Name(assignment.getEmail(), orgName)
+                    .findByUser_EmailAndOrganization_Name(assignment.getEmail(), org.getName())
                     .isPresent();
             if (alreadyMember) {
-                log.debug("User '{}' is already a member of org '{}', skipping add", assignment.getEmail(), orgName);
+                log.debug("User '{}' is already a member of org '{}', skipping add", assignment.getEmail(),
+                        org.getName());
                 continue;
             }
 
@@ -272,10 +268,10 @@ public class OrganizationManagementService {
             UserOrganization userOrg = new UserOrganization();
             userOrg.setUser(user);
             userOrg.setRole(role);
-            userOrg.setOrganization(organization);
+            userOrg.setOrganization(org);
             toSave.add(userOrg);
             log.debug("Queued user '{}' with role '{}' for addition to org '{}'", assignment.getEmail(),
-                    assignment.getRole(), orgName);
+                    assignment.getRole(), org.getName());
         }
         userOrganizationRepository.saveAll(toSave);
     }

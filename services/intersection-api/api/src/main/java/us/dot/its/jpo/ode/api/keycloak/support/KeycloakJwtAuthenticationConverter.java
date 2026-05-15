@@ -17,15 +17,16 @@ import java.util.Collection;
  * the username and roles from the claims of the token, delegating
  * to the {@link KeycloakGrantedAuthoritiesConverter})
  */
-@RequiredArgsConstructor
 public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter;
     private OrganizationRepository organizationRepository;
 
     public KeycloakJwtAuthenticationConverter(
-            Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter) {
+            Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter,
+            OrganizationRepository organizationRepository) {
         this.grantedAuthoritiesConverter = grantedAuthoritiesConverter;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override

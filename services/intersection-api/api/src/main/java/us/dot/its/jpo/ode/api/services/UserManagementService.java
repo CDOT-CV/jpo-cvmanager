@@ -59,12 +59,8 @@ public class UserManagementService {
 
         allowed.setRoles(roleRepository.findAllRoleNames());
 
-        if (authToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAll().stream().map(Organization::getName).toList());
-        } else {
-            allowed.setOrganizations(
-                    authToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(Organization::getName).toList());
-        }
+        allowed.setOrganizations(
+                authToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(Organization::getName).toList());
 
         return allowed;
     }
