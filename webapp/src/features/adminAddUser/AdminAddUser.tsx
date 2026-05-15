@@ -278,9 +278,8 @@ const AdminAddUser = () => {
                 onClick={handleAddOrganization}
                 className="museo-slab capital-case"
                 disabled={
-                  allowedSelections?.organizations &&
-                  selectedOrganizations.filter((org) => org.organization !== '').length >=
-                    allowedSelections.organizations.length
+                  !!allowedSelections?.organizations &&
+                  selectedOrganizations.length >= allowedSelections.organizations.length
                 }
               >
                 Add Organization
