@@ -31,9 +31,9 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
             "LEFT JOIN FETCH io.organization " +
             "WHERE NOT EXISTS " +
             "(SELECT 1 FROM IntersectionOrganization io2 " +
-            "WHERE io2.intersection.id = i.id AND io2.organization.name = :organizationName)")
-    List<Intersection> findAllIntersectionsNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "WHERE io2.intersection.id = i.id AND io2.organization.id = :organizationId)")
+    List<Intersection> findAllIntersectionsNotInOrganization(
+            @Param("organizationId") Integer organizationId);
 
     Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization_Name(
             String intersectionNumber, String organizationName);
