@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import scala.collection.View.Updated;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 
@@ -40,13 +41,14 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
     @Query("DELETE FROM UserOrganization uo WHERE uo.user.email IN :emails AND uo.organization.name = :orgName")
     void deleteByUserEmailsAndOrganizationName(@Param("emails") List<String> emails, @Param("orgName") String orgName);
 
-    @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.name = :organizationName")
-    List<String> findAllUserEmailsByOrganizationName(@Param("organizationName") String organizationName);
+    @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.id = :organizationId")
+    List<String> findAllUserEmailsByOrganizationId(@Param("organizationId") Integer organizationId);
 
     @Query("SELECT DISTINCT u FROM User u WHERE NOT EXISTS " +
-            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.name = :organizationName)")
-    List<User> findAllUserEmailsNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.id = :organizationId)")
+    List<User> findAllUserEmailsNotInOrganizationId(
+            @Param("organizationId") Integer organizationId);
+
     @Query("SELECT CASE WHEN COUNT(uo) > 0 THEN true ELSE false END "
             + "FROM UserOrganization uo "
             + "WHERE uo.organization.name = :orgName "
@@ -56,4 +58,5 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
     @Modifying
     @Transactional
     @Query("DELETE FROM UserOrganization uo WHERE uo.organization.name = :orgName")
-    void deleteAllByOrganizationName(@Param("orgName") String orgName);}
+    void deleteAllByOrganizationName(@Param("orgName") String orgName);
+}

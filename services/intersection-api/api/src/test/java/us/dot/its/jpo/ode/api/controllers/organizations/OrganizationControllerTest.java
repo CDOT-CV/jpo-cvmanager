@@ -329,7 +329,6 @@ class OrganizationControllerTest {
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(mockOrg));
-            when(organizationRepository.findByNameIn(List.of("TestOrg"))).thenReturn(List.of(mockOrg));
             when(organizationMapper.toDto(mockOrg)).thenReturn(sampleOrgDto);
 
             mockMvc.perform(get("/organizations"))
@@ -393,7 +392,7 @@ class OrganizationControllerTest {
             java.net.InetAddress ip1 = java.net.InetAddress.getByName("192.168.1.1");
             java.net.InetAddress ip2 = java.net.InetAddress.getByName("10.0.0.1");
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(1))
                     .thenReturn(List.of(ip1, ip2));
 
             mockMvc.perform(get("/organizations/rsus")
@@ -409,14 +408,14 @@ class OrganizationControllerTest {
         @DisplayName("passes the Organization header value to the repository")
         void organizationHeader_isForwardedToRepository() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(1))
                     .thenReturn(List.of());
 
             mockMvc.perform(get("/organizations/rsus")
                     .header("Organization", "TestOrg"))
                     .andExpect(status().isOk());
 
-            verify(rsuOrganizationRepository).findAllRsuIpsByOrganizationName("TestOrg");
+            verify(rsuOrganizationRepository).findAllRsuIpsByOrganizationId(1);
         }
     }
 
@@ -525,7 +524,7 @@ class OrganizationControllerTest {
         void superUser_returns200WithAvailableRsus() throws Exception {
             Rsu mockRsu = Mockito.mock(Rsu.class);
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsusNotInOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsusNotInOrganizationId(1))
                     .thenReturn(List.of(mockRsu));
             when(rsuInfoMapper.toDto(mockRsu)).thenReturn(sampleRsuInfoDto);
 
@@ -576,7 +575,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 200 with list of user email strings when isSuperUser returns true")
         void superUser_returns200WithUserEmails() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsByOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsByOrganizationId(1))
                     .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
             mockMvc.perform(get("/organizations/users")
@@ -592,14 +591,14 @@ class OrganizationControllerTest {
         @DisplayName("passes the Organization header value to the repository")
         void organizationHeader_isForwardedToRepository() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsByOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsByOrganizationId(1))
                     .thenReturn(List.of());
 
             mockMvc.perform(get("/organizations/users")
                     .header("Organization", "TestOrg"))
                     .andExpect(status().isOk());
 
-            verify(userOrganizationRepository).findAllUserEmailsByOrganizationName("TestOrg");
+            verify(userOrganizationRepository).findAllUserEmailsByOrganizationId(1);
         }
     }
 
@@ -684,7 +683,7 @@ class OrganizationControllerTest {
         void superUser_returns200WithAvailableUsers() throws Exception {
             User mockUser = Mockito.mock(User.class);
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsNotInOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsNotInOrganizationId(1))
                     .thenReturn(List.of(mockUser));
             when(userMapper.toDto(mockUser)).thenReturn(sampleUserDto);
 

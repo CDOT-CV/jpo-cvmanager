@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import scala.collection.View.Updated;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
@@ -35,13 +36,13 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_Name(InetAddress ipv4Address,
             String organizationName);
 
-    @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.name = :organizationName")
-    List<InetAddress> findAllRsuIpsByOrganizationName(@Param("organizationName") String organizationName);
+    @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.id = :organizationId")
+    List<InetAddress> findAllRsuIpsByOrganizationId(@Param("organizationId") Integer organizationId);
 
     @Query("SELECT DISTINCT r FROM Rsu r WHERE NOT EXISTS " +
-            "(SELECT 1 FROM RsuOrganization ro WHERE ro.rsu.id = r.id AND ro.organization.name = :organizationName)")
-    List<Rsu> findAllRsusNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "(SELECT 1 FROM RsuOrganization ro WHERE ro.rsu.id = r.id AND ro.organization.id = :organizationId)")
+    List<Rsu> findAllRsusNotInOrganizationId(
+            @Param("organizationId") Integer organizationId);
 
     Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_NameIgnoreCase(InetAddress ipv4Address,
             String organizationName);

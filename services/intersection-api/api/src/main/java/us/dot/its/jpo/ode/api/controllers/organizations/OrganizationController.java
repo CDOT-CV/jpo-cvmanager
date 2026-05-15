@@ -109,8 +109,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getRsuIpsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return rsuOrganizationRepository.findAllRsuIpsByOrganizationId(orgId).stream()
                 .map(InetAddress::getHostAddress)
                 .collect(Collectors.toList());
     }
@@ -141,8 +141,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<RsuInfoDto> getRsuIpsNotInOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return rsuOrganizationRepository.findAllRsusNotInOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return rsuOrganizationRepository.findAllRsusNotInOrganizationId(orgId).stream()
                 .map(rsuInfoMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -155,8 +155,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getUserEmailsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return userOrganizationRepository.findAllUserEmailsByOrganizationName(organization);
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return userOrganizationRepository.findAllUserEmailsByOrganizationId(orgId);
     }
 
     @Operation(summary = "Get User Organization Assignments", description = "Retrieves a list of organization names that the specified user is assigned to.")
@@ -179,8 +179,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<UserDto> getUserEmailsNotInOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return userOrganizationRepository.findAllUserEmailsNotInOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return userOrganizationRepository.findAllUserEmailsNotInOrganizationId(orgId).stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
