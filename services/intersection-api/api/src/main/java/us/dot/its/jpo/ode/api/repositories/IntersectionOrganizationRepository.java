@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,12 +47,12 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
 
     @Query("SELECT CASE WHEN COUNT(io) > 0 THEN true ELSE false END "
             + "FROM IntersectionOrganization io "
-            + "WHERE io.organization.name = :orgName "
+            + "WHERE io.organization = :organization "
             + "AND (SELECT COUNT(io2) FROM IntersectionOrganization io2 WHERE io2.intersection.id = io.intersection.id) = 1")
-    boolean existsOrphanIntersectionInOrganization(@Param("orgName") String orgName);
+    boolean existsOrphanIntersectionInOrganization(Organization organization);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM IntersectionOrganization io WHERE io.organization.name = :orgName")
-    void deleteAllByOrganizationName(@Param("orgName") String orgName);
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.organization = :organization")
+    void deleteAllByOrganization(Organization organization);
 }

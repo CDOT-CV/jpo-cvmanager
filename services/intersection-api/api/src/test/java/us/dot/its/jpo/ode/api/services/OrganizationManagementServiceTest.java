@@ -956,7 +956,7 @@ class OrganizationManagementServiceTest {
 
         service.deleteOrganization("TestOrg");
 
-        verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        verify(userOrganizationRepository).deleteAllByOrganization("TestOrg");
         verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
         verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
         verify(organizationRepository).delete(testOrg);
@@ -978,7 +978,7 @@ class OrganizationManagementServiceTest {
 
         service.deleteOrganization("TestOrg");
 
-        inOrder.verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        inOrder.verify(userOrganizationRepository).deleteAllByOrganization("TestOrg");
         inOrder.verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
         inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
         inOrder.verify(organizationRepository).delete(testOrg);

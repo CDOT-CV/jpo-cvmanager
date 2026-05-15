@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
@@ -195,8 +197,10 @@ public class OrganizationController {
             @ApiResponse(responseCode = "409", description = "Conflict - Organization has RSUs, intersections, or users that would become orphaned"),
     })
     public ResponseEntity<Void> deleteOrganization(
-            @Parameter(description = "Organization name", example = "TestOrg", required = true) @PathVariable(name = "orgName") String orgName) {
-        organizationManagementService.deleteOrganization(orgName);
+            @Parameter(description = "Organization ID", example = "1", required = true) @PathVariable(name = "orgId") Integer orgId) {
+
+        Organization orgToDelete = permissionService.getOrganizationById(orgId);
+        organizationManagementService.deleteOrganization(orgToDelete);
         return ResponseEntity.noContent().build();
     }
 }

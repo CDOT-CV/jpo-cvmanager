@@ -159,31 +159,28 @@ public class OrganizationManagementService {
      *                                            result
      */
     @Transactional
-    public void deleteOrganization(String orgName) {
-        Organization org = organizationRepository.findByName(orgName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgName));
+    public void deleteOrganization(Organization organization) {
 
-        if (rsuOrganizationRepository.existsOrphanRsuInOrganization(orgName)) {
+        if (rsuOrganizationRepository.existsOrphanRsuInOrganization(organization)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more RSUs only associated with this organization");
         }
 
-        if (intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(orgName)) {
+        if (intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(organization)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more Intersections only associated with this organization");
         }
 
-        if (userOrganizationRepository.existsOrphanUserInOrganization(orgName)) {
+        if (userOrganizationRepository.existsOrphanUserInOrganization(organization)) {
             throw new OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more users only associated with this organization");
         }
 
-        userOrganizationRepository.deleteAllByOrganizationName(orgName);
-        rsuOrganizationRepository.deleteAllByOrganizationName(orgName);
-        intersectionOrganizationRepository.deleteAllByOrganizationName(orgName);
-        organizationRepository.delete(org);
-        log.debug("Organization '{}' deleted", orgName);
+        userOrganizationRepository.deleteAllByOrganization(organization);
+        rsuOrganizationRepository.deleteAllByOrganization(organization);
+        intersectionOrganizationRepository.deleteAllByOrganization(organization);
+        organizationRepository.delete(organization);
+        log.debug("Organization '{}' deleted", organization);
     }
 
     // -------------------------------------------------------------------------

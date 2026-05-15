@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
-import scala.collection.View.Updated;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 
@@ -55,12 +55,12 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
 
     @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
             + "FROM RsuOrganization ro "
-            + "WHERE ro.organization.name = :orgName "
+            + "WHERE ro.organization = :organization "
             + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
-    boolean existsOrphanRsuInOrganization(@Param("orgName") String orgName);
+    boolean existsOrphanRsuInOrganization(Organization organization);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM RsuOrganization ro WHERE ro.organization.name = :orgName")
-    void deleteAllByOrganizationName(@Param("orgName") String orgName);
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.organization = :organization")
+    void deleteAllByOrganization(Organization organization);
 }

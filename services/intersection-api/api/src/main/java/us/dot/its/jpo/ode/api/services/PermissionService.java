@@ -77,6 +77,14 @@ public class PermissionService {
         return authToken.isSuperUser();
     }
 
+    public Organization getOrganizationById(Integer orgId) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        return authToken.getQualifiedOrgList(UserRole.ADMIN).stream()
+                .filter(org -> org.getId().equals(orgId))
+                .findFirst()
+                .orElseThrow(() -> new AccessDeniedException("User does not belong to the specified organization"));
+    }
+
     /**
      * Runs an organization-based permission check for the current user.
      * Invalid authentication returns false. Super users are always allowed.
