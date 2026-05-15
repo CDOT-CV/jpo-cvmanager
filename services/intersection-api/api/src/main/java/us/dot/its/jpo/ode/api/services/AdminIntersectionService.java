@@ -223,9 +223,9 @@ public class AdminIntersectionService {
      * @return response containing intersection_data as a list of intersections for
      *         the organization
      */
-    public IntersectionListResponse getAllIntersections(Integer organization) {
+    public IntersectionListResponse getAllIntersections(Organization organization) {
         log.info("Fetching intersections for organization: {}", organization);
-        List<Intersection> intersections = intersectionRepository.findAllByOrganizationId(organization);
+        List<Intersection> intersections = intersectionRepository.findAllByOrganization(organization);
 
         if (intersections.isEmpty()) {
             log.info("No intersections found for organization '{}'", organization);
@@ -245,7 +245,7 @@ public class AdminIntersectionService {
      * @return response containing intersection_data as a list of intersections
      *         currently not assigned to the organization
      */
-    public IntersectionListResponse getIntersectionsNotInOrganization(Integer organization) {
+    public IntersectionListResponse getIntersectionsNotInOrganization(Organization organization) {
         log.info("Fetching intersections not in organization: {}", organization);
         List<Intersection> intersections = intersectionOrganizationRepository
                 .findAllIntersectionsNotInOrganization(organization);

@@ -83,9 +83,10 @@ public class AdminIntersectionController {
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public IntersectionListResponse getAllIntersections(
-            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer organization) {
+            @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer orgId) {
 
-        log.info("GET /admin/intersections. organization={}", organization);
+        log.info("GET /admin/intersections. organization={}", orgId);
+        Organization organization = permissionService.getOrganizationById(orgId);
         return adminIntersectionService.getAllIntersections(organization);
     }
 
@@ -130,9 +131,10 @@ public class AdminIntersectionController {
     @GetMapping(value = "/available", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public IntersectionListResponse getIntersectionsNotInOrganization(
-            @Parameter(description = "Organization to exclude intersections from", required = true) @RequestHeader(name = "Organization") Integer organization) {
+            @Parameter(description = "Organization to exclude intersections from", required = true) @RequestHeader(name = "Organization") Integer orgId) {
 
-        log.info("GET /admin/intersections/available. organization={}", organization);
+        log.info("GET /admin/intersections/available. organization={}", orgId);
+        Organization organization = permissionService.getOrganizationById(orgId);
         return adminIntersectionService.getIntersectionsNotInOrganization(organization);
     }
 

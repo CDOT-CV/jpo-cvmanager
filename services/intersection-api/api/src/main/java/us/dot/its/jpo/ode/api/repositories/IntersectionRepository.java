@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,9 +46,8 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
-            "LEFT JOIN FETCH io.organization o " +
-            "WHERE o.id = :orgId")
-    List<Intersection> findAllByOrganizationId(@Param("orgId") Integer orgId);
+            "WHERE io.organization = :organization")
+    List<Intersection> findAllByOrganization(Organization organization);
 
     /**
      * Fetches intersections belonging to any of the given organizations, with org
