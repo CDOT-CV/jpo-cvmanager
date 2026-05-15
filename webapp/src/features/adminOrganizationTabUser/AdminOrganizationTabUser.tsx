@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AdminTable from '../../components/AdminTable'
 import Accordion from '@mui/material/Accordion'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -18,7 +18,6 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import { Action, Column } from '@material-table/core'
-import { AdminOrgUser } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 
 import { useTheme } from '@mui/material'
@@ -28,28 +27,26 @@ import {
   useLazyGetUserOrganizationsQuery,
   usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
-import { useGetUserAllowedSelectionsQuery } from '../api/userApiSlice'
+import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
 
 interface AdminOrganizationTabUserProps {
-  selectedOrg: string
-  selectedOrgEmail: string
-  tableData: AdminOrgUser[]
-  updateTableData: (org: string) => void
+  selectedOrgName: string
 }
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
-  const { selectedOrg, selectedOrgEmail } = props
+  const { selectedOrgName } = props
   const dispatch = useDispatch()
   const theme = useTheme()
 
-  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrg, {
-    skip: !selectedOrg,
+  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgName, {
+    skip: !selectedOrgName,
   })
+  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgName })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
 
-  const [selectedUserList, setSelectedUserList] = useState<AdminOrgUser[]>([])
+  const [selectedUserList, setSelectedUserList] = useState<AdminUserForOrg[]>([])
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const authLoginData = useSelector(selectAuthLoginData)
   const userEmail = useSelector(selectEmail)
@@ -75,14 +72,24 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     },
   ])
 
-  const userActions: Action<AdminOrgUser>[] = [
+  const userData = useMemo(() => {
+    return userTableData?.content.map((user) => {
+      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgName)
+      return {
+        ...user,
+        role: orgInfo ? orgInfo.role.toLowerCase() : '',
+      }
+    })
+  }, [userTableData])
+
+  const userActions: Action<AdminUserForOrg>[] = [
     {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
       position: 'row',
-      onClick: (event, rowData: AdminOrgUser | AdminOrgUser[]) => {
+      onClick: (event, rowData: AdminUserForOrg | AdminUserForOrg[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -104,7 +111,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           'Are you sure you want to delete "' +
             (Array.isArray(rowData) ? rowData.map((user) => user.email).join(', ') : rowData.email) +
             '" from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -118,7 +125,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminOrgUser | AdminOrgUser[]) => {
+      onClick: (event, rowData: AdminUserForOrg | AdminUserForOrg[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -140,7 +147,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           'Are you sure you want to delete ' +
             (Array.isArray(rowData) ? rowData.length : 1) +
             ' user(s) from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -160,7 +167,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           placeholder="Click to add users"
           data={availableUserList}
           value={selectedUserList}
-          onChange={(value) => handleUserSelectionChange(value as AdminUser[])}
+          onChange={(value) => setSelectedUserList(value as AdminUserForOrg[])}
           style={{
             fontSize: '1rem',
           }}
@@ -185,8 +192,8 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       changes: Record<
         number,
         {
-          oldData: AdminOrgUser
-          newData: AdminOrgUser
+          oldData: AdminUserForOrg
+          newData: AdminUserForOrg
         }
       >
     ) =>
@@ -200,42 +207,23 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   useEffect(() => {
     setSelectedUserList([])
-  }, [selectedOrg])
+  }, [selectedOrgName])
 
-  const handleUserSelectionChange = (value: AdminUser[]) => {
-    setSelectedUserList(
-      value.map((user) => ({
-        ...user,
-        role: '',
-        organizations: user.organizations.map((org) => ({ name: org.organization, role: org.role })),
-      }))
-    )
-  }
-
-  const handleUserRoleChange = (email: string, role: string) => {
+  const handleUserRoleChange = (email: string, role: UserRole) => {
     setSelectedUserList((prev) => prev.map((u) => (u.email === email ? { ...u, role } : u)))
   }
 
-  const userOnDelete = async (row: AdminOrgUser) => {
+  const userOnDelete = async (row: AdminUserForOrg) => {
     const loadingToast = toast.loading(`Deleting User ${row.email}...`)
     try {
       const userOrgs = await getUserOrganizations(row.email).unwrap()
       if (userOrgs.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrg,
-          name: selectedOrg,
-          email: selectedOrgEmail,
+          orig_name: selectedOrgName,
           users_to_remove: [row.email],
-          users_to_add: [],
-          users_to_modify: [],
-          rsus_to_add: [],
-          rsus_to_remove: [],
-          intersections_to_add: [],
-          intersections_to_remove: [],
         }).unwrap()
-        props.updateTableData(selectedOrg)
         if (row.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrg, role: row.role }, type: 'delete' }))
+          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: row.role }, type: 'delete' }))
         }
         toast.success('User deleted successfully', { id: loadingToast })
       } else {
@@ -244,7 +232,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           'Cannot remove User ' +
             row.email +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because they must belong to at least one organization.'
         )
       }
@@ -253,7 +241,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     }
   }
 
-  const userMultiDelete = async (rows: AdminOrgUser[]) => {
+  const userMultiDelete = async (rows: AdminUserForOrg[]) => {
     const loadingToast = toast.loading(`Deleting ${rows.length} User(s)...`)
     try {
       const invalidUsers: string[] = []
@@ -272,27 +260,18 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           'Cannot remove User(s) ' +
             invalidUsers.join(', ') +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because they must belong to at least one organization.'
         )
         return
       }
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         users_to_remove: validEmails,
-        users_to_add: [],
-        users_to_modify: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
-      props.updateTableData(selectedOrg)
       for (const user of rows) {
         if (user.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrg, role: user.role }, type: 'delete' }))
+          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: user.role }, type: 'delete' }))
         }
       }
       toast.success('User(s) deleted successfully', { id: loadingToast })
@@ -301,7 +280,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     }
   }
 
-  const userMultiAdd = async (userList: AdminOrgUser[]) => {
+  const userMultiAdd = async (userList: AdminUserForOrg[]) => {
     if (userList.length === 0) {
       toast.error('Please select users to add')
       return
@@ -314,22 +293,13 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     const loadingToast = toast.loading(`Adding ${userList.length} User(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         users_to_add: userList.map((u) => ({ email: u.email, role: u.role })),
-        users_to_remove: [],
-        users_to_modify: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
       setSelectedUserList([])
-      props.updateTableData(selectedOrg)
       for (const user of userList) {
         if (user.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrg, role: user.role }, type: 'add' }))
+          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: user.role }, type: 'add' }))
         }
       }
       toast.success('User(s) added successfully', { id: loadingToast })
@@ -342,8 +312,8 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     json: Record<
       number,
       {
-        oldData: AdminOrgUser
-        newData: AdminOrgUser
+        oldData: AdminUserForOrg
+        newData: AdminUserForOrg
       }
     >
   ) => {
@@ -351,29 +321,20 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     try {
       const rows = Object.values(json)
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         users_to_modify: rows.map((r) => ({ email: r.newData.email, role: r.newData.role })),
-        users_to_add: [],
-        users_to_remove: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
       for (const row of rows) {
         if (row.newData.email === userEmail) {
           dispatch(
             setOrganizationList({
-              value: { name: selectedOrg, role: row.newData.role },
-              orgName: selectedOrg,
+              value: { name: selectedOrgName, role: row.newData.role },
+              orgName: selectedOrgName,
               type: 'update',
             })
           )
         }
       }
-      props.updateTableData(selectedOrg)
       toast.success('User(s) updated successfully', { id: loadingToast })
     } catch (error) {
       toast.error('Failed to update User(s) due to error: ' + error, { id: loadingToast })
@@ -407,7 +368,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
                 ))}
               <AdminTable
                 title=""
-                data={props.tableData}
+                data={userData || []}
                 columns={userColumns}
                 actions={userActions}
                 editable={userTableEditable}

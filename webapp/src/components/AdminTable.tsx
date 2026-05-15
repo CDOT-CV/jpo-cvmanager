@@ -128,6 +128,7 @@ const AdminTable = (props: AdminTableProps) => {
           headerStyle: {
             backgroundColor: theme.palette.background.paper,
           },
+          emptyRowsWhenPaging: false, // Prevents tall empty rows
           pageSize: 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,

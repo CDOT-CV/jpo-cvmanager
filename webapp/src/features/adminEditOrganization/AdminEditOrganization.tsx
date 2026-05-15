@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
-import { useDispatch } from 'react-redux'
 import toast from 'react-hot-toast'
 
 import '../adminRsuTab/Admin.css'
 import 'react-widgets/styles.css'
 import '../../styles/fonts/museo-slab.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
-import { getOrgData } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Button, DialogActions, DialogContent, FormControl, TextField, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
@@ -23,7 +19,6 @@ interface OrganizationFormData {
 }
 
 const AdminEditOrganization = () => {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const { orgName } = useParams<{ orgName: string }>()
   const navigate = useNavigate()
 
@@ -68,17 +63,8 @@ const AdminEditOrganization = () => {
         orig_name: data.orig_name,
         name: data.name,
         email: data.email,
-        users_to_add: [],
-        users_to_modify: [],
-        users_to_remove: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
       toast.success('Organization updated successfully')
-      // Keep the parent tab's Redux state fresh
-      dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: data.name }))
       setOpen(false)
       navigate('/dashboard/admin/organizations')
     } catch (error: any) {

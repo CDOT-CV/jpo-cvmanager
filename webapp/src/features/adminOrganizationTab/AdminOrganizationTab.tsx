@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import AdminAddOrganization from '../adminAddOrganization/AdminAddOrganization'
 import AdminOrganizationTabRsu from '../adminOrganizationTabRsu/AdminOrganizationTabRsu'
 import AdminOrganizationTabIntersection from '../adminOrganizationTabIntersection/AdminOrganizationTabIntersection'
@@ -7,23 +6,6 @@ import AdminEditOrganization from '../adminEditOrganization/AdminEditOrganizatio
 import AdminOrganizationDeleteMenu from '../../components/AdminOrganizationDeleteMenu'
 import Grid2 from '@mui/material/Grid2'
 import { DropdownList } from 'react-widgets'
-import {
-  selectOrgData,
-  selectSelectedOrg,
-  selectSelectedOrgName,
-  selectSelectedOrgEmail,
-  selectRsuTableData,
-  selectIntersectionTableData,
-  selectUserTableData,
-
-  // actions
-  deleteOrg,
-  getOrgData,
-  updateTitle,
-  setSelectedOrg,
-  AdminOrgSummary,
-  selectSelectedOrgId,
-} from './adminOrganizationTabSlice'
 import { useSelector, useDispatch } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
@@ -32,11 +14,17 @@ import { RootState } from '../../store'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { changeOrganization, selectOrganizationName, setOrganizationList } from '../../generalSlices/userSlice'
+import {
+  changeOrganization,
+  selectOrganizationId,
+  selectOrganizationName,
+  setOrganizationList,
+} from '../../generalSlices/userSlice'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 import { alpha, Button, useTheme } from '@mui/material'
 import { AddCircleOutline, EditOutlined, Refresh } from '@mui/icons-material'
+import { useGetOrganizationsQuery, useDeleteOrganizationMutation } from '../api/organizationApiSlice'
 
 const AdminOrganizationTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -46,78 +34,29 @@ const AdminOrganizationTab = () => {
 
   const activeTab = location.pathname.split('/')[4]
 
-  const orgData = useSelector(selectOrgData)
-  const selectedOrg = useSelector(selectSelectedOrg)
-  const selectedOrgName = useSelector(selectSelectedOrgName)
-  const selectedOrgId = useSelector(selectSelectedOrgId)
-  const selectedOrgEmail = useSelector(selectSelectedOrgEmail)
-  const rsuTableData = useSelector(selectRsuTableData)
-  const intersectionTableData = useSelector(selectIntersectionTableData)
-  const userTableData = useSelector(selectUserTableData)
+  const { data: orgList = [] } = useGetOrganizationsQuery()
+  const [deleteOrganization] = useDeleteOrganizationMutation()
 
-  const notifySuccess = (message: string) => toast.success(message)
-  const notifyError = (message: string) => toast.error(message)
-  const defaultOrgName = useSelector(selectOrganizationName)
-
-  useEffect(() => {
-    // Only fetch organization list on mount
-    dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: undefined })).then((data: any | undefined) => {
-      if (data !== undefined && !data.payload?.success) {
-        notifyError('Failed to obtain organizations due to error: ' + data.payload?.message)
-      } else if (data !== undefined && data.payload?.success) {
-        // on first render set the default organization in the admin
-        // organization tab to the currently selected organization
-        const org_data = data.payload.data.org_data as AdminOrgSummary[]
-        const selectedOrg = (org_data ?? []).find(
-          (organization: AdminOrgSummary) => organization?.name === defaultOrgName
-        )
-        if (selectedOrg) {
-          dispatch(setSelectedOrg(selectedOrg))
-        }
-      }
-    })
-  }, [])
-
-  const getSelectedOrgData = () => {
-    dispatch(getOrgData({ orgName: selectedOrgName })).then((data: any) => {
-      if (data !== undefined && !data.payload?.success) {
-        notifyError('Failed to obtain data due to error: ' + data.payload?.message)
-      }
-    })
-  }
-
-  const updateTableData = (orgName: string) => {
-    dispatch(getOrgData({ orgName })).then((data: any) => {
-      if (!data.payload.success) {
-        notifyError('Failed to obtain data due to error: ' + data.payload.message)
-      }
-    })
-  }
-
-  useEffect(() => {
-    if (selectedOrgName != undefined) {
-      getSelectedOrgData()
-    }
-  }, [selectedOrgName, dispatch])
-
-  useEffect(() => {
-    dispatch(updateTitle())
-  }, [activeTab, dispatch])
+  const selectedOrg = useSelector(selectOrganizationName)
+  const selectedOrgId = useSelector(selectOrganizationId)
 
   const refresh = () => {
-    updateTableData(selectedOrgName)
+    // TODO: Refresh org list and selected org data without a full page reload
   }
 
-  const handleOrgDelete = (orgName) => {
-    dispatch(deleteOrg(orgName)).then((data: any) => {
-      if (data.payload.success) {
-        notifySuccess(data.payload.message)
-      } else {
-        notifyError('Failed to delete organization due to error: ' + data.payload.message)
+  const handleOrgDelete = async (orgName: string) => {
+    const loadingToast = toast.loading(`Deleting organization ${orgName}...`)
+    try {
+      await deleteOrganization(orgName).unwrap()
+      dispatch(setOrganizationList({ value: { name: orgName }, type: 'delete' }))
+      const next = orgList.find((o) => o.name !== orgName) ?? orgList[0]
+      if (next) {
+        dispatch(changeOrganization(next.name))
       }
-    })
-    dispatch(setOrganizationList({ value: { name: orgName }, type: 'delete' }))
-    dispatch(changeOrganization(orgData[0].name))
+      toast.success(`Successfully deleted organization: ${orgName}`, { id: loadingToast })
+    } catch (error) {
+      toast.error('Failed to delete organization due to error: ' + error, { id: loadingToast })
+    }
   }
 
   return (
@@ -141,33 +80,39 @@ const AdminOrganizationTab = () => {
                     style={{ width: '250px' }}
                     dataKey="name"
                     textField="name"
-                    data={orgData}
+                    data={orgList}
                     value={selectedOrg}
-                    onChange={(value) => dispatch(setSelectedOrg(value))}
+                    onChange={(value) => dispatch(changeOrganization(value.name))}
                   />
                 </Grid2>
-                <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
-                  <ContainedIconButton
-                    key="delete_button"
-                    title="Edit Organization"
-                    onClick={() => navigate('editOrganization/' + selectedOrg?.name)}
-                    sx={{
-                      backgroundColor: 'transparent',
-                      borderRadius: '2px',
-                      '&:hover': {
-                        backgroundColor: alpha(theme.palette.text.primary, 0.1),
-                      },
-                    }}
-                  >
-                    <EditOutlined size={20} sx={{ color: theme.palette.custom.rowActionIcon }} component={undefined} />
-                  </ContainedIconButton>
-                </Grid2>
-                <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
-                  <AdminOrganizationDeleteMenu
-                    deleteOrganization={() => handleOrgDelete(selectedOrgName)}
-                    selectedOrganization={selectedOrgName}
-                  />
-                </Grid2>
+                {selectedOrg === undefined ? (
+                  <></>
+                ) : (
+                  <>
+                    <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
+                      <ContainedIconButton
+                        key="delete_button"
+                        title="Edit Organization"
+                        onClick={() => navigate('editOrganization/' + selectedOrg)}
+                        sx={{
+                          backgroundColor: 'transparent',
+                          borderRadius: '2px',
+                          '&:hover': {
+                            backgroundColor: alpha(theme.palette.text.primary, 0.1),
+                          },
+                        }}
+                      >
+                        <EditOutlined sx={{ color: theme.palette.custom.rowActionIcon }} />
+                      </ContainedIconButton>
+                    </Grid2>
+                    <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
+                      <AdminOrganizationDeleteMenu
+                        deleteOrganization={() => handleOrgDelete(selectedOrg)}
+                        selectedOrganization={selectedOrg}
+                      />
+                    </Grid2>
+                  </>
+                )}
               </Grid2>
               <Grid2
                 sx={{
@@ -211,34 +156,34 @@ const AdminOrganizationTab = () => {
             </div>
 
             <div className="scroll-div-org-tab">
-              <>
-                <ConditionalRenderRsu>
-                  <AdminOrganizationTabRsu
-                    selectedOrg={selectedOrgName}
-                    selectedOrgEmail={selectedOrgEmail}
-                    updateTableData={updateTableData}
-                    tableData={rsuTableData}
-                    key="rsu"
-                  />
-                </ConditionalRenderRsu>
-                <ConditionalRenderIntersection>
-                  <AdminOrganizationTabIntersection
-                    selectedOrg={selectedOrgName}
-                    selectedOrgId={selectedOrgId}
-                    selectedOrgEmail={selectedOrgEmail}
-                    updateTableData={updateTableData}
-                    tableData={intersectionTableData}
-                    key="intersection"
-                  />
-                </ConditionalRenderIntersection>
-                <AdminOrganizationTabUser
-                  selectedOrg={selectedOrgName}
-                  selectedOrgEmail={selectedOrgEmail}
-                  updateTableData={updateTableData}
-                  tableData={userTableData}
-                  key="user"
-                />
-              </>
+              {selectedOrg === undefined || selectedOrgId === undefined ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                  }}
+                >
+                  <h2 style={{ color: theme.palette.text.primary }}>No organization selected</h2>
+                  <p style={{ color: theme.palette.text.secondary }}>Please select an organization to view details.</p>
+                </div>
+              ) : (
+                <>
+                  <ConditionalRenderRsu>
+                    <AdminOrganizationTabRsu selectedOrgName={selectedOrg} key="rsu" />
+                  </ConditionalRenderRsu>
+                  <ConditionalRenderIntersection>
+                    <AdminOrganizationTabIntersection
+                      selectedOrgName={selectedOrg}
+                      selectedOrgId={selectedOrgId}
+                      key="intersection"
+                    />
+                  </ConditionalRenderIntersection>
+                  <AdminOrganizationTabUser selectedOrgName={selectedOrg} key="user" />
+                </>
+              )}
             </div>
           </div>
         }

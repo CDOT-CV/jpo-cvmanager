@@ -7,9 +7,9 @@ import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
-import { AdminOrgIntersection } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import {
   useGetIntersectionsNotInOrganizationQuery,
+  useGetIntersectionsQuery,
   useLazyGetIntersectionQuery,
 } from '../api/adminIntersectionApiSlice'
 import { usePatchOrganizationMutation } from '../api/organizationApiSlice'
@@ -24,26 +24,25 @@ import '../css/multiselect.css'
 import { AdminIntersection } from '../../models/Intersection'
 
 interface AdminOrganizationTabIntersectionProps {
-  selectedOrg: string
+  selectedOrgName: string
   selectedOrgId: number
-  selectedOrgEmail: string
-  tableData: AdminOrgIntersection[]
 }
 
 const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectionProps) => {
-  const { selectedOrg, selectedOrgId, selectedOrgEmail } = props
+  const { selectedOrgName, selectedOrgId } = props
   const theme = useTheme()
   const [fetchIntersection] = useLazyGetIntersectionQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
 
   const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
+  const { data: intersectionTableData } = useGetIntersectionsQuery(selectedOrgId)
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])
 
   useEffect(() => {
     setSelectedIntersectionList([])
-  }, [selectedOrg])
+  }, [selectedOrgName])
 
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const [intersectionColumns] = useState<Column<any>[]>([
@@ -51,14 +50,14 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     { title: 'Name', field: 'intersection_name', id: 1, width: '45%' },
   ])
 
-  const intersectionActions: Action<AdminOrgIntersection>[] = [
+  const intersectionActions: Action<AdminIntersection>[] = [
     {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
       position: 'row',
-      onClick: (event, rowData: AdminOrgIntersection | AdminOrgIntersection[]) => {
+      onClick: (event, rowData: AdminIntersection | AdminIntersection[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -77,7 +76,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           'Are you sure you want to delete "' +
             (Array.isArray(rowData) ? rowData.map((r) => r.intersection_id).join(', ') : rowData.intersection_id) +
             '" from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -91,7 +90,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminOrgIntersection | AdminOrgIntersection[]) => {
+      onClick: (event, rowData: AdminIntersection | AdminIntersection[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -110,7 +109,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           'Are you sure you want to delete ' +
             (Array.isArray(rowData) ? rowData.length : 1) +
             ' Intersection(s) from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -151,22 +150,14 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     },
   ]
 
-  const intersectionOnDelete = async (intersection: AdminOrgIntersection) => {
+  const intersectionOnDelete = async (intersection: AdminIntersection) => {
     const loadingToast = toast.loading(`Deleting Intersection ${intersection.intersection_id}...`)
     try {
       const result = await fetchIntersection(intersection.intersection_id).unwrap()
       if (result?.intersection_data?.organizations?.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrg,
-          name: selectedOrg,
-          email: selectedOrgEmail,
+          orig_name: selectedOrgName,
           intersections_to_remove: [Number(intersection.intersection_id)],
-          intersections_to_add: [],
-          rsus_to_add: [],
-          rsus_to_remove: [],
-          users_to_add: [],
-          users_to_modify: [],
-          users_to_remove: [],
         }).unwrap()
         toast.success('Intersection deleted successfully', { id: loadingToast })
       } else {
@@ -175,7 +166,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           'Cannot remove Intersection ' +
             intersection.intersection_id +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because it must belong to at least one organization.'
         )
       }
@@ -192,16 +183,8 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     const loadingToast = toast.loading(`Adding ${intersectionList.length} Intersection(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         intersections_to_add: intersectionList.map((i) => Number(i.intersection_id)),
-        intersections_to_remove: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        users_to_add: [],
-        users_to_modify: [],
-        users_to_remove: [],
       }).unwrap()
       setSelectedIntersectionList([])
       toast.success('Intersection(s) added successfully', { id: loadingToast })
@@ -210,7 +193,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     }
   }
 
-  const intersectionMultiDelete = async (rows: AdminOrgIntersection[]) => {
+  const intersectionMultiDelete = async (rows: AdminIntersection[]) => {
     const loadingToast = toast.loading(`Deleting ${rows.length} Intersection(s)...`)
     try {
       const invalidIntersections: string[] = []
@@ -229,22 +212,14 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
           'Cannot remove Intersection(s) ' +
             invalidIntersections.join(', ') +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because they must belong to at least one organization.'
         )
         return
       }
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         intersections_to_remove: validIntersectionIds,
-        intersections_to_add: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
-        users_to_add: [],
-        users_to_modify: [],
-        users_to_remove: [],
       }).unwrap()
       toast.success('Intersection(s) deleted successfully', { id: loadingToast })
     } catch (error) {
@@ -263,7 +238,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
             <div key="adminTable">
               <AdminTable
                 title={''}
-                data={props.tableData}
+                data={intersectionTableData?.intersection_data}
                 columns={intersectionColumns}
                 actions={intersectionActions}
               />
