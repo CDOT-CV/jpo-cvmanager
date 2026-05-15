@@ -50,7 +50,7 @@ export interface AuthToken {
     /** Organizations the user belongs to and their roles */
     organizations: Array<{
       /** Organization ID */
-      org_id: string
+      org_id: number
       /** Organization name */
       org_name: string
       /** Organization Email */
