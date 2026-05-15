@@ -33,6 +33,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
@@ -92,8 +93,10 @@ public class OrganizationController {
                     .map(organizationMapper::toDto)
                     .collect(Collectors.toList());
         }
-        List<String> qualifiedOrgs = permissionService.getCvManagerAuthToken().getQualifiedOrgList(UserRole.ADMIN);
-        return organizationRepository.findByNameIn(qualifiedOrgs).stream()
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        return organizationRepository
+                .findByIdIn(qualifiedOrgs.stream().map(Organization::getId).collect(Collectors.toList())).stream()
                 .map(organizationMapper::toDto)
                 .collect(Collectors.toList());
     }

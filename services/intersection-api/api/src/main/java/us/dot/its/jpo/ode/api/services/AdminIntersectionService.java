@@ -139,7 +139,7 @@ public class AdminIntersectionService {
      * @param create the create request body
      */
     @Transactional
-    public void createIntersection(IntersectionCreate create) {
+    public void createIntersection(IntersectionCreate create, List<Organization> qualifiedOrgs) {
         log.info("Creating intersection with id: {}", create.getIntersectionId());
 
         // Step 1: Build and save the Intersection entity
@@ -148,16 +148,16 @@ public class AdminIntersectionService {
         log.debug("Intersection saved with PK: {}", intersection.getId());
 
         // Step 2: Create organization associations
-        List<Organization> orgs = organizationRepository.findByNameIn(create.getOrganizations());
-        if (orgs.size() != create.getOrganizations().size()) {
-            List<String> foundNames = orgs.stream().map(Organization::getName).toList();
-            List<String> missing = create.getOrganizations().stream()
-                    .filter(name -> !foundNames.contains(name))
-                    .toList();
-            throw new EntityNotFoundException("Organization(s) not found: " + missing);
+        List<Organization> orgsToCreate = qualifiedOrgs.stream()
+                .filter(org -> create.getOrganizations().contains(org.getName()))
+                .collect(Collectors.toList());
+
+        if (orgsToCreate.size() != create.getOrganizations().size()) {
+            log.warn("Step 2: Requested {} org(s) to create but only {} resolved in DB. Requested: {}",
+                    create.getOrganizations().size(), orgsToCreate.size(), create.getOrganizations());
         }
         Intersection savedIntersection = intersection;
-        saveOrgAssociations(orgs, savedIntersection);
+        saveOrgAssociations(orgsToCreate, savedIntersection);
 
         // Step 3: Create RSU associations (skip if empty)
         if (!create.getRsus().isEmpty()) {
@@ -287,7 +287,7 @@ public class AdminIntersectionService {
      * @param patch the patch request body
      */
     @Transactional
-    public void patchIntersection(IntersectionPatch patch) {
+    public void patchIntersection(IntersectionPatch patch, List<Organization> qualifiedOrgs) {
         String origNumber = patch.getOrigIntersectionId().toString();
         String newNumber = patch.getIntersectionId().toString();
 
@@ -318,12 +318,14 @@ public class AdminIntersectionService {
         if (!patch.getOrganizationsToAdd().isEmpty()) {
             log.debug("Step 2: Adding {} organization association(s): {}", patch.getOrganizationsToAdd().size(),
                     patch.getOrganizationsToAdd());
-            List<Organization> orgs = organizationRepository.findByNameIn(patch.getOrganizationsToAdd());
-            if (orgs.size() != patch.getOrganizationsToAdd().size()) {
+            List<Organization> orgsToAdd = qualifiedOrgs.stream()
+                    .filter(org -> patch.getOrganizationsToAdd().contains(org.getName()))
+                    .collect(Collectors.toList());
+            if (orgsToAdd.size() != patch.getOrganizationsToAdd().size()) {
                 log.warn("Step 2: Requested {} org(s) to add but only {} resolved in DB. Requested: {}",
-                        patch.getOrganizationsToAdd().size(), orgs.size(), patch.getOrganizationsToAdd());
+                        patch.getOrganizationsToAdd().size(), orgsToAdd.size(), patch.getOrganizationsToAdd());
             }
-            saveOrgAssociations(orgs, intersection);
+            saveOrgAssociations(orgsToAdd, intersection);
         } else {
             log.debug("Step 2: No org associations to add.");
         }

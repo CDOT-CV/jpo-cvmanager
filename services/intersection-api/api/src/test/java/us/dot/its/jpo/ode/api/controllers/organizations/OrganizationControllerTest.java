@@ -328,7 +328,7 @@ class OrganizationControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(mockOrg));
             when(organizationRepository.findByNameIn(List.of("TestOrg"))).thenReturn(List.of(mockOrg));
             when(organizationMapper.toDto(mockOrg)).thenReturn(sampleOrgDto);
 

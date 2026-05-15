@@ -61,11 +61,6 @@ class PermissionServiceTest {
         testOrg.setName("TestOrg");
     }
 
-    @BeforeEach
-    void setUp() {
-        SecurityContextHolder.setContext(securityContext);
-    }
-
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();

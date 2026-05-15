@@ -162,31 +162,16 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "404", description = "Referenced organization or RSU not found"),
     })
     @PostMapping(produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRsus(#create.rsus, 'OPERATOR'))")
     public void createIntersection(@RequestBody @Validated IntersectionCreate create) {
         log.info("POST /admin/intersections. intersectionId={}", create.getIntersectionId());
 
-        if (!permissionService.isSuperUser()) {
-            CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-            List<Organization> qualifiedOrgs = token != null
-                    ? token.getQualifiedOrgList(UserRole.OPERATOR)
-                    : Collections.emptyList();
-            Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs.stream().map(Organization::getName).toList());
+        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = token != null
+                ? token.getQualifiedOrgList(UserRole.OPERATOR)
+                : Collections.emptyList();
 
-            if (!qualifiedOrgSet.containsAll(create.getOrganizations())) {
-                log.warn("Org enforcement rejected POST. Requested orgs not in qualified set.");
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Not authorized to modify one or more of the specified organizations");
-            }
-
-            if (!create.getRsus().isEmpty() && !permissionService.hasRsus(create.getRsus(), "OPERATOR")) {
-                log.warn("RSU enforcement rejected POST. Requested RSUs not in qualified set.");
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Not authorized to modify one or more of the specified RSUs");
-            }
-        }
-
-        adminIntersectionService.createIntersection(create);
+        adminIntersectionService.createIntersection(create, qualifiedOrgs);
     }
 
     /**
@@ -240,15 +225,15 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @PatchMapping(produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR') && @PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && @PermissionService.hasRsus(#patch.rsusToRemove, 'OPERATOR'))")
     public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
+        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = token != null
+                ? token.getQualifiedOrgList(UserRole.OPERATOR)
+                : Collections.emptyList();
 
         log.info("PATCH /admin/intersections. origIntersectionId={}", patch.getOrigIntersectionId());
         if (!permissionService.isSuperUser()) {
-            CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-            List<Organization> qualifiedOrgs = token != null
-                    ? token.getQualifiedOrgList(UserRole.OPERATOR)
-                    : Collections.emptyList();
             Set<String> qualifiedOrgSet = new HashSet<>(qualifiedOrgs.stream().map(Organization::getName).toList());
             boolean allOrgsAllowed = qualifiedOrgSet.containsAll(patch.getOrganizationsToAdd())
                     && qualifiedOrgSet.containsAll(patch.getOrganizationsToRemove());
@@ -258,18 +243,9 @@ public class AdminIntersectionController {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Not authorized to modify one or more of the specified organizations");
             }
-
-            // Verify RSU accessibility
-            if (!permissionService.hasRsus(patch.getRsusToAdd(), "OPERATOR") ||
-                    !permissionService.hasRsus(patch.getRsusToRemove(), "OPERATOR")) {
-                log.warn("RSU enforcement rejected PATCH on intersection {}. Requested RSUs not in qualified set.",
-                        patch.getOrigIntersectionId());
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Not authorized to modify one or more of the specified RSUs");
-            }
         }
 
-        adminIntersectionService.patchIntersection(patch);
+        adminIntersectionService.patchIntersection(patch, qualifiedOrgs);
     }
 
     /**

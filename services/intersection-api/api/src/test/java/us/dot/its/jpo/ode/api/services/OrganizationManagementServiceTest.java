@@ -76,6 +76,7 @@ class OrganizationManagementServiceTest {
     private OrganizationManagementService service;
 
     private Organization testOrg;
+    private Organization testOrgOther;
     private OrganizationDto testOrgDto;
 
     @BeforeEach
@@ -84,6 +85,11 @@ class OrganizationManagementServiceTest {
         testOrg.setId(1);
         testOrg.setName("TestOrg");
         testOrg.setEmail("test@org.com");
+
+        testOrgOther = new Organization();
+        testOrgOther.setId(2);
+        testOrgOther.setName("OtherOrg");
+        testOrgOther.setEmail("other@org.com");
 
         testOrgDto = new OrganizationDto("TestOrg", "test@org.com");
     }
@@ -112,7 +118,7 @@ class OrganizationManagementServiceTest {
      * Uses isSuperUser=true to skip the inner authorization checks.
      */
     private void stubBaseFlow() {
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(authToken.isSuperUser()).thenReturn(true);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
@@ -142,7 +148,7 @@ class OrganizationManagementServiceTest {
     void testModifyOrganization_AdminInOrg_Allowed() {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
@@ -156,7 +162,7 @@ class OrganizationManagementServiceTest {
     void testModifyOrganization_NonAdmin_Forbidden() {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("OtherOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrgOther));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
@@ -333,7 +339,7 @@ class OrganizationManagementServiceTest {
         patch.setUsersToAdd(List.of(new UserRoleAssignment("user@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
 
@@ -389,7 +395,7 @@ class OrganizationManagementServiceTest {
         patch.setUsersToAdd(List.of(new UserRoleAssignment("ghost@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("ghost@test.com", "TestOrg"))
@@ -413,7 +419,7 @@ class OrganizationManagementServiceTest {
         user.setEmail("user@test.com");
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("user@test.com", "TestOrg"))
@@ -510,7 +516,7 @@ class OrganizationManagementServiceTest {
         patch.setUsersToModify(List.of(new UserRoleAssignment("nonmember@test.com", "admin")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("nonmember@test.com", "TestOrg"))
@@ -529,7 +535,7 @@ class OrganizationManagementServiceTest {
         patch.setUsersToModify(List.of(new UserRoleAssignment("member@test.com", "ghost_role")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         UserOrganization userOrg = new UserOrganization();
@@ -670,7 +676,7 @@ class OrganizationManagementServiceTest {
         patch.setRsusToAdd(List.of("10.0.0.2"));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         InetAddress ip = InetAddress.getByName("10.0.0.2");
@@ -744,7 +750,7 @@ class OrganizationManagementServiceTest {
         // Do not use stubBaseFlow() — the mapper stub is never reached because
         // resolveIpAddress throws before the method returns.
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         OrganizationPatch patch = minimalPatch();
@@ -813,7 +819,7 @@ class OrganizationManagementServiceTest {
         patch.setIntersectionsToAdd(List.of(9999));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(intersectionOrganizationRepository

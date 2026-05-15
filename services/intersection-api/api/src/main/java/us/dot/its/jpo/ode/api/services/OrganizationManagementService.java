@@ -79,10 +79,11 @@ public class OrganizationManagementService {
      */
     @Transactional
     public OrganizationDto modifyOrganization(OrganizationPatch patch, CvManagerAuthToken authToken) {
-        List<String> authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
+        List<Organization> authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
 
         // Step 1: Authorization guard — the caller must be ADMIN in the target org
-        if (!authToken.isSuperUser() && !authorizedOrgs.contains(patch.getOrigName())) {
+        if (!authToken.isSuperUser()
+                && authorizedOrgs.stream().noneMatch(org -> org.getName().equals(patch.getOrigName()))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "User does not have ADMIN permission over organization: " + patch.getOrigName());
         }
@@ -229,13 +230,13 @@ public class OrganizationManagementService {
     }
 
     private void handleUsersToAdd(List<UserRoleAssignment> assignments, String orgName,
-            List<String> authorizedOrgs, boolean isSuperUser) {
+            List<Organization> authorizedOrgs, boolean isSuperUser) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }
 
         // Non-superusers may only add users to organizations they administer
-        if (!isSuperUser && !authorizedOrgs.contains(orgName)) {
+        if (!isSuperUser && authorizedOrgs.stream().noneMatch(org -> org.getName().equals(orgName))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "User does not have permission to add users to organization: " + orgName);
         }

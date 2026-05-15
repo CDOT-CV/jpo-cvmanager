@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.keycloak.support;
 
 import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -20,6 +21,7 @@ import java.util.Collection;
 public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter;
+    private OrganizationRepository organizationRepository;
 
     public KeycloakJwtAuthenticationConverter(
             Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter) {
@@ -46,6 +48,6 @@ public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, Abstra
             Collection<GrantedAuthority> authorities) {
 
         String username = getUsernameFrom(jwt);
-        return new CvManagerAuthToken(jwt, authorities, username);
+        return new CvManagerAuthToken(jwt, authorities, username, organizationRepository);
     }
 }
