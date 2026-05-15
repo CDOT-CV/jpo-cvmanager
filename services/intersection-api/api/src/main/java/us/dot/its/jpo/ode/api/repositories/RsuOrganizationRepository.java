@@ -42,4 +42,24 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
             "(SELECT 1 FROM RsuOrganization ro WHERE ro.rsu.id = r.id AND ro.organization.name = :organizationName)")
     List<Rsu> findAllRsusNotInOrganizationName(
             @Param("organizationName") String organizationName);
+
+    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_NameIgnoreCase(InetAddress ipv4Address,
+            String organizationName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses AND ro.organization.name = :orgName")
+    void deleteByRsuIpv4AddressesAndOrganizationName(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses,
+            @Param("orgName") String orgName);
+
+    @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
+            + "FROM RsuOrganization ro "
+            + "WHERE ro.organization.name = :orgName "
+            + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
+    boolean existsOrphanRsuInOrganization(@Param("orgName") String orgName);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.organization.name = :orgName")
+    void deleteAllByOrganizationName(@Param("orgName") String orgName);
 }
