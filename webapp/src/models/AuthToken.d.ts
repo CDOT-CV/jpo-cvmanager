@@ -49,8 +49,12 @@ export interface AuthToken {
     super_user: '0' | '1'
     /** Organizations the user belongs to and their roles */
     organizations: Array<{
+      /** Organization ID */
+      org_id: string
       /** Organization name */
-      org: string
+      org_name: string
+      /** Organization Email */
+      org_email: string
       /** User's role in the organization */
       role: string
     }>

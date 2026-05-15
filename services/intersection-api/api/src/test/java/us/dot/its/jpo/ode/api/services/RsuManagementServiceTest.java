@@ -733,6 +733,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(inetAddress, "Org2"))
+                .thenReturn(Optional.of(rsuOrgToRemove));
 
         rsuManagementService.modifyRsu(rsuIp, patch, authToken);
 
