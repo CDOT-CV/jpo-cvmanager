@@ -298,6 +298,7 @@ CREATE TABLE IF NOT EXISTS public.user_organization
    organization_id integer NOT NULL,
    role_id integer NOT NULL,
    CONSTRAINT user_organization_pkey PRIMARY KEY (user_organization_id),
+   CONSTRAINT user_organization_unique UNIQUE (organization_id, user_id),
    CONSTRAINT fk_user_id FOREIGN KEY (user_id)
       REFERENCES public.users (user_id) MATCH SIMPLE
       ON UPDATE NO ACTION
@@ -325,6 +326,7 @@ CREATE TABLE IF NOT EXISTS public.rsu_organization
    rsu_id integer NOT NULL,
    organization_id integer NOT NULL,
    CONSTRAINT rsu_organization_pkey PRIMARY KEY (rsu_organization_id),
+   CONSTRAINT rsu_organization_unique UNIQUE (organization_id, rsu_id),
    CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
       REFERENCES public.rsus (rsu_id) MATCH SIMPLE
       ON UPDATE NO ACTION
@@ -524,6 +526,7 @@ CREATE TABLE IF NOT EXISTS public.intersection_organization
    intersection_id integer NOT NULL,
    organization_id integer NOT NULL,
    CONSTRAINT intersection_organization_pkey PRIMARY KEY (intersection_organization_id),
+   CONSTRAINT intersection_organization_unique UNIQUE (organization_id, intersection_id),
    CONSTRAINT fk_intersection_id FOREIGN KEY (intersection_id)
       REFERENCES public.intersections (intersection_id) MATCH SIMPLE
       ON UPDATE NO ACTION
