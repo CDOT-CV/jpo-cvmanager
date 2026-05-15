@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,9 @@ import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
@@ -92,8 +95,10 @@ public class OrganizationController {
                     .map(organizationMapper::toDto)
                     .collect(Collectors.toList());
         }
-        List<String> qualifiedOrgs = permissionService.getCvManagerAuthToken().getQualifiedOrgList(UserRole.ADMIN);
-        return organizationRepository.findByNameIn(qualifiedOrgs).stream()
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        return organizationRepository
+                .findByIdIn(qualifiedOrgs.stream().map(Organization::getId).collect(Collectors.toList())).stream()
                 .map(organizationMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -106,8 +111,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getRsuIpsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return rsuOrganizationRepository.findAllRsuIpsByOrganizationId(orgId).stream()
                 .map(InetAddress::getHostAddress)
                 .collect(Collectors.toList());
     }
@@ -138,8 +143,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<RsuInfoDto> getRsuIpsNotInOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return rsuOrganizationRepository.findAllRsusNotInOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return rsuOrganizationRepository.findAllRsusNotInOrganizationId(orgId).stream()
                 .map(rsuInfoMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -152,8 +157,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<String> getUserEmailsByOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return userOrganizationRepository.findAllUserEmailsByOrganizationName(organization);
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return userOrganizationRepository.findAllUserEmailsByOrganizationId(orgId);
     }
 
     @Operation(summary = "Get User Organization Assignments", description = "Retrieves a list of organization names that the specified user is assigned to.")
@@ -176,8 +181,8 @@ public class OrganizationController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     public List<UserDto> getUserEmailsNotInOrganization(
-            @RequestHeader(name = "Organization", required = true) String organization) {
-        return userOrganizationRepository.findAllUserEmailsNotInOrganizationName(organization).stream()
+            @RequestHeader(name = "Organization", required = true) Integer orgId) {
+        return userOrganizationRepository.findAllUserEmailsNotInOrganizationId(orgId).stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -192,8 +197,10 @@ public class OrganizationController {
             @ApiResponse(responseCode = "409", description = "Conflict - Organization has RSUs, intersections, or users that would become orphaned"),
     })
     public ResponseEntity<Void> deleteOrganization(
-            @Parameter(description = "Organization name", example = "TestOrg", required = true) @PathVariable(name = "orgName") String orgName) {
-        organizationManagementService.deleteOrganization(orgName);
+            @Parameter(description = "Organization ID", example = "1", required = true) @PathVariable(name = "orgId") Integer orgId) {
+
+        Organization orgToDelete = permissionService.getOrganizationById(orgId);
+        organizationManagementService.deleteOrganization(orgToDelete);
         return ResponseEntity.noContent().build();
     }
 }

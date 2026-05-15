@@ -14,7 +14,7 @@ public interface OrganizationRepository extends JpaRepository<Organization, Inte
 
     Optional<Organization> findByName(String name);
 
-    List<Organization> findByNameIn(List<String> names);
+    List<Organization> findByIdIn(List<Integer> ids);
 
     @Query("SELECT o.name FROM Organization o ORDER BY o.name ASC")
     List<String> findAllOrganizationNames();

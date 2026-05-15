@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +20,8 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
     Optional<Intersection> findByIntersectionNumber(String intersectionNumber);
 
     /**
-     * Fetches a single intersection with its organization associations eagerly loaded.
+     * Fetches a single intersection with its organization associations eagerly
+     * loaded.
      * Avoids N+1 queries when reading org names.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
@@ -30,7 +32,8 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             @Param("intersectionNumber") Integer intersectionNumber);
 
     /**
-     * Fetches all intersections with their organization associations eagerly loaded.
+     * Fetches all intersections with their organization associations eagerly
+     * loaded.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
@@ -38,16 +41,17 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
     List<Intersection> findAllWithOrgs();
 
     /**
-     * Fetches intersections belonging to a single organization, with org associations loaded.
+     * Fetches intersections belonging to a single organization, with org
+     * associations loaded.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
-            "LEFT JOIN FETCH io.organization o " +
-            "WHERE o.name = :orgName")
-    List<Intersection> findAllByOrgNameWithOrgs(@Param("orgName") String orgName);
+            "WHERE io.organization = :organization")
+    List<Intersection> findAllByOrganization(Organization organization);
 
     /**
-     * Fetches intersections belonging to any of the given organizations, with org associations loaded.
+     * Fetches intersections belonging to any of the given organizations, with org
+     * associations loaded.
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
@@ -70,11 +74,6 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
             "WHERE o.name = :orgName")
     List<String> findIntersectionsByOrganization(@Param("orgName") String orgName);
 
-    @Query("SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END " +
-            "FROM Intersection i " +
-            "JOIN i.intersectionOrganizations io " +
-            "JOIN io.organization o " +
-            "WHERE i.intersectionNumber = :intersectionId AND o.name IN :organizations")
-    boolean existsByIdAndOrganizations(@Param("intersectionId") String intersectionId,
-            @Param("organizations") List<String> organizations);
+    boolean existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(String intersectionId,
+            List<String> orgNames);
 }
