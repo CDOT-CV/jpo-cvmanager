@@ -39,6 +39,10 @@ type AdminUser = {
   organizations: UserOrganization[]
 }
 
+type AdminUserForOrg = AdminUser & {
+  role: UserRole
+}
+
 type AdminUserCreationBody = {
   email: string
   first_name: string

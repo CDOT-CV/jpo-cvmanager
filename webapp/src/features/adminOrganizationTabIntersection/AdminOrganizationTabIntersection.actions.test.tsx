@@ -8,11 +8,10 @@ import AdminOrganizationTabIntersection from './AdminOrganizationTabIntersection
 import { testTheme } from '../../styles'
 import { setupStore } from '../../store'
 import EnvironmentVars from '../../EnvironmentVars'
-import { AdminOrgIntersection } from '../adminOrganizationTab/adminOrganizationTabSlice'
+import { AdminIntersection } from '../../models/Intersection'
 
 vi.mock('react-confirm-alert', () => ({
-  confirmAlert: (options: { buttons: { label: string; onClick: () => void }[] }) =>
-    options.buttons[0].onClick(),
+  confirmAlert: (options: { buttons: { label: string; onClick: () => void }[] }) => options.buttons[0].onClick(),
 }))
 
 vi.mock('../../components/AdminTable', () => ({
@@ -37,18 +36,13 @@ vi.mock('react-widgets/cjs', () => ({
   Multiselect: ({ data, value, onChange, placeholder }: any) => (
     <div>
       <div data-testid="multiselect-placeholder">{placeholder}</div>
-      <button
-        data-testid="multiselect-add-all"
-        onClick={() => onChange([...(data ?? [])])}
-      >
+      <button data-testid="multiselect-add-all" onClick={() => onChange([...(data ?? [])])}>
         add-all
       </button>
       <button data-testid="multiselect-clear" onClick={() => onChange([])}>
         clear
       </button>
-      <div data-testid="multiselect-value">
-        {(value ?? []).map((item: any) => item.intersection_id).join(',')}
-      </div>
+      <div data-testid="multiselect-value">{(value ?? []).map((item: any) => item.intersection_id).join(',')}</div>
     </div>
   ),
 }))
@@ -65,13 +59,13 @@ const preloadedAuth = {
   },
 }
 
-const row = (id: string, name = `Intersection ${id}`): AdminOrgIntersection => ({
+const row = (id: string, name = `Intersection ${id}`): AdminIntersection => ({
   intersection_id: id,
   intersection_name: name,
   ref_pt: { latitude: '0', longitude: '0' },
 })
 
-const renderWithRows = (tableData: AdminOrgIntersection[]) => {
+const renderWithRows = (tableData: AdminIntersection[]) => {
   const updateTableData = vi.fn()
   const utils = render(
     <ThemeProvider theme={testTheme}>
@@ -96,8 +90,7 @@ const getIntersectionBody = (organizations: string[]) =>
 
 const emptyAvailableBody = JSON.stringify({ intersection_data: [] })
 
-const findPatchCall = () =>
-  fetchMock.mock.calls.find(([, opts]: any) => opts?.method === 'PATCH')
+const findPatchCall = () => fetchMock.mock.calls.find(([, opts]: any) => opts?.method === 'PATCH')
 
 const findRequestCalls = () =>
   fetchMock.mock.calls.filter(([input]: any) => {
@@ -149,9 +142,7 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
       })
 
       await waitFor(() => expect(updateTableData).toHaveBeenCalledWith('selectedOrg'))
-      await waitFor(() =>
-        expect(toastSuccess).toHaveBeenCalledWith('Intersection deleted successfully')
-      )
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Intersection deleted successfully'))
     })
 
     it('alerts and skips editOrg when intersection belongs to only one org', async () => {
@@ -192,9 +183,7 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
 
       fireEvent.click(screen.getByTestId('action-row-0'))
 
-      await waitFor(() =>
-        expect(toastError).toHaveBeenCalledWith('Failed to delete Intersection')
-      )
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith('Failed to delete Intersection'))
     })
   })
 
@@ -215,9 +204,7 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
 
       fireEvent.click(screen.getByTestId('action-toolbarOnSelect-1'))
 
-      await waitFor(() =>
-        expect(toastSuccess).toHaveBeenCalledWith('Intersection(s) deleted successfully')
-      )
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Intersection(s) deleted successfully'))
 
       const patchCall = findPatchCall()
       expect(patchCall).toBeDefined()
@@ -286,9 +273,7 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
 
       fireEvent.click(screen.getByTestId(ADD_BUTTON_TESTID))
 
-      await waitFor(() =>
-        expect(toastError).toHaveBeenCalledWith('Please select Intersections to add')
-      )
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith('Please select Intersections to add'))
       expect(findPatchCall()).toBeUndefined()
     })
 
@@ -307,9 +292,7 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
 
       fireEvent.click(screen.getByTestId('multiselect-add-all'))
 
-      await waitFor(() =>
-        expect(screen.getByTestId('multiselect-value').textContent).toBe('10,20')
-      )
+      await waitFor(() => expect(screen.getByTestId('multiselect-value').textContent).toBe('10,20'))
 
       fireEvent.click(screen.getByTestId(ADD_BUTTON_TESTID))
 
@@ -323,12 +306,8 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
       })
 
       await waitFor(() => expect(updateTableData).toHaveBeenCalledWith('selectedOrg'))
-      await waitFor(() =>
-        expect(toastSuccess).toHaveBeenCalledWith('Intersection(s) added successfully')
-      )
-      await waitFor(() =>
-        expect(screen.getByTestId('multiselect-value').textContent).toBe('')
-      )
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Intersection(s) added successfully'))
+      await waitFor(() => expect(screen.getByTestId('multiselect-value').textContent).toBe(''))
     })
 
     it('shows error toast when editOrg fails', async () => {
@@ -345,15 +324,11 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
       await waitFor(() => expect(screen.getByTestId('multiselect-add-all')).toBeTruthy())
 
       fireEvent.click(screen.getByTestId('multiselect-add-all'))
-      await waitFor(() =>
-        expect(screen.getByTestId('multiselect-value').textContent).toBe('10')
-      )
+      await waitFor(() => expect(screen.getByTestId('multiselect-value').textContent).toBe('10'))
 
       fireEvent.click(screen.getByTestId(ADD_BUTTON_TESTID))
 
-      await waitFor(() =>
-        expect(toastError).toHaveBeenCalledWith('Failed to add Intersection(s)')
-      )
+      await waitFor(() => expect(toastError).toHaveBeenCalledWith('Failed to add Intersection(s)'))
     })
   })
 })

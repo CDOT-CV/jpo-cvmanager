@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AdminTable from '../../components/AdminTable'
 import { Button, Typography, useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
@@ -7,17 +7,11 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
-import {
-  selectTimDeposit,
-  selectSnmpMonitoring,
-  selectSelectedOrgName,
-} from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
 import { Action, Column } from '@material-table/core'
-import { AdminOrgRsu } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import toast from 'react-hot-toast'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
 import { Multiselect } from 'react-widgets/cjs'
@@ -28,25 +22,23 @@ import {
   usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
 import { AdminRsu } from '../../models/Rsu'
+import { useGetAllRsusQuery } from '../api/rsuApiSlice'
 
 interface AdminOrganizationTabRsuProps {
-  selectedOrg: string
-  selectedOrgEmail: string
-  tableData: AdminOrgRsu[]
+  selectedOrgName: string
 }
 
 const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
-  const { selectedOrg, selectedOrgEmail } = props
+  const { selectedOrgName } = props
   const theme = useTheme()
 
-  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrg)
+  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgName)
+  const { data: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgName })
 
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getRsuOrganizations] = useLazyGetRsuOrganizationsQuery()
   const [selectedRsuList, setSelectedRsuList] = useState<AdminRsu[]>([])
   const loadingGlobal = useSelector(selectLoadingGlobal)
-  const timDepositStatus = useSelector(selectTimDeposit)
-  const snmpMonitoringStatus = useSelector(selectSnmpMonitoring)
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '18%' },
@@ -87,14 +79,45 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     },
   ])
 
-  const rsuActions: Action<AdminOrgRsu>[] = [
+  const timDepositStatus = useMemo(() => {
+    const rsuList = rsuTableData?.content ?? []
+    if (Array.isArray(rsuList) && rsuList.length > 0) {
+      const allTimEnabled = rsuList.every((rsu) => rsu.tim_deposit === true)
+      const allTimDisabled = rsuList.every((rsu) => rsu.tim_deposit === false)
+      if (allTimEnabled) {
+        return 'Enabled'
+      } else if (allTimDisabled) {
+        return 'Disabled'
+      } else {
+        return 'Mixed'
+      }
+    }
+    return 'Disabled'
+  }, [rsuTableData])
+  const snmpMonitoringStatus = useMemo(() => {
+    const rsuList = rsuTableData?.content ?? []
+    if (Array.isArray(rsuList) && rsuList.length > 0) {
+      const allSnmpEnabled = rsuList.every((rsu) => rsu.snmp_monitoring === true)
+      const allSnmpDisabled = rsuList.every((rsu) => rsu.snmp_monitoring === false)
+      if (allSnmpEnabled) {
+        return 'Enabled'
+      } else if (allSnmpDisabled) {
+        return 'Disabled'
+      } else {
+        return 'Mixed'
+      }
+    }
+    return 'Disabled'
+  }, [rsuTableData])
+
+  const rsuActions: Action<AdminRsu>[] = [
     {
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: {
         itemType: 'rowAction',
       },
       position: 'row',
-      onClick: (event, rowData: AdminOrgRsu | AdminOrgRsu[]) => {
+      onClick: (event, rowData: AdminRsu | AdminRsu[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -113,7 +136,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           'Are you sure you want to delete "' +
             (Array.isArray(rowData) ? rowData.map((rsu) => rsu.ip).join(', ') : rowData.ip) +
             '" from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -127,7 +150,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         itemType: 'rowAction',
       },
       position: 'toolbarOnSelect',
-      onClick: (event, rowData: AdminOrgRsu | AdminOrgRsu[]) => {
+      onClick: (event, rowData: AdminRsu | AdminRsu[]) => {
         const buttons = [
           {
             label: 'Yes',
@@ -146,7 +169,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           'Are you sure you want to delete ' +
             (Array.isArray(rowData) ? rowData.length : 1) +
             ' RSU(s) from ' +
-            selectedOrg +
+            selectedOrgName +
             ' organization?',
           buttons
         )
@@ -189,24 +212,16 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
 
   useEffect(() => {
     setSelectedRsuList([])
-  }, [selectedOrg])
+  }, [selectedOrgName])
 
-  const rsuOnDelete = async (rsu: AdminOrgRsu) => {
+  const rsuOnDelete = async (rsu: AdminRsu) => {
     const loadingToast = toast.loading(`Deleting RSU ${rsu.ip}...`)
     try {
       const rsuData = await getRsuOrganizations(rsu.ip).unwrap()
       if (rsuData.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrg,
-          name: selectedOrg,
-          email: selectedOrgEmail,
+          orig_name: selectedOrgName,
           rsus_to_remove: [rsu.ip],
-          rsus_to_add: [],
-          users_to_add: [],
-          users_to_modify: [],
-          users_to_remove: [],
-          intersections_to_add: [],
-          intersections_to_remove: [],
         }).unwrap()
         toast.success('RSU deleted successfully', { id: loadingToast })
       } else {
@@ -215,7 +230,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           'Cannot remove RSU ' +
             rsu.ip +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because it must belong to at least one organization.'
         )
       }
@@ -224,7 +239,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     }
   }
 
-  const rsuMultiDelete = async (rows: AdminOrgRsu[]) => {
+  const rsuMultiDelete = async (rows: AdminRsu[]) => {
     const loadingToast = toast.loading(`Deleting ${rows.length} RSU(s)...`)
     try {
       const invalidRsus: string[] = []
@@ -243,22 +258,14 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           'Cannot remove RSU(s) ' +
             invalidRsus.join(', ') +
             ' from ' +
-            selectedOrg +
+            selectedOrgName +
             ' because they must belong to at least one organization.'
         )
         return
       }
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         rsus_to_remove: validRsuIps,
-        rsus_to_add: [],
-        users_to_add: [],
-        users_to_modify: [],
-        users_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
       toast.success('RSU(s) deleted successfully', { id: loadingToast })
     } catch (error) {
@@ -274,16 +281,8 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     const loadingToast = toast.loading(`Adding ${rsuList.length} RSU(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrg,
-        name: selectedOrg,
-        email: selectedOrgEmail,
+        orig_name: selectedOrgName,
         rsus_to_add: rsuList.map((r) => r.ip),
-        rsus_to_remove: [],
-        users_to_add: [],
-        users_to_modify: [],
-        users_to_remove: [],
-        intersections_to_add: [],
-        intersections_to_remove: [],
       }).unwrap()
       setSelectedRsuList([])
       toast.success('RSU(s) added successfully', { id: loadingToast })
@@ -301,19 +300,10 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           const loadingToast = toast.loading(`${actionLabel}ing TIM Deposit...`)
           try {
             await patchOrganization({
-              orig_name: selectedOrg,
-              name: selectedOrg,
-              email: selectedOrgEmail,
+              orig_name: selectedOrgName,
               tim_deposit: newValue,
-              rsus_to_add: [],
-              rsus_to_remove: [],
-              users_to_add: [],
-              users_to_modify: [],
-              users_to_remove: [],
-              intersections_to_add: [],
-              intersections_to_remove: [],
             }).unwrap()
-            toast.success(`Successfully ${actionLabel.toLowerCase()}d TIM Deposit for all RSUs in ${selectedOrg}`, {
+            toast.success(`Successfully ${actionLabel.toLowerCase()}d TIM Deposit for all RSUs in ${selectedOrgName}`, {
               id: loadingToast,
             })
           } catch (error) {
@@ -340,21 +330,15 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           const loadingToast = toast.loading(`${actionLabel}ing SNMP Monitoring...`)
           try {
             await patchOrganization({
-              orig_name: selectedOrg,
-              name: selectedOrg,
-              email: selectedOrgEmail,
+              orig_name: selectedOrgName,
               snmp_monitoring: newValue,
-              rsus_to_add: [],
-              rsus_to_remove: [],
-              users_to_add: [],
-              users_to_modify: [],
-              users_to_remove: [],
-              intersections_to_add: [],
-              intersections_to_remove: [],
             }).unwrap()
-            toast.success(`Successfully ${actionLabel.toLowerCase()}d SNMP Monitoring for all RSUs in ${selectedOrg}`, {
-              id: loadingToast,
-            })
+            toast.success(
+              `Successfully ${actionLabel.toLowerCase()}d SNMP Monitoring for all RSUs in ${selectedOrgName}`,
+              {
+                id: loadingToast,
+              }
+            )
           } catch (error) {
             toast.error('Failed to update SNMP Monitoring: ' + error, { id: loadingToast })
           }
@@ -480,7 +464,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
             <div key="adminTable">
-              <AdminTable title={''} data={props.tableData} columns={rsuColumns} actions={rsuActions} />
+              <AdminTable title={''} data={rsuTableData?.content} columns={rsuColumns} actions={rsuActions} />
             </div>,
           ]}
         </AccordionDetails>
