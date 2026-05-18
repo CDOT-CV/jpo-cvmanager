@@ -3,9 +3,11 @@ package us.dot.its.jpo.ode.api.mappers;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
+import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
@@ -37,7 +39,22 @@ public interface UserEmailNotificationMapper {
 
     // id, user, emailType
     @Mapping(target = "id", ignore = true) // Never set id when creating/updating - it's auto-generated
-    @Mapping(target = "user", ignore = true) // set in service layer
-    @Mapping(target = "emailType", ignore = true) // set in service layer
-    UserEmailNotification toEntity(UserEmailNotificationDto dto);
+    @Mapping(source = "user", target = "user")
+    @Mapping(source = "emailType", target = "emailType")
+    @Mapping(source = "dto.immediate", target = "immediate")
+    @Mapping(source = "dto.hourly", target = "hourly")
+    @Mapping(source = "dto.daily", target = "daily")
+    @Mapping(source = "dto.weekly", target = "weekly")
+    @Mapping(source = "dto.monthly", target = "monthly")
+    UserEmailNotification toEntity(UserEmailNotificationDto dto, User user, EmailType emailType);
+
+    default UserEmailNotification updateFrequency(UserEmailNotificationDto dto,
+            @MappingTarget UserEmailNotification entity) {
+        entity.setImmediate(dto.getImmediate());
+        entity.setHourly(dto.getHourly());
+        entity.setDaily(dto.getDaily());
+        entity.setWeekly(dto.getWeekly());
+        entity.setMonthly(dto.getMonthly());
+        return entity;
+    }
 }

@@ -10,7 +10,6 @@ import java.util.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -184,23 +183,16 @@ public class EmailService {
     public int updateEmailSubscriptions(String userEmail, Boolean isOperator,
             Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
-                .findNotificationsByUser(userEmail)
-                .stream()
-                .filter(sub -> sub.getSubscribed()).toList();
+                .findNotificationsByUser(userEmail);
         List<UserEmailNotification> addedSubscriptions = filterValidSubscriptionsForUser(requestedSubscriptions,
                 isOperator, isAdmin, emailTypeRepository.findAll()).stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
                         .noneMatch(currentSub -> currentSub.getEmailType().getEmailType().equals(sub.getCategory())))
                 .map(subDto -> {
-                    UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto);
-                    User user = userRepository.findByEmail(userEmail)
-                            .orElseThrow(() -> new EntityNotFoundException("User not found: " + userEmail));
-                    EmailType emailType = emailTypeRepository.findByEmailType(subDto.getCategory())
-                            .orElseThrow(() -> new EntityNotFoundException(
-                                    "Email type not found: " + subDto.getCategory()));
-                    sub.setUser(user);
-                    sub.setEmailType(emailType);
+                    User user = userRepository.findByEmail(userEmail);
+                    EmailType emailType = emailTypeRepository.findByEmailType(subDto.getCategory());
+                    UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto, user, emailType);
                     return sub;
                 })
                 .toList();
@@ -212,8 +204,8 @@ public class EmailService {
                                     && reqSub.getCategory().equals(sub.getEmailType().getEmailType()))
                             .findFirst()
                             .orElse(null);
-                    if (requestedSub != null && !sub.isFrequencyEqual(requestedSub)) {
-                        sub.updateFrequency(requestedSub);
+                    if (requestedSub != null && !requestedSub.isFrequencyEqual(sub)) {
+                        userEmailNotificationMapper.updateFrequency(requestedSub, sub);
                         return sub;
                     }
                     return null;
