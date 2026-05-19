@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -70,5 +71,13 @@ public class UserEmailNotificationDto {
                 && this.daily.equals(other.daily)
                 && this.weekly.equals(other.weekly)
                 && this.monthly.equals(other.monthly);
+    }
+
+    public Boolean isFrequencyEqual(UserEmailNotification other) {
+        return (this.immediate != null && other.getImmediate() != null && this.immediate.equals(other.getImmediate()))
+                && (this.hourly != null && other.getHourly() != null && this.hourly.equals(other.getHourly()))
+                && (this.daily != null && other.getDaily() != null && this.daily.equals(other.getDaily()))
+                && (this.weekly != null && other.getWeekly() != null && this.weekly.equals(other.getWeekly()))
+                && (this.monthly != null && other.getMonthly() != null && this.monthly.equals(other.getMonthly()));
     }
 }
