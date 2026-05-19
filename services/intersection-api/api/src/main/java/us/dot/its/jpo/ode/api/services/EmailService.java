@@ -150,34 +150,35 @@ public class EmailService {
     private static List<UserEmailNotificationDto> filterValidSubscriptionsForUser(
             List<UserEmailNotificationDto> requestedSubscriptions, Boolean isOperator,
             Boolean isAdmin, List<EmailType> validEmailTypes) {
-      List<UserEmailNotificationDto> list = new ArrayList<>();
-      for (UserEmailNotificationDto requestedSubscription : requestedSubscriptions) {
-        EmailType emailType = validEmailTypes.stream()
-          .filter(type -> type.getEmailType().equals(requestedSubscription.getCategory()))
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("Invalid email category: " + requestedSubscription.getCategory()));
-        
-        UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
-        boolean authorized = UserRole.USER.equals(requiredRole) ||
-          isOperator && UserRole.OPERATOR.equals(requiredRole) ||
-          isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
-          isAdmin && UserRole.ADMIN.equals(requiredRole);
-        if (!authorized) {
-          throw new AccessDeniedException("User does not have required role " + requiredRole
-            + " for email type " + emailType.getEmailType());
-        }
+        List<UserEmailNotificationDto> list = new ArrayList<>();
+        for (UserEmailNotificationDto requestedSubscription : requestedSubscriptions) {
+            EmailType emailType = validEmailTypes.stream()
+                    .filter(type -> type.getEmailType().equals(requestedSubscription.getCategory()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Invalid email category: " + requestedSubscription.getCategory()));
 
-        if ((requestedSubscription.getImmediate() && !emailType.getSupportsImmediate()) ||
-          (requestedSubscription.getHourly() && !emailType.getSupportsHourly()) ||
-          (requestedSubscription.getDaily() && !emailType.getSupportsDaily()) ||
-          (requestedSubscription.getWeekly() && !emailType.getSupportsWeekly()) ||
-          (requestedSubscription.getMonthly() && !emailType.getSupportsMonthly())) {
-          throw new IllegalArgumentException(
-            "Invalid subscription frequency for email type " + emailType.getEmailType());
+            UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
+            boolean authorized = UserRole.USER.equals(requiredRole) ||
+                    isOperator && UserRole.OPERATOR.equals(requiredRole) ||
+                    isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
+                    isAdmin && UserRole.ADMIN.equals(requiredRole);
+            if (!authorized) {
+                throw new AccessDeniedException("User does not have required role " + requiredRole
+                        + " for email type " + emailType.getEmailType());
+            }
+
+            if ((requestedSubscription.getImmediate() && !emailType.getSupportsImmediate()) ||
+                    (requestedSubscription.getHourly() && !emailType.getSupportsHourly()) ||
+                    (requestedSubscription.getDaily() && !emailType.getSupportsDaily()) ||
+                    (requestedSubscription.getWeekly() && !emailType.getSupportsWeekly()) ||
+                    (requestedSubscription.getMonthly() && !emailType.getSupportsMonthly())) {
+                throw new IllegalArgumentException(
+                        "Invalid subscription frequency for email type " + emailType.getEmailType());
+            }
+            list.add(requestedSubscription);
         }
-        list.add(requestedSubscription);
-      }
-      return list;
+        return list;
     }
 
     public int updateEmailSubscriptions(String userEmail, Boolean isOperator,
