@@ -190,6 +190,7 @@ public class EmailService {
         List<UserEmailNotificationDto> validRequestedSubscriptions = filterValidSubscriptionsForUser(
                 requestedSubscriptions,
                 isOperator, isAdmin, allEmailTypes);
+
         List<UserEmailNotification> addedSubscriptions = validRequestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
@@ -232,14 +233,11 @@ public class EmailService {
             userEmailNotificationRepository.deleteAll(removedSubscriptions);
         }
 
-        // Update subscriptions that have modified frequencies
-        if (!modifiedSubscriptions.isEmpty()) {
-            userEmailNotificationRepository.saveAll(modifiedSubscriptions);
-        }
-
-        // Add new subscriptions
-        if (!addedSubscriptions.isEmpty()) {
-            userEmailNotificationRepository.saveAll(addedSubscriptions);
+        // Add new and update subscriptions that have modified frequencies
+        if (!modifiedSubscriptions.isEmpty() || !addedSubscriptions.isEmpty()) {
+            var subsToSave = new ArrayList<>(modifiedSubscriptions);
+            subsToSave.addAll(addedSubscriptions);
+            userEmailNotificationRepository.saveAll(subsToSave);
         }
 
         return;

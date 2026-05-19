@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.users;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -155,7 +156,7 @@ public class UnsubscribeControllerTest {
         void superUser_returns200() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
                     .param("token", validToken)
@@ -171,7 +172,7 @@ public class UnsubscribeControllerTest {
         @DisplayName("returns 400 with invalid subscriptions list")
         void superUser_returns400() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
                     .param("token", validToken)

@@ -5,6 +5,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
+import java.util.Objects;
+
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
@@ -50,6 +52,8 @@ public interface UserEmailNotificationMapper {
 
     default UserEmailNotification updateFrequency(UserEmailNotificationDto dto,
             @MappingTarget UserEmailNotification entity) {
+        Objects.requireNonNull(dto, "dto must not be null");
+        Objects.requireNonNull(entity, "entity must not be null");
         entity.setImmediate(dto.getImmediate());
         entity.setHourly(dto.getHourly());
         entity.setDaily(dto.getDaily());
