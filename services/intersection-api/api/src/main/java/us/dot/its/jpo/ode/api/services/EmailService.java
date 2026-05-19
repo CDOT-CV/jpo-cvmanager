@@ -185,14 +185,21 @@ public class EmailService {
             Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
-        List<UserEmailNotification> addedSubscriptions = filterValidSubscriptionsForUser(requestedSubscriptions,
-                isOperator, isAdmin, emailTypeRepository.findAll()).stream()
+        List<EmailType> allEmailTypes = emailTypeRepository.findAll();
+        User user = userRepository.findByEmail(userEmail);
+        List<UserEmailNotificationDto> validRequestedSubscriptions = filterValidSubscriptionsForUser(
+                requestedSubscriptions,
+                isOperator, isAdmin, allEmailTypes);
+        List<UserEmailNotification> addedSubscriptions = validRequestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
                         .noneMatch(currentSub -> currentSub.getEmailType().getEmailType().equals(sub.getCategory())))
                 .map(subDto -> {
-                    User user = userRepository.findByEmail(userEmail);
-                    EmailType emailType = emailTypeRepository.findByEmailType(subDto.getCategory());
+                    EmailType emailType = allEmailTypes.stream()
+                            .filter(type -> type.getEmailType().equals(subDto.getCategory()))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Invalid email category: " + subDto.getCategory()));
                     UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto, user, emailType);
                     return sub;
                 })
@@ -200,7 +207,7 @@ public class EmailService {
 
         List<UserEmailNotification> modifiedSubscriptions = currentSubscriptions.stream()
                 .map(sub -> {
-                    UserEmailNotificationDto requestedSub = requestedSubscriptions.stream()
+                    UserEmailNotificationDto requestedSub = validRequestedSubscriptions.stream()
                             .filter(reqSub -> reqSub.getSubscribed()
                                     && reqSub.getCategory().equals(sub.getEmailType().getEmailType()))
                             .findFirst()
@@ -215,7 +222,7 @@ public class EmailService {
                 .toList();
 
         List<UserEmailNotification> removedSubscriptions = currentSubscriptions.stream()
-                .filter(sub -> requestedSubscriptions.stream()
+                .filter(sub -> validRequestedSubscriptions.stream()
                         .anyMatch(reqSub -> reqSub.getCategory().equals(sub.getEmailType().getEmailType())
                                 && !reqSub.getSubscribed()))
                 .toList();
