@@ -2,7 +2,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { combineUrlPaths } from '../../apis/intersections/api-helper-cviz'
-import { getQueryString } from './intersectionApiSlice'
 import { EmailSubscription, EmailUnsubscribeGetResponse } from '../../models/email-subscriptions'
 
 // Define a service using a base URL and expected endpoints
@@ -14,21 +13,23 @@ export const unsubscribeApiSlice = createApi({
   tagTypes: ['subscriptions'],
   endpoints: (builder) => ({
     getEmailSubscriptions: builder.query<EmailUnsubscribeGetResponse, string>({
-      query: (token) => {
-        return `/email-subscriptions${getQueryString({
-          token: token,
-        })}`
-      },
+      query: (token) => ({
+        url: '/email-subscriptions',
+        headers: {
+          Authorization: token,
+        },
+      }),
       providesTags: ['subscriptions'],
       transformResponse: (response: any) => response as EmailUnsubscribeGetResponse,
     }),
     updateEmailSubscriptions: builder.mutation<null, { token: string; subscriptions: EmailSubscription[] }>({
       query: ({ token, subscriptions }) => ({
-        url: `/email-subscriptions${getQueryString({
-          token: token,
-        })}`,
+        url: '/email-subscriptions',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token,
+        },
         body: subscriptions,
       }),
       invalidatesTags: ['subscriptions'],
