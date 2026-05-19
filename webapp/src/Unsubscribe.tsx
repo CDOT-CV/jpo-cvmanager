@@ -7,6 +7,8 @@ import { EmailSubscription } from './models/email-subscriptions'
 const Unsubscribe = () => {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
+  const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery(token ?? '', { skip: !token })
+  const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
 
   if (!token) {
     return (
@@ -17,10 +19,6 @@ const Unsubscribe = () => {
       </Container>
     )
   }
-
-  // Fetch the current email subscriptions for the unsubscribe token
-  const { data, isLoading, isFetching } = useGetEmailSubscriptionsQuery(token)
-  const [updateEmailSubscriptions] = useUpdateEmailSubscriptionsMutation()
 
   const handleSave = async (subscriptions: EmailSubscription[]) => {
     await updateEmailSubscriptions({ token, subscriptions }).unwrap()
@@ -31,16 +29,6 @@ const Unsubscribe = () => {
       <Container maxWidth="md">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
           <CircularProgress />
-        </Box>
-      </Container>
-    )
-  }
-
-  if (!token) {
-    return (
-      <Container maxWidth="md">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-          <p>Invalid or missing token. Please check your email link.</p>
         </Box>
       </Container>
     )
