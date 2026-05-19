@@ -91,7 +91,8 @@ public class UnsubscribeControllerTest {
         void authenticated_invalidToken_returns403() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(invalidToken)).thenReturn(null);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", invalidToken))
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+                    .header("Authorization", invalidToken))
                     .andExpect(status().isForbidden());
         }
 
@@ -117,7 +118,8 @@ public class UnsubscribeControllerTest {
             when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true))
                     .thenReturn(validSubscriptionList);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", validToken))
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+                    .header("Authorization", validToken))
                     .andExpect(status().isOk());
 
             verify(emailService).getAllEmailSubscriptionOptionsForUser(email, true, true);
@@ -142,7 +144,7 @@ public class UnsubscribeControllerTest {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(null);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", invalidToken)
+                    .header("Authorization", invalidToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isForbidden());
@@ -159,7 +161,7 @@ public class UnsubscribeControllerTest {
             doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", validToken)
+                    .header("Authorization", validToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isOk());
@@ -175,7 +177,7 @@ public class UnsubscribeControllerTest {
             doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", validToken)
+                    .header("Authorization", validToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"invalid\": true}"))
                     .andExpect(status().isBadRequest());

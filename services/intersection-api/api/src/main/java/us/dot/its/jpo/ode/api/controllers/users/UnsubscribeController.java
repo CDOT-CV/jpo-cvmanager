@@ -9,7 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,7 +48,8 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public EmailSubscriptionGetResponse getEmailSubscriptions(
-            @RequestParam() String token) {
+            @RequestHeader("Authorization") String authorization) {
+        String token = extractToken(authorization);
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             throw new AccessDeniedException("Invalid or expired token");
@@ -73,8 +74,9 @@ public class UnsubscribeController {
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
     })
     public void updateEmailSubscriptions(
-            @RequestParam() String token,
+            @RequestHeader("Authorization") String authorization,
             @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
+        String token = extractToken(authorization);
         String userEmail = unsubscribeTokenGenerator.parseAndValidateToken(token);
         if (userEmail == null) {
             throw new AccessDeniedException("Invalid or expired token");
@@ -89,5 +91,21 @@ public class UnsubscribeController {
         emailService.updateEmailSubscriptions(userEmail, isOperator, isAdmin, requestedSubscriptions);
 
         return;
+    }
+
+    private String extractToken(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            throw new AccessDeniedException("Invalid or expired token");
+        }
+
+        if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return authorization.substring(7).trim();
+        }
+
+        if (authorization.regionMatches(true, 0, "Token ", 0, 6)) {
+            return authorization.substring(6).trim();
+        }
+
+        return authorization.trim();
     }
 }
