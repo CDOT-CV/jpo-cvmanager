@@ -28,10 +28,11 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
+import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
-import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -53,7 +54,7 @@ public class UnsubscribeControllerTest {
     private EmailService emailService;
 
     @MockitoBean
-    private PermissionService permissionService;
+    private UserRepository userRepository;
 
     @MockitoBean
     private UnsubscribeTokenGenerator unsubscribeTokenGenerator;
@@ -100,6 +101,9 @@ public class UnsubscribeControllerTest {
         @WithMockUser
         @DisplayName("returns 200 with valid token and permissions")
         void authenticated_validToken_200() throws Exception {
+            User mockUser = mock(User.class);
+            when(mockUser.getSuperUser()).thenReturn(true);
+            when(userRepository.findByEmail(email)).thenReturn(mockUser);
 
             Role roleOperator = mock(Role.class);
             when(roleOperator.getName()).thenReturn("operator");
@@ -156,7 +160,10 @@ public class UnsubscribeControllerTest {
         @WithMockUser
         @DisplayName("returns 200 with valid subscriptions list")
         void superUser_returns200() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
+            User mockUser = mock(User.class);
+            when(mockUser.getSuperUser()).thenReturn(true);
+            when(userRepository.findByEmail(email)).thenReturn(mockUser);
+
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
             doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
