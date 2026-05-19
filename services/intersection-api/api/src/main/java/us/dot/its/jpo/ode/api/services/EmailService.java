@@ -181,7 +181,7 @@ public class EmailService {
         return list;
     }
 
-    public int updateEmailSubscriptions(String userEmail, Boolean isOperator,
+    public void updateEmailSubscriptions(String userEmail, Boolean isOperator,
             Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
@@ -227,8 +227,6 @@ public class EmailService {
                                 && !reqSub.getSubscribed()))
                 .toList();
 
-        int numModified = removedSubscriptions.size() + modifiedSubscriptions.size() + addedSubscriptions.size();
-
         // Remove subscriptions that are no longer subscribed
         if (!removedSubscriptions.isEmpty()) {
             userEmailNotificationRepository.deleteAll(removedSubscriptions);
@@ -244,6 +242,6 @@ public class EmailService {
             userEmailNotificationRepository.saveAll(addedSubscriptions);
         }
 
-        return numModified;
+        return;
     }
 }
