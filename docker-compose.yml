@@ -208,7 +208,7 @@ services:
     depends_on:
       cvmanager_postgres:
         condition: service_healthy
-    restart: on-failure
+    restart: no
 
 volumes:
   pgdb:
