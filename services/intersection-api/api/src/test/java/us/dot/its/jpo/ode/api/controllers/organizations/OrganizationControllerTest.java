@@ -101,19 +101,21 @@ class OrganizationControllerTest {
     private OrganizationDto sampleOrgDto;
     private RsuInfoDto sampleRsuInfoDto;
     private UserDto sampleUserDto;
+    private Organization testOrg;
+    private Organization otherOrg;
 
     @BeforeEach
     void setUp() {
         authToken = Mockito.mock(CvManagerAuthToken.class);
 
         validPatch = new OrganizationPatch(
-                "TestOrg", "TestOrg", "contact@test.org",
+                1, "TestOrg", "contact@test.org",
                 List.of(), List.of(), List.of(),
                 List.of(), List.of(),
                 List.of(), List.of(),
                 null, null);
 
-        sampleOrgDto = new OrganizationDto("TestOrg", "contact@test.org");
+        sampleOrgDto = new OrganizationDto(1, "TestOrg", "contact@test.org");
 
         sampleRsuInfoDto = new RsuInfoDto(
                 "192.168.1.1",
@@ -123,6 +125,14 @@ class OrganizationControllerTest {
                 List.of("TestOrg"), false, false);
 
         sampleUserDto = new UserDto("user@example.com", "Test", "User", false, List.of());
+
+        testOrg = new Organization();
+        testOrg.setId(1);
+        testOrg.setName("TestOrg");
+
+        otherOrg = new Organization();
+        otherOrg.setId(2);
+        otherOrg.setName("OtherOrg");
     }
 
     // ==================== PATCH /organizations ====================
@@ -142,10 +152,10 @@ class OrganizationControllerTest {
 
         @Test
         @WithMockUser
-        @DisplayName("returns 403 when authenticated but isSuperUser and hasRoleInOrg both return false")
+        @DisplayName("returns 403 when authenticated but isSuperUser and hasRoleInOrgById both return false")
         void authenticated_insufficientPermissions_returns403() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(false);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(false);
 
             mockMvc.perform(patch("/organizations")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -170,10 +180,10 @@ class OrganizationControllerTest {
 
         @Test
         @WithMockUser
-        @DisplayName("returns 200 when hasRoleInOrg returns true (non-superuser path)")
+        @DisplayName("returns 200 when hasRoleInOrgById returns true (non-superuser path)")
         void adminInOrg_returns200() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
             when(organizationManagementService.modifyOrganization(any(), any())).thenReturn(sampleOrgDto);
 
             mockMvc.perform(patch("/organizations")
@@ -187,7 +197,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 400 when orig_name is absent from request body")
         void missingOrigName_returns400() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
             String bodyMissingOrigName = """
                     {
                       "name": "TestOrg",
@@ -285,8 +295,8 @@ class OrganizationControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-            when(organizationRepository.findByNameIn(List.of("TestOrg"))).thenReturn(List.of(mockOrg));
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(mockOrg));
+            when(organizationRepository.findByIdIn(List.of(mockOrg.getId()))).thenReturn(List.of(mockOrg));
             when(organizationMapper.toDto(mockOrg)).thenReturn(sampleOrgDto);
 
             mockMvc.perform(get("/organizations"))
@@ -319,7 +329,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
         void noPermissions_returns403() throws Exception {
             mockMvc.perform(get("/organizations/rsus")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -339,7 +349,7 @@ class OrganizationControllerTest {
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(false);
 
             mockMvc.perform(get("/organizations/rsus")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -350,11 +360,11 @@ class OrganizationControllerTest {
             java.net.InetAddress ip1 = java.net.InetAddress.getByName("192.168.1.1");
             java.net.InetAddress ip2 = java.net.InetAddress.getByName("10.0.0.1");
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(1))
                     .thenReturn(List.of(ip1, ip2));
 
             mockMvc.perform(get("/organizations/rsus")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0]").value("192.168.1.1"))
@@ -366,14 +376,14 @@ class OrganizationControllerTest {
         @DisplayName("passes the Organization header value to the repository")
         void organizationHeader_isForwardedToRepository() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(1))
                     .thenReturn(List.of());
 
             mockMvc.perform(get("/organizations/rsus")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk());
 
-            verify(rsuOrganizationRepository).findAllRsuIpsByOrganizationName("TestOrg");
+            verify(rsuOrganizationRepository).findAllRsuIpsByOrganizationId(1);
         }
     }
 
@@ -406,14 +416,16 @@ class OrganizationControllerTest {
         @DisplayName("returns 200 with list of org names when isSuperUser returns true")
         void superUser_returns200WithOrgNames() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuRepository.findAllOrganizationNamesByIpv4Address(any()))
-                    .thenReturn(List.of("TestOrg", "OtherOrg"));
+            when(rsuRepository.findAllOrganizationsByIpv4Address(any()))
+                    .thenReturn(List.of(testOrg, otherOrg));
+            when(organizationMapper.toDto(testOrg)).thenReturn(sampleOrgDto);
+            when(organizationMapper.toDto(otherOrg)).thenReturn(new OrganizationDto(2, "OtherOrg", "email"));
 
             mockMvc.perform(get("/organizations/rsus/192.168.1.1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$[0]").value("TestOrg"))
-                    .andExpect(jsonPath("$[1]").value("OtherOrg"));
+                    .andExpect(jsonPath("$[0].id").value(sampleOrgDto.getId()))
+                    .andExpect(jsonPath("$[1].id").value(2));
         }
 
         @Test
@@ -423,12 +435,13 @@ class OrganizationControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRsu(eq("192.168.1.1"), eq("ADMIN"))).thenReturn(true);
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-            when(rsuRepository.findAllOrganizationNamesByIpv4Address(any()))
-                    .thenReturn(List.of("TestOrg"));
+            when(rsuRepository.findAllOrganizationsByIpv4Address(any()))
+                    .thenReturn(List.of(testOrg));
+            when(organizationMapper.toDto(testOrg)).thenReturn(sampleOrgDto);
 
             mockMvc.perform(get("/organizations/rsus/192.168.1.1"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0]").value("TestOrg"));
+                    .andExpect(jsonPath("$[0].id").value(sampleOrgDto.getId()));
         }
 
         @Test
@@ -452,7 +465,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
         void noPermissions_returns403() throws Exception {
             mockMvc.perform(get("/organizations/rsus/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -472,7 +485,7 @@ class OrganizationControllerTest {
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(false);
 
             mockMvc.perform(get("/organizations/rsus/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -482,12 +495,12 @@ class OrganizationControllerTest {
         void superUser_returns200WithAvailableRsus() throws Exception {
             Rsu mockRsu = Mockito.mock(Rsu.class);
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(rsuOrganizationRepository.findAllRsusNotInOrganizationName("TestOrg"))
+            when(rsuOrganizationRepository.findAllRsusNotInOrganizationId(1))
                     .thenReturn(List.of(mockRsu));
             when(rsuInfoMapper.toDto(mockRsu)).thenReturn(sampleRsuInfoDto);
 
             mockMvc.perform(get("/organizations/rsus/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0].ip").value("192.168.1.1"));
@@ -504,7 +517,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
         void noPermissions_returns403() throws Exception {
             mockMvc.perform(get("/organizations/users")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -524,7 +537,7 @@ class OrganizationControllerTest {
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(false);
 
             mockMvc.perform(get("/organizations/users")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -533,11 +546,11 @@ class OrganizationControllerTest {
         @DisplayName("returns 200 with list of user email strings when isSuperUser returns true")
         void superUser_returns200WithUserEmails() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsByOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsByOrganizationId(1))
                     .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
             mockMvc.perform(get("/organizations/users")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0]").value("user1@example.com"))
@@ -549,14 +562,14 @@ class OrganizationControllerTest {
         @DisplayName("passes the Organization header value to the repository")
         void organizationHeader_isForwardedToRepository() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsByOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsByOrganizationId(1))
                     .thenReturn(List.of());
 
             mockMvc.perform(get("/organizations/users")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk());
 
-            verify(userOrganizationRepository).findAllUserEmailsByOrganizationName("TestOrg");
+            verify(userOrganizationRepository).findAllUserEmailsByOrganizationId(1);
         }
     }
 
@@ -590,14 +603,16 @@ class OrganizationControllerTest {
         @DisplayName("returns 200 with list of org names when isSuperUser returns true")
         void superUser_returns200WithOrgNames() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userRepository.findAllOrganizationNamesByEmail("user@example.com"))
-                    .thenReturn(List.of("TestOrg", "OtherOrg"));
+            when(userRepository.findAllOrganizationsByEmail("user@example.com"))
+                    .thenReturn(List.of(testOrg, otherOrg));
+            when(organizationMapper.toDto(testOrg)).thenReturn(sampleOrgDto);
+            when(organizationMapper.toDto(otherOrg)).thenReturn(new OrganizationDto(2, "OtherOrg", "email"));
 
             mockMvc.perform(get("/organizations/users/user@example.com"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$[0]").value("TestOrg"))
-                    .andExpect(jsonPath("$[1]").value("OtherOrg"));
+                    .andExpect(jsonPath("$[0].id").value(sampleOrgDto.getId()))
+                    .andExpect(jsonPath("$[1].id").value(2));
         }
     }
 
@@ -611,7 +626,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
         void noPermissions_returns403() throws Exception {
             mockMvc.perform(get("/organizations/users/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -631,7 +646,7 @@ class OrganizationControllerTest {
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(false);
 
             mockMvc.perform(get("/organizations/users/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isForbidden());
         }
 
@@ -641,12 +656,12 @@ class OrganizationControllerTest {
         void superUser_returns200WithAvailableUsers() throws Exception {
             User mockUser = Mockito.mock(User.class);
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsNotInOrganizationName("TestOrg"))
+            when(userOrganizationRepository.findAllUserEmailsNotInOrganizationId(testOrg.getId()))
                     .thenReturn(List.of(mockUser));
             when(userMapper.toDto(mockUser)).thenReturn(sampleUserDto);
 
             mockMvc.perform(get("/organizations/users/available")
-                    .header("Organization", "TestOrg"))
+                    .header("Organization", 1))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0].email").value("user@example.com"));
@@ -656,24 +671,24 @@ class OrganizationControllerTest {
     // ==================== DELETE /organizations/{orgName} ====================
 
     @Nested
-    @DisplayName("DELETE /organizations/{orgName} \u2014 deleteOrganization")
+    @DisplayName("DELETE /organizations/{orgId} - deleteOrganization")
     class DeleteOrganization {
 
         @Test
         @DisplayName("returns 403 when no permissions are granted (unauthenticated)")
         void noPermissions_returns403() throws Exception {
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @WithMockUser
-        @DisplayName("returns 403 when authenticated but isSuperUser and hasRoleInOrg both return false")
+        @DisplayName("returns 403 when authenticated but isSuperUser and hasRoleInOrgById both return false")
         void authenticated_insufficientPermissions_returns403() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(false);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(false);
 
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isForbidden());
         }
 
@@ -683,23 +698,23 @@ class OrganizationControllerTest {
         void superUser_returns204() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
 
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNoContent());
 
-            verify(organizationManagementService).deleteOrganization("TestOrg");
+            verify(organizationManagementService).deleteOrganization(testOrg.getId());
         }
 
         @Test
         @WithMockUser
-        @DisplayName("returns 204 when hasRoleInOrg returns true (non-superuser path)")
+        @DisplayName("returns 204 when hasRoleInOrgById returns true (non-superuser path)")
         void adminInOrg_returns204() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
 
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNoContent());
 
-            verify(organizationManagementService).deleteOrganization("TestOrg");
+            verify(organizationManagementService).deleteOrganization(testOrg.getId());
         }
 
         @Test
@@ -708,9 +723,9 @@ class OrganizationControllerTest {
         void orgNotFound_returns404() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
             doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: TestOrg"))
-                    .when(organizationManagementService).deleteOrganization("TestOrg");
+                    .when(organizationManagementService).deleteOrganization(testOrg.getId());
 
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNotFound());
         }
 
@@ -721,9 +736,9 @@ class OrganizationControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             doThrow(new OrganizationManagementService.OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more RSUs only associated with this organization"))
-                    .when(organizationManagementService).deleteOrganization("TestOrg");
+                    .when(organizationManagementService).deleteOrganization(testOrg.getId());
 
-            mockMvc.perform(delete("/organizations/TestOrg"))
+            mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isConflict());
         }
     }

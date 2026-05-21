@@ -53,11 +53,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Page<User> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
             Pageable pageable);
 
-    @Query("SELECT o.name " +
+    @Query("SELECT o " +
             "FROM User u " +
             "JOIN u.userOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE u.email = :email " +
-            "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByEmail(@Param("email") String email);
+            "ORDER BY o.id ASC")
+    List<Organization> findAllOrganizationsByEmail(@Param("email") String email);
 }

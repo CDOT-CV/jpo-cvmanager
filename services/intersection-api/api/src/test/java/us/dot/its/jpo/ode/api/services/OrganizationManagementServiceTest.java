@@ -85,7 +85,7 @@ class OrganizationManagementServiceTest {
         testOrg.setName("TestOrg");
         testOrg.setEmail("test@org.com");
 
-        testOrgDto = new OrganizationDto("TestOrg", "test@org.com");
+        testOrgDto = new OrganizationDto(1, "TestOrg", "test@org.com");
     }
 
     /**
@@ -94,7 +94,7 @@ class OrganizationManagementServiceTest {
      */
     private OrganizationPatch minimalPatch() {
         OrganizationPatch patch = new OrganizationPatch();
-        patch.setOrigName("TestOrg");
+        patch.setId(1);
         patch.setName("TestOrg");
         patch.setEmail("test@org.com");
         patch.setUsersToAdd(List.of());
@@ -112,9 +112,9 @@ class OrganizationManagementServiceTest {
      * Uses isSuperUser=true to skip the inner authorization checks.
      */
     private void stubBaseFlow() {
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
         when(authToken.isSuperUser()).thenReturn(true);
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
     }
@@ -128,22 +128,22 @@ class OrganizationManagementServiceTest {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(true);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of()); // not in any org
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
 
         OrganizationDto result = service.modifyOrganization(patch, authToken);
 
         assertNotNull(result);
-        assertEquals("TestOrg", result.getName());
+        assertEquals(1, result.getId());
     }
 
     @Test
     void testModifyOrganization_AdminInOrg_Allowed() {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
 
@@ -153,16 +153,15 @@ class OrganizationManagementServiceTest {
     }
 
     @Test
-    void testModifyOrganization_NonAdmin_Forbidden() {
+    void testModifyOrganization_NonAdmin_NotFound() {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("OtherOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
 
-        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        verify(organizationRepository, never()).findByName(any());
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
@@ -170,7 +169,7 @@ class OrganizationManagementServiceTest {
         OrganizationPatch patch = minimalPatch();
         when(authToken.isSuperUser()).thenReturn(true);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.empty());
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
@@ -215,7 +214,7 @@ class OrganizationManagementServiceTest {
         service.modifyOrganization(minimalPatch(), authToken);
 
         verifyNoInteractions(rsuOptionRepository);
-        verify(rsuOrganizationRepository, never()).findAllRsuIpsByOrganizationName(any());
+        verify(rsuOrganizationRepository, never()).findAllRsuIpsByOrganizationId(any());
     }
 
     @Test
@@ -223,7 +222,7 @@ class OrganizationManagementServiceTest {
         stubBaseFlow();
         OrganizationPatch patch = minimalPatch();
         patch.setTimDeposit(true);
-        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg")).thenReturn(List.of());
+        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(testOrg.getId())).thenReturn(List.of());
 
         service.modifyOrganization(patch, authToken);
 
@@ -247,7 +246,7 @@ class OrganizationManagementServiceTest {
         existingOption.setTimDeposit(false);
         existingOption.setSnmpMonitoring(false);
 
-        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg")).thenReturn(List.of(ip));
+        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(testOrg.getId())).thenReturn(List.of(ip));
         when(rsuRepository.findByIpv4AddressIn(List.of(ip))).thenReturn(List.of(rsu));
         when(rsuOptionRepository.findAllById(List.of(1))).thenReturn(List.of(existingOption));
 
@@ -268,7 +267,7 @@ class OrganizationManagementServiceTest {
         rsu.setId(2);
         rsu.setIpv4Address(ip);
 
-        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg")).thenReturn(List.of(ip));
+        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(testOrg.getId())).thenReturn(List.of(ip));
         when(rsuRepository.findByIpv4AddressIn(List.of(ip))).thenReturn(List.of(rsu));
         when(rsuOptionRepository.findAllById(List.of(2))).thenReturn(List.of()); // no pre-existing option
 
@@ -299,7 +298,7 @@ class OrganizationManagementServiceTest {
         option.setId(3);
         option.setRsu(rsu);
 
-        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName("TestOrg")).thenReturn(List.of(ip));
+        when(rsuOrganizationRepository.findAllRsuIpsByOrganizationId(testOrg.getId())).thenReturn(List.of(ip));
         when(rsuRepository.findByIpv4AddressIn(List.of(ip))).thenReturn(List.of(rsu));
         when(rsuOptionRepository.findAllById(List.of(3))).thenReturn(List.of(option));
 
@@ -325,46 +324,23 @@ class OrganizationManagementServiceTest {
     }
 
     @Test
-    void testHandleUsersToAdd_NonSuperUser_NewOrgNameNotAuthorized_Forbidden() {
+    void testHandleUsersToAdd_NonSuperUser_NewOrgNameNotFound() {
         // Rename scenario: caller is ADMIN of origName but not of the new name.
         OrganizationPatch patch = minimalPatch();
-        patch.setOrigName("TestOrg");
+        patch.setId(1);
         patch.setName("TestOrgNew"); // renamed; caller is not ADMIN of the new name
         patch.setUsersToAdd(List.of(new UserRoleAssignment("user@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.modifyOrganization(patch, authToken));
-
-        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        verify(userOrganizationRepository, never()).saveAll(any());
-    }
-
-    @Test
-    void testHandleUsersToAdd_OrgNotFound_NotFound() {
-        OrganizationPatch patch = minimalPatch();
-        patch.setUsersToAdd(List.of(new UserRoleAssignment("user@test.com", "operator")));
-
-        when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-        // Step 2 finds the org; the second findByName call inside handleUsersToAdd
-        // returns empty
-        when(organizationRepository.findByName("TestOrg"))
-                .thenReturn(Optional.of(testOrg))
-                .thenReturn(Optional.empty());
-        when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        // Membership check inside handleUsersToAdd is never reached —
-        // the second findByName() throws before looping over assignments.
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        assertTrue(ex.getReason().contains("Organization not found"));
+        verify(userOrganizationRepository, never()).saveAll(any());
     }
 
     @Test
@@ -373,7 +349,7 @@ class OrganizationManagementServiceTest {
         OrganizationPatch patch = minimalPatch();
         patch.setUsersToAdd(List.of(new UserRoleAssignment("existing@test.com", "operator")));
 
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("existing@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("existing@test.com", testOrg))
                 .thenReturn(Optional.of(new UserOrganization()));
 
         service.modifyOrganization(patch, authToken);
@@ -389,10 +365,10 @@ class OrganizationManagementServiceTest {
         patch.setUsersToAdd(List.of(new UserRoleAssignment("ghost@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("ghost@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("ghost@test.com", testOrg))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("ghost@test.com")).thenReturn(Optional.empty());
 
@@ -413,10 +389,10 @@ class OrganizationManagementServiceTest {
         user.setEmail("user@test.com");
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("user@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("user@test.com", testOrg))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(roleRepository.findByName("unknown_role")).thenReturn(Optional.empty());
@@ -442,7 +418,7 @@ class OrganizationManagementServiceTest {
         role.setId(1);
         role.setName("operator");
 
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("new@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("new@test.com", testOrg))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.of(user));
         when(roleRepository.findByName("operator")).thenReturn(Optional.of(role));
@@ -477,7 +453,7 @@ class OrganizationManagementServiceTest {
         role.setId(1);
         role.setName("operator");
 
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name(anyString(), eq("TestOrg")))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization(anyString(), eq(testOrg)))
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user1@test.com")).thenReturn(Optional.of(user1));
         when(userRepository.findByEmail("user2@test.com")).thenReturn(Optional.of(user2));
@@ -510,10 +486,10 @@ class OrganizationManagementServiceTest {
         patch.setUsersToModify(List.of(new UserRoleAssignment("nonmember@test.com", "admin")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("nonmember@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("nonmember@test.com", testOrg))
                 .thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -529,11 +505,11 @@ class OrganizationManagementServiceTest {
         patch.setUsersToModify(List.of(new UserRoleAssignment("member@test.com", "ghost_role")));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         UserOrganization userOrg = new UserOrganization();
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("member@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("member@test.com", testOrg))
                 .thenReturn(Optional.of(userOrg));
         when(roleRepository.findByName("ghost_role")).thenReturn(Optional.empty());
 
@@ -554,7 +530,7 @@ class OrganizationManagementServiceTest {
         Role adminRole = new Role();
         adminRole.setName("admin");
 
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("member@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("member@test.com", testOrg))
                 .thenReturn(Optional.of(userOrg));
         when(roleRepository.findByName("admin")).thenReturn(Optional.of(adminRole));
 
@@ -577,9 +553,9 @@ class OrganizationManagementServiceTest {
         Role role = new Role();
         role.setName("operator");
 
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("u1@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("u1@test.com", testOrg))
                 .thenReturn(Optional.of(uo1));
-        when(userOrganizationRepository.findByUser_EmailAndOrganization_Name("u2@test.com", "TestOrg"))
+        when(userOrganizationRepository.findByUser_EmailAndOrganization("u2@test.com", testOrg))
                 .thenReturn(Optional.of(uo2));
         when(roleRepository.findByName("operator")).thenReturn(Optional.of(role));
 
@@ -599,7 +575,7 @@ class OrganizationManagementServiceTest {
 
         service.modifyOrganization(minimalPatch(), authToken);
 
-        verify(userOrganizationRepository, never()).deleteByUserEmailsAndOrganizationName(any(), any());
+        verify(userOrganizationRepository, never()).deleteByUserEmailsAndOrganization(any(), any());
     }
 
     @Test
@@ -610,8 +586,8 @@ class OrganizationManagementServiceTest {
 
         service.modifyOrganization(patch, authToken);
 
-        verify(userOrganizationRepository).deleteByUserEmailsAndOrganizationName(
-                List.of("remove1@test.com", "remove2@test.com"), "TestOrg");
+        verify(userOrganizationRepository).deleteByUserEmailsAndOrganization(
+                List.of("remove1@test.com", "remove2@test.com"), testOrg);
     }
 
     // =========================================================================
@@ -634,11 +610,9 @@ class OrganizationManagementServiceTest {
 
         when(authToken.isSuperUser()).thenReturn(true);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-        // Step 2 finds the org; handleRsusToAdd's findByName call returns empty
-        when(organizationRepository.findByName("TestOrg"))
-                .thenReturn(Optional.of(testOrg))
+        // Step 2 finds the org; handleRsusToAdd's findById call returns empty
+        when(organizationRepository.findById(testOrg.getId()))
                 .thenReturn(Optional.empty());
-        when(organizationRepository.save(testOrg)).thenReturn(testOrg);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
@@ -655,7 +629,7 @@ class OrganizationManagementServiceTest {
         patch.setRsusToAdd(List.of("10.0.0.1"));
 
         InetAddress ip = InetAddress.getByName("10.0.0.1");
-        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_NameIgnoreCase(ip, "TestOrg"))
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(ip, testOrg))
                 .thenReturn(Optional.of(new RsuOrganization()));
 
         service.modifyOrganization(patch, authToken);
@@ -670,11 +644,11 @@ class OrganizationManagementServiceTest {
         patch.setRsusToAdd(List.of("10.0.0.2"));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         InetAddress ip = InetAddress.getByName("10.0.0.2");
-        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_NameIgnoreCase(ip, "TestOrg"))
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(ip, testOrg))
                 .thenReturn(Optional.empty());
         when(rsuRepository.findByIpv4Address(ip)).thenReturn(null);
 
@@ -696,7 +670,7 @@ class OrganizationManagementServiceTest {
         rsu.setId(5);
         rsu.setIpv4Address(ip);
 
-        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_NameIgnoreCase(ip, "TestOrg"))
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(ip, testOrg))
                 .thenReturn(Optional.empty());
         when(rsuRepository.findByIpv4Address(ip)).thenReturn(rsu);
 
@@ -721,7 +695,7 @@ class OrganizationManagementServiceTest {
 
         service.modifyOrganization(minimalPatch(), authToken);
 
-        verify(rsuOrganizationRepository, never()).deleteByRsuIpv4AddressesAndOrganizationName(any(), any());
+        verify(rsuOrganizationRepository, never()).deleteByRsuIpv4AddressesAndOrganization(any(), any());
     }
 
     @Test
@@ -735,8 +709,8 @@ class OrganizationManagementServiceTest {
 
         service.modifyOrganization(patch, authToken);
 
-        verify(rsuOrganizationRepository).deleteByRsuIpv4AddressesAndOrganizationName(
-                List.of(ip1, ip2), "TestOrg");
+        verify(rsuOrganizationRepository).deleteByRsuIpv4AddressesAndOrganization(
+                List.of(ip1, ip2), testOrg);
     }
 
     @Test
@@ -744,8 +718,8 @@ class OrganizationManagementServiceTest {
         // Do not use stubBaseFlow() — the mapper stub is never reached because
         // resolveIpAddress throws before the method returns.
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         OrganizationPatch patch = minimalPatch();
         // "256.0.0.1" is not a valid IPv4 address and is not resolvable as a hostname
@@ -777,12 +751,6 @@ class OrganizationManagementServiceTest {
 
         when(authToken.isSuperUser()).thenReturn(true);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-        // Step 2 finds the org; handleIntersectionsToAdd's findByName call returns
-        // empty
-        when(organizationRepository.findByName("TestOrg"))
-                .thenReturn(Optional.of(testOrg))
-                .thenReturn(Optional.empty());
-        when(organizationRepository.save(testOrg)).thenReturn(testOrg);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
@@ -798,7 +766,7 @@ class OrganizationManagementServiceTest {
         patch.setIntersectionsToAdd(List.of(1001));
 
         when(intersectionOrganizationRepository
-                .findByIntersection_IntersectionNumberAndOrganization_Name("1001", "TestOrg"))
+                .findByIntersection_IntersectionNumberAndOrganization("1001", testOrg))
                 .thenReturn(Optional.of(new IntersectionOrganization()));
 
         service.modifyOrganization(patch, authToken);
@@ -813,11 +781,11 @@ class OrganizationManagementServiceTest {
         patch.setIntersectionsToAdd(List.of(9999));
 
         when(authToken.isSuperUser()).thenReturn(true);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of("TestOrg"));
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
         when(intersectionOrganizationRepository
-                .findByIntersection_IntersectionNumberAndOrganization_Name("9999", "TestOrg"))
+                .findByIntersection_IntersectionNumberAndOrganization("9999", testOrg))
                 .thenReturn(Optional.empty());
         when(intersectionRepository.findByIntersectionNumber("9999")).thenReturn(Optional.empty());
 
@@ -839,7 +807,7 @@ class OrganizationManagementServiceTest {
         intersection.setIntersectionNumber("1234");
 
         when(intersectionOrganizationRepository
-                .findByIntersection_IntersectionNumberAndOrganization_Name("1234", "TestOrg"))
+                .findByIntersection_IntersectionNumberAndOrganization("1234", testOrg))
                 .thenReturn(Optional.empty());
         when(intersectionRepository.findByIntersectionNumber("1234")).thenReturn(Optional.of(intersection));
 
@@ -865,7 +833,7 @@ class OrganizationManagementServiceTest {
         service.modifyOrganization(minimalPatch(), authToken);
 
         verify(intersectionOrganizationRepository, never())
-                .deleteByIntersectionNumbersAndOrganizationName(any(), any());
+                .deleteByIntersectionNumbersAndOrganization(any(), any());
     }
 
     @Test
@@ -876,8 +844,8 @@ class OrganizationManagementServiceTest {
 
         service.modifyOrganization(patch, authToken);
 
-        verify(intersectionOrganizationRepository).deleteByIntersectionNumbersAndOrganizationName(
-                List.of("1001", "1002"), "TestOrg");
+        verify(intersectionOrganizationRepository).deleteByIntersectionNumbersAndOrganization(
+                List.of("1001", "1002"), testOrg);
     }
 
     // =========================================================================
@@ -886,10 +854,10 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrgNotFound_ThrowsNotFound() {
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.empty());
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.deleteOrganization("TestOrg"));
+                () -> service.deleteOrganization(testOrg.getId()));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
         verify(rsuOrganizationRepository, never()).existsOrphanRsuInOrganization(any());
@@ -898,12 +866,12 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrphanRsu_ThrowsConflict() {
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
-        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(true);
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization("TestOrg"));
+                () -> service.deleteOrganization(testOrg.getId()));
 
         assertTrue(ex.getMessage().contains("RSU"));
         verify(intersectionOrganizationRepository, never()).existsOrphanIntersectionInOrganization(any());
@@ -913,13 +881,13 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrphanIntersection_ThrowsConflict() {
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
-        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
-        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(true);
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization("TestOrg"));
+                () -> service.deleteOrganization(testOrg.getId()));
 
         assertTrue(ex.getMessage().contains("Intersection"));
         verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
@@ -928,14 +896,14 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrphanUser_ThrowsConflict() {
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
-        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
-        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
-        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(true);
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization("TestOrg"));
+                () -> service.deleteOrganization(testOrg.getId()));
 
         assertTrue(ex.getMessage().contains("user"));
         verify(organizationRepository, never()).delete(any());
@@ -943,16 +911,16 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_NoOrphans_DeletesJunctionTablesAndOrg() {
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
-        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
-        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
-        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(false);
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(false);
 
-        service.deleteOrganization("TestOrg");
+        service.deleteOrganization(testOrg.getId());
 
-        verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
-        verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
-        verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
+        verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(organizationRepository).delete(testOrg);
     }
 
@@ -965,16 +933,16 @@ class OrganizationManagementServiceTest {
                 intersectionOrganizationRepository,
                 organizationRepository);
 
-        when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrg));
-        when(rsuOrganizationRepository.existsOrphanRsuInOrganization("TestOrg")).thenReturn(false);
-        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization("TestOrg")).thenReturn(false);
-        when(userOrganizationRepository.existsOrphanUserInOrganization("TestOrg")).thenReturn(false);
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
+        when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
+        when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(false);
 
-        service.deleteOrganization("TestOrg");
+        service.deleteOrganization(testOrg.getId());
 
-        inOrder.verify(userOrganizationRepository).deleteAllByOrganizationName("TestOrg");
-        inOrder.verify(rsuOrganizationRepository).deleteAllByOrganizationName("TestOrg");
-        inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganizationName("TestOrg");
+        inOrder.verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
+        inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(organizationRepository).delete(testOrg);
     }
 }

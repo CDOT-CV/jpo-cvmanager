@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.models.admin.organization;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
@@ -24,8 +23,8 @@ public class OrganizationPatch {
 
     @Schema(description = "Current organization name that identifies the record to update", example = "CDOT", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
-    @JsonProperty("orig_name")
-    private String origName;
+    @JsonProperty("id")
+    private Integer id;
 
     @Schema(description = "New organization name; omit or null to leave unchanged", example = "CDOT")
     @JsonProperty("name")
