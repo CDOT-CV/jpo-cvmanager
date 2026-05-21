@@ -3,6 +3,5 @@ locations = ["filesystem:/flyway/sql"]
 outOfOrder = true
 baselineOnMigrate = true
 baselineVersion = "1"
-schemas = ["public"]
 validateMigrationNaming = true
 mixed = true
