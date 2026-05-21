@@ -1,6 +1,10 @@
 spring:
   application:
     name: rsu-info-bridge-test
+  flyway:
+    locations: filesystem:../../resources/db/migration
+    mixed: true
+    out-of-order: true
   jpa:
     hibernate:
       ddl-auto: none
