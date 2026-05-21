@@ -226,6 +226,53 @@ jobs:
         run: |
           rm -rf $GITHUB_WORKSPACE/services/intersection-api/api/target
 
+  validate_migrations:
+    needs: test_change_limit
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:15-master
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout ${{ github.event.repository.name }}
+        uses: actions/checkout@v4
+
+      - name: Run Flyway migrations
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$GITHUB_WORKSPACE/resources/db/migration:/flyway/sql" \
+            flyway/flyway:10-alpine \
+            -url=jdbc:postgresql://localhost:5432/postgres \
+            -user=postgres \
+            -password=postgres \
+            -locations=filesystem:/flyway/sql \
+            -outOfOrder=true \
+            migrate
+
+      - name: Verify migration state
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$GITHUB_WORKSPACE/resources/db/migration:/flyway/sql" \
+            flyway/flyway:10-alpine \
+            -url=jdbc:postgresql://localhost:5432/postgres \
+            -user=postgres \
+            -password=postgres \
+            -locations=filesystem:/flyway/sql \
+            info
+
   sonar:
     if: github.event.pull_request.base.repo.owner.login == 'usdot-jpo-ode'
     needs: [build_api, webapp]
