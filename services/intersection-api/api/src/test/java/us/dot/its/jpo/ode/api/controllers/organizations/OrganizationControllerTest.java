@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -656,7 +657,8 @@ class OrganizationControllerTest {
         void superUser_returns200WithAvailableUsers() throws Exception {
             User mockUser = Mockito.mock(User.class);
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(userOrganizationRepository.findAllUserEmailsNotInOrganizationId(testOrg.getId()))
+            when(organizationRepository.findById(1)).thenReturn(Optional.of(testOrg));
+            when(userOrganizationRepository.findAllUserEmailsNotInOrganization(testOrg))
                     .thenReturn(List.of(mockUser));
             when(userMapper.toDto(mockUser)).thenReturn(sampleUserDto);
 
@@ -697,11 +699,12 @@ class OrganizationControllerTest {
         @DisplayName("returns 204 when isSuperUser returns true and deletion succeeds")
         void superUser_returns204() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(organizationRepository.findById(1)).thenReturn(Optional.of(testOrg));
 
             mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNoContent());
 
-            verify(organizationManagementService).deleteOrganization(testOrg.getId());
+            verify(organizationManagementService).deleteOrganization(testOrg);
         }
 
         @Test
@@ -710,11 +713,12 @@ class OrganizationControllerTest {
         void adminInOrg_returns204() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
+            when(organizationRepository.findById(1)).thenReturn(Optional.of(testOrg));
 
             mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNoContent());
 
-            verify(organizationManagementService).deleteOrganization(testOrg.getId());
+            verify(organizationManagementService).deleteOrganization(testOrg);
         }
 
         @Test
@@ -722,8 +726,9 @@ class OrganizationControllerTest {
         @DisplayName("returns 404 when service throws ResponseStatusException with NOT_FOUND")
         void orgNotFound_returns404() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(organizationRepository.findById(1)).thenReturn(Optional.of(testOrg));
             doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: TestOrg"))
-                    .when(organizationManagementService).deleteOrganization(testOrg.getId());
+                    .when(organizationManagementService).deleteOrganization(testOrg);
 
             mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isNotFound());
@@ -734,9 +739,10 @@ class OrganizationControllerTest {
         @DisplayName("returns 409 when service throws OrganizationHasDependentsException")
         void hasDependents_returns409() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(organizationRepository.findById(1)).thenReturn(Optional.of(testOrg));
             doThrow(new OrganizationManagementService.OrganizationHasDependentsException(
                     "Cannot delete organization that has one or more RSUs only associated with this organization"))
-                    .when(organizationManagementService).deleteOrganization(testOrg.getId());
+                    .when(organizationManagementService).deleteOrganization(testOrg);
 
             mockMvc.perform(delete("/organizations/1"))
                     .andExpect(status().isConflict());

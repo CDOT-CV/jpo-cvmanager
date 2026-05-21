@@ -853,25 +853,12 @@ class OrganizationManagementServiceTest {
     // =========================================================================
 
     @Test
-    void testDeleteOrganization_OrgNotFound_ThrowsNotFound() {
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.deleteOrganization(testOrg.getId()));
-
-        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(rsuOrganizationRepository, never()).existsOrphanRsuInOrganization(any());
-        verify(organizationRepository, never()).delete(any());
-    }
-
-    @Test
     void testDeleteOrganization_OrphanRsu_ThrowsConflict() {
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization(testOrg.getId()));
+                () -> service.deleteOrganization(testOrg));
 
         assertTrue(ex.getMessage().contains("RSU"));
         verify(intersectionOrganizationRepository, never()).existsOrphanIntersectionInOrganization(any());
@@ -881,13 +868,12 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrphanIntersection_ThrowsConflict() {
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
         when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization(testOrg.getId()));
+                () -> service.deleteOrganization(testOrg));
 
         assertTrue(ex.getMessage().contains("Intersection"));
         verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
@@ -896,14 +882,13 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_OrphanUser_ThrowsConflict() {
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
         when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
         when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(true);
 
         OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
                 OrganizationManagementService.OrganizationHasDependentsException.class,
-                () -> service.deleteOrganization(testOrg.getId()));
+                () -> service.deleteOrganization(testOrg));
 
         assertTrue(ex.getMessage().contains("user"));
         verify(organizationRepository, never()).delete(any());
@@ -911,12 +896,11 @@ class OrganizationManagementServiceTest {
 
     @Test
     void testDeleteOrganization_NoOrphans_DeletesJunctionTablesAndOrg() {
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
         when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
         when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(false);
 
-        service.deleteOrganization(testOrg.getId());
+        service.deleteOrganization(testOrg);
 
         verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
@@ -933,12 +917,11 @@ class OrganizationManagementServiceTest {
                 intersectionOrganizationRepository,
                 organizationRepository);
 
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
         when(intersectionOrganizationRepository.existsOrphanIntersectionInOrganization(testOrg)).thenReturn(false);
         when(userOrganizationRepository.existsOrphanUserInOrganization(testOrg)).thenReturn(false);
 
-        service.deleteOrganization(testOrg.getId());
+        service.deleteOrganization(testOrg);
 
         inOrder.verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);

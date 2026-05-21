@@ -185,7 +185,9 @@ public class OrganizationController {
     })
     public List<UserDto> getUserEmailsNotInOrganization(
             @RequestHeader(name = "Organization", required = true) Integer orgId) {
-        return userOrganizationRepository.findAllUserEmailsNotInOrganizationId(orgId).stream()
+        Organization org = organizationRepository.findById(orgId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: " + orgId));
+        return userOrganizationRepository.findAllUserEmailsNotInOrganization(org).stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -201,7 +203,9 @@ public class OrganizationController {
     })
     public ResponseEntity<Void> deleteOrganization(
             @Parameter(description = "Organization ID", example = "1", required = true) @PathVariable(name = "orgId") Integer orgId) {
-        organizationManagementService.deleteOrganization(orgId);
+        Organization org = organizationRepository.findById(orgId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found: " + orgId));
+        organizationManagementService.deleteOrganization(org);
         return ResponseEntity.noContent().build();
     }
 }

@@ -46,9 +46,9 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
     List<String> findAllUserEmailsByOrganizationId(@Param("orgId") Integer orgId);
 
     @Query("SELECT DISTINCT u FROM User u WHERE NOT EXISTS " +
-            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.id = :orgId)")
-    List<User> findAllUserEmailsNotInOrganizationId(
-            @Param("orgId") Integer orgId);
+            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization = :organization)")
+    List<User> findAllUserEmailsNotInOrganization(
+            @Param("organization") Organization organization);
 
     @Query("SELECT CASE WHEN COUNT(uo) > 0 THEN true ELSE false END "
             + "FROM UserOrganization uo "

@@ -159,10 +159,7 @@ public class OrganizationManagementService {
      *                                            result
      */
     @Transactional
-    public void deleteOrganization(Integer orgId) {
-        Organization org = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Organization not found: " + orgId));
+    public void deleteOrganization(Organization org) {
 
         if (rsuOrganizationRepository.existsOrphanRsuInOrganization(org)) {
             throw new OrganizationHasDependentsException(
