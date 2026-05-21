@@ -108,7 +108,7 @@ public class UserController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     public void createUser(@Validated @RequestBody UserDto body) {
-        if (!permissionService.hasRoleInOrgs(UserRole.ADMIN,
+        if (!permissionService.hasRoleInOrgNames(UserRole.ADMIN,
                 body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,

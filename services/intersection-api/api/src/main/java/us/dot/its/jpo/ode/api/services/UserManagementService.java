@@ -60,9 +60,10 @@ public class UserManagementService {
         allowed.setRoles(roleRepository.findAllRoleNames());
 
         if (authToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAllOrganizationNames());
+            allowed.setOrganizations(organizationRepository.findAll().stream().map(Organization::getName).toList());
         } else {
-            allowed.setOrganizations(authToken.getQualifiedOrgList(UserRole.ADMIN));
+            allowed.setOrganizations(
+                    authToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(Organization::getName).toList());
         }
 
         return allowed;
@@ -127,9 +128,9 @@ public class UserManagementService {
 
     @Transactional
     public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
-        List<String> authorizedOrgs;
+        List<Organization> authorizedOrgs;
         if (authToken.isSuperUser()) {
-            authorizedOrgs = organizationRepository.findAllOrganizationNames();
+            authorizedOrgs = organizationRepository.findAll();
         } else {
             authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
         }
@@ -151,47 +152,34 @@ public class UserManagementService {
         return userMapper.toDto(savedUser);
     }
 
-    private void handleOrganizationChanges(User user, UserPatch patch, List<String> authorizedOrgs) {
+    private void handleOrganizationChanges(User user, UserPatch patch, List<Organization> authorizedOrgs) {
 
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            List<UserOrganizationDto> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
-                    .toList();
-            if (!unqualifiedAdds.isEmpty()) {
-                throw new AccessDeniedException("User does not have permission to add User to organization(s): "
-                        + String.join(", ",
-                                unqualifiedAdds.stream().map(UserOrganizationDto::getOrganization).toList()));
-            }
             for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
-                // Check if already associated
-                boolean exists = userRepository.existsByEmailAndOrganizations(
-                        user.getEmail(),
-                        List.of(org.getOrganization()));
+                Organization organization = authorizedOrgs.stream()
+                        .filter(o -> o.getName().equals(org.getOrganization()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + org.getOrganization()));
 
-                if (!exists) {
-                    Organization organization = organizationRepository.findByName(org.getOrganization())
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Organization not found: " + org.getOrganization()));
+                Role role = roleRepository.findByNameIgnoreCase(org.getRole())
+                        .orElseThrow(() -> new IllegalArgumentException("Role not found: " + org.getRole()));
 
-                    Role role = roleRepository.findByNameIgnoreCase(org.getRole())
-                            .orElseThrow(() -> new IllegalArgumentException("Role not found: " + org.getRole()));
+                UserOrganization userOrg = new UserOrganization();
+                userOrg.setUser(user);
+                userOrg.setRole(role);
+                userOrg.setOrganization(organization);
 
-                    UserOrganization userOrg = new UserOrganization();
-                    userOrg.setUser(user);
-                    userOrg.setRole(role);
-                    userOrg.setOrganization(organization);
-
-                    // Save to repository
-                    userOrganizationRepository.save(userOrg);
-                }
+                // Save to repository
+                userOrganizationRepository.save(userOrg);
             }
         }
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<UserOrganizationDto> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
@@ -207,15 +195,6 @@ public class UserManagementService {
         }
 
         if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
-            List<UserOrganizationDto> unqualifiedModifies = patch.getOrganizationsToModify().stream()
-                    .filter(org -> !authorizedOrgs.contains(org.getOrganization()))
-                    .toList();
-            if (!unqualifiedModifies.isEmpty()) {
-                throw new AccessDeniedException(
-                        "User does not have permission to modify User's role in organization(s): "
-                                + String.join(", ", unqualifiedModifies.stream()
-                                        .map(UserOrganizationDto::getOrganization).toList()));
-            }
             for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
                 userOrganizationRepository.findByUserAndOrganization_Name(
                         user,
