@@ -33,9 +33,10 @@ V{YYYYMMDDNNN}__{snake_case_description}.sql
 
 Full example: `V202605211437__add_rsu_telemetry_table.sql`
 
-**Why timestamp-based?** This project is Open Source with, in general, a quarterly release process that requires a large-scale PR process accounting for progress on multiple forks. Timestamp prefixes
-prevent version collisions when syncing changes between the forks and upstream, which may introduce integer-versioned migrations at any point. Flyway requires unique versions for each script, so the
-simplest way to reduce conflicting versions is to use the proposed format. It's extremely unlikely that more than one fork will have a database migration on the same date
+**Why timestamp-based?** This project is Open Source with, in general, a quarterly release process that requires a large-scale PR process accounting for progress
+on multiple forks. Timestamp prefixes prevent version collisions when syncing changes between the forks and upstream, which may introduce integer-versioned
+migrations at any point. Flyway requires unique versions for each script, so the simplest way to reduce conflicting versions is to use the proposed format.
+It's extremely unlikely that more than one fork will have a database migration on the same date
 
 ## Creating a new migration
 
@@ -63,13 +64,14 @@ The `flyway` service in `docker-compose.yml` runs automatically when you `docker
 
 ## Adopting an existing database (baselineOnMigrate)
 
-The Flyway config sets `baselineOnMigrate = true` and `baselineVersion = 1`. On first run against a database that already has the schema but no Flyway metadata table, Flyway stamps V1 as applied
-without re-executing it, then applies any migrations with versions higher than 1. This is how existing non-production and production environments are adopted without a rebuild.
+The Flyway config sets `baselineOnMigrate = true` and `baselineVersion = 1`. On first run against a database that already has the schema but no Flyway metadata table, 
+Flyway stamps V1 as applied without re-executing it, then applies any migrations with versions higher than 1. This is how existing non-production and production 
+environments are adopted without a rebuild.
 
 ## outOfOrder
 
-`outOfOrder = true` allows a migration with a lower version number than the current HEAD to be applied. This is expected when a change developed on a branch has a timestamp from before the branch's
-merge date. Flyway will apply it in order relative to other pending migrations.
+`outOfOrder = true` allows a migration with a lower version number than the current HEAD to be applied. This is expected when a change developed on a branch has 
+a timestamp from before the branch's merge date. Flyway will apply it in order relative to other pending migrations.
 
 ## Deprecated scripts
 
