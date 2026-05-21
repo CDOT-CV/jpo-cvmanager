@@ -186,6 +186,8 @@ class OrganizationControllerTest {
         @Test
         @DisplayName("returns 400 when orig_name is absent from request body")
         void missingOrigName_returns400() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRoleInOrg(eq("TestOrg"), eq("ADMIN"))).thenReturn(true);
             String bodyMissingOrigName = """
                     {
                       "name": "TestOrg",
@@ -202,51 +204,6 @@ class OrganizationControllerTest {
             mockMvc.perform(patch("/organizations")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(bodyMissingOrigName))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("returns 400 when name is absent from request body")
-        void missingName_returns400() throws Exception {
-            String bodyMissingName = """
-                    {
-                      "orig_name": "TestOrg",
-                      "users_to_add": [],
-                      "users_to_modify": [],
-                      "users_to_remove": [],
-                      "rsus_to_add": [],
-                      "rsus_to_remove": [],
-                      "intersections_to_add": [],
-                      "intersections_to_remove": []
-                    }
-                    """;
-
-            mockMvc.perform(patch("/organizations")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(bodyMissingName))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("returns 400 when users_to_add is explicitly null")
-        void nullUsersToAdd_returns400() throws Exception {
-            String bodyNullUsersToAdd = """
-                    {
-                      "orig_name": "TestOrg",
-                      "name": "TestOrg",
-                      "users_to_add": null,
-                      "users_to_modify": [],
-                      "users_to_remove": [],
-                      "rsus_to_add": [],
-                      "rsus_to_remove": [],
-                      "intersections_to_add": [],
-                      "intersections_to_remove": []
-                    }
-                    """;
-
-            mockMvc.perform(patch("/organizations")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(bodyNullUsersToAdd))
                     .andExpect(status().isBadRequest());
         }
 

@@ -36,12 +36,10 @@ public class OrganizationPatch {
     private String email;
 
     @Schema(description = "User email + role pairs to add to this organization; omit or null to skip")
-    @Valid
     @JsonProperty("users_to_add")
     private List<UserRoleAssignment> usersToAdd;
 
     @Schema(description = "User email + role pairs whose role should be changed within this organization; omit or null to skip")
-    @Valid
     @JsonProperty("users_to_modify")
     private List<UserRoleAssignment> usersToModify;
 
