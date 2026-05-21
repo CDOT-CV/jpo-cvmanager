@@ -226,6 +226,21 @@ jobs:
         run: |
           rm -rf $GITHUB_WORKSPACE/services/intersection-api/api/target
 
+  build_flyway_image:
+    needs: test_change_limit
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Flyway image
+        run: |
+          docker build \
+            -f resources/db/Dockerfile \
+            -t cvmanager-flyway:${{ github.sha }} \
+            resources/db/
+
   validate_migrations:
     needs: test_change_limit
     if: ${{ always() && !cancelled() }}
