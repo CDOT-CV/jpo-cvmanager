@@ -113,6 +113,12 @@ Table descriptions are stored as SQL comments in the database (applied by migrat
 | `consecutive_firmware_upgrade_failures` | Consecutive firmware upgrade failure counts per RSU, used to enforce retry limits.                          |
 | `max_retry_limit_reached_instances`     | Records when an RSU hits the maximum consecutive firmware upgrade failure limit.                            |
 
+## Kubernetes deployment
+
+The Flyway image for Kubernetes is built and pushed to GHCR automatically by CI on every
+merge to `develop` or `cdot-release*`. See `resources/kubernetes/README.md` for how to
+identify the correct image tag and apply the migration Job.
+
 **Views**
 
 | View                    | Description                                                       |
