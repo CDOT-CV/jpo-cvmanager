@@ -18,10 +18,20 @@ The Flyway Job uses a custom Docker image built from `resources/db/Dockerfile`. 
 
 **Building and pushing the image:**
 
+CI publishes this image automatically. On every merge to `develop` or `cdot-release*`, the `build_flyway_image` workflow job builds and pushes to:
+
+```
+ghcr.io/<github-org>/cvmanager-flyway:sha-<short-sha>
+ghcr.io/<github-org>/cvmanager-flyway:<branch-name>
+```
+
+To deploy a migration set, copy the `sha-<short-sha>` tag from the CI run that corresponds to the commit you want, then update the `image:` field in `cv-manager-flyway.yaml` and re-apply the Job.
+
+To build and push manually (e.g. from a fork without CI configured):
+
 ```sh
-# From the repo root
-docker build -f resources/db/Dockerfile -t your-registry/cvmanager-flyway:tag resources/db/
-docker push your-registry/cvmanager-flyway:tag
+docker build -f resources/db/Dockerfile -t ghcr.io/<your-org>/cvmanager-flyway:<tag> resources/db/
+docker push ghcr.io/<your-org>/cvmanager-flyway:<tag>
 ```
 
 Update the `image:` field in `cv-manager-flyway.yaml` to match the pushed tag before deploying.
@@ -42,7 +52,7 @@ Update the `image:` field in `cv-manager-flyway.yaml` to match the pushed tag be
 **Adding a new migration:**
 
 1. Create `V{YYYYMMDDHHMM}__description.sql` in `resources/db/migration/` following the conventions in [`resources/db/README.md`](../db/README.md).
-2. Rebuild and push the `cvmanager-flyway` image (the Dockerfile `COPY migration/V*.sql` glob picks up new files automatically).
+2. Merge to `develop` or `cdot-release*`. CI rebuilds and pushes the image automatically (the Dockerfile `COPY migration/V*.sql` glob picks up new files). To build manually, see the instructions above.
 3. Update the `image:` tag in `cv-manager-flyway.yaml`, delete the old Job, and re-apply:
    ```sh
    kubectl delete job cv-manager-flyway-migrate

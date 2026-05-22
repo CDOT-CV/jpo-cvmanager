@@ -21,13 +21,15 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: flyway
-          # Replace with your registry and the image tag matching the deployed migration set
-          image: your-registry/cvmanager-flyway:latest
+          # Replace <your-org> with your GitHub org/user and set the tag to the
+          # git SHA of the migrations you want to deploy.
+          # CI pushes to: ghcr.io/<github-org>/cvmanager-flyway:sha-<short-sha>
+          image: ghcr.io/your-org/cvmanager-flyway:sha-<git-sha>
           command: ["flyway", "migrate"]
           env:
             # Fill in PG_DB_NAME to match the value used in cv-manager-api.yaml
             - name: PG_DB_NAME
-              value: ""
+              value: "" # Required: set to your database name (matches PG_DB_NAME in cv-manager-api)
             - name: FLYWAY_URL
               value: jdbc:postgresql://cv-manager-postgres-svc:5432/$(PG_DB_NAME)
             - name: FLYWAY_USER

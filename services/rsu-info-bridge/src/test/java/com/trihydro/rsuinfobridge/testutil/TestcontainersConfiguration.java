@@ -1,5 +1,8 @@
 package com.trihydro.rsuinfobridge.testutil;
 
+import javax.sql.DataSource;
+
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
@@ -18,5 +21,18 @@ public class TestcontainersConfiguration {
     @SuppressWarnings("resource")
     public PostgreSQLContainer<?> postgisContainer() {
         return new PostgreSQLContainer<>(POSTGIS_IMAGE);
+    }
+
+    // Spring Boot 4 removed FlywayAutoConfiguration so wire it explicitly.
+    @Bean
+    public Flyway flyway(DataSource dataSource) {
+        Flyway flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .mixed(true)
+                .outOfOrder(true)
+                .load();
+        flyway.migrate();
+        return flyway;
     }
 }
