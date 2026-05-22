@@ -31,9 +31,9 @@ Flyway tracks which migration scripts have been applied to a database in a `flyw
 
 #### Timestamp versioning (`V{YYYYMMDDHHmm}__description.sql`)
 
-We use UTC timestamp prefixes rather than sequential integers (`V1__`, `V2__`, etc.). Sequential integers collide when multiple developers introduce migrations on parallel branches and both are merged — the second merge arrives with a version number already claimed. Timestamps are unique by construction and require no coordination across branches or contributors.
+We use UTC timestamp prefixes rather than sequential integers (`V1__`, `V2__`, etc.). Sequential integers collide when multiple developers introduce migrations on parallel branches and both are merged: the second merge arrives with a version number already claimed. Timestamps are unique by construction and require no coordination across branches or contributors.
 
-The baseline is `V1__baseline.sql` as a special case — it consolidates the entire pre-Flyway schema history into a single known starting point.
+The baseline is `V1__baseline.sql` as a special case that consolidates the entire pre-Flyway schema history into a single known starting point.
 
 #### `baselineOnMigrate = true`
 
