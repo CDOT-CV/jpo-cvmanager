@@ -23,7 +23,7 @@ public class TestcontainersConfiguration {
         return new PostgreSQLContainer<>(POSTGIS_IMAGE);
     }
 
-    // Spring Boot 4 removed FlywayAutoConfiguration — wire it explicitly.
+    // Spring Boot 4 removed FlywayAutoConfiguration so wire it explicitly.
     @Bean
     public Flyway flyway(DataSource dataSource) {
         Flyway flyway = Flyway.configure()
