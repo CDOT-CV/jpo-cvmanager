@@ -11,7 +11,7 @@ resources/db/
   migration/
     V1__baseline.sql        # Full current schema (all tables, indexes, sequences)
     R__sample_data.sql      # Dev seed data — re-runs when checksum changes
-    V20260521001__*.sql     # Future versioned migrations (date-stamped)
+    V{YYYYMMDDHHmm}__*.sql  # Future versioned migrations (date-stamped)
   flyway.toml               # Shared Flyway configuration
   README.md                 # This file
 ```
