@@ -124,3 +124,17 @@ Table descriptions are stored as SQL comments in the database (applied by migrat
 - **`roles`** must always contain exactly three rows with names `'admin'`, `'operator'`, and `'user'`. The application depends on these exact strings for permission checks.
 - **`ping`** and **`rsu_health`** should be pruned regularly. Retaining more than 24 hours of data per RSU causes noticeable slowdowns when loading the map.
 - **`scms_health`** data is only populated if you have an active ISS SCMS API service agreement.
+
+## Schema Integrity Review (2026-05)
+
+A schema constraint and index review was completed in May 2026. Changes are documented directly in the migration files that applied them — read those files for full rationale. Inline `--` comments and `COMMENT ON INDEX` statements explain each decision at the point it was made.
+
+| Migration | Summary |
+|---|---|
+| `V202605221641__schema_constraint_integrity.sql` | UNIQUE on `users.keycloak_id`; UNIQUE constraints on `rsu_organization`, `user_organization`, `intersection_organization` (with duplicate row cleanup); `ON DELETE CASCADE` on `rsu_options`, `consecutive_firmware_upgrade_failures`, and `user_organization(user_id)` |
+| `V202605221642__schema_index_optimization.sql` | Dropped 9 redundant or unused indexes; added composite `(rsu_id, timestamp DESC)` indexes on `ping`, `rsu_health`, and `scms_health` |
+
+**Deferred items:**
+
+- `obu_ota_requests.obu_firmware_version` and `requested_firmware_version` are raw strings with no FK to `firmware_images`. This is intentional: OBU firmware is sourced from blob storage and is not represented in `firmware_images`. A FK would require a separate OBU firmware catalog table.
+- Keycloak schema integrity review is deferred to a separate effort.
