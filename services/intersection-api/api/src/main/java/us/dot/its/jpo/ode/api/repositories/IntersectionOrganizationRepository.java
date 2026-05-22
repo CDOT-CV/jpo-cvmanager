@@ -29,6 +29,7 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
 
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
+            "LEFT JOIN FETCH io.organization " +
             "WHERE NOT EXISTS " +
             "(SELECT 1 FROM IntersectionOrganization io2 " +
             "WHERE io2.intersection.id = i.id AND io2.organization = :organization)")

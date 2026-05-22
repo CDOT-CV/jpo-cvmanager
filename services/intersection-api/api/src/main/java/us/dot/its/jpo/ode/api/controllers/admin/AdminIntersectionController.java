@@ -160,14 +160,12 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "404", description = "Referenced organization or RSU not found"),
     })
     @PostMapping(produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRsus(#create.rsus, 'OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRsus(#create.getRsus(), 'OPERATOR'))")
     public void createIntersection(@RequestBody @Validated IntersectionCreate create) {
         log.info("POST /admin/intersections. intersectionId={}", create.getIntersectionId());
 
         CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-        List<Organization> qualifiedOrgs = token != null
-                ? token.getQualifiedOrgList(UserRole.OPERATOR)
-                : Collections.emptyList();
+        List<Organization> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
 
         adminIntersectionService.createIntersection(create, qualifiedOrgs);
     }
