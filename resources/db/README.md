@@ -19,7 +19,7 @@ resources/db/
 ## Naming convention
 
 ```
-V{YYYYMMDDNNN}__{snake_case_description}.sql
+V{YYYYMMDDHHmm}__{snake_case_description}.sql
 ```
 
 | Part          | Meaning                 | Example                   |
@@ -75,7 +75,7 @@ a timestamp from before the branch's merge date. Flyway will apply it in order r
 
 ## Deprecated scripts
 
-`resources/sql_scripts/update_scripts/` contains the manually executed scripts that this Flyway setup replaces. That directory is kept as historical reference only. Do not add new scripts there.
+`resources/deprecated/sql_scripts/update_scripts/` contains the manually executed scripts that this Flyway setup replaces. That directory is kept as historical reference only. Do not add new scripts there.
 
 ## Schema Reference
 
