@@ -4,11 +4,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "intersection_organization")
+@Table(name = "intersection_organization", uniqueConstraints = @UniqueConstraint(columnNames = {"intersection_id", "organization_id"}))
 public class IntersectionOrganization {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "intersection_organization_id_gen")
@@ -19,11 +21,13 @@ public class IntersectionOrganization {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "intersection_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Intersection intersection;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Organization organization;
 
 
