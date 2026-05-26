@@ -32,6 +32,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
 
     List<Rsu> findByIpv4AddressIn(List<InetAddress> ipv4Addresses);
 
+    long countByIpv4AddressIn(List<InetAddress> ipv4Addresses);
+
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
             "JOIN rsu.rsuOrganizations ro " +

@@ -355,19 +355,13 @@ public class RsuManagementService {
         }).toList();
 
         // Check if all RSUs exist
-        List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
-        if (existingRsus.size() != inetAddresses.size()) {
-            // Find which IPs don't exist
-            List<String> existingIps = existingRsus.stream()
-                    .map(rsu -> rsu.getIpv4Address().getHostAddress())
-                    .toList();
-            List<String> missingIps = rsuIps.stream()
-                    .filter(ip -> !existingIps.contains(ip))
-                    .toList();
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "RSU(s) not found with IP(s): " + String.join(", ", missingIps));
-        } else if (existingRsus.isEmpty()) {
+        if (inetAddresses.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
+        }
+        long foundCount = rsuRepository.countByIpv4AddressIn(inetAddresses);
+        if (foundCount != inetAddresses.size()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "One or more RSU(s) not found by IP address");
         }
 
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);

@@ -249,23 +249,16 @@ public class UserManagementService {
     public void deleteMultipleUsersByEmail(List<String> emails) {
 
         // Check if all Users exist
-        List<User> existingUsers = userRepository.findByEmailIn(emails);
-        if (existingUsers.size() != emails.size()) {
-            // Find which emails don't exist
-            List<String> existingEmails = existingUsers.stream()
-                    .map(user -> user.getEmail())
-                    .toList();
-            List<String> missingEmails = emails.stream()
-                    .filter(email -> !existingEmails.contains(email))
-                    .toList();
-            throw new EntityNotFoundException(
-                    "User(s) not found with email(s): " + String.join(", ", missingEmails));
-        } else if (existingUsers.isEmpty()) {
+        if (emails.isEmpty()) {
             throw new IllegalArgumentException("No valid user emails provided");
+        }
+        long foundCount = userRepository.countByEmailIn(emails);
+        if (foundCount != emails.size()) {
+            throw new EntityNotFoundException("One or more user(s) not found by email address");
         }
 
         userOrganizationRepository.removeMultipleUserOrganizationsByEmail(emails);
-        userRepository.deleteAll(existingUsers);
+        userRepository.deleteByEmailIn(emails);
     }
 
     public static class UserEmailAlreadyExistsException extends RuntimeException {
