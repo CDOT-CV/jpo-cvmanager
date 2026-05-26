@@ -288,6 +288,18 @@ jobs:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4
 
+      - name: Validate Flyway migrations
+        run: |
+          docker run --rm \
+            --network host \
+            -v "$GITHUB_WORKSPACE/resources/db/migration:/flyway/sql" \
+            -v "$GITHUB_WORKSPACE/resources/db/flyway.toml:/flyway/conf/flyway.toml" \
+            flyway/flyway:10-alpine \
+            -url=jdbc:postgresql://localhost:5432/postgres \
+            -user=postgres \
+            -password=postgres \
+            validate
+
       - name: Run Flyway migrations
         run: |
           docker run --rm \
