@@ -29,19 +29,19 @@ Flyway tracks which migration scripts have been applied to a database in a `flyw
 
 ### Key configuration decisions
 
-#### Timestamp versioning (`V{YYYYMMDDHHmm}__description.sql`)
+#### Sequential integer versioning (`V{N}__description.sql`)
 
-We use UTC timestamp prefixes rather than sequential integers (`V1__`, `V2__`, etc.). Sequential integers collide when multiple developers introduce migrations on parallel branches and both are merged: the second merge arrives with a version number already claimed. Timestamps are unique by construction and require no coordination across branches or contributors.
+We use monotonically increasing integers (`V1__`, `V2__`, `V3__`, etc.). This enforces a known, unambiguous application order and keeps migration history human-readable at a glance. When two branches both introduce a migration and both are merged, the resulting version number conflict surfaces as a merge conflict that must be resolved before merging. This forces explicit team coordination on the correct ordering rather than silently allowing migrations to run out of order.
 
-The baseline is `V1__baseline.sql` as a special case that consolidates the entire pre-Flyway schema history into a single known starting point.
+The baseline is `V1__baseline.sql` as a special case that consolidates the entire pre-Flyway schema history into a single known starting point. All subsequent migrations increment from there: `V2__`, `V3__`, and so on.
 
 #### `baselineOnMigrate = true`
 
 Existing production databases already have the schema from years of manual scripts. We cannot re-run `V1__baseline.sql` on them. `baselineOnMigrate` tells Flyway to stamp the baseline version as already applied on first run, then apply only newer migrations. This allows safe adoption without dropping and recreating the schema.
 
-#### `outOfOrder = true`
+#### `outOfOrder` disabled
 
-Feature branches may produce migration files with timestamps that predate the branch merge date. `outOfOrder` allows these to be applied even if higher-versioned migrations have already run, which is the expected pattern for parallel feature branch development.
+`outOfOrder` is left at its default (`false`). Migrations must be applied strictly in version order. When two branches both introduce a migration and both are merged, the version number conflict surfaces as a standard merge conflict that must be resolved before the merge completes. This is intentional: a version conflict signals a coordination issue that should be understood and explicitly resolved, not silently bypassed by allowing out-of-order application.
 
 #### Repeatable migrations (`R__sample_data.sql`)
 
@@ -107,7 +107,7 @@ Continuing with manual SQL scripts was rejected. The status quo provided no orde
 ### Negative / Trade-offs
 
 - **No automatic rollback.** Flyway Community does not generate rollback scripts. Reverting a migration requires writing a new forward migration. This is a known limitation of SQL-level DDL migration tools on PostgreSQL.
-- **outOfOrder is a code smell at scale.** Allowing out-of-order migrations is necessary for parallel branch development but can obscure migration history if overused. Developers should still aim to merge migration branches promptly.
+- **Version conflicts require explicit coordination.** When two branches both add a migration, the resulting version number conflict must be resolved before either branch merges. This is a feature, not a bug, but it does require developers to communicate when working on parallel migrations.
 - **Baseline version complexity.** New developers must understand `baselineOnMigrate` when standing up a fresh database against an existing environment. This is documented in `resources/db/README.md` but adds onboarding friction.
 - **Flyway version pinning.** The project is pinned to Flyway 10. Future major versions may require migration script or configuration changes. The `validate_migrations` CI job provides a safety net for detecting breakage.
 

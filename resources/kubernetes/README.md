@@ -51,7 +51,7 @@ Update the `image:` field in `cv-manager-flyway.yaml` to match the pushed tag be
 
 **Adding a new migration:**
 
-1. Create `V{YYYYMMDDHHMM}__description.sql` in `resources/db/migration/` following the conventions in [`resources/db/README.md`](../db/README.md).
+1. Create `V{N}__description.sql` in `resources/db/migration/` following the naming conventions in [`resources/db/README.md`](../db/README.md).
 2. Merge to `develop` or `cdot-release*`. CI rebuilds and pushes the image automatically (the Dockerfile `COPY migration/V*.sql` glob picks up new files). To build manually, see the instructions above.
 3. Update the `image:` tag in `cv-manager-flyway.yaml`, delete the old Job, and re-apply:
    ```sh

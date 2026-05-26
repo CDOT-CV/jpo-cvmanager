@@ -9,9 +9,10 @@ CV Manager uses [Flyway](https://flywaydb.org/) to manage PostgreSQL schema chan
 ```
 resources/db/
   migration/
-    V1__baseline.sql        # Full current schema (all tables, indexes, sequences)
-    R__sample_data.sql      # Dev seed data — re-runs when checksum changes
-    V{YYYYMMDDHHmm}__*.sql  # Future versioned migrations (date-stamped)
+    V1__baseline.sql   # Full current schema (all tables, indexes, sequences)
+    V2__*.sql          # First post-baseline migration
+    V{N}__*.sql        # Subsequent versioned migrations (sequential integers)
+    R__sample_data.sql # Dev seed data -- re-runs when checksum changes
   flyway.toml               # Shared Flyway configuration
   README.md                 # This file
 ```
@@ -19,33 +20,25 @@ resources/db/
 ## Naming convention
 
 ```
-V{YYYYMMDDHHmm}__{snake_case_description}.sql
+V{N}__{snake_case_description}.sql
 ```
 
-| Part          | Meaning                 | Example                   |
-|---------------|-------------------------|---------------------------|
-| `YYYY`        | Year                    | `2026`                    |
-| `MM`          | Month                   | `05`                      |
-| `DD`          | Day                     | `21`                      |
-| `HH`          | UTC hour, 24-hour clock | `14`                      |
-| `mm`          | UTC minute              | `37`                      |
-| `description` | Snake-case summary      | `add_rsu_telemetry_table` |
+| Part          | Meaning                        | Example                   |
+|---------------|--------------------------------|---------------------------|
+| `N`           | Next integer in sequence       | `3`                       |
+| `description` | Snake-case summary of change   | `add_rsu_telemetry_table` |
 
-Full example: `V202605211437__add_rsu_telemetry_table.sql`
+Full example: `V3__add_rsu_telemetry_table.sql`
 
-**Why timestamp-based?** This project is Open Source with, in general, a quarterly release process that requires a large-scale PR process accounting for progress
-on multiple forks. Timestamp prefixes prevent version collisions when syncing changes between the forks and upstream, which may introduce integer-versioned
-migrations at any point. Flyway requires unique versions for each script, so the simplest way to reduce conflicting versions is to use the proposed format.
-It's extremely unlikely that more than one fork will have a database migration on the same date
+**Why sequential integers?** Sequential integers enforce a known, unambiguous application order and keep migration history easy to scan. When two branches both add a migration, the version number conflict surfaces as a merge conflict that must be resolved explicitly. This forces team coordination on the correct ordering rather than silently allowing migrations to run out of order.
 
 ## Creating a new migration
 
-**Note:** Use the UTC creation timestamp of the migration file.
-
-1. Create a file: `resources/db/migration/V{YYYYMMDDHHmm}__{snake_case_description}.sql`
-2. Write forward-only DDL or DML. Flyway Community does not support rollbacks.
-3. Write idempotent SQL where practical (`CREATE TABLE IF NOT EXISTS`, `ON CONFLICT DO NOTHING`).
-4. Test locally before committing (see below).
+1. Identify the next version number: check the highest `V{N}` in `resources/db/migration/` and increment by one.
+2. Create a file: `resources/db/migration/V{N}__{snake_case_description}.sql`
+3. Write forward-only DDL or DML. Flyway Community does not support rollbacks.
+4. Write idempotent SQL where practical (`CREATE TABLE IF NOT EXISTS`, `ON CONFLICT DO NOTHING`).
+5. Test locally before committing (see below).
 
 ## Running migrations locally
 
@@ -70,8 +63,7 @@ environments are adopted without a rebuild.
 
 ## outOfOrder
 
-`outOfOrder = true` allows a migration with a lower version number than the current HEAD to be applied. This is expected when a change developed on a branch has
-a timestamp from before the branch's merge date. Flyway will apply it in order relative to other pending migrations.
+`outOfOrder` is disabled. Migrations must be applied in strict version order. If two branches both introduce a migration with the same version number, the conflict surfaces as a merge conflict that must be resolved before either branch merges.
 
 ## Deprecated scripts
 
@@ -79,7 +71,7 @@ a timestamp from before the branch's merge date. Flyway will apply it in order r
 
 ## Schema Reference
 
-Table descriptions are stored as SQL comments in the database (applied by migration `V202605211729__add_table_comments.sql`) and are visible in psql via `\d+ <table>` or
+Table descriptions are stored as SQL comments in the database (applied by migration `V2__add_table_comments.sql`) and are visible in psql via `\d+ <table>` or
 `SELECT obj_description('public.<table>'::regclass)`. The table below summarizes each table for quick reference.
 
 | Table                                   | Description                                                                                                 |
