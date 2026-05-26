@@ -149,15 +149,15 @@ class UserManagementServiceTest {
         List<User> users = List.of(testUser);
         Page<User> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userRepository.findAllByOrganization("TestOrg", "", pageable)).thenReturn(userPage);
+        when(userRepository.findAllByOrganization(testOrganization, "", pageable)).thenReturn(userPage);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        Page<UserDto> result = userManagementService.getUsers("TestOrg", "", pageable);
+        Page<UserDto> result = userManagementService.getUsers(testOrganization, "", pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("test@example.com", result.getContent().get(0).getEmail());
-        verify(userRepository).findAllByOrganization("TestOrg", "", pageable);
+        verify(userRepository).findAllByOrganization(testOrganization, "", pageable);
     }
 
     @Test
@@ -166,14 +166,14 @@ class UserManagementServiceTest {
         List<User> users = List.of(testUser);
         Page<User> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userRepository.findAllByOrganization("TestOrg", "test", pageable)).thenReturn(userPage);
+        when(userRepository.findAllByOrganization(testOrganization, "test", pageable)).thenReturn(userPage);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
-        Page<UserDto> result = userManagementService.getUsers("TestOrg", "test", pageable);
+        Page<UserDto> result = userManagementService.getUsers(testOrganization, "test", pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userRepository).findAllByOrganization("TestOrg", "test", pageable);
+        verify(userRepository).findAllByOrganization(testOrganization, "test", pageable);
     }
 
     @Test
@@ -181,13 +181,13 @@ class UserManagementServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<User> userPage = new PageImpl<>(List.of(), pageable, 0);
 
-        when(userRepository.findAllByOrganization("TestOrg", "", pageable)).thenReturn(userPage);
+        when(userRepository.findAllByOrganization(testOrganization, "", pageable)).thenReturn(userPage);
 
-        Page<UserDto> result = userManagementService.getUsers("TestOrg", "", pageable);
+        Page<UserDto> result = userManagementService.getUsers(testOrganization, "", pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
-        verify(userRepository).findAllByOrganization("TestOrg", "", pageable);
+        verify(userRepository).findAllByOrganization(testOrganization, "", pageable);
     }
 
     // ==================== getAllowedSelections Tests ====================

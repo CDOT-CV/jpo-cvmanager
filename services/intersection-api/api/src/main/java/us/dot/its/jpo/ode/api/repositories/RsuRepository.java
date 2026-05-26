@@ -31,8 +31,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
             "JOIN rsu.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE o.name = :orgName " +
+            "WHERE ro.organization = :organization " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(CAST(rsu.ipv4Address AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(rsu.milepost AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -40,7 +39,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "LOWER(rsu.model.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.model.manufacturer.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.serialNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<Rsu> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
+    Page<Rsu> findAllByOrganization(@Param("organization") Organization organization, @Param("search") String search,
             Pageable pageable);
 
     @Query("SELECT DISTINCT r.primaryRoute FROM Rsu r ORDER BY r.primaryRoute ASC")

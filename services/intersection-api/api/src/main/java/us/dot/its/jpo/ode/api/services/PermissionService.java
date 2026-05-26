@@ -174,6 +174,10 @@ public class PermissionService {
         return qualifiedOrgs.containsAll(organizations);
     }
 
+    public boolean hasRoleInOrgNames(String role, List<String> organizations) {
+        return hasRoleInOrgNames(UserRole.fromString(role), organizations);
+    }
+
     // TODO: Remove when all are transitioned to hasRoleInOrgs
     public boolean hasRoleInOrgNames(UserRole role, List<String> organizations) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();

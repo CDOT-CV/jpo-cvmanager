@@ -31,6 +31,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import us.dot.its.jpo.ode.api.models.UserRole;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -63,11 +64,12 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public Page<UserDto> getUsers(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @RequestParam(name = "search", required = false) String search,
+            @RequestHeader(name = "Organization", required = true) Integer orgId,
+                    @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(SORT_FIELD_MAPPING, pageable);
-
+                
+        Organization organization = permissionService.getOrganizationById(orgId);
         return userManagementService.getUsers(organization, search, mappedPageable);
     }
 

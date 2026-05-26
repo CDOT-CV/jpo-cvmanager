@@ -153,10 +153,10 @@ public class AdminIntersectionService {
                 .collect(Collectors.toList());
 
         if (orgsToCreate.size() != create.getOrganizations().size()) {
-            List<Organization> missingOrgs = qualifiedOrgs.stream()
-                    .filter(org -> !create.getOrganizations().contains(org.getName()))
+            List<String> missingOrgNames = create.getOrganizations().stream()
+                    .filter(orgName -> orgsToCreate.stream().noneMatch(org -> org.getName().equals(orgName)))
                     .collect(Collectors.toList());
-            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgs);
+            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgNames);
         }
         Intersection savedIntersection = intersection;
         saveOrgAssociations(orgsToCreate, savedIntersection);

@@ -37,7 +37,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -78,7 +77,6 @@ class RsuControllerTest {
     class GetAllRsusTests {
         @Test
         void testGetAllRsus_Success() {
-            String organization = "TestOrg";
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 100);
 
@@ -115,9 +113,10 @@ class RsuControllerTest {
             List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
             Page<RsuInfoDto> rsuPage = new PageImpl<>(rsuList, pageable, 2);
 
-            when(rsuManagementService.getAllRsuInfo(organization, search, pageable)).thenReturn(rsuPage);
+            when(rsuManagementService.getAllRsuInfo(sampleOrganization, search, pageable)).thenReturn(rsuPage);
+            when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-            Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+            Page<RsuInfoDto> result = rsuController.getAllRsus(sampleOrganization.getId(), search, pageable);
 
             assertNotNull(result);
             assertEquals(2, result.getTotalElements());
@@ -125,12 +124,11 @@ class RsuControllerTest {
             assertEquals("192.168.1.100", result.getContent().get(0).getIpv4Address());
             assertEquals("192.168.1.101", result.getContent().get(1).getIpv4Address());
 
-            verify(rsuManagementService).getAllRsuInfo(organization, search, pageable);
+            verify(rsuManagementService).getAllRsuInfo(sampleOrganization, search, pageable);
         }
 
         @Test
         void testGetAllRsus_Sorting_TimDeposit() {
-            String organization = "TestOrg";
             String search = "";
             Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "tim_deposit"));
             Pageable expectedMappedPageable = PageRequest.of(0, 100,
@@ -138,18 +136,18 @@ class RsuControllerTest {
 
             Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
 
-            when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+            when(rsuManagementService.getAllRsuInfo(sampleOrganization, search, expectedMappedPageable))
                     .thenReturn(emptyPage);
+            when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-            Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+            Page<RsuInfoDto> result = rsuController.getAllRsus(sampleOrganization.getId(), search, pageable);
 
             assertNotNull(result);
-            verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
+            verify(rsuManagementService).getAllRsuInfo(sampleOrganization, search, expectedMappedPageable);
         }
 
         @Test
         void testGetAllRsus_Sorting_SnmpMonitoring() {
-            String organization = "TestOrg";
             String search = "";
             Pageable pageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "snmp_monitoring"));
             Pageable expectedMappedPageable = PageRequest.of(0, 100,
@@ -157,36 +155,36 @@ class RsuControllerTest {
 
             Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), expectedMappedPageable, 0);
 
-            when(rsuManagementService.getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable)))
+            when(rsuManagementService.getAllRsuInfo(sampleOrganization, search, expectedMappedPageable))
                     .thenReturn(emptyPage);
+            when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-            Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+            Page<RsuInfoDto> result = rsuController.getAllRsus(sampleOrganization.getId(), search, pageable);
 
             assertNotNull(result);
-            verify(rsuManagementService).getAllRsuInfo(eq(organization), eq(search), eq(expectedMappedPageable));
+            verify(rsuManagementService).getAllRsuInfo(sampleOrganization, search, expectedMappedPageable);
         }
 
         @Test
         void testGetAllRsus_EmptyResult() {
-            String organization = "EmptyOrg";
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 100);
             Page<RsuInfoDto> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-            when(rsuManagementService.getAllRsuInfo(organization, search, pageable)).thenReturn(emptyPage);
+            when(rsuManagementService.getAllRsuInfo(sampleOrganization, search, pageable)).thenReturn(emptyPage);
+            when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-            Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+            Page<RsuInfoDto> result = rsuController.getAllRsus(sampleOrganization.getId(), search, pageable);
 
             assertNotNull(result);
             assertEquals(0, result.getTotalElements());
             assertTrue(result.getContent().isEmpty());
 
-            verify(rsuManagementService).getAllRsuInfo(organization, search, pageable);
+            verify(rsuManagementService).getAllRsuInfo(sampleOrganization, search, pageable);
         }
 
         @Test
         void testGetAllRsus_WithCustomPageSize() {
-            String organization = "TestOrg";
             String search = "Search Term";
             Pageable pageable = PageRequest.of(0, 50);
 
@@ -207,15 +205,16 @@ class RsuControllerTest {
 
             Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
 
-            when(rsuManagementService.getAllRsuInfo(organization, search, pageable)).thenReturn(rsuPage);
+            when(rsuManagementService.getAllRsuInfo(sampleOrganization, search, pageable)).thenReturn(rsuPage);
+            when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-            Page<RsuInfoDto> result = rsuController.getAllRsus(organization, search, pageable);
+            Page<RsuInfoDto> result = rsuController.getAllRsus(sampleOrganization.getId(), search, pageable);
 
             assertNotNull(result);
             assertEquals(1, result.getTotalElements());
             assertEquals(50, result.getPageable().getPageSize());
 
-            verify(rsuManagementService).getAllRsuInfo(organization, search, pageable);
+            verify(rsuManagementService).getAllRsuInfo(sampleOrganization, search, pageable);
         }
     }
 

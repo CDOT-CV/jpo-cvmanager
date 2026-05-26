@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
@@ -53,6 +54,8 @@ class UserControllerTest {
     private UserDto testUserDto;
     private String testToken = "Bearer mock-jwt-token";
 
+    private Organization sampleOrganization;
+
     @BeforeEach
     void setUp() {
         // Set up test user DTO
@@ -62,62 +65,66 @@ class UserControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", testToken);
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        sampleOrganization = new Organization();
+        sampleOrganization.setId(1);
+        sampleOrganization.setName("TestOrg");
     }
 
     // ==================== getUsers Tests ====================
 
     @Test
     void testGetUsers_Success() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("test@example.com", result.getContent().get(0).getEmail());
-        verify(userManagementService).getUsers(eq(organization), eq(search), any(Pageable.class));
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), any(Pageable.class));
     }
 
     @Test
     void testGetUsers_WithSearch() {
-        String organization = "TestOrg";
         String search = "test";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(userManagementService).getUsers(eq(organization), eq(search), any(Pageable.class));
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), any(Pageable.class));
     }
 
     @Test
     void testGetUsers_WithSorting_FirstName() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("first_name").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "firstName".equals(order.getProperty()) && order.isAscending();
         }));
@@ -125,19 +132,19 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_LastName() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("last_name").descending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "lastName".equals(order.getProperty()) && order.isDescending();
         }));
@@ -145,19 +152,19 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_SuperUser() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("super_user").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "superUser".equals(order.getProperty());
         }));
@@ -165,20 +172,20 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_WithSorting_UnmappedField() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100, Sort.by("email").ascending());
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
         // Should keep original field name if not in mapping
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> {
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search), argThat(p -> {
             Sort.Order order = p.getSort().iterator().next();
             return "email".equals(order.getProperty());
         }));
@@ -186,32 +193,33 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_NoSorting() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(0, 100);
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 1);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
-        verify(userManagementService).getUsers(eq(organization), eq(search), argThat(p -> !p.getSort().isSorted()));
+        verify(userManagementService).getUsers(eq(sampleOrganization), eq(search),
+                argThat(p -> !p.getSort().isSorted()));
     }
 
     @Test
     void testGetUsers_EmptyResults() {
-        String organization = "TestOrg";
         String search = "nonexistent";
         Pageable pageable = PageRequest.of(0, 100);
         Page<UserDto> userPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
@@ -220,16 +228,16 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_Pagination() {
-        String organization = "TestOrg";
         String search = "";
         Pageable pageable = PageRequest.of(1, 25); // Page 2, size 25
         List<UserDto> users = List.of(testUserDto);
         Page<UserDto> userPage = new PageImpl<>(users, pageable, 100); // 100 total
 
-        when(userManagementService.getUsers(eq(organization), eq(search), any(Pageable.class)))
+        when(userManagementService.getUsers(eq(sampleOrganization), eq(search), any(Pageable.class)))
                 .thenReturn(userPage);
+        when(permissionService.getOrganizationById(sampleOrganization.getId())).thenReturn(sampleOrganization);
 
-        Page<UserDto> result = userController.getUsers(organization, search, pageable);
+        Page<UserDto> result = userController.getUsers(sampleOrganization.getId(), search, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getNumber()); // Page number

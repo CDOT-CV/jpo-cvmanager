@@ -75,8 +75,8 @@ public class RsuManagementService {
         }
     }
 
-    public Page<RsuInfoDto> getAllRsuInfo(String orgName, String search, Pageable pageable) {
-        Page<Rsu> rsus = rsuRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<RsuInfoDto> getAllRsuInfo(Organization organization, String search, Pageable pageable) {
+        Page<Rsu> rsus = rsuRepository.findAllByOrganization(organization, search, pageable);
         return rsus.map(rsuMapper::toDto);
     }
 

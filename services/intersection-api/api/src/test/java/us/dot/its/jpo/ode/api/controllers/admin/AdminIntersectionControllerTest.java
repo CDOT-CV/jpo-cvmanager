@@ -554,6 +554,9 @@ class AdminIntersectionControllerTest {
         @DisplayName("qualified operator with intersection access returns 200 with success message")
         void qualifiedOperator_returns200WithSuccessMessage() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRoleInOrgNames("OPERATOR", List.of(sampleOrganization.getName())))
+                    .thenReturn(true);
+            when(permissionService.hasRoleInOrgNames("OPERATOR", List.of())).thenReturn(true);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
@@ -744,6 +747,7 @@ class AdminIntersectionControllerTest {
         @DisplayName("super user returns 200 with intersection list")
         void superUser_returns200WithIntersectionList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(eq(sampleOrganization)))
                     .thenReturn(sampleListResponse);
 
@@ -762,6 +766,7 @@ class AdminIntersectionControllerTest {
         void adminRole_returns200() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(eq(sampleOrganization)))
                     .thenReturn(sampleListResponse);
 
@@ -778,6 +783,7 @@ class AdminIntersectionControllerTest {
         @DisplayName("returns 200 with empty list when no intersections are outside the organization")
         void emptyResult_returns200WithEmptyList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(any()))
                     .thenReturn(new IntersectionListResponse(List.of()));
 
@@ -793,6 +799,7 @@ class AdminIntersectionControllerTest {
         @DisplayName("passes the Organization header value to the service")
         void organizationHeader_isForwardedToService() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(eq(sampleOrganization)))
                     .thenReturn(sampleListResponse);
 
@@ -808,6 +815,7 @@ class AdminIntersectionControllerTest {
         @DisplayName("propagates service exception (500)")
         void serviceThrows_returns500() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(eq(sampleOrganization)))
                     .thenThrow(new RuntimeException("Database connection failed"));
 
@@ -849,9 +857,11 @@ class AdminIntersectionControllerTest {
         void superUser_bypassesEnforcement_returns200() throws Exception {
             IntersectionCreate createWithAnyOrg = new IntersectionCreate(
                     12109, new RefPt(39.7392, -104.9903),
-                    List.of("AnyOrg"), List.of("192.168.1.1"),
+                    List.of(sampleOrganization.getName()), List.of("192.168.1.1"),
                     null, null, null);
 
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
             when(permissionService.isSuperUser()).thenReturn(true);
 
             mockMvc.perform(post("/admin/intersections")
@@ -1018,11 +1028,13 @@ class AdminIntersectionControllerTest {
         @DisplayName("valid request with empty rsus list returns 200")
         void emptyRsusList_returns200() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
 
             IntersectionCreate createNoRsus = new IntersectionCreate(
                     12109, new RefPt(39.7392, -104.9903),
-                    List.of("TestOrg"), List.of(),
-                    null, null, null);
+                    List.of(sampleOrganization.getName()), List.of(),
+                            null, null, null);
 
             mockMvc.perform(post("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -1034,6 +1046,8 @@ class AdminIntersectionControllerTest {
         @WithMockUser
         @DisplayName("returns 404 when service throws EntityNotFoundException")
         void serviceThrowsNotFound_returns404() throws Exception {
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
             when(permissionService.isSuperUser()).thenReturn(true);
             doThrow(new EntityNotFoundException("Organization(s) not found: [BadOrg]"))
                     .when(adminIntersectionService).createIntersection(any(), anyList());
