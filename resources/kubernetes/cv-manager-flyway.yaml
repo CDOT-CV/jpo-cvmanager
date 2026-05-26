@@ -6,7 +6,7 @@
 # waits for a successful row in flyway_schema_history before starting.
 #
 # To add a new migration:
-# 1. Create V{YYYYMMDDHHMM}__description.sql in resources/db/migration/
+# 1. Create a migration in resources/db/migration/ following the standard outlined in resources/db/README.md
 # 2. Rebuild and push the cvmanager-flyway image
 # 3. Update the image tag below, delete the old Job, and re-apply
 apiVersion: batch/v1

@@ -272,7 +272,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgis/postgis:15-master
+        image: postgis/postgis:15-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -293,12 +293,11 @@ jobs:
           docker run --rm \
             --network host \
             -v "$GITHUB_WORKSPACE/resources/db/migration:/flyway/sql" \
+            -v "$GITHUB_WORKSPACE/resources/db/flyway.toml:/flyway/conf/flyway.toml" \
             flyway/flyway:10-alpine \
             -url=jdbc:postgresql://localhost:5432/postgres \
             -user=postgres \
             -password=postgres \
-            -locations=filesystem:/flyway/sql \
-            -outOfOrder=true \
             migrate
 
       - name: Verify migration state
@@ -306,11 +305,11 @@ jobs:
           docker run --rm \
             --network host \
             -v "$GITHUB_WORKSPACE/resources/db/migration:/flyway/sql" \
+            -v "$GITHUB_WORKSPACE/resources/db/flyway.toml:/flyway/conf/flyway.toml" \
             flyway/flyway:10-alpine \
             -url=jdbc:postgresql://localhost:5432/postgres \
             -user=postgres \
             -password=postgres \
-            -locations=filesystem:/flyway/sql \
             info
 
   sonar:

@@ -1,5 +1,5 @@
 > **DEPRECATED** — Manual SQL migration scripts in this directory have been replaced by
-> [Flyway-managed migrations](../db/README.md) in `resources/db/migration/`.
+> [Flyway-managed migrations](../../db/README.md) in `resources/db/migration/`.
 > This directory is kept as historical reference only. Do not add new migration scripts here.
 
 # PostgreSQL SQL Scripts

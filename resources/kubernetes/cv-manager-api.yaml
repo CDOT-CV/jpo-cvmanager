@@ -88,7 +88,10 @@ spec:
             - sh
             - -c
             - |
-              until psql "postgresql://$PG_DB_USER:$PG_DB_PASS@cv-manager-postgres-svc:5432/$PG_DB_NAME" \
+              : "${PG_DB_NAME:?PG_DB_NAME must be set}"
+              until PGPASSWORD="$PG_DB_PASS" psql \
+                -h cv-manager-postgres-svc -p 5432 \
+                -U "$PG_DB_USER" -d "$PG_DB_NAME" \
                 -c "SELECT 1 FROM flyway_schema_history WHERE success = true LIMIT 1" > /dev/null 2>&1; do
                 echo "Waiting for Flyway migrations to complete..."
                 sleep 5
