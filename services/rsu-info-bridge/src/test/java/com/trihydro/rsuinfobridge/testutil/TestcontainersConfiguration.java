@@ -30,7 +30,6 @@ public class TestcontainersConfiguration {
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
                 .mixed(true)
-                .outOfOrder(true)
                 .load();
         flyway.migrate();
         return flyway;
