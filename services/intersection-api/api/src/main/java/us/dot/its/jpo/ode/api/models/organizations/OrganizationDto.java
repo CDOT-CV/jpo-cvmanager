@@ -12,6 +12,8 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 @Value
 public class OrganizationDto implements Serializable {
 
+    Integer id;
+
     @Size(max = 128)
     String name;
 

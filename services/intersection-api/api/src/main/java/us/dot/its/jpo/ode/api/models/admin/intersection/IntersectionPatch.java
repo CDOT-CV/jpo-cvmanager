@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.models.admin.intersection;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,6 +40,7 @@ public class IntersectionPatch {
 
     @Schema(description = "New bounding box; omit to leave unchanged")
     @Valid
+    @Nullable
     @JsonProperty("bbox")
     private Bbox bbox;
 
@@ -53,12 +55,12 @@ public class IntersectionPatch {
     @Schema(description = "Organizations to add to this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("organizations_to_add")
-    private List<String> organizationsToAdd;
+    private List<Integer> organizationsToAdd;
 
     @Schema(description = "Organizations to remove from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("organizations_to_remove")
-    private List<String> organizationsToRemove;
+    private List<Integer> organizationsToRemove;
 
     @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull

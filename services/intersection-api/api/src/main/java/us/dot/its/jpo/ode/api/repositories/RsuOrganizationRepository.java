@@ -33,9 +33,6 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
 
     Optional<RsuOrganization> findByOrganization_Name(String organizationName);
 
-    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_Name(InetAddress ipv4Address,
-            String organizationName);
-
     @Query("SELECT ro.rsu.ipv4Address FROM RsuOrganization ro WHERE ro.organization.id = :organizationId")
     List<InetAddress> findAllRsuIpsByOrganizationId(@Param("organizationId") Integer organizationId);
 
@@ -44,23 +41,22 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
     List<Rsu> findAllRsusNotInOrganizationId(
             @Param("organizationId") Integer organizationId);
 
-    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization_NameIgnoreCase(InetAddress ipv4Address,
-            String organizationName);
+    Optional<RsuOrganization> findByRsuIpv4AddressAndOrganization(InetAddress ipv4Address, Organization organization);
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses AND ro.organization.name = :orgName")
-    void deleteByRsuIpv4AddressesAndOrganizationName(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses,
-            @Param("orgName") String orgName);
+    @Query("DELETE FROM RsuOrganization ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses AND ro.organization = :organization")
+    void deleteByRsuIpv4AddressesAndOrganization(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses,
+            @Param("organization") Organization organization);
 
     @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
             + "FROM RsuOrganization ro "
             + "WHERE ro.organization = :organization "
             + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
-    boolean existsOrphanRsuInOrganization(Organization organization);
+    boolean existsOrphanRsuInOrganization(@Param("organization") Organization organization);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuOrganization ro WHERE ro.organization = :organization")
-    void deleteAllByOrganization(Organization organization);
+    void deleteAllByOrganization(@Param("organization") Organization organization);
 }

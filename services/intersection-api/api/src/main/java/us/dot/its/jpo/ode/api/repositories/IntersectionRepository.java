@@ -46,6 +46,7 @@ public interface IntersectionRepository extends JpaRepository<Intersection, Inte
      */
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
+            "LEFT JOIN FETCH io.organization " +
             "WHERE io.organization = :organization")
     List<Intersection> findAllByOrganization(Organization organization);
 

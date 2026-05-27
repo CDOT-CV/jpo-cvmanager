@@ -31,6 +31,8 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
@@ -65,11 +67,12 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public Page<RsuInfoDto> getAllRsus(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @RequestParam(name = "search", required = false) String search,
+            @RequestHeader(name = "Organization", required = true) Integer orgId,
+                    @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(pageable);
 
+        Organization organization = permissionService.getOrganizationById(orgId);
         Page<RsuInfoDto> allRsuInfo = rsuManagementService.getAllRsuInfo(organization, search, mappedPageable);
         return allRsuInfo;
     }
@@ -101,27 +104,25 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
         ModifyRsuAllowedSelections allowedSelections = rsuManagementService
-                .getAllowedSelections(permissionService.getCvManagerAuthToken());
+                .getAllowedSelections(qualifiedOrgs);
 
         return allowedSelections;
     }
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")
     @RequestMapping(method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRoleInOrgIds('OPERATOR', #body.organizations))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
-        if (!permissionService.hasRoleInOrgNames(UserRole.OPERATOR, body.getOrganizations())) {
-            // This catches unqualified orgs or nonexistent orgs
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User not qualified to modify all specified organizations");
-        }
-
-        rsuManagementService.createRsu(body, body.getOrganizations());
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.OPERATOR);
+        rsuManagementService.createRsu(body, qualifiedOrgs);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -135,7 +136,9 @@ public class RsuController {
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
-        rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        rsuManagementService.modifyRsu(rsuIp, body, qualifiedOrgs);
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
         return ResponseEntity.noContent().build();
