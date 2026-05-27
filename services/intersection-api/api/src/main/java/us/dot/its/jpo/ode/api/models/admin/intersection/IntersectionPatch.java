@@ -55,12 +55,12 @@ public class IntersectionPatch {
     @Schema(description = "Organizations to add to this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("organizations_to_add")
-    private List<String> organizationsToAdd;
+    private List<Integer> organizationsToAdd;
 
     @Schema(description = "Organizations to remove from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("organizations_to_remove")
-    private List<String> organizationsToRemove;
+    private List<Integer> organizationsToRemove;
 
     @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull

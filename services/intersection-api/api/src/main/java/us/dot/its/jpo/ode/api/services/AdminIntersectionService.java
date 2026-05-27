@@ -82,11 +82,11 @@ public class AdminIntersectionService {
 
         IntersectionDto dto = intersectionMapper.toDto(intersection);
 
-        List<String> orgNames = intersection.getIntersectionOrganizations().stream()
+        List<Integer> orgIds = intersection.getIntersectionOrganizations().stream()
                 .filter(io -> io.getOrganization() != null)
-                .map(io -> io.getOrganization().getName())
+                .map(io -> io.getOrganization().getId())
                 .collect(Collectors.toList());
-        dto.setOrganizations(orgNames);
+        dto.setOrganizations(orgIds);
 
         List<String> rsuIps = rsuIntersectionRepository.findRsuIpsByIntersectionNumber(intersectionId)
                 .stream()
@@ -94,8 +94,8 @@ public class AdminIntersectionService {
                 .collect(Collectors.toList());
         dto.setRsus(rsuIps);
 
-        log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgNames.size(),
-                rsuIps.size());
+        log.debug("Successfully fetched intersection {}. Org count: {}, RSU count: {}", intersectionId, orgIds.size(),
+                        rsuIps.size());
         return new IntersectionSingleResponse(dto, getAllowedSelections());
     }
 
@@ -110,23 +110,23 @@ public class AdminIntersectionService {
      */
     public AllowedSelections getAllowedSelections() {
         if (permissionService.isSuperUser()) {
-            List<String> allOrgNames = organizationRepository.findAll().stream()
-                    .map(Organization::getName)
+            List<Integer> allOrgIds = organizationRepository.findAll().stream()
+                    .map(Organization::getId)
                     .collect(Collectors.toList());
             List<String> allRsuIps = rsuRepository.findAll().stream()
                     .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
                     .collect(Collectors.toList());
-            return new AllowedSelections(allOrgNames, allRsuIps);
+            return new AllowedSelections(allOrgIds, allRsuIps);
         }
         var token = permissionService.getCvManagerAuthToken();
         List<Organization> operatorOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
-        List<String> operatorOrgNames = operatorOrgs.stream()
-                .map(Organization::getName)
+        List<Integer> operatorOrgIds = operatorOrgs.stream()
+                .map(Organization::getId)
                 .collect(Collectors.toList());
         List<String> rsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
                 .map(inetMapper::mapInetAddressToString)
                 .collect(Collectors.toList());
-        return new AllowedSelections(operatorOrgNames, rsuIps);
+        return new AllowedSelections(operatorOrgIds, rsuIps);
     }
 
     /**
@@ -149,14 +149,14 @@ public class AdminIntersectionService {
 
         // Step 2: Create organization associations
         List<Organization> orgsToCreate = qualifiedOrgs.stream()
-                .filter(org -> create.getOrganizations().contains(org.getName()))
+                .filter(org -> create.getOrganizations().contains(org.getId()))
                 .collect(Collectors.toList());
 
         if (orgsToCreate.size() != create.getOrganizations().size()) {
-            List<String> missingOrgNames = create.getOrganizations().stream()
-                    .filter(orgName -> orgsToCreate.stream().noneMatch(org -> org.getName().equals(orgName)))
+            List<Integer> missingOrgIds = create.getOrganizations().stream()
+                    .filter(orgId -> orgsToCreate.stream().noneMatch(org -> org.getId().equals(orgId)))
                     .collect(Collectors.toList());
-            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgNames);
+            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgIds);
         }
         Intersection savedIntersection = intersection;
         saveOrgAssociations(orgsToCreate, savedIntersection);
@@ -321,7 +321,7 @@ public class AdminIntersectionService {
             log.debug("Step 2: Adding {} organization association(s): {}", patch.getOrganizationsToAdd().size(),
                     patch.getOrganizationsToAdd());
             List<Organization> orgsToAdd = qualifiedOrgs.stream()
-                    .filter(org -> patch.getOrganizationsToAdd().contains(org.getName()))
+                    .filter(org -> patch.getOrganizationsToAdd().contains(org.getId()))
                     .collect(Collectors.toList());
             if (orgsToAdd.size() != patch.getOrganizationsToAdd().size()) {
                 log.warn("Step 2: Requested {} org(s) to add but only {} resolved in DB. Requested: {}",
@@ -336,7 +336,7 @@ public class AdminIntersectionService {
         if (!patch.getOrganizationsToRemove().isEmpty()) {
             log.debug("Step 3: Removing {} organization association(s): {}", patch.getOrganizationsToRemove().size(),
                     patch.getOrganizationsToRemove());
-            intersectionOrganizationRepository.deleteByIntersectionNumberAndOrganizationNameIn(
+            intersectionOrganizationRepository.deleteByIntersectionNumberAndOrganizationIdsIn(
                     newNumber, patch.getOrganizationsToRemove());
             log.debug("Step 3: Org association removal complete.");
         } else {

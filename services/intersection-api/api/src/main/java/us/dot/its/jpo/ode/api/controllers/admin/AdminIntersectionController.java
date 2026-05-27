@@ -221,8 +221,8 @@ public class AdminIntersectionController {
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
             "@PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR') && " +
-            "@PermissionService.hasRoleInOrgNames('OPERATOR', #patch.organizationsToAdd) && " +
-            "@PermissionService.hasRoleInOrgNames('OPERATOR', #patch.organizationsToRemove) && " +
+            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToAdd) && " +
+            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToRemove) && " +
             "@PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && " +
             "@PermissionService.hasRsus(#patch.rsusToRemove, 'OPERATOR'))")
     public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {

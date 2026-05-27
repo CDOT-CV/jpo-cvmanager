@@ -91,8 +91,8 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"),
-                    Boolean.TRUE,
+                    Arrays.asList(1),
+                            Boolean.TRUE,
                     Boolean.TRUE);
 
             RsuInfoDto rsu2 = new RsuInfoDto(
@@ -106,8 +106,8 @@ class RsuControllerTest {
                     "ssh-group-2",
                     "snmp-group-2",
                     "v2c",
-                    Arrays.asList("TestOrg"),
-                    Boolean.TRUE,
+                    Arrays.asList(1),
+                            Boolean.TRUE,
                     Boolean.TRUE);
 
             List<RsuInfoDto> rsuList = Arrays.asList(rsu1, rsu2);
@@ -199,8 +199,8 @@ class RsuControllerTest {
                     "ssh-group",
                     "snmp-group",
                     "v3",
-                    Arrays.asList("TestOrg"),
-                    Boolean.TRUE,
+                    Arrays.asList(1),
+                            Boolean.TRUE,
                     Boolean.TRUE);
 
             Page<RsuInfoDto> rsuPage = new PageImpl<>(List.of(rsu1), pageable, 1);
@@ -236,8 +236,8 @@ class RsuControllerTest {
                     "ssh-group-1",
                     "snmp-group-1",
                     "v3",
-                    Arrays.asList("TestOrg"),
-                    Boolean.TRUE,
+                    Arrays.asList(1),
+                            Boolean.TRUE,
                     Boolean.TRUE);
 
             when(rsuManagementService.getRsuInfo(rsuIp)).thenReturn(rsuInfo);
@@ -296,9 +296,9 @@ class RsuControllerTest {
                     Arrays.asList("ssh-group-1", "ssh-group-2"),
                     Arrays.asList("snmp-group-1", "snmp-group-2"),
                     Arrays.asList("v2c", "v3"),
-                    Arrays.asList("TestOrg", "OtherOrg"));
+                    Arrays.asList(1, 2));
 
-            when(rsuManagementService.getAllowedSelections(any(CvManagerAuthToken.class)))
+            when(rsuManagementService.getAllowedSelections(anyList()))
                     .thenReturn(allowedSelections);
 
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
@@ -314,7 +314,7 @@ class RsuControllerTest {
             assertEquals(2, result.getSnmpVersionGroups().size());
             assertEquals(2, result.getOrganizations().size());
 
-            verify(rsuManagementService).getAllowedSelections(any(CvManagerAuthToken.class));
+            verify(rsuManagementService).getAllowedSelections(anyList());
         }
 
         @Nested
@@ -326,10 +326,11 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
                 patch.setIpv4Address("192.168.1.101");
 
-                doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                doReturn(null).when(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
                 doNothing().when(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
 
                 ResponseEntity<Void> result = rsuController.modifyRsu(rsuIp, patch);
 
@@ -337,7 +338,7 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.NO_CONTENT, result.getStatusCode());
                 assertNull(result.getBody());
 
-                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
                 verify(rsuOptionManagementService).modifyRsuOption(rsuIp, patch);
             }
 
@@ -347,14 +348,15 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
 
                 doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
                 assertThrows(
                         ResponseStatusException.class,
                         () -> rsuController.modifyRsu(rsuIp, patch));
 
-                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
                 verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
 
@@ -365,15 +367,16 @@ class RsuControllerTest {
                 invalidPatch.setIpv4Address("invalid-ip");
 
                 doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, authToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, invalidPatch, List.of(sampleOrganization));
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
 
                 assertThrows(
                         ResponseStatusException.class,
                         () -> rsuController.modifyRsu(rsuIp, invalidPatch));
 
-                verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, authToken);
+                verify(rsuManagementService).modifyRsu(rsuIp, invalidPatch, List.of(sampleOrganization));
                 verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
 
@@ -383,14 +386,15 @@ class RsuControllerTest {
                 RsuPatch patch = new RsuPatch();
 
                 doThrow(new RuntimeException("Database error"))
-                        .when(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                        .when(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
                 assertThrows(
                         RuntimeException.class,
                         () -> rsuController.modifyRsu(rsuIp, patch));
 
-                verify(rsuManagementService).modifyRsu(rsuIp, patch, authToken);
+                verify(rsuManagementService).modifyRsu(rsuIp, patch, List.of(sampleOrganization));
                 verify(rsuOptionManagementService, never()).modifyRsuOption(any(), any());
             }
         }
@@ -566,8 +570,7 @@ class RsuControllerTest {
         class CreateRsuTests {
             @Test
             void testCreateRsu_Success() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg");
-                UserRole role = UserRole.OPERATOR;
+                List<Integer> orgsToAdd = Arrays.asList(1);
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
                         "192.168.1.100",
@@ -586,8 +589,9 @@ class RsuControllerTest {
 
                 Rsu mockRsu = new Rsu();
 
-                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
-                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
+                when(rsuManagementService.createRsu(rsuInfoDto, List.of(sampleOrganization))).thenReturn(mockRsu);
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
 
@@ -595,46 +599,12 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
                 assertNull(result.getBody());
 
-                verify(permissionService).hasRoleInOrgNames(role, orgsToAdd);
-                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
-            }
-
-            @Test
-            void testCreateRsu_UnqualifiedOrganization() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg", "UnqualifiedOrg");
-                UserRole role = UserRole.OPERATOR;
-
-                RsuInfoDto rsuInfoDto = new RsuInfoDto(
-                        "192.168.1.100",
-                        new SimplePosition(39.7392, -105.0844),
-                        123.4,
-                        "I-25",
-                        "RSU123",
-                        "SCMS123",
-                        "Commsignia ITS-RS4-M",
-                        "ssh-group-1",
-                        "snmp-group-1",
-                        "v3",
-                        orgsToAdd,
-                        true,
-                        true);
-
-                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(false);
-
-                ResponseStatusException exception = assertThrows(
-                        ResponseStatusException.class,
-                        () -> rsuController.createRsu(rsuInfoDto));
-
-                assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-                assertTrue(exception.getReason().contains("User not qualified to modify all specified organizations"));
-
-                verify(rsuManagementService, never()).createRsu(any(), anyList());
+                verify(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
             }
 
             @Test
             void testCreateRsu_DuplicateIpAddress() {
-                List<String> orgsToAdd = Arrays.asList("TestOrg");
-                UserRole role = UserRole.OPERATOR;
+                List<Integer> orgsToAdd = Arrays.asList(1);
 
                 RsuInfoDto rsuInfoDto = new RsuInfoDto(
                         "192.168.1.100",
@@ -651,9 +621,10 @@ class RsuControllerTest {
                         true,
                         true);
 
-                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
+                when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+                when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
 
-                when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
+                when(rsuManagementService.createRsu(rsuInfoDto, List.of(sampleOrganization)))
                         .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT,
                                 "RSU with IP 192.168.1.100 already exists"));
 
@@ -661,13 +632,13 @@ class RsuControllerTest {
                         ResponseStatusException.class,
                         () -> rsuController.createRsu(rsuInfoDto));
 
-                verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
+                verify(rsuManagementService).createRsu(rsuInfoDto, List.of(sampleOrganization));
             }
         }
 
         @Test
         void testCreateRsu_ServiceException() {
-            List<String> orgsToAdd = Arrays.asList("TestOrg");
+            List<Integer> orgsToAdd = Arrays.asList(1);
 
             RsuInfoDto rsuInfoDto = new RsuInfoDto(
                     "192.168.1.100",
@@ -687,54 +658,6 @@ class RsuControllerTest {
             assertThrows(
                     RuntimeException.class,
                     () -> rsuController.createRsu(rsuInfoDto));
-        }
-
-        @Test
-        void testCreateRsu_OrgRelationshipCreationFails() {
-            List<String> orgsToAdd = Arrays.asList("TestOrg");
-
-            RsuInfoDto rsuInfoDto = new RsuInfoDto(
-                    "192.168.1.100",
-                    new SimplePosition(39.7392, -105.0844),
-                    123.4,
-                    "I-25",
-                    "RSU123",
-                    "SCMS123",
-                    "Commsignia ITS-RS4-M",
-                    "ssh-group-1",
-                    "snmp-group-1",
-                    "v3",
-                    orgsToAdd,
-                    true,
-                    true);
-
-            assertThrows(
-                    ResponseStatusException.class,
-                    () -> rsuController.createRsu(rsuInfoDto));
-        }
-
-        @Test
-        void testCreateRsu_NullOrganizationsList() {
-            RsuInfoDto rsuInfoDto = new RsuInfoDto(
-                    "192.168.1.100",
-                    new SimplePosition(39.7392, -105.0844),
-                    123.4,
-                    "I-25",
-                    "RSU123",
-                    "SCMS123",
-                    "Commsignia ITS-RS4-M",
-                    "ssh-group-1",
-                    "snmp-group-1",
-                    "v3",
-                    null,
-                    true,
-                    true);
-
-            assertThrows(
-                    ResponseStatusException.class,
-                    () -> rsuController.createRsu(rsuInfoDto));
-
-            verify(rsuManagementService, never()).createRsu(any(), anyList());
         }
     }
 }

@@ -174,6 +174,25 @@ public class PermissionService {
         return qualifiedOrgs.containsAll(organizations);
     }
 
+    public boolean hasRoleInOrgIds(String role, List<Integer> organizations) {
+        return hasRoleInOrgIds(UserRole.fromString(role), organizations);
+    }
+
+    public boolean hasRoleInOrgIds(UserRole role, List<Integer> orgIds) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
+        return qualifiedOrgs.stream().map(Organization::getId).collect(Collectors.toList())
+                .containsAll(orgIds);
+    }
+
     public boolean hasRoleInOrgNames(String role, List<String> organizations) {
         return hasRoleInOrgNames(UserRole.fromString(role), organizations);
     }
