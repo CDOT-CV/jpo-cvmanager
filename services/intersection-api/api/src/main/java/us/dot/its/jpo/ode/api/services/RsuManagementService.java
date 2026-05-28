@@ -248,36 +248,39 @@ public class RsuManagementService {
     }
 
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
+        if (patch.getOrganizations() != null) {
+            List<Integer> existingOrgIds = rsu.getRsuOrganizations().stream()
+                    .map(RsuOrganization::getOrganization)
+                    .map(Organization::getId)
+                    .collect(Collectors.toList());
+            // Validate that no additional organizations exist
+            for (Integer orgId : patch.getOrganizations()) {
+                if (!existingOrgIds.contains(orgId)) {
+                    Organization org = authorizedOrgs.stream()
+                            .filter(o -> o.getId().equals(orgId))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Organization not found or user not authorized for: " + orgId));
 
-        // Add organizations
-        if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            for (Integer orgId : patch.getOrganizationsToAdd()) {
-                Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getId().equals(orgId))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgId));
+                    RsuOrganization rsuOrg = new RsuOrganization();
+                    rsuOrg.setRsu(rsu);
+                    rsuOrg.setOrganization(org);
 
-                RsuOrganization rsuOrg = new RsuOrganization();
-                rsuOrg.setRsu(rsu);
-                rsuOrg.setOrganization(org);
-
-                rsuOrganizationRepository.save(rsuOrg);
+                    rsuOrganizationRepository.save(rsuOrg);
+                }
             }
-        }
-
-        // Remove organizations
-        if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            for (Integer orgId : patch.getOrganizationsToRemove()) {
-                Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getId().equals(orgId))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgId));
-                // Find and delete the specific association
-                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(
-                        rsu.getIpv4Address(),
-                        org).ifPresent(rsuOrganizationRepository::delete);
+            for (Integer orgId : existingOrgIds) {
+                if (!patch.getOrganizations().contains(orgId)) {
+                    Organization org = authorizedOrgs.stream()
+                            .filter(o -> o.getId().equals(orgId))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Organization not found or user not authorized for: " + orgId));
+                    // Find and delete the specific association
+                    rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(
+                            rsu.getIpv4Address(),
+                            org).ifPresent(rsuOrganizationRepository::delete);
+                }
             }
         }
     }
