@@ -5,7 +5,7 @@ import { AdminEditIntersectionFormType } from './AdminEditIntersection'
 export type adminEditIntersectionData = {
   intersection_data: AdminEditIntersectionFormType
   allowed_selections: {
-    organizations: string[]
+    organizations: number[]
     rsus: string[]
   }
 }
@@ -25,16 +25,16 @@ export type AdminEditIntersectionBody = {
   }
   intersection_name?: string
   origin_ip?: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
+  organizations_to_add: number[]
+  organizations_to_remove: number[]
   rsus_to_add: string[]
   rsus_to_remove: string[]
 }
 
 const initialState = {
   apiData: undefined as adminEditIntersectionData | undefined,
-  organizations: [] as { name: string }[],
-  selectedOrganizations: [] as { name: string }[],
+  organizations: [] as { id: number }[],
+  selectedOrganizations: [] as { id: number }[],
   rsus: [] as { name: string }[],
   selectedRsus: [] as { name: string }[],
   submitAttempt: false,
@@ -79,18 +79,18 @@ export const mapFormToRequestJson = (
     delete json.origin_ip
   }
 
-  const organizationsToAdd = []
-  const organizationsToRemove = []
+  const organizationsToAdd = [] as number[]
+  const organizationsToRemove = [] as number[]
   for (const org of state.value.apiData.allowed_selections.organizations) {
     if (
-      state.value.selectedOrganizations.some((e) => e.name === org) &&
+      state.value.selectedOrganizations.some((e) => e.id === org) &&
       !state.value.apiData.intersection_data.organizations.includes(org)
     ) {
       organizationsToAdd.push(org)
     }
     if (
       state.value.apiData.intersection_data.organizations.includes(org) &&
-      state.value.selectedOrganizations.some((e) => e.name === org) === false
+      state.value.selectedOrganizations.some((e) => e.id === org) === false
     ) {
       organizationsToRemove.push(org)
     }
@@ -146,14 +146,14 @@ export const adminEditIntersectionSlice = createSlice({
 
       const allowedSelections = apiData.allowed_selections
       state.value.organizations = allowedSelections.organizations.map((val) => {
-        return { name: val }
+        return { id: val }
       })
       state.value.rsus = allowedSelections.rsus.map((val) => {
         return { name: val?.replace('/32', '') } // Remove /32 from the end of the RSU name for human readability
       })
 
       state.value.selectedOrganizations = apiData.intersection_data.organizations.map((val) => {
-        return { name: val }
+        return { id: val }
       })
       state.value.selectedRsus = apiData.intersection_data.rsus.map((val) => {
         return { name: val?.replace('/32', '') } // Remove /32 from the end of the RSU name for human readability
@@ -168,8 +168,22 @@ export const { clear, setSelectedOrganizations, setSelectedRsus, setSubmitAttemp
   adminEditIntersectionSlice.actions
 
 export const selectApiData = (state: RootState) => state.adminEditIntersection.value.apiData
-export const selectOrganizations = (state: RootState) => state.adminEditIntersection.value.organizations
-export const selectSelectedOrganizations = (state: RootState) => state.adminEditIntersection.value.selectedOrganizations
+export const selectOrganizations = (state: RootState) => {
+  return state.adminEditIntersection.value.organizations.map(
+    (org) => ({
+      ...org,
+      name: state.user.value.authLoginData.data.organizations.find((e) => e.id === org.id)?.organization ?? org.id,
+    }) // Get the name from the user data
+  )
+}
+export const selectSelectedOrganizations = (state: RootState) => {
+  return state.adminEditIntersection.value.selectedOrganizations.map(
+    (org) => ({
+      ...org,
+      name: state.user.value.authLoginData.data.organizations.find((e) => e.id === org.id)?.organization ?? org.id,
+    }) // Get the name from the user data
+  )
+}
 export const selectRsus = (state: RootState) => state.adminEditIntersection.value.rsus
 export const selectSelectedRsus = (state: RootState) => state.adminEditIntersection.value.selectedRsus
 export const selectSubmitAttempt = (state: RootState) => state.adminEditIntersection.value.submitAttempt

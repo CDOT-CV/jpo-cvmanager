@@ -8,7 +8,7 @@ import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination
 import { AdminRsuCreationBody } from '../adminAddRsu/AdminAddRsu'
 
 export interface GetAllRsusParams extends PaginatedQueryParams {
-  organization: string
+  organization: number
 }
 
 // Tag type constants
@@ -47,7 +47,7 @@ export const rsuApiSlice = createApi({
             search: search,
           })}`,
           headers: {
-            Organization: organization,
+            Organization: organization?.toString(),
           },
         }
       },

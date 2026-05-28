@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
@@ -25,6 +25,8 @@ import { useGetRsuAllowedSelectionsQuery, useCreateRsuMutation } from '../api/rs
 
 import '../adminRsuTab/Admin.css'
 import '../../styles/fonts/museo-slab.css'
+import { useSelector } from 'react-redux'
+import { selectOrganizationsList } from '../../generalSlices/userSlice'
 
 export type AdminAddRsuForm = {
   ip: string
@@ -38,7 +40,7 @@ export type AdminAddRsuForm = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: string[]
+  organizations: number[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -59,7 +61,7 @@ export type AdminRsuCreationBody = {
   snmp_version_group: string
   tim_deposit: boolean
   snmp_monitoring: boolean
-  organizations: string[]
+  organizations: number[]
 }
 
 const AdminAddRsu = () => {
@@ -73,12 +75,13 @@ const AdminAddRsu = () => {
   const [selectedSshGroup, setSelectedSshGroup] = useState('Select SSH Group (Required)')
   const [selectedSnmpGroup, setSelectedSnmpGroup] = useState('Select SNMP Group (Required)')
   const [selectedSnmpVersion, setSelectedSnmpVersion] = useState('Select SNMP Protocol (Required)')
-  const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<number[]>([])
   const [submitAttempt, setSubmitAttempt] = useState(false)
 
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetRsuAllowedSelectionsQuery()
   const [createRsu, { isLoading: isCreating }] = useCreateRsuMutation()
+  const authOrganizationsList = useSelector(selectOrganizationsList)
 
   const {
     register,
@@ -181,7 +184,14 @@ const AdminAddRsu = () => {
   const sshCredentialGroups = allowedSelections?.ssh_credential_groups || []
   const snmpCredentialGroups = allowedSelections?.snmp_credential_groups || []
   const snmpVersions = allowedSelections?.snmp_version_groups || []
-  const organizations = allowedSelections?.organizations || []
+  const organizations = useMemo(() => {
+    return (
+      allowedSelections?.organizations?.map((id) => ({
+        id: id,
+        name: authOrganizationsList.find((authOrg) => authOrg.id === id)?.organization ?? id,
+      })) || []
+    )
+  }, [allowedSelections, authOrganizationsList])
 
   return (
     <Dialog open={open}>
@@ -512,11 +522,11 @@ const AdminAddRsu = () => {
                 multiple
                 required
                 value={selectedOrganizations}
-                onChange={(event) => setSelectedOrganizations(event.target.value as string[])}
+                onChange={(event) => setSelectedOrganizations(event.target.value as number[])}
               >
-                {organizations.map((org, index) => (
-                  <MenuItem key={index} value={org}>
-                    {org}
+                {organizations.map((org) => (
+                  <MenuItem key={org.id} value={org.id}>
+                    {org.name}
                   </MenuItem>
                 ))}
               </Select>

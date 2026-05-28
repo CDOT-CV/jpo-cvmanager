@@ -120,6 +120,7 @@ export const { logout, changeOrganization, setOrganizationList, setLoading, setL
   userSlice.actions
 
 export const selectAuthLoginData = (state: RootState) => state.user.value.authLoginData
+export const selectOrganizationsList = (state: RootState) => state.user.value.authLoginData?.data?.organizations ?? []
 export const selectToken = (state: RootState) => state.user.value.authLoginData?.token
 export const selectRole = (state: RootState) => state.user.value.organization?.role
 export const selectIsSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user

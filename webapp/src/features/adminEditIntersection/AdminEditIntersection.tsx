@@ -45,8 +45,8 @@ import { SideBarHeader } from '../../styles/components/SideBarHeader'
 
 export type AdminEditIntersectionFormType = AdminIntersection & {
   orig_intersection_id: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
+  organizations_to_add: number[]
+  organizations_to_remove: number[]
   rsus: string[]
   rsus_to_add: string[]
   rsus_to_remove: string[]
@@ -319,15 +319,15 @@ const AdminEditIntersection = () => {
                     id="organizations"
                     label="Organizations"
                     multiple
-                    value={selectedOrganizations.map((org) => org.name)}
-                    defaultValue={selectedOrganizations.map((org) => org.name)}
+                    value={selectedOrganizations.map((org) => org.id)}
+                    defaultValue={selectedOrganizations.map((org) => org.id)}
                     onChange={(event) => {
-                      const selectedOrgs = event.target.value as string[]
-                      dispatch(setSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.name))))
+                      const selectedOrgs = event.target.value as number[]
+                      dispatch(setSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.id))))
                     }}
                   >
                     {organizations.map((org) => (
-                      <MenuItem key={org.name} value={org.name}>
+                      <MenuItem key={org.id} value={org.id}>
                         {org.name}
                       </MenuItem>
                     ))}

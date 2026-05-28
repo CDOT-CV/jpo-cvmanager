@@ -131,7 +131,7 @@ const AdminEditUser = () => {
   }
 
   const handleAddOrganization = () => {
-    append({ organization: '', role: 'USER' })
+    append({ id: -1, organization: '', email: '', role: 'USER' })
   }
 
   const handleRemoveOrganization = (index: number) => {

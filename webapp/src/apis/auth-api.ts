@@ -74,6 +74,8 @@ class AuthApi {
       super_user: token.cvmanager_data.super_user === '1',
       organizations: token.cvmanager_data.organizations.map((org) => ({
         organization: org.org_name,
+        id: org.org_id,
+        email: token.email,
         role: this.parseRole(org.role),
       })),
     }

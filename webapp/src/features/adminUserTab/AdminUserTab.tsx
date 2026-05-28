@@ -4,7 +4,7 @@ import AdminEditUser from '../adminEditUser/AdminEditUser'
 import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectOrganizationId } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 
 import '../adminRsuTab/Admin.css'
@@ -24,7 +24,7 @@ import {
 const AdminUserTab = () => {
   const navigate = useNavigate()
   const theme = useTheme()
-  const organization = useSelector(selectOrganizationName)
+  const organization = useSelector(selectOrganizationId)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -33,7 +33,7 @@ const AdminUserTab = () => {
     size: 20,
     sort: 'first_name,asc',
     search: '',
-    organization: organization || '',
+    organization: organization || -1,
   })
 
   const [trigger] = useLazyGetUsersQuery()
@@ -77,7 +77,7 @@ const AdminUserTab = () => {
           size: query.pageSize,
           sort: `${orderBy},${orderDirection}`,
           search: query.search || '',
-          organization: organization || '', // Add organization parameter
+          organization: organization || -1, // Add organization parameter
         }
 
         // Check if organization changed - if so, reset to page 0

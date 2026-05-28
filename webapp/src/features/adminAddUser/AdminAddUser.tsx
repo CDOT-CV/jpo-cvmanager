@@ -56,7 +56,7 @@ const AdminAddUser = () => {
   // Initialize with one empty organization on mount
   useEffect(() => {
     if (selectedOrganizations.length === 0 && !isLoadingData) {
-      setSelectedOrganizations([{ organization: '', role: 'USER' }])
+      setSelectedOrganizations([{ id: -1, organization: '', email: '', role: 'USER' }])
     }
   }, [isLoadingData])
 
@@ -66,7 +66,7 @@ const AdminAddUser = () => {
   }
 
   const handleAddOrganization = () => {
-    setSelectedOrganizations([...selectedOrganizations, { organization: '', role: 'USER' }])
+    setSelectedOrganizations([...selectedOrganizations, { id: -1, organization: '', email: '', role: 'USER' }])
   }
 
   const handleRemoveOrganization = (index: number) => {
@@ -145,7 +145,7 @@ const AdminAddUser = () => {
 
       // Reset form
       reset()
-      setSelectedOrganizations([{ organization: '', role: 'USER' }])
+      setSelectedOrganizations([{ id: -1, organization: '', email: '', role: 'USER' }])
       setSubmitAttempt(false)
 
       handleClose()

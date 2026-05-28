@@ -36,6 +36,7 @@ import {
   useGetIntersectionAllowedSelectionsQuery,
   useCreateIntersectionMutation,
 } from '../api/adminIntersectionApiSlice'
+import { selectOrganizationsList } from '../../generalSlices/userSlice'
 
 export type AdminAddIntersectionForm = {
   intersection_id: string
@@ -51,7 +52,7 @@ export type AdminAddIntersectionForm = {
   }
   intersection_name?: string
   origin_ip?: string
-  organizations: string[]
+  organizations: number[]
   rsus: string[]
 }
 
@@ -60,10 +61,11 @@ const AdminAddIntersection = () => {
 
   const { data: allowedSelections } = useGetIntersectionAllowedSelectionsQuery()
   const [createIntersection] = useCreateIntersectionMutation()
+  const authOrganizationsList = useSelector(selectOrganizationsList)
 
   const keyedData = useMemo(
-    () => (allowedSelections ? convertApiJsonToKeyedFormat(allowedSelections) : undefined),
-    [allowedSelections]
+    () => (allowedSelections ? convertApiJsonToKeyedFormat(allowedSelections, authOrganizationsList) : undefined),
+    [allowedSelections, authOrganizationsList]
   )
   const organizations = keyedData?.organizations ?? []
   const rsus = keyedData?.rsus ?? []
@@ -247,14 +249,14 @@ const AdminAddIntersection = () => {
                 id="organizations"
                 label="Organizations"
                 multiple
-                value={selectedOrganizations.map((org) => org.name)}
+                value={selectedOrganizations.map((org) => org.id)}
                 onChange={(event) => {
-                  const selectedOrgs = event.target.value as string[]
-                  dispatch(updateSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.name))))
+                  const selectedOrgs = event.target.value as number[]
+                  dispatch(updateSelectedOrganizations(organizations.filter((org) => selectedOrgs.includes(org.id))))
                 }}
               >
                 {organizations.map((org) => (
-                  <MenuItem key={org.id} value={org.name}>
+                  <MenuItem key={org.id} value={org.id}>
                     {org.name}
                   </MenuItem>
                 ))}
