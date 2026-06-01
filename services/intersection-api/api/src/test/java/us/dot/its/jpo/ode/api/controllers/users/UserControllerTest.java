@@ -523,8 +523,7 @@ class UserControllerTest {
     void testModifyUser_WithOrganizationChanges() {
         String email = "test@example.com";
         UserPatch userPatch = new UserPatch();
-        userPatch.setOrganizationsToAdd(List.of());
-        userPatch.setOrganizationsToRemove(List.of());
+        userPatch.setOrganizations(List.of());
 
         when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));

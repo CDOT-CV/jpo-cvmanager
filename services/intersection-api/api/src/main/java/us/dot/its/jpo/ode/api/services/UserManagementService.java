@@ -8,7 +8,6 @@ import javax.ws.rs.core.Response;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -140,10 +139,18 @@ public class UserManagementService {
     }
 
     private void handleOrganizationChanges(User user, UserPatch patch, List<Organization> authorizedOrgs) {
+        if (patch.getOrganizations() == null) {
+            return;
+        }
 
-        // Add organizations
-        if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
+        List<UserOrganization> currentUserOrgs = userOrganizationRepository.findAllByEmail(user.getEmail()).stream()
+                .filter(uo -> authorizedOrgs.stream().anyMatch(o -> o.getId().equals(uo.getOrganization().getId())))
+                .toList();
+
+        // Add missing organizations
+        List<UserOrganization> toUpdate = new ArrayList<>();
+        for (UserOrganizationDto org : patch.getOrganizations()) {
+            if (currentUserOrgs.stream().noneMatch(uo -> uo.getOrganization().getId() == org.getOrganization())) {
                 Organization organization = authorizedOrgs.stream()
                         .filter(o -> o.getId().equals(org.getOrganization()))
                         .findFirst()
@@ -158,51 +165,36 @@ public class UserManagementService {
                 userOrg.setRole(role);
                 userOrg.setOrganization(organization);
 
-                // Save to repository
-                userOrganizationRepository.save(userOrg);
+                toUpdate.add(userOrg);
             }
         }
-
-        // Remove organizations
-        if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<UserOrganizationDto> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(org.getOrganization())))
-                    .toList();
-            if (!unqualifiedRemoves.isEmpty()) {
-                throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
-                        + String.join(", ", unqualifiedRemoves.stream()
-                                .map((dto) -> dto.getOrganization().toString()).toList()));
-            }
-            for (UserOrganizationDto org : patch.getOrganizationsToRemove()) {
-                // Find and delete the specific association
-                Organization organization = authorizedOrgs.stream()
-                        .filter(o -> o.getId().equals(org.getOrganization()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found: " + org.getOrganization()));
-                userOrganizationRepository.findByUserAndOrganization(user, organization)
-                        .ifPresent(userOrganizationRepository::delete);
+        // Update modified organizations
+        for (UserOrganizationDto org : patch.getOrganizations()) {
+            // currentUserOrgs is already filtered to only include orgs the user is
+            // authorized for, so we can directly check for matches and updates
+            UserOrganization matchingOrg = currentUserOrgs.stream()
+                    .filter(uo -> uo.getOrganization().getId() == org.getOrganization())
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg != null && !matchingOrg.getRole().getName().equalsIgnoreCase(org.getRole())) {
+                Role role = roleRepository.findByNameIgnoreCase(org.getRole())
+                        .orElseThrow(() -> new IllegalArgumentException("Role not found: " + org.getRole()));
+                matchingOrg.setRole(role);
+                toUpdate.add(matchingOrg);
             }
         }
+        if (!toUpdate.isEmpty()) {
+            userOrganizationRepository.saveAll(toUpdate);
+        }
 
-        if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
-            for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
-                Organization organization = authorizedOrgs.stream()
-                        .filter(o -> o.getId().equals(org.getOrganization()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found: " + org.getOrganization()));
-                userOrganizationRepository.findByUserAndOrganization(
-                        user,
-                        organization).ifPresent(userOrg -> {
-                            Role role = roleRepository.findByNameIgnoreCase(org.getRole())
-                                    .orElseThrow(
-                                            () -> new IllegalArgumentException(
-                                                    "Role not found: " + org.getRole()));
-                            userOrg.setRole(role);
-                            userOrganizationRepository.save(userOrg);
-                        });
-            }
+        // Remove organizations not in the patch's list
+        List<UserOrganization> toDelete = currentUserOrgs.stream()
+                .filter(uo -> patch.getOrganizations().stream()
+                        .noneMatch(org -> org.getOrganization() == uo.getOrganization().getId()))
+                .filter(uo -> authorizedOrgs.stream().anyMatch(o -> o.getId().equals(uo.getOrganization().getId())))
+                .toList();
+        if (!toDelete.isEmpty()) {
+            userOrganizationRepository.deleteAll(toDelete);
         }
     }
 
