@@ -86,6 +86,7 @@ public class EmailService {
                 EmailFrequency.IMMEDIATE);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for intersection notification summary email");
+            return Collections.emptyList();
         }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
@@ -96,6 +97,7 @@ public class EmailService {
                 EmailFrequency.IMMEDIATE);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for support request email");
+            return Collections.emptyList();
         }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
@@ -106,6 +108,7 @@ public class EmailService {
                 data.getOrganizationName(), EmailFrequency.IMMEDIATE);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for message count email for organization: {}", data.getOrganizationName());
+            return Collections.emptyList();
         }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
@@ -116,6 +119,7 @@ public class EmailService {
                 data.getRsuIp(), EmailFrequency.IMMEDIATE);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for firmware upgrade failure email for RSU IP: {}", data.getRsuIp());
+            return Collections.emptyList();
         }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
@@ -126,6 +130,7 @@ public class EmailService {
                 EmailFrequency.IMMEDIATE);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for API error email");
+            return Collections.emptyList();
         }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
@@ -135,7 +140,7 @@ public class EmailService {
         String email = permissionService.getCvManagerAuthToken().getEmail();
         if (email == null || email.isBlank()) {
             log.warn("Unable to send RSU error summary: authenticated user token does not contain a valid email");
-            throw new IllegalArgumentException("Authenticated user email is missing or blank");
+            return Collections.emptyList();
         }
         List<EmailRecipient> recipients = List.of(new EmailRecipient(email, ""));
         return emailProvider.sendBatchedEmails(recipients, content);
