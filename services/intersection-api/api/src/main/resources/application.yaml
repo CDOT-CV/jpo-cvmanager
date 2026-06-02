@@ -137,7 +137,7 @@ bucket4j:
             - capacity: ${EMAIL_RATE_LIMIT_PER_USER:12}
               time: 1
               unit: hours
-        - cache-key: 'email_global'
+        - cache-key: "'email_global'"
           bandwidths:
             - capacity: ${EMAIL_RATE_LIMIT_PER_INSTANCE:120}
               time: 1
