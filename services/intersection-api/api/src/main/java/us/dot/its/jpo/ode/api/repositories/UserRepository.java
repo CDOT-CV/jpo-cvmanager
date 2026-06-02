@@ -49,6 +49,14 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     long countByEmailIn(List<String> emails);
 
+    /**
+     * Returns the subset of the given emails that actually exist. Used only on the
+     * not-found error path to report exactly which emails were missing, without
+     * loading full User entities.
+     */
+    @Query("SELECT u.email FROM User u WHERE u.email IN :emails")
+    List<String> findExistingEmails(@Param("emails") List<String> emails);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM User u WHERE u.email IN :emails")

@@ -885,6 +885,90 @@ class RsuManagementServiceTest {
         verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
+    // ==================== deleteMultipleRsusByIpv4Address TESTS ====================
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_Success() throws UnknownHostException {
+        List<String> ips = List.of("10.0.0.1", "10.0.0.2");
+        List<InetAddress> addresses = List.of(InetAddress.getByName("10.0.0.1"),
+                InetAddress.getByName("10.0.0.2"));
+
+        when(rsuRepository.countByIpv4AddressIn(addresses)).thenReturn(2L);
+
+        rsuManagementService.deleteMultipleRsusByIpv4Address(ips);
+
+        verify(rsuRepository).countByIpv4AddressIn(addresses);
+        verify(pingRepository).removeMultiplePingsByIpv4Address(addresses);
+        verify(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(addresses);
+        verify(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(addresses);
+        verify(snmpMsgfwdConfigRepository).removeMultipleSnmpMsgfwdConfigByIpv4Address(addresses);
+        verify(rsuIntersectionRepository).removeMultipleRsuIntersectionsByIpv4Address(addresses);
+        verify(consecutiveFirmwareUpgradeFailureRepository)
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(addresses);
+        verify(maxRetryLimitReachedInstanceRepository)
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(addresses);
+        verify(rsuOptionRepository).removeMultipleRsuOptionsByIpv4Address(addresses);
+        verify(rsuRepository).removeByIpv4AddressIn(addresses);
+    }
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_SomeNotFound() throws UnknownHostException {
+        List<String> ips = List.of("10.0.0.1", "10.0.0.2");
+        List<InetAddress> addresses = List.of(InetAddress.getByName("10.0.0.1"),
+                InetAddress.getByName("10.0.0.2"));
+
+        when(rsuRepository.countByIpv4AddressIn(addresses)).thenReturn(1L);
+        when(rsuRepository.findExistingIpv4Addresses(addresses))
+                .thenReturn(List.of(InetAddress.getByName("10.0.0.1")));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.deleteMultipleRsusByIpv4Address(ips));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        // Specific missing IP is reported; the existing one is not.
+        assertTrue(exception.getMessage().contains("10.0.0.2"));
+        assertFalse(exception.getMessage().contains("10.0.0.1"));
+        verify(rsuRepository, never()).removeByIpv4AddressIn(any());
+        verify(pingRepository, never()).removeMultiplePingsByIpv4Address(any());
+    }
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_EmptyList() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.deleteMultipleRsusByIpv4Address(List.of()));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("No valid RSU IP addresses provided"));
+        verify(rsuRepository, never()).removeByIpv4AddressIn(any());
+    }
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_InvalidIp() {
+        List<String> ips = List.of("999.999.999.999");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.deleteMultipleRsusByIpv4Address(ips));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("Invalid IP address"));
+        verify(rsuRepository, never()).removeByIpv4AddressIn(any());
+    }
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_DuplicateIps() throws UnknownHostException {
+        // Duplicate input must be de-duplicated before the count comparison so a request
+        // listing the same existing RSU twice succeeds instead of failing as "not found".
+        List<String> ips = List.of("10.0.0.1", "10.0.0.1");
+        List<InetAddress> distinct = List.of(InetAddress.getByName("10.0.0.1"));
+
+        when(rsuRepository.countByIpv4AddressIn(distinct)).thenReturn(1L);
+
+        rsuManagementService.deleteMultipleRsusByIpv4Address(ips);
+
+        verify(rsuRepository).countByIpv4AddressIn(distinct);
+        verify(rsuRepository).removeByIpv4AddressIn(distinct);
+    }
+
     // ==================== HELPER METHODS ====================
 
     private RsuRepository.RsuModelProjection createRsuModelProjection(String manufacturer, String model) {

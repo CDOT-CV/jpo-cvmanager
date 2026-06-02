@@ -34,6 +34,14 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
 
     long countByIpv4AddressIn(List<InetAddress> ipv4Addresses);
 
+    /**
+     * Returns the subset of the given IPv4 addresses that actually exist. Used only on
+     * the not-found error path to report exactly which RSU IPs were missing, without
+     * loading full Rsu entities.
+     */
+    @Query("SELECT r.ipv4Address FROM Rsu r WHERE r.ipv4Address IN :ipv4Addresses")
+    List<InetAddress> findExistingIpv4Addresses(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
             "JOIN rsu.rsuOrganizations ro " +

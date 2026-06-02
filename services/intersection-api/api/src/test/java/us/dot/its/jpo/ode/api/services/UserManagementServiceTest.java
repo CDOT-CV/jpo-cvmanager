@@ -471,11 +471,12 @@ class UserManagementServiceTest {
         List<String> emails = List.of("test1@example.com", "nonexistent@example.com");
 
         when(userRepository.countByEmailIn(emails)).thenReturn(1L);
+        when(userRepository.findExistingEmails(emails)).thenReturn(List.of("test1@example.com"));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
-        assertEquals("One or more user(s) not found by email address", exception.getMessage());
+        assertEquals("User(s) not found with email(s): nonexistent@example.com", exception.getMessage());
         verify(userRepository, never()).deleteByEmailIn(any());
         verify(userOrganizationRepository, never()).removeMultipleUserOrganizationsByEmail(any());
     }
@@ -496,12 +497,30 @@ class UserManagementServiceTest {
         List<String> emails = List.of("nonexistent1@example.com", "nonexistent2@example.com");
 
         when(userRepository.countByEmailIn(emails)).thenReturn(0L);
+        when(userRepository.findExistingEmails(emails)).thenReturn(List.of());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
-        assertEquals("One or more user(s) not found by email address", exception.getMessage());
+        assertEquals("User(s) not found with email(s): nonexistent1@example.com, nonexistent2@example.com",
+                exception.getMessage());
         verify(userRepository, never()).deleteByEmailIn(any());
+    }
+
+    @Test
+    void testDeleteMultipleUsersByEmail_DuplicateEmails() {
+        // Duplicate input must be de-duplicated before the count comparison so a request
+        // listing the same existing user twice succeeds instead of failing as "not found".
+        List<String> emails = List.of("dup@example.com", "dup@example.com");
+        List<String> distinct = List.of("dup@example.com");
+
+        when(userRepository.countByEmailIn(distinct)).thenReturn(1L);
+
+        userManagementService.deleteMultipleUsersByEmail(emails);
+
+        verify(userRepository).countByEmailIn(distinct);
+        verify(userOrganizationRepository).removeMultipleUserOrganizationsByEmail(distinct);
+        verify(userRepository).deleteByEmailIn(distinct);
     }
 
     // ==================== createUser Tests ====================
