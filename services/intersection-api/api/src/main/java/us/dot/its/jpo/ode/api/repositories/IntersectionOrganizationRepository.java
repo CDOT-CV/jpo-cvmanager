@@ -35,6 +35,8 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
             "WHERE io2.intersection.id = i.id AND io2.organization = :organization)")
     List<Intersection> findAllIntersectionsNotInOrganization(Organization organization);
 
+    List<IntersectionOrganization> findAllByIntersection_IntersectionNumber(String intersectionNumber);
+
     Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization(
             String intersectionNumber, Organization organization);
 

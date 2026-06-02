@@ -438,7 +438,6 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1001, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of());
@@ -454,7 +453,6 @@ class AdminIntersectionServiceTest {
             Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
-                    Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of());
@@ -472,7 +470,6 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of());
@@ -488,8 +485,7 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    List.of(org.getId()), Collections.emptyList(),
-                            Collections.emptyList(), Collections.emptyList());
+                    List.of(org.getId()), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of(org));
 
@@ -506,7 +502,6 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), List.of(org.getId()),
                     Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of(org));
@@ -522,8 +517,7 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
-                    List.of("192.168.1.1"), Collections.emptyList());
+                    Collections.emptyList(), List.of("192.168.1.1"));
 
             adminIntersectionService.patchIntersection(patch, List.of(org));
 
@@ -539,8 +533,7 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), List.of("192.168.1.1"));
+                    Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of(org));
 
@@ -551,8 +544,7 @@ class AdminIntersectionServiceTest {
         void intersectionNotFound_throws404() {
             IntersectionPatch patch = new IntersectionPatch(
                     9999, 9999, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList());
+                            Collections.emptyList(), Collections.emptyList());
 
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> adminIntersectionService.patchIntersection(patch, List.of()));
@@ -568,8 +560,7 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
-                    List.of("192.168.1.1"), Collections.emptyList());
+                    Collections.emptyList(), List.of("192.168.1.1"));
 
             adminIntersectionService.patchIntersection(patch, List.of(org));
 
@@ -582,8 +573,7 @@ class AdminIntersectionServiceTest {
 
             IntersectionPatch patch = new IntersectionPatch(
                     1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-                    Collections.emptyList(), Collections.emptyList(),
-                    Collections.emptyList(), Collections.emptyList());
+                            Collections.emptyList(), Collections.emptyList());
 
             adminIntersectionService.patchIntersection(patch, List.of());
 
