@@ -111,7 +111,7 @@ bucket4j:
       url: /emails/.*
       strategy: all
       rate-limits:
-        - cache-key: "getHeader('Authorization') != null ? getHeader('Authorization') : getRemoteAddr()"
+        - cache-key: "@jwtSubjectExtractor.extractSubject(getHeader('Authorization')) != null ? @jwtSubjectExtractor.extractSubject(getHeader('Authorization')) : getRemoteAddr()"
           bandwidths:
             - capacity: 3
               time: 1

@@ -2,13 +2,13 @@ package us.dot.its.jpo.ode.api.controllers;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -85,8 +85,13 @@ class EmailRateLimitTest {
         }
         when(emailService.sendSupportRequest(any()))
                 .thenReturn(List.of(new EmailSendResponse(0, "OK")));
+        // Default: decode any token and return a Jwt whose subject equals the token
+        // value.
+        // Individual tests that need custom subjects will re-stub this.
         when(jwtDecoder.decode(anyString())).thenAnswer(invocation -> {
             String token = invocation.getArgument(0);
+            if (token == null || token.isEmpty())
+                return null;
             return Jwt.withTokenValue(token)
                     .headers(h -> h.put("alg", "none"))
                     .claims(c -> {
@@ -127,6 +132,54 @@ class EmailRateLimitTest {
 
         // user-d still has a full bucket
         postEmail("user-d").andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Different tokens with the same subject share the same per-user bucket")
+    void testDifferentTokensSameSubjectShareBucket() throws Exception {
+        // Arrange: make jwtDecoder return the same subject for two different token
+        // values
+        when(jwtDecoder.decode(anyString())).thenAnswer(invocation -> {
+            String token = invocation.getArgument(0);
+            if ("tokenA".equals(token) || "tokenB".equals(token)) {
+                return Jwt.withTokenValue(token)
+                        .headers(h -> h.put("alg", "none"))
+                        .claims(c -> {
+                            c.put("sub", "shared-subject");
+                            c.put("iat", Instant.now());
+                            c.put("exp", Instant.now().plusSeconds(3600));
+                        })
+                        .build();
+            }
+            // Fall back to the default behavior for other tokens
+            if (token == null || token.isEmpty())
+                return null;
+            return Jwt.withTokenValue(token)
+                    .headers(h -> h.put("alg", "none"))
+                    .claims(c -> {
+                        c.put("sub", token);
+                        c.put("iat", Instant.now());
+                        c.put("exp", Instant.now().plusSeconds(3600));
+                    })
+                    .build();
+        });
+
+        // Act: consume the per-user bucket using tokenA
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post("/emails/support-requests")
+                    .header("Authorization", "Bearer tokenA")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(new SupportRequestEmailContents("a@b.com", "s", "m"))))
+                    .andExpect(status().isOk());
+        }
+
+        // Assert: a request using tokenB (same subject) is rejected due to shared
+        // bucket exhaustion
+        mockMvc.perform(post("/emails/support-requests")
+                .header("Authorization", "Bearer tokenB")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new SupportRequestEmailContents("a@b.com", "s", "m"))))
+                .andExpect(status().isTooManyRequests());
     }
 
     // ── Global limit ──────────────────────────────────────────────────────────
