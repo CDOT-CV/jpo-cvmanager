@@ -27,8 +27,11 @@ public class UserOrganization {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Organization organization;
 
+    // No @OnDelete on role: roles are reference data that are never deleted, and the
+    // RESTRICT FK in the DB enforces that a role assigned to any user cannot be removed.
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false)

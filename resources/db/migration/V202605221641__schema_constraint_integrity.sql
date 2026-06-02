@@ -27,8 +27,11 @@
 --    deletes from public.users directly without first removing user_organization rows).
 --    user_email_notification already uses CASCADE on user_id for the same reason;
 --    this aligns user_organization with that existing pattern.
-
-BEGIN;
+--
+-- Flyway runs each migration in its own transaction (PostgreSQL has transactional DDL),
+-- so no explicit BEGIN/COMMIT is used here. DROP CONSTRAINT statements use IF EXISTS so a
+-- database whose FK was created under a different constraint name degrades gracefully
+-- instead of failing the whole migration.
 
 -- ============================================================
 -- 1. UNIQUE on users.keycloak_id
@@ -120,7 +123,7 @@ ALTER TABLE public.intersection_organization
 
 -- rsu_options: 1:1 extension of rsus. No orphan is meaningful after RSU deletion.
 ALTER TABLE public.rsu_options
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
@@ -128,7 +131,7 @@ ALTER TABLE public.rsu_options
 
 -- consecutive_firmware_upgrade_failures: 1:1 extension of rsus.
 ALTER TABLE public.consecutive_firmware_upgrade_failures
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
@@ -138,10 +141,8 @@ ALTER TABLE public.consecutive_firmware_upgrade_failures
 -- Fixes Keycloak custom user provider removeUser, which deletes from public.users
 -- directly. Without CASCADE the delete fails when the user has org memberships.
 ALTER TABLE public.user_organization
-    DROP CONSTRAINT fk_user_id,
+    DROP CONSTRAINT IF EXISTS fk_user_id,
     ADD CONSTRAINT fk_user_id FOREIGN KEY (user_id)
         REFERENCES public.users (user_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
-
-COMMIT;

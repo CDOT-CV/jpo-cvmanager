@@ -43,8 +43,8 @@
 --    from the intersection side (by intersection_number, which resolves to
 --    intersection_id). Without an intersection-first index those operations scan all
 --    rows in rsu_intersection for every intersection-based lookup or deletion.
-
-BEGIN;
+--
+-- Flyway runs each migration in its own transaction, so no explicit BEGIN/COMMIT is used.
 
 -- ============================================================
 -- 1. user_organization: index for org-first lookups
@@ -122,5 +122,3 @@ COMMENT ON INDEX public.idx_rsu_intersection_intersection_id IS
     'DELETE WHERE intersection.intersectionNumber = ? AND rsu.ipv4Address IN (...)). '
     'The UNIQUE constraint (rsu_id, intersection_id) is rsu-first and does not '
     'cover these patterns. FK column; PostgreSQL does not index FK columns automatically.';
-
-COMMIT;

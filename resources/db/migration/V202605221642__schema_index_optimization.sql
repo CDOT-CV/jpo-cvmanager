@@ -35,8 +35,8 @@
 --    For scms_health the composite additionally allows PostgreSQL to satisfy
 --    ROW_NUMBER() OVER (PARTITION BY rsu_id ORDER BY timestamp DESC) by walking
 --    the index in partition order rather than sorting in memory.
-
-BEGIN;
+--
+-- Flyway runs each migration in its own transaction, so no explicit BEGIN/COMMIT is used.
 
 -- ============================================================
 -- 1. Drop redundant indexes
@@ -103,5 +103,3 @@ COMMENT ON INDEX public.idx_scms_health_rsu_id_timestamp IS
     'The trailing timestamp DESC column allows PostgreSQL to satisfy '
     'ROW_NUMBER() OVER (PARTITION BY rsu_id ORDER BY timestamp DESC) '
     'by walking the index in partition order rather than sorting in memory.';
-
-COMMIT;

@@ -40,8 +40,11 @@
 -- RESTRICT. These are high-volume time-series tables; RSU deletion should require
 -- explicit data pruning before the parent row can be removed, to prevent accidental
 -- bulk data loss. See resources/db/README.md for the recommended pruning approach.
-
-BEGIN;
+--
+-- Flyway runs each migration in its own transaction (PostgreSQL has transactional DDL),
+-- so no explicit BEGIN/COMMIT is used here. DROP CONSTRAINT statements use IF EXISTS so a
+-- database whose FK was created under a different constraint name degrades gracefully
+-- instead of failing the whole migration.
 
 -- ============================================================
 -- 1. UNIQUE on firmware_upgrade_rules(from_id, to_id)
@@ -76,14 +79,14 @@ ALTER TABLE public.firmware_upgrade_rules
 -- rsu_intersection: CASCADE on rsu_id and intersection_id.
 -- A link between an RSU and an intersection has no meaning without either parent.
 ALTER TABLE public.rsu_intersection
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
 ALTER TABLE public.rsu_intersection
-    DROP CONSTRAINT fk_intersection_id,
+    DROP CONSTRAINT IF EXISTS fk_intersection_id,
     ADD CONSTRAINT fk_intersection_id FOREIGN KEY (intersection_id)
         REFERENCES public.intersections (intersection_id)
         ON UPDATE NO ACTION
@@ -92,14 +95,14 @@ ALTER TABLE public.rsu_intersection
 -- rsu_organization: CASCADE on rsu_id and organization_id.
 -- An RSU-to-org membership row is meaningless without either parent.
 ALTER TABLE public.rsu_organization
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
 ALTER TABLE public.rsu_organization
-    DROP CONSTRAINT fk_organization_id,
+    DROP CONSTRAINT IF EXISTS fk_organization_id,
     ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
@@ -108,14 +111,14 @@ ALTER TABLE public.rsu_organization
 -- intersection_organization: CASCADE on intersection_id and organization_id.
 -- An intersection-to-org membership row is meaningless without either parent.
 ALTER TABLE public.intersection_organization
-    DROP CONSTRAINT fk_intersection_id,
+    DROP CONSTRAINT IF EXISTS fk_intersection_id,
     ADD CONSTRAINT fk_intersection_id FOREIGN KEY (intersection_id)
         REFERENCES public.intersections (intersection_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
 ALTER TABLE public.intersection_organization
-    DROP CONSTRAINT fk_organization_id,
+    DROP CONSTRAINT IF EXISTS fk_organization_id,
     ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
@@ -129,7 +132,7 @@ ALTER TABLE public.intersection_organization
 -- SNMP forwarding config rows are RSU-specific. Without CASCADE, deleting an RSU
 -- that has active forwarding entries is blocked.
 ALTER TABLE public.snmp_msgfwd_config
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
@@ -140,10 +143,27 @@ ALTER TABLE public.snmp_msgfwd_config
 -- rsu_id, so a row cannot be reassigned to another RSU; CASCADE is the only
 -- meaningful behaviour on RSU deletion.
 ALTER TABLE public.max_retry_limit_reached_instances
-    DROP CONSTRAINT fk_rsu_id,
+    DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
         REFERENCES public.rsus (rsu_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
-COMMIT;
+-- ============================================================
+-- 4. user_organization: CASCADE on organization_id
+-- ============================================================
+
+-- Parity with rsu_organization and intersection_organization above: a user-to-org
+-- membership row is meaningless once the organization is deleted, so deleting an
+-- organization that still has user memberships should cascade those rows away (rather
+-- than being blocked by RESTRICT). user_id already cascades (V202605221641).
+--
+-- role_id is deliberately left RESTRICT: roles are reference data that are never deleted,
+-- and the RESTRICT FK actively enforces that a role still assigned to any user cannot be
+-- removed.
+ALTER TABLE public.user_organization
+    DROP CONSTRAINT IF EXISTS fk_organization_id,
+    ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
+        REFERENCES public.organizations (organization_id)
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE;
