@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.net.InetAddress;
 import java.time.Instant;
@@ -22,7 +20,6 @@ public class SnmpMsgfwdConfig {
     @MapsId("rsuId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rsu_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Rsu rsu;
 
     @MapsId("msgfwdType")
