@@ -1,4 +1,4 @@
--- V202605261242__service_pattern_indexes.sql
+-- V6__service_pattern_indexes.sql
 --
 -- Schema integrity review -- index optimization pass (round 2).
 --
@@ -8,7 +8,7 @@
 -- JOIN ON predicates and were missing indexes entirely.
 --
 -- 1. user_organization(organization_id)
---    The UNIQUE constraint added in V202605221641 covers (user_id, organization_id),
+--    The UNIQUE constraint added in V3 covers (user_id, organization_id),
 --    which supports user-first lookups. UserOrganizationRepository has two methods
 --    that start from the organization side: findByOrganization_Name and
 --    findByUserAndOrganization_Name. Without an org-first index those queries require

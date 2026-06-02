@@ -1,4 +1,4 @@
--- V202605221641__schema_constraint_integrity.sql
+-- V3__schema_constraint_integrity.sql
 --
 -- Schema integrity review — constraint enforcement pass.
 --

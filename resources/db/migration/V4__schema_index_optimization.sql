@@ -1,4 +1,4 @@
--- V202605221642__schema_index_optimization.sql
+-- V4__schema_index_optimization.sql
 --
 -- Schema integrity review — index optimization pass.
 --
@@ -66,7 +66,7 @@ DROP INDEX IF EXISTS public.idx_organizations_name;
 DROP INDEX IF EXISTS public.idx_rsus_ipv4_rsu_id;
 
 -- Redundant with the user_organization_unique UNIQUE constraint added in
--- V202605221641. Both cover (user_id, organization_id) in the same order.
+-- V3. Both cover (user_id, organization_id) in the same order.
 DROP INDEX IF EXISTS public.idx_user_organization;
 
 -- Unused: ScmsHealthRepository audit confirms no query filters scms_health

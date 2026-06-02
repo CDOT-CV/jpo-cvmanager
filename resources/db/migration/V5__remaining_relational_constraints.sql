@@ -1,4 +1,4 @@
--- V202605261241__remaining_relational_constraints.sql
+-- V5__remaining_relational_constraints.sql
 --
 -- Schema integrity review -- remaining constraint enforcement pass.
 --
@@ -18,7 +18,7 @@
 --    organization is blocked by child rows in these tables, forcing callers to
 --    manually clean up children before the parent delete can succeed. CASCADE
 --    aligns these tables with the semantics already established by user_organization
---    (cascade on user_id FK, added in V202605221641) and user_email_notification
+--    (cascade on user_id FK, added in V3) and user_email_notification
 --    (cascade on both FKs in the baseline).
 --
 --    WARNING: adding CASCADE to junction tables means that deleting a parent row
@@ -156,7 +156,7 @@ ALTER TABLE public.max_retry_limit_reached_instances
 -- Parity with rsu_organization and intersection_organization above: a user-to-org
 -- membership row is meaningless once the organization is deleted, so deleting an
 -- organization that still has user memberships should cascade those rows away (rather
--- than being blocked by RESTRICT). user_id already cascades (V202605221641).
+-- than being blocked by RESTRICT). user_id already cascades (V3).
 --
 -- role_id is deliberately left RESTRICT: roles are reference data that are never deleted,
 -- and the RESTRICT FK actively enforces that a role still assigned to any user cannot be
