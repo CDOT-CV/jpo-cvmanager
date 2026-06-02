@@ -131,6 +131,24 @@ A schema constraint and index review was completed in May 2026. Changes are docu
 |---|---|
 | `V202605221641__schema_constraint_integrity.sql` | UNIQUE on `users.keycloak_id`; UNIQUE constraints on `rsu_organization`, `user_organization`, `intersection_organization` (with duplicate row cleanup); `ON DELETE CASCADE` on `rsu_options`, `consecutive_firmware_upgrade_failures`, and `user_organization(user_id)` |
 | `V202605221642__schema_index_optimization.sql` | Dropped 9 redundant or unused indexes; added composite `(rsu_id, timestamp DESC)` indexes on `ping`, `rsu_health`, and `scms_health` |
+| `V202605261241__remaining_relational_constraints.sql` | UNIQUE on `firmware_upgrade_rules(from_id, to_id)` (with duplicate cleanup); `ON DELETE CASCADE` on both FKs of `rsu_intersection`, `rsu_organization`, `intersection_organization`, on `snmp_msgfwd_config(rsu_id)`, `max_retry_limit_reached_instances(rsu_id)`, and on `user_organization(organization_id)`. `user_organization(role_id)` is left RESTRICT on purpose (roles are reference data and must not be deletable while assigned) |
+| `V202605261242__service_pattern_indexes.sql` | Added 6 indexes derived from active repository query patterns: FK-column indexes (`user_organization.organization_id`, `user_email_notification.email_type_id`, `firmware_upgrade_rules.from_id`, `rsu_intersection.intersection_id`), `rsus.primary_route`, and a partial index `rsu_options(rsu_id) WHERE tim_deposit = true` |
+
+> **Entity annotations are documentation only.** This service does not set
+> `spring.jpa.hibernate.ddl-auto`, so Hibernate generates and updates no DDL — Flyway owns the
+> schema. The `@Column(unique = ...)`, `@UniqueConstraint`, and `@OnDelete` annotations on the
+> JPA entities under `models/postgres/tables/` therefore have no runtime effect: they describe the
+> schema for readers and must be kept in sync with these migrations by hand. In particular,
+> `@OnDelete` does **not** change Hibernate's in-session delete behavior — the cascade behavior is
+> entirely the database FK actions defined above. If `ddl-auto` is ever set to `validate`, note that
+> it checks tables and columns but not FK actions or unique constraints, so drift would not be caught.
+
+> **Already applied these migrations locally before this change?** Three of these scripts were
+> edited after their first authoring (removing redundant `BEGIN/COMMIT`, adding `DROP CONSTRAINT
+> IF EXISTS`, and the `user_organization(organization_id)` cascade). They were never merged or applied
+> to a shared environment, so editing them is allowed — but a local database that already ran the old
+> versions will fail checksum validation. Run `docker compose run --rm flyway repair` (then `migrate`)
+> or recreate your local schema.
 
 **Deferred items:**
 
