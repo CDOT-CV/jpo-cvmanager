@@ -48,7 +48,7 @@ export const userSlice = createSlice({
     },
     changeOrganization: (state, action) => {
       const organization =
-        UserManager.getOrganization(state.value.authLoginData, action.payload) ?? state.value.organization
+        UserManager.getOrganization(state.value.authLoginData, Number(action.payload)) ?? state.value.organization
       state.value.organization = organization
       SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
     },
@@ -124,8 +124,8 @@ export const selectOrganizationsList = (state: RootState) => state.user.value.au
 export const selectToken = (state: RootState) => state.user.value.authLoginData?.token
 export const selectRole = (state: RootState) => state.user.value.organization?.role
 export const selectIsSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user
-export const selectOrganizationName = (state: RootState) => state.user.value.organization?.organization
-export const selectOrganizationId = (state: RootState) => state.user.value.organization?.id
+export const selectOrganizationName = (state: RootState) => state.user.value.organization?.name
+export const selectOrganizationId = (state: RootState) => state.user.value.organization?.organization
 export const selectName = (state: RootState) => state.user.value.authLoginData?.data?.name
 export const selectEmail = (state: RootState) => state.user.value.authLoginData?.data?.email
 export const selectSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user

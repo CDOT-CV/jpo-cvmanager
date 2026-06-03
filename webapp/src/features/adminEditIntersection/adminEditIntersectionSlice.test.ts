@@ -93,10 +93,8 @@ describe('functions', () => {
 
     const expected = {
       intersection_name: 'a',
-      organizations_to_add: ['org1'],
-      organizations_to_remove: ['org4'],
-      rsus_to_add: ['rsu1'],
-      rsus_to_remove: ['rsu4'],
+      organizations: ['org1'],
+      rsus: ['rsu1'],
     }
 
     expect(mapFormToRequestJson(data, state)).toEqual(expected)
@@ -125,10 +123,8 @@ describe('functions', () => {
 
     const expected = {
       intersection_name: 'a',
-      organizations_to_add: ['org1'],
-      organizations_to_remove: ['org4'],
-      rsus_to_add: ['rsu1'],
-      rsus_to_remove: ['rsu4'],
+      organizations: ['org1', 'org2', 'org3'],
+      rsus: ['rsu1', 'rsu2', 'rsu3'],
     }
 
     expect(mapFormToRequestJson(data, state)).toEqual(expected)

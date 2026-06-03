@@ -197,10 +197,8 @@ describe('adminIntersectionApiSlice', () => {
       ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
       intersection_name: 'Updated Intersection',
       origin_ip: '10.0.0.1',
-      organizations_to_add: ['new-org'],
-      organizations_to_remove: [],
-      rsus_to_add: ['10.0.0.15'],
-      rsus_to_remove: ['10.0.0.11'],
+      organizations: ['new-org'],
+      rsus: ['10.0.0.15'],
     }
 
     it('sends PATCH request with correct body', async () => {
@@ -346,10 +344,8 @@ describe('adminIntersectionApiSlice', () => {
         intersection_id: '1001',
         orig_intersection_id: '1001',
         ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
-        organizations_to_add: [],
-        organizations_to_remove: [],
-        rsus_to_add: [],
-        rsus_to_remove: [],
+        organizations: [],
+        rsus: [],
       }
       await store.dispatch(adminIntersectionApiSlice.endpoints.patchIntersection.initiate(patchBody))
 

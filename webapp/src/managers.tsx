@@ -27,10 +27,15 @@ const LocalStorageManager = {
 }
 
 const UserManager = {
-  getOrganization: (authLoginData: AuthLoginData, organizationName: string) => {
+  getOrganization: (authLoginData: AuthLoginData, organizationId: number) => {
     let updatedOrg = null
     for (let i = 0; i < authLoginData.data.organizations.length; i++) {
-      if (organizationName === authLoginData.data.organizations[i].organization) {
+      console.log('checking org ' + authLoginData.data.organizations[i].organization + ' against ' + organizationId)
+      console.log(
+        'org id type ' + typeof authLoginData.data.organizations[i].organization + ' vs ' + typeof organizationId
+      )
+      if (organizationId === authLoginData.data.organizations[i].organization) {
+        console.log('found matching org ' + authLoginData.data.organizations[i].organization)
         updatedOrg = authLoginData.data.organizations[i]
       }
     }

@@ -45,11 +45,8 @@ import { SideBarHeader } from '../../styles/components/SideBarHeader'
 
 export type AdminEditIntersectionFormType = AdminIntersection & {
   orig_intersection_id: string
-  organizations_to_add: number[]
-  organizations_to_remove: number[]
+  organizations: number[]
   rsus: string[]
-  rsus_to_add: string[]
-  rsus_to_remove: string[]
 }
 
 const AdminEditIntersection = () => {
@@ -86,10 +83,8 @@ const AdminEditIntersection = () => {
       },
       intersection_name: '',
       origin_ip: '',
-      organizations_to_add: [],
-      organizations_to_remove: [],
-      rsus_to_add: [],
-      rsus_to_remove: [],
+      organizations: [],
+      rsus: [],
     },
   })
 

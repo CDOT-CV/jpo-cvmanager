@@ -66,7 +66,7 @@ const AdminEditRsu = () => {
     return (
       rsuAllowedSelections?.organizations?.map((id) => ({
         id: id,
-        name: authOrganizationsList.find((authOrg) => authOrg.id === id)?.organization ?? id,
+        name: authOrganizationsList.find((authOrg) => authOrg.organization === id)?.name ?? id,
       })) || []
     )
   }, [rsuAllowedSelections, authOrganizationsList])
