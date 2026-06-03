@@ -13,7 +13,8 @@ export const parseMapSignalGroups = (mapMessage: ProcessedMap): SignalStateFeatu
       if (connection?.signalGroup) signalGroup = connection?.signalGroup
     })
 
-    if (!mapFeature.properties.ingressApproach || !signalGroup) {
+    if (!signalGroup) {
+        console.warn(`No signal group found for map feature ${mapFeature.id}, skipping signal state feature creation`)
       return
     }
     const coords = mapFeature.geometry.coordinates.slice(0, 2)
