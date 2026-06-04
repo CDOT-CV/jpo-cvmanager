@@ -116,7 +116,7 @@ public class EmailService {
     public List<EmailSendResponse> sendMessageCounts(MessageCountEmailContents data) {
         EmailContent content = messageCountEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationTypeByOrganization(EmailCategory.MESSAGE_COUNTS,
-                data.getOrganizationName(), EmailFrequency.IMMEDIATE);
+                data.getOrganizationName(), EmailFrequency.ONCE_PER_DAY);
         if (recipients.isEmpty()) {
             log.warn("No recipients found for message count email for organization: {}", data.getOrganizationName());
             return Collections.emptyList();
