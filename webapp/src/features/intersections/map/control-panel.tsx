@@ -258,7 +258,7 @@ function ControlPanel() {
             messageData.spatData = JSON.parse(data)
           }
         }
-        if (messageData.mapData.length === 0 && messageData.bsmData.features.length === 0) {
+        if ((messageData.mapData?.length ?? 0 === 0) && (messageData.bsmData?.features?.length ?? 0 === 0)) {
           toast.error(`No valid message data found in ZIP file. Make sure to upload a previously generated ZIP archive`)
         }
         dispatch(handleImportedMapMessageData(messageData))
