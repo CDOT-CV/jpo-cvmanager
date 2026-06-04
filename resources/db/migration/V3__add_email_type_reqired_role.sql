@@ -1,3 +1,22 @@
+-- V3__add_email_type_required_role.sql
+-- Adds a required_role column to public.email_type, linking each notification
+-- email category to the minimum role a user must hold (within their organization)
+-- to receive that email type.
+--
+-- Steps performed:
+--   1. Add required_role (integer, nullable) with a FK to public.roles(role_id).
+--   2. Backfill all existing rows with a sensible default (role_id 1 = ADMIN)
+--      so the subsequent NOT NULL constraint can be applied safely.
+--   3. Assign the correct role per email_type:
+--        - ADMIN   (1): Support Requests, Access Requests
+--        - OPERATOR (2): Firmware Upgrade Failures, Critical Error Messages
+--        - USER    (3): Daily Message Counts, Intersection Notification Summary
+--   4. Set the column NOT NULL now that every row has a value.
+--
+-- The column is intentionally added as nullable first (step 1) to allow a smooth
+-- transition on databases that already contain email_type rows, avoiding a
+-- constraint violation before the backfill (step 2-3) has run.
+
 BEGIN;
 
 -- Update public.email_type table definition
@@ -7,7 +26,7 @@ ADD COLUMN IF NOT EXISTS required_role integer;
 
 -- Add foreign key constraint
 ALTER TABLE public.email_type
-ADD CONSTRAINT IF NOT EXISTS fk_role_id FOREIGN KEY (required_role)
+ADD CONSTRAINT fk_role_id FOREIGN KEY (required_role)
    REFERENCES public.roles (role_id) MATCH SIMPLE
    ON UPDATE NO ACTION
    ON DELETE NO ACTION;
