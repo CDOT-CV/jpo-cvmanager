@@ -79,7 +79,7 @@ INSERT INTO public.email_type(
 	email_type, supports_immediate, supports_hourly, supports_daily, supports_weekly, supports_monthly)
 	VALUES ('Support Requests', true, false, false, false, false), 
     ('Firmware Upgrade Failures', true, false, false, false, false), 
-    ('Daily Message Counts', false, true, false, false, false), 
+    ('Daily Message Counts', true, false, false, false, false), 
     ('Access Requests', true, false, false, false, false), 
     ('Intersection Notification Summary', true, true, true, true, true), 
     ('Critical Error Messages', true, false, false, false, false);
