@@ -258,8 +258,11 @@ function ControlPanel() {
             messageData.spatData = JSON.parse(data)
           }
         }
-        if ((messageData.mapData?.length ?? 0 === 0) && (messageData.bsmData?.features?.length ?? 0 === 0)) {
+        const mapLen = messageData.mapData?.length ?? 0
+        const spatLen = messageData.spatData?.length ?? 0
+        if (mapLen === 0 || spatLen === 0) {
           toast.error(`No valid message data found in ZIP file. Make sure to upload a previously generated ZIP archive`)
+          return
         }
         dispatch(handleImportedMapMessageData(messageData))
       })
