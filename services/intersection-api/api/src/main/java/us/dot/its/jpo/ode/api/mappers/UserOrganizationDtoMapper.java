@@ -14,7 +14,7 @@ public interface UserOrganizationDtoMapper {
      * Convert User entity to UserDto
      * MapStruct will automatically map fields with the same name
      */
-    @Mapping(source = "organization.id", target = "organization")
+    @Mapping(source = "organization.name", target = "organization")
     @Mapping(source = "role.name", target = "role")
     UserOrganizationDto toDto(UserOrganization user);
 }
