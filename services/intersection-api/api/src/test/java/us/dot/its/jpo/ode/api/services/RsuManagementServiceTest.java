@@ -623,7 +623,12 @@ class RsuManagementServiceTest {
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
         verify(rsuOrganizationRepository, never()).saveAll(anyList());
-        verify(rsuOrganizationRepository).deleteAll(List.of(rsuOrg1, rsuOrg2));
+        ArgumentCaptor<List<RsuOrganization>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        verify(rsuOrganizationRepository).deleteAll(deleteCaptor.capture());
+        List<RsuOrganization> deletedList = deleteCaptor.getValue();
+        assertEquals(2, deletedList.size());
+        assertTrue(deletedList.contains(rsuOrg1));
+        assertTrue(deletedList.contains(rsuOrg2));
     }
 
     @Test
