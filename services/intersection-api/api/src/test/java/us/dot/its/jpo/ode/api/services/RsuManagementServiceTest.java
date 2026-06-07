@@ -623,7 +623,7 @@ class RsuManagementServiceTest {
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
         verify(rsuOrganizationRepository, never()).saveAll(anyList());
-        verify(rsuOrganizationRepository).deleteAll(List.of(rsuOrg1, rsuOrg2));
+        verify(rsuOrganizationRepository).deleteAll(List.of(rsuOrg2, rsuOrg1));
     }
 
     @Test
