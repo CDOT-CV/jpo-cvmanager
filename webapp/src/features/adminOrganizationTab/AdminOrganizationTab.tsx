@@ -172,7 +172,7 @@ const AdminOrganizationTab = () => {
               ) : (
                 <>
                   <ConditionalRenderRsu>
-                    <AdminOrganizationTabRsu selectedOrgName={selectedOrg} key="rsu" />
+                    <AdminOrganizationTabRsu selectedOrgId={selectedOrgId} selectedOrgName={selectedOrg} key="rsu" />
                   </ConditionalRenderRsu>
                   <ConditionalRenderIntersection>
                     <AdminOrganizationTabIntersection
@@ -181,7 +181,7 @@ const AdminOrganizationTab = () => {
                       key="intersection"
                     />
                   </ConditionalRenderIntersection>
-                  <AdminOrganizationTabUser selectedOrgName={selectedOrg} key="user" />
+                  <AdminOrganizationTabUser selectedOrgId={selectedOrgId} selectedOrgName={selectedOrg} key="user" />
                 </>
               )}
             </div>

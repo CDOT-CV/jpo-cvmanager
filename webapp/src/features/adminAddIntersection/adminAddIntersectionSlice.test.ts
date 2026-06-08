@@ -32,9 +32,13 @@ describe('admin add Intersection reducer', () => {
 describe('functions', () => {
   it('convertApiJsonToKeyedFormat', async () => {
     const apiJson = {
-      organizations: ['org1', 'org2'],
+      organizations: [1, 2],
       rsus: ['rsu1', 'rsu2'],
     }
+    const organizationsList = [
+      { organization: 1, role: 'ADMIN' as UserRole, name: 'org1' },
+      { organization: 2, role: 'USER' as UserRole, name: 'org2' },
+    ]
 
     const expected = {
       organizations: [
@@ -46,7 +50,7 @@ describe('functions', () => {
         { id: 1, name: 'rsu2' },
       ],
     }
-    expect(convertApiJsonToKeyedFormat(apiJson)).toEqual(expected)
+    expect(convertApiJsonToKeyedFormat(apiJson, organizationsList)).toEqual(expected)
   })
 
   it('checkForm all invalid', async () => {

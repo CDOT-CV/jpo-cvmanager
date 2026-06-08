@@ -30,18 +30,19 @@ import {
 import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
 
 interface AdminOrganizationTabUserProps {
+  selectedOrgId: number
   selectedOrgName: string
 }
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
-  const { selectedOrgName } = props
+  const { selectedOrgId, selectedOrgName } = props
   const dispatch = useDispatch()
   const theme = useTheme()
 
-  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgName, {
-    skip: !selectedOrgName,
+  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
+    skip: !selectedOrgId,
   })
-  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgName })
+  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
@@ -74,7 +75,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   const userData = useMemo(() => {
     return userTableData?.content.map((user) => {
-      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgName)
+      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgId)
       return {
         ...user,
         role: orgInfo ? orgInfo.role.toLowerCase() : '',

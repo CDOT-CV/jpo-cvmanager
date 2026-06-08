@@ -188,7 +188,7 @@ const AdminAddRsu = () => {
     return (
       allowedSelections?.organizations?.map((id) => ({
         id: id,
-        name: authOrganizationsList.find((authOrg) => authOrg.id === id)?.organization ?? id,
+        name: authOrganizationsList.find((authOrg) => authOrg.organization === id)?.organization ?? id,
       })) || []
     )
   }, [allowedSelections, authOrganizationsList])

@@ -60,9 +60,12 @@ const preloadedAuth = {
 }
 
 const row = (id: string, name = `Intersection ${id}`): AdminIntersection => ({
+  orig_intersection_id: id,
   intersection_id: id,
   intersection_name: name,
   ref_pt: { latitude: '0', longitude: '0' },
+  organizations: [1],
+  rsus: [],
 })
 
 const renderWithRows = (tableData: AdminIntersection[]) => {
@@ -70,12 +73,7 @@ const renderWithRows = (tableData: AdminIntersection[]) => {
   const utils = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore(preloadedAuth)}>
-        <AdminOrganizationTabIntersection
-          selectedOrg="selectedOrg"
-          selectedOrgEmail="email@test.com"
-          tableData={tableData}
-          updateTableData={updateTableData}
-        />
+        <AdminOrganizationTabIntersection selectedOrgId={1} selectedOrgName={'organization'} />
       </Provider>
     </ThemeProvider>
   )

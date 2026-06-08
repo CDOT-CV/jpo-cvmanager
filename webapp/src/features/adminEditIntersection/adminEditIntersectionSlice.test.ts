@@ -135,8 +135,8 @@ describe('reducers', () => {
   const initialState: RootState['adminEditIntersection'] = {
     value: {
       apiData: undefined,
-      organizations: [] as { name: string }[],
-      selectedOrganizations: [] as { name: string }[],
+      organizations: [] as { id: number }[],
+      selectedOrganizations: [] as { id: number }[],
       rsus: [] as { name: string }[],
       selectedRsus: [] as { name: string }[],
       submitAttempt: false,
@@ -144,7 +144,7 @@ describe('reducers', () => {
   }
 
   it('clear reducer updates state correctly', async () => {
-    const selectedOrganizations = [{ name: 'selectedOrganizations' }]
+    const selectedOrganizations = [{ id: 1 }]
 
     expect(reducer({ ...initialState, value: { ...initialState.value, selectedOrganizations } }, clear())).toEqual({
       ...initialState,

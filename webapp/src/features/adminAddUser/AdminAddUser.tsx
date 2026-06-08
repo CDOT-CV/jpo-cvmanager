@@ -34,7 +34,7 @@ import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/
 const AdminAddUser = () => {
   const navigate = useNavigate()
   const isSuperUser = useSelector(selectSuperUser)
-  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganization[]>([])
+  const [selectedOrganizations, setSelectedOrganizations] = useState<UserOrganizationWithName[]>([])
   const [submitAttempt, setSubmitAttempt] = useState(false)
   const [open, setOpen] = useState(true)
 
@@ -56,7 +56,7 @@ const AdminAddUser = () => {
   // Initialize with one empty organization on mount
   useEffect(() => {
     if (selectedOrganizations.length === 0 && !isLoadingData) {
-      setSelectedOrganizations([{ id: -1, organization: '', email: '', role: 'USER' }])
+      setSelectedOrganizations([{ organization: -1, name: '', role: 'USER' }])
     }
   }, [isLoadingData])
 
@@ -66,7 +66,7 @@ const AdminAddUser = () => {
   }
 
   const handleAddOrganization = () => {
-    setSelectedOrganizations([...selectedOrganizations, { id: -1, organization: '', email: '', role: 'USER' }])
+    setSelectedOrganizations([...selectedOrganizations, { organization: -1, name: '', role: 'USER' }])
   }
 
   const handleRemoveOrganization = (index: number) => {
@@ -78,20 +78,28 @@ const AdminAddUser = () => {
     setSelectedOrganizations(selectedOrganizations.filter((_, i) => i !== index))
   }
 
-  const handleOrganizationChange = (index: number, field: keyof UserOrganization, value: string) => {
+  const handleOrganizationChange = (index: number, value: string | number) => {
     const updated = [...selectedOrganizations]
 
-    // If changing organization, check for duplicates
-    if (field === 'organization') {
-      const isDuplicate = updated.some((org, i) => i !== index && org.organization === value)
-      if (isDuplicate) {
-        toast.error('This organization has already been added')
-        return
-      }
-      updated[index] = { ...updated[index], organization: value }
-    } else {
-      updated[index] = { ...updated[index], role: value as UserOrganization['role'] }
+    if (typeof value === 'string') {
+      value = Number(value)
     }
+
+    // If changing organization, check for duplicates
+    const isDuplicate = updated.some((org, i) => i !== index && org.organization === value)
+    if (isDuplicate) {
+      toast.error('This organization has already been added')
+      return
+    }
+    updated[index] = { ...updated[index], organization: value }
+
+    setSelectedOrganizations(updated)
+  }
+
+  const handleRoleChange = (index: number, value: string) => {
+    const updated = [...selectedOrganizations]
+
+    updated[index] = { ...updated[index], role: value as UserOrganization['role'] }
 
     setSelectedOrganizations(updated)
   }
@@ -100,7 +108,7 @@ const AdminAddUser = () => {
   const getAvailableOrganizations = (currentIndex: number) => {
     const selectedOrgNames = selectedOrganizations
       .map((org, index) => (index !== currentIndex ? org.organization : null))
-      .filter((org) => org !== null && org !== '')
+      .filter((org) => org !== null && org !== -1)
 
     return allowedSelections?.organizations?.filter((org) => !selectedOrgNames.includes(org)) || []
   }
@@ -109,10 +117,10 @@ const AdminAddUser = () => {
     if (selectedOrganizations.length === 0) return false
 
     // Check that all organizations have both org and role selected
-    const allFieldsFilled = selectedOrganizations.every((org) => org.organization !== '' && org.role)
+    const allFieldsFilled = selectedOrganizations.every((org) => org.organization !== -1 && org.role)
 
     // Check for duplicate organizations
-    const orgNames = selectedOrganizations.map((org) => org.organization).filter((name) => name !== '')
+    const orgNames = selectedOrganizations.map((org) => org.organization).filter((val) => val !== -1)
     const hasDuplicates = new Set(orgNames).size !== orgNames.length
 
     return allFieldsFilled && !hasDuplicates
@@ -122,7 +130,7 @@ const AdminAddUser = () => {
     setSubmitAttempt(true)
 
     if (!checkForm()) {
-      const orgNames = selectedOrganizations.map((org) => org.organization).filter((name) => name !== '')
+      const orgNames = selectedOrganizations.map((org) => org.organization).filter((val) => val !== -1)
       const hasDuplicates = new Set(orgNames).size !== orgNames.length
 
       if (hasDuplicates) {
@@ -145,7 +153,7 @@ const AdminAddUser = () => {
 
       // Reset form
       reset()
-      setSelectedOrganizations([{ id: -1, organization: '', email: '', role: 'USER' }])
+      setSelectedOrganizations([{ organization: -1, name: '', role: 'USER' }])
       setSubmitAttempt(false)
 
       handleClose()
@@ -294,7 +302,7 @@ const AdminAddUser = () => {
                     <Select
                       value={orgRole.organization}
                       label="Organization"
-                      onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}
+                      onChange={(e) => handleOrganizationChange(index, e.target.value)}
                       required
                     >
                       {getAvailableOrganizations(index).map((org) => (
@@ -316,7 +324,7 @@ const AdminAddUser = () => {
                     <Select
                       value={orgRole.role}
                       label="Role"
-                      onChange={(e) => handleOrganizationChange(index, 'role', e.target.value)}
+                      onChange={(e) => handleRoleChange(index, e.target.value)}
                       required
                       disabled={!orgRole.organization}
                     >

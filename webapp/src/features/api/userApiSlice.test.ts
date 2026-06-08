@@ -32,7 +32,7 @@ const makeStore = () =>
             token: 'mock-token',
             expires_at: 0,
           },
-          organization: { organization: 'OrgA', role: 'ADMIN' },
+          organization: { organization: 1, name: 'OrgA', role: 'ADMIN' },
           loginFailure: false,
           loginMessage: '',
           routeNotFound: false,
@@ -64,7 +64,7 @@ describe('userApiSlice', () => {
 
     const action = store.dispatch(
       userApiSlice.endpoints.getUsers.initiate({
-        organization: 'OrgA',
+        organization: 1,
         page: 0,
         size: 100,
         sort: 'first_name,asc',

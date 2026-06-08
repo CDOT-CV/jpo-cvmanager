@@ -9,7 +9,7 @@ const mockUserState = {
   user: {
     value: {
       authLoginData: { token: 'test-token' },
-      organization: { organization: 'test-org', role: 'admin' },
+      organization: { organization: 1, role: 'admin' },
     },
   },
 }
@@ -21,7 +21,7 @@ const mockIntersectionData = [
     ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
     intersection_name: 'Test Intersection 1',
     origin_ip: '10.0.0.1',
-    organizations: ['test-org'],
+    organizations: [1],
     rsus: ['10.0.0.10', '10.0.0.11'],
   },
   {
@@ -30,7 +30,7 @@ const mockIntersectionData = [
     ref_pt: { latitude: '39.7500', longitude: '-105.0000' },
     intersection_name: 'Test Intersection 2',
     origin_ip: '10.0.0.2',
-    organizations: ['test-org'],
+    organizations: [1],
     rsus: ['10.0.0.12'],
   },
 ]
@@ -52,13 +52,13 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(fetchMock).toHaveBeenCalledTimes(1)
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}`)
       expect(request.headers.get('Authorization')).toBe('Bearer test-token')
-      expect(request.headers.get('Organization')).toBe('test-org')
+      expect(request.headers.get('Organization')).toBe(1)
       expect(request.method).toBe('GET')
     })
 
@@ -66,9 +66,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(result.data).toEqual({ intersection_data: mockIntersectionData })
     })
@@ -77,9 +75,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ message: 'Internal Server Error' }), { status: 500 })
 
-      const result = await store.dispatch(
-        adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org')
-      )
+      const result = await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       expect(result.error).toBeDefined()
       expect(result.error).toHaveProperty('status', 500)
@@ -93,11 +89,11 @@ describe('adminIntersectionApiSlice', () => {
         intersection_name: 'Test Intersection 1',
         origin_ip: '10.0.0.1',
         ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
-        organizations: ['test-org'],
+        organizations: [1],
         rsus: ['10.0.0.10'],
       },
       allowed_selections: {
-        organizations: ['test-org', 'other-org'],
+        organizations: [1, 'other-org'],
         rsus: ['10.0.0.10', '10.0.0.11', '10.0.0.12'],
       },
     }
@@ -159,7 +155,7 @@ describe('adminIntersectionApiSlice', () => {
       ref_pt: { latitude: '40.0', longitude: '-105.0' },
       intersection_name: 'New Intersection',
       origin_ip: '10.0.0.5',
-      organizations: ['test-org'],
+      organizations: [1],
       rsus: ['10.0.0.20'],
     }
 
@@ -197,7 +193,7 @@ describe('adminIntersectionApiSlice', () => {
       ref_pt: { latitude: '39.7392', longitude: '-104.9903' },
       intersection_name: 'Updated Intersection',
       origin_ip: '10.0.0.1',
-      organizations: ['new-org'],
+      organizations: [2],
       rsus: ['10.0.0.15'],
     }
 
@@ -281,7 +277,7 @@ describe('adminIntersectionApiSlice', () => {
       const store = createStoreWithAuth()
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       const state = store.getState()
       const tags = state.adminIntersectionApi.provided
@@ -297,7 +293,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Delete intersection — triggers refetch of invalidated queries
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Deleted' }))
@@ -313,7 +309,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Create intersection — triggers refetch of LIST
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Created' }))
@@ -322,7 +318,7 @@ describe('adminIntersectionApiSlice', () => {
         orig_intersection_id: '2001',
         intersection_id: '2001',
         ref_pt: { latitude: '40.0', longitude: '-105.0' },
-        organizations: ['test-org'],
+        organizations: [1],
         rsus: ['10.0.0.20'],
       }
       await store.dispatch(adminIntersectionApiSlice.endpoints.createIntersection.initiate(createBody))
@@ -335,7 +331,7 @@ describe('adminIntersectionApiSlice', () => {
 
       // Populate cache
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: mockIntersectionData }))
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       // Patch intersection — triggers refetch
       fetchMock.mockResponseOnce(JSON.stringify({ success: true, message: 'Updated' }))
@@ -359,13 +355,13 @@ describe('adminIntersectionApiSlice', () => {
         user: {
           value: {
             authLoginData: { token: undefined },
-            organization: { organization: 'test-org' },
+            organization: { organization: 1 },
           },
         },
       })
       fetchMock.mockResponseOnce(JSON.stringify({ intersection_data: [] }))
 
-      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate('test-org'))
+      await store.dispatch(adminIntersectionApiSlice.endpoints.getIntersections.initiate(1))
 
       const request = getRequest()
       expect(request.headers.has('Authorization')).toBe(false)
