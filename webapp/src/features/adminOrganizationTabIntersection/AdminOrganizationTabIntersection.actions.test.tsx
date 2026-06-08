@@ -326,7 +326,11 @@ describe('AdminOrganizationTabIntersection — delete actions', () => {
 
       fireEvent.click(screen.getByTestId(ADD_BUTTON_TESTID))
 
-      await waitFor(() => expect(toastError).toHaveBeenCalledWith('Failed to add Intersection(s)'))
+      await waitFor(() =>
+        expect(toastError).toHaveBeenCalledWith(
+          'Failed to add Intersection(s) due to error: [object Object]\n{\n  "id": "2",\n},'
+        )
+      )
     })
   })
 })

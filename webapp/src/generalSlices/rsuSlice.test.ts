@@ -138,7 +138,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'name' },
           },
         },
         rsu: {
@@ -213,7 +213,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'test-org' },
           },
         },
       })
@@ -223,7 +223,7 @@ describe('async thunks', () => {
       RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsu_ip)
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsu_ip)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
+      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'test-org', '', { rsu_ip })
     })
 
     it('Updates the state correctly pending', async () => {
@@ -277,7 +277,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'name' },
           },
         },
       })
@@ -307,7 +307,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'name' },
           },
         },
       })
@@ -328,7 +328,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'name' },
           },
         },
       })

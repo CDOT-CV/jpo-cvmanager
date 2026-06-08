@@ -63,7 +63,7 @@ describe('functions', () => {
     expect(
       validateFormContents({
         value: {
-          selectedOrganizations: ['org1'],
+          selectedOrganizations: [1],
           selectedRsus: ['rsu1'],
         },
       } as any)
@@ -76,24 +76,14 @@ describe('functions', () => {
     } as any
     const state = {
       value: {
-        apiData: {
-          allowed_selections: {
-            organizations: ['org1', 'org2', 'org4'],
-            rsus: ['rsu1', 'rsu2', 'rsu4'],
-          },
-          intersection_data: {
-            organizations: ['org2', 'org4'],
-            rsus: ['rsu2', 'rsu4'],
-          },
-        },
-        selectedOrganizations: [{ name: 'org1' }, { name: 'org2' }, { name: 'org3' }],
-        selectedRsus: [{ name: 'rsu1' }, { name: 'rsu2' }, { name: 'rsu3' }],
+        selectedOrganizations: [{ id: 1 }],
+        selectedRsus: [{ name: 'rsu1' }],
       },
     } as any
 
     const expected = {
       intersection_name: 'a',
-      organizations: ['org1'],
+      organizations: [1],
       rsus: ['rsu1'],
     }
 
@@ -108,22 +98,22 @@ describe('functions', () => {
       value: {
         apiData: {
           allowed_selections: {
-            organizations: ['org1', 'org2', 'org4'],
+            organizations: [1, 2, 4],
             rsus: ['rsu1', 'rsu2', 'rsu4'],
           },
           intersection_data: {
-            organizations: ['org2', 'org4'],
+            organizations: [2, 4],
             rsus: ['rsu2', 'rsu4'],
           },
         },
-        selectedOrganizations: [{ name: 'org1' }, { name: 'org2' }, { name: 'org3' }],
+        selectedOrganizations: [{ id: 1 }, { id: 2 }, { id: 3 }],
         selectedRsus: [{ name: 'rsu1' }, { name: 'rsu2' }, { name: 'rsu3' }],
       },
     } as any
 
     const expected = {
       intersection_name: 'a',
-      organizations: ['org1', 'org2', 'org3'],
+      organizations: [1, 2, 3],
       rsus: ['rsu1', 'rsu2', 'rsu3'],
     }
 
@@ -180,19 +170,19 @@ describe('reducers', () => {
   it('updateStates', async () => {
     const apiData = {
       allowed_selections: {
-        organizations: ['org1', 'org2'],
+        organizations: [1, 2],
         rsus: ['rsu1', 'rsu2'],
       },
       intersection_data: {
-        organizations: ['org1', 'org2'],
+        organizations: [1, 2],
         rsus: ['rsu1', 'rsu2'],
       },
     } as any
 
     const values = {
-      organizations: [{ name: 'org1' }, { name: 'org2' }],
+      organizations: [{ id: 1 }, { id: 2 }],
       rsus: [{ name: 'rsu1' }, { name: 'rsu2' }],
-      selectedOrganizations: [{ name: 'org1' }, { name: 'org2' }],
+      selectedOrganizations: [{ id: 1 }, { id: 2 }],
       selectedRsus: [{ name: 'rsu1' }, { name: 'rsu2' }],
     }
     expect(reducer(initialState, updateStates(apiData))).toEqual({
@@ -206,19 +196,21 @@ describe('selectors', () => {
   const initialState = {
     value: {
       apiData: 'apiData',
-      organizations: 'organizations',
-      selectedOrganizations: 'selectedOrganizations',
+      organizations: [{ id: 1 }],
+      selectedOrganizations: [{ id: 1 }],
       rsus: 'rsus',
       selectedRsus: 'selectedRsus',
       submitAttempt: 'submitAttempt',
     },
   }
-  const state = { adminEditIntersection: initialState } as any
+  const org = { organization: 1, name: 'Org 1', email: 'org1@example.com', role: 'ADMIN' }
+  const initialUserState = { value: { authLoginData: { data: { organizations: [org] } } } }
+  const state = { user: initialUserState, adminEditIntersection: initialState } as any
 
   it('selectors return the correct value', async () => {
     expect(selectApiData(state)).toEqual('apiData')
-    expect(selectOrganizations(state)).toEqual('organizations')
-    expect(selectSelectedOrganizations(state)).toEqual('selectedOrganizations')
+    expect(selectOrganizations(state)).toEqual([{ id: 1, name: 'Org 1' }])
+    expect(selectSelectedOrganizations(state)).toEqual([{ id: 1, name: 'Org 1' }])
     expect(selectRsus(state)).toEqual('rsus')
     expect(selectSelectedRsus(state)).toEqual('selectedRsus')
     expect(selectSubmitAttempt(state)).toEqual('submitAttempt')

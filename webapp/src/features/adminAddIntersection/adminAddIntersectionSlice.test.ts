@@ -42,8 +42,8 @@ describe('functions', () => {
 
     const expected = {
       organizations: [
-        { id: 0, name: 'org1' },
-        { id: 1, name: 'org2' },
+        { id: 1, name: 'org1' },
+        { id: 2, name: 'org2' },
       ],
       rsus: [
         { id: 0, name: 'rsu1' },

@@ -3,6 +3,7 @@ import reducer, {
   selectIsOperatorOrAbove,
   selectIsSuperUser,
   selectIsUserOrAbove,
+  selectOrganizationId,
 } from './userSlice'
 import {
   // async thunks
@@ -187,13 +188,13 @@ describe('reducers', () => {
           ...initialState,
           value: { ...initialState.value, authLoginData: 'authLoginData' },
         } as any,
-        changeOrganization('payload')
+        changeOrganization(1)
       )
     ).toEqual({
       ...initialState,
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
-    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 'payload')
+    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
 
     UserManager.getOrganization = jest.fn().mockReturnValue(null)
     expect(
@@ -202,13 +203,13 @@ describe('reducers', () => {
           ...initialState,
           value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
         } as any,
-        changeOrganization('payload')
+        changeOrganization(1)
       )
     ).toEqual({
       ...initialState,
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
-    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 'payload')
+    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
   })
 
   it('setLoading reducer updates state correctly', async () => {
@@ -235,7 +236,8 @@ describe('selectors', () => {
     value: {
       organization: {
         role: 'USER',
-        organization: 'organizationName',
+        name: 'organizationName',
+        organization: 1,
       },
       authLoginData: {
         token: 'token',
@@ -257,6 +259,7 @@ describe('selectors', () => {
     expect(selectIsSuperUser(state)).toEqual(false)
     expect(selectRole(state)).toEqual('USER')
     expect(selectOrganizationName(state)).toEqual('organizationName')
+    expect(selectOrganizationId(state)).toEqual(1)
     expect(selectName(state)).toEqual('name')
     expect(selectEmail(state)).toEqual('email')
     expect(selectSuperUser(state)).toEqual(false)
