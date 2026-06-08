@@ -453,28 +453,35 @@ class UserManagementServiceTest {
     @Test
     void testDeleteMultipleUsersByEmail_Success() {
         List<String> emails = List.of("test1@example.com", "test2@example.com");
+        User user1 = new User();
+        user1.setEmail("test1@example.com");
+        User user2 = new User();
+        user2.setEmail("test2@example.com");
+        List<User> users = List.of(user1, user2);
 
-        when(userRepository.countByEmailIn(emails)).thenReturn((long) emails.size());
+        when(userRepository.findByEmailIn(emails)).thenReturn(users);
 
         userManagementService.deleteMultipleUsersByEmail(emails);
 
-        verify(userRepository).countByEmailIn(emails);
+        verify(userRepository).findByEmailIn(emails);
         verify(userOrganizationRepository).removeMultipleUserOrganizationsByEmail(emails);
-        verify(userRepository).deleteByEmailIn(emails);
+        verify(userRepository).deleteAll(users);
     }
 
     @Test
     void testDeleteMultipleUsersByEmail_SomeNotFound() {
         List<String> emails = List.of("test1@example.com", "nonexistent@example.com");
+        User user1 = new User();
+        user1.setEmail("test1@example.com");
+        List<User> users = List.of(user1);
 
-        when(userRepository.countByEmailIn(emails)).thenReturn(1L);
-        when(userRepository.findExistingEmails(emails)).thenReturn(List.of("test1@example.com"));
+        when(userRepository.findByEmailIn(emails)).thenReturn(users);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
         assertEquals("User(s) not found with email(s): nonexistent@example.com", exception.getMessage());
-        verify(userRepository, never()).deleteByEmailIn(any());
+        verify(userRepository, never()).deleteAll(any());
         verify(userOrganizationRepository, never()).removeMultipleUserOrganizationsByEmail(any());
     }
 
@@ -482,42 +489,27 @@ class UserManagementServiceTest {
     void testDeleteMultipleUsersByEmail_EmptyList() {
         List<String> emails = List.of();
 
+        when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
+
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
         assertEquals("No valid user emails provided", exception.getMessage());
-        verify(userRepository, never()).deleteByEmailIn(any());
+        verify(userRepository, never()).deleteAll(any());
     }
 
     @Test
     void testDeleteMultipleUsersByEmail_AllNotFound() {
         List<String> emails = List.of("nonexistent1@example.com", "nonexistent2@example.com");
 
-        when(userRepository.countByEmailIn(emails)).thenReturn(0L);
-        when(userRepository.findExistingEmails(emails)).thenReturn(List.of());
+        when(userRepository.findByEmailIn(emails)).thenReturn(List.of());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteMultipleUsersByEmail(emails));
 
         assertEquals("User(s) not found with email(s): nonexistent1@example.com, nonexistent2@example.com",
                 exception.getMessage());
-        verify(userRepository, never()).deleteByEmailIn(any());
-    }
-
-    @Test
-    void testDeleteMultipleUsersByEmail_DuplicateEmails() {
-        // Duplicate input must be de-duplicated before the count comparison so a request
-        // listing the same existing user twice succeeds instead of failing as "not found".
-        List<String> emails = List.of("dup@example.com", "dup@example.com");
-        List<String> distinct = List.of("dup@example.com");
-
-        when(userRepository.countByEmailIn(distinct)).thenReturn(1L);
-
-        userManagementService.deleteMultipleUsersByEmail(emails);
-
-        verify(userRepository).countByEmailIn(distinct);
-        verify(userOrganizationRepository).removeMultipleUserOrganizationsByEmail(distinct);
-        verify(userRepository).deleteByEmailIn(distinct);
+        verify(userRepository, never()).deleteAll(any());
     }
 
     // ==================== createUser Tests ====================

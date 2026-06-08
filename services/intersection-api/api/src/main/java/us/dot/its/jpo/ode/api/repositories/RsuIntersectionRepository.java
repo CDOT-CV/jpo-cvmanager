@@ -49,16 +49,6 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
 
     boolean existsByRsuAndIntersection(Rsu rsu, Intersection intersection);
 
-    /**
-     * Returns RSUs from the given list that are not yet associated with the
-     * intersection. Replaces per-RSU existsByRsuAndIntersection calls, eliminating
-     * the N+1 query pattern in the add-RSU-to-intersection path.
-     */
-    @Query("SELECT r FROM Rsu r WHERE r IN :rsus AND NOT EXISTS " +
-            "(SELECT ri FROM RsuIntersection ri WHERE ri.rsu = r AND ri.intersection = :intersection)")
-    List<Rsu> findRsusNotYetAssociated(@Param("rsus") List<Rsu> rsus,
-            @Param("intersection") Intersection intersection);
-
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address = :ipv4Address")

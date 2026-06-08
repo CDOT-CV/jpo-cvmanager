@@ -3,12 +3,10 @@ package us.dot.its.jpo.ode.api.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 
 import java.util.List;
@@ -46,21 +44,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     User findByEmail(String email);
 
     List<User> findByEmailIn(List<String> emails);
-
-    long countByEmailIn(List<String> emails);
-
-    /**
-     * Returns the subset of the given emails that actually exist. Used only on the
-     * not-found error path to report exactly which emails were missing, without
-     * loading full User entities.
-     */
-    @Query("SELECT u.email FROM User u WHERE u.email IN :emails")
-    List<String> findExistingEmails(@Param("emails") List<String> emails);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM User u WHERE u.email IN :emails")
-    void deleteByEmailIn(@Param("emails") List<String> emails);
 
     @Query("SELECT user " +
             "FROM User user " +

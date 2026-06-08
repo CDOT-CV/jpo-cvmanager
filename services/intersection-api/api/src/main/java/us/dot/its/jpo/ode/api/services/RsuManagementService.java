@@ -355,33 +355,31 @@ public class RsuManagementService {
         }).toList();
 
         // Check if all RSUs exist
-        if (inetAddresses.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
-        }
-        List<InetAddress> distinctAddresses = inetAddresses.stream().distinct().toList();
-        long foundCount = rsuRepository.countByIpv4AddressIn(distinctAddresses);
-        if (foundCount != distinctAddresses.size()) {
-            // Only on the error path: load the existing IPs (key column only, no entities)
-            // to report exactly which ones were missing.
-            List<InetAddress> existingAddresses = rsuRepository.findExistingIpv4Addresses(distinctAddresses);
-            List<String> missingIps = distinctAddresses.stream()
-                    .filter(ip -> !existingAddresses.contains(ip))
-                    .map(InetAddress::getHostAddress)
+        List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
+        if (existingRsus.size() != inetAddresses.size()) {
+            // Find which IPs don't exist
+            List<String> existingIps = existingRsus.stream()
+                    .map(rsu -> rsu.getIpv4Address().getHostAddress())
+                    .toList();
+            List<String> missingIps = rsuIps.stream()
+                    .filter(ip -> !existingIps.contains(ip))
                     .toList();
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "RSU(s) not found with IP(s): " + String.join(", ", missingIps));
+        } else if (existingRsus.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
         }
 
-        pingRepository.removeMultiplePingsByIpv4Address(distinctAddresses);
-        rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(distinctAddresses);
-        scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(distinctAddresses);
-        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(distinctAddresses);
-        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(distinctAddresses);
+        pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
+        rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
+        scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
+        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
+        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(inetAddresses);
         consecutiveFirmwareUpgradeFailureRepository
-                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(distinctAddresses);
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
         maxRetryLimitReachedInstanceRepository
-                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(distinctAddresses);
-        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(distinctAddresses);
-        rsuRepository.removeByIpv4AddressIn(distinctAddresses);
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
+        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
+        rsuRepository.removeByIpv4AddressIn(inetAddresses);
     }
 }
