@@ -20,14 +20,19 @@ public class TestFixtures {
         return GF.createPoint(new Coordinate(lon, lat));
     }
 
-    public Organization createOrg(String name) {
+    public Organization createOrg(Integer id, String name, String email) {
         Organization org = new Organization();
+        if (id != null) {
+            org.setId(id);
+        }
         org.setName(name);
+        org.setEmail(email);
         return org;
     }
 
     public Organization createRandomOrg() {
-        return createOrg(faker.company().name() + "-" + faker.crypto().md5().substring(0, 8));
+        return createOrg(null,
+                faker.company().name() + "-" + faker.crypto().md5().substring(0, 8), faker.internet().emailAddress());
     }
 
     public Intersection createIntersection(String number) {
@@ -83,7 +88,8 @@ public class TestFixtures {
         return proto;
     }
 
-    public Rsu createRsu(String ip, RsuModel model, RsuCredential cred, SnmpCredential snmpCred, SnmpProtocol proto) throws UnknownHostException {
+    public Rsu createRsu(String ip, RsuModel model, RsuCredential cred, SnmpCredential snmpCred, SnmpProtocol proto)
+            throws UnknownHostException {
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(InetAddress.getByName(ip));
         rsu.setGeography(createPoint(-105.0, 40.0));

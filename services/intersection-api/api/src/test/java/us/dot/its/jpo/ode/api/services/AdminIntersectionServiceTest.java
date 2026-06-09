@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.services;
 
 import jakarta.persistence.EntityNotFoundException;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -11,8 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.server.ResponseStatusException;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.fixtures.TestFixtures;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
@@ -54,739 +58,731 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("integration-test")
 class AdminIntersectionServiceTest {
-  @Autowired
-  private AdminIntersectionService adminIntersectionService;
+    @Autowired
+    private AdminIntersectionService adminIntersectionService;
 
-  private final TestFixtures fixtures = new TestFixtures();
+    @MockitoBean
+    private PermissionService permissionService;
 
-  @Autowired
-  private IntersectionRepository intersectionRepository;
+    @MockitoBean
+    private CvManagerAuthToken authToken;
 
-  @Autowired
-  private IntersectionOrganizationRepository intersectionOrganizationRepository;
+    private final TestFixtures fixtures = new TestFixtures();
 
-  @Autowired
-  private RsuIntersectionRepository rsuIntersectionRepository;
+    @Autowired
+    private IntersectionRepository intersectionRepository;
 
-  @Autowired
-  private OrganizationRepository organizationRepository;
+    @Autowired
+    private IntersectionOrganizationRepository intersectionOrganizationRepository;
 
-  @Autowired
-  private RsuRepository rsuRepository;
+    @Autowired
+    private RsuIntersectionRepository rsuIntersectionRepository;
 
-  @Autowired
-  private RsuOrganizationRepository rsuOrganizationRepository;
+    @Autowired
+    private OrganizationRepository organizationRepository;
 
-  @Autowired
-  private RsuCredentialRepository rsuCredentialRepository;
+    @Autowired
+    private RsuRepository rsuRepository;
 
-  @Autowired
-  private SnmpCredentialRepository snmpCredentialRepository;
+    @Autowired
+    private RsuOrganizationRepository rsuOrganizationRepository;
 
-  @Autowired
-  private SnmpProtocolRepository snmpProtocolRepository;
+    @Autowired
+    private RsuCredentialRepository rsuCredentialRepository;
 
-  @Autowired
-  private RsuModelRepository rsuModelRepository;
+    @Autowired
+    private SnmpCredentialRepository snmpCredentialRepository;
 
-  @Autowired
-  private ManufacturerRepository manufacturerRepository;
+    @Autowired
+    private SnmpProtocolRepository snmpProtocolRepository;
 
-  /**
-   * Clears all relevant tables in reverse FK-dependency order before each test so that
-   * tests never see each other's data and hardcoded identifiers ("1123", "1000", etc.)
-   * never produce duplicate-key violations.
-   *
-   * Deletion order (leaf tables first):
-   *   rsu_intersection → intersection_organization → rsu_organization
-   *   → rsus → rsu_credentials → snmp_credentials → snmp_protocols → rsu_models
-   *   → intersections → organizations
-   *
-   * Note: manufacturer rows are left as orphans (no unique constraint in test data).
-   */
-  @BeforeEach
-  void clearDatabaseBeforeTest() {
-    clearDatabase();
-  }
+    @Autowired
+    private RsuModelRepository rsuModelRepository;
 
-  /**
-   * Run cleanup after each test as well. Without @Transactional on this class,
-   * data committed by the last test method would otherwise linger in the shared
-   * Testcontainers DB and contaminate subsequent test classes (e.g. ScmsHealthServiceTest).
-   */
-  @AfterEach
-  void clearDatabaseAfterTest() {
-    clearDatabase();
-    SecurityContextHolder.clearContext();
-  }
+    @Autowired
+    private ManufacturerRepository manufacturerRepository;
 
-  private void clearDatabase() {
-    rsuIntersectionRepository.deleteAll();
-    intersectionOrganizationRepository.deleteAll();
-    rsuOrganizationRepository.deleteAll();
-    rsuRepository.deleteAll();
-    rsuCredentialRepository.deleteAll();
-    snmpCredentialRepository.deleteAll();
-    snmpProtocolRepository.deleteAll();
-    rsuModelRepository.deleteAll();
-    intersectionRepository.deleteAll();
-    organizationRepository.deleteAll();
-  }
-
-  private void setUpSuperuserContext() {
-    Jwt jwt = Jwt.withTokenValue("test-token")
-        .header("alg", "RS256")
-        .claim("sub", "superuser")
-        .claim("preferred_username", "superuser")
-        .claim("cvmanager_data", Map.of("super_user", "1", "organizations", List.of()))
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600))
-        .build();
-    SecurityContextHolder.getContext().setAuthentication(
-        new CvManagerAuthToken(jwt, List.of(), "superuser"));
-  }
-
-  private void setUpOperatorContext(String orgName) {
-    Jwt jwt = Jwt.withTokenValue("test-token")
-        .header("alg", "RS256")
-        .claim("sub", "operator")
-        .claim("preferred_username", "operator")
-        .claim("cvmanager_data", Map.of(
-            "super_user", "0",
-            "organizations", List.of(Map.of("org", orgName, "role", "OPERATOR"))
-        ))
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600))
-        .build();
-    SecurityContextHolder.getContext().setAuthentication(
-        new CvManagerAuthToken(jwt, List.of(), "operator"));
-  }
-
-  @Nested
-  class GetAllIntersections {
-
-    @Test
-    void withOrg_returnsScopedIntersections() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
-
-
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgName);
-
-      assertNotNull(result.getIntersectionData());
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(1123, result.getIntersectionData().getFirst().getIntersectionId());
+    /**
+     * Clears all relevant tables in reverse FK-dependency order before each test so
+     * that
+     * tests never see each other's data and hardcoded identifiers ("1123", "1000",
+     * etc.)
+     * never produce duplicate-key violations.
+     *
+     * Deletion order (leaf tables first):
+     * rsu_intersection → intersection_organization → rsu_organization
+     * → rsus → rsu_credentials → snmp_credentials → snmp_protocols → rsu_models
+     * → intersections → organizations
+     *
+     * Note: manufacturer rows are left as orphans (no unique constraint in test
+     * data).
+     */
+    @BeforeEach
+    void clearDatabaseBeforeTest() {
+        clearDatabase();
     }
 
-    @Test
-    void withOrg_excludesIntersectionsFromOtherOrgs() {
-      Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
-      Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection i1 = intersectionRepository.save(fixtures.createIntersection("1001"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i1, orgA));
-      Intersection i2 = intersectionRepository.save(fixtures.createIntersection("1002"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i2, orgB));
-
-
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgA.getName());
-
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(1001, result.getIntersectionData().getFirst().getIntersectionId());
+    /**
+     * Run cleanup after each test as well. Without @Transactional on this class,
+     * data committed by the last test method would otherwise linger in the shared
+     * Testcontainers DB and contaminate subsequent test classes (e.g.
+     * ScmsHealthServiceTest).
+     */
+    @AfterEach
+    void clearDatabaseAfterTest() {
+        clearDatabase();
+        SecurityContextHolder.clearContext();
     }
 
-    @Test
-    void noIntersectionsForOrg_returnsEmptyList() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      intersectionRepository.save(fixtures.createIntersection("1123")); // no org association
-
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(org.getName());
-
-      assertNotNull(result.getIntersectionData());
-      assertTrue(result.getIntersectionData().isEmpty());
+    private void clearDatabase() {
+        rsuIntersectionRepository.deleteAll();
+        intersectionOrganizationRepository.deleteAll();
+        rsuOrganizationRepository.deleteAll();
+        rsuRepository.deleteAll();
+        rsuCredentialRepository.deleteAll();
+        snmpCredentialRepository.deleteAll();
+        snmpProtocolRepository.deleteAll();
+        rsuModelRepository.deleteAll();
+        intersectionRepository.deleteAll();
+        organizationRepository.deleteAll();
     }
 
-    @Test
-    void attachesRsuIpsToCorrectIntersection() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
-
-
-      IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgName);
-
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(List.of("192.168.1.1"), result.getIntersectionData().getFirst().getRsus());
-    }
-  }
-
-  @Nested
-  class GetIntersectionsNotInOrganization {
-
-    @Test
-    void excludesIntersectionsInThatOrg() {
-      Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
-      Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection inA = intersectionRepository.save(fixtures.createIntersection("2001"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(inA, orgA));
-      Intersection inB = intersectionRepository.save(fixtures.createIntersection("2002"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(inB, orgB));
-
-      IntersectionListResponse result =
-          adminIntersectionService.getIntersectionsNotInOrganization(orgA.getName());
-
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(2002, result.getIntersectionData().getFirst().getIntersectionId());
+    private void setUpSuperuserContext() {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .claim("sub", "superuser")
+                .claim("preferred_username", "superuser")
+                .claim("cvmanager_data", Map.of("super_user", "1", "organizations", List.of()))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new CvManagerAuthToken(jwt, List.of(), "superuser", organizationRepository));
     }
 
-    @Test
-    void includesIntersectionsWithNoOrg() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection orphan = intersectionRepository.save(fixtures.createIntersection("2003"));
-
-      IntersectionListResponse result =
-          adminIntersectionService.getIntersectionsNotInOrganization(org.getName());
-
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(2003, result.getIntersectionData().getFirst().getIntersectionId());
+    private void setUpOperatorContext(Integer orgId) {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .claim("sub", "operator")
+                .claim("preferred_username", "operator")
+                .claim("cvmanager_data", Map.of(
+                        "super_user", "0",
+                        "organizations",
+                        List.of(Map.of("org_id", orgId, "org_name", orgId.toString() + "-name", "org_email", "email", "role", "OPERATOR"))))
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new CvManagerAuthToken(jwt, List.of(), "operator", organizationRepository));
     }
 
-    @Test
-    void intersectionInMultipleOrgs_excludedFromAllOrgsItBelongsTo() {
-      Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
-      Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection both = intersectionRepository.save(fixtures.createIntersection("2004"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(both, orgA));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(both, orgB));
+    private void mockOperatorOrgs(List<Pair<Organization, UserRole>> orgs) {
+        when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
 
-      IntersectionListResponse resultA =
-          adminIntersectionService.getIntersectionsNotInOrganization(orgA.getName());
-      IntersectionListResponse resultB =
-          adminIntersectionService.getIntersectionsNotInOrganization(orgB.getName());
+        List<Organization> userOrgs = orgs.stream()
+                .filter(pair -> pair.getRight() == UserRole.USER)
+                .map(Pair::getLeft)
+                .toList();
+        if (!userOrgs.isEmpty())
+            when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(userOrgs);
 
-      assertTrue(resultA.getIntersectionData().isEmpty());
-      assertTrue(resultB.getIntersectionData().isEmpty());
+        List<Organization> operatorOrgs = orgs.stream()
+                .filter(pair -> pair.getRight() == UserRole.OPERATOR)
+                .map(Pair::getLeft)
+                .toList();
+        if (!operatorOrgs.isEmpty())
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(operatorOrgs);
+
+        List<Organization> adminOrgs = orgs.stream()
+                .filter(pair -> pair.getRight() == UserRole.ADMIN)
+                .map(Pair::getLeft)
+                .toList();
+        if (!adminOrgs.isEmpty())
+            when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(adminOrgs);
     }
 
-    @Test
-    void allIntersectionsInOrg_returnsEmptyList() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("2005"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+    @Nested
+    class GetAllIntersections {
 
-      IntersectionListResponse result =
-          adminIntersectionService.getIntersectionsNotInOrganization(org.getName());
+        @Test
+        void withOrg_returnsScopedIntersections() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
 
-      assertNotNull(result.getIntersectionData());
-      assertTrue(result.getIntersectionData().isEmpty());
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+
+            assertNotNull(result.getIntersectionData());
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(1123, result.getIntersectionData().getFirst().getIntersectionId());
+        }
+
+        @Test
+        void withOrg_excludesIntersectionsFromOtherOrgs() {
+            Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
+            Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i1 = intersectionRepository.save(fixtures.createIntersection("1001"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i1, orgA));
+            Intersection i2 = intersectionRepository.save(fixtures.createIntersection("1002"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i2, orgB));
+
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(orgA);
+
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(1001, result.getIntersectionData().getFirst().getIntersectionId());
+        }
+
+        @Test
+        void noIntersectionsForOrg_returnsEmptyList() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            intersectionRepository.save(fixtures.createIntersection("1123")); // no org association
+
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+
+            assertNotNull(result.getIntersectionData());
+            assertTrue(result.getIntersectionData().isEmpty());
+        }
+
+        @Test
+        void attachesRsuIpsToCorrectIntersection() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
+
+            IntersectionListResponse result = adminIntersectionService.getAllIntersections(org);
+
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(List.of("192.168.1.1"), result.getIntersectionData().getFirst().getRsus());
+        }
     }
 
-    @Test
-    void noIntersectionsExist_returnsEmptyList() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
+    @Nested
+    class GetIntersectionsNotInOrganization {
 
-      IntersectionListResponse result =
-          adminIntersectionService.getIntersectionsNotInOrganization(org.getName());
+        @Test
+        void excludesIntersectionsInThatOrg() {
+            Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
+            Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection inA = intersectionRepository.save(fixtures.createIntersection("2001"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(inA, orgA));
+            Intersection inB = intersectionRepository.save(fixtures.createIntersection("2002"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(inB, orgB));
 
-      assertNotNull(result.getIntersectionData());
-      assertTrue(result.getIntersectionData().isEmpty());
+            IntersectionListResponse result = adminIntersectionService
+                    .getIntersectionsNotInOrganization(orgA);
+
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(2002, result.getIntersectionData().getFirst().getIntersectionId());
+        }
+
+        @Test
+        void includesIntersectionsWithNoOrg() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            intersectionRepository.save(fixtures.createIntersection("2003"));
+
+            IntersectionListResponse result = adminIntersectionService.getIntersectionsNotInOrganization(org);
+
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(2003, result.getIntersectionData().getFirst().getIntersectionId());
+        }
+
+        @Test
+        void intersectionInMultipleOrgs_excludedFromAllOrgsItBelongsTo() {
+            Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
+            Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection both = intersectionRepository.save(fixtures.createIntersection("2004"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(both, orgA));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(both, orgB));
+
+            IntersectionListResponse resultA = adminIntersectionService
+                    .getIntersectionsNotInOrganization(orgA);
+            IntersectionListResponse resultB = adminIntersectionService
+                    .getIntersectionsNotInOrganization(orgB);
+
+            assertTrue(resultA.getIntersectionData().isEmpty());
+            assertTrue(resultB.getIntersectionData().isEmpty());
+        }
+
+        @Test
+        void allIntersectionsInOrg_returnsEmptyList() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("2005"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+
+            IntersectionListResponse result = adminIntersectionService.getIntersectionsNotInOrganization(org);
+
+            assertNotNull(result.getIntersectionData());
+            assertTrue(result.getIntersectionData().isEmpty());
+        }
+
+        @Test
+        void noIntersectionsExist_returnsEmptyList() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+
+            IntersectionListResponse result = adminIntersectionService.getIntersectionsNotInOrganization(org);
+
+            assertNotNull(result.getIntersectionData());
+            assertTrue(result.getIntersectionData().isEmpty());
+        }
+
+        @Test
+        void populatesRsuIpsOnReturnedIntersections() throws UnknownHostException {
+            Organization targetOrg = organizationRepository.save(fixtures.createRandomOrg());
+            Organization otherOrg = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection available = intersectionRepository.save(fixtures.createIntersection("2006"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(available, otherOrg));
+            Rsu rsu = saveRsu("10.0.0.42", otherOrg);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, available));
+
+            IntersectionListResponse result = adminIntersectionService
+                    .getIntersectionsNotInOrganization(targetOrg);
+
+            assertEquals(1, result.getIntersectionData().size());
+            assertEquals(List.of("10.0.0.42"), result.getIntersectionData().getFirst().getRsus());
+        }
     }
 
-    @Test
-    void populatesRsuIpsOnReturnedIntersections() throws UnknownHostException {
-      Organization targetOrg = organizationRepository.save(fixtures.createRandomOrg());
-      Organization otherOrg = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection available = intersectionRepository.save(fixtures.createIntersection("2006"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(available, otherOrg));
-      Rsu rsu = saveRsu("10.0.0.42", otherOrg);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, available));
+    @Nested
+    class GetIntersection {
 
-      IntersectionListResponse result =
-          adminIntersectionService.getIntersectionsNotInOrganization(targetOrg.getName());
+        @Test
+        void notFound_throwsEntityNotFoundException() {
+            organizationRepository.save(fixtures.createRandomOrg());
 
-      assertEquals(1, result.getIntersectionData().size());
-      assertEquals(List.of("10.0.0.42"), result.getIntersectionData().getFirst().getRsus());
-    }
-  }
+            assertThrows(EntityNotFoundException.class,
+                    () -> adminIntersectionService.getIntersection(Integer.MAX_VALUE),
+                    "Should throw EntityNotFoundException for non-existent intersection");
+        }
 
-  @Nested
-  class GetIntersection {
+        @Test
+        void foundAsSuperuser_returnsFullDataWithAllOrgs() throws UnknownHostException {
+            setUpSuperuserContext();
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.OPERATOR)));
 
-    @Test
-    void notFound_throwsEntityNotFoundException() {
-      organizationRepository.save(fixtures.createRandomOrg());
+            IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
 
-      assertThrows(EntityNotFoundException.class, () ->  adminIntersectionService.getIntersection(Integer.MAX_VALUE),
-        "Should throw EntityNotFoundException for non-existent intersection");
-    }
+            assertEquals(1123, result.getIntersectionDto().getIntersectionId());
+            assertNotNull(result.getAllowedSelections());
+            assertTrue(result.getAllowedSelections().getOrganizations().contains(org.getId()));
+            assertEquals(List.of("192.168.1.1"), result.getIntersectionDto().getRsus());
+        }
 
-    @Test
-    void foundAsSuperuser_returnsFullDataWithAllOrgs() throws UnknownHostException {
-      setUpSuperuserContext();
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
+        @Test
+        void found_singleOrg_returnsOrgInDto() {
+            setUpSuperuserContext();
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.OPERATOR)));
 
+            IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
 
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
+            assertEquals(1123, result.getIntersectionDto().getIntersectionId());
+            assertEquals(List.of(org.getId()), result.getIntersectionDto().getOrganizations());
+        }
 
-      assertEquals(1123, result.getIntersectionDto().getIntersectionId());
-      assertNotNull(result.getAllowedSelections());
-      assertTrue(result.getAllowedSelections().getOrganizations().contains(orgName));
-      assertEquals(List.of("192.168.1.1"), result.getIntersectionDto().getRsus());
-    }
+        @Test
+        void intersectionWithMultipleOrgs_returnsAllAssignedOrgsInDto() {
+            setUpSuperuserContext();
+            Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
+            Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
 
-    @Test
-    void found_singleOrg_returnsOrgInDto() {
-      setUpSuperuserContext();
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgA));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgB));
+            mockOperatorOrgs(List.of(Pair.of(orgA, UserRole.OPERATOR), Pair.of(orgB, UserRole.OPERATOR)));
 
+            IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
 
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
+            assertEquals(1123, result.getIntersectionDto().getIntersectionId());
+            assertEquals(2, result.getIntersectionDto().getOrganizations().size());
+            assertTrue(result.getIntersectionDto().getOrganizations().containsAll(List.of(orgA.getId(), orgB.getId())));
+        }
 
-      assertEquals(1123, result.getIntersectionDto().getIntersectionId());
-      assertEquals(List.of(orgName), result.getIntersectionDto().getOrganizations());
-    }
+        @Test
+        void nonSuperuser_allowedSelectionsUsesOperatorOrgs() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            setUpOperatorContext(org.getId());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            Rsu rsu = saveRsu("10.0.0.1", org);
+            rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.OPERATOR)));
 
-    @Test
-    void intersectionWithMultipleOrgs_returnsAllAssignedOrgsInDto() {
-      setUpSuperuserContext();
-      Organization orgA = organizationRepository.save(fixtures.createRandomOrg());
-      Organization orgB = organizationRepository.save(fixtures.createRandomOrg());
-      String orgAName = orgA.getName();
-      String orgBName = orgB.getName();
+            IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
 
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgA));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, orgB));
-
-
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
-
-      assertEquals(1123, result.getIntersectionDto().getIntersectionId());
-      assertEquals(2, result.getIntersectionDto().getOrganizations().size());
-      assertTrue(result.getIntersectionDto().getOrganizations().containsAll(List.of(orgAName, orgBName)));
+            AllowedSelections allowed = result.getAllowedSelections();
+            assertEquals(List.of(org.getId()), allowed.getOrganizations());
+            assertEquals(List.of("10.0.0.1"), allowed.getRsus());
+        }
     }
 
-    @Test
-    void nonSuperuser_allowedSelectionsUsesOperatorOrgs() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      setUpOperatorContext(orgName);
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
-      Rsu rsu = saveRsu("10.0.0.1", org);
-      rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
+    @Nested
+    class PatchIntersection {
 
+        @Test
+        void basicUpdate_renumbersIntersection() {
+            intersectionRepository.save(fixtures.createIntersection("1000"));
 
-      IntersectionSingleResponse result = adminIntersectionService.getIntersection(1123);
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1001, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), Collections.emptyList());
 
-      AllowedSelections allowed = result.getAllowedSelections();
-      assertEquals(List.of(orgName), allowed.getOrganizations());
-      assertEquals(List.of("10.0.0.1"), allowed.getRsus());
-    }
-  }
+            adminIntersectionService.patchIntersection(patch, List.of());
 
-  @Nested
-  class PatchIntersection {
+            assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
+            assertFalse(intersectionRepository.findByIntersectionNumber("1000").isPresent());
+        }
 
-    @Test
-    void basicUpdate_renumbersIntersection() {
-      intersectionRepository.save(fixtures.createIntersection("1000"));
+        @Test
+        void withOptionalFields_updatesNonNullFields() {
+            intersectionRepository.save(fixtures.createIntersection("1000"));
 
+            Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
+                    Collections.emptyList(), Collections.emptyList());
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1001, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
+            adminIntersectionService.patchIntersection(patch, List.of());
 
-      adminIntersectionService.patchIntersection(patch);
+            Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
+            assertEquals("Main St", updated.getIntersectionName());
+            assertNotNull(updated.getBbox());
+        }
 
-      assertTrue(intersectionRepository.findByIntersectionNumber("1001").isPresent());
-      assertFalse(intersectionRepository.findByIntersectionNumber("1000").isPresent());
-    }
+        @Test
+        void nullOptionalFields_preservesExistingValues() {
+            Intersection existing = intersectionRepository.save(fixtures.createIntersection("1000"));
+            existing.setIntersectionName("Existing Name");
+            intersectionRepository.save(existing);
 
-    @Test
-    void withOptionalFields_updatesNonNullFields() {
-      intersectionRepository.save(fixtures.createIntersection("1000"));
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), Collections.emptyList());
 
+            adminIntersectionService.patchIntersection(patch, List.of());
 
-      Bbox bbox = new Bbox(39.9, -105.2, 40.1, -105.0);
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), bbox, "Main St", null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
+            Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
+            assertEquals("Existing Name", updated.getIntersectionName());
+        }
 
-      adminIntersectionService.patchIntersection(patch);
+        @Test
+        void orgsToAdd_createsAssociations() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            intersectionRepository.save(fixtures.createIntersection("1000"));
 
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    List.of(org.getId()), Collections.emptyList());
 
-      Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
-      assertEquals("Main St", updated.getIntersectionName());
-      assertNotNull(updated.getBbox());
-    }
+            adminIntersectionService.patchIntersection(patch, List.of(org));
 
-    @Test
-    void nullOptionalFields_preservesExistingValues() {
-      Intersection existing = intersectionRepository.save(fixtures.createIntersection("1000"));
-      existing.setIntersectionName("Existing Name");
-      intersectionRepository.save(existing);
+            List<Intersection> result = intersectionRepository.findAllByOrganization(org);
+            assertEquals(1, result.size());
+            assertEquals("1000", result.getFirst().getIntersectionNumber());
+        }
 
+        @Test
+        void orgsToRemove_deletesAssociations() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1000"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), Collections.emptyList());
 
-      adminIntersectionService.patchIntersection(patch);
+            adminIntersectionService.patchIntersection(patch, List.of(org));
 
+            assertTrue(intersectionRepository.findAllByOrganization(org).isEmpty());
+        }
 
-      Intersection updated = intersectionRepository.findByIntersectionNumber("1000").orElseThrow();
-      assertEquals("Existing Name", updated.getIntersectionName());
-    }
+        @Test
+        void rsusToAdd_createsAssociations() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            intersectionRepository.save(fixtures.createIntersection("1000"));
+            saveRsu("192.168.1.1", org);
 
-    @Test
-    void orgsToAdd_createsAssociations() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      intersectionRepository.save(fixtures.createIntersection("1000"));
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), List.of("192.168.1.1"));
 
+            adminIntersectionService.patchIntersection(patch, List.of(org));
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        List.of(orgName), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
+            assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).size());
+        }
 
-      adminIntersectionService.patchIntersection(patch);
+        @Test
+        void rsusToRemove_deletesAssociations() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection intersection = intersectionRepository.save(fixtures.createIntersection("1000"));
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
 
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), Collections.emptyList());
 
-      List<Intersection> result = intersectionRepository.findAllByOrgNameWithOrgs(orgName);
-      assertEquals(1, result.size());
-      assertEquals("1000", result.getFirst().getIntersectionNumber());
-    }
+            adminIntersectionService.patchIntersection(patch, List.of(org));
 
-    @Test
-    void orgsToRemove_deletesAssociations() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1000"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).isEmpty());
+        }
 
+        @Test
+        void intersectionNotFound_throws404() {
+            IntersectionPatch patch = new IntersectionPatch(
+                    9999, 9999, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList());
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), List.of(orgName),
-        Collections.emptyList(), Collections.emptyList());
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> adminIntersectionService.patchIntersection(patch, List.of()));
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        }
 
-      adminIntersectionService.patchIntersection(patch);
+        @Test
+        void rsusToAdd_alreadyAssociated_doesNotCreateDuplicate() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection intersection = intersectionRepository.save(fixtures.createIntersection("1000"));
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
 
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                    Collections.emptyList(), List.of("192.168.1.1"));
 
-      assertTrue(intersectionRepository.findAllByOrgNameWithOrgs(orgName).isEmpty());
-    }
+            adminIntersectionService.patchIntersection(patch, List.of(org));
 
-    @Test
-    void rsusToAdd_createsAssociations() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      intersectionRepository.save(fixtures.createIntersection("1000"));
-      saveRsu("192.168.1.1", org);
+            assertEquals(1, rsuIntersectionRepository.findAll().size());
+        }
 
+        @Test
+        void emptyRelationshipLists_noAssociations_createdOrRemoved() {
+            intersectionRepository.save(fixtures.createIntersection("1000"));
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        List.of("192.168.1.1"), Collections.emptyList());
+            IntersectionPatch patch = new IntersectionPatch(
+                    1000, 1000, new RefPt(40.0, -105.0), null, null, null,
+                            Collections.emptyList(), Collections.emptyList());
 
-      adminIntersectionService.patchIntersection(patch);
+            adminIntersectionService.patchIntersection(patch, List.of());
 
-
-      assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).size());
-    }
-
-    @Test
-    void rsusToRemove_deletesAssociations() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection intersection = intersectionRepository.save(fixtures.createIntersection("1000"));
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
-
-
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), List.of("192.168.1.1"));
-
-      adminIntersectionService.patchIntersection(patch);
-
-
-      assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1000).isEmpty());
-    }
-
-    @Test
-    void intersectionNotFound_throws404() {
-      IntersectionPatch patch = new IntersectionPatch(
-        9999, 9999, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
-
-      ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-        () -> adminIntersectionService.patchIntersection(patch));
-      assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+            assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
+            assertTrue(rsuIntersectionRepository.findAll().isEmpty());
+        }
     }
 
-    @Test
-    void rsusToAdd_alreadyAssociated_doesNotCreateDuplicate() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection intersection = intersectionRepository.save(fixtures.createIntersection("1000"));
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, intersection));
+    @Nested
+    class DeleteIntersection {
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        List.of("192.168.1.1"), Collections.emptyList());
+        @Test
+        void existingIntersection_deletesRelationshipsAndReturnsMessage() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
+            intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
 
-      adminIntersectionService.patchIntersection(patch);
+            adminIntersectionService.deleteIntersection("1123");
 
-      assertEquals(1, rsuIntersectionRepository.findAll().size());
+            assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
+            assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1123).isEmpty());
+            assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
+        }
+
+        @Test
+        void notFound_throws404() {
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> adminIntersectionService.deleteIntersection("9999"));
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        }
     }
 
-    @Test
-    void emptyRelationshipLists_noAssociations_createdOrRemoved() {
-      intersectionRepository.save(fixtures.createIntersection("1000"));
+    @Nested
+    class CreateIntersection {
 
+        @Test
+        void happyPath_allFieldsPopulated_savesIntersectionAndAssociations() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Rsu rsu = saveRsu("192.168.1.1", org);
+            rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
 
-      IntersectionPatch patch = new IntersectionPatch(
-        1000, 1000, new RefPt(40.0, -105.0), null, null, null,
-        Collections.emptyList(), Collections.emptyList(),
-        Collections.emptyList(), Collections.emptyList());
+            IntersectionCreate create = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(org.getId()), List.of("192.168.1.1"),
+                            new Bbox(40.111, -105.444, 40.133, -105.466),
+                    "Main St & 1st Ave", "10.0.0.1");
 
-      adminIntersectionService.patchIntersection(patch);
+            adminIntersectionService.createIntersection(create, List.of(org));
 
+            // Verify intersection was saved
+            assertTrue(intersectionRepository.findByIntersectionNumber("12109").isPresent());
+            Intersection saved = intersectionRepository.findByIntersectionNumber("12109").orElseThrow();
+            assertEquals("Main St & 1st Ave", saved.getIntersectionName());
+            assertNotNull(saved.getBbox());
+            assertNotNull(saved.getOriginIp());
 
-      assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
-      assertTrue(rsuIntersectionRepository.findAll().isEmpty());
-    }
-  }
+            // Verify org association
+            List<Intersection> byOrg = intersectionRepository.findAllByOrganization(org);
+            assertEquals(1, byOrg.size());
 
-  @Nested
-  class DeleteIntersection {
+            // Verify RSU association
+            assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber(12109).size());
+        }
 
-    @Test
-    void existingIntersection_deletesRelationshipsAndReturnsMessage() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      Intersection i = intersectionRepository.save(fixtures.createIntersection("1123"));
-      intersectionOrganizationRepository.save(fixtures.createIntersectionOrganization(i, org));
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuIntersectionRepository.save(fixtures.createRsuIntersection(rsu, i));
+        @Test
+        void optionalFieldsOmitted_savesWithNulls() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
 
+            IntersectionCreate create = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(org.getId()), List.of(),
+                    null, null, null);
 
-      adminIntersectionService.deleteIntersection("1123");
+            adminIntersectionService.createIntersection(create, List.of(org));
 
-      assertFalse(intersectionRepository.findByIntersectionNumber("1123").isPresent());
-      assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(1123).isEmpty());
-      assertTrue(intersectionOrganizationRepository.findAll().isEmpty());
-    }
+            Intersection saved = intersectionRepository.findByIntersectionNumber("12109").orElseThrow();
+            assertNull(saved.getIntersectionName());
+            assertNull(saved.getBbox());
+            assertNull(saved.getOriginIp());
+        }
 
-    @Test
-    void notFound_throws404() {
-      ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-        () -> adminIntersectionService.deleteIntersection("9999"));
-      assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-    }
-  }
+        @Test
+        void emptyRsuList_skipsRsuAssociationStep() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
 
-  @Nested
-  class CreateIntersection {
+            IntersectionCreate create = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(org.getId()), List.of(),
+                    null, null, null);
 
-    @Test
-    void happyPath_allFieldsPopulated_savesIntersectionAndAssociations() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Rsu rsu = saveRsu("192.168.1.1", org);
-      rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
+            adminIntersectionService.createIntersection(create, List.of(org));
 
-      IntersectionCreate create = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of(orgName), List.of("192.168.1.1"),
-        new Bbox(40.111, -105.444, 40.133, -105.466),
-        "Main St & 1st Ave", "10.0.0.1");
+            assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(12109).isEmpty());
+            assertTrue(intersectionRepository.findByIntersectionNumber("12109").isPresent());
+        }
 
-      adminIntersectionService.createIntersection(create);
+        @Test
+        void duplicateIntersectionNumber_throwsDataIntegrityViolationException() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
 
-      // Verify intersection was saved
-      assertTrue(intersectionRepository.findByIntersectionNumber("12109").isPresent());
-      Intersection saved = intersectionRepository.findByIntersectionNumber("12109").orElseThrow();
-      assertEquals("Main St & 1st Ave", saved.getIntersectionName());
-      assertNotNull(saved.getBbox());
-      assertNotNull(saved.getOriginIp());
+            IntersectionCreate first = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(org.getId()), List.of(),
+                    null, null, null);
+            adminIntersectionService.createIntersection(first, List.of(org));
 
-      // Verify org association
-      List<Intersection> byOrg = intersectionRepository.findAllByOrgNameWithOrgs(orgName);
-      assertEquals(1, byOrg.size());
+            IntersectionCreate duplicate = new IntersectionCreate(
+                    12109, new RefPt(40.789, -105.012),
+                    List.of(org.getId()), List.of(),
+                    null, null, null);
 
-      // Verify RSU association
-      assertEquals(1, rsuIntersectionRepository.findRsuIpsByIntersectionNumber(12109).size());
-    }
+            assertThrows(DataIntegrityViolationException.class,
+                    () -> adminIntersectionService.createIntersection(duplicate, List.of(org)));
+        }
 
-    @Test
-    void optionalFieldsOmitted_savesWithNulls() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
+        @Test
+        void nonExistentOrganization_throwsEntityNotFoundException() {
+            IntersectionCreate create = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(9), List.of(),
+                    null, null, null);
 
-      IntersectionCreate create = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of(orgName), List.of(),
-        null, null, null);
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> adminIntersectionService.createIntersection(create, List.of()));
+            assertTrue(ex.getMessage().contains("9"));
+        }
 
-      adminIntersectionService.createIntersection(create);
+        @Test
+        void nonExistentRsu_throwsEntityNotFoundException() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
 
-      Intersection saved = intersectionRepository.findByIntersectionNumber("12109").orElseThrow();
-      assertNull(saved.getIntersectionName());
-      assertNull(saved.getBbox());
-      assertNull(saved.getOriginIp());
-    }
+            IntersectionCreate create = new IntersectionCreate(
+                    12109, new RefPt(40.123, -105.456),
+                    List.of(org.getId()), List.of("192.168.99.99"),
+                    null, null, null);
 
-    @Test
-    void emptyRsuList_skipsRsuAssociationStep() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-
-      IntersectionCreate create = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of(orgName), List.of(),
-        null, null, null);
-
-      adminIntersectionService.createIntersection(create);
-
-      assertTrue(rsuIntersectionRepository.findRsuIpsByIntersectionNumber(12109).isEmpty());
-      assertTrue(intersectionRepository.findByIntersectionNumber("12109").isPresent());
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> adminIntersectionService.createIntersection(create, List.of(org)));
+            assertTrue(ex.getMessage().contains("192.168.99.99"));
+        }
     }
 
-    @Test
-    void duplicateIntersectionNumber_throwsDataIntegrityViolationException() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
+    @Nested
+    class BuildAllowedSelections {
 
-      IntersectionCreate first = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of(orgName), List.of(),
-        null, null, null);
-      adminIntersectionService.createIntersection(first);
+        @Test
+        void superUser_returnsAllOrgsAndRsus() throws UnknownHostException {
+            setUpSuperuserContext();
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            Rsu rsu = saveRsu("10.0.0.1", org);
+            rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.OPERATOR)));
 
-      IntersectionCreate duplicate = new IntersectionCreate(
-        12109, new RefPt(40.789, -105.012),
-        List.of(orgName), List.of(),
-        null, null, null);
+            AllowedSelections result = adminIntersectionService.getAllowedSelections();
 
-      assertThrows(DataIntegrityViolationException.class,
-        () -> adminIntersectionService.createIntersection(duplicate));
+            assertTrue(result.getOrganizations().contains(org.getId()));
+            assertTrue(result.getRsus().contains("10.0.0.1"));
+        }
+
+        @Test
+        void nonSuperUserWithOperatorOrgs_returnsScopedOrgsAndRsus() throws UnknownHostException {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            setUpOperatorContext(org.getId());
+            Rsu rsu = saveRsu("10.0.0.1", org);
+            rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.OPERATOR)));
+
+            AllowedSelections result = adminIntersectionService.getAllowedSelections();
+
+            assertEquals(List.of(org.getId()), result.getOrganizations());
+            assertEquals(List.of("10.0.0.1"), result.getRsus());
+        }
+
+        @Test
+        void nonSuperUserWithOnlyUserRole_returnsEmptyLists() {
+            Organization org = organizationRepository.save(fixtures.createRandomOrg());
+            String orgName = org.getName();
+            // Set up a context with only USER role (not OPERATOR)
+            Jwt jwt = Jwt.withTokenValue("test-token")
+                    .header("alg", "RS256")
+                    .claim("sub", "user")
+                    .claim("preferred_username", "user")
+                    .claim("cvmanager_data", Map.of(
+                            "super_user", "0",
+                            "organizations",
+                            List.of(Map.of("org_id", 1, "org_name", orgName, "org_email", "email", "role", "USER"))))
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+            SecurityContextHolder.getContext().setAuthentication(
+                    new CvManagerAuthToken(jwt, List.of(), "user", organizationRepository));
+            mockOperatorOrgs(List.of(Pair.of(org, UserRole.USER)));
+
+            AllowedSelections result = adminIntersectionService.getAllowedSelections();
+
+            assertTrue(result.getOrganizations().isEmpty());
+            assertTrue(result.getRsus().isEmpty());
+        }
     }
 
-    @Test
-    void nonExistentOrganization_throwsEntityNotFoundException() {
-      IntersectionCreate create = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of("NonExistentOrg"), List.of(),
-        null, null, null);
-
-      EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-        () -> adminIntersectionService.createIntersection(create));
-      assertTrue(ex.getMessage().contains("NonExistentOrg"));
+    private Rsu saveRsu(String ip, Organization org) throws UnknownHostException {
+        Manufacturer mfr = manufacturerRepository.save(fixtures.createRandomManufacturer());
+        RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(mfr));
+        RsuCredential cred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
+        SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
+        SnmpProtocol proto = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
+        return rsuRepository.save(fixtures.createRsu(ip, model, cred, snmpCred, proto));
     }
-
-    @Test
-    void nonExistentRsu_throwsEntityNotFoundException() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-
-      IntersectionCreate create = new IntersectionCreate(
-        12109, new RefPt(40.123, -105.456),
-        List.of(orgName), List.of("192.168.99.99"),
-        null, null, null);
-
-      EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-        () -> adminIntersectionService.createIntersection(create));
-      assertTrue(ex.getMessage().contains("192.168.99.99"));
-    }
-  }
-
-  @Nested
-  class BuildAllowedSelections {
-
-    @Test
-    void superUser_returnsAllOrgsAndRsus() throws UnknownHostException {
-      setUpSuperuserContext();
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      Rsu rsu = saveRsu("10.0.0.1", org);
-      rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
-
-      AllowedSelections result = adminIntersectionService.getAllowedSelections();
-
-      assertTrue(result.getOrganizations().contains(orgName));
-      assertTrue(result.getRsus().contains("10.0.0.1"));
-    }
-
-    @Test
-    void nonSuperUserWithOperatorOrgs_returnsScopedOrgsAndRsus() throws UnknownHostException {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      setUpOperatorContext(orgName);
-      Rsu rsu = saveRsu("10.0.0.1", org);
-      rsuOrganizationRepository.save(fixtures.createRsuOrganization(rsu, org));
-
-      AllowedSelections result = adminIntersectionService.getAllowedSelections();
-
-      assertEquals(List.of(orgName), result.getOrganizations());
-      assertEquals(List.of("10.0.0.1"), result.getRsus());
-    }
-
-    @Test
-    void nonSuperUserWithOnlyUserRole_returnsEmptyLists() {
-      Organization org = organizationRepository.save(fixtures.createRandomOrg());
-      String orgName = org.getName();
-      // Set up a context with only USER role (not OPERATOR)
-      Jwt jwt = Jwt.withTokenValue("test-token")
-          .header("alg", "RS256")
-          .claim("sub", "user")
-          .claim("preferred_username", "user")
-          .claim("cvmanager_data", Map.of(
-              "super_user", "0",
-              "organizations", List.of(Map.of("org", orgName, "role", "USER"))
-          ))
-          .issuedAt(Instant.now())
-          .expiresAt(Instant.now().plusSeconds(3600))
-          .build();
-      SecurityContextHolder.getContext().setAuthentication(
-          new CvManagerAuthToken(jwt, List.of(), "user"));
-
-      AllowedSelections result = adminIntersectionService.getAllowedSelections();
-
-      assertTrue(result.getOrganizations().isEmpty());
-      assertTrue(result.getRsus().isEmpty());
-    }
-  }
-
-  private Rsu saveRsu(String ip, Organization org) throws UnknownHostException {
-    Manufacturer mfr = manufacturerRepository.save(fixtures.createRandomManufacturer());
-    RsuModel model = rsuModelRepository.save(fixtures.createRandomRsuModel(mfr));
-    RsuCredential cred = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(org));
-    SnmpCredential snmpCred = snmpCredentialRepository.save(fixtures.createRandomSnmpCredential(org));
-    SnmpProtocol proto = snmpProtocolRepository.save(fixtures.createRandomSnmpProtocol());
-    return rsuRepository.save(fixtures.createRsu(ip, model, cred, snmpCred, proto));
-  }
 
 }

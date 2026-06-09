@@ -45,7 +45,7 @@ describe('AuthApi', () => {
         family_name: 'User',
         cvmanager_data: {
           super_user: '1',
-          organizations: [{ org: 'Test Org', role: 'admin' }],
+          organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' }],
           user_created_timestamp: 1746773527283,
         },
         email: 'test@gmail.com',
@@ -159,8 +159,8 @@ describe('AuthApi', () => {
         cvmanager_data: {
           super_user: '1',
           organizations: [
-            { org: 'Test Org', role: 'admin' },
-            { org: 'Test Org 2', role: 'user' },
+            { org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' },
+            { org_id: 2, org_name: 'Test Org 2', org_email: 'email2', role: 'user' },
           ],
           user_created_timestamp: 1746773527283,
         },
@@ -205,7 +205,7 @@ describe('AuthApi', () => {
         family_name: 'User',
         cvmanager_data: {
           super_user: '0',
-          organizations: [{ org: 'Test Org', role: 'user' }],
+          organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'user' }],
           user_created_timestamp: 1746773527283,
         },
         email: 'user@gmail.com',
@@ -275,7 +275,7 @@ describe('AuthApi', () => {
       family_name: 'User',
       cvmanager_data: {
         super_user: '1',
-        organizations: [{ org: 'Test Org', role: 'admin' }],
+        organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' }],
         user_created_timestamp: 1746773527283,
       },
       email: 'test@gmail.com',
@@ -361,9 +361,9 @@ describe('AuthApi', () => {
         cvmanager_data: {
           super_user: '0',
           organizations: [
-            { org: 'Org 1', role: 'admin' },
-            { org: 'Org 2', role: 'user' },
-            { org: 'Org 3', role: 'operator' },
+            { org_id: 1, org_name: 'Org 1', org_email: 'email1', role: 'admin' },
+            { org_id: 2, org_name: 'Org 2', org_email: 'email2', role: 'user' },
+            { org_id: 3, org_name: 'Org 3', org_email: 'email3', role: 'operator' },
           ],
           user_created_timestamp: 1746773527283,
         },

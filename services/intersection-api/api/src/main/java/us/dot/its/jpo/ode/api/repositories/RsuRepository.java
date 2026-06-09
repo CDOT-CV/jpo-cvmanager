@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 import java.net.InetAddress;
@@ -20,13 +21,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
      * Check if RSU exists in any of the given organizations using entity
      * relationships
      */
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-            "FROM Rsu r " +
-            "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE r.ipv4Address = :ipv4Address AND o.name IN :organizations")
-    boolean existsByIpAndOrganizations(@Param("ipv4Address") InetAddress ipv4Address,
-            @Param("organizations") List<String> organizations);
+    boolean existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+            InetAddress ipv4Address, List<Organization> organizations);
 
     Rsu findByIpv4Address(InetAddress ipv4Address);
 
@@ -35,8 +31,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
             "JOIN rsu.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE o.name = :orgName " +
+            "WHERE ro.organization = :organization " +
             "AND (:search IS NULL OR :search = '' OR " +
             "LOWER(CAST(rsu.ipv4Address AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(CAST(rsu.milepost AS string)) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -44,7 +39,7 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "LOWER(rsu.model.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.model.manufacturer.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(rsu.serialNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<Rsu> findAllByOrganization(@Param("orgName") String orgName, @Param("search") String search,
+    Page<Rsu> findAllByOrganization(@Param("organization") Organization organization, @Param("search") String search,
             Pageable pageable);
 
     @Query("SELECT DISTINCT r.primaryRoute FROM Rsu r ORDER BY r.primaryRoute ASC")
@@ -56,20 +51,19 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY m.name ASC, rm.name ASC")
     List<RsuModelProjection> findAllRsuModels();
 
-    @Query("SELECT o.name " +
+    @Query("SELECT o " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
-            "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+            "ORDER BY o.id ASC")
+    List<Organization> findAllOrganizationsByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE o.name in :organizationNames")
-    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+            "WHERE ro.organization in :organizations")
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
 
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
