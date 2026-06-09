@@ -59,13 +59,13 @@ exports[`should take a snapshot 1`] = `
               inputmode="text"
               placeholder="MM/DD/YYYY hh:mm aa"
               type="text"
-              value="04/09/2024 12:00 PM"
+              value="04/08/2024 06:00 PM"
             />
             <div
               class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-mocked-MuiInputAdornment-root"
             >
               <button
-                aria-label="Choose date, selected date is Apr 9, 2024"
+                aria-label="Choose date, selected date is Apr 8, 2024"
                 class="MuiButtonBase-root MuiIconButton-root MuiIconButton-edgeEnd MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"
@@ -122,13 +122,13 @@ exports[`should take a snapshot 1`] = `
               inputmode="text"
               placeholder="MM/DD/YYYY hh:mm aa"
               type="text"
-              value="04/10/2024 12:00 PM"
+              value="04/09/2024 06:00 PM"
             />
             <div
               class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-mocked-MuiInputAdornment-root"
             >
               <button
-                aria-label="Choose date, selected date is Apr 10, 2024"
+                aria-label="Choose date, selected date is Apr 9, 2024"
                 class="MuiButtonBase-root MuiIconButton-root MuiIconButton-edgeEnd MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
                 tabindex="0"
                 type="button"

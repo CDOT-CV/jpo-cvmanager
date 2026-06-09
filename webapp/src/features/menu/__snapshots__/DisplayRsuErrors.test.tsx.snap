@@ -423,7 +423,7 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
                           <p
                             class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
                           >
-                            01/01/2027, 12:59:59 PM
+                            12/31/2026, 04:59:59 PM
                           </p>
                         </td>
                         <td
@@ -861,7 +861,7 @@ exports[`DisplayRsuErrors snapshot > should match snapshot 1`] = `
                             <p
                               class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
                             >
-                              01/01/2027, 12:59:59 PM
+                              12/31/2026, 04:59:59 PM
                             </p>
                           </td>
                         </tr>
