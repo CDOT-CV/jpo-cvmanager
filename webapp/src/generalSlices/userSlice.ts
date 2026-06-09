@@ -123,7 +123,8 @@ export const selectAuthLoginData = (state: RootState) => state.user.value.authLo
 export const selectToken = (state: RootState) => state.user.value.authLoginData?.token
 export const selectRole = (state: RootState) => state.user.value.organization?.role
 export const selectIsSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user
-export const selectOrganizationName = (state: RootState) => state.user.value.organization?.organization
+export const selectOrganizationName = (state: RootState) => state.user.value.organization?.name
+export const selectOrganizationId = (state: RootState) => state.user.value.organization?.organization
 export const selectName = (state: RootState) => state.user.value.authLoginData?.data?.name
 export const selectEmail = (state: RootState) => state.user.value.authLoginData?.data?.email
 export const selectSuperUser = (state: RootState) => state.user.value.authLoginData?.data?.super_user
