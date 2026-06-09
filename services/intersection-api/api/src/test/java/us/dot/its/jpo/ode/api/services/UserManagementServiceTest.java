@@ -118,7 +118,7 @@ class UserManagementServiceTest {
 
     @Test
     void testGetUser_Success() {
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
 
         UserDto result = userManagementService.getUser("test@example.com");
@@ -131,12 +131,11 @@ class UserManagementServiceTest {
 
     @Test
     void testGetUser_NotFound() {
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent@example.com")).thenThrow(EntityNotFoundException.class);
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.getUser("nonexistent@example.com"));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userMapper, never()).toDto(any());
     }
@@ -229,7 +228,8 @@ class UserManagementServiceTest {
         patch.setFirstName("Updated");
         patch.setLastName("Name");
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
@@ -247,13 +247,13 @@ class UserManagementServiceTest {
     void testModifyUser_UserNotFound() {
         UserPatch patch = new UserPatch();
 
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent@example.com")).thenThrow(new EntityNotFoundException());
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.modifyUser("nonexistent@example.com", patch, authToken));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userRepository, never()).save(any());
     }
@@ -266,7 +266,8 @@ class UserManagementServiceTest {
         orgToAdd.setRole("admin");
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
         when(userRepository.save(testUser)).thenReturn(testUser);
@@ -287,7 +288,8 @@ class UserManagementServiceTest {
         orgToAdd.setRole("admin");
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -306,7 +308,8 @@ class UserManagementServiceTest {
         orgToAdd.setRole("admin");
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -324,7 +327,8 @@ class UserManagementServiceTest {
         orgToAdd.setRole("nonexistent_role");
         patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("nonexistent_role")).thenReturn(Optional.empty());
 
@@ -348,7 +352,8 @@ class UserManagementServiceTest {
         userOrg.setOrganization(testOrganization);
         userOrg.setRole(testRole);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.of(userOrg));
@@ -369,7 +374,8 @@ class UserManagementServiceTest {
         orgToRemove.setRole("admin");
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
         AccessDeniedException exception = assertThrows(AccessDeniedException.class,
@@ -388,7 +394,8 @@ class UserManagementServiceTest {
         orgToRemove.setRole("admin");
         patch.setOrganizationsToRemove(List.of(orgToRemove));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
+        when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
         when(userOrganizationRepository.findByUserAndOrganization_Name(testUser, "TestOrg"))
                 .thenReturn(Optional.empty());
@@ -406,7 +413,7 @@ class UserManagementServiceTest {
 
     @Test
     void testDeleteUserByEmail_Success() {
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(testUser);
 
         userManagementService.deleteUserByEmail("test@example.com");
 
@@ -417,12 +424,11 @@ class UserManagementServiceTest {
 
     @Test
     void testDeleteUserByEmail_UserNotFound() {
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent@example.com")).thenThrow(EntityNotFoundException.class);
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteUserByEmail("nonexistent@example.com"));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository, never()).delete(any());
         verify(userOrganizationRepository, never()).removeUserOrganizationByEmail(any());
     }
@@ -531,7 +537,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
@@ -592,7 +598,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(organizationRepository.findByName("AnotherOrg")).thenReturn(Optional.of(anotherOrg));
@@ -646,7 +652,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(userOrganizationRepository.saveAll(anyList())).thenReturn(new ArrayList<>());
 
@@ -697,7 +703,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("superuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("superuser@example.com")).thenReturn(newUser);
 
         when(userRepository.save(newUser)).thenReturn(newUser);
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
@@ -743,7 +749,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("NonexistentOrg")).thenReturn(Optional.empty());
 
@@ -789,7 +795,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("NONEXISTENT_ROLE")).thenReturn(Optional.empty());
@@ -837,7 +843,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("testorg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("USER")).thenReturn(Optional.of(testRole));
@@ -880,7 +886,7 @@ class UserManagementServiceTest {
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.create(any(UserRepresentation.class))).thenReturn(mockResponse);
 
-        when(userRepository.findByEmail("newuser@example.com")).thenReturn(Optional.of(newUser));
+        when(userRepository.findByEmail("newuser@example.com")).thenReturn(newUser);
 
         when(organizationRepository.findByName("TestOrg")).thenReturn(Optional.of(testOrganization));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));

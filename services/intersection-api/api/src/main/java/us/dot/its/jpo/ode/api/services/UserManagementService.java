@@ -45,8 +45,7 @@ public class UserManagementService {
     private final KeycloakAdminConfig keycloakAdminConfig;
 
     public UserDto getUser(String email) {
-        return userMapper.toDto(userRepository.findByEmail(email).orElseThrow(
-                () -> new EntityNotFoundException("User not found with email: " + email)));
+        return userMapper.toDto(userRepository.findByEmail(email));
     }
 
     public Page<UserDto> getUsers(String orgName, String search, Pageable pageable) {
@@ -93,8 +92,7 @@ public class UserManagementService {
             }
         }
 
-        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(
-                () -> new RuntimeException("Unable to complete creation of user with email: " + userDto.getEmail()));
+        User createdUser = userRepository.findByEmail(userDto.getEmail());
 
         // Add super user
         if (userDto.getSuperUser()) {
@@ -136,8 +134,7 @@ public class UserManagementService {
         }
 
         // 1. Find existing User by email
-        User existingUser = userRepository.findByEmail(email).orElseThrow(
-                () -> new EntityNotFoundException("User not found with email: " + email));
+        User existingUser = userRepository.findByEmail(email);
 
         // 2. Update only non-null fields using MapStruct
         userPatchMapper.updateUserFromPatch(userPatch, existingUser);
@@ -213,9 +210,7 @@ public class UserManagementService {
     @Transactional
     public void deleteUserByEmail(String email) {
         // Check if User exists
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(
-                        () -> new EntityNotFoundException("User not found with email: " + email));
+        User user = userRepository.findByEmail(email);
 
         // Delete related entities first to maintain referential integrity
         userOrganizationRepository.removeUserOrganizationByEmail(email);

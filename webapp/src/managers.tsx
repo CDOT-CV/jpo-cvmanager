@@ -27,10 +27,10 @@ const LocalStorageManager = {
 }
 
 const UserManager = {
-  getOrganization: (authLoginData: AuthLoginData, organizationName: string) => {
+  getOrganization: (authLoginData: AuthLoginData, organizationId: number) => {
     let updatedOrg = null
     for (let i = 0; i < authLoginData.data.organizations.length; i++) {
-      if (organizationName === authLoginData.data.organizations[i].organization) {
+      if (organizationId === authLoginData.data.organizations[i].organization) {
         updatedOrg = authLoginData.data.organizations[i]
       }
     }
