@@ -267,3 +267,89 @@ ALTER TABLE public.intersection_organization
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
+
+-- ============================================================
+-- rsus.milepost non-negative
+-- ============================================================
+
+-- The admin UI rejects negative milepost values (regex /^\d*\.?\d*$/ allows
+-- only digits and a decimal point, no leading minus). Without a DB constraint
+-- any API client or direct INSERT could store a negative value, which has no
+-- physical meaning. Abort the migration if bad data exists so an operator can
+-- correct it before the constraint is applied.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public.rsus WHERE milepost < 0) THEN
+        RAISE EXCEPTION 'rsus: one or more rows have milepost < 0 — correct the data before applying this migration';
+    END IF;
+END $$;
+
+ALTER TABLE public.rsus
+    ADD CONSTRAINT rsus_milepost_non_negative CHECK (milepost >= 0);
+
+-- ============================================================
+-- users.first_name / last_name NOT NULL
+-- ============================================================
+
+-- The admin UI requires both fields on every create/edit form. The baseline
+-- schema left them nullable, so direct inserts or legacy data could produce
+-- rows the UI would never generate. Backfill NULL to empty string (non-
+-- destructive) before tightening the column; the frontend continues to enforce
+-- non-empty values on write.
+DO $$
+DECLARE null_count integer;
+BEGIN
+    UPDATE public.users SET first_name = '' WHERE first_name IS NULL;
+    GET DIAGNOSTICS null_count = ROW_COUNT;
+    RAISE NOTICE 'users: backfilled % NULL first_name value(s) to empty string', null_count;
+
+    UPDATE public.users SET last_name = '' WHERE last_name IS NULL;
+    GET DIAGNOSTICS null_count = ROW_COUNT;
+    RAISE NOTICE 'users: backfilled % NULL last_name value(s) to empty string', null_count;
+END $$;
+
+ALTER TABLE public.users
+    ALTER COLUMN first_name SET NOT NULL,
+    ALTER COLUMN last_name  SET NOT NULL;
+
+-- ============================================================
+-- roles.name allowed values
+-- ============================================================
+
+-- The application recognises exactly three role names: admin, operator, user
+-- (lowercase — see R__sample_data.sql and auth-api parseRole). The baseline
+-- schema used an open varchar with only a UNIQUE constraint, so a direct
+-- INSERT of an unrecognised role name would silently succeed. Abort the
+-- migration if any unexpected role name is present.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.roles
+        WHERE name NOT IN ('admin', 'operator', 'user')
+    ) THEN
+        RAISE EXCEPTION 'roles: unexpected role name found — only admin, operator, user are allowed';
+    END IF;
+END $$;
+
+ALTER TABLE public.roles
+    ADD CONSTRAINT roles_name_allowed CHECK (name IN ('admin', 'operator', 'user'));
+
+-- ============================================================
+-- intersections.intersection_number digits-only
+-- ============================================================
+
+-- The admin UI enforces a digits-only regex (/^[0-9]+$/) for intersection
+-- numbers, matching the numeric NTCIP intersection IDs used in the field.
+-- Abort the migration if any row would violate the constraint.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.intersections
+        WHERE intersection_number !~ '^[0-9]+$'
+    ) THEN
+        RAISE EXCEPTION 'intersections: one or more rows have a non-numeric intersection_number — correct the data before applying this migration';
+    END IF;
+END $$;
+
+ALTER TABLE public.intersections
+    ADD CONSTRAINT intersection_number_numeric CHECK (intersection_number ~ '^[0-9]+$');
