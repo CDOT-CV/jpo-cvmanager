@@ -58,7 +58,7 @@ describe('adminIntersectionApiSlice', () => {
       const request = getRequest()
       expect(request.url).toBe(`${BASE_URL}`)
       expect(request.headers.get('Authorization')).toBe('Bearer test-token')
-      expect(request.headers.get('Organization')).toBe(1)
+      expect(request.headers.get('Organization')).toBe('1')
       expect(request.method).toBe('GET')
     })
 
