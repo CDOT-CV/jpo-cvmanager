@@ -36,7 +36,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             @Param("organizations") List<Organization> organizations,
             @Param("emailCount") long emailCount);
 
-    User findByEmail(String email);
+    Optional<User> findByEmail(String email);
 
     List<User> findByEmailIn(List<String> emails);
 

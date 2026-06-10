@@ -10,6 +10,7 @@ import java.util.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -225,7 +226,8 @@ public class EmailService {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
         List<EmailType> allEmailTypes = emailTypeRepository.findAll();
-        User user = userRepository.findByEmail(userEmail);
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
         List<UserEmailNotificationDto> validRequestedSubscriptions = filterValidSubscriptionsForUser(
                 requestedSubscriptions,
                 isOperator, isAdmin, allEmailTypes);
