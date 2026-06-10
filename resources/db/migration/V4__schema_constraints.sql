@@ -132,9 +132,9 @@ END $$;
 ALTER TABLE public.rsu_organization
     ADD CONSTRAINT rsu_organization_unique UNIQUE (rsu_id, organization_id);
 
--- A junction row linking an RSU to an organization has no meaning once either
--- parent is deleted. CASCADE on both FK columns ensures the row is cleaned up
--- automatically rather than blocking the parent delete.
+-- An RSU may belong to multiple organizations (shared-jurisdiction model,
+-- e.g. a Region 1 RSU is also visible to CDOT). CASCADE on rsu_id is safe:
+-- deleting an RSU legitimately removes all of its organization memberships.
 ALTER TABLE public.rsu_organization
     DROP CONSTRAINT IF EXISTS fk_rsu_id,
     ADD CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id)
@@ -142,12 +142,18 @@ ALTER TABLE public.rsu_organization
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
+-- organization_id is RESTRICT, not CASCADE: the minimum-one-organization rule
+-- (every RSU must remain visible to at least one organization) is enforced in
+-- the application layer only. admin_org.delete_org_authorized refuses to
+-- delete an organization that would orphan an RSU (check_orphan_rsus) and then
+-- removes the membership rows explicitly. A CASCADE here would let any other
+-- code path bypass that orphan check at the database level.
 ALTER TABLE public.rsu_organization
     DROP CONSTRAINT IF EXISTS fk_organization_id,
     ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
-        ON DELETE CASCADE;
+        ON DELETE RESTRICT;
 
 -- ============================================================
 -- rsu_intersection
@@ -210,9 +216,12 @@ ALTER TABLE public.user_organization
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
--- CASCADE on organization_id: a user-to-org membership row is meaningless once
--- the organization is deleted. Without CASCADE, deleting an organization that
--- still has user memberships is blocked by the child rows in this table.
+-- organization_id is RESTRICT, not CASCADE: a user may belong to multiple
+-- organizations, and the minimum-one-organization rule is enforced in the
+-- application layer only. admin_org.delete_org_authorized refuses to delete
+-- an organization that would orphan a user (check_orphan_users) and then
+-- removes the membership rows explicitly. A CASCADE here would let any other
+-- code path bypass that orphan check at the database level.
 --
 -- role_id is deliberately left RESTRICT: roles are reference data that are
 -- never deleted, and the RESTRICT FK actively prevents a role still assigned
@@ -222,7 +231,7 @@ ALTER TABLE public.user_organization
     ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
-        ON DELETE CASCADE;
+        ON DELETE RESTRICT;
 
 -- ============================================================
 -- intersection_organization
@@ -251,9 +260,9 @@ END $$;
 ALTER TABLE public.intersection_organization
     ADD CONSTRAINT intersection_organization_unique UNIQUE (intersection_id, organization_id);
 
--- A junction row linking an intersection to an organization has no meaning
--- once either parent is deleted. CASCADE on both FKs ensures the row is
--- cleaned up automatically rather than blocking the parent delete.
+-- An intersection may belong to multiple organizations. CASCADE on
+-- intersection_id is safe: deleting an intersection legitimately removes all
+-- of its organization memberships.
 ALTER TABLE public.intersection_organization
     DROP CONSTRAINT IF EXISTS fk_intersection_id,
     ADD CONSTRAINT fk_intersection_id FOREIGN KEY (intersection_id)
@@ -261,12 +270,18 @@ ALTER TABLE public.intersection_organization
         ON UPDATE NO ACTION
         ON DELETE CASCADE;
 
+-- organization_id is RESTRICT, not CASCADE: the minimum-one-organization rule
+-- is enforced in the application layer only. admin_org.delete_org_authorized
+-- refuses to delete an organization that would orphan an intersection
+-- (check_orphan_intersections) and then removes the membership rows
+-- explicitly. A CASCADE here would let any other code path bypass that orphan
+-- check at the database level.
 ALTER TABLE public.intersection_organization
     DROP CONSTRAINT IF EXISTS fk_organization_id,
     ADD CONSTRAINT fk_organization_id FOREIGN KEY (organization_id)
         REFERENCES public.organizations (organization_id)
         ON UPDATE NO ACTION
-        ON DELETE CASCADE;
+        ON DELETE RESTRICT;
 
 -- ============================================================
 -- rsus.milepost non-negative
