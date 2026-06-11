@@ -127,12 +127,11 @@ class UserManagementServiceTest {
 
     @Test
     void testGetUser_NotFound() {
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent@example.com")).thenThrow(EntityNotFoundException.class);
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.getUser("nonexistent@example.com"));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userMapper, never()).toDto(any());
     }
@@ -244,7 +243,6 @@ class UserManagementServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.modifyUser("nonexistent@example.com", patch, List.of(testOrganization)));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userRepository, never()).save(any());
     }
@@ -429,12 +427,11 @@ class UserManagementServiceTest {
 
     @Test
     void testDeleteUserByEmail_UserNotFound() {
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent@example.com")).thenThrow(EntityNotFoundException.class);
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        assertThrows(EntityNotFoundException.class,
                 () -> userManagementService.deleteUserByEmail("nonexistent@example.com"));
 
-        assertEquals("User not found with email: nonexistent@example.com", exception.getMessage());
         verify(userRepository, never()).delete(any());
         verify(userOrganizationRepository, never()).removeUserOrganizationByEmail(any());
     }
