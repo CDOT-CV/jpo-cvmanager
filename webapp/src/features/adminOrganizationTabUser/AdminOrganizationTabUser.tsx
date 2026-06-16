@@ -30,16 +30,17 @@ import {
 import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
 
 interface AdminOrganizationTabUserProps {
+  selectedOrgId: number
   selectedOrgName: string
 }
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
-  const { selectedOrgName } = props
+  const { selectedOrgId, selectedOrgName } = props
   const dispatch = useDispatch()
   const theme = useTheme()
 
-  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgName, {
-    skip: !selectedOrgName,
+  const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
+    skip: !selectedOrgId,
   })
   const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgName })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()

@@ -37,12 +37,12 @@ export const organizationApiSlice = createApi({
     ORGANIZATION_API_ORG_TAG,
   ],
   endpoints: (builder) => ({
-    getAllRsuIpsInOrganization: builder.query<string[], string>({
-      query: (organization) => {
+    getAllRsuIpsInOrganization: builder.query<string[], number>({
+      query: (orgId) => {
         return {
           url: 'rsus',
           headers: {
-            Organization: organization,
+            Organization: orgId?.toString(),
           },
         }
       },
@@ -56,23 +56,23 @@ export const organizationApiSlice = createApi({
       },
       providesTags: (result, error, rsuIp) => [{ type: ORGANIZATION_API_RSU_TAG, id: rsuIp }],
     }),
-    getAllRsusNotInOrganization: builder.query<AdminRsu[], string>({
-      query: (organization) => {
+    getAllRsusNotInOrganization: builder.query<AdminRsu[], number>({
+      query: (orgId) => {
         return {
           url: 'rsus/available',
           headers: {
-            Organization: organization,
+            Organization: orgId?.toString(),
           },
         }
       },
       providesTags: [ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG],
     }),
-    getAllUserEmailsInOrganization: builder.query<string[], string>({
-      query: (organization) => {
+    getAllUserEmailsInOrganization: builder.query<string[], number>({
+      query: (orgId) => {
         return {
           url: 'users',
           headers: {
-            Organization: organization,
+            Organization: orgId?.toString(),
           },
         }
       },
@@ -86,12 +86,12 @@ export const organizationApiSlice = createApi({
       },
       providesTags: (result, error, email) => [{ type: ORGANIZATION_API_USER_TAG, id: email }],
     }),
-    getAllUsersNotInOrganization: builder.query<AdminUser[], string>({
-      query: (organization) => {
+    getAllUsersNotInOrganization: builder.query<AdminUser[], number>({
+      query: (orgId) => {
         return {
           url: 'users/available',
           headers: {
-            Organization: organization,
+            Organization: orgId?.toString(),
           },
         }
       },

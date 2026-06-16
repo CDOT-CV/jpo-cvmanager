@@ -14,7 +14,12 @@ import { RootState } from '../../store'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { changeOrganization, selectOrganizationName, setOrganizationList } from '../../generalSlices/userSlice'
+import {
+  changeOrganization,
+  selectOrganizationId,
+  selectOrganizationName,
+  setOrganizationList,
+} from '../../generalSlices/userSlice'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 import { alpha, Button, useTheme } from '@mui/material'
@@ -32,7 +37,8 @@ const AdminOrganizationTab = () => {
   const { data: orgList = [] } = useGetOrganizationsQuery()
   const [deleteOrganization] = useDeleteOrganizationMutation()
 
-  const selectedOrg = useSelector(selectOrganizationName)
+  const selectedOrgId = useSelector(selectOrganizationId)
+  const selectedOrgName = useSelector(selectOrganizationName)
 
   const refresh = () => {
     // TODO: Refresh org list and selected org data without a full page reload
@@ -75,11 +81,11 @@ const AdminOrganizationTab = () => {
                     dataKey="name"
                     textField="name"
                     data={orgList}
-                    value={selectedOrg}
+                    value={selectedOrgName}
                     onChange={(value) => dispatch(changeOrganization(value.name))}
                   />
                 </Grid2>
-                {selectedOrg === undefined ? (
+                {selectedOrgName === undefined || selectedOrgId === undefined ? (
                   <></>
                 ) : (
                   <>
@@ -87,7 +93,7 @@ const AdminOrganizationTab = () => {
                       <ContainedIconButton
                         key="delete_button"
                         title="Edit Organization"
-                        onClick={() => navigate('editOrganization/' + selectedOrg)}
+                        onClick={() => navigate('editOrganization/' + selectedOrgName)}
                         sx={{
                           backgroundColor: 'transparent',
                           borderRadius: '2px',
@@ -101,8 +107,8 @@ const AdminOrganizationTab = () => {
                     </Grid2>
                     <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
                       <AdminOrganizationDeleteMenu
-                        deleteOrganization={() => handleOrgDelete(selectedOrg)}
-                        selectedOrganization={selectedOrg}
+                        deleteOrganization={() => handleOrgDelete(selectedOrgName)}
+                        selectedOrganization={selectedOrgName}
                       />
                     </Grid2>
                   </>
@@ -150,7 +156,7 @@ const AdminOrganizationTab = () => {
             </div>
 
             <div className="scroll-div-org-tab">
-              {selectedOrg === undefined ? (
+              {selectedOrgName === undefined || selectedOrgId === undefined ? (
                 <div
                   style={{
                     display: 'flex',
@@ -166,12 +172,24 @@ const AdminOrganizationTab = () => {
               ) : (
                 <>
                   <ConditionalRenderRsu>
-                    <AdminOrganizationTabRsu selectedOrgName={selectedOrg} key="rsu" />
+                    <AdminOrganizationTabRsu
+                      selectedOrgId={selectedOrgId}
+                      selectedOrgName={selectedOrgName}
+                      key="rsu"
+                    />
                   </ConditionalRenderRsu>
                   <ConditionalRenderIntersection>
-                    <AdminOrganizationTabIntersection selectedOrgName={selectedOrg} key="intersection" />
+                    <AdminOrganizationTabIntersection
+                      selectedOrgId={selectedOrgId}
+                      selectedOrgName={selectedOrgName}
+                      key="intersection"
+                    />
                   </ConditionalRenderIntersection>
-                  <AdminOrganizationTabUser selectedOrgName={selectedOrg} key="user" />
+                  <AdminOrganizationTabUser
+                    selectedOrgId={selectedOrgId}
+                    selectedOrgName={selectedOrgName}
+                    key="user"
+                  />
                 </>
               )}
             </div>

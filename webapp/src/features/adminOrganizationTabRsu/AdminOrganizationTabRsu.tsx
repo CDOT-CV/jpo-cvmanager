@@ -25,14 +25,15 @@ import { AdminRsu } from '../../models/Rsu'
 import { useGetAllRsusQuery } from '../api/rsuApiSlice'
 
 interface AdminOrganizationTabRsuProps {
+  selectedOrgId: number
   selectedOrgName: string
 }
 
 const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
-  const { selectedOrgName } = props
+  const { selectedOrgId, selectedOrgName } = props
   const theme = useTheme()
 
-  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgName)
+  const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgId)
   const { data: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgName })
 
   const [patchOrganization] = usePatchOrganizationMutation()
