@@ -58,9 +58,6 @@ public class ActiveNotificationControllerTest {
 
         @Test
         public void testActiveNotification() {
-                List<Integer> allowedInteresections = new ArrayList<>();
-                allowedInteresections.add(null);
-
                 when(permissionService.hasIntersection(null, "USER")).thenReturn(true);
                 when(permissionService.hasRole(UserRole.USER)).thenReturn(true);
 
