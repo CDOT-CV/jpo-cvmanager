@@ -40,8 +40,8 @@ public class UserManagementService {
     private final KeycloakAdminConfig keycloakAdminConfig;
 
     public UserDto getUser(String email) {
-        return userMapper.toDto(userRepository.findByEmail(email).orElseThrow(
-                () -> new EntityNotFoundException("User not found with email: " + email)));
+        return userMapper.toDto(userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email)));
     }
 
     public Page<UserDto> getUsers(Organization organization, String search, Pageable pageable) {
@@ -83,8 +83,8 @@ public class UserManagementService {
             }
         }
 
-        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(
-                () -> new RuntimeException("Unable to complete creation of user with email: " + userDto.getEmail()));
+        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException(
+                "User was created in Keycloak but not found in database with email: " + userDto.getEmail()));
 
         // Add super user
         if (userDto.getSuperUser()) {
@@ -122,8 +122,8 @@ public class UserManagementService {
     public UserDto modifyUser(String email, UserPatch userPatch, List<Organization> qualifiedOrgs) {
 
         // 1. Find existing User by email
-        User existingUser = userRepository.findByEmail(email).orElseThrow(
-                () -> new EntityNotFoundException("User not found with email: " + email));
+        User existingUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
 
         // 2. Update only non-null fields using MapStruct
         userPatchMapper.updateUserFromPatch(userPatch, existingUser);
@@ -202,8 +202,7 @@ public class UserManagementService {
     public void deleteUserByEmail(String email) {
         // Check if User exists
         User user = userRepository.findByEmail(email)
-                .orElseThrow(
-                        () -> new EntityNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
 
         // Delete related entities first to maintain referential integrity
         userOrganizationRepository.removeUserOrganizationByEmail(email);

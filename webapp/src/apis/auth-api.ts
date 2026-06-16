@@ -75,7 +75,7 @@ class AuthApi {
       organizations: token.cvmanager_data.organizations.map((org) => ({
         organization: Number(org.org_id),
         name: org.org_name,
-        email: token.email,
+        email: org.org_email,
         role: this.parseRole(org.role),
       })),
     }

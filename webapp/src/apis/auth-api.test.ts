@@ -176,8 +176,8 @@ describe('AuthApi', () => {
         name: 'Test User',
         super_user: true,
         organizations: [
-          { organization: 1, name: 'Test Org', email: 'test@gmail.com', role: 'ADMIN' },
-          { organization: 2, name: 'Test Org 2', email: 'test@gmail.com', role: 'USER' },
+          { organization: 1, name: 'Test Org', email: 'email', role: 'ADMIN' },
+          { organization: 2, name: 'Test Org 2', email: 'email2', role: 'USER' },
         ],
       })
     })
@@ -305,7 +305,7 @@ describe('AuthApi', () => {
           last_name: 'User',
           name: 'Test User',
           super_user: true,
-          organizations: [{ organization: 1, name: 'Test Org', email: 'test@gmail.com', role: 'ADMIN' }],
+          organizations: [{ organization: 1, name: 'Test Org', email: 'email', role: 'ADMIN' }],
         },
         expires_at: 1770396901000,
       })
@@ -375,9 +375,9 @@ describe('AuthApi', () => {
       const result = await AuthApi.logIn(mockToken)
 
       expect(result.data.organizations).toEqual([
-        { organization: 1, name: 'Org 1', email: 'test@gmail.com', role: 'ADMIN' },
-        { organization: 2, name: 'Org 2', email: 'test@gmail.com', role: 'USER' },
-        { organization: 3, name: 'Org 3', email: 'test@gmail.com', role: 'OPERATOR' },
+        { organization: 1, name: 'Org 1', email: 'email1', role: 'ADMIN' },
+        { organization: 2, name: 'Org 2', email: 'email2', role: 'USER' },
+        { organization: 3, name: 'Org 3', email: 'email3', role: 'OPERATOR' },
       ])
       expect(result.data.super_user).toBe(false)
     })

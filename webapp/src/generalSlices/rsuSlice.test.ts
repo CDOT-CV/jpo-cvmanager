@@ -138,7 +138,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
         rsu: {
@@ -213,7 +213,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'test-org' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -223,7 +223,7 @@ describe('async thunks', () => {
       RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsu_ip)
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsu_ip)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'test-org', '', { rsu_ip })
+      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'Org 1', '', { rsu_ip })
     })
 
     it('Updates the state correctly pending', async () => {
@@ -277,7 +277,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -287,7 +287,7 @@ describe('async thunks', () => {
       RsuApi.getRsuInfo = jest.fn().mockReturnValue({ rsuList })
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsuList)
-      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
     })
 
     it('Updates the state correctly fulfilled', async () => {
@@ -307,7 +307,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -319,7 +319,7 @@ describe('async thunks', () => {
       RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsuOnlineStatus)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'Org 1')
     })
 
     it('returns and calls the api correctly default value', async () => {
@@ -328,7 +328,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -338,7 +338,7 @@ describe('async thunks', () => {
       RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual('rsuOnlineStatusState')
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'Org 1')
     })
 
     it('Updates the state correctly fulfilled', async () => {

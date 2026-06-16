@@ -30,12 +30,7 @@ const UserManager = {
   getOrganization: (authLoginData: AuthLoginData, organizationId: number) => {
     let updatedOrg = null
     for (let i = 0; i < authLoginData.data.organizations.length; i++) {
-      console.log('checking org ' + authLoginData.data.organizations[i].organization + ' against ' + organizationId)
-      console.log(
-        'org id type ' + typeof authLoginData.data.organizations[i].organization + ' vs ' + typeof organizationId
-      )
       if (organizationId === authLoginData.data.organizations[i].organization) {
-        console.log('found matching org ' + authLoginData.data.organizations[i].organization)
         updatedOrg = authLoginData.data.organizations[i]
       }
     }
