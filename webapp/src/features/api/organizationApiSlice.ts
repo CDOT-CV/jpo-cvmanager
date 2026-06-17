@@ -116,8 +116,7 @@ export const organizationApiSlice = createApi({
         body: patch,
       }),
       invalidatesTags: (result, error, vars) => [
-        { type: ORGANIZATION_API_ORG_TAG, id: vars.orig_name },
-        { type: ORGANIZATION_API_ORG_TAG, id: vars.name },
+        { type: ORGANIZATION_API_ORG_TAG, id: vars.id },
         { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
         ...((((vars.rsus_to_add?.length ?? 0 > 0) || vars.rsus_to_remove?.length) ?? 0 > 0)
           ? [

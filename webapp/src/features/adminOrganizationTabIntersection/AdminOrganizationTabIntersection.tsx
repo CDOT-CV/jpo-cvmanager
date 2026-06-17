@@ -29,7 +29,7 @@ interface AdminOrganizationTabIntersectionProps {
 }
 
 const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectionProps) => {
-  const { selectedOrgName } = props
+  const { selectedOrgId, selectedOrgName } = props
   const theme = useTheme()
   const [fetchIntersection] = useLazyGetIntersectionQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
@@ -156,7 +156,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
       const result = await fetchIntersection(intersection.intersection_id).unwrap()
       if (result?.intersection_data?.organizations?.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrgName,
+          id: selectedOrgId,
           intersections_to_remove: [Number(intersection.intersection_id)],
         }).unwrap()
         toast.success('Intersection deleted successfully', { id: loadingToast })
@@ -183,7 +183,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
     const loadingToast = toast.loading(`Adding ${intersectionList.length} Intersection(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         intersections_to_add: intersectionList.map((i) => Number(i.intersection_id)),
       }).unwrap()
       setSelectedIntersectionList([])
@@ -218,7 +218,7 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         return
       }
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         intersections_to_remove: validIntersectionIds,
       }).unwrap()
       toast.success('Intersection(s) deleted successfully', { id: loadingToast })

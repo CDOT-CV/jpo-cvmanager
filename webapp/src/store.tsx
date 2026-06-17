@@ -82,13 +82,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
           // caches so the available-intersections dropdown and org intersection lists refresh.
           if (organizationApiSlice.endpoints.patchOrganization.matchFulfilled(action)) {
             if (
-              action.meta.arg.originalArgs.name &&
-              action.meta.arg.originalArgs.orig_name != action.meta.arg.originalArgs.name
-            ) {
-              // Org name changed, invalidate all non organizationApiSlice tags (those are handled already)
-            }
-
-            if (
               ((action.meta.arg.originalArgs.intersections_to_add?.length ?? 0 > 0) ||
                 action.meta.arg.originalArgs.intersections_to_remove?.length) ??
               0 > 0

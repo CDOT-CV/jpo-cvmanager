@@ -221,7 +221,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
       const rsuData = await getRsuOrganizations(rsu.ip).unwrap()
       if (rsuData.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrgName,
+          id: selectedOrgId,
           rsus_to_remove: [rsu.ip],
         }).unwrap()
         toast.success('RSU deleted successfully', { id: loadingToast })
@@ -265,7 +265,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         return
       }
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         rsus_to_remove: validRsuIps,
       }).unwrap()
       toast.success('RSU(s) deleted successfully', { id: loadingToast })
@@ -282,7 +282,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
     const loadingToast = toast.loading(`Adding ${rsuList.length} RSU(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         rsus_to_add: rsuList.map((r) => r.ip),
       }).unwrap()
       setSelectedRsuList([])
@@ -301,7 +301,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           const loadingToast = toast.loading(`${actionLabel}ing TIM Deposit...`)
           try {
             await patchOrganization({
-              orig_name: selectedOrgName,
+              id: selectedOrgId,
               tim_deposit: newValue,
             }).unwrap()
             toast.success(`Successfully ${actionLabel.toLowerCase()}d TIM Deposit for all RSUs in ${selectedOrgName}`, {
@@ -331,7 +331,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
           const loadingToast = toast.loading(`${actionLabel}ing SNMP Monitoring...`)
           try {
             await patchOrganization({
-              orig_name: selectedOrgName,
+              id: selectedOrgId,
               snmp_monitoring: newValue,
             }).unwrap()
             toast.success(
