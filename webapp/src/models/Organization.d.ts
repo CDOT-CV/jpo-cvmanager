@@ -1,4 +1,5 @@
 type OrganizationDto = {
+  id: number
   name: string
   email: string
 }
