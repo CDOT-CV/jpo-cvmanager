@@ -13,7 +13,7 @@ import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetOrganizationsQuery, usePatchOrganizationMutation } from '../api/organizationApiSlice'
 
 interface OrganizationFormData {
-  orig_name: string
+  id: number
   name: string
   email: string
 }
@@ -36,7 +36,7 @@ const AdminEditOrganization = () => {
     reset,
   } = useForm<OrganizationFormData>({
     defaultValues: {
-      orig_name: '',
+      id: -1,
       name: '',
       email: '',
     },
@@ -45,7 +45,7 @@ const AdminEditOrganization = () => {
   useEffect(() => {
     if (orgInfo) {
       reset({
-        orig_name: orgInfo.name,
+        id: orgInfo.id,
         name: orgInfo.name,
         email: orgInfo.email ?? '',
       })
@@ -60,7 +60,7 @@ const AdminEditOrganization = () => {
   const onSubmit = async (data: OrganizationFormData) => {
     try {
       await patchOrganization({
-        orig_name: data.orig_name,
+        id: data.id,
         name: data.name,
         email: data.email,
       }).unwrap()

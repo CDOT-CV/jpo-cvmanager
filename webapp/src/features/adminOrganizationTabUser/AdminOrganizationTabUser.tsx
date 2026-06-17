@@ -220,7 +220,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       const userOrgs = await getUserOrganizations(row.email).unwrap()
       if (userOrgs.length > 1) {
         await patchOrganization({
-          orig_name: selectedOrgName,
+          id: selectedOrgId,
           users_to_remove: [row.email],
         }).unwrap()
         if (row.email === authLoginData?.data?.email) {
@@ -267,7 +267,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         return
       }
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         users_to_remove: validEmails,
       }).unwrap()
       for (const user of rows) {
@@ -294,7 +294,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     const loadingToast = toast.loading(`Adding ${userList.length} User(s)...`)
     try {
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         users_to_add: userList.map((u) => ({ email: u.email, role: u.role })),
       }).unwrap()
       setSelectedUserList([])
@@ -322,7 +322,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     try {
       const rows = Object.values(json)
       await patchOrganization({
-        orig_name: selectedOrgName,
+        id: selectedOrgId,
         users_to_modify: rows.map((r) => ({ email: r.newData.email, role: r.newData.role })),
       }).unwrap()
       for (const row of rows) {

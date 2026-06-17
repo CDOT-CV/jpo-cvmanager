@@ -5,7 +5,7 @@ type OrganizationDto = {
 }
 
 type OrganizationPatch = {
-  orig_name: string
+  id: number
   name?: string
   email?: string
   users_to_add?: { email: string; role: string }[]
