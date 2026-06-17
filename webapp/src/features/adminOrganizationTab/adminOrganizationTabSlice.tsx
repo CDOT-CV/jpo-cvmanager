@@ -33,6 +33,7 @@ export type AdminOrgRsu = {
   milepost: number
   tim_deposit: boolean
   snmp_monitoring: boolean
+  owner_organization: string
 }
 
 export type AdminOrgIntersection = {
