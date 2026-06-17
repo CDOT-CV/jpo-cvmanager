@@ -26,7 +26,6 @@ import { AdminIntersection } from '../../models/Intersection'
 interface AdminOrganizationTabIntersectionProps {
   selectedOrgId: number
   selectedOrgName: string
-  selectedOrgId: number
 }
 
 const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectionProps) => {
