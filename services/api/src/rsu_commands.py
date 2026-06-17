@@ -118,6 +118,17 @@ def fetch_rsu_info(rsu_ip, organization):
     return None
 
 
+def get_rsu_owner_org(rsu_ip: str) -> str | None:
+    query = (
+        "SELECT org.name "
+        "FROM public.rsus r "
+        "JOIN public.rsu_credentials rc ON r.credential_id = rc.credential_id "
+        "JOIN public.organizations org ON rc.owner_organization_id = org.organization_id "
+        "WHERE r.ipv4_address = :rsu_ip"
+    )
+    data = pgquery.query_db(query, params={"rsu_ip": rsu_ip})
+    return str(data[0][0]) if data else None
+
 def execute_upgrade_rsu(organization, rsu_list):
     return_dict = {}
     for rsu in rsu_list:
@@ -133,7 +144,7 @@ def execute_upgrade_rsu(organization, rsu_list):
 
 
 # Main driver function
-def perform_command(command, organization, role, rsu_list, args):
+def perform_command(command, organization, role, rsu_list, args, super_user: bool = False):
     # Check if command is a known command
     if command not in command_data:
         return f"Command unknown: {command}", 400
@@ -141,6 +152,19 @@ def perform_command(command, organization, role, rsu_list, args):
     # Check if the user is authorized to run the command
     if role not in command_data[command]["roles"]:
         return f"Unauthorized role to run {command}", 401
+
+    # Restrict operations to the RSU's owner organization
+    if not super_user:
+        for rsu_ip in rsu_list:
+            owner_org = get_rsu_owner_org(rsu_ip)
+            if owner_org is None:
+                return f"RSU {rsu_ip} not found or has no owner organization", 404
+            if owner_org != organization:
+                return (
+                    f"Organization '{organization}' does not own RSU {rsu_ip}. "
+                    f"Owner organization: '{owner_org}'",
+                    403,
+                )
 
     # Handle functions supporting multiple RSUs
     if command == "rsufwdsnmpset" or command == "rsufwdsnmpset-del":
@@ -204,6 +228,7 @@ class RsuCommandRequest(Resource):
 
     def universal(self, user: EnvironWithOrg):
         schema = RsuCommandRequestSchema()
+        logging.info("Got to Universal")
         if request.json is None:
             raise BadRequest("No JSON body found")
         body: dict[str, Any] = request.json
@@ -211,12 +236,17 @@ class RsuCommandRequest(Resource):
         if errors:
             logging.error(str(errors))
             abort(400, str(errors))
-
+        logging.info(user.organization)
+        logging.info(user.role)
+        logging.info(user.user_info)
+        logging.info(user.user_info.super_user)
+        logging.info(user)
         data, code = perform_command(
             body["command"],
             user.organization,
             user.role,
             body["rsu_ip"],
             body["args"],
+            super_user=user.user_info.super_user,
         )
         return (data, code, self.headers)
