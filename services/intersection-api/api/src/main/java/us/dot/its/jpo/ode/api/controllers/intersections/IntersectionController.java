@@ -87,8 +87,8 @@ public class IntersectionController {
         })
         public ResponseEntity<List<IntersectionReferenceData>> getIntersectionsByLocation(
                         @RequestHeader(name = "Organization", required = false) String organization,
-                        @RequestParam(name = "longitude", defaultValue = "false") Double longitude,
-                        @RequestParam(name = "latitude", defaultValue = "false") Double latitude,
+                        @RequestParam(name = "longitude", required = true) double longitude,
+                        @RequestParam(name = "latitude", required = true) double latitude,
                         @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
                 if (testData) {
