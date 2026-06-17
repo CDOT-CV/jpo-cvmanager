@@ -18,6 +18,7 @@ import { RootState } from '../store'
 import './css/SnmpwalkMenu.css'
 import toast from 'react-hot-toast'
 import {
+  Alert,
   Button,
   Checkbox,
   FormControl,
@@ -35,14 +36,27 @@ import { ControlPointOutlined, DeleteOutline } from '@mui/icons-material'
 export type SnmpsetMenuProps = {
   type: string
   rsuIpList: string[]
+  isOwnerOrg?: boolean
+  ownerOrganization?: string
 }
 
 const SnmpsetMenu = (props: SnmpsetMenuProps) => {
-  const { type, rsuIpList } = props
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const { type, rsuIpList, isOwnerOrg = true, ownerOrganization } = props
 
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const destIp = useSelector(selectDestIp)
   const snmpMsgType = useSelector(selectSnmpMsgType)
+
+  if (!isOwnerOrg) {
+    const prefix = type === 'single_rsu' ? 'This RSU is owned by' : 'Some selected RSUs are owned by'
+    return (
+      <Alert severity="info">
+        {ownerOrganization
+          ? `${prefix} "${ownerOrganization}". Only the owner organization can perform this action.`
+          : 'Only the owner organization can perform this action.'}
+      </Alert>
+    )
+  }
 
   return (
     <div>
