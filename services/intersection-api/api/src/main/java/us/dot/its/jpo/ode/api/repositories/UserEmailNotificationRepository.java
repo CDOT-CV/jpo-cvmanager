@@ -4,7 +4,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
@@ -14,7 +13,6 @@ import java.net.InetAddress;
 import java.util.List;
 
 @Repository
-@RepositoryRestResource(exported = false)
 public interface UserEmailNotificationRepository extends JpaRepository<UserEmailNotification, Integer> {
 
     @Query("SELECT DISTINCT uen.user.email " +
@@ -30,9 +28,9 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
 
     @Query("SELECT DISTINCT uen.user.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN UserOrganization uo " +
-            "JOIN RsuOrganization ro " +
-            "JOIN Rsu r " +
+            "JOIN UserOrganization uo ON uen.user.id = uo.user.id " +
+            "JOIN RsuOrganization ro ON uo.organization.id = ro.organization.id " +
+            "JOIN Rsu r ON ro.rsu.id = r.id " +
             "WHERE uen.emailType.emailType = :notificationType " +
             "AND r.ipv4Address = :rsuIp " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
@@ -45,9 +43,9 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
 
     @Query("SELECT DISTINCT uen.user.email " +
             "FROM UserEmailNotification uen " +
-            "JOIN UserOrganization uo " +
-            "JOIN Organization o " +
-            "WHERE uen.emailType.emailType = :notification_type " +
+            "JOIN UserOrganization uo ON uen.user.id = uo.user.id " +
+            "JOIN Organization o ON uo.organization.id = o.id " +
+            "WHERE uen.emailType.emailType = :notificationType " +
             "AND o.name = :organizationName " +
             "AND ((:frequency = 'IMMEDIATE' AND uen.immediate = true) " +
             "OR (:frequency = 'HOURLY' AND uen.hourly = true) " +

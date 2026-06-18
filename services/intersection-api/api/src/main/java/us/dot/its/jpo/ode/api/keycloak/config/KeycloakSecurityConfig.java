@@ -38,7 +38,6 @@ public class KeycloakSecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
                         .requestMatchers(HttpMethod.POST, "/users/unsubscribe/email-subscriptions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/unsubscribe/email-subscriptions").permitAll()
-                        .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/**").access(AccessController::checkAccess)
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServerConfigurer -> resourceServerConfigurer.jwt(

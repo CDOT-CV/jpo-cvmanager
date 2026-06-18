@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.users;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -27,10 +28,11 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
+import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
-import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,7 +54,7 @@ public class UnsubscribeControllerTest {
     private EmailService emailService;
 
     @MockitoBean
-    private PermissionService permissionService;
+    private UserRepository userRepository;
 
     @MockitoBean
     private UnsubscribeTokenGenerator unsubscribeTokenGenerator;
@@ -90,7 +92,8 @@ public class UnsubscribeControllerTest {
         void authenticated_invalidToken_returns403() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(invalidToken)).thenReturn(null);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", invalidToken))
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+                    .header("Authorization", invalidToken))
                     .andExpect(status().isForbidden());
         }
 
@@ -98,6 +101,9 @@ public class UnsubscribeControllerTest {
         @WithMockUser
         @DisplayName("returns 200 with valid token and permissions")
         void authenticated_validToken_200() throws Exception {
+            User mockUser = mock(User.class);
+            when(mockUser.getSuperUser()).thenReturn(true);
+            when(userRepository.findByEmail(email)).thenReturn(mockUser);
 
             Role roleOperator = mock(Role.class);
             when(roleOperator.getName()).thenReturn("operator");
@@ -116,7 +122,8 @@ public class UnsubscribeControllerTest {
             when(emailService.getAllEmailSubscriptionOptionsForUser(email, true, true))
                     .thenReturn(validSubscriptionList);
 
-            mockMvc.perform(get("/users/unsubscribe/email-subscriptions").param("token", validToken))
+            mockMvc.perform(get("/users/unsubscribe/email-subscriptions")
+                    .header("Authorization", validToken))
                     .andExpect(status().isOk());
 
             verify(emailService).getAllEmailSubscriptionOptionsForUser(email, true, true);
@@ -141,7 +148,7 @@ public class UnsubscribeControllerTest {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(null);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", invalidToken)
+                    .header("Authorization", invalidToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isForbidden());
@@ -153,12 +160,15 @@ public class UnsubscribeControllerTest {
         @WithMockUser
         @DisplayName("returns 200 with valid subscriptions list")
         void superUser_returns200() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
+            User mockUser = mock(User.class);
+            when(mockUser.getSuperUser()).thenReturn(true);
+            when(userRepository.findByEmail(email)).thenReturn(mockUser);
+
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", validToken)
+                    .header("Authorization", validToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(validSubscriptionList)))
                     .andExpect(status().isOk());
@@ -171,10 +181,10 @@ public class UnsubscribeControllerTest {
         @DisplayName("returns 400 with invalid subscriptions list")
         void superUser_returns400() throws Exception {
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);
 
             mockMvc.perform(post("/users/unsubscribe/email-subscriptions")
-                    .param("token", validToken)
+                    .header("Authorization", validToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"invalid\": true}"))
                     .andExpect(status().isBadRequest());
