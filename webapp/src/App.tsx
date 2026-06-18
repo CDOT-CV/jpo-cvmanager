@@ -5,7 +5,12 @@ import {
   // Actions
   getRsuData,
 } from './generalSlices/rsuSlice'
-import { keycloakLogin, selectAuthLoginData, selectRouteNotFound } from './generalSlices/userSlice'
+import {
+  keycloakLogin,
+  selectAuthLoginData,
+  selectOrganizationName,
+  selectRouteNotFound,
+} from './generalSlices/userSlice'
 import keycloak from './keycloak-config'
 import { ThunkDispatch } from 'redux-thunk'
 import { RootState } from './store'
@@ -29,6 +34,7 @@ const App = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const authLoginData = useSelector(selectAuthLoginData)
   const routeNotFound = useSelector(selectRouteNotFound)
+  const organizationName = useSelector(selectOrganizationName)
 
   const isDarkTheme = useBrowserThemeDetector()
   const theme = useMemo(
@@ -54,8 +60,8 @@ const App = () => {
 
   useEffect(() => {
     dispatch(getRsuData())
-    dispatch(getIntersections())
-  }, [authLoginData, dispatch])
+    dispatch(getIntersections(organizationName))
+  }, [authLoginData, organizationName, dispatch])
 
   return (
     <StyledEngineProvider injectFirst>
