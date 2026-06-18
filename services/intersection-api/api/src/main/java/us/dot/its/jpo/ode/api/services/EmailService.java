@@ -10,7 +10,6 @@ import java.util.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
@@ -18,18 +17,22 @@ import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
+import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 import us.dot.its.jpo.ode.api.repositories.EmailTypeRepository;
-import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.RsuErrorSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.emails.generators.ApiErrorEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.FirmwareUpgradeFailureEmailGenerator;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
+import us.dot.its.jpo.ode.api.emails.generators.MessageCountEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.RsuErrorSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.SupportRequestEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.providers.EmailProvider;
@@ -47,6 +50,8 @@ public class EmailService {
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final SupportRequestEmailGenerator supportRequestEmailGenerator;
+    private final MessageCountEmailGenerator messageCountEmailGenerator;
+    private final FirmwareUpgradeFailureEmailGenerator firmwareUpgradeFailureEmailGenerator;
     private final ApiErrorEmailGenerator apiErrorEmailGenerator;
     private final RsuErrorSummaryEmailGenerator rsuErrorSummaryEmailGenerator;
 
@@ -90,14 +95,43 @@ public class EmailService {
         EmailContent content = intersectionNotificationSummaryEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.IMMEDIATE);
-        ArrayList<EmailRecipient> newRecipients = new ArrayList<>(recipients);
-        return emailProvider.sendBatchedEmails(newRecipients, content);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for intersection notification summary email");
+            return Collections.emptyList();
+        }
+        return emailProvider.sendBatchedEmails(recipients, content);
     }
 
     public List<EmailSendResponse> sendSupportRequest(SupportRequestEmailContents data) {
         EmailContent content = supportRequestEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.SUPPORT_REQUEST,
                 EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for support request email");
+            return Collections.emptyList();
+        }
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendMessageCounts(MessageCountEmailContents data) {
+        EmailContent content = messageCountEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = getUsersForNotificationTypeByOrganization(EmailCategory.MESSAGE_COUNTS,
+                data.getOrganizationName(), EmailFrequency.ONCE_PER_DAY);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for message count email for organization: {}", data.getOrganizationName());
+            return Collections.emptyList();
+        }
+        return emailProvider.sendBatchedEmails(recipients, content);
+    }
+
+    public List<EmailSendResponse> sendFirmwareUpgradeFailure(FirmwareUpgradeFailureEmailContents data) {
+        EmailContent content = firmwareUpgradeFailureEmailGenerator.generateEmailBody(data);
+        List<EmailRecipient> recipients = getUsersForNotificationTypeByRsu(EmailCategory.FIRMWARE_UPGRADE_FAILURE,
+                data.getRsuIp(), EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for firmware upgrade failure email for RSU IP: {}", data.getRsuIp());
+            return Collections.emptyList();
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -105,6 +139,10 @@ public class EmailService {
         EmailContent content = apiErrorEmailGenerator.generateEmailBody(data);
         List<EmailRecipient> recipients = getUsersForNotificationType(EmailCategory.CRITICAL_ERROR_MESSAGE,
                 EmailFrequency.IMMEDIATE);
+        if (recipients.isEmpty()) {
+            log.warn("No recipients found for API error email");
+            return Collections.emptyList();
+        }
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
@@ -113,7 +151,7 @@ public class EmailService {
         String email = permissionService.getCvManagerAuthToken().getEmail();
         if (email == null || email.isBlank()) {
             log.warn("Unable to send RSU error summary: authenticated user token does not contain a valid email");
-            throw new IllegalArgumentException("Authenticated user email is missing or blank");
+            return Collections.emptyList();
         }
         List<EmailRecipient> recipients = List.of(new EmailRecipient(email, ""));
         return emailProvider.sendBatchedEmails(recipients, content);
@@ -151,71 +189,71 @@ public class EmailService {
     private static List<UserEmailNotificationDto> filterValidSubscriptionsForUser(
             List<UserEmailNotificationDto> requestedSubscriptions, Boolean isOperator,
             Boolean isAdmin, List<EmailType> validEmailTypes) {
-        return requestedSubscriptions.stream()
-                .filter(subscription -> {
-                    EmailType emailType = validEmailTypes.stream()
-                            .filter(type -> type.getEmailType().equals(subscription.getCategory()))
-                            .findFirst()
-                            .orElse(null);
-                    if (emailType == null) {
-                        throw new IllegalArgumentException("Invalid email category: " + subscription.getCategory());
-                    }
-                    UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
-                    Boolean authorized = UserRole.USER.equals(requiredRole) ||
-                            isOperator && UserRole.OPERATOR.equals(requiredRole) ||
-                            isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
-                            isAdmin && UserRole.ADMIN.equals(requiredRole);
-                    if (!authorized) {
-                        throw new AccessDeniedException("User does not have required role " + requiredRole
-                                + " for email type " + emailType.getEmailType());
-                    }
+        List<UserEmailNotificationDto> list = new ArrayList<>();
+        for (UserEmailNotificationDto requestedSubscription : requestedSubscriptions) {
+            EmailType emailType = validEmailTypes.stream()
+                    .filter(type -> type.getEmailType().equals(requestedSubscription.getCategory()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Invalid email category: " + requestedSubscription.getCategory()));
 
-                    if ((subscription.getImmediate() && !emailType.getSupportsImmediate()) ||
-                            (subscription.getHourly() && !emailType.getSupportsHourly()) ||
-                            (subscription.getDaily() && !emailType.getSupportsDaily()) ||
-                            (subscription.getWeekly() && !emailType.getSupportsWeekly()) ||
-                            (subscription.getMonthly() && !emailType.getSupportsMonthly())) {
-                        throw new IllegalArgumentException(
-                                "Invalid subscription frequency for email type " + emailType.getEmailType());
-                    }
-                    return true;
-                })
-                .toList();
+            UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
+            boolean authorized = UserRole.USER.equals(requiredRole) ||
+                    isOperator && UserRole.OPERATOR.equals(requiredRole) ||
+                    isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
+                    isAdmin && UserRole.ADMIN.equals(requiredRole);
+            if (!authorized) {
+                throw new AccessDeniedException("User does not have required role " + requiredRole
+                        + " for email type " + emailType.getEmailType());
+            }
+
+            if ((requestedSubscription.getImmediate() && !emailType.getSupportsImmediate()) ||
+                    (requestedSubscription.getHourly() && !emailType.getSupportsHourly()) ||
+                    (requestedSubscription.getDaily() && !emailType.getSupportsDaily()) ||
+                    (requestedSubscription.getWeekly() && !emailType.getSupportsWeekly()) ||
+                    (requestedSubscription.getMonthly() && !emailType.getSupportsMonthly())) {
+                throw new IllegalArgumentException(
+                        "Invalid subscription frequency for email type " + emailType.getEmailType());
+            }
+            list.add(requestedSubscription);
+        }
+        return list;
     }
 
-    public int updateEmailSubscriptions(String userEmail, Boolean isOperator,
+    public void updateEmailSubscriptions(String userEmail, Boolean isOperator,
             Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
-                .findNotificationsByUser(userEmail)
-                .stream()
-                .filter(sub -> sub.getSubscribed()).toList();
-        List<UserEmailNotification> addedSubscriptions = filterValidSubscriptionsForUser(requestedSubscriptions,
-                isOperator, isAdmin, emailTypeRepository.findAll()).stream()
+                .findNotificationsByUser(userEmail);
+        List<EmailType> allEmailTypes = emailTypeRepository.findAll();
+        User user = userRepository.findByEmail(userEmail);
+        List<UserEmailNotificationDto> validRequestedSubscriptions = filterValidSubscriptionsForUser(
+                requestedSubscriptions,
+                isOperator, isAdmin, allEmailTypes);
+
+        List<UserEmailNotification> addedSubscriptions = validRequestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
                         .noneMatch(currentSub -> currentSub.getEmailType().getEmailType().equals(sub.getCategory())))
                 .map(subDto -> {
-                    UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto);
-                    User user = userRepository.findByEmail(userEmail)
-                            .orElseThrow(() -> new EntityNotFoundException("User not found: " + userEmail));
-                    EmailType emailType = emailTypeRepository.findByEmailType(subDto.getCategory())
-                            .orElseThrow(() -> new EntityNotFoundException(
-                                    "Email type not found: " + subDto.getCategory()));
-                    sub.setUser(user);
-                    sub.setEmailType(emailType);
+                    EmailType emailType = allEmailTypes.stream()
+                            .filter(type -> type.getEmailType().equals(subDto.getCategory()))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Invalid email category: " + subDto.getCategory()));
+                    UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto, user, emailType);
                     return sub;
                 })
                 .toList();
 
         List<UserEmailNotification> modifiedSubscriptions = currentSubscriptions.stream()
                 .map(sub -> {
-                    UserEmailNotificationDto requestedSub = requestedSubscriptions.stream()
+                    UserEmailNotificationDto requestedSub = validRequestedSubscriptions.stream()
                             .filter(reqSub -> reqSub.getSubscribed()
                                     && reqSub.getCategory().equals(sub.getEmailType().getEmailType()))
                             .findFirst()
                             .orElse(null);
-                    if (requestedSub != null && !sub.isFrequencyEqual(requestedSub)) {
-                        sub.updateFrequency(requestedSub);
+                    if (requestedSub != null && !requestedSub.isFrequencyEqual(sub)) {
+                        userEmailNotificationMapper.updateFrequency(requestedSub, sub);
                         return sub;
                     }
                     return null;
@@ -224,28 +262,23 @@ public class EmailService {
                 .toList();
 
         List<UserEmailNotification> removedSubscriptions = currentSubscriptions.stream()
-                .filter(sub -> requestedSubscriptions.stream()
+                .filter(sub -> validRequestedSubscriptions.stream()
                         .anyMatch(reqSub -> reqSub.getCategory().equals(sub.getEmailType().getEmailType())
                                 && !reqSub.getSubscribed()))
                 .toList();
-
-        int numModified = removedSubscriptions.size() + modifiedSubscriptions.size() + addedSubscriptions.size();
 
         // Remove subscriptions that are no longer subscribed
         if (!removedSubscriptions.isEmpty()) {
             userEmailNotificationRepository.deleteAll(removedSubscriptions);
         }
 
-        // Update subscriptions that have modified frequencies
-        if (!modifiedSubscriptions.isEmpty()) {
-            userEmailNotificationRepository.saveAll(modifiedSubscriptions);
+        // Add new and update subscriptions that have modified frequencies
+        if (!modifiedSubscriptions.isEmpty() || !addedSubscriptions.isEmpty()) {
+            var subsToSave = new ArrayList<>(modifiedSubscriptions);
+            subsToSave.addAll(addedSubscriptions);
+            userEmailNotificationRepository.saveAll(subsToSave);
         }
 
-        // Add new subscriptions
-        if (!addedSubscriptions.isEmpty()) {
-            userEmailNotificationRepository.saveAll(addedSubscriptions);
-        }
-
-        return numModified;
+        return;
     }
 }

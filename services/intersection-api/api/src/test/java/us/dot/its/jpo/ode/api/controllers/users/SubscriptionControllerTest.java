@@ -27,6 +27,7 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -192,7 +193,7 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionsList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionsList);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -207,7 +208,7 @@ public class SubscriptionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getEmail()).thenReturn(email);
-            when(emailService.updateEmailSubscriptions(email, true, true, validSubscriptionsList)).thenReturn(1);
+            doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionsList);
 
             mockMvc.perform(post("/users/subscriptions/email-subscriptions")
                     .contentType(MediaType.APPLICATION_JSON)
