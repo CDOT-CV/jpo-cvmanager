@@ -10,7 +10,7 @@ import './App.css'
 import { useSelector } from 'react-redux'
 import { selectAuthLoginData, selectIsAdminOrAbove, selectLoadingGlobal } from './generalSlices/userSlice'
 import keycloak from './keycloak-config'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import IntersectionMapView from './pages/IntersectionMapView'
 import IntersectionDashboard from './pages/IntersectionDashboard'
 import { NotFound } from './pages/404'
@@ -21,9 +21,11 @@ import { headerTabHeight } from './styles/index'
 
 const Dashboard = () => {
   const theme = useTheme()
+  const location = useLocation()
   const authLoginData = useSelector(selectAuthLoginData)
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const isAdmin = useSelector(selectIsAdminOrAbove)
+  const isScreenshotRoute = location.pathname.includes('/dashboard/intersectionMap/screenshot')
 
   return (
     <Paper id="masterdiv" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -92,7 +94,7 @@ const Dashboard = () => {
         css={loadercss}
         color={theme.palette.primary.main}
         size={200}
-        loading={loadingGlobal}
+        loading={!isScreenshotRoute && loadingGlobal}
         speedMultiplier={1}
       />
     </Paper>

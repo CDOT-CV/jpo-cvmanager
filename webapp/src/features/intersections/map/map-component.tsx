@@ -111,6 +111,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const location = useLocation()
   const theme = useTheme()
+  const isScreenshotMode = location.pathname.includes('/dashboard/intersectionMap/screenshot')
 
   // userSlice
   const authToken = useSelector(selectToken)
@@ -299,68 +300,72 @@ const IntersectionMap = (props: MAP_PROPS) => {
   return (
     <Container style={{ width: '100%', height: '100%', display: 'flex', padding: 0 }}>
       <Col className="mapContainer" style={{ overflow: 'hidden', width: '100%', height: '100%', position: 'relative' }}>
-        <div
-          style={{
-            position: 'absolute',
-            zIndex: 10,
-            top: theme.spacing(3),
-            left: theme.spacing(3),
-            width: '600px',
-            maxHeight: 'calc(100vh - 240px)',
-            overflow: 'auto',
-            scrollBehavior: 'auto',
-          }}
-        >
-          <Box style={{ position: 'relative' }}>
-            <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
-              <ControlPanel />
-            </Paper>
-          </Box>
-        </div>
-        <Fab
-          color="primary"
-          id="plus-button"
-          sx={{
-            position: 'absolute',
-            zIndex: 10,
-            top: theme.spacing(10),
-            right: theme.spacing(3),
-            '&:hover': {
-              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
-            },
-          }}
-          size="small"
-          onClick={() => {
-            if (mapRef.current) {
-              const map = mapRef.current.getMap()
-              map.zoomIn()
-            }
-          }}
-        >
-          <AddIcon />
-        </Fab>
-        <Fab
-          color="primary"
-          id="minus-button"
-          sx={{
-            position: 'absolute',
-            zIndex: 10,
-            top: theme.spacing(17),
-            right: theme.spacing(3),
-            '&:hover': {
-              backgroundColor: theme.palette.custom.intersectionMapButtonHover,
-            },
-          }}
-          size="small"
-          onClick={() => {
-            if (mapRef.current) {
-              const map = mapRef.current.getMap()
-              map.zoomOut()
-            }
-          }}
-        >
-          <Remove />
-        </Fab>
+        {!isScreenshotMode && (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                zIndex: 10,
+                top: theme.spacing(3),
+                left: theme.spacing(3),
+                width: '600px',
+                maxHeight: 'calc(100vh - 240px)',
+                overflow: 'auto',
+                scrollBehavior: 'auto',
+              }}
+            >
+              <Box style={{ position: 'relative' }}>
+                <Paper sx={{ py: 1, backgroundColor: 'transparent' }}>
+                  <ControlPanel />
+                </Paper>
+              </Box>
+            </div>
+            <Fab
+              color="primary"
+              id="plus-button"
+              sx={{
+                position: 'absolute',
+                zIndex: 10,
+                top: theme.spacing(10),
+                right: theme.spacing(3),
+                '&:hover': {
+                  backgroundColor: theme.palette.custom.intersectionMapButtonHover,
+                },
+              }}
+              size="small"
+              onClick={() => {
+                if (mapRef.current) {
+                  const map = mapRef.current.getMap()
+                  map.zoomIn()
+                }
+              }}
+            >
+              <AddIcon />
+            </Fab>
+            <Fab
+              color="primary"
+              id="minus-button"
+              sx={{
+                position: 'absolute',
+                zIndex: 10,
+                top: theme.spacing(17),
+                right: theme.spacing(3),
+                '&:hover': {
+                  backgroundColor: theme.palette.custom.intersectionMapButtonHover,
+                },
+              }}
+              size="small"
+              onClick={() => {
+                if (mapRef.current) {
+                  const map = mapRef.current.getMap()
+                  map.zoomOut()
+                }
+              }}
+            >
+              <Remove />
+            </Fab>
+          </>
+        )}
 
         <Map
           {...viewState}
@@ -497,21 +502,25 @@ const IntersectionMap = (props: MAP_PROPS) => {
             <CustomPopup selectedFeature={hoveredFeature} onClose={() => dispatch(clearHoveredFeature())} />
           )}
         </Map>
-        <SidePanel
-          laneInfo={connectingLanes}
-          signalGroups={currentSignalGroups}
-          bsms={currentBsms}
-          events={filteredSurroundingEvents}
-          notifications={filteredSurroundingNotifications}
-          sourceData={props.sourceData}
-          sourceDataType={props.sourceDataType}
-          openPanel={openPanel}
-          setOpenPanel={(panel) => setOpenPanel(panel)}
-        />
-        <MapLegend openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
-        <VisualSettings openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
+        {!isScreenshotMode && (
+          <>
+            <SidePanel
+              laneInfo={connectingLanes}
+              signalGroups={currentSignalGroups}
+              bsms={currentBsms}
+              events={filteredSurroundingEvents}
+              notifications={filteredSurroundingNotifications}
+              sourceData={props.sourceData}
+              sourceDataType={props.sourceDataType}
+              openPanel={openPanel}
+              setOpenPanel={(panel) => setOpenPanel(panel)}
+            />
+            <MapLegend openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
+            <VisualSettings openPanel={openPanel} setOpenPanel={(panel) => setOpenPanel(panel)} />
+          </>
+        )}
       </Col>
-      <DecoderEntryDialog />
+      {!isScreenshotMode && <DecoderEntryDialog />}
     </Container>
   )
 }

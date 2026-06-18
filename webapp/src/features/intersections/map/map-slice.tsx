@@ -1812,6 +1812,7 @@ export const selectSourceDataType = (state: RootState) => state.intersectionMap.
 export const selectInitialSourceDataType = (state: RootState) => state.intersectionMap.value.initialSourceDataType
 export const selectIntersectionId = (state: RootState) => state.intersectionMap.value.intersectionId
 export const selectLoadOnNull = (state: RootState) => state.intersectionMap.value.loadOnNull
+export const selectMapRef = (state: RootState) => state.intersectionMap.value.mapRef
 export const selectMapData = (state: RootState) => state.intersectionMap.value.mapData
 export const selectBsmData = (state: RootState) => state.intersectionMap.value.bsmData
 export const selectMapSignalGroups = (state: RootState) => state.intersectionMap.value.mapSignalGroups

@@ -4,11 +4,13 @@ import { NotFound } from './404'
 import BaseMapPage from '../components/intersections/map/BaseMapPage'
 import NotificationMapPage from '../components/intersections/map/NotificationMapPage'
 import IntersectionTsMapPage from '../components/intersections/map/IntersectionTsMapPage'
+import IntersectionScreenshotPage from '../components/intersections/map/IntersectionScreenshotPage'
 
 function IntersectionMapView() {
   return (
     <Routes>
       <Route path="/" element={<BaseMapPage />} />
+      <Route path="screenshot" element={<IntersectionScreenshotPage />} />
       <Route path="notification/:intersectionId/:notificationId" element={<NotificationMapPage />} />
       <Route path="timestamp/:intersectionId/:timestamp" element={<IntersectionTsMapPage />} />
       <Route
