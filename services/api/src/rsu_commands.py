@@ -153,18 +153,21 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
     if role not in command_data[command]["roles"]:
         return f"Unauthorized role to run {command}", 401
 
-    # Restrict operations to the RSU's owner organization
-    if not super_user:
+    # Restrict SSH and SNMP operations to the RSU's owner organization
+    if not super_user and command not in ("upgrade-check", "upgrade-rsu"):
+        unauthorized = []
         for rsu_ip in rsu_list:
             owner_org = get_rsu_owner_org(rsu_ip)
             if owner_org is None:
                 return f"RSU {rsu_ip} not found or has no owner organization", 404
             if owner_org != organization:
-                return (
-                    f"Organization '{organization}' does not own RSU {rsu_ip}. "
-                    f"Owner organization: '{owner_org}'",
-                    403,
-                )
+                unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
+        if unauthorized:
+            return (
+                f"Organization '{organization}' does not own the following RSUs: "
+                + ", ".join(unauthorized),
+                403,
+            )
 
     # Handle functions supporting multiple RSUs
     if command == "rsufwdsnmpset" or command == "rsufwdsnmpset-del":
