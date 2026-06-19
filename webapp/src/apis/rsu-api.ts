@@ -4,7 +4,6 @@ import apiHelper from './api-helper'
 import {
   ApiMsgRespWithCodes,
   GetRsuCommandResp,
-  IssScmsStatus,
   RsuCommandPostBody,
   RsuCounts,
   RsuInfoList,
@@ -101,19 +100,6 @@ class RsuApi {
       query_params,
       tag: 'rsu',
     })
-  getIssScmsStatus = async (
-    token: string,
-    org: string,
-    url_ext = '',
-    query_params: Record<string, string> = {}
-  ): Promise<IssScmsStatus> =>
-    apiHelper._getData({
-      url: EnvironmentVars.issScmsStatusEndpoint + url_ext,
-      token,
-      query_params,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
 
   // WZDx
   getWzdxData = async (token: string, url_ext = '', query_params = {}): Promise<WZDxWorkZoneFeed> =>
@@ -152,23 +138,6 @@ class RsuApi {
       token,
       additional_headers: { Organization: org },
       tag: 'rsu',
-    })
-  }
-
-  // POST
-  postContactSupport = async (json: object): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.contactSupport,
-      body: JSON.stringify(json),
-      tag: 'rsu',
-    })
-  }
-
-  // POST
-  postRsuErrorSummary = async (json: object): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.rsuErrorSummary,
-      body: JSON.stringify(json),
     })
   }
 }

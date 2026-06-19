@@ -24,11 +24,6 @@ Expected headers for all endpoints:
 - `"Content-Type": "application/json"`
 - `"Authorization": "token"`
 
-### <b>/contact-support</b> <b>(POST)</b>
-
-Sends a support request email to all users subscribed to 'Support Requests' in the cv-manager. Please note that this functionality
-relies on the user_email_notification table in PostgreSQL to pull in all users subscribed to receive these notifications.
-
 ### <b>/rsuinfo</b> <b>(GET)</b>
 
 Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a basic select all query from a table named "RsuData" that is located in a database specified by the environments variables. Returns single JSON object.
@@ -132,33 +127,6 @@ body example:
   "snmp_credential_group": "snmp profile",
   "snmp_version_group": "snmp version",
   "organizations": ["Organization 1"]
-}
-```
-
-## Users
-
-### <b>/admin-new-user</b> <b>(GET)</b>
-
-Returns the field options for specific user fields that do not take free-form responses.
-
-- organizations
-- roles
-
-### <b>/admin-new-user</b> <b>(POST)</b>
-
-Adds a new user to the CV Manager database. Associates the user with every organization specified. The specified user will be able to login to the CV Manager as soon as this is complete. The email associated with the user MUST be a Gmail account or an email address that is an alias of a Gmail.
-
-body example:
-
-```
-{
-  "email": "jdoe@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "super_user": True,
-  "organizations": [
-    {"name": "Test Org", "role": "operator"}
-  ]
 }
 ```
 

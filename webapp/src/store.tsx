@@ -6,13 +6,11 @@ import configReducer from './generalSlices/configSlice'
 import intersectionReducer from './generalSlices/intersectionSlice'
 import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
-import adminAddUserReducer from './features/adminAddUser/adminAddUserSlice'
 import adminEditOrganizationReducer from './features/adminEditOrganization/adminEditOrganizationSlice'
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
 import adminOrganizationTabReducer from './features/adminOrganizationTab/adminOrganizationTabSlice'
 import adminOrganizationTabUserReducer from './features/adminOrganizationTabUser/adminOrganizationTabUserSlice'
 import adminOrganizationTabRsuReducer from './features/adminOrganizationTabRsu/adminOrganizationTabRsuSlice'
-import adminOrganizationTabIntersectionReducer from './features/adminOrganizationTabIntersection/adminOrganizationTabIntersectionSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
 import adminNotificationTabReducer from './features/adminNotificationTab/adminNotificationTabSlice'
 import adminAddNotificationReducer from './features/adminAddNotification/adminAddNotificationSlice'
@@ -22,11 +20,14 @@ import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slic
 import intersectionMapReducer from './features/intersections/map/map-slice'
 import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
 import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import { emailApiSlice } from './features/api/emailApiSlice'
 import { intersectionApiSlice } from './features/api/intersectionApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
 import { rsuApiSlice } from './features/api/rsuApiSlice'
+import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
+import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -41,13 +42,11 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
       adminAddIntersection: adminAddIntersectionReducer,
-      adminAddUser: adminAddUserReducer,
       adminEditOrganization: adminEditOrganizationReducer,
       adminEditIntersection: adminEditIntersectionReducer,
       adminOrganizationTab: adminOrganizationTabReducer,
       adminOrganizationTabUser: adminOrganizationTabUserReducer,
       adminOrganizationTabRsu: adminOrganizationTabRsuReducer,
-      adminOrganizationTabIntersection: adminOrganizationTabIntersectionReducer,
       adminIntersectionTab: adminIntersectionTabReducer,
       adminNotificationTab: adminNotificationTabReducer,
       adminAddNotification: adminAddNotificationReducer,
@@ -60,11 +59,14 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       asn1Decoder: asn1DecoderSlice,
       timeSync: timeSyncReducer,
       haas: haasSliceReducer,
+      [emailApiSlice.reducerPath]: emailApiSlice.reducer,
       [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
       [organizationApiSlice.reducerPath]: organizationApiSlice.reducer,
       [rsuCountsApiSlice.reducerPath]: rsuCountsApiSlice.reducer,
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
+      [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
+      [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -73,11 +75,14 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         serializableCheck: false,
         immutableCheck: false,
       })
+        .concat(emailApiSlice.middleware)
         .concat(intersectionApiSlice.middleware)
         .concat(organizationApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
         .concat(rsuApiSlice.middleware)
-        .concat(userApiSlice.middleware),
+        .concat(scmsApiSlice.middleware)
+        .concat(userApiSlice.middleware)
+        .concat(adminIntersectionApiSlice.middleware),
     devTools: true,
   })
 }

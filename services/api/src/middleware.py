@@ -57,14 +57,10 @@ organization_required = {
     "/rsucounts": True,
     "/rsu-msgfwd-query": True,
     "/rsu-command": True,
-    "/iss-scms-status": True,
     "/wzdx-feed": False,
     "/rsu-geo-msg-data": False,
     "/rsu-ssm-srm-data": False,
     "/admin-new-rsu": False,
-    "/admin-new-intersection": False,
-    "/admin-intersection": False,
-    "/admin-new-user": False,
     "/admin-new-org": False,
     "/admin-org": False,
     "/admin-org-tim-deposit": False,
@@ -73,7 +69,6 @@ organization_required = {
     "/rsu-geo-query": True,
     "/admin-new-notification": False,
     "/admin-notification": False,
-    "/rsu-error-summary": False,
 }
 
 # Tag endpoints with the feature they require. The tagged endpoints will automatically be disabled if the feature is disabled
@@ -88,14 +83,10 @@ feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/rsu-msgfwd-query": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-command": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-map-info": FEATURE_KEYS_LITERAL.RSU,
-    "/iss-scms-status": FEATURE_KEYS_LITERAL.RSU,
     "/wzdx-feed": FEATURE_KEYS_LITERAL.WZDX,
     "/rsu-geo-msg-data": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-ssm-srm-data": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-rsu": FEATURE_KEYS_LITERAL.RSU,
-    "/admin-new-intersection": FEATURE_KEYS_LITERAL.INTERSECTION,
-    "/admin-intersection": FEATURE_KEYS_LITERAL.INTERSECTION,
-    "/admin-new-user": None,
     "/admin-new-org": None,
     "/admin-org": None,
     "/admin-org-tim-deposit": None,
@@ -104,7 +95,6 @@ feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/rsu-geo-query": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-notification": None,
     "/admin-notification": None,
-    "/rsu-error-summary": FEATURE_KEYS_LITERAL.RSU,
 }
 
 
@@ -113,7 +103,7 @@ def check_auth_exempt(method, path):
     if method == "OPTIONS":
         return True
 
-    exempt_paths = ["/", "/contact-support"]
+    exempt_paths = ["/"]
     if path in exempt_paths:
         return True
 
