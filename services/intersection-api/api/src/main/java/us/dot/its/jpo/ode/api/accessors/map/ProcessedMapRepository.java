@@ -13,6 +13,8 @@ import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 public interface ProcessedMapRepository {
     long count(Integer intersectionID, Long startTime, Long endTime);
 
+    long countByRsuIp(String rsuIp, Long startTime, Long endTime);
+
     Page<ProcessedMap<LineString>> findLatest(Integer intersectionID, Long startTime, Long endTime, boolean compact);
 
     Page<ProcessedMap<LineString>> find(Integer intersectionID, Long startTime, Long endTime, boolean compact,

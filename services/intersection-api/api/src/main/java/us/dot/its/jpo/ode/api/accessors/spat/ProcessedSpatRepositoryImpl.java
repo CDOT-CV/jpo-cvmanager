@@ -24,6 +24,7 @@ public class ProcessedSpatRepositoryImpl implements ProcessedSpatRepository, Pag
     private final String collectionName = "ProcessedSpat";
     private final String DATE_FIELD = "utcTimeStamp";
     private final String INTERSECTION_ID_FIELD = "intersectionId";
+    private final String RSU_IP_FIELD = "originIp";
     private final String RECORD_GENERATED_AT_FIELD = "recordGeneratedAt";
     private final String VALIDATION_MESSAGES_FIELD = "properties.validationMessages";
 
@@ -47,6 +48,27 @@ public class ProcessedSpatRepositoryImpl implements ProcessedSpatRepository, Pag
             Long endTime) {
         Criteria criteria = new IntersectionCriteria()
                 .whereOptional(INTERSECTION_ID_FIELD, intersectionID)
+                .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
+        Query query = Query.query(criteria);
+        return mongoTemplate.count(query, collectionName);
+    }
+
+    /**
+     * Get a page representing the count of data for a given intersectionID,
+     * startTime, and endTime
+     *
+     * @param rsuIp     the RSU IP to query by, if null will not be applied
+     *                  applied
+     * @param startTime the start time to query by, if null will not be applied
+     * @param endTime   the end time to query by, if null will not be applied
+     * @return the paginated data that matches the given criteria
+     */
+    public long countByRsuIp(
+            String rsuIp,
+            Long startTime,
+            Long endTime) {
+        Criteria criteria = new IntersectionCriteria()
+                .whereOptional(RSU_IP_FIELD, rsuIp)
                 .withinTimeWindow(DATE_FIELD, startTime, endTime, true);
         Query query = Query.query(criteria);
         return mongoTemplate.count(query, collectionName);
