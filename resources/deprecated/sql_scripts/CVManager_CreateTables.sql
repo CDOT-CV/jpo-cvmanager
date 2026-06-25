@@ -430,16 +430,11 @@ CREATE TABLE IF NOT EXISTS public.email_type
    email_type_id integer NOT NULL DEFAULT nextval('email_type_email_type_id_seq'::regclass),
    email_type character varying(128) COLLATE pg_catalog.default NOT NULL,
    description character varying(256) COLLATE pg_catalog.default,
-   required_role integer NOT NULL,
    supports_immediate boolean DEFAULT true NOT NULL,
    supports_hourly boolean DEFAULT false NOT NULL,
    supports_daily boolean DEFAULT false NOT NULL,
    supports_weekly boolean DEFAULT false NOT NULL,
    supports_monthly boolean DEFAULT false NOT NULL,
-   CONSTRAINT fk_role_id FOREIGN KEY (required_role)
-      REFERENCES public.roles (role_id) MATCH SIMPLE
-      ON UPDATE NO ACTION
-      ON DELETE NO ACTION,
    CONSTRAINT email_type_pkey PRIMARY KEY (email_type_id),
    CONSTRAINT email_type_unique UNIQUE (email_type),
    CONSTRAINT at_least_one_frequency CHECK (supports_immediate OR supports_hourly OR supports_daily OR supports_weekly OR supports_monthly)
