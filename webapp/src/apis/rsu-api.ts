@@ -31,7 +31,7 @@ class RsuApi {
       tag: 'rsu',
     })
 
-    return (response ?? null) as RsuInfoList
+    return (response ?? { rsuList: [] }) as RsuInfoList
   }
   getRsuOnline = async (
     token: string,
