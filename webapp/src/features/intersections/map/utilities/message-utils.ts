@@ -51,35 +51,7 @@ export const createMarkerForNotification = (
   }
   switch (notification.notificationType) {
     case 'ConnectionOfTravelNotification':
-      // TODO: Re-add once more notification data is available
       console.warn('ConnectionOfTravelNotification type does not have a graphical display yet')
-      // const connTravelNotification = notification as ConnectionOfTravelNotification;
-      // const connTravelAssessmentGroups = connTravelNotification.assessment.connectionOfTravelAssessmentGroups;
-      // connTravelAssessmentGroups?.forEach((assessmentGroup) => {
-      //   const ingressLocation: number[] | undefined = connectingLanes.features.find(
-      //     (connectingLaneFeature: MapFeature) => {
-      //       return connectingLaneFeature.properties.laneId === assessmentGroup.ingressLaneID;
-      //     }
-      //   )?.geometry.coordinates[0];
-      //   const egressLocation: number[] | undefined = connectingLanes.features.find(
-      //     (connectingLaneFeature: MapFeature) => {
-      //       return connectingLaneFeature.properties.laneId === assessmentGroup.egressLaneID;
-      //     }
-      //   )?.geometry.coordinates[0];
-      //   if (!ingressLocation || !egressLocation) return;
-      //   const marker = {
-      //     type: "Feature",
-      //     properties: {
-      //       description: `${connTravelNotification.notificationText}, egress lane ${assessmentGroup.egressLaneID}, ingress lane ${assessmentGroup.ingressLaneID}, connection ID ${assessmentGroup.connectionID}, event count ${assessmentGroup.eventCount}`,
-      //       title: connTravelNotification.notificationType,
-      //     },
-      //     geometry: {
-      //       type: "LineString",
-      //       coordinates: [ingressLocation, egressLocation],
-      //     },
-      //   };
-      //   markerCollection.features.push(marker);
-      // });
       break
     case 'IntersectionReferenceAlignmentNotification':
       console.warn('IntersectionReferenceAlignmentNotification type does not have a graphical display yet')
