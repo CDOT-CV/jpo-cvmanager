@@ -76,6 +76,7 @@ class RsuDtoMapperTest {
         assertEquals(39.73915, dto.getLatitude());
         assertEquals(-104.9847, dto.getLongitude());
         assertTrue(dto.isTimDepositEnabled());
+        assertEquals("Commsignia", dto.getManufacturerName());
     }
 
     @Test
@@ -179,6 +180,21 @@ class RsuDtoMapperTest {
     }
 
     @Test
+    void toDto_handlesNullModel() throws UnknownHostException {
+        // Arrange
+        Rsu rsu = Rsu.builder()
+                .id(1)
+                .model(null)
+                .build();
+
+        // Act
+        RsuDto dto = mapper.toDto(rsu);
+
+        // Assert
+        assertNull(dto.getManufacturerName());
+    }
+
+    @Test
     void toDto_timDepositFalseWhenOptionIsFalse() throws UnknownHostException {
         // Arrange
         RsuOption rsuOption = new RsuOption();
@@ -230,12 +246,25 @@ class RsuDtoMapperTest {
         RsuOption option = new RsuOption();
         option.setTimDeposit(true);
 
+        Manufacturer manufacturer1 = new Manufacturer();
+        manufacturer1.setName("Commsignia");
+
+        RsuModel rsuModel1 = new RsuModel();
+        rsuModel1.setManufacturer(manufacturer1);
+
+        Manufacturer manufacturer2 = new Manufacturer();
+        manufacturer2.setName("Kapsch");
+
+        RsuModel rsuModel2 = new RsuModel();
+        rsuModel2.setManufacturer(manufacturer2);
+
         Rsu rsu1 = Rsu.builder()
                 .id(1)
                 .ipv4Address(InetAddress.getByName("10.0.0.1"))
                 .snmpProtocol(snmpProtocol)
                 .snmpCredential(cred1)
                 .rsuOption(option)
+                .model(rsuModel1)
                 .build();
 
         Rsu rsu2 = Rsu.builder()
@@ -244,6 +273,7 @@ class RsuDtoMapperTest {
                 .snmpProtocol(snmpProtocol)
                 .snmpCredential(cred2)
                 .rsuOption(option)
+                .model(rsuModel2)
                 .build();
 
         // Act
@@ -257,6 +287,8 @@ class RsuDtoMapperTest {
         assertEquals("2", dtos.get(1).getId());
         assertEquals("10.0.0.2", dtos.get(1).getIpv4Address());
         assertEquals("user2", dtos.get(1).getSnmpUsername());
+        assertEquals("Commsignia", dtos.get(0).getManufacturerName());
+        assertEquals("Kapsch", dtos.get(1).getManufacturerName());
     }
 
     @Test
