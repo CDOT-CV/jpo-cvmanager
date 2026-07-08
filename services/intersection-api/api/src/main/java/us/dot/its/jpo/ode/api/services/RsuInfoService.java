@@ -3,16 +3,13 @@ package us.dot.its.jpo.ode.api.services;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.geojson.GeoJsonPointDto;
+import us.dot.its.jpo.ode.api.mappers.RsuGeoInfoMapper;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoDto;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoPropertiesDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
-import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @Service
@@ -21,6 +18,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 public class RsuInfoService {
 
     private final RsuRepository rsuRepository;
+    private final RsuGeoInfoMapper rsuGeoInfoMapper;
 
     /**
      * Returns a list of GeoJSON Feature DTOs for all RSUs that belong to the
@@ -30,29 +28,7 @@ public class RsuInfoService {
         List<Rsu> rsus = rsuRepository.findAllRsusByOrganizationName(orgName);
         log.debug("Fetched {} RSUs for organisation '{}'", rsus.size(), orgName);
         return rsus.stream()
-                .map(this::toGeoInfoDto)
+                .map(rsuGeoInfoMapper::toDto)
                 .collect(Collectors.toList());
-    }
-
-    private RsuGeoInfoDto toGeoInfoDto(Rsu rsu) {
-        RsuOption opt = rsu.getRsuOption();
-
-        RsuGeoInfoPropertiesDto properties = new RsuGeoInfoPropertiesDto(
-                rsu.getId(),
-                rsu.getMilepost(),
-                rsu.getIpv4Address().getHostAddress(),
-                rsu.getSerialNumber(),
-                rsu.getPrimaryRoute(),
-                opt != null ? opt.getTimDeposit() : Boolean.FALSE,
-                opt != null ? opt.getSnmpMonitoring() : Boolean.FALSE,
-                rsu.getModel().getName(),
-                rsu.getModel().getManufacturer().getName());
-
-        // JTS Point: getX() = longitude, getY() = latitude
-        Point point = rsu.getGeography();
-        GeoJsonPointDto geometry = new GeoJsonPointDto(
-                new double[] { point.getX(), point.getY() });
-
-        return new RsuGeoInfoDto(rsu.getId(), geometry, properties);
     }
 }
