@@ -1,7 +1,9 @@
 package com.trihydro.rsuinfobridge.mapper;
 
 import com.trihydro.rsuinfobridge.models.dtos.RsuDto;
+import com.trihydro.rsuinfobridge.models.tables.Manufacturer;
 import com.trihydro.rsuinfobridge.models.tables.Rsu;
+import com.trihydro.rsuinfobridge.models.tables.RsuModel;
 import com.trihydro.rsuinfobridge.models.tables.RsuOption;
 import com.trihydro.rsuinfobridge.models.tables.SnmpCredential;
 import com.trihydro.rsuinfobridge.models.tables.SnmpProtocol;
@@ -37,13 +39,18 @@ class RsuDtoMapperTest {
         snmpCredential.setUsername("testuser");
         snmpCredential.setPassword("testpass");
 
-
         GeometryFactory geometryFactory = new GeometryFactory();
         Coordinate coordinate = new Coordinate(-104.9847, 39.73915);
         Point point = geometryFactory.createPoint(coordinate);
 
         RsuOption rsuOption = new RsuOption();
         rsuOption.setTimDeposit(true);
+
+        Manufacturer manufacturer = new Manufacturer();
+        manufacturer.setName("Commsignia");
+
+        RsuModel rsuModel = new RsuModel();
+        rsuModel.setManufacturer(manufacturer);
 
         Rsu rsu = Rsu.builder()
                 .id(42)
@@ -52,6 +59,7 @@ class RsuDtoMapperTest {
                 .snmpCredential(snmpCredential)
                 .geography(point)
                 .rsuOption(rsuOption)
+                .model(rsuModel)
                 .build();
 
         // Act
