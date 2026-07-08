@@ -64,8 +64,8 @@ class InfoControllerTest {
                 .with(jwt())
                 .header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rsuList").isArray())
-                .andExpect(jsonPath("$.rsuList.length()").value(2));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test
@@ -78,20 +78,20 @@ class InfoControllerTest {
                 .with(jwt())
                 .header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rsuList[0].type").value("Feature"))
-                .andExpect(jsonPath("$.rsuList[0].id").value(1))
-                .andExpect(jsonPath("$.rsuList[0].geometry.type").value("Point"))
-                .andExpect(jsonPath("$.rsuList[0].geometry.coordinates[0]").value(-104.9903))
-                .andExpect(jsonPath("$.rsuList[0].geometry.coordinates[1]").value(39.7392))
-                .andExpect(jsonPath("$.rsuList[0].properties.rsu_id").value(1))
-                .andExpect(jsonPath("$.rsuList[0].properties.ipv4_address").value("10.0.0.1"))
-                .andExpect(jsonPath("$.rsuList[0].properties.serial_number").value("SN-1"))
-                .andExpect(jsonPath("$.rsuList[0].properties.primary_route").value("I-999"))
-                .andExpect(jsonPath("$.rsuList[0].properties.milepost").value(12.5))
-                .andExpect(jsonPath("$.rsuList[0].properties.tim_deposit").value(true))
-                .andExpect(jsonPath("$.rsuList[0].properties.snmp_monitoring").value(false))
-                .andExpect(jsonPath("$.rsuList[0].properties.model_name").value("ITS RS4"))
-                .andExpect(jsonPath("$.rsuList[0].properties.manufacturer_name").value("Commsignia"));
+                .andExpect(jsonPath("$[0].type").value("Feature"))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].geometry.type").value("Point"))
+                .andExpect(jsonPath("$[0].geometry.coordinates[0]").value(-104.9903))
+                .andExpect(jsonPath("$[0].geometry.coordinates[1]").value(39.7392))
+                .andExpect(jsonPath("$[0].properties.rsu_id").value(1))
+                .andExpect(jsonPath("$[0].properties.ipv4_address").value("10.0.0.1"))
+                .andExpect(jsonPath("$[0].properties.serial_number").value("SN-1"))
+                .andExpect(jsonPath("$[0].properties.primary_route").value("I-999"))
+                .andExpect(jsonPath("$[0].properties.milepost").value(12.5))
+                .andExpect(jsonPath("$[0].properties.tim_deposit").value(true))
+                .andExpect(jsonPath("$[0].properties.snmp_monitoring").value(false))
+                .andExpect(jsonPath("$[0].properties.model_name").value("ITS RS4"))
+                .andExpect(jsonPath("$[0].properties.manufacturer_name").value("Commsignia"));
     }
 
     @Test
@@ -104,8 +104,8 @@ class InfoControllerTest {
                 .with(jwt())
                 .header("Organization", "EmptyOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rsuList").isArray())
-                .andExpect(jsonPath("$.rsuList.length()").value(0));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -119,7 +119,7 @@ class InfoControllerTest {
                 .with(jwt())
                 .header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rsuList.length()").value(1));
+                .andExpect(jsonPath("$.length()").value(1));
     }
 
     @Test

@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import java.util.List;
-import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,13 +39,13 @@ public class InfoController {
     @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(description = "Map with rsuList containing GeoJSON Feature objects for each RSU"))),
+                        @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(description = "GeoJSON Feature array containing one object per RSU"))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires membership in the specified organisation"),
     })
-    public ResponseEntity<Map<String, List<RsuGeoInfoDto>>> getRsuInfo(
+        public ResponseEntity<List<RsuGeoInfoDto>> getRsuInfo(
             @RequestHeader(name = "Organization", required = true) String organization) {
         log.debug("GET /devices/rsus/info requested for organisation '{}'", organization);
         List<RsuGeoInfoDto> rsuList = rsuInfoService.getRsuGeoInfoByOrganization(organization);
-        return ResponseEntity.ok(Map.of("rsuList", rsuList));
+                return ResponseEntity.ok(rsuList);
     }
 }

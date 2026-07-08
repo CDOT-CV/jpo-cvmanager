@@ -7,6 +7,7 @@ import {
   GetRsuCommandResp,
   RsuCommandPostBody,
   RsuCounts,
+  RsuInfo,
   RsuInfoList,
   RsuMsgFwdConfigs,
   RsuOnlineStatusRespMultiple,
@@ -31,7 +32,8 @@ class RsuApi {
       tag: 'rsu',
     })
 
-    return (response ?? { rsuList: [] }) as RsuInfoList
+    const rsuArray = Array.isArray(response) ? (response as RsuInfo[]) : []
+    return { rsuList: rsuArray }
   }
   getRsuOnline = async (
     token: string,

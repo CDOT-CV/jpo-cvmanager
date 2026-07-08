@@ -16,10 +16,10 @@ beforeEach(() => {
 })
 
 it('Test apiHelper mock', async () => {
-  const expectedResponse = { data: 'Test JSON' }
+  const expectedResponse = [{ id: 1, type: 'Feature' }]
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
   const actualResponse = await RsuApi.getRsuInfo('testToken', 'testOrg')
-  expect(actualResponse).toEqual(expectedResponse)
+  expect(actualResponse).toEqual({ rsuList: expectedResponse })
 
   expect(fetchMock.mock.calls[0][0]).toBe(
     combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL!, EnvironmentVars.rsuInfoPath)
@@ -32,10 +32,10 @@ it('Test apiHelper mock', async () => {
 })
 
 it('Test getRsuInfo', async () => {
-  const expectedResponse = { data: 'Test JSON' }
+  const expectedResponse = [{ id: 2, type: 'Feature' }]
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
   const actualResponse = await RsuApi.getRsuInfo('testToken', 'testOrg')
-  expect(actualResponse).toEqual(expectedResponse)
+  expect(actualResponse).toEqual({ rsuList: expectedResponse })
 
   expect(fetchMock.mock.calls[0][0]).toBe(
     combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL!, EnvironmentVars.rsuInfoPath)
@@ -52,10 +52,10 @@ it('Test getRsuInfo With Params', async () => {
   const url_ext = 'url_ext'
   const query_params = { query_param: 'test' }
 
-  const expectedResponse = { data: 'Test JSON' }
+  const expectedResponse = [{ id: 3, type: 'Feature' }]
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
   const actualResponse = await RsuApi.getRsuInfo('testToken', 'testOrg', url_ext, query_params)
-  expect(actualResponse).toEqual(expectedResponse)
+  expect(actualResponse).toEqual({ rsuList: expectedResponse })
 
   expect(fetchMock.mock.calls[0][0]).toBe(
     `${combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL!, EnvironmentVars.rsuInfoPath + url_ext)}?query_param=test`
