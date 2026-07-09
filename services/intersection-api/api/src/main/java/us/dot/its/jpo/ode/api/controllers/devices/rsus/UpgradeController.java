@@ -37,10 +37,10 @@ public class UpgradeController {
 
     @Operation(summary = "Start RSU Firmware Upgrade", description = "Marks the supplied RSUs for upgrade and triggers firmware manager processing.")
     @PostMapping(produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#body.rsuIps, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwnerForAll(#body.rsuIps, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(description = "Map of RSU IPs to their upgrade results", example = "{\"192.168.1.1\": {\"code\": 200, \"data\": {\"message\": \"started\"}}, \"192.168.1.2\": {\"code\": 409, \"data\": \"already up to date\"}}"))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of all requested RSUs"),
     })
     public ResponseEntity<Map<String, FirmwareUpgradeResultDto>> startUpgrade(
             @Validated @RequestBody RsuUpgradeRequest body) {
@@ -51,10 +51,10 @@ public class UpgradeController {
 
     @Operation(summary = "Check RSU Firmware Upgrade Availability", description = "Checks whether a firmware upgrade is available for the requested RSU.")
     @PostMapping(path = "/check", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#body.rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#body.rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(implementation = FirmwareUpgradeCheckResponseDto.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to all requested RSUs"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the requested RSU"),
     })
     public ResponseEntity<FirmwareUpgradeCheckResponseDto> checkUpgrade(
             @Validated @RequestBody RsuSingleUpgradeCheckRequest body) {

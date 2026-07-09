@@ -153,8 +153,8 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
     if role not in command_data[command]["roles"]:
         return f"Unauthorized role to run {command}", 401
 
-    # Restrict SSH and SNMP operations to the RSU's owner organization
-    if not super_user and command not in ("upgrade-check", "upgrade-rsu"):
+    # Restrict all RSU operations to the RSU's owner organization
+    if not super_user:
         unauthorized = []
         for rsu_ip in rsu_list:
             owner_org = get_rsu_owner_org(rsu_ip)

@@ -227,6 +227,35 @@ public class PermissionService {
                 .containsAll(ipv4Addresses));
     }
 
+    // Allow Connection if the user's organization owns the specified RSU unit
+    public boolean isRsuOwner(String rsuIP, String role) {
+        InetAddress ipv4Address;
+        try {
+            ipv4Address = InetAddress.getByName(rsuIP);
+        } catch (UnknownHostException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
+        }
+
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> rsuRepository.existsByIpAndOwnerOrganization(ipv4Address, qualifiedOrgs));
+    }
+
+    // Allow Connection if the user's organization owns all specified RSU units
+    public boolean isRsuOwnerForAll(List<String> rsuIPs, String role) {
+        List<InetAddress> ipv4Addresses = new ArrayList<>();
+        for (String ip : rsuIPs) {
+            try {
+                ipv4Addresses.add(InetAddress.getByName(ip));
+            } catch (UnknownHostException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + ip, e);
+            }
+        }
+
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> rsuRepository.findOwnedRsuIpsInOrganizations(qualifiedOrgs, ipv4Addresses)
+                        .containsAll(ipv4Addresses));
+    }
+
     // Allow Connection if the users organization(s) control the specified User
     public boolean hasUser(String email, String role) {
         if (email == null || email.isBlank()) {

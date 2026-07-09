@@ -71,6 +71,22 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "WHERE o.name in :organizationNames")
     List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
 
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+            "FROM Rsu r " +
+            "JOIN r.credential rc " +
+            "JOIN rc.ownerOrganization o " +
+            "WHERE r.ipv4Address = :ipv4Address AND o.name IN :organizations")
+    boolean existsByIpAndOwnerOrganization(@Param("ipv4Address") InetAddress ipv4Address,
+            @Param("organizations") List<String> organizations);
+
+    @Query("SELECT r.ipv4Address " +
+            "FROM Rsu r " +
+            "JOIN r.credential rc " +
+            "JOIN rc.ownerOrganization o " +
+            "WHERE o.name IN :organizationNames AND r.ipv4Address IN :ipv4Addresses")
+    List<InetAddress> findOwnedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames,
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 

@@ -258,34 +258,35 @@ def test_perform_command_super_user_bypasses_owner_check(mock_execute_command, m
 
 
 @patch("api.src.rsu_commands.get_rsu_owner_org")
-@patch("api.src.rsu_commands.fetch_rsu_info")
-def test_perform_command_upgrade_check_bypasses_owner_check(mock_fetch_rsu_info, mock_get_rsu_owner_org):
+def test_perform_command_upgrade_check_requires_owner_org(mock_get_rsu_owner_org):
     # mock
-    mock_fetch_rsu_info.return_value = rsu_info
-    rsu_commands.command_data["upgrade-check"]["function"] = lambda ip: ("mocked", 200)
+    mock_get_rsu_owner_org.return_value = "other_org"
 
     # call
     command = "upgrade-check"
     role = "admin"
-    rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
 
-    # check — ownership check must not run for upgrade-check
-    mock_get_rsu_owner_org.assert_not_called()
+    # check — non-owner org is blocked with 403
+    assert result[1] == 403
+    mock_get_rsu_owner_org.assert_called_once()
 
 
 @patch("api.src.rsu_commands.get_rsu_owner_org")
 @patch("api.src.rsu_commands.execute_upgrade_rsu")
-def test_perform_command_upgrade_rsu_bypasses_owner_check(mock_execute_upgrade_rsu, mock_get_rsu_owner_org):
+def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu, mock_get_rsu_owner_org):
     # mock
-    mock_execute_upgrade_rsu.return_value = {}
+    mock_get_rsu_owner_org.return_value = "other_org"
 
     # call
     command = "upgrade-rsu"
     role = "admin"
-    rsu_commands.perform_command(command, organization, role, rsu_ip, args)
+    result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
 
-    # check — ownership check must not run for upgrade-rsu
-    mock_get_rsu_owner_org.assert_not_called()
+    # check — non-owner org is blocked with 403
+    assert result[1] == 403
+    mock_get_rsu_owner_org.assert_called_once()
+    mock_execute_upgrade_rsu.assert_not_called()
 
 
 # TODO: test RsuCommandRequest class
