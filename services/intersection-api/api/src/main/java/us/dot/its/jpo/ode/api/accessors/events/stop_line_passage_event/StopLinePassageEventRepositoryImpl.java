@@ -130,7 +130,7 @@ public class StopLinePassageEventRepositoryImpl
 						Criteria.where("eventGeneratedAt").gte(startTimeDate).lte(endTimeDate)),
 				Aggregation.project()
 						.and(DateOperators.DateToString.dateOf("eventGeneratedAt")
-								.toString("}%Y-%m-%d"))
+								.toString("%Y-%m-%d"))
 						.as("dateStr"),
 				Aggregation.group("dateStr").count().as("count"));
 
