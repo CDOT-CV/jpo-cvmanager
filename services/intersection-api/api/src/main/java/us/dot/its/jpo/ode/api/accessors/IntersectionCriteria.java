@@ -23,17 +23,17 @@ public class IntersectionCriteria extends Criteria {
             @Nonnull String fieldName,
             @Nullable Long startEpochMillis,
             @Nullable Long endEpochMillis,
-            boolean formatAsString) {
+            TimeStampFormat timestampFormat) {
         if (startEpochMillis != null && endEpochMillis != null) {
             this.and(fieldName)
-                    .gte(formatDate(startEpochMillis, formatAsString))
-                    .lte(formatDate(endEpochMillis, formatAsString));
+                    .gte(formatDate(startEpochMillis, timestampFormat))
+                    .lte(formatDate(endEpochMillis, timestampFormat));
             return this;
         } else if (startEpochMillis != null) {
-            this.and(fieldName).gte(formatDate(startEpochMillis, formatAsString));
+            this.and(fieldName).gte(formatDate(startEpochMillis, timestampFormat));
             return this;
         } else if (endEpochMillis != null) {
-            this.and(fieldName).lte(formatDate(endEpochMillis, formatAsString));
+            this.and(fieldName).lte(formatDate(endEpochMillis, timestampFormat));
             return this;
         }
         return this;
@@ -46,9 +46,17 @@ public class IntersectionCriteria extends Criteria {
      * @param formatAsString whether to format the date as a string or not
      * @return the criteria object to use for querying
      */
-    private Object formatDate(Long epochMillis, boolean formatAsString) {
-        return formatAsString ? Instant.ofEpochMilli(epochMillis).toString()
-                : Date.from(Instant.ofEpochMilli(epochMillis));
+    private Object formatDate(Long epochMillis, TimeStampFormat formatAsString) {
+        switch (formatAsString) {
+            case STRING:
+                return Instant.ofEpochMilli(epochMillis).toString();
+            case DATE:
+                return Date.from(Instant.ofEpochMilli(epochMillis));
+            case LONG:
+                return epochMillis;
+            default:
+                throw new IllegalArgumentException("Unsupported TimeStampFormat: " + formatAsString);
+        }
     }
 
     /**
@@ -65,5 +73,11 @@ public class IntersectionCriteria extends Criteria {
             this.and(fieldName).is(value);
         }
         return this;
+    }
+
+    public enum TimeStampFormat {
+        STRING,
+        DATE,
+        LONG
     }
 }
