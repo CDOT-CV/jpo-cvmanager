@@ -89,7 +89,7 @@ public class BsmEventRepositoryImpl
 			Long endTime) {
 		Criteria criteria = new IntersectionCriteria()
 				.whereOptional(INTERSECTION_ID_FIELD, intersectionID)
-				.withinTimeWindow(DATE_FIELD, startTime, endTime, IntersectionCriteria.TimeStampFormat.DATE);
+				.withinTimeWindow(DATE_FIELD, startTime, endTime, IntersectionCriteria.TimeStampFormat.LONG);
 		Query query = Query.query(criteria);
 		Sort sort = Sort.by(Sort.Direction.DESC, DATE_FIELD);
 		Document document = mongoTemplate.findOne(
