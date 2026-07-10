@@ -17,6 +17,9 @@ public class IntersectionCriteria extends Criteria {
      *                         milliseconds since epoch
      * @param endEpochMillis   the nullable end time of the window, in milliseconds
      *                         since epoch
+     * 
+     * @param timestampFormat  the format to use for the timestamp (STRING, DATE,
+     *                         LONG)
      * @return the criteria object to use for querying
      */
     public IntersectionCriteria withinTimeWindow(
@@ -42,12 +45,13 @@ public class IntersectionCriteria extends Criteria {
     /**
      * Build a query criteria object based on a time window
      *
-     * @param epochMillis    the time of the window, in milliseconds since epoch
-     * @param formatAsString whether to format the date as a string or not
+     * @param epochMillis     the time of the window, in milliseconds since epoch
+     * @param timeStampFormat the format to use for the timestamp (STRING, DATE,
+     *                        LONG)
      * @return the criteria object to use for querying
      */
-    private Object formatDate(Long epochMillis, TimeStampFormat formatAsString) {
-        switch (formatAsString) {
+    private Object formatDate(Long epochMillis, TimeStampFormat timeStampFormat) {
+        switch (timeStampFormat) {
             case STRING:
                 return Instant.ofEpochMilli(epochMillis).toString();
             case DATE:
@@ -55,7 +59,7 @@ public class IntersectionCriteria extends Criteria {
             case LONG:
                 return epochMillis;
             default:
-                throw new IllegalArgumentException("Unsupported TimeStampFormat: " + formatAsString);
+                throw new IllegalArgumentException("Unsupported TimeStampFormat: " + timeStampFormat);
         }
     }
 
