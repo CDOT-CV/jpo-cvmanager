@@ -231,7 +231,6 @@ class RsuCommandRequest(Resource):
 
     def universal(self, user: EnvironWithOrg):
         schema = RsuCommandRequestSchema()
-        logging.info("Got to Universal")
         if request.json is None:
             raise BadRequest("No JSON body found")
         body: dict[str, Any] = request.json
@@ -239,11 +238,6 @@ class RsuCommandRequest(Resource):
         if errors:
             logging.error(str(errors))
             abort(400, str(errors))
-        logging.info(user.organization)
-        logging.info(user.role)
-        logging.info(user.user_info)
-        logging.info(user.user_info.super_user)
-        logging.info(user)
         data, code = perform_command(
             body["command"],
             user.organization,
