@@ -101,20 +101,6 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "WHERE o.name = :orgName")
     List<Rsu> findAllRsusByOrganizationName(@Param("orgName") String orgName);
 
-    /**
-     * Returns all RSUs belonging to the given organisation, fetching
-     * model, manufacturer, and rsuOption.
-     */
-    @Query("SELECT DISTINCT rsu " +
-            "FROM Rsu rsu " +
-            "JOIN FETCH rsu.model m " +
-            "JOIN FETCH m.manufacturer " +
-            "LEFT JOIN FETCH rsu.rsuOption " +
-            "JOIN rsu.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE o.name = :orgName")
-    List<Rsu> findAllRsusByOrganizationName(@Param("orgName") String orgName);
-
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 
