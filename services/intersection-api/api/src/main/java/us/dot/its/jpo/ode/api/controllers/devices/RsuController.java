@@ -98,7 +98,7 @@ public class RsuController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ModifyRsuAllowedSelections getAllowedSelections() {
         ModifyRsuAllowedSelections allowedSelections = rsuManagementService
@@ -128,10 +128,10 @@ public class RsuController {
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
     @RequestMapping(method = RequestMethod.PATCH, produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
             @Validated @RequestBody RsuPatch body) {
@@ -143,10 +143,10 @@ public class RsuController {
 
     @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
     @RequestMapping(method = RequestMethod.DELETE, produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
     })
     public ResponseEntity<Void> deleteRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp) {
         rsuManagementService.deleteRsuByIpv4Address(rsuIp);
@@ -156,10 +156,10 @@ public class RsuController {
 
     @Operation(summary = "Delete Multiple RSUs", description = "Delete Multiple RSUs from management system")
     @RequestMapping(method = RequestMethod.DELETE, path = "/batch", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#rsuIps, 'OPERATOR') && @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwnerForAll(#rsuIps, 'OPERATOR') && @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
     })
     public ResponseEntity<Void> deleteRsus(@RequestBody List<String> rsuIps) {
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
