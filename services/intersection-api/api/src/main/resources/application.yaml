@@ -95,6 +95,7 @@ enable:
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
+  wzdx-feed: ${ENABLE_WZDX_FEATURES:true}
 
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
@@ -142,3 +143,7 @@ bucket4j:
             - capacity: ${EMAIL_RATE_LIMIT_PER_INSTANCE:120}
               time: 1
               unit: hours
+
+wzdx-feed:
+  base-url: ${WZDX_ENDPOINT}
+  api-key: ${WZDX_API_KEY}
