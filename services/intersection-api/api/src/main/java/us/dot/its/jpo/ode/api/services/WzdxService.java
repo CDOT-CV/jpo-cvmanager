@@ -1,38 +1,46 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import java.net.URI;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.wzdx.WzdxFeedProperties;
 
-@Component
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = { "enable.api", "enable.wzdx-feed" }, havingValue = "true", matchIfMissing = false)
 public class WzdxService {
 
     private final WzdxFeedProperties properties;
-    private final RestClient restClient;
-
-    public WzdxService(WzdxFeedProperties properties) {
-        this.properties = properties;
-        this.restClient = RestClient.builder()
-                .baseUrl(properties.getBaseUrl())
-                .build();
-    }
+    private final RestTemplate restTemplate;
 
     public String callWzdxApi() {
-        var response = restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/v1/wzdx")
-                        .queryParam("apiKey", properties.getApiKey())
-                        .build())
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve();
+        log.debug("WzdxFeed GET requested");
 
-        response.onStatus(HttpStatusCode::isError, (req, res) -> {
-            throw new ResponseStatusException(res.getStatusCode(), "Failed to retrieve WZDX API response");
-        });
+        URI uri = UriComponentsBuilder.fromUriString(properties.getBaseUrl())
+                .path("/api/v1/wzdx")
+                .queryParam("apiKey", properties.getApiKey())
+                .build()
+                .toUri();
 
-        return response.body(String.class);
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.error("Failed to retrieve WZDX API response", e);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Failed to retrieve WZDX API response", e);
+        }
     }
 }

@@ -46,7 +46,7 @@ class EnvironmentVars {
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
   static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
   static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`
-  static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
+  static wzdxEndpoint = `${this.CVIZ_API_SERVER_URL}/wzdx-feed`
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-config-geo-query`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`

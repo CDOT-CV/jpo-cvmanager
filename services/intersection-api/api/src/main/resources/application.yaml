@@ -145,5 +145,5 @@ bucket4j:
               unit: hours
 
 wzdx-feed:
-  base-url: ${WZDX_ENDPOINT}
+  base-url: https://${WZDX_ENDPOINT}
   api-key: ${WZDX_API_KEY}
