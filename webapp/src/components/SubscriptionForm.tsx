@@ -131,26 +131,26 @@ const SubscriptionForm = ({
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+    <Paper elevation={3} sx={{ p: 2 }}>
+      <Typography variant="h5" component="h3" gutterBottom>
         {title}
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
 
       {success && (
         <>
-          <Alert severity="success" sx={{ mb: 3 }}>
+          <Alert severity="success" sx={{ mb: 2 }}>
             Subscription preferences saved successfully!
           </Alert>
         </>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 1.5 }} />
 
       <FormGroup>
         {initialSubscriptions.map((cat) => {
@@ -158,11 +158,11 @@ const SubscriptionForm = ({
             <Box
               key={cat.category}
               sx={{
-                p: 2,
-                mb: 2,
+                p: 0.75,
+                mb: 0.75,
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 1,
+                borderRadius: 0.5,
                 backgroundColor: 'transparent',
               }}
             >
@@ -176,7 +176,7 @@ const SubscriptionForm = ({
                       sx={{
                         ml: 1,
                         px: 1,
-                        py: 0.5,
+                        py: 0.25,
                         backgroundColor: 'primary.main',
                         color: 'primary.contrastText',
                         borderRadius: 1,
@@ -192,7 +192,7 @@ const SubscriptionForm = ({
               </Box>
 
               {/* Frequency Options */}
-              <Box sx={{ ml: 4, mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ ml: 1.5, mt: 0, display: 'flex', flexWrap: 'wrap', gap: 0 }}>
                 {cat.supports_immediate && (
                   <FormControlLabel
                     control={
@@ -204,6 +204,7 @@ const SubscriptionForm = ({
                       />
                     }
                     label={<Typography variant="body2">Immediate</Typography>}
+                    sx={{ my: 0, mr: 1, minHeight: 24 }}
                   />
                 )}
 
@@ -218,6 +219,7 @@ const SubscriptionForm = ({
                       />
                     }
                     label={<Typography variant="body2">Hourly</Typography>}
+                    sx={{ my: 0, mr: 1, minHeight: 24 }}
                   />
                 )}
 
@@ -232,6 +234,7 @@ const SubscriptionForm = ({
                       />
                     }
                     label={<Typography variant="body2">Daily</Typography>}
+                    sx={{ my: 0, mr: 1, minHeight: 24 }}
                   />
                 )}
 
@@ -246,6 +249,7 @@ const SubscriptionForm = ({
                       />
                     }
                     label={<Typography variant="body2">Weekly</Typography>}
+                    sx={{ my: 0, mr: 1, minHeight: 24 }}
                   />
                 )}
 
@@ -260,6 +264,7 @@ const SubscriptionForm = ({
                       />
                     }
                     label={<Typography variant="body2">Monthly</Typography>}
+                    sx={{ my: 0, mr: 1, minHeight: 24 }}
                   />
                 )}
               </Box>
@@ -274,9 +279,9 @@ const SubscriptionForm = ({
         </Alert>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 1.5 }} />
 
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'space-between' }}>
         <Box>
           {showHomepageLink && (
             <Button
@@ -284,7 +289,8 @@ const SubscriptionForm = ({
               startIcon={<HomeIcon />}
               onClick={() => navigate('/')}
               disabled={saving}
-              sx={{ mr: 1 }}
+              size="small"
+              sx={{ mr: 0.5, minHeight: 32, px: 1 }}
             >
               Home
             </Button>
@@ -295,6 +301,8 @@ const SubscriptionForm = ({
               color="warning"
               onClick={handleUnsubscribeAll}
               disabled={saving || initialSubscriptions.length === 0}
+              size="small"
+              sx={{ minHeight: 32, px: 1 }}
             >
               Unsubscribe from All
             </Button>
@@ -306,13 +314,14 @@ const SubscriptionForm = ({
           onClick={handleSave}
           disabled={saving || initialSubscriptions.length === 0 || !isModified}
           startIcon={saving && <CircularProgress size={20} />}
-          sx={{ ml: showUnsubscribeAll ? 0 : 'auto' }}
+          size="small"
+          sx={{ ml: showUnsubscribeAll ? 0 : 'auto', minHeight: 32, px: 1.25 }}
         >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
       </Box>
 
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 1.5 }}>
         <Typography variant="caption" color="text.secondary">
           Your subscription preferences will be applied immediately. You can update these settings at any time.
         </Typography>

@@ -30,7 +30,11 @@ const SubscriptionManagement = () => {
   return (
     <Container
       maxWidth={false}
-      sx={{ backgroundColor: theme.palette.background.default, height: `calc(100vh - ${headerTabHeight}px)` }}
+      sx={{
+        backgroundColor: theme.palette.background.default,
+        height: `calc(100vh - ${headerTabHeight}px)`,
+        overflowY: 'auto',
+      }}
     >
       <Container maxWidth="md">
         <Box sx={{ py: 4, position: 'relative' }}>
