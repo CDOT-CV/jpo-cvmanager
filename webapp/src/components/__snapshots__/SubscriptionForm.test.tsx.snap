@@ -6,11 +6,11 @@ exports[`should take a snapshot 1`] = `
     class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation3 css-mocked-MuiPaper-root"
     style="--Paper-shadow: 0px 3px 3px -2px rgba(0,0,0,0.2),0px 3px 4px 0px rgba(0,0,0,0.14),0px 1px 8px 0px rgba(0,0,0,0.12);"
   >
-    <h1
-      class="MuiTypography-root MuiTypography-h4 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
+    <h3
+      class="MuiTypography-root MuiTypography-h5 MuiTypography-gutterBottom css-mocked-MuiTypography-root"
     >
       Email Subscription Preferences
-    </h1>
+    </h3>
     <hr
       class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
     />
@@ -47,18 +47,18 @@ exports[`should take a snapshot 1`] = `
       class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
     />
     <div
-      class="MuiBox-root css-1e7gji7"
+      class="MuiBox-root css-1wuwhar"
     >
       <div
         class="MuiBox-root css-0"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary css-mocked-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorPrimary MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorPrimary css-mocked-MuiButtonBase-root-MuiButton-root"
           tabindex="0"
           type="button"
         >
           <span
-            class="MuiButton-icon MuiButton-startIcon MuiButton-iconSizeMedium css-mocked-MuiButton-startIcon"
+            class="MuiButton-icon MuiButton-startIcon MuiButton-iconSizeSmall css-mocked-MuiButton-startIcon"
           >
             <svg
               aria-hidden="true"
@@ -75,7 +75,7 @@ exports[`should take a snapshot 1`] = `
           Home
         </button>
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedWarning MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorWarning Mui-disabled MuiButton-root MuiButton-outlined MuiButton-outlinedWarning MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorWarning css-mocked-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedWarning MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorWarning Mui-disabled MuiButton-root MuiButton-outlined MuiButton-outlinedWarning MuiButton-sizeSmall MuiButton-outlinedSizeSmall MuiButton-colorWarning css-mocked-MuiButtonBase-root-MuiButton-root"
           disabled=""
           tabindex="-1"
           type="button"
@@ -84,7 +84,7 @@ exports[`should take a snapshot 1`] = `
         </button>
       </div>
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary Mui-disabled MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeMedium MuiButton-containedSizeMedium MuiButton-colorPrimary css-mocked-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeSmall MuiButton-containedSizeSmall MuiButton-colorPrimary Mui-disabled MuiButton-root MuiButton-contained MuiButton-containedPrimary MuiButton-sizeSmall MuiButton-containedSizeSmall MuiButton-colorPrimary css-mocked-MuiButtonBase-root-MuiButton-root"
         disabled=""
         tabindex="-1"
         type="button"
@@ -93,7 +93,7 @@ exports[`should take a snapshot 1`] = `
       </button>
     </div>
     <div
-      class="MuiBox-root css-178yklu"
+      class="MuiBox-root css-1hw29i9"
     >
       <span
         class="MuiTypography-root MuiTypography-caption css-mocked-MuiTypography-root"
