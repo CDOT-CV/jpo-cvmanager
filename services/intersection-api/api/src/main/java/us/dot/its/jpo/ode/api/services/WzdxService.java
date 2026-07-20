@@ -18,7 +18,7 @@ import us.dot.its.jpo.ode.api.wzdx.WzdxFeedProperties;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = { "enable.api", "enable.wzdx-feed" }, havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = { "enable.api", "enable.wzdx-feed" }, havingValue = "true")
 public class WzdxService {
 
     private final WzdxFeedProperties properties;
@@ -33,8 +33,15 @@ public class WzdxService {
                 .build()
                 .toUri();
 
+        ResponseEntity<String> response;
         try {
-            ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
+            response = restTemplate.getForEntity(uri, String.class);
+
+            if (response.getStatusCode().isError()) {
+                log.error("WZDX GET request failed with status code {}", response.getStatusCode());
+                throw new ResponseStatusException(response.getStatusCode(), "WZDX GET request failed");
+            }
+
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Failed to retrieve WZDX API response", e);

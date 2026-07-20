@@ -58,6 +58,6 @@ class WzdxFeedControllerTest {
         mockMvc.perform(get("/wzdx-feed"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(content().json(FEED));
+                .andExpect(content().string(FEED));
     }
 }

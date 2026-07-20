@@ -94,6 +94,7 @@ public class ConflictMonitorApiProperties {
     private boolean enableAPI;
     private boolean enableEmails;
     private boolean enableReports;
+    private boolean enableWzdxFeed;
 
     private BuildProperties buildProperties;
 
@@ -192,6 +193,15 @@ public class ConflictMonitorApiProperties {
     @Value("${enable.report}")
     public void setEnableReports(boolean enableReports) {
         this.enableReports = enableReports;
+    }
+
+    @Value("${enable.wzdx-feed:true}")
+    public void setEnableWzdxFeed(boolean enableWzdxFeed) {
+        this.enableWzdxFeed = enableWzdxFeed;
+    }
+
+    public boolean isWzdxFeedEnabled() {
+        return enableWzdxFeed;
     }
 
     public boolean isReportsEnabled() {
