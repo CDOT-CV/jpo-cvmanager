@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.4</version>
+		<version>3.5.16</version>
 		<relativePath />
 		<!-- lookup parent from repository -->
 	</parent>
@@ -18,8 +18,8 @@
 	<name>intersection-api</name>
 	<description>CV Manager Intersection API for CIMMS conflict visualization</description>
 	<properties>
-		<java.version>22</java.version>
-		<jacoco.version>0.8.12</jacoco.version>
+		<java.version>25</java.version>
+		<jacoco.version>0.8.14</jacoco.version>
 		<jpoode.version>5.1.0</jpoode.version>
 		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
@@ -27,8 +27,9 @@
 		<!-- Allow override of github organization when publishing artifacts to github -->
 		<github_organization>usdot-jpo-ode</github_organization>
 		<geotools.version>19-SNAPSHOT</geotools.version>
-		<mapstruct.version>1.5.5.Final</mapstruct.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+		<lombok.version>1.18.46</lombok.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -80,7 +81,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.30</version>
+			<version>${lombok.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -453,7 +454,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.11.0</version>
+				<version>3.14.0</version>
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>
