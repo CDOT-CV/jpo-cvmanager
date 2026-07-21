@@ -162,13 +162,6 @@
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>3.5.1</version>
-                <configuration>
-                    <from>
-                        <!-- Pin runtime JRE to match the compiled Java version (jib's
-                             default base image would otherwise be an older JRE). -->
-                        <image>eclipse-temurin:25-jre</image>
-                    </from>
-                </configuration>
             </plugin>
         </plugins>
     </build>
