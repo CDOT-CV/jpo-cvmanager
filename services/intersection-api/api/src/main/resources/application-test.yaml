@@ -30,6 +30,14 @@ schema.rtcm: classpath:schemas/rtcm.schema.json
 # Amount of time to wait to try and increase batching
 kafka.linger_ms: 50
 
+# Prometheus Configuration (message counts)
+prometheus:
+  url: ${PROMETHEUS_URL:http://localhost:9090}
+  timeout: 30
+  aggregation:
+    step:
+      seconds: 60
+
 kafka.topics:
   autoCreateTopics: false
   numPartitions: 1
@@ -87,6 +95,8 @@ cmServerURL: ${CM_SERVER_URL:http://localhost:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
+deployment:
+  environment: test
 
 spring.main.allow-circular-references: true
 
