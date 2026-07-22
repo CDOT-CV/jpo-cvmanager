@@ -18,10 +18,12 @@ SELECT
             ELSE '' 
         END,
         ',' || E'\n'
+        ORDER BY lower(a.attname)
     ) || 
     -- Table Constraints (Primary Keys, Foreign Keys, Unique, Check)
     COALESCE((
-        SELECT E',\n' || string_agg('  CONSTRAINT ' || quote_ident(con.conname) || ' ' || pg_get_constraintdef(con.oid), E',\n')
+        SELECT E',\n' || string_agg('  CONSTRAINT ' || quote_ident(con.conname) || ' ' || pg_get_constraintdef(con.oid), E',\n'
+        ORDER BY lower(con.conname))
         FROM pg_constraint con
         WHERE con.conrelid = c.oid 
           AND con.contype IN ('p', 'f', 'u', 'c')
