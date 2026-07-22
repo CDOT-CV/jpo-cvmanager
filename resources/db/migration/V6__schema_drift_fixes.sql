@@ -125,6 +125,7 @@ BEGIN
 END $$;
 
 ALTER TABLE public.rsu_intersection
+    DROP CONSTRAINT IF EXISTS rsu_intersection_unique,
     ADD CONSTRAINT rsu_intersection_unique UNIQUE (rsu_id, intersection_id);
 
 COMMIT;
