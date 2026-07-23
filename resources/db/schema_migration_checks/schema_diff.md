@@ -1,42 +1,22 @@
 # PostgreSQL database diffs
 
-## Methodology
-Exported db configuration with the following sql query:
-```sql
-SELECT 
-    'CREATE TABLE ' || quote_ident(n.nspname) || '.' || quote_ident(c.relname) || ' (' || E'\n' ||
-    -- Columns (Types, Defaults, NOT NULL)
-    string_agg(
-        '  ' || quote_ident(a.attname) || ' ' || 
-        pg_catalog.format_type(a.atttypid, a.atttypmod) ||
-        CASE 
-            WHEN d.adbin IS NOT NULL THEN ' DEFAULT ' || pg_get_expr(d.adbin, d.adrelid) 
-            ELSE '' 
-        END ||
-        CASE 
-            WHEN a.attnotnull THEN ' NOT NULL' 
-            ELSE '' 
-        END,
-        ',' || E'\n'
-        ORDER BY lower(a.attname)
-    ) || 
-    -- Table Constraints (Primary Keys, Foreign Keys, Unique, Check)
-    COALESCE((
-        SELECT E',\n' || string_agg('  CONSTRAINT ' || quote_ident(con.conname) || ' ' || pg_get_constraintdef(con.oid), E',\n'
-        ORDER BY lower(con.conname))
-        FROM pg_constraint con
-        WHERE con.conrelid = c.oid 
-          AND con.contype IN ('p', 'f', 'u', 'c')
-    ), '') ||
-    E'\n);' AS create_table_ddl
-FROM pg_class c
-JOIN pg_namespace n ON n.oid = c.relnamespace
-JOIN pg_attribute a ON a.attrelid = c.oid
-LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
-WHERE c.relkind = 'r' 
-  AND n.nspname = 'public' -- Change if using a non-public schema
-  AND a.attnum > 0 
-  AND NOT a.attisdropped
-GROUP BY c.oid, c.relname, n.nspname
-ORDER BY c.relname;
+Before integrating flyway into a deployment, it is incredibly important to ensure that the database schema matches the expected baseline. Once flyway has been run, it is difficult to roll back changes. This document describes a process for comparing the current database schema to a baseline schema.
+
+## Verification before Flyway integration
+
+1. Export the schema from the database to a SQL file.
+This is the most manual step of the process. This step requires a sql query to be run against the desired database. pgAdmin4 is recommended, using the Query Tool to run the query and export the results to a SQL file. The query is available in [resources/db/schema_migration_checks/export_schema_ddl.sql](c:/Users/rando/Documents/GitHub/jpo-cvmanager/resources/db/schema_migration_checks/export_schema_ddl.sql).
+
+After executing the query, export the results to a SQL file. pgAdmin4 exports to a CSV file. TO convert that CSV file to a .sql, use the following script:
+```sh
+bash csv_to_sql.sh ./{exported_schema}.csv
 ```
+
+2. Compare the exported SQL file to a baseline SQL file (V1__baseline_state.sql).
+This step involves running a python script, which will compare the two SQL files and generate a report of the differences. The script is available in [resources/db/schema_migration_checks/compare_schema_exports.py](c:/Users/rando/Documents/GitHub/jpo-cvmanager/resources/db/schema_migration_checks/compare_schema_exports.py).
+```sh
+python compare_schema_exports.py ./schema_exports/V1__baseline_state.sql {exported_schema}.sql -o schema_compare_report_example.txt
+```
+
+3. Review the report and determine if any changes are needed to the migration scripts.
+4. Apply any necessary changes manually to the database. 
