@@ -36,12 +36,14 @@ import java.util.List;
 
 import org.bson.Document;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.assessments.ConnectionOfTravelAssessment;
+import us.dot.its.jpo.ode.api.KafkaConfiguration;
 import us.dot.its.jpo.ode.api.accessors.assessments.connection_of_travel_assessment.ConnectionOfTravelAssessmentRepositoryImpl;
 import org.springframework.context.annotation.Import;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;

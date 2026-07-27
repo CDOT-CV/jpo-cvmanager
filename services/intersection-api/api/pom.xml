@@ -24,7 +24,6 @@
 		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.language>java</sonar.language>
-		<!-- Allow override of github organization when publishing artifacts to github -->
 		<github_organization>usdot-jpo-ode</github_organization>
 		<geotools.version>19-SNAPSHOT</geotools.version>
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
@@ -33,10 +32,9 @@
 		<jackson.version>2.22.1</jackson.version>
 		<log4j2.version>2.25.4</log4j2.version>
 		<scala-library.version>2.13.9</scala-library.version>
-		<spring-framework.version>6.2.18</spring-framework.version>
-		<tomcat.version>10.1.54</tomcat.version>
 		<assertj.version>3.27.7</assertj.version>
-		<netty.version>4.2.12.Final</netty.version>
+		<zookeeper.version>3.9.1</zookeeper.version>
+		<netty.version>4.2.11.Final</netty.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -65,6 +63,10 @@
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-clients</artifactId>
 			<version>${kafka.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-restclient</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
@@ -100,6 +102,11 @@
 					<artifactId>android-json</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
@@ -473,7 +480,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.11.0</version>
+				<version>3.15.0</version>
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>
@@ -511,7 +518,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
-						<version>3.2.0</version>
+						<version>3.5.0</version>
 						<configuration>
 							<archive>
 								<manifest>
