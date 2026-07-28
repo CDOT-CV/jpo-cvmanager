@@ -50,7 +50,7 @@ services:
     restart: ${RESTART_POLICY:-on-failure:3}
     ports:
       - '8080:8080'
-      - '9090:9090'
+      - '9091:9090'
       - '46753:46753/udp'
       - '46800:46800/udp'
       - '47900:47900/udp'

@@ -12,6 +12,14 @@ class EnvironmentVars {
     return messageTypes
   }
 
+  static getMessageTypes() {
+    const COUNT_MESSAGE_TYPES = process.env.VITE_COUNT_MESSAGE_TYPES
+    if (!COUNT_MESSAGE_TYPES) {
+      return []
+    }
+    return COUNT_MESSAGE_TYPES.split(',').map((item) => item.trim())
+  }
+
   static getMapboxInitViewState() {
     const MAPBOX_INIT_LATITUDE = Number(process.env.VITE_MAPBOX_INIT_LATITUDE)
     const MAPBOX_INIT_LONGITUDE = Number(process.env.VITE_MAPBOX_INIT_LONGITUDE)
@@ -39,6 +47,7 @@ class EnvironmentVars {
   static ENABLE_HAAS_FEATURES = process.env.VITE_ENABLE_HAAS_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.VITE_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.VITE_WEBAPP_THEME_DARK
+  static MAX_QUERY_DURATION_DAYS = Number(process.env.VITE_MAX_QUERY_DURATION_DAYS) || 90
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoPath = '/devices/rsus/info'

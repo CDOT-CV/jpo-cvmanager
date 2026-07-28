@@ -186,7 +186,15 @@ function MapPage() {
   // RSU layer local state variables
   const [displayType, setDisplayType] = useState('online')
 
-  const { data: rsuCounts } = useGetRsuCountsQuery({ organization, startDate: countsStartDate, endDate: countsEndDate })
+  const { data: rsuCounts } = useGetRsuCountsQuery(
+    {
+      organization,
+      startDate: countsStartDate,
+      endDate: countsEndDate,
+      message: countsMsgType,
+    },
+    { skip: !organization }
+  )
 
   // Add these new state variables near the other source states
   const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
@@ -463,6 +471,9 @@ function MapPage() {
   }, [geoMsgData, startGeoMsgDate, filterStep, geoMsgFilterMaxOffset])
 
   const heatMapData = useMemo(() => {
+    const countsByIp: Record<string, number> = Object.fromEntries(
+      (rsuCounts ?? []).map((c) => [c.rsu_ip, c.ode_input_count ?? 0])
+    )
     return {
       type: 'FeatureCollection' as 'FeatureCollection',
       features:
@@ -477,25 +488,36 @@ function MapPage() {
                 },
                 properties: {
                   ipv4_address: rsu.properties.ipv4_address,
-                  count: rsuCounts?.[rsu.properties.ipv4_address]?.messageTypeCounts?.[countsMsgType] ?? 0,
+                  count: countsByIp[rsu.properties.ipv4_address] ?? 0,
                 },
               }) as GeoJSON.Feature<GeoJSON.Geometry>
           )
           ?.filter((feature) => feature.properties.count > 0) ?? [],
     }
-  }, [rsuData, rsuCounts, countsMsgType])
+  }, [rsuData, rsuCounts])
 
   const rsuDataWithCounts = useMemo(() => {
-    return (
-      rsuData?.map((rsu) => ({
-        ...rsu,
-        properties: {
-          ...rsu.properties,
-          counts: rsuCounts?.[rsu.properties.ipv4_address]?.messageTypeCounts ?? {},
-        },
-      })) ?? []
+    const countsByIp: Record<string, NonNullable<typeof rsuCounts>[number]> = Object.fromEntries(
+      (rsuCounts ?? []).map((c) => [c.rsu_ip, c])
     )
-  }, [rsuData, rsuCounts])
+    return (
+      rsuData?.map((rsu) => {
+        const messageCount = countsByIp[rsu.properties.ipv4_address]
+        return {
+          ...rsu,
+          properties: {
+            ...rsu.properties,
+            counts: messageCount
+              ? {
+                  [`${countsMsgType} Input`]: messageCount.ode_input_count ?? 0,
+                  [`${countsMsgType} Processed`]: messageCount.ode_output_count ?? 0,
+                }
+              : {},
+          },
+        }
+      }) ?? []
+    )
+  }, [rsuData, rsuCounts, countsMsgType])
 
   function dateChanged(e: Date, type: 'start' | 'end') {
     try {
