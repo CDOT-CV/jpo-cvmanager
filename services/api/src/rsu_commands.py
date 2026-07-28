@@ -159,7 +159,10 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
         for rsu_ip in rsu_list:
             owner_org = get_rsu_owner_org(rsu_ip)
             if owner_org is None:
-                return f"RSU {rsu_ip} not found or has no owner organization", 404
+                logging.warning(
+                    f"RSU {rsu_ip} not found or has no owner organization; skipping ownership check"
+                )
+                continue
             if owner_org != organization:
                 unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
         if unauthorized:
