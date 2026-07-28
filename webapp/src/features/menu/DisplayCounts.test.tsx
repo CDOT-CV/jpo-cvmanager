@@ -8,21 +8,25 @@ import { MockLocalizationProvider, replaceChaoticIds } from '../../utils/test-ut
 import { MessageType } from '../../models/MessageTypes'
 import { vi } from 'vitest'
 
-vi.mock('../api/rsuCountsApiSlice', () => ({
-  useGetRsuCountsQuery: () => ({
-    data: [
-      {
-        message_type: 'BSM',
-        rsu_ip: '10.0.0.11',
-        ode_input_count: 100,
-        ode_output_count: 95,
-        road: 'I25',
-      },
-    ],
-    isFetching: false,
-    isError: false,
-  }),
-}))
+vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/rsuCountsApiSlice')>()
+  return {
+    ...actual,
+    useGetRsuCountsQuery: () => ({
+      data: [
+        {
+          message_type: 'BSM',
+          rsu_ip: '10.0.0.11',
+          ode_input_count: 100,
+          ode_output_count: 95,
+          road: 'I25',
+        },
+      ],
+      isFetching: false,
+      isError: false,
+    }),
+  }
+})
 
 // // Mock the @mui/x-date-pickers module
 vi.mock('@mui/x-date-pickers', async () => {
