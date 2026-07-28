@@ -40,7 +40,10 @@ class EnvironmentVars {
   static KEYCLOAK_HOST_URL = process.env.VITE_KEYCLOAK_URL
   static KEYCLOAK_REALM = process.env.VITE_KEYCLOAK_REALM
   static KEYCLOAK_CLIENT_ID = process.env.VITE_KEYCLOAK_CLIENT_ID
-  static DOT_NAME = process.env.VITE_DOT_NAME
+  /** Read at use-time so vitest `vi.stubEnv` applies (CI has no `.env.local`). */
+  static get DOT_NAME() {
+    return process.env.VITE_DOT_NAME
+  }
   static ENABLE_RSU_FEATURES = process.env.VITE_ENABLE_RSU_FEATURES !== 'false'
   static ENABLE_INTERSECTION_FEATURES = process.env.VITE_ENABLE_INTERSECTION_FEATURES !== 'false'
   static ENABLE_WZDX_FEATURES = process.env.VITE_ENABLE_WZDX_FEATURES !== 'false'

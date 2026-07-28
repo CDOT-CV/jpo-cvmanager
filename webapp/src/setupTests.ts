@@ -53,5 +53,6 @@ global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder as any
 
 vi.stubEnv('VITE_CVIZ_API_SERVER_URL', 'http://localhost:8080')
+vi.stubEnv('VITE_DOT_NAME', 'CDOT')
 vi.stubEnv('VITE_COUNT_MESSAGE_TYPES', 'BSM,MAP,SPAT,TIM,SRM,SSM')
 vi.stubEnv('VITE_MAX_QUERY_DURATION_DAYS', '90')
