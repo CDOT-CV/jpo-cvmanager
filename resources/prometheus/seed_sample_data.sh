@@ -2,6 +2,10 @@
 # Seeds Prometheus TSDB with synthetic kafka_produced_rsu_messages_total samples
 # covering the last week for sample-data RSU IPs (see R__sample_data.sql).
 # Used by the prometheus-sample-data service in docker-compose-intersection.yml.
+#
+# Sample data is static once imported. By default this script regenerates when the
+# previous seed is older than MAX_SEED_AGE_SECONDS so the window stays near "now"
+# (UI default range is the last 24h). Set FORCE_RESEED=true to always regenerate.
 set -eu
 
 MARKER="/prometheus/.cvmanager-sample-seeded"
@@ -9,25 +13,43 @@ OUT="/tmp/cvmanager_rsu_counts.om"
 BLOCKS_DIR="/prometheus"
 
 DAYS="${SAMPLE_DAYS:-7}"
-STEP="${SAMPLE_STEP_SECONDS:-300}"
+# Must be strictly less than the Intersection API query step for ≤24h windows (300s),
+# so increase(metric[300s]) sees ≥2 samples. 60s matches typical scrape cadence.
+STEP="${SAMPLE_STEP_SECONDS:-60}"
 FORCE_RESEED="${FORCE_RESEED:-false}"
+# End this many seconds BEFORE now so backfill does not overlap the Prometheus head
+# (~3h). Future/padded samples break live scrapes ("out of bounds") and overlapping
+# head blocks. See Prometheus backfill docs.
+HEAD_GAP_SECONDS="${HEAD_GAP_SECONDS:-10800}"
+# Re-seed when marker is older than this (seconds), unless FORCE_RESEED=true.
+# Default 1h keeps the trailing day populated for local use.
+MAX_SEED_AGE_SECONDS="${MAX_SEED_AGE_SECONDS:-3600}"
 
 if [ -f "$MARKER" ] && [ "$FORCE_RESEED" != "true" ]; then
-  echo "Prometheus sample data already present ($MARKER); skipping seed."
-  echo "Set FORCE_RESEED=true (or PROMETHEUS_FORCE_RESEED=true) and remove the marker to regenerate."
-  exit 0
+  marker_mtime="$(date -r "$MARKER" +%s 2>/dev/null || echo 0)"
+  now_ts="$(date +%s)"
+  marker_age=$((now_ts - marker_mtime))
+  if [ "$marker_mtime" -gt 0 ] && [ "$marker_age" -lt "$MAX_SEED_AGE_SECONDS" ]; then
+    echo "Prometheus sample data is fresh (${marker_age}s old < ${MAX_SEED_AGE_SECONDS}s); skipping seed."
+    echo "Set FORCE_RESEED=true to regenerate, or remove $MARKER."
+    exit 0
+  fi
+  echo "Prometheus sample data is stale or missing age info (age=${marker_age}s); regenerating."
 fi
 
-if [ "$FORCE_RESEED" = "true" ]; then
-  echo "FORCE_RESEED=true: removing previous sample marker and TSDB contents under $BLOCKS_DIR"
-  rm -f "$MARKER"
-  find "$BLOCKS_DIR" -mindepth 1 -maxdepth 1 ! -name "." -exec rm -rf {} + 2>/dev/null || true
+echo "Clearing previous sample marker and TSDB contents under $BLOCKS_DIR before import..."
+rm -f "$MARKER"
+find "$BLOCKS_DIR" -mindepth 1 -maxdepth 1 ! -name "." -exec rm -rf {} + 2>/dev/null || true
+
+NOW_TS="$(date +%s)"
+END_TS=$((NOW_TS - HEAD_GAP_SECONDS))
+START_TS=$((NOW_TS - DAYS * 24 * 3600))
+if [ "$END_TS" -le "$START_TS" ]; then
+  echo "Invalid seed window: END_TS ($END_TS) <= START_TS ($START_TS). Check HEAD_GAP_SECONDS/SAMPLE_DAYS."
+  exit 1
 fi
 
-END_TS="$(date +%s)"
-START_TS=$((END_TS - DAYS * 24 * 3600))
-
-echo "Generating OpenMetrics samples from $START_TS to $END_TS (step=${STEP}s, days=${DAYS})..."
+echo "Generating OpenMetrics samples from $START_TS to $END_TS (now=$NOW_TS, head_gap=${HEAD_GAP_SECONDS}s, step=${STEP}s, days=${DAYS})..."
 
 # awk generates monotonically increasing counters per (rsu_ip, topic).
 # Topic names match production OpenMetrics (prometheus_out.om) so CountsRepository
@@ -79,5 +101,5 @@ echo "Importing into Prometheus TSDB at $BLOCKS_DIR via promtool..."
 promtool tsdb create-blocks-from openmetrics "$OUT" "$BLOCKS_DIR"
 
 touch "$MARKER"
-echo "Seed complete. Marker written to $MARKER"
+echo "Seed complete. Marker written to $MARKER (data through $END_TS, $((HEAD_GAP_SECONDS / 60))m before now)"
 rm -f "$OUT"
