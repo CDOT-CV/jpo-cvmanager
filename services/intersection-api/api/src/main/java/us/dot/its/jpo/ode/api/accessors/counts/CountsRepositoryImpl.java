@@ -78,8 +78,7 @@ public class CountsRepositoryImpl implements CountsRepository {
     private void queryAndProcessTopic(String rsuIp, String topic, Long startTime, Long endTime,
             Map<String, MessageCount> rsuCountsMap, String road, CountType countType) {
         String response = prometheusService.getRsuMessageCounts(rsuIp, topic, startTime, endTime);
-        String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
-        processPrometheusResponseByTopic(aggregatedResponse, topic, rsuCountsMap, rsuIp, road, countType);
+        processPrometheusResponseByTopic(response, topic, rsuCountsMap, rsuIp, road, countType);
     }
 
     private void createDefaultEntry(List<MessageCount> counts, String rsuIp, String message) {
@@ -96,9 +95,8 @@ public class CountsRepositoryImpl implements CountsRepository {
 
     private void queryAndProcessOrganizationTopic(String rsuIps, String topic, Long startTime, Long endTime,
             Map<String, MessageCount> rsuCountsMap, Map<String, String> rsuIpToRoadMap, CountType countType) {
-        String response = prometheusService.getOrganizationRsuCountsByTopicAccurate(rsuIps, topic, startTime, endTime);
-        String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
-        processOrganizationResponseByTopic(aggregatedResponse, topic, rsuCountsMap, rsuIpToRoadMap, countType);
+        String response = prometheusService.getOrganizationRsuCountsByTopic(rsuIps, topic, startTime, endTime);
+        processOrganizationResponseByTopic(response, topic, rsuCountsMap, rsuIpToRoadMap, countType);
     }
 
     private String extractMessageTypeFromTopic(String topic) {
@@ -118,10 +116,9 @@ public class CountsRepositoryImpl implements CountsRepository {
     private String determineTopicFromMessageType(String messageType, Long startTime, Long endTime,
             boolean isRawEncoded) {
         try {
-            String response = prometheusService.getAvailableTopicCountsAccurate(startTime, endTime);
-            String aggregatedResponse = prometheusService.aggregateRangeResponse(response, startTime, endTime);
+            String response = prometheusService.getAvailableTopicCounts(startTime, endTime);
 
-            JsonNode root = jsonMapper.readTree(aggregatedResponse);
+            JsonNode root = jsonMapper.readTree(response);
             if (root.path("status").asText().equals("success")) {
                 JsonNode results = root.path("data").path("result");
 
