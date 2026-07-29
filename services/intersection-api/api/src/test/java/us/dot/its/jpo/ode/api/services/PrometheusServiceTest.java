@@ -33,10 +33,6 @@ public class PrometheusServiceTest {
         prometheusUrlField.setAccessible(true);
         prometheusUrlField.set(prometheusService, "http://localhost:9090");
 
-        Field timeoutField = PrometheusService.class.getDeclaredField("timeoutSeconds");
-        timeoutField.setAccessible(true);
-        timeoutField.set(prometheusService, 30);
-
         Field stepField = PrometheusService.class.getDeclaredField("aggregationStepSeconds");
         stepField.setAccessible(true);
         stepField.set(prometheusService, 60);
