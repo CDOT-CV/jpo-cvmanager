@@ -156,12 +156,18 @@ public class RsuController {
 
     @Operation(summary = "Delete Multiple RSUs", description = "Delete Multiple RSUs from management system")
     @RequestMapping(method = RequestMethod.DELETE, path = "/batch", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwnerForAll(#rsuIps, 'OPERATOR') && @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of all requested RSUs"),
     })
     public ResponseEntity<Void> deleteRsus(@RequestBody List<String> rsuIps) {
+        List<String> unauthorizedRsus = permissionService.findUnauthorizedRsus(rsuIps, "OPERATOR");
+        if (!unauthorizedRsus.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Organization does not own the following RSUs: " + String.join(", ", unauthorizedRsus) + ". No RSUs were deleted.");
+        }
+
         rsuManagementService.deleteMultipleRsusByIpv4Address(rsuIps);
 
         return ResponseEntity.noContent().build();

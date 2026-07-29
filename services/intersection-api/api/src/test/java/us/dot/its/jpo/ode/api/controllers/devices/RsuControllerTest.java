@@ -453,6 +453,7 @@ class RsuControllerTest {
             void testDeleteRsus_Success() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
@@ -468,6 +469,7 @@ class RsuControllerTest {
             void testDeleteRsus_SingleRsu() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(rsuIps);
@@ -482,6 +484,7 @@ class RsuControllerTest {
             void testDeleteRsus_EmptyList() {
                 List<String> emptyList = Arrays.asList();
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(emptyList);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(emptyList);
@@ -496,6 +499,7 @@ class RsuControllerTest {
             void testDeleteRsus_SomeNotFound() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.999", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Some RSUs not found"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -510,6 +514,7 @@ class RsuControllerTest {
             void testDeleteRsus_InvalidIpInList() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "invalid-ip", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: invalid-ip"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -526,6 +531,7 @@ class RsuControllerTest {
                         "192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4", "192.168.1.5",
                         "192.168.1.6", "192.168.1.7", "192.168.1.8", "192.168.1.9", "192.168.1.10");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doNothing().when(rsuManagementService).deleteMultipleRsusByIpv4Address(largeList);
 
                 ResponseEntity<Void> result = rsuController.deleteRsus(largeList);
@@ -540,6 +546,7 @@ class RsuControllerTest {
             void testDeleteRsus_ServiceException() {
                 List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101");
 
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString())).thenReturn(List.of());
                 doThrow(new RuntimeException("Database transaction failed"))
                         .when(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
 
@@ -548,6 +555,25 @@ class RsuControllerTest {
                         () -> rsuController.deleteRsus(rsuIps));
 
                 verify(rsuManagementService).deleteMultipleRsusByIpv4Address(rsuIps);
+            }
+
+            @Test
+            void testDeleteRsus_UnauthorizedRsus_ThrowsForbiddenWithFullList() {
+                List<String> rsuIps = Arrays.asList("192.168.1.100", "192.168.1.101", "192.168.1.102");
+
+                when(permissionService.findUnauthorizedRsus(anyList(), anyString()))
+                        .thenReturn(Arrays.asList("192.168.1.101", "192.168.1.102"));
+
+                ResponseStatusException ex = assertThrows(
+                        ResponseStatusException.class,
+                        () -> rsuController.deleteRsus(rsuIps));
+
+                assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+                assertTrue(ex.getReason().contains("192.168.1.101"));
+                assertTrue(ex.getReason().contains("192.168.1.102"));
+                assertFalse(ex.getReason().contains("192.168.1.100"));
+
+                verify(rsuManagementService, never()).deleteMultipleRsusByIpv4Address(anyList());
             }
         }
 

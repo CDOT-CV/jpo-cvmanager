@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -55,6 +54,7 @@ class UpgradeControllerTest {
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
@@ -71,6 +71,7 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
         given(permissionService.isSuperUser()).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(Map.of());
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
@@ -104,7 +105,8 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_Forbidden_ReturnsForbidden() throws Exception {
         given(permissionService.isSuperUser()).willReturn(false);
-        given(permissionService.isRsuOwnerForAll(any(), anyString())).willReturn(false);
+        given(permissionService.hasRole(UserRole.OPERATOR)).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of("10.0.0.10"));
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
@@ -119,7 +121,7 @@ class UpgradeControllerTest {
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(false);
-        given(permissionService.isRsuOwnerForAll(any(), anyString())).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
         given(permissionService.hasRole(UserRole.OPERATOR)).willReturn(true);
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
 

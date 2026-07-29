@@ -217,7 +217,7 @@ def test_perform_command_non_owner_org(mock_execute_command, mock_get_rsu_owner_
 
     # check
     expected_result = (
-        f"Organization '{organization}' does not own the following RSUs: {rsu_ip[0]} (owner: 'other_org')",
+        f"Organization '{organization}' does not have access to and/or does not own the following RSUs: {rsu_ip[0]} (owner: 'other_org')",
         403,
     )
     assert result == expected_result
@@ -251,26 +251,29 @@ def test_perform_command_multiple_non_owner_rsus(mock_execute_command, mock_get_
 
 
 @patch("api.src.rsu_commands.get_rsu_owner_orgs")
-@patch("api.src.rsu_commands.fetch_rsu_info")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_ignores_rsu_without_owner_org(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
+def test_perform_command_blocks_rsu_without_owner_org(mock_execute_command, mock_get_rsu_owner_orgs):
     # mock: RSU has no owner org found
     mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: None}
-    mock_fetch_rsu_info.return_value = rsu_info
 
     # call
     command = "reboot"
     role = "admin"
     result = rsu_commands.perform_command(command, organization, role, rsu_ip, args)
 
-    # check — command proceeds instead of being aborted
-    mock_execute_command.assert_called_once()
-    assert result != (f"RSU {rsu_ip[0]} not found or has no owner organization", 404)
+    # check — command is blocked, not silently skipped
+    expected_result = (
+        f"Organization '{organization}' does not have access to the following RSUs: "
+        f"{rsu_ip[0]} (not found or has no owner organization)",
+        403,
+    )
+    assert result == expected_result
+    mock_execute_command.assert_not_called()
 
 
 @patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_multiple_rsus_ignores_ownerless_but_blocks_non_owner(mock_execute_command, mock_get_rsu_owner_orgs):
+def test_perform_command_blocks_ownerless_and_non_owner_rsus(mock_execute_command, mock_get_rsu_owner_orgs):
     # Three RSUs: first is owned, second has no owner org at all, third is owned by a different org
     multi_rsu_ip = ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
     mock_get_rsu_owner_orgs.return_value = {
@@ -284,9 +287,11 @@ def test_perform_command_multiple_rsus_ignores_ownerless_but_blocks_non_owner(mo
     role = "admin"
     result = rsu_commands.perform_command(command, organization, role, multi_rsu_ip, args)
 
-    # check — ownerless RSU is ignored (not reported), non-owner RSU still blocks the request
+    # check — whole command is stopped and both inaccessible RSUs are listed
     assert result[1] == 403
-    assert "192.168.0.21" not in result[0]
+    assert "192.168.0.20" not in result[0]
+    assert "192.168.0.21" in result[0]
+    assert "not found or has no owner organization" in result[0]
     assert "192.168.0.22" in result[0]
     assert "other_org" in result[0]
     mock_execute_command.assert_not_called()
