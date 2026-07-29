@@ -29,7 +29,7 @@ def insert_ping_data(ping_data, ping_time):
 
 def ping_single_rsu(rsu, retries=2):
     """
-    Ping a single RSU with retries.
+    Ping a single RSU, retrying up to `retries` total attempts.
     Returns tuple: (rsu_id, status)
     """
 
