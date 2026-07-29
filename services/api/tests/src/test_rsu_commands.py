@@ -118,12 +118,12 @@ def test_perform_command_unknown_command(mock_execute_command):
     mock_execute_command.assert_not_called()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.fetch_rsu_info")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_incomplete_rsu_data(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_org):
+def test_perform_command_incomplete_rsu_data(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
     # mock
-    mock_get_rsu_owner_org.return_value = organization
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: organization}
     mock_fetch_rsu_info.return_value = None
 
     # call
@@ -158,35 +158,57 @@ def test_perform_command_unauthorized_role(mock_execute_command, mock_fetch_rsu_
 
 
 @patch("api.src.rsu_commands.pgquery.query_db")
-def test_get_rsu_owner_org(mock_query_db):
+def test_get_rsu_owner_orgs(mock_query_db):
     # mock
-    mock_query_db.return_value = [("test_org",)]
+    mock_query_db.return_value = [("192.168.0.20", "test_org")]
 
     # call
-    result = rsu_commands.get_rsu_owner_org("192.168.0.20")
+    result = rsu_commands.get_rsu_owner_orgs(["192.168.0.20"])
 
     # check
     mock_query_db.assert_called_once()
-    assert result == "test_org"
+    assert result == {"192.168.0.20": "test_org"}
 
 
 @patch("api.src.rsu_commands.pgquery.query_db")
-def test_get_rsu_owner_org_not_found(mock_query_db):
+def test_get_rsu_owner_orgs_not_found(mock_query_db):
     # mock
     mock_query_db.return_value = []
 
     # call
-    result = rsu_commands.get_rsu_owner_org("192.168.0.20")
+    result = rsu_commands.get_rsu_owner_orgs(["192.168.0.20"])
 
     # check
-    assert result is None
+    assert result == {"192.168.0.20": None}
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.pgquery.query_db")
+def test_get_rsu_owner_orgs_multiple_ips(mock_query_db):
+    # mock: only two of the three requested IPs have an owner org
+    mock_query_db.return_value = [
+        ("192.168.0.20", "test_org"),
+        ("192.168.0.22", "other_org"),
+    ]
+
+    # call
+    result = rsu_commands.get_rsu_owner_orgs(
+        ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
+    )
+
+    # check
+    mock_query_db.assert_called_once()
+    assert result == {
+        "192.168.0.20": "test_org",
+        "192.168.0.21": None,
+        "192.168.0.22": "other_org",
+    }
+
+
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_non_owner_org(mock_execute_command, mock_get_rsu_owner_org):
+def test_perform_command_non_owner_org(mock_execute_command, mock_get_rsu_owner_orgs):
     # mock
-    mock_get_rsu_owner_org.return_value = "other_org"
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
 
     # call
     command = "reboot"
@@ -202,12 +224,16 @@ def test_perform_command_non_owner_org(mock_execute_command, mock_get_rsu_owner_
     mock_execute_command.assert_not_called()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_multiple_non_owner_rsus(mock_execute_command, mock_get_rsu_owner_org):
+def test_perform_command_multiple_non_owner_rsus(mock_execute_command, mock_get_rsu_owner_orgs):
     # Three RSUs: first is owned, second and third are not
     multi_rsu_ip = ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
-    mock_get_rsu_owner_org.side_effect = [organization, "other_org_1", "other_org_2"]
+    mock_get_rsu_owner_orgs.return_value = {
+        "192.168.0.20": organization,
+        "192.168.0.21": "other_org_1",
+        "192.168.0.22": "other_org_2",
+    }
 
     # call
     command = "reboot"
@@ -224,12 +250,12 @@ def test_perform_command_multiple_non_owner_rsus(mock_execute_command, mock_get_
     mock_execute_command.assert_not_called()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.fetch_rsu_info")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_ignores_rsu_without_owner_org(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_org):
+def test_perform_command_ignores_rsu_without_owner_org(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
     # mock: RSU has no owner org found
-    mock_get_rsu_owner_org.return_value = None
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: None}
     mock_fetch_rsu_info.return_value = rsu_info
 
     # call
@@ -242,12 +268,16 @@ def test_perform_command_ignores_rsu_without_owner_org(mock_execute_command, moc
     assert result != (f"RSU {rsu_ip[0]} not found or has no owner organization", 404)
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_multiple_rsus_ignores_ownerless_but_blocks_non_owner(mock_execute_command, mock_get_rsu_owner_org):
+def test_perform_command_multiple_rsus_ignores_ownerless_but_blocks_non_owner(mock_execute_command, mock_get_rsu_owner_orgs):
     # Three RSUs: first is owned, second has no owner org at all, third is owned by a different org
     multi_rsu_ip = ["192.168.0.20", "192.168.0.21", "192.168.0.22"]
-    mock_get_rsu_owner_org.side_effect = [organization, None, "other_org"]
+    mock_get_rsu_owner_orgs.return_value = {
+        "192.168.0.20": organization,
+        "192.168.0.21": None,
+        "192.168.0.22": "other_org",
+    }
 
     # call
     command = "reboot"
@@ -262,10 +292,10 @@ def test_perform_command_multiple_rsus_ignores_ownerless_but_blocks_non_owner(mo
     mock_execute_command.assert_not_called()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.fetch_rsu_info")
 @patch("api.src.rsu_commands.execute_command")
-def test_perform_command_super_user_bypasses_owner_check(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_org):
+def test_perform_command_super_user_bypasses_owner_check(mock_execute_command, mock_fetch_rsu_info, mock_get_rsu_owner_orgs):
     # mock
     mock_fetch_rsu_info.return_value = rsu_info
 
@@ -275,14 +305,14 @@ def test_perform_command_super_user_bypasses_owner_check(mock_execute_command, m
     rsu_commands.perform_command(command, organization, role, rsu_ip, args, super_user=True)
 
     # check
-    mock_get_rsu_owner_org.assert_not_called()
+    mock_get_rsu_owner_orgs.assert_not_called()
     mock_execute_command.assert_called_once()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
-def test_perform_command_upgrade_check_requires_owner_org(mock_get_rsu_owner_org):
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+def test_perform_command_upgrade_check_requires_owner_org(mock_get_rsu_owner_orgs):
     # mock
-    mock_get_rsu_owner_org.return_value = "other_org"
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
 
     # call
     command = "upgrade-check"
@@ -291,14 +321,14 @@ def test_perform_command_upgrade_check_requires_owner_org(mock_get_rsu_owner_org
 
     # check — non-owner org is blocked with 403
     assert result[1] == 403
-    mock_get_rsu_owner_org.assert_called_once()
+    mock_get_rsu_owner_orgs.assert_called_once()
 
 
-@patch("api.src.rsu_commands.get_rsu_owner_org")
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
 @patch("api.src.rsu_commands.execute_upgrade_rsu")
-def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu, mock_get_rsu_owner_org):
+def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu, mock_get_rsu_owner_orgs):
     # mock
-    mock_get_rsu_owner_org.return_value = "other_org"
+    mock_get_rsu_owner_orgs.return_value = {rsu_ip[0]: "other_org"}
 
     # call
     command = "upgrade-rsu"
@@ -307,7 +337,7 @@ def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu
 
     # check — non-owner org is blocked with 403
     assert result[1] == 403
-    mock_get_rsu_owner_org.assert_called_once()
+    mock_get_rsu_owner_orgs.assert_called_once()
     mock_execute_upgrade_rsu.assert_not_called()
 
 

@@ -118,16 +118,21 @@ def fetch_rsu_info(rsu_ip, organization):
     return None
 
 
-def get_rsu_owner_org(rsu_ip: str) -> str | None:
+def get_rsu_owner_orgs(rsu_ips: list[str]) -> dict[str, str | None]:
     query = (
-        "SELECT org.name "
+        "SELECT r.ipv4_address::text, org.name "
         "FROM public.rsus r "
         "JOIN public.rsu_credentials rc ON r.credential_id = rc.credential_id "
         "JOIN public.organizations org ON rc.owner_organization_id = org.organization_id "
-        "WHERE r.ipv4_address = :rsu_ip"
+        "WHERE r.ipv4_address = ANY(:rsu_ips)"
     )
-    data = pgquery.query_db(query, params={"rsu_ip": rsu_ip})
-    return str(data[0][0]) if data else None
+    data = pgquery.query_db(query, params={"rsu_ips": rsu_ips})
+
+    owners = {ip: None for ip in rsu_ips}
+    for ip, org in data:
+        owners[str(ip).replace("/32", "")] = org
+
+    return owners
 
 def execute_upgrade_rsu(organization, rsu_list):
     return_dict = {}
@@ -155,12 +160,14 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
 
     # Restrict all RSU operations to the RSU's owner organization
     if not super_user:
+        owners = get_rsu_owner_orgs(rsu_list)
         unauthorized = []
         for rsu_ip in rsu_list:
-            owner_org = get_rsu_owner_org(rsu_ip)
+            owner_org = owners.get(rsu_ip)
             if owner_org is None:
                 logging.warning(
-                    f"RSU {rsu_ip} not found or has no owner organization; skipping ownership check"
+                    f"RSU {rsu_ip} not found or has no owner organization; "
+                    "skipping ownership check"
                 )
                 continue
             if owner_org != organization:
