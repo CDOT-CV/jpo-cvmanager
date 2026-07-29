@@ -36,9 +36,6 @@ public class PrometheusService {
     @Value("${prometheus.url:http://localhost:9090}")
     private String prometheusUrl;
 
-    @Value("${prometheus.timeout:30}")
-    private int timeoutSeconds;
-
     @Value("${prometheus.aggregation.step.seconds:60}")
     private int aggregationStepSeconds;
 

@@ -35,7 +35,6 @@ kafka.linger_ms: 50
 # Prometheus Configuration (message counts)
 prometheus:
   url: ${PROMETHEUS_URL:http://prometheus:9090}
-  timeout: ${PROMETHEUS_TIMEOUT:30}
   aggregation:
     step:
       seconds: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:60}
