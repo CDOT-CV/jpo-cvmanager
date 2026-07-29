@@ -10,7 +10,7 @@ services:
     image: ${DOCKERHUB_HOST:-usdotjpoode}/jpo-conflictmonitor:${DOCKERHUB_RELEASE:-2025-q2}
     restart: ${RESTART_POLICY:-on-failure:3}
     ports:
-      - '8082:8082'
+      - "8082:8082"
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
@@ -23,14 +23,14 @@ services:
       ROCKSDB_N_MEMTABLES: ${ROCKSDB_N_MEMTABLES:-2}
       ROCKSDB_MEMTABLE_SIZE: ${ROCKSDB_MEMTABLE_SIZE:-16777216}
     healthcheck:
-      test: ['CMD', 'java', '-version']
+      test: ["CMD", "java", "-version"]
       interval: 10s
       timeout: 10s
       retries: 20
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -49,19 +49,19 @@ services:
     image: ${DOCKERHUB_HOST:-usdotjpoode}/jpo-ode:${DOCKERHUB_RELEASE:-2025-q2}
     restart: ${RESTART_POLICY:-on-failure:3}
     ports:
-      - '8080:8080'
-      - '9091:9090'
-      - '46753:46753/udp'
-      - '46800:46800/udp'
-      - '47900:47900/udp'
-      - '44900:44900/udp'
-      - '44910:44910/udp'
-      - '44920:44920/udp'
-      - '44930:44930/udp'
-      - '44940:44940/udp'
-      - '44990:44990/udp'
-      - '5555:5555/udp'
-      - '6666:6666/udp'
+      - "8080:8080"
+      - "9091:9090"
+      - "46753:46753/udp"
+      - "46800:46800/udp"
+      - "47900:47900/udp"
+      - "44900:44900/udp"
+      - "44910:44910/udp"
+      - "44920:44920/udp"
+      - "44930:44930/udp"
+      - "44940:44940/udp"
+      - "44990:44990/udp"
+      - "5555:5555/udp"
+      - "6666:6666/udp"
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
       ODE_KAFKA_BROKERS: ${DOCKER_HOST_IP:-kafka}:9092
@@ -90,15 +90,15 @@ services:
         condition: service_healthy
         required: false
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:8080']
+      test: ["CMD", "wget", "--spider", "http://localhost:8080"]
       interval: 5s
       timeout: 30s
       retries: 5
       start_period: 10s
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   adm:
     profiles:
@@ -109,7 +109,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -123,8 +123,8 @@ services:
         required: false
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   aem:
     profiles:
@@ -135,7 +135,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -149,8 +149,8 @@ services:
         required: false
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   geojsonconverter:
     profiles:
@@ -161,7 +161,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -169,8 +169,8 @@ services:
       spring.kafka.bootstrap-servers: ${DOCKER_HOST_IP:-kafka}:9092
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       kafka:
         condition: service_healthy
@@ -184,7 +184,7 @@ services:
     privileged: false # Set true to allow writing to /proc/sys/vm/drop_caches
     restart: ${RESTART_POLICY:-on-failure:3}
     ports:
-      - '10091:10090' # JMX
+      - "10091:10090" # JMX
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
@@ -205,14 +205,14 @@ services:
       ROCKSDB_N_MEMTABLES: ${ROCKSDB_N_MEMTABLES:-2}
       ROCKSDB_MEMTABLE_SIZE: ${ROCKSDB_MEMTABLE_SIZE:-16777216}
     healthcheck:
-      test: ['CMD', 'java', '-version']
+      test: ["CMD", "java", "-version"]
       interval: 10s
       timeout: 10s
       retries: 20
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     deploy:
       resources:
         limits:

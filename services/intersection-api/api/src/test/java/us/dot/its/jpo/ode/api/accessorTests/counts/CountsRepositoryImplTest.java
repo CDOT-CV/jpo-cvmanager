@@ -87,14 +87,10 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
         when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
                 endTime.longValue()))
-                .thenReturn(mockPrometheusResponse);
-        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
@@ -148,14 +144,10 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
         when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
                 endTime.longValue()))
-                .thenReturn(mockPrometheusResponse);
-        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-70"));
@@ -221,17 +213,13 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
         when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
                 endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
         when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
                 endTime.longValue()))
-                .thenReturn(mockPrometheusResponse);
-        when(prometheusService.aggregateRangeResponse(mockPrometheusResponse, startTime, endTime))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
@@ -327,20 +315,14 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
-        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopicAccurate(anyString(), eq("topic.OdeBsmRawEncodedJson"),
+        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmRawEncodedJson"),
                 eq(startTime), eq(endTime)))
                 .thenReturn(mockInResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopicAccurate(anyString(), eq("topic.OdeBsmJson"),
+        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmJson"),
                 eq(startTime),
                 eq(endTime)))
-                .thenReturn(mockOutResponse);
-        when(prometheusService.aggregateRangeResponse(mockInResponse, startTime, endTime))
-                .thenReturn(mockInResponse);
-        when(prometheusService.aggregateRangeResponse(mockOutResponse, startTime, endTime))
                 .thenReturn(mockOutResponse);
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
@@ -406,9 +388,7 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.aggregateRangeResponse(mockTopicsResponse, startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenReturn(mockTopicsResponse);
         when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
                 endTime.longValue()))
@@ -438,7 +418,7 @@ public class CountsRepositoryImplTest {
                 .thenReturn(new PageImpl<>(List.of(
                         mockRsu("10.11.81.13", "I-25"),
                         mockRsu("10.11.81.14", "I-70"))));
-        when(prometheusService.getAvailableTopicCountsAccurate(startTime, endTime))
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
                 .thenThrow(new RuntimeException("Prometheus error"));
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
