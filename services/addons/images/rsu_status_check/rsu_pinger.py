@@ -9,7 +9,7 @@ import rsu_status_check_environment
 
 def calculate_max_workers(rsu_count):
     """
-    Scale workers with list size, but keep concurrency well below 1:1 fanout.
+    Scale workers with list size, using a minimum of 20 workers (except when rsu_count <= 0) and a maximum of 120.
     """
     if rsu_count <= 0:
         return 1
@@ -29,7 +29,7 @@ def insert_ping_data(ping_data, ping_time):
 
 def ping_single_rsu(rsu, retries=2):
     """
-    Ping a single RSU with retries.
+    Ping a single RSU, retrying up to `retries` total attempts.
     Returns tuple: (rsu_id, status)
     """
 
