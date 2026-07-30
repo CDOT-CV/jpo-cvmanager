@@ -267,6 +267,21 @@ class EmailServiceTest {
     }
 
     @Test
+    void testGetUsersForNotificationTypeByOrganizationUsesDailyQueryValue() {
+        when(userEmailNotificationRepository.findUsersByNotificationTypeAndOrganization(
+                "Daily Message Counts", "DAILY", "CDOT CV"))
+                .thenReturn(List.of("user@example.com"));
+
+        List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByOrganization(
+                EmailCategory.MESSAGE_COUNTS, "CDOT CV", EmailFrequency.ONCE_PER_DAY);
+
+        assertEquals(1, recipients.size());
+        assertEquals("user@example.com", recipients.get(0).getEmail());
+        verify(userEmailNotificationRepository).findUsersByNotificationTypeAndOrganization(
+                "Daily Message Counts", "DAILY", "CDOT CV");
+    }
+
+    @Test
     void testSendIntersectionNotificationSummaryEmailSendResponses() {
         IntersectionNotificationSummaryEmailContents data = new IntersectionNotificationSummaryEmailContents();
         EmailContent content = new EmailContent("subject", "body");
