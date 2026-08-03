@@ -38,18 +38,6 @@ const AdminUserTab = () => {
 
   const [trigger] = useLazyGetUsersQuery()
 
-  // Subscribe to query - this will trigger when cache is invalidated
-  const { data: subscribedData } = useGetUsersQuery(currentParams, {
-    skip: !organization, // Skip if no organization selected
-  })
-
-  // When subscribed data changes (due to cache invalidation), refresh table
-  useEffect(() => {
-    if (subscribedData) {
-      handleRefresh()
-    }
-  }, [subscribedData])
-
   const currentQueryRef = useRef(null)
   const handleQueryChange = useCallback(
     async (query) => {

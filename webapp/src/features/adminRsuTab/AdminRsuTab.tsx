@@ -38,18 +38,6 @@ const AdminRsuTab = () => {
 
   const [trigger] = useLazyGetAllRsusQuery()
 
-  // Subscribe to query - this will trigger when cache is invalidated
-  const { data: subscribedData } = useGetAllRsusQuery(currentParams, {
-    skip: !organization, // Skip if no organization selected
-  })
-
-  // When subscribed data changes (due to cache invalidation), refresh table
-  useEffect(() => {
-    if (subscribedData || organization) {
-      handleRefresh()
-    }
-  }, [subscribedData, organization])
-
   const currentQueryRef = useRef(null)
 
   const [deleteRsuApi] = useDeleteRsuMutation()
