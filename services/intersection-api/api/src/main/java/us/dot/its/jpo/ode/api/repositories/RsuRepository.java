@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import java.net.InetAddress;
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -70,6 +71,46 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "JOIN ro.organization o " +
             "WHERE o.name in :organizationNames")
     List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+
+    /**
+     * Returns every RSU in an organization together with every ping in the status
+     * window. The left join is deliberate: an RSU without a recent ping is still
+     * represented so the API can report it as offline.
+     */
+    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "LEFT JOIN r.pings p ON p.timestamp >= :cutoff " +
+            "WHERE o.name = :organization " +
+            "ORDER BY r.ipv4Address ASC, p.timestamp DESC")
+    List<RsuOnlineStatusProjection> findOnlineStatusPingsByOrganization(
+            @Param("organization") String organization,
+            @Param("cutoff") Instant cutoff);
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE r.ipv4Address = :ipv4Address AND o.name = :organization")
+    boolean existsByIpAndOrganization(@Param("ipv4Address") InetAddress ipv4Address,
+            @Param("organization") String organization);
+
+    /**
+     * Returns ping results newest-first for one RSU. The ping result column is a
+     * PostgreSQL bit(1), so success filtering is intentionally performed in the
+     * service rather than comparing it to a JPQL boolean literal.
+     */
+    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+            "FROM Rsu r " +
+            "JOIN r.pings p " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "WHERE r.ipv4Address = :ipv4Address " +
+            "AND o.name = :organization " +
+            "ORDER BY p.timestamp DESC")
+    List<RsuOnlineStatusProjection> findPingsByIpAndOrganization(@Param("ipv4Address") InetAddress ipv4Address,
+            @Param("organization") String organization);
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching

@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { getRsuLastOnline, selectRsuData } from '../../generalSlices/rsuSlice'
+import { selectRsuData } from '../../generalSlices/rsuSlice'
 
 import '../../components/css/SnmpwalkMenu.css'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import MaterialTable, { Action } from '@material-table/core'
 import { RootState } from '../../store'
-import { selectRsuOnlineStatus } from '../../generalSlices/rsuSlice'
 import { formatScmsExpiration, useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { RsuOnlineStatus, useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 
 import { GpsFixedSharp } from '@mui/icons-material'
@@ -17,7 +17,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AdminTable from '../../components/AdminTable'
 import { setMapViewState } from '../../pages/mapSlice'
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Stack, Typography, useTheme } from '@mui/material'
-import { RsuInfo, RsuOnlineStatus } from '../../models/RsuApi'
+import { RsuInfo } from '../../models/RsuApi'
 import { useReactToPrint } from 'react-to-print'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { toggleMapMenuSelection } from './menuSlice'
@@ -28,10 +28,15 @@ import { selectEmail } from '../../generalSlices/userSlice'
 const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo }) => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const rsuData = useSelector(selectRsuData)
-  const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
   const organization = useSelector(selectOrganizationName)
+  const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
   const [selectedRSU, setSelectedRSU] = useState<RsuInfo | undefined>(initialSelectedRsu)
+  const selectedRsuIp = selectedRSU?.properties.ipv4_address ?? ''
+  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(
+    { organization, ip: selectedRsuIp },
+    { skip: !organization || !selectedRsuIp }
+  )
   const contentRef = useRef(null)
   const errorRef = useRef(null)
   const userEmail = useSelector(selectEmail)
@@ -49,14 +54,6 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
     scms_status: boolean | null
   }
 
-
-  // Fetch RSU online status data when an RSU is selected to ensure 'last online' is populated
-  useEffect(() => {
-    if (selectedRSU) {
-      dispatch(getRsuLastOnline(selectedRSU.properties.ipv4_address))
-    }
-  }, [selectedRSU, dispatch])
-
   const getRSUOnlineStatus = (rsuIpv4: string) => {
     return rsuIpv4 in rsuOnlineStatus &&
       Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'current_status')
@@ -65,9 +62,8 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   }
 
   const getRSULastOnline = (rsuIpv4: string): string => {
-    return rsuIpv4 in rsuOnlineStatus && Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
+    if (rsuIpv4 !== selectedRsuIp || !selectedRsuLastOnline?.last_online) return 'No Data'
+    return new Date(selectedRsuLastOnline.last_online).toLocaleString()
   }
 
   const getRSUSCMSStatus = (rsuIpv4: string): boolean | null => {
