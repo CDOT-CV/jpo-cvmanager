@@ -129,6 +129,8 @@ jobs:
         with:
           distribution: "adopt"
           java-version: "21"
+          cache: maven
+          cache-dependency-path: resources/keycloak/custom-user-provider/pom.xml
 
       - name: Build and Test with Maven
         run: |
