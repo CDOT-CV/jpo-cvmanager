@@ -25,4 +25,13 @@ public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConf
     @Transactional
     @Query("DELETE FROM SnmpMsgfwdConfig ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleSnmpMsgfwdConfigByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
+    @Query("SELECT c FROM SnmpMsgfwdConfig c " +
+            "JOIN FETCH c.msgfwdType " +
+            "JOIN c.rsu r " +
+            "JOIN r.rsuOrganizations ro JOIN ro.organization o " +
+            "WHERE r.ipv4Address = :ipv4Address AND o.name = :orgName " +
+            "ORDER BY c.msgfwdType.name ASC, c.id.snmpIndex ASC")
+    List<SnmpMsgfwdConfig> findByRsuIpv4AddressAndOrganizationName(
+            @Param("ipv4Address") InetAddress ipv4Address, @Param("orgName") String orgName);
 }
