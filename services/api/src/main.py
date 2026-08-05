@@ -7,7 +7,6 @@ import logging
 from middleware import Middleware
 from healthcheck import HealthCheck
 from rsu_querycounts import RsuQueryCounts
-from rsu_querymsgfwd import RsuQueryMsgFwd
 from rsu_online_status import RsuOnlineStatus
 from rsu_commands import RsuCommandRequest
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
@@ -50,7 +49,6 @@ api.add_resource(AdminOrgSnmpMonitoring, "/admin-org-snmp-monitoring")
 if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuOnlineStatus, "/rsu-online-status")
     api.add_resource(RsuQueryCounts, "/rsucounts")
-    api.add_resource(RsuQueryMsgFwd, "/rsu-msgfwd-query")
     api.add_resource(RsuSnmpFwdFetch, "/rsu-msgfwd-fetch")
     api.add_resource(RsuCommandRequest, "/rsu-command")
     api.add_resource(RsuGeoQuery, "/rsu-config-geo-query")
