@@ -48,7 +48,7 @@ class EnvironmentVars {
   static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`
   static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-config-geo-query`
-  static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
+  static rsuMsgFwdQueryEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
   static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
