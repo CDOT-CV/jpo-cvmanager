@@ -22,7 +22,7 @@ const RSU_ONLINE_STATUS_LIST_ID = 'LIST' as const
 export const rsuOnlineStatusApiSlice = createApi({
   reducerPath: 'rsuOnlineStatusApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/rsu/online-status`,
+    baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/rsus/online-status`,
     prepareHeaders: (headers, { getState }) => {
       const token = selectToken(getState() as RootState)
       if (token) headers.set('Authorization', `Bearer ${token}`)

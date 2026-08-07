@@ -4,7 +4,7 @@ import { setupStore } from '../../store'
 import EnvironmentVars from '../../EnvironmentVars'
 import { rsuOnlineStatusApiSlice } from './rsuOnlineStatusApiSlice'
 
-const BASE_URL = `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/rsu/online-status`
+const BASE_URL = `${EnvironmentVars.CVIZ_API_SERVER_URL}/devices/rsus/online-status`
 const mockUserState = {
   user: {
     value: {

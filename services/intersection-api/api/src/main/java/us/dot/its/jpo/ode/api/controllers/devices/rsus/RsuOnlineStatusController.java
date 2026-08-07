@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.controllers.devices;
+package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
 import java.util.Map;
 
@@ -23,7 +23,7 @@ import us.dot.its.jpo.ode.api.services.RsuOnlineStatusService;
 @RestController
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "enable.api", havingValue = "true", matchIfMissing = false)
-@RequestMapping("/devices/rsu/online-status")
+@RequestMapping("/devices/rsus/online-status")
 public class RsuOnlineStatusController {
     private final RsuOnlineStatusService rsuOnlineStatusService;
 
@@ -37,7 +37,7 @@ public class RsuOnlineStatusController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     public Map<String, OnlineStatusDto> getAllOnlineStatuses(
             @RequestHeader(name = "Organization") String organization) {
-        log.info("GET /devices/rsu/online-status. organization: {}", organization);
+        log.info("GET /devices/rsus/online-status. organization: {}", organization);
         return rsuOnlineStatusService.getOnlineStatuses(organization);
     }
 
@@ -53,7 +53,7 @@ public class RsuOnlineStatusController {
     public LastOnlineDto getLastOnline(
             @RequestHeader(name = "Organization") String organization,
             @PathVariable String ip) {
-        log.info("GET /devices/rsu/online-status/{}. organization: {}", ip, organization);
+        log.info("GET /devices/rsus/online-status/{}. organization: {}", ip, organization);
         return rsuOnlineStatusService.getLastOnline(organization, ip);
     }
 }

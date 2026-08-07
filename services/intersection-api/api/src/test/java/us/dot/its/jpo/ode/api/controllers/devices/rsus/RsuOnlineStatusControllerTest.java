@@ -1,4 +1,4 @@
-package us.dot.its.jpo.ode.api.controllers.devices;
+package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -47,7 +47,7 @@ class RsuOnlineStatusControllerTest {
         when(rsuOnlineStatusService.getOnlineStatuses("TestOrg"))
                 .thenReturn(Map.of("10.0.0.1", new OnlineStatusDto("online")));
 
-        mockMvc.perform(get("/devices/rsu/online-status").header("Organization", "TestOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$['10.0.0.1'].current_status").value("online"));
     }
@@ -59,14 +59,14 @@ class RsuOnlineStatusControllerTest {
         when(rsuOnlineStatusService.getLastOnline("TestOrg", "10.0.0.1"))
                 .thenReturn(new LastOnlineDto("10.0.0.1", Instant.parse("2026-08-03T12:00:00Z")));
 
-        mockMvc.perform(get("/devices/rsu/online-status/10.0.0.1").header("Organization", "TestOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.1").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ip").value("10.0.0.1"))
                 .andExpect(jsonPath("$.last_online").value("2026-08-03T12:00:00Z"));
 
         when(rsuOnlineStatusService.getLastOnline("TestOrg", "10.0.0.2"))
                 .thenReturn(new LastOnlineDto("10.0.0.2", null));
-        mockMvc.perform(get("/devices/rsu/online-status/10.0.0.2").header("Organization", "TestOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.2").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.last_online").doesNotExist());
     }
@@ -76,7 +76,7 @@ class RsuOnlineStatusControllerTest {
         when(permissionService.isSuperUser()).thenReturn(false);
         when(permissionService.hasRoleInOrg("OtherOrg", "USER")).thenReturn(false);
 
-        mockMvc.perform(get("/devices/rsu/online-status").header("Organization", "OtherOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status").header("Organization", "OtherOrg"))
                 .andExpect(status().isForbidden());
 
         verify(rsuOnlineStatusService, never()).getOnlineStatuses(anyString());
