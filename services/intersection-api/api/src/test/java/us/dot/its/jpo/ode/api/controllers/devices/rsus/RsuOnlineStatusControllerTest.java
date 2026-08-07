@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -68,7 +69,7 @@ class RsuOnlineStatusControllerTest {
                 .thenReturn(new LastOnlineDto("10.0.0.2", null));
         mockMvc.perform(get("/devices/rsus/online-status/10.0.0.2").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.last_online").doesNotExist());
+                .andExpect(jsonPath("$.last_online").value(nullValue()));
     }
 
     @Test
