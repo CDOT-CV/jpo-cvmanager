@@ -35,7 +35,7 @@ prometheus:
   url: ${PROMETHEUS_URL:http://localhost:9090}
   aggregation:
     step:
-      seconds: 60
+      seconds: 120
 
 kafka.topics:
   autoCreateTopics: false

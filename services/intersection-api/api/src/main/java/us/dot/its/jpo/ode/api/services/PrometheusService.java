@@ -36,7 +36,7 @@ public class PrometheusService {
     @Value("${prometheus.url:http://localhost:9090}")
     private String prometheusUrl;
 
-    @Value("${prometheus.aggregation.step.seconds:60}")
+    @Value("${prometheus.aggregation.step.seconds:120}")
     private int aggregationStepSeconds;
 
     public PrometheusService(RestTemplate restTemplate) {
@@ -248,11 +248,8 @@ public class PrometheusService {
         try {
             PrometheusResponse prometheusResponse = objectMapper.readValue(response, PrometheusResponse.class);
 
-            if ("success".equals(prometheusResponse.getStatus()) &&
-                    prometheusResponse.getData() != null &&
-                    prometheusResponse.getData().getResult() != null) {
-
-                return prometheusResponse.getData().getResult().stream()
+            if (prometheusResponse.isSuccess()) {
+                return prometheusResponse.getResults().stream()
                         .map(result -> Map.of("metric", (Object) result.getMetric()))
                         .toList();
             }

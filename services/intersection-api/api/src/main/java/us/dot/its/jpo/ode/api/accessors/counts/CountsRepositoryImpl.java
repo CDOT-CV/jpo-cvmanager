@@ -10,14 +10,16 @@ import java.util.Map;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.models.CountType;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.PrometheusResponse;
+import us.dot.its.jpo.ode.api.models.PrometheusResponse.PrometheusResult;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PrometheusService;
@@ -33,6 +35,9 @@ public class CountsRepositoryImpl implements CountsRepository {
 
     private static final String TOPIC_PREFIX = "topic.Ode";
     private static final String RAW_ENCODED_INDICATOR = "RawEncoded";
+    private static final String JSON_SUFFIX = "Json";
+    private static final String METRIC_LABEL_TOPIC = "topic";
+    private static final String METRIC_LABEL_RSU_IP = "rsu_ip";
 
     public CountsRepositoryImpl(PrometheusService prometheusService, RsuRepository rsuRepository) {
         this.prometheusService = prometheusService;
@@ -100,39 +105,27 @@ public class CountsRepositoryImpl implements CountsRepository {
     }
 
     private String extractMessageTypeFromTopic(String topic) {
-        if (topic.startsWith(TOPIC_PREFIX)) {
-            String messagePart = topic.substring(TOPIC_PREFIX.length());
-
-            String messageType = messagePart
-                    .replace("RawEncoded", "")
-                    .replace("Json", "");
-
-            return messageType.isEmpty() ? null : messageType.toUpperCase();
+        if (topic == null || !topic.startsWith(TOPIC_PREFIX)) {
+            return null;
         }
 
-        return null;
+        String messageType = topic.substring(TOPIC_PREFIX.length())
+                .replace(RAW_ENCODED_INDICATOR, "")
+                .replace(JSON_SUFFIX, "");
+
+        return messageType.isEmpty() ? null : messageType.toUpperCase();
     }
 
     private String determineTopicFromMessageType(String messageType, Long startTime, Long endTime,
             boolean isRawEncoded) {
         try {
             String response = prometheusService.getAvailableTopicCounts(startTime, endTime);
-
-            JsonNode root = jsonMapper.readTree(response);
-            if (root.path("status").asText().equals("success")) {
-                JsonNode results = root.path("data").path("result");
-
-                for (JsonNode result : results) {
-                    String topic = result.path("metric").path("topic").asText();
-                    String extractedMessageType = extractMessageTypeFromTopic(topic);
-                    boolean topicHasRawEncoded = topic.contains(RAW_ENCODED_INDICATOR);
-
-                    if (messageType.equalsIgnoreCase(extractedMessageType) && topicHasRawEncoded == isRawEncoded) {
-                        return topic;
-                    }
+            for (PrometheusResult result : prometheusResults(response)) {
+                String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
+                if (topicMatches(topic, messageType, isRawEncoded)) {
+                    return topic;
                 }
             }
-
             return null;
         } catch (Exception e) {
             log.error("Error determining topic for message type {} (RawEncoded: {}): {}", messageType, isRawEncoded,
@@ -141,21 +134,30 @@ public class CountsRepositoryImpl implements CountsRepository {
         }
     }
 
+    private boolean topicMatches(String topic, String messageType, boolean isRawEncoded) {
+        if (topic == null) {
+            return false;
+        }
+        return messageType.equalsIgnoreCase(extractMessageTypeFromTopic(topic))
+                && topic.contains(RAW_ENCODED_INDICATOR) == isRawEncoded;
+    }
+
+    private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {
+        PrometheusResponse prometheusResponse = jsonMapper.readValue(response, PrometheusResponse.class);
+        if (!prometheusResponse.isSuccess()) {
+            return List.of();
+        }
+        return prometheusResponse.getResults();
+    }
+
     private void processPrometheusResponseByTopic(String response, String topic,
             Map<String, MessageCount> rsuCountsMap, String rsuIp, String road, CountType countType) {
         try {
-            JsonNode root = jsonMapper.readTree(response);
             double value = 0.0;
-
-            if (root.path("status").asText().equals("success")) {
-                JsonNode results = root.path("data").path("result");
-
-                for (JsonNode result : results) {
-                    String resultTopic = result.path("metric").path("topic").asText();
-                    if (topic.equals(resultTopic)) {
-                        value = result.path("value").path(1).asDouble();
-                        break;
-                    }
+            for (PrometheusResult result : prometheusResults(response)) {
+                if (topic.equals(result.getMetricLabel(METRIC_LABEL_TOPIC))) {
+                    value = result.getInstantValue();
+                    break;
                 }
             }
 
@@ -182,20 +184,10 @@ public class CountsRepositoryImpl implements CountsRepository {
     private void processOrganizationResponseByTopic(String response, String topic,
             Map<String, MessageCount> rsuCountsMaps, Map<String, String> rsuIpToRoadMap, CountType countType) {
         try {
-            JsonNode root = jsonMapper.readTree(response);
             Map<String, Long> rsuCounts = new HashMap<>();
-
-            if (root.path("status").asText().equals("success")) {
-                JsonNode results = root.path("data").path("result");
-
-                for (JsonNode result : results) {
-                    String rsuIp = result.path("metric").path("rsu_ip").asText();
-                    String resultTopic = result.path("metric").path("topic").asText();
-                    double value = result.path("value").path(1).asDouble();
-
-                    if (topic.equals(resultTopic)) {
-                        rsuCounts.put(rsuIp, (long) value);
-                    }
+            for (PrometheusResult result : prometheusResults(response)) {
+                if (topic.equals(result.getMetricLabel(METRIC_LABEL_TOPIC))) {
+                    rsuCounts.put(result.getMetricLabel(METRIC_LABEL_RSU_IP), (long) result.getInstantValue());
                 }
             }
 
