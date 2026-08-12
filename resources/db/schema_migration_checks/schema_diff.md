@@ -13,7 +13,7 @@ bash csv_to_sql.sh ./{exported_schema}.csv
 ```
 
 2. Compare the exported SQL file to a baseline SQL file (V1__baseline_state.sql).
-This step involves running a python script, which will compare the two SQL files and generate a report of the differences. The script is available in [resources/db/schema_migration_checks/compare_schema_exports.py](c:/Users/rando/Documents/GitHub/jpo-cvmanager/resources/db/schema_migration_checks/compare_schema_exports.py).
+This step involves running a Python script, which will compare the two SQL files and generate a report of the differences. The script is available in [resources/db/schema_migration_checks/compare_schema_exports.py](c:/Users/rando/Documents/GitHub/jpo-cvmanager/resources/db/schema_migration_checks/compare_schema_exports.py).
 ```sh
 python compare_schema_exports.py ./schema_exports/V1__baseline_state.sql {exported_schema}.sql -o schema_compare_report_example.txt
 ```
