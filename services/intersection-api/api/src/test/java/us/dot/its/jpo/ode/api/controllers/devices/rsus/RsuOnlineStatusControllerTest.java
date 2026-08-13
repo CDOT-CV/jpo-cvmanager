@@ -42,7 +42,7 @@ class RsuOnlineStatusControllerTest {
     private PermissionService permissionService;
 
     @Test
-    void getAllOnlineStatuses_returnsLegacyIpMap() throws Exception {
+    void getAllOnlineStatuses_returnsOnlineStatusByIp() throws Exception {
         when(permissionService.isSuperUser()).thenReturn(false);
         when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(rsuOnlineStatusService.getOnlineStatuses("TestOrg"))
@@ -50,7 +50,7 @@ class RsuOnlineStatusControllerTest {
 
         mockMvc.perform(get("/devices/rsus/online-status").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$['10.0.0.1'].current_status").value("online"));
+                .andExpect(jsonPath("$.onlineStatusByIp['10.0.0.1'].current_status").value("online"));
     }
 
     @Test

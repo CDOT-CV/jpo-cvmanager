@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
-import us.dot.its.jpo.ode.api.repositories.RsuOnlineStatusProjection;
+import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,10 +56,23 @@ class RsuOnlineStatusServiceTest {
     }
 
     @Test
+    void getLastOnline_returnsLatestSuccessfulPingTimestamp() throws Exception {
+        Instant lastOnline = NOW.minusSeconds(30);
+        when(rsuRepository.existsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(true);
+        when(rsuRepository.findLatestSuccessfulPingTimestamp(any(), eq("TestOrg")))
+                .thenReturn(Optional.of(lastOnline));
+
+        var result = service.getLastOnline("TestOrg", "10.0.0.1");
+
+        assertEquals("10.0.0.1", result.getIp());
+        assertEquals(lastOnline, result.getLastOnline());
+    }
+
+    @Test
     void getLastOnline_returnsNullWhenAuthorizedRsuHasNoSuccessfulPing() throws Exception {
         when(rsuRepository.existsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(true);
-        when(rsuRepository.findPingsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(List.of(
-                ping("10.0.0.1", NOW.minusSeconds(10), false)));
+        when(rsuRepository.findLatestSuccessfulPingTimestamp(any(), eq("TestOrg")))
+                .thenReturn(Optional.empty());
 
         var result = service.getLastOnline("TestOrg", "10.0.0.1");
 

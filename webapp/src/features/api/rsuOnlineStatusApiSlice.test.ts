@@ -21,9 +21,9 @@ function getRequest(callIndex = 0): Request {
 describe('rsuOnlineStatusApiSlice', () => {
   beforeEach(() => fetchMock.resetMocks())
 
-  it('gets the organization IP-status map with bearer and organization headers', async () => {
+  it('unwraps onlineStatusByIp and sends bearer and organization headers', async () => {
     const store = setupStore(mockUserState)
-    fetchMock.mockResponseOnce(JSON.stringify({ '10.0.0.1': { current_status: 'online' } }))
+    fetchMock.mockResponseOnce(JSON.stringify({ onlineStatusByIp: { '10.0.0.1': { current_status: 'online' } } }))
 
     const result = await store.dispatch(rsuOnlineStatusApiSlice.endpoints.getRsuOnlineStatuses.initiate('test-org'))
 

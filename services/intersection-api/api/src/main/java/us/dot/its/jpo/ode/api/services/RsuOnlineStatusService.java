@@ -11,12 +11,13 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
+import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.rsu.LastOnlineDto;
 import us.dot.its.jpo.ode.api.models.rsu.OnlineStatusDto;
-import us.dot.its.jpo.ode.api.repositories.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
 @Service
@@ -28,6 +29,7 @@ public class RsuOnlineStatusService {
     private final RsuRepository rsuRepository;
     private final Clock clock;
 
+    @Transactional(readOnly = true)
     public Map<String, OnlineStatusDto> getOnlineStatuses(String organization) {
         Instant cutoff = clock.instant().minus(STATUS_WINDOW);
         List<RsuOnlineStatusProjection> pings = rsuRepository.findOnlineStatusPingsByOrganization(organization, cutoff);
@@ -65,15 +67,13 @@ public class RsuOnlineStatusService {
         return statuses;
     }
 
+    @Transactional(readOnly = true)
     public LastOnlineDto getLastOnline(String organization, String ip) {
         InetAddress address = toIpv4Address(ip);
         if (!rsuRepository.existsByIpAndOrganization(address, organization)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found");
         }
-        Instant lastOnline = rsuRepository.findPingsByIpAndOrganization(address, organization).stream()
-                .filter(ping -> Boolean.TRUE.equals(ping.getResult()))
-                .map(RsuOnlineStatusProjection::getTimestamp)
-                .findFirst()
+        Instant lastOnline = rsuRepository.findLatestSuccessfulPingTimestamp(address, organization)
                 .orElse(null);
         return new LastOnlineDto(address.getHostAddress(), lastOnline);
     }

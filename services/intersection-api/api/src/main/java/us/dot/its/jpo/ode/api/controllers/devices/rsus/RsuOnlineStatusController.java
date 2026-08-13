@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
-import java.util.Map;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.rsu.LastOnlineDto;
-import us.dot.its.jpo.ode.api.models.rsu.OnlineStatusDto;
+import us.dot.its.jpo.ode.api.models.rsu.OnlineStatusResponse;
 import us.dot.its.jpo.ode.api.services.RsuOnlineStatusService;
 
 @Slf4j
@@ -35,10 +33,10 @@ public class RsuOnlineStatusController {
     })
     @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
-    public Map<String, OnlineStatusDto> getAllOnlineStatuses(
+    public OnlineStatusResponse getAllOnlineStatuses(
             @RequestHeader(name = "Organization") String organization) {
         log.info("GET /devices/rsus/online-status. organization: {}", organization);
-        return rsuOnlineStatusService.getOnlineStatuses(organization);
+        return new OnlineStatusResponse(rsuOnlineStatusService.getOnlineStatuses(organization));
     }
 
     @Operation(summary = "Get last successful online time for one RSU")

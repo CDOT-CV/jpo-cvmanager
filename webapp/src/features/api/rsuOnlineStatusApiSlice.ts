@@ -11,6 +11,10 @@ export type RsuOnlineStatusMap = {
   }
 }
 
+type RsuOnlineStatusResponse = {
+  onlineStatusByIp: RsuOnlineStatusMap
+}
+
 export type RsuLastOnlineStatus = {
   ip: string
   last_online: string | null
@@ -36,6 +40,7 @@ export const rsuOnlineStatusApiSlice = createApi({
         url: '',
         headers: { Organization: organization },
       }),
+      transformResponse: (response: RsuOnlineStatusResponse) => response.onlineStatusByIp,
       providesTags: (result) => [
         ...(result ? Object.keys(result).map((ip) => ({ type: RSU_ONLINE_STATUS_TAG, id: ip })) : []),
         { type: RSU_ONLINE_STATUS_TAG, id: RSU_ONLINE_STATUS_LIST_ID },

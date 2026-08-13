@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.repositories;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 @Repository
@@ -97,19 +99,19 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             @Param("organization") String organization);
 
     /**
-     * Returns ping results newest-first for one RSU. The ping result column is a
-     * PostgreSQL bit(1), so success filtering is intentionally performed in the
-     * service rather than comparing it to a JPQL boolean literal.
+     * Returns the timestamp of the most recent successful ping for one RSU.
      */
-    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+    @Query("SELECT p.timestamp " +
             "FROM Rsu r " +
             "JOIN r.pings p " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
             "AND o.name = :organization " +
-            "ORDER BY p.timestamp DESC")
-    List<RsuOnlineStatusProjection> findPingsByIpAndOrganization(@Param("ipv4Address") InetAddress ipv4Address,
+            "AND p.result = true " +
+            "ORDER BY p.timestamp DESC " +
+            "LIMIT 1")
+    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address,
             @Param("organization") String organization);
 
     /**
