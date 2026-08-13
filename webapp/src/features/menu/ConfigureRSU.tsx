@@ -12,6 +12,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
 import { selectSelectedRsu, selectRsu } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { useGetRsuQuery, useGetAllRsusQuery } from '../api/rsuApiSlice'
 import '../../components/css/SnmpwalkMenu.css'
 import { RootState } from '../../store'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
@@ -35,6 +37,30 @@ const ConfigureRSU = () => {
   }
   const selectedRsu = useSelector(selectSelectedRsu)
   const selectedConfigList = useSelector(selectConfigList)
+  const organization = useSelector(selectOrganizationName)
+
+  const rsuIp = selectedRsu?.properties?.ipv4_address
+  const { data: rsuDetail } = useGetRsuQuery(rsuIp!, { skip: !rsuIp })
+  const { data: allRsusPage } = useGetAllRsusQuery(
+    { organization: organization ?? '', size: 1000 },
+    { skip: selectedConfigList.length === 0 || !organization }
+  )
+
+  const singleRsuIsOwnerOrg = !!rsuDetail && rsuDetail.owner_organization === organization
+  const multiRsuIsOwnerOrg =
+    !!allRsusPage &&
+    selectedConfigList.every(
+      (ip) => allRsusPage.content.find((r) => r.ip === ip.toString())?.owner_organization === organization
+    )
+  const multiRsuOwnerOrgs = allRsusPage
+    ? [
+        ...new Set(
+          selectedConfigList
+            .map((ip) => allRsusPage.content.find((r) => r.ip === ip.toString())?.owner_organization)
+            .filter((org): org is string => !!org && org !== organization)
+        ),
+      ].join(', ') || undefined
+    : undefined
 
   return (
     <Paper sx={{ lineHeight: 1.1, backgroundColor: theme.palette.background.paper }}>
@@ -116,7 +142,7 @@ const ConfigureRSU = () => {
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
-                <SnmpwalkMenu />
+                <SnmpwalkMenu isOwnerOrg={singleRsuIsOwnerOrg} />
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
@@ -131,7 +157,7 @@ const ConfigureRSU = () => {
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
-                <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
+                <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
@@ -161,7 +187,7 @@ const ConfigureRSU = () => {
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
-                <RsuRebootMenu />
+                <RsuRebootMenu isOwnerOrg={singleRsuIsOwnerOrg} ownerOrganization={rsuDetail?.owner_organization} />
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
@@ -188,7 +214,7 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList.map((val: number) => val.toString())} />
+                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList.map((val: number) => val.toString())} isOwnerOrg={multiRsuIsOwnerOrg} ownerOrganization={multiRsuOwnerOrgs} />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>

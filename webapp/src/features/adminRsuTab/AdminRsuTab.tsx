@@ -101,34 +101,36 @@ const AdminRsuTab = () => {
     }
   }
 
-  const tableActions: Action<AdminEditRsuFormType>[] = [
-    {
+  const tableActions: (Action<AdminEditRsuFormType> | ((rowData: AdminEditRsuFormType) => Action<AdminEditRsuFormType>))[] = [
+    (rowData: AdminEditRsuFormType) => ({
       icon: () => <ModeEditOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Edit RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminEditRsuFormType) => {
-        onEdit(rowData)
+      hidden: rowData.owner_organization !== organization,
+      onClick: (_event: any, row: AdminEditRsuFormType) => {
+        onEdit(row)
       },
-    },
-    {
+    }),
+    (rowData: AdminEditRsuFormType) => ({
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       tooltip: 'Delete RSU',
       position: 'row',
       iconProps: {
         itemType: 'rowAction',
       },
-      onClick: (event, rowData: AdminEditRsuFormType) => {
+      hidden: rowData.owner_organization !== organization,
+      onClick: (_event: any, row: AdminEditRsuFormType) => {
         const buttons = [
-          { label: 'Yes', onClick: () => onDelete(rowData) },
+          { label: 'Yes', onClick: () => onDelete(row) },
           { label: 'No', onClick: () => {} },
         ]
-        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + rowData.ip + '"?', buttons)
+        const alertOptions = Options('Delete RSU', 'Are you sure you want to delete "' + row.ip + '"?', buttons)
         confirmAlert(alertOptions)
       },
-    },
+    }),
     {
       tooltip: 'Remove All Selected From Organization',
       icon: 'delete',

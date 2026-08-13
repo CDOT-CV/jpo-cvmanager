@@ -15,7 +15,7 @@ import { alpha, Tooltip, useTheme, Button, Typography, Box } from '@mui/material
 import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
 
 interface AdminTableProps {
-  actions: Action<any>[]
+  actions: (Action<any> | ((rowData: any) => Action<any>))[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
   title: string

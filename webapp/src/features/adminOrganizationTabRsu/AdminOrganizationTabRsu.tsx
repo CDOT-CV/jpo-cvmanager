@@ -58,6 +58,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const loadingGlobal = useSelector(selectLoadingGlobal)
   const timDepositStatus = useSelector(selectTimDeposit)
   const snmpMonitoringStatus = useSelector(selectSnmpMonitoring)
+  const isOwnerOrg = props.tableData.length === 0 || props.tableData.every((rsu) => rsu.owner_organization === selectedOrg)
   const [rsuColumns] = useState<Column<any>[]>([
     { title: 'IP Address', field: 'ip', id: 0, width: '18%' },
     { title: 'Primary Route', field: 'primary_route', id: 1, width: '18%' },
@@ -324,52 +325,54 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
               SNMP Monitoring: {snmpMonitoringStatus}
             </Typography>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '50%' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOrgTimDepositChange(true)
-              }}
-            >
-              Enable TIM Deposit
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOrgTimDepositChange(false)
-              }}
-            >
-              Disable TIM Deposit
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOrgSnmpMonitoringChange(true)
-              }}
-            >
-              Enable SNMP Monitoring
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOrgSnmpMonitoringChange(false)
-              }}
-            >
-              Disable SNMP Monitoring
-            </Button>
-          </div>
+          {isOwnerOrg && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', maxWidth: '50%' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOrgTimDepositChange(true)
+                }}
+              >
+                Enable TIM Deposit
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOrgTimDepositChange(false)
+                }}
+              >
+                Disable TIM Deposit
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOrgSnmpMonitoringChange(true)
+                }}
+              >
+                Enable SNMP Monitoring
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOrgSnmpMonitoringChange(false)
+                }}
+              >
+                Disable SNMP Monitoring
+              </Button>
+            </div>
+          )}
         </AccordionSummary>
         <AccordionDetails sx={{ padding: '8px 0px' }}>
           {loadingGlobal === false && [
