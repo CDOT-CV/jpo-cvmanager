@@ -133,4 +133,26 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         }
         return Optional.empty();
     }
+
+    /**
+     * Finds the user's role in a specific organization by its ID.
+     * 
+     * @param orgId ID of the organization to search for
+     * @return Optional containing the role if found, empty otherwise
+     */
+    public Optional<UserRole> findRoleInOrgById(Integer orgId) {
+        if (orgId == null) {
+            return Optional.empty();
+        }
+        for (Map.Entry<Integer, Pair<Organization, UserRole>> entry : orgRoles.entrySet()) {
+            if (entry == null) {
+                continue;
+            }
+            Organization organization = entry.getValue().getLeft();
+            if (organization != null && organization.getId().equals(orgId)) {
+                return Optional.ofNullable(entry.getValue().getRight());
+            }
+        }
+        return Optional.empty();
+    }
 }
