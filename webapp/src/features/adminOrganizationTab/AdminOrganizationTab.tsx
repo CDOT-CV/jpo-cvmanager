@@ -15,7 +15,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
 import {
-  changeOrganization,
+  changeOrganizationName,
   selectOrganizationId,
   selectOrganizationName,
   setOrganizationList,
@@ -51,7 +51,7 @@ const AdminOrganizationTab = () => {
       dispatch(setOrganizationList({ value: { name: orgName }, type: 'delete' }))
       const next = orgList.find((o) => o.name !== orgName) ?? orgList[0]
       if (next) {
-        dispatch(changeOrganization(next.name))
+        dispatch(changeOrganizationName(next.name))
       }
       toast.success(`Successfully deleted organization: ${orgName}`, { id: loadingToast })
     } catch (error) {
@@ -82,7 +82,7 @@ const AdminOrganizationTab = () => {
                     textField="name"
                     data={orgList}
                     value={selectedOrgName}
-                    onChange={(value) => dispatch(changeOrganization(value.name))}
+                    onChange={(value) => dispatch(changeOrganizationName(value.name))}
                   />
                 </Grid2>
                 {selectedOrgName === undefined || selectedOrgId === undefined ? (

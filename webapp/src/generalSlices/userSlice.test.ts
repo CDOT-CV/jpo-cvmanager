@@ -11,6 +11,7 @@ import {
   // reducers
   logout,
   changeOrganization,
+  changeOrganizationName,
   setLoading,
   setLoginFailure,
 
@@ -210,6 +211,39 @@ describe('reducers', () => {
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
     expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
+  })
+
+  it('changeOrganizationName reducer updates state correctly', async () => {
+    const organization = 'organization'
+    UserManager.getOrganizationByName = jest.fn().mockReturnValue(organization)
+    expect(
+      reducer(
+        {
+          ...initialState,
+          value: { ...initialState.value, authLoginData: 'authLoginData' },
+        } as any,
+        changeOrganizationName('organizationName')
+      )
+    ).toEqual({
+      ...initialState,
+      value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+    })
+    expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
+
+    UserManager.getOrganizationByName = jest.fn().mockReturnValue(null)
+    expect(
+      reducer(
+        {
+          ...initialState,
+          value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+        } as any,
+        changeOrganizationName('organizationName')
+      )
+    ).toEqual({
+      ...initialState,
+      value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+    })
+    expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
   })
 
   it('setLoading reducer updates state correctly', async () => {

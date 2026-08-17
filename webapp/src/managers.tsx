@@ -27,10 +27,25 @@ const LocalStorageManager = {
 }
 
 const UserManager = {
-  getOrganization: (authLoginData: AuthLoginData, organizationId: number) => {
-    let updatedOrg = null
+  getOrganization: (authLoginData: AuthLoginData | null, organizationId: number) => {
+    if (!authLoginData) {
+      return null
+    }
+    let updatedOrg: UserAuthOrganization | null = null
     for (let i = 0; i < authLoginData.data.organizations.length; i++) {
       if (organizationId === authLoginData.data.organizations[i].organization) {
+        updatedOrg = authLoginData.data.organizations[i]
+      }
+    }
+    return updatedOrg
+  },
+  getOrganizationByName: (authLoginData: AuthLoginData | null, organizationName: string) => {
+    if (!authLoginData) {
+      return null
+    }
+    let updatedOrg: UserAuthOrganization | null = null
+    for (let i = 0; i < authLoginData.data.organizations.length; i++) {
+      if (organizationName === authLoginData.data.organizations[i].name) {
         updatedOrg = authLoginData.data.organizations[i]
       }
     }
