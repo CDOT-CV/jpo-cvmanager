@@ -7,16 +7,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import lombok.Getter;
 import us.dot.its.jpo.ode.api.models.UserRole;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 @Getter
 public class CvManagerAuthToken extends JwtAuthenticationToken {
-    private final Map<String, UserRole> orgRoles; // Map<Org, Role>
+    private final Map<Integer, Pair<Organization, UserRole>> orgRoles; // Map<Org, Role>
     private final boolean isSuperUser;
     private final String email;
 
@@ -36,16 +38,25 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         return false;
     }
 
-    protected Map<String, UserRole> getOrgRolesFrom(Map<String, Object> claims) {
+    protected Map<Integer, Pair<Organization, UserRole>> getOrgRolesFrom(Map<String, Object> claims) {
         @SuppressWarnings("unchecked")
-        List<Map<String, String>> orgList = (List<Map<String, String>>) claims.get("organizations");
+        List<Map<String, Object>> orgList = (List<Map<String, Object>>) claims.get("organizations");
 
         if (orgList == null) {
             return Map.of();
         }
 
         return orgList.stream()
-                .collect(Collectors.toMap(m -> m.get("org"), m -> UserRole.fromString(m.get("role"))));
+                .map(value -> {
+                    Organization org = new Organization();
+                    org.setId(Integer.parseInt(value.get("org_id").toString()));
+                    org.setName((String) value.get("org_name"));
+                    org.setEmail((String) value.get("org_email"));
+                    return Pair.of(org, UserRole.fromString((String) value.get("role")));
+                })
+                .collect(Collectors.toMap(
+                        m -> m.getLeft().getId(),
+                        m -> m));
     }
 
     /**
@@ -73,12 +84,16 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         return null;
     }
 
-    public boolean hasRoleInOrg(String orgId, String role) {
-        return UserRole.fromString(role).equals(orgRoles.get(orgId));
+    public boolean hasRoleInOrg(Integer orgId, String role) {
+        return UserRole.fromString(role).equals(orgRoles.get(orgId) != null ? orgRoles.get(orgId).getRight() : null);
     }
 
-    public Set<String> getAllOrgs() {
-        return orgRoles.keySet();
+    public Set<Organization> getAllOrgs() {
+        return orgRoles.keySet().stream()
+                .map(orgRoles::get)
+                .filter(pair -> pair != null && pair.getLeft() != null)
+                .map(Pair::getLeft)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -89,10 +104,11 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
      * @param requiredRole Minimum required role (e.g., "USER", "OPERATOR", "ADMIN")
      * @return List of organization names where user meets the role requirement
      */
-    public List<String> getQualifiedOrgList(UserRole requiredRole) {
+    public List<Organization> getQualifiedOrgList(UserRole requiredRole) {
         return orgRoles.entrySet().stream()
-                .filter(entry -> entry != null && entry.getValue().hasMinimumRole(requiredRole))
-                .map(Map.Entry::getKey)
+                .filter(entry -> entry != null && entry.getValue() != null
+                        && entry.getValue().getRight().hasMinimumRole(requiredRole))
+                .map(entry -> entry.getValue().getLeft())
                 .collect(Collectors.toList());
     }
 
@@ -106,13 +122,13 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
         if (orgName == null) {
             return Optional.empty();
         }
-        for (Map.Entry<String, UserRole> entry : orgRoles.entrySet()) {
+        for (Map.Entry<Integer, Pair<Organization, UserRole>> entry : orgRoles.entrySet()) {
             if (entry == null) {
                 continue;
             }
-            String organizationName = entry.getKey();
-            if (organizationName != null && organizationName.equalsIgnoreCase(orgName)) {
-                return Optional.ofNullable(entry.getValue());
+            Organization organization = entry.getValue().getLeft();
+            if (organization != null && organization.getName().equalsIgnoreCase(orgName)) {
+                return Optional.ofNullable(entry.getValue().getRight());
             }
         }
         return Optional.empty();

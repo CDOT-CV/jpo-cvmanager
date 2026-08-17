@@ -91,7 +91,7 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
-        allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN));
+        allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
 
         return allowed;
     }
@@ -174,7 +174,7 @@ public class RsuManagementService {
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
-            List<String> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
+            List<Organization> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
@@ -249,53 +249,37 @@ public class RsuManagementService {
         }
     }
 
-    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
+    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
 
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.contains(org))
-                    .toList();
-            if (!unqualifiedAdds.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to add RSU to organization(s): "
-                                + String.join(", ", unqualifiedAdds));
-            }
             for (String orgName : patch.getOrganizationsToAdd()) {
-                // Check if already associated
-                boolean exists = rsuRepository.existsByIpAndOrganizations(
-                        rsu.getIpv4Address(),
-                        List.of(orgName));
+                Organization org = authorizedOrgs.stream()
+                        .filter(o -> o.getName().equals(orgName))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + orgName));
 
-                if (!exists) {
-                    Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                    "Organization not found: " + orgName));
+                RsuOrganization rsuOrg = new RsuOrganization();
+                rsuOrg.setRsu(rsu);
+                rsuOrg.setOrganization(org);
 
-                    RsuOrganization rsuOrg = new RsuOrganization();
-                    rsuOrg.setRsu(rsu);
-                    rsuOrg.setOrganization(org);
-
-                    rsuOrganizationRepository.save(rsuOrg);
-                }
+                rsuOrganizationRepository.save(rsuOrg);
             }
         }
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.contains(org))
-                    .toList();
-            if (!unqualifiedRemoves.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to remove RSU from organization(s): "
-                                + String.join(", ", unqualifiedRemoves));
-            }
             for (String orgName : patch.getOrganizationsToRemove()) {
+                Organization org = authorizedOrgs.stream()
+                        .filter(o -> o.getName().equals(orgName))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + orgName));
                 // Find and delete the specific association
                 rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
                         rsu.getIpv4Address(),
-                        orgName).ifPresent(rsuOrganizationRepository::delete);
+                        org.getName()).ifPresent(rsuOrganizationRepository::delete);
             }
         }
     }
