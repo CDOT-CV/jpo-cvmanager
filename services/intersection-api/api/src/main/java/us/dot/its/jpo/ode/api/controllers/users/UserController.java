@@ -33,6 +33,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import us.dot.its.jpo.ode.api.models.UserRole;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
@@ -65,11 +67,12 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
     })
     public Page<UserDto> getUsers(
-            @RequestHeader(name = "Organization", required = true) String organization,
-            @RequestParam(name = "search", required = false) String search,
+            @RequestHeader(name = "Organization", required = true) Integer orgId,
+                    @RequestParam(name = "search", required = false) String search,
             @PageableDefault(size = 100) Pageable pageable) {
         Pageable mappedPageable = mapSortFields(SORT_FIELD_MAPPING, pageable);
-
+                
+        Organization organization = permissionService.getOrganizationById(orgId);
         return userManagementService.getUsers(organization, search, mappedPageable);
     }
 
@@ -95,32 +98,31 @@ public class UserController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role with access to the User requested"),
     })
     public ModifyUserAllowedSelections getAllowedSelections() {
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
         ModifyUserAllowedSelections allowedSelections = userManagementService
-                .getAllowedSelections(permissionService.getCvManagerAuthToken());
+                .getAllowedSelections(qualifiedOrgs);
 
         return allowedSelections;
     }
 
     @Operation(summary = "Create User", description = "Create a new User")
     @RequestMapping(method = RequestMethod.POST, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('ADMIN') && @PermissionService.hasRoleInOrgIds('ADMIN', #body.organizations))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or ADMIN role"),
     })
     @ResponseStatus(HttpStatus.CREATED)
     public void createUser(@Validated @RequestBody UserDto body) {
-        if (!permissionService.hasRoleInOrgNames(UserRole.ADMIN,
-                body.getOrganizations().stream().map(org -> org.getOrganization()).toList())) {
-            // This catches unqualified orgs or nonexistent orgs
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "User not qualified to modify all specified organizations");
-        } else if (!permissionService.isSuperUser() && body.getSuperUser()) {
+        if (!permissionService.isSuperUser() && body.getSuperUser()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Non-super user not qualified to create super user");
         }
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
 
-        userManagementService.createUser(body);
+        userManagementService.createUser(body, qualifiedOrgs);
         return;
     }
 
@@ -134,7 +136,10 @@ public class UserController {
     public ResponseEntity<Void> modifyUser(
             @Parameter(description = "User email address", example = "user@example.com", required = true) @PathVariable(name = "email") String email,
             @Validated @RequestBody UserPatch body) {
-        userManagementService.modifyUser(email, body, permissionService.getCvManagerAuthToken());
+        CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
+
+        userManagementService.modifyUser(email, body, qualifiedOrgs);
 
         return ResponseEntity.noContent().build();
     }

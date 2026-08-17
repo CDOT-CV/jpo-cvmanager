@@ -2,8 +2,8 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,18 +12,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
-import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
@@ -51,7 +49,6 @@ public class RsuManagementService {
 
     private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
     private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
-    private final OrganizationRepository organizationRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuIntersectionRepository rsuIntersectionRepository;
@@ -75,12 +72,12 @@ public class RsuManagementService {
         }
     }
 
-    public Page<RsuInfoDto> getAllRsuInfo(String orgName, String search, Pageable pageable) {
-        Page<Rsu> rsus = rsuRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<RsuInfoDto> getAllRsuInfo(Organization organization, String search, Pageable pageable) {
+        Page<Rsu> rsus = rsuRepository.findAllByOrganization(organization, search, pageable);
         return rsus.map(rsuMapper::toDto);
     }
 
-    public ModifyRsuAllowedSelections getAllowedSelections(CvManagerAuthToken userToken) {
+    public ModifyRsuAllowedSelections getAllowedSelections(List<Organization> qualifiedOrgs) {
         ModifyRsuAllowedSelections allowed = new ModifyRsuAllowedSelections();
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
@@ -91,13 +88,13 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
-        allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
+        allowed.setOrganizations(qualifiedOrgs.stream().map(Organization::getId).toList());
 
         return allowed;
     }
 
     @Transactional
-    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<String> orgsToAdd) {
+    public Rsu createRsu(RsuInfoDto rsuInfoDto, List<Organization> qualifiedOrgs) {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
@@ -116,24 +113,27 @@ public class RsuManagementService {
         rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
         rsuOptionRepository.save(rsuOption);
 
-        var toCreate = new ArrayList<RsuOrganization>();
-        for (String orgName : orgsToAdd) {
-            toCreate.add(createRsuOrgRelationship(orgName, rsu));
+        List<Organization> orgsToCreate = qualifiedOrgs.stream()
+                .filter(org -> rsuInfoDto.getOrganizations().contains(org.getId()))
+                .collect(Collectors.toList());
+
+        if (orgsToCreate.size() != rsuInfoDto.getOrganizations().size()) {
+            List<Integer> missingOrgIds = rsuInfoDto.getOrganizations().stream()
+                    .filter(orgId -> orgsToCreate.stream().noneMatch(org -> org.getId().equals(orgId)))
+                    .collect(Collectors.toList());
+            throw new EntityNotFoundException("Organization(s) not found: " + missingOrgIds);
         }
+
+        var toCreate = orgsToCreate.stream().map(org -> {
+            RsuOrganization rsuOrg = new RsuOrganization();
+            rsuOrg.setOrganization(org);
+            rsuOrg.setRsu(createdRsu);
+            return rsuOrg;
+        }).toList();
+
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
-    }
-
-    public RsuOrganization createRsuOrgRelationship(String orgName, Rsu rsu) {
-        Organization organization = organizationRepository.findByName(orgName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Organization not found: " + orgName));
-
-        RsuOrganization rsuOrg = new RsuOrganization();
-        rsuOrg.setOrganization(organization);
-        rsuOrg.setRsu(rsu);
-        return rsuOrg;
     }
 
     private void updateRelationships(Rsu rsu, RsuInfoDto rsuInfoDto) {
@@ -172,10 +172,8 @@ public class RsuManagementService {
     }
 
     @Transactional
-    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
+    public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, List<Organization> qualifiedOrgs) {
         try {
-            List<Organization> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
-
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
             Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
@@ -201,7 +199,7 @@ public class RsuManagementService {
             updateRelationships(existingRsu, rsuPatch);
 
             // 5. Handle organization additions/removals
-            handleOrganizationChanges(existingRsu, rsuPatch, authorizedOrgs);
+            handleOrganizationChanges(existingRsu, rsuPatch, qualifiedOrgs);
 
             // 6. Save updated entity (JPA handles UPDATE SQL)
             Rsu savedRsu = rsuRepository.save(existingRsu);
@@ -250,37 +248,41 @@ public class RsuManagementService {
     }
 
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
-
-        // Add organizations
-        if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
-            for (String orgName : patch.getOrganizationsToAdd()) {
-                Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getName().equals(orgName))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgName));
-
-                RsuOrganization rsuOrg = new RsuOrganization();
-                rsuOrg.setRsu(rsu);
-                rsuOrg.setOrganization(org);
-
-                rsuOrganizationRepository.save(rsuOrg);
-            }
+        if (patch.getOrganizations() == null) {
+            return;
         }
+        List<Integer> existingOrgIds = rsu.getRsuOrganizations().stream()
+                .map(RsuOrganization::getOrganization)
+                .map(Organization::getId)
+                .filter(orgId -> authorizedOrgs.stream().anyMatch(o -> o.getId().equals(orgId)))
+                .collect(Collectors.toList());
 
-        // Remove organizations
-        if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            for (String orgName : patch.getOrganizationsToRemove()) {
-                Organization org = authorizedOrgs.stream()
-                        .filter(o -> o.getName().equals(orgName))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Organization not found or user not authorized for: " + orgName));
-                // Find and delete the specific association
-                rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
-                        rsu.getIpv4Address(),
-                        org.getName()).ifPresent(rsuOrganizationRepository::delete);
-            }
+        // Add new associations
+        List<RsuOrganization> toAdd = patch.getOrganizations().stream()
+                .filter(orgId -> !existingOrgIds.contains(orgId))
+                .map(orgId -> {
+                    Organization org = authorizedOrgs.stream()
+                            .filter(o -> o.getId().equals(orgId))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Organization not found or user not authorized for: " + orgId));
+
+                    RsuOrganization rsuOrg = new RsuOrganization();
+                    rsuOrg.setRsu(rsu);
+                    rsuOrg.setOrganization(org);
+                    return rsuOrg;
+                })
+                .toList();
+        if (!toAdd.isEmpty()) {
+            rsuOrganizationRepository.saveAll(toAdd);
+        }
+        // Remove associations that are no longer present
+        List<RsuOrganization> toRemove = rsu.getRsuOrganizations().stream()
+                .filter(ro -> !patch.getOrganizations().contains(ro.getOrganization().getId()))
+                .filter(ro -> authorizedOrgs.stream().anyMatch(o -> o.getId().equals(ro.getOrganization().getId())))
+                .toList();
+        if (!toRemove.isEmpty()) {
+            rsuOrganizationRepository.deleteAll(toRemove);
         }
     }
 
