@@ -6,7 +6,7 @@ import { getQueryString } from './intersectionApiSlice'
 import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination'
 
 export interface GetUsersParams extends PaginatedQueryParams {
-  organization: string
+  organization: number
 }
 
 // Tag type constants
@@ -40,7 +40,7 @@ export const userApiSlice = createApi({
             search: search,
           })}`,
           headers: {
-            Organization: organization,
+            Organization: organization?.toString(),
           },
         }
       },

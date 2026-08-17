@@ -4,7 +4,7 @@ import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu
 import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectOrganizationId } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
 import './Admin.css'
 import { Action } from '@material-table/core'
@@ -23,7 +23,7 @@ import {
 const AdminRsuTab = () => {
   const navigate = useNavigate()
   const theme = useTheme()
-  const organization = useSelector(selectOrganizationName)
+  const organization = useSelector(selectOrganizationId)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -33,7 +33,7 @@ const AdminRsuTab = () => {
     size: 20,
     sort: 'ip,asc',
     search: '',
-    organization: organization || '',
+    organization: organization || -1,
   })
 
   const [trigger] = useLazyGetAllRsusQuery()
@@ -201,7 +201,7 @@ const AdminRsuTab = () => {
           size: query.pageSize,
           sort: `${orderBy},${orderDirection}`,
           search: query.search || '',
-          organization: organization || '', // Add organization parameter
+          organization: organization || -1, // Add organization parameter
         }
 
         // Check if organization changed - if so, reset to page 0

@@ -3,7 +3,6 @@ import Grid2 from '@mui/material/Grid2'
 import { useSelector, useDispatch } from 'react-redux'
 import EnvironmentVars from '../EnvironmentVars'
 import {
-  selectOrganizationName,
   selectName,
   selectEmail,
   selectAuthLoginData,
@@ -14,6 +13,7 @@ import {
   changeOrganization,
   selectLoginMessage,
   selectOrganizationId,
+  selectOrganizationName,
 } from '../generalSlices/userSlice'
 import { useKeycloak } from '@react-keycloak/web'
 

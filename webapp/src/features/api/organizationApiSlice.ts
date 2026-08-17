@@ -23,7 +23,6 @@ export const organizationApiSlice = createApi({
       const token = selectToken(currentState)
 
       headers.set('Authorization', `Bearer ${token}`)
-
       return headers
     },
   }),

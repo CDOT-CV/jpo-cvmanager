@@ -5,7 +5,7 @@ import { AdminEditIntersectionFormType } from './AdminEditIntersection'
 export type adminEditIntersectionData = {
   intersection_data: AdminEditIntersectionFormType
   allowed_selections: {
-    organizations: string[]
+    organizations: number[]
     rsus: string[]
   }
 }
@@ -25,16 +25,14 @@ export type AdminEditIntersectionBody = {
   }
   intersection_name?: string
   origin_ip?: string
-  organizations_to_add: string[]
-  organizations_to_remove: string[]
-  rsus_to_add: string[]
-  rsus_to_remove: string[]
+  organizations: number[]
+  rsus: string[]
 }
 
 const initialState = {
   apiData: undefined as adminEditIntersectionData | undefined,
-  organizations: [] as { name: string }[],
-  selectedOrganizations: [] as { name: string }[],
+  organizations: [] as { id: number }[],
+  selectedOrganizations: [] as { id: number }[],
   rsus: [] as { name: string }[],
   selectedRsus: [] as { name: string }[],
   submitAttempt: false,
@@ -79,46 +77,8 @@ export const mapFormToRequestJson = (
     delete json.origin_ip
   }
 
-  const organizationsToAdd = []
-  const organizationsToRemove = []
-  for (const org of state.value.apiData.allowed_selections.organizations) {
-    if (
-      state.value.selectedOrganizations.some((e) => e.name === org) &&
-      !state.value.apiData.intersection_data.organizations.includes(org)
-    ) {
-      organizationsToAdd.push(org)
-    }
-    if (
-      state.value.apiData.intersection_data.organizations.includes(org) &&
-      state.value.selectedOrganizations.some((e) => e.name === org) === false
-    ) {
-      organizationsToRemove.push(org)
-    }
-  }
-
-  json.organizations_to_add = organizationsToAdd
-  json.organizations_to_remove = organizationsToRemove
-
-  const rsusToAdd = []
-  const rsusToRemove = []
-  for (const rsu of state.value.apiData.allowed_selections.rsus) {
-    const formattedRsu = rsu?.replace('/32', '') // Remove /32 from the end of the RSU name for comparison
-    if (
-      state.value.selectedRsus.some((e) => e.name === formattedRsu) &&
-      !state.value.apiData.intersection_data.rsus.includes(formattedRsu)
-    ) {
-      rsusToAdd.push(formattedRsu)
-    }
-    if (
-      state.value.apiData.intersection_data.rsus.includes(formattedRsu) &&
-      state.value.selectedRsus.some((e) => e.name === formattedRsu) === false
-    ) {
-      rsusToRemove.push(formattedRsu)
-    }
-  }
-
-  json.rsus_to_add = rsusToAdd
-  json.rsus_to_remove = rsusToRemove
+  json.organizations = state.value.selectedOrganizations.map((org) => org.id)
+  json.rsus = state.value.selectedRsus.map((rsu) => rsu.name)
 
   return json
 }
@@ -146,14 +106,14 @@ export const adminEditIntersectionSlice = createSlice({
 
       const allowedSelections = apiData.allowed_selections
       state.value.organizations = allowedSelections.organizations.map((val) => {
-        return { name: val }
+        return { id: val }
       })
       state.value.rsus = allowedSelections.rsus.map((val) => {
         return { name: val?.replace('/32', '') } // Remove /32 from the end of the RSU name for human readability
       })
 
       state.value.selectedOrganizations = apiData.intersection_data.organizations.map((val) => {
-        return { name: val }
+        return { id: val }
       })
       state.value.selectedRsus = apiData.intersection_data.rsus.map((val) => {
         return { name: val?.replace('/32', '') } // Remove /32 from the end of the RSU name for human readability
@@ -168,8 +128,22 @@ export const { clear, setSelectedOrganizations, setSelectedRsus, setSubmitAttemp
   adminEditIntersectionSlice.actions
 
 export const selectApiData = (state: RootState) => state.adminEditIntersection.value.apiData
-export const selectOrganizations = (state: RootState) => state.adminEditIntersection.value.organizations
-export const selectSelectedOrganizations = (state: RootState) => state.adminEditIntersection.value.selectedOrganizations
+export const selectOrganizations = (state: RootState) => {
+  return state.adminEditIntersection.value.organizations.map(
+    (org) => ({
+      ...org,
+      name: state.user.value.authLoginData.data.organizations.find((e) => e.organization === org.id)?.name ?? org.id,
+    }) // Get the name from the user data
+  )
+}
+export const selectSelectedOrganizations = (state: RootState) => {
+  return state.adminEditIntersection.value.selectedOrganizations.map(
+    (org) => ({
+      ...org,
+      name: state.user.value.authLoginData.data.organizations.find((e) => e.organization === org.id)?.name ?? org.id,
+    }) // Get the name from the user data
+  )
+}
 export const selectRsus = (state: RootState) => state.adminEditIntersection.value.rsus
 export const selectSelectedRsus = (state: RootState) => state.adminEditIntersection.value.selectedRsus
 export const selectSubmitAttempt = (state: RootState) => state.adminEditIntersection.value.submitAttempt

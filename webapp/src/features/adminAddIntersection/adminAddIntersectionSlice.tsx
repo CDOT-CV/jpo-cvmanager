@@ -4,7 +4,7 @@ import { AdminAddIntersectionForm } from './AdminAddIntersection'
 import { AdminIntersection } from '../../models/Intersection'
 
 export type AdminIntersectionCreationInfo = {
-  organizations: string[]
+  organizations: number[]
   rsus: string[]
 }
 
@@ -28,15 +28,17 @@ const initialState = {
  * @returns {AdminIntersectionKeyedCreationInfo} - Keyed and prepared intersection creation info object.
  */
 export const convertApiJsonToKeyedFormat = (
-  apiJson: AdminIntersectionCreationInfo
+  apiJson: AdminIntersectionCreationInfo,
+  organizationsList: UserOrganizationWithName[]
 ): AdminIntersectionKeyedCreationInfo => {
   if (Object.keys(apiJson).length !== 0) {
     const keyedApiJson = {} as AdminIntersectionKeyedCreationInfo
 
     let data = []
     for (let i = 0; i < apiJson['organizations'].length; i++) {
-      const value = apiJson['organizations'][i]
-      const temp = { id: i, name: value }
+      const value = Number(apiJson['organizations'][i])
+      const org = organizationsList.find((org) => org.organization === value)
+      const temp = { id: value, name: org?.name ?? value }
       data.push(temp)
     }
     keyedApiJson.organizations = data

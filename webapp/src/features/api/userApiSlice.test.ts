@@ -64,7 +64,7 @@ describe('userApiSlice', () => {
 
     const action = store.dispatch(
       userApiSlice.endpoints.getUsers.initiate({
-        organization: 'OrgA',
+        organization: 1,
         page: 0,
         size: 100,
         sort: 'first_name,asc',
@@ -77,7 +77,7 @@ describe('userApiSlice', () => {
     expect(req.url).toBe('http://localhost:8080/users?page=0&size=100&sort=first_name%2Casc&search=')
     expect(req.method).toBe('GET')
     expect(req.headers.get('Authorization')).toBe('Bearer mock-token')
-    expect(req.headers.get('Organization')).toBe('OrgA')
+    expect(req.headers.get('Organization')).toBe('1')
     action.unsubscribe()
   })
 

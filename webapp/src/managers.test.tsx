@@ -25,12 +25,12 @@ test('UserManager correctly gets the organization', () => {
       organizations: [
         {
           organization: 1,
-          name: 'test1',
+          name: 'Org1',
           role: 'USER',
         },
         {
           organization: 2,
-          name: 'test2',
+          name: 'Org2',
           role: 'OPERATOR',
         },
       ],

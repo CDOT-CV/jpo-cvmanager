@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { ErrorMessage } from '@hookform/error-message'
@@ -26,6 +26,8 @@ import toast from 'react-hot-toast'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetRsuAllowedSelectionsQuery, useGetRsuQuery, usePatchRsuMutation } from '../api/rsuApiSlice'
+import { selectOrganizationsList } from '../../generalSlices/userSlice'
+import { useSelector } from 'react-redux'
 
 export type AdminEditRsuFormType = {
   orig_ip: string
@@ -43,7 +45,7 @@ export type AdminEditRsuFormType = {
   ssh_credential_group: string
   snmp_credential_group: string
   snmp_version_group: string
-  organizations: string[]
+  organizations: number[]
   tim_deposit: boolean
   snmp_monitoring: boolean
 }
@@ -58,6 +60,16 @@ const AdminEditRsu = () => {
 
   const [open, setOpen] = useState(true)
   const [submitAttempt, setSubmitAttempt] = useState(false)
+  const authOrganizationsList = useSelector(selectOrganizationsList)
+
+  const organizations = useMemo(() => {
+    return (
+      rsuAllowedSelections?.organizations?.map((id) => ({
+        id: id,
+        name: authOrganizationsList.find((authOrg) => authOrg.organization === id)?.name ?? id,
+      })) || []
+    )
+  }, [rsuAllowedSelections, authOrganizationsList])
 
   const {
     register,
@@ -625,13 +637,13 @@ const AdminEditRsu = () => {
                     value={watchedOrganizations || []}
                     {...register('organizations', { required: true })}
                     onChange={(event) => {
-                      const value = event.target.value as string[]
+                      const value = event.target.value as number[]
                       setValue('organizations', value)
                     }}
                   >
-                    {rsuAllowedSelections.organizations?.map((org) => (
-                      <MenuItem key={org} value={org}>
-                        {org}
+                    {organizations?.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
+                        {org.name}
                       </MenuItem>
                     ))}
                   </Select>

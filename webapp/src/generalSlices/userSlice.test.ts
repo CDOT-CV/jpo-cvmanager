@@ -1,10 +1,4 @@
 import reducer, {
-  selectIsAdminOrAbove,
-  selectIsOperatorOrAbove,
-  selectIsSuperUser,
-  selectIsUserOrAbove,
-} from './userSlice'
-import {
   // async thunks
   keycloakLogin,
 
@@ -27,6 +21,10 @@ import {
   selectLoginFailure,
   selectLoading,
   selectLoadingGlobal,
+  selectIsAdminOrAbove,
+  selectIsOperatorOrAbove,
+  selectIsSuperUser,
+  selectIsUserOrAbove,
   selectOrganizationId,
 } from './userSlice'
 import AuthApi from '../apis/auth-api'

@@ -5,7 +5,7 @@ import AdminTable from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
 import { setEditIntersectionRowData, selectColumns } from './adminIntersectionTabSlice'
-import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { selectOrganizationId } from '../../generalSlices/userSlice'
 import { clear } from '../adminEditIntersection/adminEditIntersectionSlice'
 import { useSelector, useDispatch } from 'react-redux'
 import { useGetIntersectionsQuery, useDeleteIntersectionMutation } from '../api/adminIntersectionApiSlice'
@@ -24,9 +24,9 @@ const AdminIntersectionTab = () => {
   const navigate = useNavigate()
   const theme = useTheme()
 
-  const organization = useSelector(selectOrganizationName)
-  const { data, isFetching, refetch } = useGetIntersectionsQuery(organization ?? '', {
-    skip: !organization,
+  const organizationId = useSelector(selectOrganizationId)
+  const { data, isFetching, refetch } = useGetIntersectionsQuery(organizationId ?? 0, {
+    skip: !organizationId,
   })
   const [deleteIntersectionMutation] = useDeleteIntersectionMutation()
 

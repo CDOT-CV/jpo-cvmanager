@@ -42,7 +42,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
     skip: !selectedOrgId,
   })
-  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgName })
+  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()
@@ -75,7 +75,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   const userData = useMemo(() => {
     return userTableData?.content.map((user) => {
-      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgName)
+      const orgInfo = user.organizations.find((org) => org.organization === selectedOrgId)
       return {
         ...user,
         role: orgInfo ? orgInfo.role.toLowerCase() : '',
