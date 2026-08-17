@@ -46,11 +46,17 @@ export const userSlice = createSlice({
       LocalStorageManager.removeAuthData()
       SecureStorageManager.removeUserRole()
     },
-    changeOrganization: (state, action) => {
+    changeOrganization: (state, action: PayloadAction<number>) => {
       const organization =
         UserManager.getOrganization(state.value.authLoginData, action.payload) ?? state.value.organization
       state.value.organization = organization
-      SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
+      if (organization) SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
+    },
+    changeOrganizationName: (state, action: PayloadAction<string>) => {
+      const organization =
+        UserManager.getOrganizationByName(state.value.authLoginData, action.payload) ?? state.value.organization
+      state.value.organization = organization
+      if (organization) SecureStorageManager.setUserRole({ name: organization.name, role: organization.role })
     },
     setOrganizationList: (state, action) => {
       if (action.payload.type === 'add') {
@@ -116,8 +122,15 @@ export const userSlice = createSlice({
   },
 })
 
-export const { logout, changeOrganization, setOrganizationList, setLoading, setLoginFailure, setRouteNotFound } =
-  userSlice.actions
+export const {
+  logout,
+  changeOrganization,
+  changeOrganizationName,
+  setOrganizationList,
+  setLoading,
+  setLoginFailure,
+  setRouteNotFound,
+} = userSlice.actions
 
 export const selectAuthLoginData = (state: RootState) => state.user.value.authLoginData
 export const selectToken = (state: RootState) => state.user.value.authLoginData?.token

@@ -137,7 +137,7 @@ const Header = () => {
                     </Typography>
                     <RadioGroup
                       id="organizationRadioGroup"
-                      onChange={(event) => dispatch(changeOrganization(event.target.value))}
+                      onChange={(event) => dispatch(changeOrganization(Number(event.target.value)))}
                       defaultValue={organizationId}
                     >
                       {(authLoginData?.data?.organizations ?? []).map((permission) => (

@@ -487,7 +487,7 @@ class EmailServiceTest {
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).deleteAll(anyList());
 
-        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.captor();
         verify(userEmailNotificationRepository, times(1)).saveAll(captor.capture());
 
         List<UserEmailNotification> savedNotifications = captor.getValue();
@@ -555,7 +555,7 @@ class EmailServiceTest {
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).saveAll(anyList());
 
-        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.captor();
         verify(userEmailNotificationRepository, times(1)).deleteAll(captor.capture());
 
         List<UserEmailNotification> deletedNotifications = captor.getValue();
@@ -627,7 +627,7 @@ class EmailServiceTest {
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
         verify(userEmailNotificationRepository, never()).deleteAll(anyList());
 
-        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<UserEmailNotification>> captor = ArgumentCaptor.captor();
         verify(userEmailNotificationRepository, times(1)).saveAll(captor.capture());
 
         List<UserEmailNotification> updatedNotifications = captor.getValue();
@@ -706,14 +706,14 @@ class EmailServiceTest {
         verify(userEmailNotificationRepository).findNotificationsByUser(TEST_EMAIL);
 
         // Deleted Intersection Notification Summary notification
-        ArgumentCaptor<List<UserEmailNotification>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<UserEmailNotification>> deleteCaptor = ArgumentCaptor.captor();
         verify(userEmailNotificationRepository, times(1)).deleteAll(deleteCaptor.capture());
 
         List<UserEmailNotification> deletedNotifications = deleteCaptor.getValue();
         assertNotificationListEquals(List.of(intersectionNotificationSummaries), deletedNotifications);
 
         // Added Daily Message Counts notification
-        ArgumentCaptor<List<UserEmailNotification>> saveCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<UserEmailNotification>> saveCaptor = ArgumentCaptor.captor();
         verify(userEmailNotificationRepository, times(1)).saveAll(saveCaptor.capture());
 
         // Get all captured values
