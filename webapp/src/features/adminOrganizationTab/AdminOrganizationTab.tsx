@@ -31,7 +31,11 @@ import { RootState } from '../../store'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NotFound } from '../../pages/404'
 import toast from 'react-hot-toast'
-import { changeOrganizationName, selectOrganizationName, setOrganizationList } from '../../generalSlices/userSlice'
+import {
+  changeOrganizationName,
+  selectOrganizationName,
+  deleteOrgAssociationByOrgName,
+} from '../../generalSlices/userSlice'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 import { alpha, Button, useTheme } from '@mui/material'
@@ -114,7 +118,7 @@ const AdminOrganizationTab = () => {
         notifyError('Failed to delete organization due to error: ' + data.payload.message)
       }
     })
-    dispatch(setOrganizationList({ value: { name: orgName }, type: 'delete' }))
+    dispatch(deleteOrgAssociationByOrgName(orgName))
     dispatch(changeOrganizationName(orgData[0].name))
   }
 

@@ -62,7 +62,7 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         user_query = (
             "SELECT to_jsonb(row) "
             "FROM ("
-            "SELECT u.email, u.first_name, u.last_name, u.name role_name "
+            "SELECT u.email, u.first_name, u.last_name, u.name role_name, u.organization_id "
             "FROM public.organizations AS org "
             "JOIN ("
             "SELECT uo.organization_id, users.email, users.first_name, users.last_name, roles.name "
@@ -82,7 +82,10 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
             user_obj["first_name"] = row["first_name"]
             user_obj["last_name"] = row["last_name"]
             user_obj["role"] = row["role_name"]
+            user_obj["organization_id"] = row["organization_id"]
             org_obj["org_users"].append(user_obj)
+            if row["organization_id"]:
+                org_obj["organization_id"] = row["organization_id"]
 
     # Get all RSU members of the organization
     rsu_query = (

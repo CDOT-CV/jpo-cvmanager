@@ -1,4 +1,5 @@
 import reducer, {
+  addOrModifyOrgAssociationByOrgName,
   selectIsAdminOrAbove,
   selectIsOperatorOrAbove,
   selectIsSuperUser,
@@ -30,6 +31,8 @@ import {
   selectOrganizationId,
 } from './userSlice'
 import AuthApi from '../apis/auth-api'
+import apiHelper from '../apis/api-helper'
+import EnvironmentVars from '../EnvironmentVars'
 import { UserManager, LocalStorageManager } from '../managers'
 import { setupJestCanvasMock } from 'jest-canvas-mock'
 
@@ -145,6 +148,82 @@ describe('async thunks', () => {
       })
       expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value, loginFailure, loginMessage } })
       expect(LocalStorageManager.removeAuthData).toHaveBeenCalled()
+    })
+  })
+})
+
+describe('addOrModifyOrgAssociationByOrgName', () => {
+  it('returns null when there is no token or auth data', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: null,
+        },
+      },
+    }))
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Alpha', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toBeNull()
+  })
+
+  it('updates the role when the organization already exists', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: {
+            token: 'token-123',
+            data: {
+              organizations: [{ name: 'Alpha', role: 'VIEWER', organization: 'org-1' }],
+            },
+          },
+        },
+      },
+    }))
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Alpha', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toEqual({ name: 'Alpha', role: 'ADMIN', organization: 'org-1' })
+  })
+
+  it('fetches the organization id and adds a brand new association', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: {
+            token: 'token-123',
+            data: {
+              organizations: [{ name: 'Alpha', role: 'VIEWER', organization: 'org-1' }],
+            },
+          },
+        },
+      },
+    }))
+    apiHelper._getDataWithCodes = jest.fn().mockResolvedValue({ status: 200, body: { organization_id: 'org-2' } })
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Beta', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toEqual({ name: 'Beta', role: 'ADMIN', organization: 'org-2' })
+
+    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
+      url: EnvironmentVars.adminOrg,
+      token: 'token-123',
+      query_params: { org_name: 'Beta' },
     })
   })
 })
