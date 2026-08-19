@@ -62,7 +62,7 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         user_query = (
             "SELECT to_jsonb(row) "
             "FROM ("
-            "SELECT u.email, u.first_name, u.last_name, u.name role_name, u.organization_id "
+            "SELECT u.email, u.first_name, u.last_name, u.name role_name "
             "FROM public.organizations AS org "
             "JOIN ("
             "SELECT uo.organization_id, users.email, users.first_name, users.last_name, roles.name "
@@ -82,10 +82,7 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
             user_obj["first_name"] = row["first_name"]
             user_obj["last_name"] = row["last_name"]
             user_obj["role"] = row["role_name"]
-            user_obj["organization_id"] = row["organization_id"]
             org_obj["org_users"].append(user_obj)
-            if row["organization_id"]:
-                org_obj["organization_id"] = row["organization_id"]
 
     # Get all RSU members of the organization
     rsu_query = (
@@ -138,6 +135,14 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         intersection_obj["intersection_name"] = row["intersection_name"]
         intersection_obj["origin_ip"] = row["origin_ip"]
         org_obj["org_intersections"].append(intersection_obj)
+
+    organization_query = (
+        "SELECT organization_id FROM public.organizations WHERE name = :org_name"
+    )
+    params = {"org_name": org_name}
+    data = pgquery.query_db(organization_query, params=params)
+    if data:
+        org_obj["organization_id"] = data[0][0]
 
     return org_obj
 

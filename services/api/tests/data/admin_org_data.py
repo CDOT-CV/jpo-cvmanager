@@ -91,7 +91,6 @@ get_org_data_user_return = [
             "first_name": "first",
             "last_name": "last",
             "role_name": "user",
-            "organization_id": 1,
         },
     ),
 ]
@@ -116,6 +115,10 @@ get_org_data_intersection_return = [
             "origin_ip": "1.1.1.1",
         },
     ),
+]
+
+get_org_data_organization_return = [
+    (1,),
 ]
 
 get_org_data_result = {
@@ -143,12 +146,13 @@ get_org_data_result = {
             "origin_ip": "1.1.1.1",
         },
     ],
+    "organization_id": 1,
 }
 
 get_org_data_user_sql = (
     "SELECT to_jsonb(row) "
     "FROM ("
-    "SELECT u.email, u.first_name, u.last_name, u.name role_name, organization_id "
+    "SELECT u.email, u.first_name, u.last_name, u.name role_name "
     "FROM public.organizations AS org "
     "JOIN ("
     "SELECT uo.organization_id, users.email, users.first_name, users.last_name, roles.name "
@@ -188,6 +192,10 @@ get_org_data_intersection_sql = (
     ") i ON i.organization_id = org.organization_id "
     "WHERE org.name = :org_name"
     ") as row"
+)
+
+get_org_data_organization_sql = (
+    "SELECT organization_id FROM public.organizations WHERE name = :org_name"
 )
 
 # get_allowed_selections
