@@ -148,11 +148,42 @@ public class UserManagementService {
         // 5. Return DTO
         return userMapper.toDto(savedUser);
     }
-
+    
+    /**
+     * Applies User organization membership changes and reports the most common
+     * validation failures.
+     *
+     * <p>
+     * When adding organizations, this method rejects names that the caller is not
+     * authorized to manage by throwing an {@link AccessDeniedException}. If the User
+     * is already associated with an organization in the add list, the repository
+     * save will fail with a DataIntegrityViolationException, which is re-formatted
+     * by the GlobalExceptionHandler as a 409 Conflict Response.
+     * 
+     * For removals, it rejects unauthorized orgs and deletes only the matching
+     * User-to-organization relationship when the association exists; otherwise, the
+     * removal is a no-op.
+     * 
+     * For modifications, it rejects unauthorized orgs and updates the role for the
+     * matching User-to-organization relationship when the association exists;
+     * otherwise, it throws an IllegalArgumentException.
+     *
+     * <p>
+     * Simple errors covered here include missing or unauthorized org names, invalid
+     * organization lookups, and any unmatched add/remove entries that do not
+     * resolve to an authorized organization.
+     */
     private void handleOrganizationChanges(User user, UserPatch patch, List<Organization> authorizedOrgs) {
-
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
+            List<UserOrganizationDto> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
+                    .toList();
+            if (!unqualifiedAdds.isEmpty()) {
+                throw new AccessDeniedException("User does not have permission to add User to organization(s): "
+                        + String.join(", ", unqualifiedAdds.stream()
+                                .map(UserOrganizationDto::getOrganization).toList()));
+            }
             for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
                 Organization organization = authorizedOrgs.stream()
                         .filter(o -> o.getName().equals(org.getOrganization()))
@@ -192,18 +223,29 @@ public class UserManagementService {
         }
 
         if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
+            List<UserOrganizationDto> unqualifiedModifications = patch.getOrganizationsToModify().stream()
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
+                    .toList();
+            if (!unqualifiedModifications.isEmpty()) {
+                throw new AccessDeniedException("User does not have permission to modify User in organization(s): "
+                        + String.join(", ", unqualifiedModifications.stream()
+                                .map(UserOrganizationDto::getOrganization).toList()));
+            }
             for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
                 userOrganizationRepository.findByUserAndOrganization_Name(
                         user,
-                        org.getOrganization()).ifPresent(userOrg -> {
+                        org.getOrganization()).ifPresentOrElse(userOrg -> {
                             Role role = roleRepository.findByNameIgnoreCase(org.getRole())
                                     .orElseThrow(
                                             () -> new IllegalArgumentException(
                                                     "Role not found: " + org.getRole()));
                             userOrg.setRole(role);
                             userOrganizationRepository.save(userOrg);
-                        });
+                        },
+                        () -> new IllegalArgumentException(
+                                "User is not associated with organization: " + org.getOrganization()));
             }
+                            
         }
     }
 
