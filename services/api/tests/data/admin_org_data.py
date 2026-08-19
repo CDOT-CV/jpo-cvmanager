@@ -91,6 +91,7 @@ get_org_data_user_return = [
             "first_name": "first",
             "last_name": "last",
             "role_name": "user",
+            "organization_id": 1,
         },
     ),
 ]
@@ -147,7 +148,7 @@ get_org_data_result = {
 get_org_data_user_sql = (
     "SELECT to_jsonb(row) "
     "FROM ("
-    "SELECT u.email, u.first_name, u.last_name, u.name role_name "
+    "SELECT u.email, u.first_name, u.last_name, u.name role_name, organization_id "
     "FROM public.organizations AS org "
     "JOIN ("
     "SELECT uo.organization_id, users.email, users.first_name, users.last_name, roles.name "
