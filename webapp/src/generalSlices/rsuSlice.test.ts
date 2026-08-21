@@ -3,15 +3,12 @@ import {
   // async thunks
   getRsuData,
   _getRsuInfo,
-  getSsmSrmData,
   updateGeoMsgData,
 
   // reducers
   selectRsu,
   toggleMapDisplay,
   clearGeoMsg,
-  toggleSsmSrmDisplay,
-  setSelectedSrm,
   toggleGeoMsgPointSelect,
   updateGeoMsgPoints,
   updateGeoMsgDate,
@@ -41,9 +38,6 @@ import {
   selectGeoMsgFilter,
   selectGeoMsgFilterStep,
   selectGeoMsgFilterOffset,
-  selectSsmDisplay,
-  selectSrmSsmList,
-  selectSelectedSrm,
 } from './rsuSlice'
 import RsuApi from '../apis/rsu-api'
 import { RootState } from '../store'
@@ -84,9 +78,6 @@ describe('rsu reducer', () => {
         geoMsgFilter: false,
         geoMsgFilterStep: 60,
         geoMsgFilterOffset: 0,
-        ssmDisplay: false,
-        srmSsmList: [],
-        selectedSrm: [],
       },
     })
   })
@@ -112,9 +103,6 @@ describe('async thunks', () => {
       geoMsgFilter: null,
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
-      ssmDisplay: null,
-      srmSsmList: null,
-      selectedSrm: null,
     },
   }
 
@@ -225,39 +213,6 @@ describe('async thunks', () => {
       expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuData } })
     })
   })
-
-  describe('getSsmSrmData', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-          },
-        },
-      })
-      const action = getSsmSrmData()
-
-      RsuApi.getSsmSrmData = jest.fn().mockReturnValue('srmSsmList')
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual('srmSsmList')
-      expect(RsuApi.getSsmSrmData).toHaveBeenCalledWith('token')
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const srmSsmList = 'srmSsmList'
-      const state = reducer(initialState, {
-        type: 'rsu/getSsmSrmData/fulfilled',
-        payload: srmSsmList,
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        value: { ...initialState.value, srmSsmList },
-      })
-    })
-  })
-
 
   describe('updateGeoMsgData', () => {
     it('returns and calls the api correctly', async () => {
@@ -421,9 +376,6 @@ describe('reducers', () => {
       geoMsgFilter: null,
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
-      ssmDisplay: null,
-      srmSsmList: null,
-      selectedSrm: null,
     },
   }
 
@@ -461,37 +413,6 @@ describe('reducers', () => {
         geoMsgData: [],
         geoMsgDateError: false,
       },
-    })
-  })
-
-  it('toggleSsmSrmDisplay reducer updates state correctly', async () => {
-    expect(
-      reducer({ ...initialState, value: { ...initialState.value, ssmDisplay: true } }, toggleSsmSrmDisplay())
-    ).toEqual({
-      ...initialState,
-      value: { ...initialState.value, ssmDisplay: false },
-    })
-  })
-
-  it('setSelectedSrm reducer updates state correctly', async () => {
-    const selectedSrm = {
-      time: 'a',
-      requestedId: 'b',
-      role: 'c',
-      status: 'd',
-      type: 'e',
-      requestId: 'f',
-      lat: 1,
-      long: 2,
-    }
-    expect(reducer(initialState, setSelectedSrm(selectedSrm))).toEqual({
-      ...initialState,
-      value: { ...initialState.value, selectedSrm: [selectedSrm] },
-    })
-
-    expect(reducer(initialState, setSelectedSrm(null))).toEqual({
-      ...initialState,
-      value: { ...initialState.value, selectedSrm: [] },
     })
   })
 
@@ -594,9 +515,6 @@ describe('selectors', () => {
       geoMsgFilter: 'geoMsgFilter',
       geoMsgFilterStep: 'geoMsgFilterStep',
       geoMsgFilterOffset: 'geoMsgFilterOffset',
-      ssmDisplay: 'ssmDisplay',
-      srmSsmList: 'srmSsmList',
-      selectedSrm: 'selectedSrm',
     },
   }
   const rsuState = { rsu: initialState } as any
@@ -622,8 +540,5 @@ describe('selectors', () => {
     expect(selectGeoMsgFilter(rsuState)).toEqual('geoMsgFilter')
     expect(selectGeoMsgFilterStep(rsuState)).toEqual('geoMsgFilterStep')
     expect(selectGeoMsgFilterOffset(rsuState)).toEqual('geoMsgFilterOffset')
-    expect(selectSsmDisplay(rsuState)).toEqual('ssmDisplay')
-    expect(selectSrmSsmList(rsuState)).toEqual('srmSsmList')
-    expect(selectSelectedSrm(rsuState)).toEqual('selectedSrm')
   })
 })
