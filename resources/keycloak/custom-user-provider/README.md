@@ -88,15 +88,11 @@ A custom token mapper is configured to include the above user information in gen
     "super_user": "1",
     "organizations": [
         {
-            "org_id": 1,
-            "org_name": "Test Org",
-            "org_email": "testorg@example.com",
+            "org": "Test Org",
             "role": "admin"
         },
         {
-            "org_id": 2,
-            "org_name": "Test Org 2",
-            "org_email": "testorg2@example.com",
+            "org": "Test Org 2",
             "role": "user"
         }
     ],

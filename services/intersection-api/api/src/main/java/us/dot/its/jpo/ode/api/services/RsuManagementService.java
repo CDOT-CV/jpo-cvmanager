@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -89,7 +90,6 @@ public class RsuManagementService {
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
         allowed.setOrganizations(qualifiedOrgs.stream().map(Organization::getId).toList());
-
         return allowed;
     }
 
@@ -247,6 +247,26 @@ public class RsuManagementService {
         }
     }
 
+    /**
+     * Applies RSU organization membership changes and reports the most common
+     * validation failures.
+     *
+     * <p>
+     * When adding organizations, this method rejects names that the caller is not
+     * authorized to manage by throwing an {@link AccessDeniedException}. If the RSU
+     * is already associated with an organization in the add list, the repository
+     * save will fail with a DataIntegrityViolationException, which is re-formatted
+     * by the GlobalExceptionHandler as a 409 Conflict Response.
+     * 
+     * For removals, it rejects unauthorized orgs and deletes only the matching
+     * RSU-to-organization relationship when the association exists; otherwise, the
+     * removal is a no-op.
+     *
+     * <p>
+     * Simple errors covered here include missing or unauthorized org names, invalid
+     * organization lookups, and any unmatched add/remove entries that do not
+     * resolve to an authorized organization.
+     */
     private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
         if (patch.getOrganizations() == null) {
             return;

@@ -137,7 +137,31 @@ public class UserManagementService {
         // 5. Return DTO
         return userMapper.toDto(savedUser);
     }
-
+    
+    /**
+     * Applies User organization membership changes and reports the most common
+     * validation failures.
+     *
+     * <p>
+     * When adding organizations, this method rejects names that the caller is not
+     * authorized to manage by throwing an {@link AccessDeniedException}. If the User
+     * is already associated with an organization in the add list, the repository
+     * save will fail with a DataIntegrityViolationException, which is re-formatted
+     * by the GlobalExceptionHandler as a 409 Conflict Response.
+     * 
+     * For removals, it rejects unauthorized orgs and deletes only the matching
+     * User-to-organization relationship when the association exists; otherwise, the
+     * removal is a no-op.
+     * 
+     * For modifications, it rejects unauthorized orgs and updates the role for the
+     * matching User-to-organization relationship when the association exists;
+     * otherwise, it throws an IllegalArgumentException.
+     *
+     * <p>
+     * Simple errors covered here include missing or unauthorized org names, invalid
+     * organization lookups, and any unmatched add/remove entries that do not
+     * resolve to an authorized organization.
+     */
     private void handleOrganizationChanges(User user, UserPatch patch, List<Organization> authorizedOrgs) {
         if (patch.getOrganizations() == null) {
             return;

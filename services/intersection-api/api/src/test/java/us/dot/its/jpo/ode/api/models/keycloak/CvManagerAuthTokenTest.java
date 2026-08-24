@@ -604,12 +604,14 @@ class CvManagerAuthTokenTest {
         }
 
         @Test
-        @DisplayName("Should be case-insensitive for org name")
-        void shouldBeCaseInsensitiveForOrgName() {
+        @DisplayName("Should be case-sensitive for org name")
+        void shouldBeCaseSensitiveForOrgName() {
             // Act & Assert
-            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("cdot"));
-            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CdOt"));
-            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("wydot"));
+            assertEquals(Optional.of(UserRole.ADMIN), token.findRoleInOrg("CDOT"));
+            assertTrue(token.findRoleInOrg("cdot").isEmpty());
+            assertTrue(token.findRoleInOrg("CdOt").isEmpty());
+            assertEquals(Optional.of(UserRole.OPERATOR), token.findRoleInOrg("WYDOT"));
+            assertTrue(token.findRoleInOrg("Wydot").isEmpty());
         }
     }
 

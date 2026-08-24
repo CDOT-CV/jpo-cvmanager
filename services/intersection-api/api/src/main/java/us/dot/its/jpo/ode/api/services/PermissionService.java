@@ -114,7 +114,7 @@ public class PermissionService {
         String organization = getOrganizationFromHeader();
         if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
-                    .filter(org -> org.getName().equalsIgnoreCase(organization))
+                    .filter(org -> org.getName().equals(organization))
                     .findFirst()
                     .orElse(null);
             if (matchingOrg == null) {
