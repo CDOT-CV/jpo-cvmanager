@@ -92,8 +92,12 @@ public class RsuManagementService {
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
-        allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
 
+        if (userToken.isSuperUser()) {
+            allowed.setOrganizations(organizationRepository.findAll().stream().map(o -> o.getName()).toList());
+        } else {
+            allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
+        }
         return allowed;
     }
 

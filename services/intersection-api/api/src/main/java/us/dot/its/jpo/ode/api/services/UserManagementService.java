@@ -206,19 +206,18 @@ public class UserManagementService {
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<UserOrganizationDto> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
+            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
-                        + String.join(", ", unqualifiedRemoves.stream()
-                                .map(UserOrganizationDto::getOrganization).toList()));
+                        + String.join(", ", unqualifiedRemoves));
             }
-            for (UserOrganizationDto org : patch.getOrganizationsToRemove()) {
+            for (String org : patch.getOrganizationsToRemove()) {
                 // Find and delete the specific association
                 userOrganizationRepository.findByUserAndOrganization_Name(
                         user,
-                        org.getOrganization()).ifPresent(userOrganizationRepository::delete);
+                        org).ifPresent(userOrganizationRepository::delete);
             }
         }
 
