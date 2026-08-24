@@ -11,7 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
@@ -586,12 +586,12 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(
-                exception.getMessage().contains("Organization not found or user not authorized for: UnauthorizedOrg"));
+                exception.getMessage().contains("User does not have permission to add RSU to organization(s): UnauthorizedOrg"));
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
@@ -601,7 +601,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizationsToAdd(Arrays.asList("NonExistentOrg"));
+        patch.setOrganizationsToAdd(Arrays.asList("NonExistentOrg", "NonExistentOrg2"));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -612,12 +612,12 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(
-                exception.getMessage().contains("Organization not found or user not authorized for: NonExistentOrg"));
+                exception.getMessage().contains("User does not have permission to add RSU to organization(s): NonExistentOrg, NonExistentOrg2"));
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
     }
 
@@ -701,12 +701,12 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(
-                exception.getMessage().contains("Organization not found or user not authorized for: UnauthorizedOrg"));
+                exception.getMessage().contains("User does not have permission to remove RSU from organization(s): UnauthorizedOrg"));
         verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
@@ -759,8 +759,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                        AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));
@@ -783,8 +783,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(authorizedOrgs);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
 
         assertTrue(exception.getMessage().contains("UnauthorizedOrg1"));

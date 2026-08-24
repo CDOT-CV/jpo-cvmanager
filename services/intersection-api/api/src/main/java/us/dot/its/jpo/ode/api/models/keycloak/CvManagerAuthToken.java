@@ -127,7 +127,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
                 continue;
             }
             Organization organization = entry.getValue().getLeft();
-            if (organization != null && organization.getName().equalsIgnoreCase(orgName)) {
+            if (organization != null && organization.getName().equals(orgName)) {
                 return Optional.ofNullable(entry.getValue().getRight());
             }
         }

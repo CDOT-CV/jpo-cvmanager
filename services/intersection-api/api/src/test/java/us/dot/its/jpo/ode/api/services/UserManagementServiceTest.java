@@ -286,16 +286,19 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization("UnauthorizedOrg");
         orgToAdd.setRole("admin");
-        patch.setOrganizationsToAdd(List.of(orgToAdd));
+        UserOrganizationDto orgToAdd2 = new UserOrganizationDto();
+        orgToAdd2.setOrganization("UnauthorizedOrg2");
+        orgToAdd2.setRole("admin");
+        patch.setOrganizationsToAdd(List.of(orgToAdd, orgToAdd2));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals("Organization not found or user not authorized for: UnauthorizedOrg",
+        assertEquals("User does not have permission to add User to organization(s): UnauthorizedOrg, UnauthorizedOrg2",
                 exception.getMessage());
         verify(userOrganizationRepository, never()).save(any());
     }
@@ -312,10 +315,11 @@ class UserManagementServiceTest {
         when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrganization));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, authToken));
 
-        assertEquals("Organization not found or user not authorized for: AnotherOrg", exception.getMessage());
+        assertEquals("User does not have permission to add User to organization(s): AnotherOrg",
+                exception.getMessage());
         verify(userOrganizationRepository, never()).save(any());
     }
 
@@ -342,10 +346,7 @@ class UserManagementServiceTest {
     @Test
     void testModifyUser_RemoveOrganization_Success() {
         UserPatch patch = new UserPatch();
-        UserOrganizationDto orgToRemove = new UserOrganizationDto();
-        orgToRemove.setOrganization("TestOrg");
-        orgToRemove.setRole("admin");
-        patch.setOrganizationsToRemove(List.of(orgToRemove));
+        patch.setOrganizationsToRemove(List.of("TestOrg"));
 
         UserOrganization userOrg = new UserOrganization();
         userOrg.setUser(testUser);
@@ -369,10 +370,7 @@ class UserManagementServiceTest {
     @Test
     void testModifyUser_RemoveOrganization_Unauthorized() {
         UserPatch patch = new UserPatch();
-        UserOrganizationDto orgToRemove = new UserOrganizationDto();
-        orgToRemove.setOrganization("UnauthorizedOrg");
-        orgToRemove.setRole("admin");
-        patch.setOrganizationsToRemove(List.of(orgToRemove));
+        patch.setOrganizationsToRemove(List.of("UnauthorizedOrg"));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.isSuperUser()).thenReturn(false);
@@ -389,10 +387,7 @@ class UserManagementServiceTest {
     @Test
     void testModifyUser_RemoveOrganization_NotFound() {
         UserPatch patch = new UserPatch();
-        UserOrganizationDto orgToRemove = new UserOrganizationDto();
-        orgToRemove.setOrganization("TestOrg");
-        orgToRemove.setRole("admin");
-        patch.setOrganizationsToRemove(List.of(orgToRemove));
+        patch.setOrganizationsToRemove(List.of("TestOrg"));
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(authToken.isSuperUser()).thenReturn(false);
