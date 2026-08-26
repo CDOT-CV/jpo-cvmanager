@@ -176,6 +176,8 @@ This application has the ability to disable certain features based on environmen
 - ENABLE_RSU_FEATURES: if 'false', disable all RSU-specific features, including map, RSU data, RSU configuration, and RSU organization linking.
 - ENABLE_INTERSECTION_FEATURES: if 'false', disable all intersection-specific features, including intersection map, intersection dashboard, and intersection admin pages.
 - ENABLE_WZDX_FEATURES: if 'false', disable all wzdx-specific features, including WZDx data on the main map.
+- ENABLE_HAAS_FEATURES: if 'false', disable all HAAS-specific features, including HAAS data on the main map.
+- ENABLE_RSU_STATUS_MONITOR_FEATURES: if 'false', disable all RSU status monitor-specific features, including RSU status data on the main map and RSU admin page.
 
 These variables will disable UI pages/visuals, UI features, and API endpoints.
 
@@ -414,8 +416,6 @@ Note that it is recommended to work with the Python API from a [virtual environm
 
 - MONGO_PROCESSED_BSM_COLLECTION_NAME: The collection name in MongoDB for processed BSM messages.
 - MONGO_PROCESSED_PSM_COLLECTION_NAME: The collection name in MongoDB for processed PSM messages.
-- MONGO_SSM_COLLECTION_NAME: The database name for SSM visualization data.
-- MONGO_SRM_COLLECTION_NAME: The database name for SRM visualization data.
 - FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
 - IAPI_ENDPOINT: Intersection API endpoint for making REST requests to send emails
 - KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API
