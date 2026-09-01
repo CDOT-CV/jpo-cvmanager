@@ -166,6 +166,36 @@ const calculateTimeWindow = (baseDate: string | Date, offset: number, step: numb
   return { start, end }
 }
 
+type LegendProps = {
+  layers: MapLayer[]
+  activeLayers: string[]
+  onToggleLayer: (id: string) => void
+}
+
+const Legend = React.memo(({ layers, activeLayers, onToggleLayer }: LegendProps) => (
+  <FormGroup>
+    {layers
+      .filter((layer) => evaluateFeatureFlags(layer.tag))
+      .map((layer) => (
+        <div key={layer.id}>
+          <div style={{ fontSize: 'small', display: 'flex', alignItems: 'center' }}>
+            <FormControlLabel
+              label={<Typography>{layer.label}</Typography>}
+              control={
+                <Checkbox
+                  checked={activeLayers.includes(layer.id)}
+                  onChange={() => onToggleLayer(layer.id)}
+                />
+              }
+            />
+          </div>
+        </div>
+      ))}
+  </FormGroup>
+))
+
+Legend.displayName = 'Legend'
+
 function MapPage() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
@@ -874,55 +904,35 @@ function MapPage() {
     },
   }
 
-  const Legend = () => {
-    const toggleLayer = (id: string) => {
-      dispatch(toggleLayerActive(id))
-      if (activeLayers.includes(id)) {
-        switch (id) {
-          case MAP_LAYERS.RSU.id:
-            dispatch(selectRsu(null))
-            dispatch(clearFirmware())
-            break
-          case MAP_LAYERS.WZDX.id:
-            setSelectedWZDxMarkerIndex(null)
-            setSelectedWZDxMarker(null)
-            break
-          case MAP_LAYERS.HAAS_ALERT.id:
-            setSelectedHaasIncident(null)
-            break
-        }
-      } else {
-        switch (id) {
-          case MAP_LAYERS.WZDX.id:
-            dispatch(getWzdxData())
-            break
-          case MAP_LAYERS.HEATMAP.id:
-          case MAP_LAYERS.HEATMAP_CLUSTER.id:
-            if (!menuSelection.includes('Display Message Counts')) {
-              dispatch(toggleMapMenuSelection('Display Message Counts'))
-            }
-            break
-        }
+  const toggleLayer = (id: string) => {
+    dispatch(toggleLayerActive(id))
+    if (activeLayers.includes(id)) {
+      switch (id) {
+        case MAP_LAYERS.RSU.id:
+          dispatch(selectRsu(null))
+          dispatch(clearFirmware())
+          break
+        case MAP_LAYERS.WZDX.id:
+          setSelectedWZDxMarkerIndex(null)
+          setSelectedWZDxMarker(null)
+          break
+        case MAP_LAYERS.HAAS_ALERT.id:
+          setSelectedHaasIncident(null)
+          break
+      }
+    } else {
+      switch (id) {
+        case MAP_LAYERS.WZDX.id:
+          dispatch(getWzdxData())
+          break
+        case MAP_LAYERS.HEATMAP.id:
+        case MAP_LAYERS.HEATMAP_CLUSTER.id:
+          if (!menuSelection.includes('Display Message Counts')) {
+            dispatch(toggleMapMenuSelection('Display Message Counts'))
+          }
+          break
       }
     }
-
-    return (
-      <FormGroup>
-        {Object.values(MAP_LAYERS)
-          .filter((layer) => evaluateFeatureFlags(layer.tag))
-          .map((layer) => (
-            <div key={layer.id}>
-              <div style={{ fontSize: 'small', display: 'flex', alignItems: 'center' }}>
-                <FormControlLabel
-                  onClick={() => toggleLayer(layer.id)}
-                  label={<Typography>{layer.label}</Typography>}
-                  control={<Checkbox checked={activeLayers.includes(layer.id)} />}
-                />
-              </div>
-            </div>
-          ))}
-      </FormGroup>
-    )
   }
 
   const handleButtonToggle = (event: React.SyntheticEvent<Element, Event>, origin: 'config' | 'msgViewer') => {
@@ -976,7 +986,7 @@ function MapPage() {
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Legend />
+            <Legend layers={Object.values(MAP_LAYERS)} activeLayers={activeLayers} onToggleLayer={toggleLayer} />
           </AccordionDetails>
         </Accordion>
         <ConditionalRenderRsu>
