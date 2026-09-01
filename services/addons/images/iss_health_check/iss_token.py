@@ -63,13 +63,35 @@ def add_secret_version(client, secret_id, parent, data):
     parent: GCP secret manager parent ID for the GCP project
     data: String value for the new version of the secret
     """
-    client.add_secret_version(
+    response = client.add_secret_version(
         request={
             "parent": f"{parent}/secrets/{secret_id}",
             "payload": {"data": str.encode(json.dumps(data))},
         }
     )
-    logger.debug("New version added")
+    logger.debug(f"New secret version added: {response.name}")
+    return response
+
+
+def destroy_old_secret_versions(client, secret_id, parent, current_version_name):
+    """Destroy every non-destroyed version older than the current version.
+
+    Versions are compared by their numeric version IDs. This prevents one run
+    from destroying a newer version if two health-check jobs overlap.
+    """
+    secret_name = f"{parent}/secrets/{secret_id}"
+    current_version_id = int(current_version_name.rsplit("/", 1)[-1])
+
+    for version in client.list_secret_versions(request={"parent": secret_name}):
+        version_id = int(version.name.rsplit("/", 1)[-1])
+        if (
+            version_id >= current_version_id
+            or version.state == secretmanager.SecretVersion.State.DESTROYED
+        ):
+            continue
+
+        client.destroy_secret_version(request={"name": version.name})
+        logger.info(f"Destroyed old secret version: {version.name}")
 
 
 # Postgres functions
@@ -187,7 +209,9 @@ def get_token():
 
     if iss_health_check_environment.STORAGE_TYPE == "gcp":
         # Add new version to the secret
-        add_secret_version(client, secret_id, parent, version_data)
+        new_version = add_secret_version(client, secret_id, parent, version_data)
+        # Only clean up after the new token has been stored successfully.
+        destroy_old_secret_versions(client, secret_id, parent, new_version.name)
     elif iss_health_check_environment.STORAGE_TYPE == "postgres":
         # add new entry to the table
         add_data(key_table_name, new_friendly_name, new_token)
