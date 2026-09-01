@@ -11,7 +11,7 @@ const mapStyles: { [key: string]: any } = {
   'intersectionMapStyle.json': intersectionStyle,
 }
 import { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
-import Map, { Marker, Popup, Source, Layer } from 'react-map-gl'
+import Map, { Marker, Popup, Source, Layer, MapRef } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import EnvironmentVars from '../EnvironmentVars'
 import dayjs from 'dayjs'
@@ -171,7 +171,7 @@ function MapPage() {
 
   const theme = useTheme()
 
-  const mapRef = React.useRef(null)
+  const mapRef = React.useRef<MapRef>(null)
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
@@ -212,6 +212,27 @@ function MapPage() {
 
   // RSU layer local state variables
   const [displayType, setDisplayType] = useState('online')
+
+  const syncMapToViewState = React.useCallback(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const center = map.getCenter()
+    const cameraChanged =
+      Math.abs(center.lat - viewState.latitude) > 1e-7 ||
+      Math.abs(center.lng - viewState.longitude) > 1e-7 ||
+      Math.abs(map.getZoom() - viewState.zoom) > 1e-7
+
+    if (cameraChanged) {
+      map.jumpTo({ center: [viewState.longitude, viewState.latitude], zoom: viewState.zoom })
+    }
+  }, [viewState])
+
+  // Camera movement is uncontrolled while the user interacts with the map. Redux updates still drive external
+  // camera changes (for example, selecting a location from Display RSU Status).
+  useEffect(() => {
+    syncMapToViewState()
+  }, [syncMapToViewState])
 
   const { data: rsuCounts } = useGetRsuCountsQuery({ organization, startDate: countsStartDate, endDate: countsEndDate })
 
@@ -1131,12 +1152,13 @@ function MapPage() {
         }}
       >
         <Map
-          {...viewState}
+          initialViewState={viewState}
           ref={mapRef}
           mapboxAccessToken={EnvironmentVars.MAPBOX_TOKEN}
           mapStyle={mbStyle}
           style={{ width: '100%', height: '100%' }}
-          onMove={(evt) => dispatch(setMapViewState(evt.viewState))}
+          onLoad={syncMapToViewState}
+          onMoveEnd={(evt) => dispatch(setMapViewState(evt.viewState))}
           interactiveLayerIds={['geoMsgPointLayer', RSU_POINT_LAYER_ID]}
           onMouseMove={(e) => {
             if (addGeoMsgPoint || addConfigPoint) {
