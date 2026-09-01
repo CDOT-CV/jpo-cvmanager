@@ -10,7 +10,7 @@ const mapStyles: { [key: string]: any } = {
   'mapbox-styles/main-dark.json': mainDark,
   'intersectionMapStyle.json': intersectionStyle,
 }
-import { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
+import { CircleLayer, FillLayer, LineLayer, SymbolLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
 import Map, { Marker, Popup, Source, Layer, MapRef } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import EnvironmentVars from '../EnvironmentVars'
@@ -136,6 +136,9 @@ import { formatScmsExpiration, useGetScmsStatusQuery } from '../features/api/scm
 const MILLISECONDS_PER_MINUTE = 60000
 const RSU_SOURCE_ID = 'rsu-source'
 const RSU_POINT_LAYER_ID = 'rsu-points'
+const INTERSECTION_SOURCE_ID = 'intersection-source'
+const INTERSECTION_POINT_LAYER_ID = 'intersection-points'
+const INTERSECTION_ICON_ID = 'intersection-icon'
 
 const rsuPointLayer: CircleLayer = {
   id: RSU_POINT_LAYER_ID,
@@ -144,6 +147,19 @@ const rsuPointLayer: CircleLayer = {
     // RsuMarker rendered a 15px diameter circle (5px content + 5px padding on each side).
     'circle-radius': 7.5,
     'circle-color': ['get', 'display_color'],
+  },
+}
+
+const intersectionPointLayer: SymbolLayer = {
+  id: INTERSECTION_POINT_LAYER_ID,
+  type: 'symbol',
+  source: INTERSECTION_SOURCE_ID,
+  layout: {
+    'icon-image': INTERSECTION_ICON_ID,
+    // 40px-wide
+    'icon-size': 40 / 700,
+    'icon-allow-overlap': true,
+    'icon-ignore-placement': true,
   },
 }
 
@@ -181,12 +197,7 @@ const Legend = React.memo(({ layers, activeLayers, onToggleLayer }: LegendProps)
           <div style={{ fontSize: 'small', display: 'flex', alignItems: 'center' }}>
             <FormControlLabel
               label={<Typography>{layer.label}</Typography>}
-              control={
-                <Checkbox
-                  checked={activeLayers.includes(layer.id)}
-                  onChange={() => onToggleLayer(layer.id)}
-                />
-              }
+              control={<Checkbox checked={activeLayers.includes(layer.id)} onChange={() => onToggleLayer(layer.id)} />}
             />
           </div>
         </div>
@@ -202,6 +213,7 @@ function MapPage() {
   const theme = useTheme()
 
   const mapRef = React.useRef<MapRef>(null)
+  const intersectionIconLoadingRef = React.useRef(false)
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
@@ -257,6 +269,23 @@ function MapPage() {
       map.jumpTo({ center: [viewState.longitude, viewState.latitude], zoom: viewState.zoom })
     }
   }, [viewState])
+
+  const ensureIntersectionIcon = React.useCallback(() => {
+    const map = mapRef.current
+    if (!map || map.hasImage(INTERSECTION_ICON_ID) || intersectionIconLoadingRef.current) return
+
+    intersectionIconLoadingRef.current = true
+    map.loadImage('/icons/intersection_icon.png', (error, image) => {
+      intersectionIconLoadingRef.current = false
+      if (error) {
+        console.error('Unable to load intersection map icon:', error)
+        return
+      }
+      if (image && !map.hasImage(INTERSECTION_ICON_ID)) {
+        map.addImage(INTERSECTION_ICON_ID, image)
+      }
+    })
+  }, [])
 
   // Camera movement is uncontrolled while the user interacts with the map. Redux updates still drive external
   // camera changes (for example, selecting a location from Display RSU Status).
@@ -580,9 +609,7 @@ function MapPage() {
       ({
         type: 'FeatureCollection',
         features: rsuDataWithCounts
-          .filter(
-            (rsu) => selectedVendor === 'Select Vendor' || rsu.properties.manufacturer_name === selectedVendor
-          )
+          .filter((rsu) => selectedVendor === 'Select Vendor' || rsu.properties.manufacturer_name === selectedVendor)
           .map((rsu) => {
             const ip = rsu.properties.ipv4_address
             const onlineStatus = Object.prototype.hasOwnProperty.call(rsuOnlineStatus, ip)
@@ -605,6 +632,27 @@ function MapPage() {
           }),
       }) as GeoJSON.FeatureCollection<GeoJSON.Point>,
     [displayType, issScmsStatusData, rsuDataWithCounts, rsuOnlineStatus, selectedVendor]
+  )
+
+  const intersectionPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
+    () => ({
+      type: 'FeatureCollection',
+      features: intersectionsList
+        .filter((intersection) => intersection.latitude !== 0)
+        .map((intersection) => ({
+          type: 'Feature',
+          id: intersection.intersectionID,
+          properties: {
+            intersectionId: intersection.intersectionID,
+            intersectionName: intersection.intersectionID,
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [intersection.longitude, intersection.latitude],
+          },
+        })),
+    }),
+    [intersectionsList]
   )
 
   function dateChanged(e: Date, type: 'start' | 'end') {
@@ -1167,9 +1215,13 @@ function MapPage() {
           mapboxAccessToken={EnvironmentVars.MAPBOX_TOKEN}
           mapStyle={mbStyle}
           style={{ width: '100%', height: '100%' }}
-          onLoad={syncMapToViewState}
+          onLoad={() => {
+            syncMapToViewState()
+            ensureIntersectionIcon()
+          }}
+          onStyleData={ensureIntersectionIcon}
           onMoveEnd={(evt) => dispatch(setMapViewState(evt.viewState))}
-          interactiveLayerIds={['geoMsgPointLayer', RSU_POINT_LAYER_ID]}
+          interactiveLayerIds={['geoMsgPointLayer', RSU_POINT_LAYER_ID, INTERSECTION_POINT_LAYER_ID]}
           onMouseMove={(e) => {
             if (addGeoMsgPoint || addConfigPoint) {
               const point: GeoJSON.Feature<GeoJSON.Point> = {
@@ -1192,6 +1244,17 @@ function MapPage() {
               return
             }
             setLastClickTime(clickTime)
+
+            const clickedIntersectionFeature = e.features?.find(
+              (feature) => feature.layer.id === INTERSECTION_POINT_LAYER_ID
+            )
+            if (clickedIntersectionFeature) {
+              const intersectionId = Number(clickedIntersectionFeature.properties?.intersectionId)
+              if (Number.isFinite(intersectionId)) {
+                dispatch(setSelectedIntersectionId(intersectionId))
+              }
+              return
+            }
 
             const clickedRsuFeature = e.features?.find((feature) => feature.layer.id === RSU_POINT_LAYER_ID)
             if (clickedRsuFeature && !addConfigPoint && !addGeoMsgPoint) {
@@ -1381,24 +1444,6 @@ function MapPage() {
               <div>{selectedWZDxMarker.props.feature.properties.table}</div>
             </Popup>
           ) : null}
-          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) &&
-            intersectionsList
-              .filter((intersection) => intersection.latitude != 0)
-              .map((intersection) => {
-                return (
-                  <Marker
-                    key={intersection.intersectionID}
-                    latitude={intersection.latitude}
-                    longitude={intersection.longitude}
-                    onClick={(e) => {
-                      e.originalEvent.preventDefault()
-                      dispatch(setSelectedIntersectionId(intersection.intersectionID))
-                    }}
-                  >
-                    <img src="/icons/intersection_icon.png" style={{ width: 40 }} />
-                  </Marker>
-                )
-              })}
           {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && selectedIntersection && (
             <Popup
               latitude={selectedIntersection.latitude}
@@ -1410,23 +1455,7 @@ function MapPage() {
             </Popup>
           )}
           {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && (
-            <Source
-              type="geojson"
-              data={{
-                type: 'FeatureCollection',
-                features: intersectionsList.map((intersection) => ({
-                  type: 'Feature',
-                  properties: {
-                    intersectionId: intersection.intersectionID,
-                    intersectionName: intersection.intersectionID,
-                  },
-                  geometry: {
-                    type: 'Point',
-                    coordinates: [intersection.longitude, intersection.latitude],
-                  },
-                })),
-              }}
-            >
+            <Source id={INTERSECTION_SOURCE_ID} type="geojson" data={intersectionPointData}>
               <Layer {...intersectionMapLabelsLayer} />
             </Source>
           )}
@@ -1581,6 +1610,7 @@ function MapPage() {
               <Layer {...rsuPointLayer} />
             </Source>
           )}
+          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && <Layer {...intersectionPointLayer} />}
         </Map>
       </Container>
 
