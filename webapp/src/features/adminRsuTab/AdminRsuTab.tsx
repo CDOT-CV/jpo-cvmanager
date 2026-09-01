@@ -243,13 +243,19 @@ const AdminRsuTab = () => {
     navigate('editRsu/' + row.ip)
   }
 
+  const extractErrorDetail = (error: unknown): string | undefined =>
+    error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object'
+      ? (error.data as { detail?: string }).detail
+      : undefined
+
   const onDelete = async (row: AdminEditRsuFormType) => {
     const loadingToast = toast.loading(`Deleting RSU ${row.ip}...`)
     try {
       await deleteRsuApi(row.ip).unwrap()
       toast.success('RSU Deleted Successfully', { id: loadingToast })
     } catch (error) {
-      toast.error('Failed to delete RSU due to error: ' + error, { id: loadingToast })
+      const detail = extractErrorDetail(error)
+      toast.error(detail ? `Failed to delete RSU: ${detail}` : 'Failed to delete RSU', { id: loadingToast })
     }
   }
 
@@ -259,7 +265,8 @@ const AdminRsuTab = () => {
       await deleteMultipleRsusApi(rows.map((row) => row.ip)).unwrap()
       toast.success('RSUs Deleted Successfully', { id: loadingToast })
     } catch (error) {
-      toast.error('Failed to delete RSUs due to error: ' + error, { id: loadingToast })
+      const detail = extractErrorDetail(error)
+      toast.error(detail ? `Failed to delete RSUs: ${detail}` : 'Failed to delete RSUs', { id: loadingToast })
     }
   }
 
