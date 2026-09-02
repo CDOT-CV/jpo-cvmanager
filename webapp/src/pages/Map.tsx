@@ -142,6 +142,12 @@ import {
 const MILLISECONDS_PER_MINUTE = 60000
 const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
 const EMPTY_WZDX_DATA = { type: 'FeatureCollection' as const, features: EMPTY_WZDX_FEATURES }
+const MAP_CLICK_LAYER_IDS = [
+  'geoMsgPointLayer',
+  RSU_POINT_LAYER_ID,
+  INTERSECTION_POINT_LAYER_ID,
+  WZDX_POINT_LAYER_ID,
+]
 
 const breakLine = (value: string) => {
   const lines = []
@@ -359,6 +365,12 @@ function MapPage() {
 
   // Add these new state variables near the other source states
   const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
+
+  useEffect(() => {
+    if (!addGeoMsgPoint && !addConfigPoint) {
+      setPreviewPoint(null)
+    }
+  }, [addGeoMsgPoint, addConfigPoint])
 
   const [geoMsgPointSource, setGeoMsgPointSource] = useState<GeoJSON.FeatureCollection<GeoJSON.Geometry>>({
     type: 'FeatureCollection',
@@ -1142,27 +1154,21 @@ function MapPage() {
           }}
           onStyleData={ensureMapIcons}
           onMoveEnd={(evt) => dispatch(setMapViewState(evt.viewState))}
-          interactiveLayerIds={[
-            'geoMsgPointLayer',
-            RSU_POINT_LAYER_ID,
-            INTERSECTION_POINT_LAYER_ID,
-            WZDX_POINT_LAYER_ID,
-          ]}
-          onMouseMove={(e) => {
-            if (addGeoMsgPoint || addConfigPoint) {
-              const point: GeoJSON.Feature<GeoJSON.Point> = {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [e.lngLat.lng, e.lngLat.lat],
-                },
-                properties: {},
-              }
-              setPreviewPoint(point)
-            } else {
-              setPreviewPoint(null)
-            }
-          }}
+          onMouseMove={
+            addGeoMsgPoint || addConfigPoint
+              ? (e) => {
+                  const point: GeoJSON.Feature<GeoJSON.Point> = {
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [e.lngLat.lng, e.lngLat.lat],
+                    },
+                    properties: {},
+                  }
+                  setPreviewPoint(point)
+                }
+              : undefined
+          }
           onClick={(e) => {
             // Prevent double click from triggering single click
             const clickTime = new Date().getTime()
@@ -1171,7 +1177,14 @@ function MapPage() {
             }
             setLastClickTime(clickTime)
 
-            const clickedIntersectionFeature = e.features?.find(
+            const map = mapRef.current
+            const clickableLayerIds = map ? MAP_CLICK_LAYER_IDS.filter((layerId) => map.getLayer(layerId)) : []
+            const clickedFeatures =
+              map && clickableLayerIds.length > 0
+                ? map.queryRenderedFeatures(e.point, { layers: clickableLayerIds })
+                : []
+
+            const clickedIntersectionFeature = clickedFeatures.find(
               (feature) => feature.layer.id === INTERSECTION_POINT_LAYER_ID
             )
             if (clickedIntersectionFeature) {
@@ -1182,7 +1195,7 @@ function MapPage() {
               return
             }
 
-            const clickedWzdxFeature = e.features?.find((feature) => feature.layer.id === WZDX_POINT_LAYER_ID)
+            const clickedWzdxFeature = clickedFeatures.find((feature) => feature.layer.id === WZDX_POINT_LAYER_ID)
             if (clickedWzdxFeature) {
               const featureIndex = Number(clickedWzdxFeature.id)
               if (Number.isInteger(featureIndex) && wzdxFeatures[featureIndex]) {
@@ -1196,7 +1209,7 @@ function MapPage() {
               return
             }
 
-            const clickedRsuFeature = e.features?.find((feature) => feature.layer.id === RSU_POINT_LAYER_ID)
+            const clickedRsuFeature = clickedFeatures.find((feature) => feature.layer.id === RSU_POINT_LAYER_ID)
             if (clickedRsuFeature && !addConfigPoint && !addGeoMsgPoint) {
               const clickedRsu = rsuDataWithCounts.find(
                 (rsu) => rsu.properties.ipv4_address === clickedRsuFeature.properties?.ipv4_address
