@@ -107,6 +107,10 @@ it('snapshot bsmData clicked', () => {
         addConfigPoint: false,
       },
     },
+    wzdx: {
+      loading: false,
+      value: null,
+    },
     user: { value: { authLoginData: { token: 'testToken' } } },
   }
   const { container } = render(

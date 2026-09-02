@@ -10,8 +10,8 @@ const mapStyles: { [key: string]: any } = {
   'mapbox-styles/main-dark.json': mainDark,
   'intersectionMapStyle.json': intersectionStyle,
 }
-import { CircleLayer, FillLayer, LineLayer, SymbolLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
-import Map, { Marker, Popup, Source, Layer, MapRef } from 'react-map-gl'
+import { CircleLayer, FillLayer, LineLayer } from 'mapbox-gl' // This is a dependency of react-map-gl even if you didn't explicitly install it
+import Map, { Popup, Source, Layer, MapRef } from 'react-map-gl'
 import { Container } from 'reactstrap'
 import EnvironmentVars from '../EnvironmentVars'
 import dayjs from 'dayjs'
@@ -88,13 +88,8 @@ import {
 } from '@mui/material'
 import './css/MsgMap.css'
 import './css/Map.css'
-import { WZDxFeature, WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
-import {
-  intersectionMapLabelsLayer,
-  selectIntersections,
-  selectSelectedIntersection,
-  setSelectedIntersectionId,
-} from '../generalSlices/intersectionSlice'
+import { WZDxFeature } from '../models/wzdx/WzdxWorkZoneFeed42'
+import { selectIntersections, selectSelectedIntersection, setSelectedIntersectionId } from '../generalSlices/intersectionSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
@@ -132,35 +127,78 @@ import { selectToken } from '../generalSlices/userSlice'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
 import { formatScmsExpiration, useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { RSU_POINT_LAYER_ID, RsuMapLayer } from '../components/map-layers/RsuMapLayer'
+import {
+  INTERSECTION_ICON_ID,
+  INTERSECTION_POINT_LAYER_ID,
+  IntersectionMapLayer,
+} from '../components/map-layers/IntersectionMapLayer'
+import {
+  WZDX_ICON_ID,
+  WZDX_LINE_LAYER_ID,
+  WZDX_POINT_LAYER_ID,
+  WzdxMapLayer,
+} from '../components/map-layers/WzdxMapLayer'
 
 const MILLISECONDS_PER_MINUTE = 60000
-const RSU_SOURCE_ID = 'rsu-source'
-const RSU_POINT_LAYER_ID = 'rsu-points'
-const INTERSECTION_SOURCE_ID = 'intersection-source'
-const INTERSECTION_POINT_LAYER_ID = 'intersection-points'
-const INTERSECTION_ICON_ID = 'intersection-icon'
+const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
+const EMPTY_WZDX_DATA = { type: 'FeatureCollection' as const, features: EMPTY_WZDX_FEATURES }
 
-const rsuPointLayer: CircleLayer = {
-  id: RSU_POINT_LAYER_ID,
-  type: 'circle',
-  paint: {
-    // RsuMarker rendered a 15px diameter circle (5px content + 5px padding on each side).
-    'circle-radius': 7.5,
-    'circle-color': ['get', 'display_color'],
-  },
+const breakLine = (value: string) => {
+  const lines = []
+  let remainingData = ''
+  const maxLineLength = 40
+  for (let i = 0; i < value.length; i += maxLineLength) {
+    let data = remainingData + value.substring(i, i + maxLineLength)
+    const index = data.lastIndexOf(' ')
+    if (data[0] === ' ') {
+      data = data.substring(1, data.length)
+      remainingData = data.substring(index, data.length)
+    } else if (data?.[i + maxLineLength + 1] === ' ') {
+      remainingData = data.substring(index + 1, data.length)
+    } else if (data[index] === ' ') {
+      remainingData = data.substring(index + 1, data.length)
+    }
+    lines.push(data.substring(0, index))
+  }
+  return lines.join('\n')
 }
 
-const intersectionPointLayer: SymbolLayer = {
-  id: INTERSECTION_POINT_LAYER_ID,
-  type: 'symbol',
-  source: INTERSECTION_SOURCE_ID,
-  layout: {
-    'icon-image': INTERSECTION_ICON_ID,
-    // 40px-wide
-    'icon-size': 40 / 700,
-    'icon-allow-overlap': true,
-    'icon-ignore-placement': true,
-  },
+const WzdxPopupTable = ({ feature }: { feature: WZDxFeature }) => {
+  const data = [
+    ['road_name', feature.properties.core_details.road_names[0]],
+    ['direction', feature.properties.core_details.direction],
+    ['vehicle_impact', feature.properties.vehicle_impact],
+    ['workers_present', feature.properties.worker_presence?.are_workers_present?.toString()],
+    ['description', breakLine(feature.properties.core_details.description)],
+    ['start_date', feature.properties.start_date],
+    ['end_date', feature.properties.end_date],
+  ]
+
+  return (
+    <div className="container">
+      <table id="simple-board">
+        <tbody>
+          {data.map((row, rowIndex) => (
+            <tr key={row[0]} id={`row${rowIndex}`}>
+              {row.map((cell, cellIndex) => {
+                const cellId = `cell${rowIndex}-${cellIndex}`
+                return rowIndex === 0 ? (
+                  <th key={cellId} id={cellId} style={{ minWidth: '120px' }}>
+                    {cell}
+                  </th>
+                ) : (
+                  <td key={cellId} id={cellId} style={{ minWidth: '120px' }}>
+                    <pre>{cell}</pre>
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 const getRsuDisplayColor = (displayType: string, onlineStatus: string, scmsStatus: boolean | null) => {
@@ -214,6 +252,7 @@ function MapPage() {
 
   const mapRef = React.useRef<MapRef>(null)
   const intersectionIconLoadingRef = React.useRef(false)
+  const wzdxIconLoadingRef = React.useRef(false)
   const organization = useSelector(selectOrganizationName)
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
@@ -239,6 +278,8 @@ function MapPage() {
   const filterOffset = useSelector(selectGeoMsgFilterOffset)
 
   const wzdxData = useSelector(selectWzdxData)
+  const wzdxFeatures = wzdxData?.features ?? EMPTY_WZDX_FEATURES
+  const safeWzdxData = wzdxData?.features ? wzdxData : EMPTY_WZDX_DATA
 
   const haasLocationData = useSelector(selectHaasLocationData)
   const [selectedHaasIncident, setSelectedHaasIncident] = useState<Feature<Point, HaasLocationProperties> | null>(null)
@@ -287,8 +328,30 @@ function MapPage() {
     })
   }, [])
 
+  const ensureWzdxIcon = React.useCallback(() => {
+    const map = mapRef.current
+    if (!map || map.hasImage(WZDX_ICON_ID) || wzdxIconLoadingRef.current) return
+
+    wzdxIconLoadingRef.current = true
+    map.loadImage('/workzone_icon.png', (error, image) => {
+      wzdxIconLoadingRef.current = false
+      if (error) {
+        console.error('Unable to load WZDx map icon:', error)
+        return
+      }
+      if (image && !map.hasImage(WZDX_ICON_ID)) {
+        map.addImage(WZDX_ICON_ID, image)
+      }
+    })
+  }, [])
+
+  const ensureMapIcons = React.useCallback(() => {
+    ensureIntersectionIcon()
+    ensureWzdxIcon()
+  }, [ensureIntersectionIcon, ensureWzdxIcon])
+
   // Camera movement is uncontrolled while the user interacts with the map. Redux updates still drive external
-  // camera changes (for example, selecting a location from Display RSU Status).
+  // camera changes
   useEffect(() => {
     syncMapToViewState()
   }, [syncMapToViewState])
@@ -331,10 +394,10 @@ function MapPage() {
   }
 
   // WZDx layer local state variables
-  // The marker index is necessary because the marker callback becomes disconnected from the curernt state
-  const [selectedWZDxMarkerIndex, setSelectedWZDxMarkerIndex] = useState(null)
-  const [selectedWZDxMarker, setSelectedWZDxMarker] = useState(null)
-  const [wzdxMarkers, setWzdxMarkers] = useState([])
+  const [selectedWZDxMarker, setSelectedWZDxMarker] = useState<{
+    feature: WZDxFeature
+    coordinates: [number, number]
+  } | null>(null)
   const [pageOpen] = useState(true)
   const isAdminOrAbove = useSelector(selectIsAdminOrAbove)
 
@@ -345,11 +408,6 @@ function MapPage() {
     setSelectedVendor(newVal)
   }
 
-  // TODO: Remove??
-  if (!wzdxMarkers) {
-    setSelectedWZDxMarkerIndex(null)
-    setSelectedWZDxMarker(null)
-  }
   const mbStyle = mapStyles[theme.palette.custom.mapStyleFilePath] || mapStyles['mapbox-styles/cdot-dark.json']
 
   // useEffects for Mapbox
@@ -358,7 +416,6 @@ function MapPage() {
       if (e.key === 'Escape') {
         dispatch(selectRsu(null))
         dispatch(clearFirmware())
-        setSelectedWZDxMarkerIndex(null)
         setSelectedWZDxMarker(null)
       }
     }
@@ -367,7 +424,7 @@ function MapPage() {
     return () => {
       window.removeEventListener('keydown', listener)
     }
-  }, [selectedRsu, dispatch, setSelectedWZDxMarkerIndex, setSelectedWZDxMarker])
+  }, [selectedRsu, dispatch])
 
   // useEffects for RSU layer
   useEffect(() => {
@@ -391,7 +448,7 @@ function MapPage() {
     if (!endGeoMsgDate) {
       dateChanged(new Date(), 'end')
     }
-    if (wzdxData?.features?.length === 0) {
+    if (wzdxFeatures.length === 0) {
       dispatch(getWzdxData())
     }
   }, [dispatch])
@@ -695,12 +752,6 @@ function MapPage() {
     }
   }
 
-  // useEffects for WZDx layers
-  useEffect(() => {
-    // This is to handle the fact that the marker callback is disconnected from the current state
-    if (selectedWZDxMarkerIndex !== null) setSelectedWZDxMarker(wzdxMarkers[selectedWZDxMarkerIndex])
-  }, [selectedWZDxMarkerIndex, wzdxMarkers])
-
   const heatmapStops = useMemo(() => {
     return getHeatmapCountsStops(countsMsgType, heatMapData)
   }, [countsMsgType, heatMapData])
@@ -717,131 +768,8 @@ function MapPage() {
     return getClusterLabelSizeStops(countsMsgType, heatMapData)
   }, [countsMsgType, heatMapData])
 
-  useEffect(() => {
-    function createPopupTable(data: Array<Array<string>>) {
-      const rows = []
-      for (let i = 0; i < data.length; i++) {
-        const rowID = `row${i}`
-        const cell = []
-        for (let idx = 0; idx < 2; idx++) {
-          const cellID = `cell${i}-${idx}`
-          if (i == 0) {
-            cell.push(
-              <th key={cellID} id={cellID} style={{ minWidth: '120px' }}>
-                {data[i][idx]}
-              </th>
-            )
-          } else {
-            cell.push(
-              <td key={cellID} id={cellID} style={{ minWidth: '120px' }}>
-                <pre>{data[i][idx]}</pre>
-              </td>
-            )
-          }
-        }
-        rows.push(
-          <tr key={i} id={rowID}>
-            {cell}
-          </tr>
-        )
-      }
-      return (
-        <div className="container">
-          <table id="simple-board">
-            <tbody>{rows}</tbody>
-          </table>
-        </div>
-      )
-    }
-
-    function getWzdxTable(obj: WZDxFeature): string[][] {
-      const arr = []
-      arr.push(['road_name', obj['properties']['core_details']['road_names'][0]])
-      arr.push(['direction', obj['properties']['core_details']['direction']])
-      arr.push(['vehicle_impact', obj['properties']['vehicle_impact']])
-      arr.push(['workers_present', obj['properties']['worker_presence']?.['are_workers_present'].toString()])
-      arr.push(['description', break_line(obj['properties']['core_details']['description'])])
-      arr.push(['start_date', obj['properties']['start_date']])
-      arr.push(['end_date', obj['properties']['end_date']])
-      return arr
-    }
-
-    function openPopup(index: number) {
-      setSelectedWZDxMarkerIndex(index)
-      dispatch(selectRsu(null))
-      dispatch(clearFirmware())
-    }
-
-    function customMarker(feature: GeoJSON.Feature<GeoJSON.Geometry>, index: number, lat: number, lng: number) {
-      return (
-        <Marker
-          key={feature.id}
-          latitude={lat}
-          longitude={lng}
-          {...{ offsetLeft: -30, offsetTop: -30, feature: feature, index: index }} // Avoid typescript errors. TODO: Make sure this does something
-          onClick={(e) => {
-            e.originalEvent.stopPropagation()
-          }}
-        >
-          <div onClick={() => openPopup(index)}>
-            <img src="/workzone_icon.png" height={40} alt="Work Zone Icon" />
-          </div>
-        </Marker>
-      )
-    }
-
-    const getAllMarkers = (wzdxData: WZDxWorkZoneFeed) => {
-      if (wzdxData?.features?.length > 0) {
-        let i = -1
-        const markers = wzdxData.features.map((feature) => {
-          const localFeature: WZDxFeature = { ...feature, geometry: { ...feature.geometry, type: 'LineString' } }
-          const center_coords_index = Math.round(feature.geometry.coordinates.length / 2)
-          let lng = feature.geometry.coordinates[0][0]
-          let lat = feature.geometry.coordinates[0][1]
-          if (center_coords_index !== 1) {
-            lat = feature.geometry.coordinates[center_coords_index][1]
-            lng = feature.geometry.coordinates[center_coords_index][0]
-          } else {
-            lat = (feature.geometry.coordinates[0][1] + feature.geometry.coordinates[1][1]) / 2
-            lng = (feature.geometry.coordinates[0][0] + feature.geometry.coordinates[1][0]) / 2
-          }
-          i++
-          localFeature.properties = { ...feature.properties }
-          localFeature.properties.table = createPopupTable(getWzdxTable(feature))
-          return customMarker(localFeature, i, lat, lng)
-        })
-        return markers
-      } else {
-        return []
-      }
-    }
-
-    setWzdxMarkers(getAllMarkers(wzdxData))
-  }, [dispatch, wzdxData])
-
-  function break_line(val: string) {
-    const arr = []
-    let remainingData = ''
-    const maxLineLength = 40
-    for (let i = 0; i < val.length; i += maxLineLength) {
-      let data = remainingData + val.substring(i, i + maxLineLength)
-      const index = data.lastIndexOf(' ')
-      if (data[0] == ' ') {
-        data = data.substring(1, data.length)
-        remainingData = data.substring(index, data.length)
-      } else if (data?.[i + maxLineLength + 1] == ' ') {
-        remainingData = data.substring(index + 1, data.length)
-      } else if (data[index] == ' ') {
-        remainingData = data.substring(index + 1, data.length)
-      }
-      arr.push(data.substring(0, index))
-    }
-    return arr.join('\n')
-  }
-
   function closePopup() {
     setSelectedWZDxMarker(null)
-    setSelectedWZDxMarkerIndex(null)
   }
 
   const isOnline = () => {
@@ -929,14 +857,10 @@ function MapPage() {
       tag: 'rsu',
     },
     WZDX: {
-      id: 'wzdx-layer',
+      id: WZDX_LINE_LAYER_ID,
       label: 'WZDx Viewer',
       type: 'line',
       tag: 'wzdx',
-      paint: {
-        'line-color': '#F29543',
-        'line-width': 8,
-      },
     },
     INTERSECTION: {
       id: 'intersection-layer',
@@ -961,7 +885,6 @@ function MapPage() {
           dispatch(clearFirmware())
           break
         case MAP_LAYERS.WZDX.id:
-          setSelectedWZDxMarkerIndex(null)
           setSelectedWZDxMarker(null)
           break
         case MAP_LAYERS.HAAS_ALERT.id:
@@ -1217,11 +1140,16 @@ function MapPage() {
           style={{ width: '100%', height: '100%' }}
           onLoad={() => {
             syncMapToViewState()
-            ensureIntersectionIcon()
+            ensureMapIcons()
           }}
-          onStyleData={ensureIntersectionIcon}
+          onStyleData={ensureMapIcons}
           onMoveEnd={(evt) => dispatch(setMapViewState(evt.viewState))}
-          interactiveLayerIds={['geoMsgPointLayer', RSU_POINT_LAYER_ID, INTERSECTION_POINT_LAYER_ID]}
+          interactiveLayerIds={[
+            'geoMsgPointLayer',
+            RSU_POINT_LAYER_ID,
+            INTERSECTION_POINT_LAYER_ID,
+            WZDX_POINT_LAYER_ID,
+          ]}
           onMouseMove={(e) => {
             if (addGeoMsgPoint || addConfigPoint) {
               const point: GeoJSON.Feature<GeoJSON.Point> = {
@@ -1256,6 +1184,20 @@ function MapPage() {
               return
             }
 
+            const clickedWzdxFeature = e.features?.find((feature) => feature.layer.id === WZDX_POINT_LAYER_ID)
+            if (clickedWzdxFeature) {
+              const featureIndex = Number(clickedWzdxFeature.id)
+              if (Number.isInteger(featureIndex) && wzdxFeatures[featureIndex]) {
+                setSelectedWZDxMarker({
+                  feature: wzdxFeatures[featureIndex],
+                  coordinates: [e.lngLat.lng, e.lngLat.lat],
+                })
+                dispatch(selectRsu(null))
+                dispatch(clearFirmware())
+              }
+              return
+            }
+
             const clickedRsuFeature = e.features?.find((feature) => feature.layer.id === RSU_POINT_LAYER_ID)
             if (clickedRsuFeature && !addConfigPoint && !addGeoMsgPoint) {
               const clickedRsu = rsuDataWithCounts.find(
@@ -1263,7 +1205,6 @@ function MapPage() {
               )
               if (clickedRsu) {
                 dispatch(selectRsu(clickedRsu))
-                setSelectedWZDxMarkerIndex(null)
                 setSelectedWZDxMarker(null)
                 dispatch(clearFirmware())
                 dispatch(getRsuLastOnline(clickedRsu.properties.ipv4_address))
@@ -1426,22 +1367,17 @@ function MapPage() {
             </div>
           )}
           {activeLayers.includes(MAP_LAYERS.WZDX.id) && (
-            <div>
-              <Source id={MAP_LAYERS.WZDX.id} type="geojson" data={wzdxData}>
-                <Layer {...MAP_LAYERS.WZDX} />
-              </Source>
-              {wzdxMarkers}
-            </div>
+            <WzdxMapLayer data={safeWzdxData} />
           )}
           {selectedWZDxMarker ? (
             <Popup
-              latitude={selectedWZDxMarker.props.latitude}
-              longitude={selectedWZDxMarker.props.longitude}
+              latitude={selectedWZDxMarker.coordinates[1]}
+              longitude={selectedWZDxMarker.coordinates[0]}
               {...{ altitude: 12, offsetTop: -25 }} // TODO: Make sure this does something
               onClose={closePopup}
               maxWidth={'500px'}
             >
-              <div>{selectedWZDxMarker.props.feature.properties.table}</div>
+              <WzdxPopupTable feature={selectedWZDxMarker.feature} />
             </Popup>
           ) : null}
           {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && selectedIntersection && (
@@ -1455,9 +1391,7 @@ function MapPage() {
             </Popup>
           )}
           {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && (
-            <Source id={INTERSECTION_SOURCE_ID} type="geojson" data={intersectionPointData}>
-              <Layer {...intersectionMapLabelsLayer} />
-            </Source>
+            <IntersectionMapLayer data={intersectionPointData} />
           )}
           {selectedRsu ? (
             <Popup
@@ -1606,11 +1540,8 @@ function MapPage() {
             />
           )}
           {activeLayers.includes(MAP_LAYERS.RSU.id) && (
-            <Source id={RSU_SOURCE_ID} type="geojson" data={rsuPointData}>
-              <Layer {...rsuPointLayer} />
-            </Source>
+            <RsuMapLayer data={rsuPointData} />
           )}
-          {activeLayers.includes(MAP_LAYERS.INTERSECTION.id) && <Layer {...intersectionPointLayer} />}
         </Map>
       </Container>
 
