@@ -39,13 +39,40 @@ const intersectionPointLayer: SymbolLayer = {
 
 interface IntersectionMapLayerProps {
   data: GeoJSON.FeatureCollection<GeoJSON.Point>
+  iconWidth?: number
+  labelTextSize?: number
 }
 
-export const IntersectionMapLayer = React.memo(({ data }: IntersectionMapLayerProps) => (
-  <Source id={INTERSECTION_SOURCE_ID} type="geojson" data={data}>
-    <Layer {...intersectionLabelsLayer} />
-    <Layer {...intersectionPointLayer} />
-  </Source>
-))
+export const IntersectionMapLayer = React.memo(
+  ({ data, iconWidth = 40, labelTextSize = 16 }: IntersectionMapLayerProps) => {
+    const labelsLayer = React.useMemo<SymbolLayer>(
+      () => ({
+        ...intersectionLabelsLayer,
+        layout: {
+          ...intersectionLabelsLayer.layout,
+          'text-size': labelTextSize,
+        },
+      }),
+      [labelTextSize]
+    )
+    const pointLayer = React.useMemo<SymbolLayer>(
+      () => ({
+        ...intersectionPointLayer,
+        layout: {
+          ...intersectionPointLayer.layout,
+          'icon-size': iconWidth / 700,
+        },
+      }),
+      [iconWidth]
+    )
+
+    return (
+      <Source id={INTERSECTION_SOURCE_ID} type="geojson" data={data}>
+        <Layer {...labelsLayer} />
+        <Layer {...pointLayer} />
+      </Source>
+    )
+  }
+)
 
 IntersectionMapLayer.displayName = 'IntersectionMapLayer'
