@@ -35,7 +35,6 @@ import {
 
   // actions
   selectRsu,
-  getRsuData,
   getRsuLastOnline,
   toggleGeoMsgPointSelect,
   clearGeoMsg,
@@ -428,7 +427,6 @@ function MapPage() {
 
   // useEffects for RSU layer
   useEffect(() => {
-    dispatch(getRsuData())
     dispatch(selectRsu(null))
     dispatch(clearFirmware())
   }, [organization, dispatch])

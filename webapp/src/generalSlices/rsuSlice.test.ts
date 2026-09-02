@@ -64,6 +64,7 @@ describe('rsu reducer', () => {
   it('should handle initial state', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual({
       loading: false,
+      currentRequestId: null,
       value: {
         selectedRsu: null,
         rsuData: [],
@@ -90,6 +91,7 @@ describe('rsu reducer', () => {
 describe('async thunks', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,
@@ -136,21 +138,27 @@ describe('async thunks', () => {
         },
       })
       const action = getRsuData()
+      const rsuData = ['1.1.1.1'] as any
+      const rsuOnlineStatus = { '1.1.1.1': { current_status: 'online' } } as any
+      RsuApi.getRsuInfo = jest.fn().mockResolvedValue({ rsuList: rsuData })
+      RsuApi.getRsuOnline = jest.fn().mockResolvedValue(rsuOnlineStatus)
 
-      await action(dispatch, getState, undefined)
-      expect(dispatch).toHaveBeenCalledTimes(2 + 2) // 2 for the 2 dispatched actions, 2 for the pending and fulfilled actions
+      const response = await action(dispatch, getState, undefined)
+      expect(response.payload).toEqual({ rsuData, rsuOnlineStatus })
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
+      expect(dispatch).toHaveBeenCalledTimes(2) // pending and fulfilled
     })
 
     it('Updates the state correctly pending', async () => {
       const loading = true
       const rsuData = [] as any
       const rsuOnlineStatus = {}
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/pending',
-      })
+      const state = reducer(initialState, getRsuData.pending('request-id', undefined))
       expect(state).toEqual({
         ...initialState,
         loading,
+        currentRequestId: 'request-id',
         value: {
           ...initialState.value,
           rsuData,
@@ -171,26 +179,56 @@ describe('async thunks', () => {
           },
         },
       ] as any
+      const rsuOnlineStatus = { ipv4_address: { current_status: 'online' } } as any
       const state = reducer(
-        { ...initialState, value: { ...initialState.value, rsuData } },
-        {
-          type: 'rsu/getRsuData/fulfilled',
-        }
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.fulfilled({ rsuData, rsuOnlineStatus }, 'request-id', undefined)
       )
 
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: { ...initialState.value, rsuData },
+        value: { ...initialState.value, rsuData, rsuOnlineStatus },
       })
     })
 
     it('Updates the state correctly rejected', async () => {
       const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/rejected',
-      })
+      const state = reducer(
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.rejected(new Error('failed'), 'request-id', undefined)
+      )
       expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
+    })
+
+    it('ignores an older organization response after a newer refresh starts', () => {
+      const initial = reducer(undefined, { type: 'unknown' })
+      const firstPending = reducer(initial, getRsuData.pending('first-request', undefined))
+      const secondPending = reducer(firstPending, getRsuData.pending('second-request', undefined))
+      const staleRsuData = [{ properties: { ipv4_address: 'stale' } }] as any
+
+      const afterStaleResponse = reducer(
+        secondPending,
+        getRsuData.fulfilled(
+          { rsuData: staleRsuData, rsuOnlineStatus: { stale: { current_status: 'online' } } as any },
+          'first-request',
+          undefined
+        )
+      )
+      expect(afterStaleResponse.value.rsuData).toEqual([])
+      expect(afterStaleResponse.currentRequestId).toBe('second-request')
+
+      const currentRsuData = [{ properties: { ipv4_address: 'current' } }] as any
+      const afterCurrentResponse = reducer(
+        afterStaleResponse,
+        getRsuData.fulfilled(
+          { rsuData: currentRsuData, rsuOnlineStatus: { current: { current_status: 'online' } } as any },
+          'second-request',
+          undefined
+        )
+      )
+      expect(afterCurrentResponse.value.rsuData).toEqual(currentRsuData)
+      expect(afterCurrentResponse.currentRequestId).toBeNull()
     })
   })
 
@@ -484,6 +522,7 @@ describe('async thunks', () => {
 describe('reducers', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,

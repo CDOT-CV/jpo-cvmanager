@@ -39,10 +39,21 @@ const initialState = {
 
 export const getRsuData = createAsyncThunk(
   'rsu/getRsuData',
-  async (_, { getState, dispatch }) => {
+  async (_, { getState }) => {
     const currentState = getState() as RootState
+    const token = selectToken(currentState)
+    const organization = selectOrganizationName(currentState)
+    const previousOnlineStatus = currentState.rsu.value.rsuOnlineStatus
 
-    await Promise.all([dispatch(_getRsuInfo()), dispatch(_getRsuOnlineStatus(currentState.rsu.value.rsuOnlineStatus))])
+    const [rsuInfo, rsuOnlineStatus] = await Promise.all([
+      RsuApi.getRsuInfo(token, organization),
+      RsuApi.getRsuOnline(token, organization),
+    ])
+
+    return {
+      rsuData: rsuInfo.rsuList,
+      rsuOnlineStatus: (rsuOnlineStatus ?? previousOnlineStatus) as RsuOnlineStatusRespMultiple,
+    }
   },
   {
     condition: (_, { getState }) => selectToken(getState() as RootState) != undefined,
@@ -150,6 +161,7 @@ export const rsuSlice = createSlice({
   name: 'rsu',
   initialState: {
     loading: false,
+    currentRequestId: null as string | null,
     value: initialState,
   },
   reducers: {
@@ -195,16 +207,23 @@ export const rsuSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getRsuData.pending, (state) => {
+      .addCase(getRsuData.pending, (state, action) => {
         state.loading = true
+        state.currentRequestId = action.meta.requestId
         state.value.rsuData = []
         state.value.rsuOnlineStatus = {}
       })
-      .addCase(getRsuData.fulfilled, (state) => {
+      .addCase(getRsuData.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
+        state.value.rsuData = action.payload.rsuData
+        state.value.rsuOnlineStatus = action.payload.rsuOnlineStatus
         state.loading = false
+        state.currentRequestId = null
       })
-      .addCase(getRsuData.rejected, (state) => {
+      .addCase(getRsuData.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
         state.loading = false
+        state.currentRequestId = null
       })
       .addCase(getRsuLastOnline.pending, (state) => {
         state.loading = true
