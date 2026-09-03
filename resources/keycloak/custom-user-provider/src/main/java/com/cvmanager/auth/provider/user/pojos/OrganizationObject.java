@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,24 +13,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
-* OrganizationObject represents a user's organization and role association object from the user_organization postgresql table
-*/
+ * OrganizationObject represents a user's organization and role association
+ * object from the user_organization postgresql table
+ */
 @JsonSerialize
 public class OrganizationObject {
 
     private static final Logger log = LoggerFactory.getLogger(OrganizationObject.class);
     private static ObjectMapper objectMapper = new ObjectMapper();
 
-    @JsonProperty("org")
-    private String org;
+    @JsonProperty("org_id")
+    private Integer orgId;
+    @JsonProperty("org_name")
+    private String orgName;
+    @JsonProperty("org_email")
+    private String orgEmail;
     @JsonProperty("role")
     private String role;
 
     public OrganizationObject() {
     }
 
-    public OrganizationObject(String org, String role) {
-        this.org = org;
+    public OrganizationObject(Integer orgId, String orgName, String orgEmail, String role) {
+        this.orgId = orgId;
+        this.orgName = orgName;
+        this.orgEmail = orgEmail;
         this.role = role;
     }
 
@@ -69,9 +75,9 @@ public class OrganizationObject {
         }
     }
 
-    public static Map<String, String> toMap(OrganizationObject org) {
+    public static Map<String, Object> toMap(OrganizationObject org) {
         try {
-            Map map = objectMapper.convertValue(org, Map.class);
+            Map<String, Object> map = objectMapper.convertValue(org, Map.class);
             return map == null ? Collections.emptyMap() : map;
         } catch (Exception e) {
             log.error("Error converting OrganizationObject to Map", e);
@@ -79,17 +85,33 @@ public class OrganizationObject {
         }
     }
 
-    public static List<Map<String, String>> mapListFromString(String json) {
+    public static List<Map<String, Object>> mapListFromString(String json) {
         List<OrganizationObject> objs = listFromString(json);
         return objs == null ? null : objs.stream().map(OrganizationObject::toMap).toList();
     }
 
-    public String getOrg() {
-        return org;
+    public Integer getOrgId() {
+        return orgId;
     }
 
-    public void setOrg(String org) {
-        this.org = org;
+    public void setOrgId(Integer orgId) {
+        this.orgId = orgId;
+    }
+
+    public String getOrgName() {
+        return orgName;
+    }
+
+    public void setOrgName(String orgName) {
+        this.orgName = orgName;
+    }
+
+    public String getOrgEmail() {
+        return orgEmail;
+    }
+
+    public void setOrgEmail(String orgEmail) {
+        this.orgEmail = orgEmail;
     }
 
     public String getRole() {

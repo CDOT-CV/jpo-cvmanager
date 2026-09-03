@@ -24,11 +24,13 @@ test('UserManager correctly gets the organization', () => {
       last_name: undefined,
       organizations: [
         {
-          organization: 'test1',
+          organization: 1,
+          name: 'test1',
           role: 'USER',
         },
         {
-          organization: 'test2',
+          organization: 2,
+          name: 'test2',
           role: 'OPERATOR',
         },
       ],
@@ -37,7 +39,7 @@ test('UserManager correctly gets the organization', () => {
     expires_at: undefined,
   }
 
-  const organization = UserManager.getOrganization(authLoginData, 'test2')
+  const organization = UserManager.getOrganization(authLoginData, 2)
 
   expect(organization).toEqual(authLoginData.data.organizations[1])
 })

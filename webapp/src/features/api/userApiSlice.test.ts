@@ -32,7 +32,7 @@ const makeStore = () =>
             token: 'mock-token',
             expires_at: 0,
           },
-          organization: { organization: 'OrgA', role: 'ADMIN' },
+          organization: { organization: 1, name: 'OrgA', role: 'ADMIN' },
           loginFailure: false,
           loginMessage: '',
           routeNotFound: false,

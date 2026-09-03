@@ -20,6 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
@@ -52,10 +53,12 @@ class PermissionServiceTest {
     private PermissionService permissionService;
 
     private String tokenString = "mock-token";
+    private Organization testOrg = new Organization();
 
     @BeforeEach
     void setUp() {
         SecurityContextHolder.setContext(securityContext);
+        testOrg.setName("TestOrg");
     }
 
     @AfterEach
@@ -148,7 +151,7 @@ class PermissionServiceTest {
     void testHasRole_WithoutOrganizationHeader_HasRoleInSomeOrg() {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(new Organization()));
 
         assertTrue(permissionService.hasRole(UserRole.OPERATOR));
     }
@@ -231,13 +234,15 @@ class PermissionServiceTest {
     @Test
     void testHasIntersection_NullIntersectionId() {
         assertTrue(permissionService.hasIntersection(null, "USER"));
-        verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
+        verify(intersectionRepository, never())
+                .existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(anyString(), anyList());
     }
 
     @Test
     void testHasIntersection_NegativeIntersectionId() {
         assertTrue(permissionService.hasIntersection(-1, "USER"));
-        verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
+        verify(intersectionRepository, never())
+                .existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(anyString(), anyList());
     }
 
     @Test
@@ -246,7 +251,8 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(true);
 
         assertTrue(permissionService.hasIntersection(123, "USER"));
-        verify(intersectionRepository, never()).existsByIdAndOrganizations(anyString(), anyList());
+        verify(intersectionRepository, never())
+                .existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn(anyString(), anyList());
     }
 
     @Test
@@ -258,8 +264,9 @@ class PermissionServiceTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+        when(intersectionRepository.existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn("123",
+                List.of("TestOrg")))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasIntersection(123, "USER"));
@@ -274,12 +281,14 @@ class PermissionServiceTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+        when(intersectionRepository.existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn("123",
+                List.of("TestOrg")))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasIntersection(123, "USER"));
-        verify(intersectionRepository).existsByIdAndOrganizations("123", List.of("TestOrg"));
+        verify(intersectionRepository).existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn("123",
+                List.of("TestOrg"));
     }
 
     @Test
@@ -287,8 +296,9 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
-        when(intersectionRepository.existsByIdAndOrganizations("123", List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(intersectionRepository.existsByIntersectionNumberAndIntersectionOrganizationsOrganizationNameIn("123",
+                List.of("TestOrg")))
                 .thenReturn(true);
         assertTrue(permissionService.hasIntersection(123, "OPERATOR"));
     }
@@ -301,7 +311,9 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
-        verify(rsuRepository, never()).existsByIpAndOrganizations(any(), anyList());
+        verify(rsuRepository, never())
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        any(), anyList());
     }
 
     @Test
@@ -313,8 +325,10 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
@@ -328,13 +342,17 @@ class PermissionServiceTest {
         request.addHeader("Organization", "TestOrg");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
-        verify(rsuRepository).existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"),
-                List.of("TestOrg"));
+        verify(rsuRepository)
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        InetAddress.getByName("192.168.1.1"),
+                        List.of(testOrg));
     }
 
     @Test
@@ -342,8 +360,10 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of("TestOrg"));
-        when(rsuRepository.existsByIpAndOrganizations(InetAddress.getByName("192.168.1.1"), List.of("TestOrg")))
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository
+                .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
