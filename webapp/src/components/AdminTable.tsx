@@ -18,6 +18,7 @@ interface AdminTableProps {
   actions: Action<any>[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
+  defaultPageSize?: number
   title: string
   editable?: any
   selection?: boolean
@@ -69,6 +70,39 @@ const getActionIcon = (title: string) => {
     default:
       return null
   }
+}
+
+export const buildAdminTableQueryParams = (
+  query,
+  columns,
+  organization: string | undefined,
+  orderByDefault: string,
+  orderDirectionDefault: string = 'asc'
+) => {
+  // Extract order information from orderByCollection
+  let orderBy = orderByDefault
+  let orderDirection = orderDirectionDefault
+  if (query.orderByCollection && query.orderByCollection.length > 0) {
+    const firstOrder = query.orderByCollection[0]
+    if (firstOrder.orderBy !== undefined) {
+      if (typeof firstOrder.orderBy.field === 'string') {
+        orderBy = firstOrder.orderBy.field
+      } else if (typeof firstOrder.orderBy === 'number') {
+        orderBy = columns[firstOrder.orderBy].field
+      }
+    }
+    orderDirection = firstOrder.orderDirection || 'asc'
+  }
+
+  // Build query params including organization
+  const params = {
+    page: query.page,
+    size: query.pageSize,
+    sort: `${orderBy},${orderDirection}`,
+    search: query.search || '',
+    organization: organization || '', // Add organization parameter
+  }
+  return params
 }
 
 const AdminTable = (props: AdminTableProps) => {
@@ -128,7 +162,7 @@ const AdminTable = (props: AdminTableProps) => {
           headerStyle: {
             backgroundColor: theme.palette.background.paper,
           },
-          pageSize: 25,
+          pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
           search: true, // Enable search UI; search term is passed to handleQueryChange for server-side filtering
