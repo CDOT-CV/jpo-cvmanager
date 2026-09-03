@@ -21,7 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrganizationPatch {
 
-    @Schema(description = "Current organization name that identifies the record to update", example = "CDOT", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Organization ID that identifies the record to update", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
     @JsonProperty("id")
     private Integer id;

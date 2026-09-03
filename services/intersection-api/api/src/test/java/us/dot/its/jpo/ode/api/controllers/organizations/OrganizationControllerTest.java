@@ -139,7 +139,7 @@ class OrganizationControllerTest {
     // ==================== PATCH /organizations ====================
 
     @Nested
-    @DisplayName("PATCH /organizations â€” modifyOrganization")
+    @DisplayName("PATCH /organizations modifyOrganization")
     class ModifyOrganization {
 
         @Test
@@ -195,10 +195,10 @@ class OrganizationControllerTest {
         }
 
         @Test
-        @DisplayName("returns 400 when orig_name is absent from request body")
-        void missingOrigName_returns400() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
+        @WithMockUser
+        @DisplayName("returns 400 when id is absent from request body")
+        void missingId_returns400() throws Exception {
+            when(permissionService.isSuperUser()).thenReturn(true);
             String bodyMissingOrigName = """
                     {
                       "name": "TestOrg",
@@ -251,7 +251,7 @@ class OrganizationControllerTest {
     // ==================== GET /organizations ====================
 
     @Nested
-    @DisplayName("GET /organizations â€” getOrganizations")
+    @DisplayName("GET /organizations getOrganizations")
     class GetOrganizations {
 
         @Test
@@ -293,6 +293,7 @@ class OrganizationControllerTest {
         @DisplayName("returns 200 with qualified organizations when hasRole('ADMIN') returns true")
         void adminRole_returns200WithQualifiedOrgs() throws Exception {
             Organization mockOrg = Mockito.mock(Organization.class);
+            when(mockOrg.getId()).thenReturn(1);
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
@@ -323,7 +324,7 @@ class OrganizationControllerTest {
     // ==================== GET /organizations/rsus ====================
 
     @Nested
-    @DisplayName("GET /organizations/rsus â€” getRsuIpsByOrganization")
+    @DisplayName("GET /organizations/rsus getRsuIpsByOrganization")
     class GetRsuIpsByOrganization {
 
         @Test
@@ -391,7 +392,7 @@ class OrganizationControllerTest {
     // ==================== GET /organizations/rsus/{rsuIp} ====================
 
     @Nested
-    @DisplayName("GET /organizations/rsus/{rsuIp} â€” getRsuOrganizationAssignments")
+    @DisplayName("GET /organizations/rsus/{rsuIp} getRsuOrganizationAssignments")
     class GetRsuOrganizationAssignments {
 
         @Test
@@ -459,7 +460,7 @@ class OrganizationControllerTest {
     // ==================== GET /organizations/rsus/available ====================
 
     @Nested
-    @DisplayName("GET /organizations/rsus/available â€” getRsuIpsNotInOrganization")
+    @DisplayName("GET /organizations/rsus/available getRsuIpsNotInOrganization")
     class GetRsuIpsNotInOrganization {
 
         @Test
@@ -511,7 +512,7 @@ class OrganizationControllerTest {
     // ==================== GET /organizations/users ====================
 
     @Nested
-    @DisplayName("GET /organizations/users â€” getUserEmailsByOrganization")
+    @DisplayName("GET /organizations/users getUserEmailsByOrganization")
     class GetUserEmailsByOrganization {
 
         @Test
@@ -591,8 +592,7 @@ class OrganizationControllerTest {
         @WithMockUser
         @DisplayName("returns 403 when authenticated but isSuperUser returns false")
         void authenticated_noSuperUser_returns403() throws Exception {
-            // @PermissionService.hasUser() does not exist in PermissionService;
-            // SpEL evaluation fails when isSuperUser is false -> access denied.
+            // When permission checks fail, access is denied (403).
             when(permissionService.isSuperUser()).thenReturn(false);
 
             mockMvc.perform(get("/organizations/users/user@example.com"))
