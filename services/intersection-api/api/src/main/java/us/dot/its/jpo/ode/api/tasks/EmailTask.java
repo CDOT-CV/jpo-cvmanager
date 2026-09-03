@@ -24,6 +24,7 @@ import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
@@ -229,11 +230,10 @@ public class EmailTask {
 
             log.info("Querying counts from {} to {}", startDateTime, endDateTime);
 
-            List<String> organizations = organizationRepository.findAllOrganizationNames();
-            if (organizations == null) {
-                log.warn("Organization list was null; skipping daily count emails");
-                return;
-            }
+            List<String> organizations = organizationRepository.findAll().stream()
+                    .map(Organization::getName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .toList();
             for (String orgName : organizations) {
                 List<MessageCount> allCounts = new ArrayList<>();
                 for (String messageType : MESSAGE_TYPES) {

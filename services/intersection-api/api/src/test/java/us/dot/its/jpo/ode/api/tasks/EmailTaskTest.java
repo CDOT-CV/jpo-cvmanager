@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
@@ -81,9 +82,15 @@ public class EmailTaskTest {
         return n;
     }
 
+    private static Organization organization(String name) {
+        Organization org = new Organization();
+        org.setName(name);
+        return org;
+    }
+
     @Test
     void testSendDailyCountEmails() {
-        when(organizationRepository.findAllOrganizationNames()).thenReturn(List.of("Test Organization"));
+        when(organizationRepository.findAll()).thenReturn(List.of(organization("Test Organization")));
         when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("BSM"), anyLong(),
                 anyLong()))
                 .thenReturn(List.of(new MessageCount("BSM", "192.168.1.1", 100L, 95L, "I-25")));
@@ -134,7 +141,7 @@ public class EmailTaskTest {
 
     @Test
     void testSendDailyCountEmails_EmptyCounts() {
-        when(organizationRepository.findAllOrganizationNames()).thenReturn(List.of("Test Organization"));
+        when(organizationRepository.findAll()).thenReturn(List.of(organization("Test Organization")));
         when(countsRepository.getRsuOrganizationMessageCounts(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(Collections.emptyList());
 
