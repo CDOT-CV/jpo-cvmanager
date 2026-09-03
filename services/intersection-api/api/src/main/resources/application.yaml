@@ -51,15 +51,15 @@ conflict:
 
 # MongoDB Configuration
 spring:
+  mongodb:
+    database: ${CM_DATABASE_NAME:CV}
+    host: ${DB_HOST_IP:mongo}
+    port: 27017
+    username: ${MONGO_READ_WRITE_USER:ode}
+    password: ${MONGO_READ_WRITE_PASS:replace_me}
+    authentication-database: ${CM_MONGO_AUTH_DB:admin}
+    uri: ${CM_MONGO_URI:null}
   data:
-    mongodb:
-      database: ${CM_DATABASE_NAME:CV}
-      host: ${DB_HOST_IP:mongo}
-      port: 27017
-      username: ${MONGO_READ_WRITE_USER:ode}
-      password: ${MONGO_READ_WRITE_PASS:replace_me}
-      authenticationDatabase: ${CM_MONGO_AUTH_DB:admin}
-      uri: ${CM_MONGO_URI:null}
     rest:
       detection-strategy: annotated
   # Postgres Configuration
