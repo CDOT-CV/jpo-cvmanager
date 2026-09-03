@@ -331,14 +331,12 @@ class OrganizationManagementServiceTest {
 
         when(authToken.isSuperUser()).thenReturn(false);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.empty());
-        when(organizationRepository.save(testOrg)).thenReturn(testOrg);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        verify(userOrganizationRepository, never()).saveAll(any());
+        verify(organizationRepository, never()).saveAll(any());
     }
 
     @Test
