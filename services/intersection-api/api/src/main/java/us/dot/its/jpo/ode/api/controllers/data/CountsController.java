@@ -39,10 +39,10 @@ public class CountsController {
 
     @Operation(summary = "Get message counts for RSU", description = "Returns message counts for a specific RSU over a provided timespan")
     @RequestMapping(value = "/rsus/{rsu_ip}", method = RequestMethod.GET, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRsu(#rsuIp, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role with access to the requested RSU"),
     })
     public ResponseEntity<List<MessageCount>> getRsuMessageCounts(
             @PathVariable(name = "rsu_ip") String rsuIp,
@@ -61,10 +61,10 @@ public class CountsController {
 
     @Operation(summary = "Get organization RSU message counts", description = "Returns message counts for all RSUs in an organization over a provided timespan")
     @RequestMapping(value = "/rsus/organizations/{organization}", method = RequestMethod.GET, produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role in the requested organization"),
     })
     public ResponseEntity<List<MessageCount>> getOrganizationRsuMessageCounts(
             @PathVariable(name = "organization") String organization,
