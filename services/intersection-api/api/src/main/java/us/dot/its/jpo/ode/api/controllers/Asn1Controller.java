@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -46,7 +46,7 @@ public class Asn1Controller {
         }
 
         @Operation(summary = "Decode an Uploaded ASN.1-Encoded Message", description = "Decodes an uploaded ASN.1 encoded message and returns the decoded message")
-        @RequestMapping(value = "/decoder/raw", method = RequestMethod.POST, produces = "application/json")
+        @PostMapping(value = "/decoder/raw", produces = "application/json")
         @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Success"),

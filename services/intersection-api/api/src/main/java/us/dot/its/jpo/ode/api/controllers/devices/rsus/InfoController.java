@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoDto;
@@ -36,7 +36,7 @@ public class InfoController {
     private final RsuInfoService rsuInfoService;
 
     @Operation(summary = "Get RSU Geographic Info", description = "Returns a GeoJSON Feature list of all RSUs the user has access to within their specified organisation.")
-    @RequestMapping(method = RequestMethod.GET, produces = "application/json")
+    @GetMapping( produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Success", content = @Content(schema = @Schema(description = "GeoJSON Feature array containing one object per RSU"))),
