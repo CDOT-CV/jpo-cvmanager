@@ -5,8 +5,6 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
-  error:
-    include-stacktrace: never
 
 ### keycloak configuration
 keycloak:
@@ -92,6 +90,9 @@ spring:
       - timesync-rate-limit
     caffeine:
       spec: maximumSize=100000,expireAfterWrite=1h
+  web:
+    error:
+      include-stacktrace: never
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
