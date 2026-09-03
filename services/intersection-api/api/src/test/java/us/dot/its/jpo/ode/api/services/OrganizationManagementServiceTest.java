@@ -324,22 +324,20 @@ class OrganizationManagementServiceTest {
     }
 
     @Test
-    void testHandleUsersToAdd_NonSuperUser_NewOrgNameNotFound() {
-        // Rename scenario: caller is ADMIN of origName but not of the new name.
+    void testHandleUsersToAdd_NonSuperUser_NotAuthorized() {
         OrganizationPatch patch = minimalPatch();
         patch.setId(1);
-        patch.setName("TestOrgNew"); // renamed; caller is not ADMIN of the new name
         patch.setUsersToAdd(List.of(new UserRoleAssignment("user@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
+        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.empty());
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
 
-        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         verify(userOrganizationRepository, never()).saveAll(any());
     }
 

@@ -108,7 +108,7 @@ public class OrganizationManagementService {
         }
 
         // Step 4: Add users
-        handleUsersToAdd(patch.getUsersToAdd(), org, authorizedOrgs, authToken.isSuperUser());
+        handleUsersToAdd(patch.getUsersToAdd(), org);
 
         // Step 5: Modify user roles
         handleUsersToModify(patch.getUsersToModify(), org);
@@ -151,7 +151,7 @@ public class OrganizationManagementService {
      * Refuses deletion if any RSU, intersection, or user would become orphaned
      * (i.e., associated with no organization after the delete).
      *
-     * @param orgId the ID of the organization to delete
+     * @param org the organization entity to delete
      * @throws ResponseStatusException            with 404 if the organization does
      *                                            not exist
      * @throws OrganizationHasDependentsException with 409 if orphaned RSUs,
@@ -226,8 +226,7 @@ public class OrganizationManagementService {
         log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), organization.getName());
     }
 
-    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Organization organization,
-            List<Organization> authorizedOrgs, boolean isSuperUser) {
+    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Organization organization) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }
