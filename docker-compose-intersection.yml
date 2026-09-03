@@ -52,6 +52,10 @@ services:
 
       FIRMWARE_MANAGER_ENDPOINT: ${FIRMWARE_MANAGER_ENDPOINT:-http://firmware_manager_upgrade_scheduler:8080}
 
+      OBJECT_STORAGE_PROVIDER: ${OBJECT_STORAGE_PROVIDER:-gcp}
+      OBJECT_STORAGE_GCP_BUCKET_NAME: ${OBJECT_STORAGE_GCP_BUCKET_NAME:?error}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/gcp/application-default-credentials.json
+
       BASE_ROUTE_PREFIX: ${INTERSECTION_API_ROUTE_PREFIX:-/}
 
       INTERSECTION_EMAIL_BROKER: ${INTERSECTION_EMAIL_BROKER:-SMTP}
@@ -70,7 +74,13 @@ services:
       EMAIL_RATE_LIMIT_PER_INSTANCE: ${EMAIL_RATE_LIMIT_PER_INSTANCE:-120}
       TIMESYNC_RATE_LIMIT_PER_USER: ${TIMESYNC_RATE_LIMIT_PER_USER:-360}
       TIMESYNC_RATE_LIMIT_PER_INSTANCE: ${TIMESYNC_RATE_LIMIT_PER_INSTANCE:-18000}
-      
+
+    volumes:
+      - type: bind
+        source: ${GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH:?error}
+        target: /var/run/secrets/gcp/application-default-credentials.json
+        read_only: true
+
     entrypoint:
       - sh
       - -c

@@ -144,8 +144,10 @@ http://localhost:8088/swagger-ui/index.html
 
 ## Testing signed Google Cloud Storage uploads locally
 
-Set `OBJECT_STORAGE_GCP_BUCKET_NAME` and, when ADC does not contain a private
-key, `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT`. The optional
+Set `OBJECT_STORAGE_PROVIDER=gcp`, `OBJECT_STORAGE_GCP_BUCKET_NAME` and, when
+ADC does not contain a private key,
+`OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT`. The provider defaults to `gcp`.
+The optional
 `OBJECT_STORAGE_SIGNED_URL_EXPIRATION` defaults to `15m`, and
 `OBJECT_STORAGE_MAX_UPLOAD_SIZE` defaults to `1GB`.
 Authenticate with standard Application Default Credentials. A local
@@ -160,6 +162,14 @@ with the returned HTTP method and every entry in `required_headers`. No
 credential file is read from application configuration or stored in this
 repository.
 
+The signing service account needs permission to create objects in the bucket.
+The API's ADC identity also needs `storage.objects.get` so the completion call
+can read the uploaded object's metadata. When impersonation is used, the ADC
+identity additionally needs permission to sign as the configured service
+account. Bucket CORS must allow every header returned in `required_headers`,
+including `Content-Type`, `x-goog-content-length-range`,
+`x-goog-if-generation-match`, and `x-goog-hash`.
+
 Example request:
 
 ```json
@@ -169,6 +179,8 @@ Example request:
   "version": "y20.97.0",
   "file_name": "rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig",
   "content_length": 52428800,
+  "checksum_algorithm": "CRC32C",
+  "checksum": "ImIEBA==",
   "content_type": "application/octet-stream"
 }
 ```
@@ -180,6 +192,24 @@ not exceed 1024 UTF-8 bytes. `content_length` is the exact byte count of the
 upload and may not exceed `OBJECT_STORAGE_MAX_UPLOAD_SIZE`; the client must send
 the returned `x-goog-content-length-range` header with the PUT request. The
 signed upload also requires `x-goog-if-generation-match: 0`, so an existing
-object is not overwritten.
+object is not overwritten. For GCP, `checksum_algorithm` must be `CRC32C` and
+`checksum` is the standard base64 encoding of the file's four-byte, big-endian
+CRC32C checksum. The GCP implementation signs it into the required
+`x-goog-hash` header so Google Cloud Storage rejects a corrupt upload. The
+shared API and database store the checksum algorithm and value separately so
+other providers can use their native checksum algorithms.
+
+The signed URL response includes an `upload_id`. After the PUT succeeds, call:
+
+```text
+POST /admin/firmware/uploads/{upload_id}/complete
+```
+
+The API routes the request to the provider recorded with the upload, reads the
+stored object's metadata, and verifies its size, checksum algorithm, and
+checksum value against the pending upload record. A successful response has
+status `VERIFIED` and records the observed checksum, provider-specific object
+version, and verification time in PostgreSQL. Completion is idempotent for an
+already verified upload. A missing or mismatched object returns HTTP 409.
 
 To facilitate easy development of front-end applications, the Intersection API is equipped with the capability to provide testData from each of its endpoints. To retrieve test data, set the url param testData to True when making the request.

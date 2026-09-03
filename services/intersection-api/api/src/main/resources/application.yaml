@@ -106,6 +106,7 @@ cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
 
 object-storage:
+  provider: ${OBJECT_STORAGE_PROVIDER:gcp}
   signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:15m}
   max-upload-size: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:1GB}
   gcp:

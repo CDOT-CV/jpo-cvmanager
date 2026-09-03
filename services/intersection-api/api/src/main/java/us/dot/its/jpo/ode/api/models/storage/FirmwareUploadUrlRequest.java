@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Schema(description = "Identifies a file to upload to object storage")
-public class SignedUploadUrlRequest {
+public class FirmwareUploadUrlRequest {
     private static final String PATH_SEGMENT = "^[^/\\\\\\p{Cntrl}]+$";
     private static final String SAFE_FILE_COMPONENT = "^[A-Za-z0-9][A-Za-z0-9._-]*$";
 
@@ -50,6 +50,20 @@ public class SignedUploadUrlRequest {
     @JsonProperty("content_length")
     @Schema(description = "Exact upload size in bytes", example = "52428800")
     private Long contentLength;
+
+    @NotBlank
+    @Size(max = 32)
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "must contain only letters, numbers, underscores, or hyphens")
+    @JsonProperty("checksum_algorithm")
+    @Schema(description = "Checksum algorithm supported by the configured storage provider", example = "CRC32C")
+    private String checksumAlgorithm;
+
+    @NotBlank
+    @Size(max = 128)
+    @Pattern(regexp = "^[A-Za-z0-9+/=_-]+$", message = "contains invalid checksum characters")
+    @JsonProperty("checksum")
+    @Schema(description = "Checksum value encoded as required by checksum_algorithm", example = "ImIEBA==")
+    private String checksum;
 
     @NotBlank
     @Size(max = 255)

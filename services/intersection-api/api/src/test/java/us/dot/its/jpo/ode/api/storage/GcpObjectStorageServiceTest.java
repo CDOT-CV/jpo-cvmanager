@@ -25,36 +25,36 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.google.auth.ServiceAccountSigner;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
 
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
-import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrlRequest;
+import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
+import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
+import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
 
 class GcpObjectStorageServiceTest {
     private final GcpStorageClientProvider clientProvider = mock(GcpStorageClientProvider.class);
     private final Storage storage = mock(Storage.class);
     private final ObjectStorageProperties properties = new ObjectStorageProperties();
+    private final GcpObjectStorageProperties gcpProperties = new GcpObjectStorageProperties();
     private final GoogleCredentials credentials = mock(GoogleCredentials.class,
             withSettings().extraInterfaces(ServiceAccountSigner.class));
 
     private GcpObjectStorageService service;
-    private SignedUploadUrlRequest request;
+    private ObjectUploadRequest request;
 
     @BeforeEach
     void setUp() throws Exception {
-        properties.getGcp().setBucketName("firmware-bucket");
+        gcpProperties.setBucketName("firmware-bucket");
         properties.setSignedUrlExpiration(Duration.ofMinutes(15));
-        service = new GcpObjectStorageService(clientProvider, properties);
+        service = new GcpObjectStorageService(clientProvider, properties, gcpProperties);
 
-        request = new SignedUploadUrlRequest();
-        request.setVendorName("Acme");
-        request.setModelName("RoadRunner");
-        request.setVersion("y20.97.0");
-        request.setFileName("firmware.bin");
-        request.setContentType("application/octet-stream");
-        request.setContentLength(12345L);
+        request = new ObjectUploadRequest("Acme/RoadRunner/y20.97.0/firmware.bin", 12345L,
+                "application/octet-stream", new ObjectChecksum("CRC32C", "ImIEBA=="));
 
         when(clientProvider.getCredentials()).thenReturn(credentials);
         when(clientProvider.getStorage()).thenReturn(storage);
@@ -70,7 +70,8 @@ class GcpObjectStorageServiceTest {
         Map<String, String> headers = Map.of(
                 "Content-Type", "application/octet-stream",
                 "x-goog-if-generation-match", "0",
-                "x-goog-content-length-range", "12345,12345");
+                "x-goog-content-length-range", "12345,12345",
+                "x-goog-hash", "crc32c=ImIEBA==");
 
         try (MockedStatic<Storage.SignUrlOption> options = mockStatic(Storage.SignUrlOption.class)) {
             options.when(() -> Storage.SignUrlOption.httpMethod(HttpMethod.PUT)).thenReturn(putOption);
@@ -95,24 +96,65 @@ class GcpObjectStorageServiceTest {
                     .isEqualTo("Acme/RoadRunner/y20.97.0/firmware.bin");
             assertThat(result.uploadUrl()).isEqualTo(url.toString());
             assertThat(result.method()).isEqualTo("PUT");
+            assertThat(result.location()).isEqualTo(new ObjectStorageLocation(
+                    "gcp", "firmware-bucket", "Acme/RoadRunner/y20.97.0/firmware.bin"));
             assertThat(result.requiredHeaders()).containsEntry("Content-Type", "application/octet-stream")
                     .containsEntry("x-goog-if-generation-match", "0")
-                    .containsEntry("x-goog-content-length-range", "12345,12345");
+                    .containsEntry("x-goog-content-length-range", "12345,12345")
+                    .containsEntry("x-goog-hash", "crc32c=ImIEBA==");
         }
     }
 
     @Test
-    void rejectsPathTraversalSegmentsBeforeCallingGoogleCloud() {
-        request.setFileName("../firmware.bin");
+    void readsMetadataUsedForCompletionVerification() throws Exception {
+        Blob blob = mock(Blob.class);
+        when(blob.getSize()).thenReturn(12345L);
+        when(blob.getCrc32c()).thenReturn("ImIEBA==");
+        when(blob.getGeneration()).thenReturn(17L);
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(blob);
+
+        var metadata = service.getObjectMetadata(new ObjectStorageLocation(
+                "gcp", "firmware-bucket", "Acme/RoadRunner/y20.97.0/firmware.bin"), "CRC32C");
+
+        assertThat(metadata).hasValueSatisfying(value -> {
+            assertThat(value.contentLength()).isEqualTo(12345L);
+            assertThat(value.checksum()).isEqualTo(new ObjectChecksum("CRC32C", "ImIEBA=="));
+            assertThat(value.providerObjectVersion()).isEqualTo("17");
+        });
+    }
+
+    @Test
+    void returnsEmptyWhenUploadedObjectDoesNotExist() throws Exception {
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(null);
+
+        assertThat(service.getObjectMetadata(
+                new ObjectStorageLocation("gcp", "firmware-bucket", "missing.bin"), "CRC32C")).isEmpty();
+    }
+
+    @Test
+    void rejectsUnsupportedChecksumAlgorithmBeforeCallingGoogleCloud() {
+        request = new ObjectUploadRequest(request.objectName(), request.contentLength(), request.contentType(),
+                new ObjectChecksum("SHA256", "ImIEBA=="));
 
         assertThatThrownBy(() -> service.createSignedUploadUrl(request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("file_name");
+                .hasMessageContaining("CRC32C");
+    }
+
+    @Test
+    void rejectsInvalidCrc32cEncodingBeforeCallingGoogleCloud() {
+        request = new ObjectUploadRequest(request.objectName(), request.contentLength(), request.contentType(),
+                new ObjectChecksum("CRC32C", "not-a-checksum"));
+
+        assertThatThrownBy(() -> service.createSignedUploadUrl(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("base64-encoded");
     }
 
     @Test
     void rejectsObjectNamesOverGcsUtf8ByteLimit() {
-        request.setVendorName("\u20ac".repeat(400));
+        request = new ObjectUploadRequest("\u20ac".repeat(400), request.contentLength(), request.contentType(),
+                request.checksum());
 
         assertThatThrownBy(() -> service.createSignedUploadUrl(request))
                 .isInstanceOf(IllegalArgumentException.class)
