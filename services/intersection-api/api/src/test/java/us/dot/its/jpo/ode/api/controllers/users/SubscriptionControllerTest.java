@@ -26,6 +26,7 @@ import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -65,12 +66,20 @@ public class SubscriptionControllerTest {
                     "operator", true, false, false, false, false,
                     true, false, false, false, false));
 
-    private static final List<String> operatorOrgList = List.of("operator_org");
-    private static final List<String> operatorAdminList = List.of("operator_org, admin_org");
+    private static final Organization operatorOrg = new Organization();
+    private static final Organization adminOrg = new Organization();
+
+    private static final List<Organization> operatorOrgList = List.of(operatorOrg);
+    private static final List<Organization> operatorAdminList = List.of(operatorOrg, adminOrg);
 
     @BeforeEach
     void setUp() {
         authToken = Mockito.mock(CvManagerAuthToken.class);
+        operatorOrg.setId(1);
+        operatorOrg.setName("Test Organization");
+
+        adminOrg.setId(2);
+        adminOrg.setName("Admin Organization");
     }
 
     @Nested
