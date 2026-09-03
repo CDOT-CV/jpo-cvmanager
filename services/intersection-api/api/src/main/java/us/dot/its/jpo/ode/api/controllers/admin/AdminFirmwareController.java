@@ -39,6 +39,7 @@ public class AdminFirmwareController {
             @ApiResponse(responseCode = "400", description = "Invalid upload request"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
             @ApiResponse(responseCode = "404", description = "Vendor/model pair was not found"),
+            @ApiResponse(responseCode = "409", description = "Firmware object already exists"),
             @ApiResponse(responseCode = "502", description = "Object storage signing failed"),
             @ApiResponse(responseCode = "503", description = "Object storage is not configured")
     })

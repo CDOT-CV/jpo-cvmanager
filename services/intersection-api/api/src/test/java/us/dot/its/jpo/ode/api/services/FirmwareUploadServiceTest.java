@@ -107,6 +107,22 @@ class FirmwareUploadServiceTest {
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.PENDING);
         assertThat(upload.getExpiresAt()).isEqualTo(EXPIRES_AT);
         assertThat(result.uploadUrl()).isEqualTo(signedUrl.uploadUrl());
+        verify(objectStorageService).objectExists(
+                "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig");
+    }
+
+    @Test
+    void rejectsExistingObjectBeforeSigningOrSavingIntent() {
+        when(objectStorageService.objectExists(any())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(ex.getReason()).contains("already exists");
+                });
+
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     @Test
@@ -149,6 +165,8 @@ class FirmwareUploadServiceTest {
         assertThat(result.providerObjectVersion()).isEqualTo("17");
         assertThat(result.verifiedAt()).isNotNull();
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.VERIFIED);
+        assertThat(upload.getFinishedAt()).isEqualTo(upload.getVerifiedAt());
+        assertThat(upload.getFailureReason()).isNull();
         verify(firmwareUploadRepository).save(upload);
     }
 
@@ -178,7 +196,10 @@ class FirmwareUploadServiceTest {
                     assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(ex.getReason()).contains("checksum");
                 });
-        verify(firmwareUploadRepository, never()).save(upload);
+        assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
+        assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
+        assertThat(upload.getFinishedAt()).isNotNull();
+        verify(firmwareUploadRepository).save(upload);
     }
 
     @Test
@@ -194,6 +215,25 @@ class FirmwareUploadServiceTest {
 
         assertThat(result.status()).isEqualTo(FirmwareUploadStatus.VERIFIED);
         verify(objectStorageService, never()).getObjectMetadata(any(), any());
+    }
+
+    @Test
+    void validLateCompletionRecoversExpiredUpload() {
+        FirmwareUpload upload = pendingUpload();
+        upload.setStatus(FirmwareUploadStatus.EXPIRED);
+        upload.setFailureReason("SIGNED_URL_EXPIRED");
+        upload.setFinishedAt(Instant.parse("2026-09-02T13:15:00Z"));
+        when(firmwareUploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
+        when(objectStorageService.getObjectMetadata(any(ObjectStorageLocation.class), eq("CRC32C")))
+                .thenReturn(Optional.of(new StoredObjectMetadata(
+                        12345L, new ObjectChecksum("CRC32C", "ImIEBA=="), "17")));
+
+        FirmwareUploadVerification result = service.completeFirmwareUpload(upload.getId());
+
+        assertThat(result.status()).isEqualTo(FirmwareUploadStatus.VERIFIED);
+        assertThat(upload.getFailureReason()).isNull();
+        assertThat(upload.getFinishedAt()).isEqualTo(upload.getVerifiedAt());
+        verify(firmwareUploadRepository).save(upload);
     }
 
     private FirmwareUpload pendingUpload() {

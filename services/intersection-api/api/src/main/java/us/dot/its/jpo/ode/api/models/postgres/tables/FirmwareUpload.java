@@ -95,6 +95,13 @@ public class FirmwareUpload {
     @Column(name = "verified_at")
     private Instant verifiedAt;
 
+    @Column(name = "finished_at")
+    private Instant finishedAt;
+
+    @Size(max = 255)
+    @Column(name = "failure_reason", length = 255)
+    private String failureReason;
+
     @Column(name = "provider_object_version", columnDefinition = "text")
     private String providerObjectVersion;
 

@@ -62,6 +62,15 @@ public class FirmwareUploadService {
         ObjectChecksum expectedChecksum = new ObjectChecksum(checksumAlgorithm, request.getChecksum().trim());
         String objectName = buildObjectName(request);
         ObjectStorageService objectStorageService = objectStorageServices.getActiveService();
+
+        // Avoid creating a PENDING intent when the immutable destination is already
+        // occupied. The provider's create-only upload condition remains the final
+        // protection against another writer winning after this check
+        if (objectStorageService.objectExists(objectName)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A firmware file already exists for this vendor, model, version, and file name");
+        }
+
         SignedUploadUrl signedUrl = objectStorageService.createSignedUploadUrl(new ObjectUploadRequest(
                 objectName, request.getContentLength(), request.getContentType().trim(), expectedChecksum));
         ObjectStorageLocation location = signedUrl.location();
@@ -116,12 +125,14 @@ public class FirmwareUploadService {
         // Comparing the algorithm prevents equal looking values from different hash
         // formats from being treated as equivalent
         if (metadata.contentLength() != upload.getExpectedSize()) {
+            markFailed(upload, "SIZE_MISMATCH");
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Uploaded object size does not match content_length");
         }
         if (metadata.checksum() == null
                 || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
                 || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
+            markFailed(upload, "CHECKSUM_MISMATCH");
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Uploaded object checksum does not match the expected checksum");
         }
@@ -132,6 +143,8 @@ public class FirmwareUploadService {
         upload.setObservedChecksum(metadata.checksum().value());
         upload.setProviderObjectVersion(metadata.providerObjectVersion());
         upload.setVerifiedAt(Instant.now());
+        upload.setFinishedAt(upload.getVerifiedAt());
+        upload.setFailureReason(null);
         firmwareUploadRepository.save(upload);
         return toVerification(upload);
     }
@@ -140,6 +153,13 @@ public class FirmwareUploadService {
         return new FirmwareUploadVerification(upload.getId(), upload.getStatus(), upload.getObjectName(),
                 upload.getExpectedSize(), upload.getChecksumAlgorithm(), upload.getObservedChecksum(),
                 upload.getProviderObjectVersion(), upload.getVerifiedAt());
+    }
+
+    private void markFailed(FirmwareUpload upload, String reason) {
+        upload.setStatus(FirmwareUploadStatus.FAILED);
+        upload.setFailureReason(reason);
+        upload.setFinishedAt(Instant.now());
+        firmwareUploadRepository.save(upload);
     }
 
     private String buildObjectName(FirmwareUploadUrlRequest request) {

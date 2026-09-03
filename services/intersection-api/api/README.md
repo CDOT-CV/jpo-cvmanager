@@ -163,8 +163,9 @@ credential file is read from application configuration or stored in this
 repository.
 
 The signing service account needs permission to create objects in the bucket.
-The API's ADC identity also needs `storage.objects.get` so the completion call
-can read the uploaded object's metadata. When impersonation is used, the ADC
+The API's ADC identity also needs `storage.objects.get` so it can reject an
+existing destination before signing and read uploaded object metadata during
+completion. When impersonation is used, the ADC
 identity additionally needs permission to sign as the configured service
 account. Bucket CORS must allow every header returned in `required_headers`,
 including `Content-Type`, `x-goog-content-length-range`,
@@ -198,6 +199,12 @@ CRC32C checksum. The GCP implementation signs it into the required
 `x-goog-hash` header so Google Cloud Storage rejects a corrupt upload. The
 shared API and database store the checksum algorithm and value separately so
 other providers can use their native checksum algorithms.
+
+Abandoned upload intents are marked `EXPIRED` after the signed URL expiration
+plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE` (default `1h`). `FAILED` and `EXPIRED`
+rows are deleted after `FIRMWARE_UPLOAD_RETENTION` (default `30d`) by a task that
+runs every `FIRMWARE_UPLOAD_CLEANUP_INTERVAL` (default `1h`). Set
+`FIRMWARE_UPLOAD_CLEANUP_ENABLED=false` to disable this maintenance task.
 
 The signed URL response includes an `upload_id`. After the PUT succeeds, call:
 

@@ -106,6 +106,26 @@ class GcpObjectStorageServiceTest {
     }
 
     @Test
+    void checksWhetherObjectAlreadyExistsInConfiguredBucket() throws Exception {
+        Blob blob = mock(Blob.class);
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(blob);
+
+        assertThat(service.objectExists("Acme/RoadRunner/y20.97.0/firmware.bin")).isTrue();
+
+        ArgumentCaptor<BlobId> blobId = ArgumentCaptor.forClass(BlobId.class);
+        verify(storage).get(blobId.capture(), any(Storage.BlobGetOption[].class));
+        assertThat(blobId.getValue().getBucket()).isEqualTo("firmware-bucket");
+        assertThat(blobId.getValue().getName()).isEqualTo("Acme/RoadRunner/y20.97.0/firmware.bin");
+    }
+
+    @Test
+    void reportsThatObjectDoesNotExist() throws Exception {
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(null);
+
+        assertThat(service.objectExists("missing.bin")).isFalse();
+    }
+
+    @Test
     void readsMetadataUsedForCompletionVerification() throws Exception {
         Blob blob = mock(Blob.class);
         when(blob.getSize()).thenReturn(12345L);

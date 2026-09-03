@@ -116,6 +116,13 @@ object-storage:
     # identifier, not a credential or secret
     signing-service-account: ${OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT:}
 
+firmware-upload:
+  cleanup:
+    enabled: ${FIRMWARE_UPLOAD_CLEANUP_ENABLED:true}
+    interval: ${FIRMWARE_UPLOAD_CLEANUP_INTERVAL:1h}
+    expiration-grace: ${FIRMWARE_UPLOAD_EXPIRATION_GRACE:1h}
+    retention: ${FIRMWARE_UPLOAD_RETENTION:30d}
+
 spring.main.allow-circular-references: true
 spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
 server.servlet.context-path: ${BASE_ROUTE_PREFIX:/}

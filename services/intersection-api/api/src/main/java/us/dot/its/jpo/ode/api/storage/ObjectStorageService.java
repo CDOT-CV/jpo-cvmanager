@@ -9,6 +9,9 @@ import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 
 /** Cloud-provider-neutral operations for direct object-storage uploads. */
 public interface ObjectStorageService {
+    /** Checks the active container without creating or replacing an object. */
+    boolean objectExists(String objectName);
+
     SignedUploadUrl createSignedUploadUrl(ObjectUploadRequest request);
 
     Optional<StoredObjectMetadata> getObjectMetadata(ObjectStorageLocation location, String checksumAlgorithm);

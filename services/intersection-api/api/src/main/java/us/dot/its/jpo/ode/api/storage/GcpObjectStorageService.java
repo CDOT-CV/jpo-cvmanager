@@ -54,6 +54,22 @@ public class GcpObjectStorageService implements ObjectStorageService {
     private final GcpObjectStorageProperties gcpProperties;
 
     @Override
+    public boolean objectExists(String objectName) {
+        validateConfiguration();
+        String validatedObjectName = validateObjectName(objectName);
+        try {
+            Blob blob = clientProvider.getStorage().get(
+                    BlobId.of(gcpProperties.getBucketName().trim(), validatedObjectName),
+                    Storage.BlobGetOption.fields(Storage.BlobField.NAME));
+            return blob != null;
+        } catch (Exception ex) {
+            log.error("Failed to check whether object {} exists", validatedObjectName, ex);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Unable to check whether the firmware object already exists");
+        }
+    }
+
+    @Override
     public SignedUploadUrl createSignedUploadUrl(ObjectUploadRequest request) {
         validateConfiguration();
         if (request.contentLength() <= 0) {
