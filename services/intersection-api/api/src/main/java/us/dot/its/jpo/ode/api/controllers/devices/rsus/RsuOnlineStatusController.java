@@ -35,23 +35,20 @@ public class RsuOnlineStatusController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     public OnlineStatusResponse getAllOnlineStatuses(
             @RequestHeader(name = "Organization") String organization) {
-        log.info("GET /devices/rsus/online-status. organization: {}", organization);
+        log.debug("GET /devices/rsus/online-status. organization: {}", organization);
         return new OnlineStatusResponse(rsuOnlineStatusService.getOnlineStatuses(organization));
     }
 
     @Operation(summary = "Get last successful online time for one RSU")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "400", description = "Invalid IP or missing Organization header"),
-            @ApiResponse(responseCode = "403", description = "Forbidden"),
-            @ApiResponse(responseCode = "404", description = "RSU not found in organization")
+            @ApiResponse(responseCode = "400", description = "Invalid IP"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
     })
     @GetMapping(value = "/{ip}", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
-    public LastOnlineDto getLastOnline(
-            @RequestHeader(name = "Organization") String organization,
-            @PathVariable String ip) {
-        log.info("GET /devices/rsus/online-status/{}. organization: {}", ip, organization);
-        return rsuOnlineStatusService.getLastOnline(organization, ip);
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRsu(#ip, 'USER')")
+    public LastOnlineDto getLastOnline(@PathVariable String ip) {
+        log.debug("GET /devices/rsus/online-status/{}", ip);
+        return rsuOnlineStatusService.getLastOnline(ip);
     }
 }

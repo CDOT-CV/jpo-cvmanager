@@ -85,29 +85,17 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             @Param("organization") String organization,
             @Param("cutoff") Instant cutoff);
 
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-            "FROM Rsu r " +
-            "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE r.ipv4Address = :ipv4Address AND o.name = :organization")
-    boolean existsByIpAndOrganization(@Param("ipv4Address") InetAddress ipv4Address,
-            @Param("organization") String organization);
-
     /**
      * Returns the timestamp of the most recent successful ping for one RSU.
      */
     @Query("SELECT p.timestamp " +
             "FROM Rsu r " +
             "JOIN r.pings p " +
-            "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
-            "AND o.name = :organization " +
             "AND p.result = true " +
             "ORDER BY p.timestamp DESC " +
             "LIMIT 1")
-    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address,
-            @Param("organization") String organization);
+    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address);
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching

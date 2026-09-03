@@ -2,7 +2,6 @@ package us.dot.its.jpo.ode.api.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -19,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
@@ -53,16 +51,27 @@ class RsuOnlineStatusServiceTest {
         assertEquals("unstable", statuses.get("10.0.0.2").getCurrentStatus());
         assertEquals("offline", statuses.get("10.0.0.3").getCurrentStatus());
         assertEquals("offline", statuses.get("10.0.0.4").getCurrentStatus());
+        assertEquals(List.of("10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4"), List.copyOf(statuses.keySet()));
+    }
+
+    @Test
+    void getOnlineStatuses_usesNewestPingEvenWhenRowsAreUnsorted() throws Exception {
+        when(rsuRepository.findOnlineStatusPingsByOrganization(eq("TestOrg"), any())).thenReturn(List.of(
+                ping("10.0.0.1", NOW.minusSeconds(90), true),
+                ping("10.0.0.1", NOW.minusSeconds(30), false)));
+
+        var statuses = service.getOnlineStatuses("TestOrg");
+
+        assertEquals("unstable", statuses.get("10.0.0.1").getCurrentStatus());
     }
 
     @Test
     void getLastOnline_returnsLatestSuccessfulPingTimestamp() throws Exception {
         Instant lastOnline = NOW.minusSeconds(30);
-        when(rsuRepository.existsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(true);
-        when(rsuRepository.findLatestSuccessfulPingTimestamp(any(), eq("TestOrg")))
+        when(rsuRepository.findLatestSuccessfulPingTimestamp(any()))
                 .thenReturn(Optional.of(lastOnline));
 
-        var result = service.getLastOnline("TestOrg", "10.0.0.1");
+        var result = service.getLastOnline("10.0.0.1");
 
         assertEquals("10.0.0.1", result.getIp());
         assertEquals(lastOnline, result.getLastOnline());
@@ -70,24 +79,13 @@ class RsuOnlineStatusServiceTest {
 
     @Test
     void getLastOnline_returnsNullWhenAuthorizedRsuHasNoSuccessfulPing() throws Exception {
-        when(rsuRepository.existsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(true);
-        when(rsuRepository.findLatestSuccessfulPingTimestamp(any(), eq("TestOrg")))
+        when(rsuRepository.findLatestSuccessfulPingTimestamp(any()))
                 .thenReturn(Optional.empty());
 
-        var result = service.getLastOnline("TestOrg", "10.0.0.1");
+        var result = service.getLastOnline("10.0.0.1");
 
         assertEquals("10.0.0.1", result.getIp());
         assertNull(result.getLastOnline());
-    }
-
-    @Test
-    void getLastOnline_returnsNotFoundForRsuOutsideOrganization() {
-        when(rsuRepository.existsByIpAndOrganization(any(), eq("TestOrg"))).thenReturn(false);
-
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.getLastOnline("TestOrg", "10.0.0.1"));
-
-        assertEquals(404, exception.getStatusCode().value());
     }
 
     private static RsuOnlineStatusProjection ping(String ip, Instant timestamp, Boolean result) throws Exception {

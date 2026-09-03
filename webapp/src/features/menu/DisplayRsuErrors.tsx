@@ -33,10 +33,9 @@ const DisplayRsuErrors = ({ initialSelectedRsu }: { initialSelectedRsu?: RsuInfo
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
   const [selectedRSU, setSelectedRSU] = useState<RsuInfo | undefined>(initialSelectedRsu)
   const selectedRsuIp = selectedRSU?.properties.ipv4_address ?? ''
-  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(
-    { organization, ip: selectedRsuIp },
-    { skip: !organization || !selectedRsuIp }
-  )
+  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(selectedRsuIp, {
+    skip: !selectedRsuIp,
+  })
   const contentRef = useRef(null)
   const errorRef = useRef(null)
   const userEmail = useSelector(selectEmail)

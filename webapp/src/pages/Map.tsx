@@ -153,10 +153,9 @@ function MapPage() {
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
   const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const rsuIpv4 = useSelector(selectRsuIpv4)
-  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(
-    { organization, ip: rsuIpv4 ?? '' },
-    { skip: !organization || !rsuIpv4 }
-  )
+  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
+    skip: !rsuIpv4,
+  })
   const addConfigPoint = useSelector(selectAddConfigPoint)
   const configCoordinates = useSelector(selectConfigCoordinates)
   const geoMsgType = useSelector(selectGeoMsgType)

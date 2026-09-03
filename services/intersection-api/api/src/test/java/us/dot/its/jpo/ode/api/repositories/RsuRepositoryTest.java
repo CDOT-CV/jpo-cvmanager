@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -89,8 +88,8 @@ class RsuRepositoryTest {
         Instant inWindowOlder = now.minus(5, ChronoUnit.MINUTES);
         Instant beforeCutoff = now.minus(30, ChronoUnit.MINUTES);
 
-        Organization testOrg = organizationRepository.save(fixtures.createOrg("TestOrg"));
-        Organization otherOrg = organizationRepository.save(fixtures.createOrg("OtherOrg"));
+        Organization testOrg = organizationRepository.save(fixtures.createOrg(null, "TestOrg", "email"));
+        Organization otherOrg = organizationRepository.save(fixtures.createOrg(null, "OtherOrg", "email"));
         RsuGraph graph = saveSharedGraph(testOrg);
 
         Rsu online = saveRsu(graph, testOrg, "10.0.0.1");
@@ -130,34 +129,14 @@ class RsuRepositoryTest {
     }
 
     @Test
-    @DisplayName("existsByIpAndOrganization is true only when the RSU belongs to that organization")
-    void existsByIpAndOrganization_scopesByOrganization() throws Exception {
-        Organization testOrg = organizationRepository.save(fixtures.createOrg("TestOrg"));
-        Organization otherOrg = organizationRepository.save(fixtures.createOrg("OtherOrg"));
-        RsuGraph graph = saveSharedGraph(testOrg);
-
-        saveRsu(graph, testOrg, "10.0.0.1");
-        saveRsu(graph, otherOrg, "10.0.0.2");
-
-        InetAddress inOrg = InetAddress.getByName("10.0.0.1");
-        InetAddress otherOrgIp = InetAddress.getByName("10.0.0.2");
-        InetAddress unknown = InetAddress.getByName("10.0.0.9");
-
-        assertTrue(rsuRepository.existsByIpAndOrganization(inOrg, "TestOrg"));
-        assertFalse(rsuRepository.existsByIpAndOrganization(otherOrgIp, "TestOrg"));
-        assertFalse(rsuRepository.existsByIpAndOrganization(unknown, "TestOrg"));
-        assertTrue(rsuRepository.existsByIpAndOrganization(otherOrgIp, "OtherOrg"));
-    }
-
-    @Test
     @DisplayName("findLatestSuccessfulPingTimestamp returns the newest successful ping only")
     void findLatestSuccessfulPingTimestamp_filtersSuccessAndLimitsToOne() throws Exception {
         Instant newestFailure = Instant.parse("2026-08-03T12:00:00Z");
         Instant newestSuccess = newestFailure.minus(5, ChronoUnit.MINUTES);
         Instant olderSuccess = newestFailure.minus(10, ChronoUnit.MINUTES);
 
-        Organization testOrg = organizationRepository.save(fixtures.createOrg("TestOrg"));
-        Organization otherOrg = organizationRepository.save(fixtures.createOrg("OtherOrg"));
+        Organization testOrg = organizationRepository.save(fixtures.createOrg(null, "TestOrg", "email"));
+        Organization otherOrg = organizationRepository.save(fixtures.createOrg(null, "OtherOrg", "email"));
         RsuGraph graph = saveSharedGraph(testOrg);
 
         Rsu rsu = saveRsu(graph, testOrg, "10.0.0.1");
@@ -167,12 +146,10 @@ class RsuRepositoryTest {
         savePing(rsu, newestFailure, false);
 
         assertEquals(Optional.of(newestSuccess), rsuRepository.findLatestSuccessfulPingTimestamp(
-                InetAddress.getByName("10.0.0.1"), "TestOrg"));
+                InetAddress.getByName("10.0.0.1")));
 
         assertTrue(rsuRepository.findLatestSuccessfulPingTimestamp(
-                InetAddress.getByName("10.0.0.1"), "OtherOrg").isEmpty());
-        assertTrue(rsuRepository.findLatestSuccessfulPingTimestamp(
-                InetAddress.getByName("10.0.0.2"), "TestOrg").isEmpty());
+                InetAddress.getByName("10.0.0.2")).isEmpty());
     }
 
     private RsuGraph saveSharedGraph(Organization owner) {

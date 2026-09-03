@@ -38,11 +38,11 @@ describe('rsuOnlineStatusApiSlice', () => {
     const store = setupStore(mockUserState)
     fetchMock.mockResponseOnce(JSON.stringify({ ip: '10.0.0.1', last_online: null }))
 
-    const result = await store.dispatch(
-      rsuOnlineStatusApiSlice.endpoints.getRsuLastOnline.initiate({ organization: 'test-org', ip: '10.0.0.1' })
-    )
+    const result = await store.dispatch(rsuOnlineStatusApiSlice.endpoints.getRsuLastOnline.initiate('10.0.0.1'))
 
     expect(result.data).toEqual({ ip: '10.0.0.1', last_online: null })
-    expect(getRequest().url).toBe(`${BASE_URL}/10.0.0.1`)
+    const request = getRequest()
+    expect(request.url).toBe(`${BASE_URL}/10.0.0.1`)
+    expect(request.headers.get('Organization')).toBeNull()
   })
 })

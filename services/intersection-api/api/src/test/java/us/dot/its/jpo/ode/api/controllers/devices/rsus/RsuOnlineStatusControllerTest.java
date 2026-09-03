@@ -56,20 +56,32 @@ class RsuOnlineStatusControllerTest {
     @Test
     void getLastOnline_returnsIsoTimestampAndNullWhenNoPingExists() throws Exception {
         when(permissionService.isSuperUser()).thenReturn(false);
-        when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
-        when(rsuOnlineStatusService.getLastOnline("TestOrg", "10.0.0.1"))
+        when(permissionService.hasRsu("10.0.0.1", "USER")).thenReturn(true);
+        when(rsuOnlineStatusService.getLastOnline("10.0.0.1"))
                 .thenReturn(new LastOnlineDto("10.0.0.1", Instant.parse("2026-08-03T12:00:00Z")));
 
-        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.1").header("Organization", "TestOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ip").value("10.0.0.1"))
                 .andExpect(jsonPath("$.last_online").value("2026-08-03T12:00:00Z"));
 
-        when(rsuOnlineStatusService.getLastOnline("TestOrg", "10.0.0.2"))
+        when(permissionService.hasRsu("10.0.0.2", "USER")).thenReturn(true);
+        when(rsuOnlineStatusService.getLastOnline("10.0.0.2"))
                 .thenReturn(new LastOnlineDto("10.0.0.2", null));
-        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.2").header("Organization", "TestOrg"))
+        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.last_online").value(nullValue()));
+    }
+
+    @Test
+    void getLastOnline_rejectsUnauthorizedRsu() throws Exception {
+        when(permissionService.isSuperUser()).thenReturn(false);
+        when(permissionService.hasRsu("10.0.0.1", "USER")).thenReturn(false);
+
+        mockMvc.perform(get("/devices/rsus/online-status/10.0.0.1"))
+                .andExpect(status().isForbidden());
+
+        verify(rsuOnlineStatusService, never()).getLastOnline(anyString());
     }
 
     @Test

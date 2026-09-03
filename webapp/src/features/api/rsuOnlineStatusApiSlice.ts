@@ -46,12 +46,11 @@ export const rsuOnlineStatusApiSlice = createApi({
         { type: RSU_ONLINE_STATUS_TAG, id: RSU_ONLINE_STATUS_LIST_ID },
       ],
     }),
-    getRsuLastOnline: builder.query<RsuLastOnlineStatus, { organization: string; ip: string }>({
-      query: ({ organization, ip }) => ({
+    getRsuLastOnline: builder.query<RsuLastOnlineStatus, string>({
+      query: (ip) => ({
         url: `/${encodeURIComponent(ip)}`,
-        headers: { Organization: organization },
       }),
-      providesTags: (result, error, { ip }) => [{ type: RSU_ONLINE_STATUS_TAG, id: ip }],
+      providesTags: (result, error, ip) => [{ type: RSU_ONLINE_STATUS_TAG, id: ip }],
     }),
   }),
 })
