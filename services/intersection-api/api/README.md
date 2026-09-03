@@ -142,4 +142,44 @@ Then open the following file in a browser: [index.html](./target/site/jacoco/ind
 The Intersection API utilizes swagger for viewing and testing api endpoints. The Swagger endpoint can be accessed here:
 http://localhost:8088/swagger-ui/index.html
 
+## Testing signed Google Cloud Storage uploads locally
+
+Set `OBJECT_STORAGE_GCP_BUCKET_NAME` and, when ADC does not contain a private
+key, `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT`. The optional
+`OBJECT_STORAGE_SIGNED_URL_EXPIRATION` defaults to `15m`, and
+`OBJECT_STORAGE_MAX_UPLOAD_SIZE` defaults to `1GB`.
+Authenticate with standard Application Default Credentials. A local
+service-account key may be referenced from outside the repository:
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = 'C:\path\outside\the\repository\service-account.json'
+```
+
+Request `POST /admin/firmware/signed-upload-url` as an ADMIN, then upload
+with the returned HTTP method and every entry in `required_headers`. No
+credential file is read from application configuration or stored in this
+repository.
+
+Example request:
+
+```json
+{
+  "vendor_name": "Commsignia",
+  "model_name": "ITS-RS4-M",
+  "version": "y20.97.0",
+  "file_name": "rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig",
+  "content_length": 52428800,
+  "content_type": "application/octet-stream"
+}
+```
+
+The vendor/model pair must exist in PostgreSQL. Version and file name must
+start with an ASCII letter or number and may otherwise contain only ASCII
+letters, numbers, dots, underscores, and hyphens. The complete object name may
+not exceed 1024 UTF-8 bytes. `content_length` is the exact byte count of the
+upload and may not exceed `OBJECT_STORAGE_MAX_UPLOAD_SIZE`; the client must send
+the returned `x-goog-content-length-range` header with the PUT request. The
+signed upload also requires `x-goog-if-generation-match: 0`, so an existing
+object is not overwritten.
+
 To facilitate easy development of front-end applications, the Intersection API is equipped with the capability to provide testData from each of its endpoints. To retrieve test data, set the url param testData to True when making the request.

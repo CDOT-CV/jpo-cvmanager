@@ -87,7 +87,7 @@ spring:
   cache:
     jcache:
       provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
-    cache-names: 
+    cache-names:
       - email-rate-limit
       - timesync-rate-limit
     caffeine:
@@ -104,6 +104,16 @@ cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
+
+object-storage:
+  signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:15m}
+  max-upload-size: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:1GB}
+  gcp:
+    bucket-name: ${OBJECT_STORAGE_GCP_BUCKET_NAME:}
+    # Required for keyless signing when ADC does not expose a private key (for
+    # example, GKE Workload Identity or local gcloud user ADC). This is an
+    # identifier, not a credential or secret
+    signing-service-account: ${OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT:}
 
 spring.main.allow-circular-references: true
 spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
