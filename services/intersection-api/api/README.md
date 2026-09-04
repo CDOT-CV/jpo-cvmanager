@@ -144,79 +144,107 @@ http://localhost:8088/swagger-ui/index.html
 
 ## Testing signed Google Cloud Storage uploads locally
 
-Set `OBJECT_STORAGE_PROVIDER=gcp`, `OBJECT_STORAGE_GCP_BUCKET_NAME` and, when
-ADC does not contain a private key,
-`OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT`. The provider defaults to `gcp`.
-The optional
-`OBJECT_STORAGE_SIGNED_URL_EXPIRATION` defaults to `15m`, and
-`OBJECT_STORAGE_MAX_UPLOAD_SIZE` defaults to `1GB`.
-Authenticate with standard Application Default Credentials. A local
-service-account key may be referenced from outside the repository:
+### Storage provider design
 
-```powershell
-$env:GOOGLE_APPLICATION_CREDENTIALS = 'C:\path\outside\the\repository\service-account.json'
+Google Cloud Storage (GCS) is the currently supported provider, but the upload
+workflow is not coupled to GCS:
+
+- `ObjectStorageService` defines the provider agnostic operations for checking
+  an object, generating upload instructions, and reading uploaded metadata.
+- `ObjectStorageServiceRegistry` selects an implementation using
+  `OBJECT_STORAGE_PROVIDER` and routes completion through the provider recorded
+  with each upload.
+- Requests, responses, and PostgreSQL records store generic container,
+  checksum, and provider object version values.
+- `GcpObjectStorageService` contains the GCS specific client calls, V4 signing,
+  upload headers, CRC32C rules, and object-name limits.
+- A future provider can implement `ObjectStorageService` and register its own
+  provider name without changing the firmware upload workflow.
+
+### Configuration checklist
+
+General object-storage settings:
+
+| Environment variable                   | Required? | Default | Purpose                                                                                                         |
+| -------------------------------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `OBJECT_STORAGE_PROVIDER`              | No        | `gcp`   | Selects the registered object-storage implementation. The default is usable because GCS is currently supported. |
+| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION` | No        | `15m`   | How long newly issued upload URLs remain valid. GCS allows a maximum of seven days.                             |
+| `OBJECT_STORAGE_MAX_UPLOAD_SIZE`       | No        | `1GB`   | Rejects requests whose declared `content_length` exceeds this value.                                            |
+
+GCP settings and credentials:
+
+| Environment variable                         | Required?                                | Default                                                     | Purpose                                                                                                                                                                                                                                    |
+| -------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OBJECT_STORAGE_GCP_BUCKET_NAME`             | Only to use GCS firmware uploads         | Empty                                                       | The existing GCS bucket that receives firmware. An empty value allows the API to start but causes firmware upload requests to return `503 Service Unavailable`. The application does not create buckets.                                    |
+| `GOOGLE_APPLICATION_CREDENTIALS`             | Conditional                              | Standard ADC lookup                                         | For an API process running directly on the host, points to a service-account JSON file outside the repository. It is unnecessary when another Application Default Credentials source is available.                                         |
+| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`   | Only to use GCS uploads in local Compose | `./resources/google/sample_gcp_service_account.json`         | Host path to the service-account JSON file. The default contains no credentials and only permits startup when storage is unused. Compose mounts the selected file read-only and sets the container's `GOOGLE_APPLICATION_CREDENTIALS`.      |
+| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Conditional                              | Empty                                                       | Target service-account email for keyless signing when ADC cannot sign locally, such as user ADC or GKE Workload Identity. Do not set it when local ADC is a service-account key with a private key using `GOOGLE_APPLICATION_CREDENTIALS`. |
+
+Firmware-upload cleanup settings all have workable defaults:
+
+| Environment variable               | Required? | Default | Purpose                                                                                                                                                           |
+| ---------------------------------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FIRMWARE_UPLOAD_CLEANUP_ENABLED`  | No        | `true`  | Enables automatic expiration and retention cleanup.                                                                                                               |
+| `FIRMWARE_UPLOAD_CLEANUP_INTERVAL` | No        | `1h`    | Delay between cleanup runs.                                                                                                                                       |
+| `FIRMWARE_UPLOAD_EXPIRATION_GRACE` | No        | `1h`    | Additional time after signed-URL expiration before a `PENDING` upload becomes `EXPIRED`. This allows an upload started near expiration to finish and be verified. |
+| `FIRMWARE_UPLOAD_RETENTION`        | No        | `30d`   | How long `FAILED` and `EXPIRED` rows remain available for diagnosis before deletion.                                                                              |
+
+### GCP permissions
+
+For local service-account key authentication, the service account needs these
+bucket-scoped permissions:
+
+- `storage.objects.create` to authorize signed uploads.
+- `storage.objects.get` to reject an occupied destination before signing and
+  to verify metadata after an upload.
+- The ADC identity needs object-metadata permission on the bucket.
+
+No bucket-creation or bucket-listing permission is used by this workflow.
+
+To enable GCS firmware uploads with Docker Compose, add these values to the
+root `.env` file:
+
+```dotenv
+OBJECT_STORAGE_GCP_BUCKET_NAME=your-existing-bucket
+GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH=C:/path/outside/the/repository/service-account.json
 ```
 
-Request `POST /admin/firmware/signed-upload-url` as an ADMIN, then upload
-with the returned HTTP method and every entry in `required_headers`. No
-credential file is read from application configuration or stored in this
-repository.
+The root `.env` file is ignored by Git. Do not place service-account JSON in
+the repository or bake it into a container image. If these values are omitted,
+Compose uses safe startup defaults; the rest of the Intersection API remains
+available, while firmware upload requests fail with `503 Service Unavailable`.
 
-The signing service account needs permission to create objects in the bucket.
-The API's ADC identity also needs `storage.objects.get` so it can reject an
-existing destination before signing and read uploaded object metadata during
-completion. When impersonation is used, the ADC
-identity additionally needs permission to sign as the configured service
-account. Bucket CORS must allow every header returned in `required_headers`,
-including `Content-Type`, `x-goog-content-length-range`,
-`x-goog-if-generation-match`, and `x-goog-hash`.
+### Bucket CORS for browser uploads
 
-Example request:
+The browser uploads directly to GCS, so the bucket must allow the webapp's
+origin and every signed request header. For local development, a rule can use:
 
 ```json
-{
-  "vendor_name": "Commsignia",
-  "model_name": "ITS-RS4-M",
-  "version": "y20.97.0",
-  "file_name": "rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig",
-  "content_length": 52428800,
-  "checksum_algorithm": "CRC32C",
-  "checksum": "ImIEBA==",
-  "content_type": "application/octet-stream"
-}
+[
+  {
+    "origin": ["http://localhost:3000"],
+    "method": ["PUT"],
+    "responseHeader": ["Content-Type", "x-goog-content-length-range", "x-goog-hash", "x-goog-if-generation-match"],
+    "maxAgeSeconds": 3600
+  }
+]
 ```
 
-The vendor/model pair must exist in PostgreSQL. Version and file name must
-start with an ASCII letter or number and may otherwise contain only ASCII
-letters, numbers, dots, underscores, and hyphens. The complete object name may
-not exceed 1024 UTF-8 bytes. `content_length` is the exact byte count of the
-upload and may not exceed `OBJECT_STORAGE_MAX_UPLOAD_SIZE`; the client must send
-the returned `x-goog-content-length-range` header with the PUT request. The
-signed upload also requires `x-goog-if-generation-match: 0`, so an existing
-object is not overwritten. For GCP, `checksum_algorithm` must be `CRC32C` and
-`checksum` is the standard base64 encoding of the file's four-byte, big-endian
-CRC32C checksum. The GCP implementation signs it into the required
-`x-goog-hash` header so Google Cloud Storage rejects a corrupt upload. The
-shared API and database store the checksum algorithm and value separately so
-other providers can use their native checksum algorithms.
+Apply it with an infrastructure identity that has `storage.buckets.get` and
+`storage.buckets.update`:
 
-Abandoned upload intents are marked `EXPIRED` after the signed URL expiration
-plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE` (default `1h`). `FAILED` and `EXPIRED`
-rows are deleted after `FIRMWARE_UPLOAD_RETENTION` (default `30d`) by a task that
-runs every `FIRMWARE_UPLOAD_CLEANUP_INTERVAL` (default `1h`). Set
-`FIRMWARE_UPLOAD_CLEANUP_ENABLED=false` to disable this maintenance task.
-
-The signed URL response includes an `upload_id`. After the PUT succeeds, call:
-
-```text
-POST /admin/firmware/uploads/{upload_id}/complete
+```powershell
+gcloud storage buckets update gs://your-existing-bucket --cors-file=cors-local.json
 ```
 
-The API routes the request to the provider recorded with the upload, reads the
-stored object's metadata, and verifies its size, checksum algorithm, and
-checksum value against the pending upload record. A successful response has
-status `VERIFIED` and records the observed checksum, provider-specific object
-version, and verification time in PostgreSQL. Completion is idempotent for an
-already verified upload. A missing or mismatched object returns HTTP 409.
+`--cors-file` replaces the bucket's existing CORS configuration. Preserve any
+rules required by deployed webapp origins when adding the localhost rule.
 
-To facilitate easy development of front-end applications, the Intersection API is equipped with the capability to provide testData from each of its endpoints. To retrieve test data, set the url param testData to True when making the request.
+### Upload lifecycle
+
+| Status     | Meaning                                                                                       | Cleanup behavior                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `PENDING`  | Signed instructions were issued and completion has not verified the object.                   | Becomes `EXPIRED` after `expires_at` plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`, on the next cleanup run.                                    |
+| `VERIFIED` | Stored size and checksum match the upload request. Completion is idempotent.                  | Retained; automated cleanup never deletes the row or its object.                                                                          |
+| `FAILED`   | Completion found a size or checksum mismatch. `failure_reason` contains a stable reason code. | Row is deleted after `FIRMWARE_UPLOAD_RETENTION`; the cleanup task does not delete cloud objects.                                         |
+| `EXPIRED`  | The upload remained pending beyond its signed-URL expiration and grace period.                | Row is deleted after `FIRMWARE_UPLOAD_RETENTION`. A late completion can still change it to `VERIFIED` if the object exists and validates. |
