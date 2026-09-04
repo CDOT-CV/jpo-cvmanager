@@ -13,9 +13,9 @@ OUT="/tmp/cvmanager_rsu_counts.om"
 BLOCKS_DIR="/prometheus"
 
 DAYS="${SAMPLE_DAYS:-7}"
-# Must be strictly less than the Intersection API query step for ≤24h windows (300s),
-# so increase(metric[300s]) sees ≥2 samples. 60s matches typical scrape cadence.
-STEP="${SAMPLE_STEP_SECONDS:-60}"
+# Must be strictly less than the Intersection API query step (120s) so
+# increase(metric[120s]) sees ≥2 samples.
+STEP="${SAMPLE_STEP_SECONDS:-30}"
 FORCE_RESEED="${FORCE_RESEED:-false}"
 # End this many seconds BEFORE now so backfill does not overlap the Prometheus head
 # (~3h). Future/padded samples break live scrapes ("out of bounds") and overlapping

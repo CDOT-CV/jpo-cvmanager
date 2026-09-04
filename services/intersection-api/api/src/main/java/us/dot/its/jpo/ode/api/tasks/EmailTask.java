@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,18 +22,18 @@ import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
-import us.dot.its.jpo.ode.api.emails.generators.DailyCountEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
 import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
-import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.DailyCountEmailContents;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountCountsItem;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
 @Slf4j
@@ -53,8 +53,6 @@ public class EmailTask {
     private final IntersectionNotificationSummaryEmailGenerator emailGenerator;
     private final CountsRepository countsRepository;
     private final OrganizationRepository organizationRepository;
-    private final RsuRepository rsuRepository;
-    private final DailyCountEmailGenerator dailyCountEmailGenerator;
     private final String deploymentEnvironment;
 
     private List<Notification> lastHourList;
@@ -70,8 +68,6 @@ public class EmailTask {
             IntersectionNotificationSummaryEmailGenerator emailGenerator,
             CountsRepository countsRepository,
             OrganizationRepository organizationRepository,
-            RsuRepository rsuRepository,
-            DailyCountEmailGenerator dailyCountEmailGenerator,
             @Value("${deployment.environment:UNKNOWN}") String deploymentEnvironment) {
         this.email = email;
         this.activeNotificationRepo = activeNotificationRepo;
@@ -79,8 +75,6 @@ public class EmailTask {
         this.emailGenerator = emailGenerator;
         this.countsRepository = countsRepository;
         this.organizationRepository = organizationRepository;
-        this.rsuRepository = rsuRepository;
-        this.dailyCountEmailGenerator = dailyCountEmailGenerator;
         this.deploymentEnvironment = deploymentEnvironment;
     }
 
@@ -236,51 +230,29 @@ public class EmailTask {
 
             log.info("Querying counts from {} to {}", startDateTime, endDateTime);
 
-            Map<String, Map<String, String>> orgRsuMap = getOrganizationRsuMap();
-
-            for (Map.Entry<String, Map<String, String>> orgEntry : orgRsuMap.entrySet()) {
-                String orgName = orgEntry.getKey();
-                Map<String, String> rsuIpToRoadMap = orgEntry.getValue();
-
-                if (rsuIpToRoadMap.isEmpty()) {
-                    log.warn("No RSUs found for organization: {}", orgName);
-                    continue;
-                }
-
-                log.info("Processing organization: {} with {} RSUs", orgName, rsuIpToRoadMap.size());
-
-                Map<String, List<MessageCount>> rsuCountsByOrganization = new HashMap<>();
+            List<String> organizations = organizationRepository.findAll().stream()
+                    .map(Organization::getName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .toList();
+            for (String orgName : organizations) {
                 List<MessageCount> allCounts = new ArrayList<>();
-
                 for (String messageType : MESSAGE_TYPES) {
                     List<MessageCount> counts = countsRepository.getRsuOrganizationMessageCounts(
                             orgName, messageType, startTimeMillis, endTimeMillis);
-                    allCounts.addAll(counts);
+                    if (counts != null) {
+                        allCounts.addAll(counts);
+                    }
                 }
 
-                rsuCountsByOrganization.put(orgName, allCounts);
-
-                DailyCountEmailContents emailContents = new DailyCountEmailContents();
-                emailContents.setOrganizationName(orgName);
-
-                String deploymentTitle = String.format("%s Environment Counts - %s", deploymentEnvironment, orgName);
-                emailContents.setDeploymentTitle(deploymentTitle);
-                emailContents.setStartDateTime(startDateTime);
-                emailContents.setEndDateTime(endDateTime);
-                emailContents.setRsuCountsByOrganization(rsuCountsByOrganization);
-                emailContents.setMessageTypes(List.of(MESSAGE_TYPES));
-
-                List<EmailRecipient> recipients = email.getUsersForNotificationTypeByOrganization(
-                        EmailCategory.MESSAGE_COUNTS, orgName, EmailFrequency.ONCE_PER_DAY);
-
-                if (recipients.isEmpty()) {
-                    log.warn("No email recipients found for organization: {}", orgName);
+                MessageCountEmailContents emailContents = toMessageCountEmailContents(
+                        orgName, allCounts, startDateTime, endDateTime);
+                if (emailContents.getRsuCounts().isEmpty()) {
+                    log.warn("No RSU counts found for organization: {}", orgName);
                     continue;
                 }
 
-                EmailContent content = dailyCountEmailGenerator.generateEmailBody(emailContents);
-                email.sendEmails(recipients, content);
-                log.info("Sent daily count emails for organization: {} to {} recipients", orgName, recipients.size());
+                email.sendMessageCounts(emailContents);
+                log.info("Sent daily count emails for organization: {}", orgName);
             }
 
             log.info("Completed daily count email task");
@@ -289,29 +261,66 @@ public class EmailTask {
         }
     }
 
-    private Map<String, Map<String, String>> getOrganizationRsuMap() {
-        Map<String, Map<String, String>> orgRsuMap = new HashMap<>();
+    MessageCountEmailContents toMessageCountEmailContents(String orgName, List<MessageCount> allCounts,
+            LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        Map<String, MessageCountRsuItem> rsuItems = new LinkedHashMap<>();
 
-        try {
-            List<String> organizations = organizationRepository.findAllOrganizationNames();
-
-            for (String orgName : organizations) {
-                Map<String, String> rsuIpToRoadMap = new HashMap<>();
-                List<Rsu> rsus = rsuRepository.findAllByOrganization(orgName, null, Pageable.unpaged()).getContent();
-                for (Rsu rsu : rsus) {
-                    if (rsu.getIpv4Address() != null) {
-                        String road = rsu.getPrimaryRoute() != null ? rsu.getPrimaryRoute() : "Unknown";
-                        rsuIpToRoadMap.put(rsu.getIpv4Address().getHostAddress(), road);
-                    }
-                }
-                if (!rsuIpToRoadMap.isEmpty()) {
-                    orgRsuMap.put(orgName, rsuIpToRoadMap);
-                }
+        for (MessageCount count : allCounts) {
+            if (count == null || count.getRsuIp() == null) {
+                continue;
             }
-        } catch (Exception e) {
-            log.error("Error getting organization RSU map: {}", e.getMessage(), e);
+            String typeKey = canonicalMessageType(count.getMessageType());
+            if (typeKey == null) {
+                continue;
+            }
+
+            MessageCountRsuItem rsuItem = rsuItems.computeIfAbsent(count.getRsuIp(), ip -> {
+                MessageCountRsuItem item = new MessageCountRsuItem();
+                item.setRsuIp(ip);
+                item.setPrimaryRoute(count.getRoad() != null ? count.getRoad() : "Unknown");
+                item.setMessageCountsByType(new HashMap<>());
+                return item;
+            });
+
+            MessageCountCountsItem countsItem = new MessageCountCountsItem();
+            countsItem.setIn(count.getOdeInputCount() != null ? count.getOdeInputCount().intValue() : 0);
+            countsItem.setOut(count.getOdeOutputCount() != null ? count.getOdeOutputCount().intValue() : 0);
+            rsuItem.getMessageCountsByType().put(typeKey, countsItem);
         }
 
-        return orgRsuMap;
+        for (MessageCountRsuItem item : rsuItems.values()) {
+            for (String type : MESSAGE_TYPES) {
+                item.getMessageCountsByType().putIfAbsent(type, emptyCountsItem());
+            }
+        }
+
+        MessageCountEmailContents emailContents = new MessageCountEmailContents();
+        emailContents.setOrganizationName(orgName);
+        emailContents.setDeploymentTitle(
+                String.format("%s Environment Counts - %s", deploymentEnvironment, orgName));
+        emailContents.setStartDate(startDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        emailContents.setEndDate(endDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        emailContents.setMessageTypeList(List.of(MESSAGE_TYPES));
+        emailContents.setRsuCounts(new ArrayList<>(rsuItems.values()));
+        return emailContents;
+    }
+
+    private static MessageCountCountsItem emptyCountsItem() {
+        MessageCountCountsItem item = new MessageCountCountsItem();
+        item.setIn(0);
+        item.setOut(0);
+        return item;
+    }
+
+    private static String canonicalMessageType(String messageType) {
+        if (messageType == null) {
+            return null;
+        }
+        for (String type : MESSAGE_TYPES) {
+            if (type.equalsIgnoreCase(messageType)) {
+                return type;
+            }
+        }
+        return messageType;
     }
 }

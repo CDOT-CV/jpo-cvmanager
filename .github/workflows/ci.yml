@@ -7,7 +7,7 @@ on:
       - cdot-release*
   pull_request:
     branches:
-      - '**' # Run on PRs to any branch
+      - "**" # Run on PRs to any branch
 
 jobs:
   test_change_limit:
@@ -129,6 +129,8 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '21'
+          cache: maven
+          cache-dependency-path: resources/keycloak/custom-user-provider/pom.xml
 
       - name: Build and Test with Maven
         run: |
