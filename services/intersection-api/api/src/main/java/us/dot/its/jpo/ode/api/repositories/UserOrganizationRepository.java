@@ -32,7 +32,7 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
 
     Optional<UserOrganization> findByOrganization_Name(String organizationName);
 
-    Optional<UserOrganization> findByUserAndOrganization_Name(User user, String organizationName);
+    Optional<UserOrganization> findByUserAndOrganization(User user, Organization organization);
 
     Optional<UserOrganization> findByUser_EmailAndOrganization(String email, Organization organization);
 

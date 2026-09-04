@@ -23,18 +23,19 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.name IN :orgNames")
-    void deleteByIntersectionNumberAndOrganizationNameIn(@Param("intersectionNumber") String intersectionNumber,
-            @Param("orgNames") List<String> orgNames);
+    @Query("DELETE FROM IntersectionOrganization io WHERE io.intersection.intersectionNumber = :intersectionNumber AND io.organization.id IN :orgIds")
+    void deleteByIntersectionNumberAndOrganizationIdsIn(@Param("intersectionNumber") String intersectionNumber,
+            @Param("orgIds") List<Integer> orgIds);
 
     @Query("SELECT DISTINCT i FROM Intersection i " +
             "LEFT JOIN FETCH i.intersectionOrganizations io " +
             "LEFT JOIN FETCH io.organization " +
             "WHERE NOT EXISTS " +
             "(SELECT 1 FROM IntersectionOrganization io2 " +
-            "WHERE io2.intersection.id = i.id AND io2.organization.name = :organizationName)")
-    List<Intersection> findAllIntersectionsNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "WHERE io2.intersection.id = i.id AND io2.organization = :organization)")
+    List<Intersection> findAllIntersectionsNotInOrganization(Organization organization);
+
+    List<IntersectionOrganization> findAllByIntersection_IntersectionNumber(String intersectionNumber);
 
     Optional<IntersectionOrganization> findByIntersection_IntersectionNumberAndOrganization(
             String intersectionNumber, Organization organization);
