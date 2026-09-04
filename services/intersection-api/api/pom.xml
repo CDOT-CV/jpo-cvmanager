@@ -401,6 +401,20 @@
 			<groupId>com.google.cloud</groupId>
 			<artifactId>google-cloud-storage</artifactId>
 		</dependency>
+		<!-- Prometheus query client support -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math3</artifactId>
+			<version>3.6.1</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

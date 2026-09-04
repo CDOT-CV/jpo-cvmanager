@@ -26,6 +26,7 @@ import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
 import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
 import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
 import { rsuApiSlice } from './features/api/rsuApiSlice'
+import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
@@ -66,6 +67,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [unsubscribeApiSlice.reducerPath]: unsubscribeApiSlice.reducer,
       [subscriptionManagementApiSlice.reducerPath]: subscriptionManagementApiSlice.reducer,
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
+      [rsuOnlineStatusApiSlice.reducerPath]: rsuOnlineStatusApiSlice.reducer,
       [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
@@ -87,6 +89,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(subscriptionManagementApiSlice.middleware)
         .concat(organizationApiSlice.middleware)
         .concat(rsuApiSlice.middleware)
+        .concat(rsuOnlineStatusApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
