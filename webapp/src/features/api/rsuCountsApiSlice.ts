@@ -3,22 +3,21 @@ import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { MessageCount } from '../../models/MessageCount'
 import { MessageType } from '../../models/MessageTypes'
-import { getQueryString } from './intersectionApiSlice'
+import { getQueryString } from './intersectionConfigSlice'
 
 /** Intersection API base URL from webapp/.env.local (VITE_CVIZ_API_SERVER_URL). */
-const getIntersectionApiBaseUrl = () =>
-  (process.env.VITE_CVIZ_API_SERVER_URL ?? '').replace(/\/$/, '')
+const getIntersectionApiBaseUrl = () => (process.env.VITE_CVIZ_API_SERVER_URL ?? '').replace(/\/$/, '')
 
 export const rsuCountsApiSlice = createApi({
   reducerPath: 'rsuCountsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getIntersectionApiBaseUrl(),
     prepareHeaders: (headers, { getState, endpoint }) => {
-      const token = selectToken(getState() as RootState)
-      const endpointsWithoutToken: string[] = []
+      const currentState = getState() as RootState
+      const token = selectToken(currentState)
 
-      if (token && !endpointsWithoutToken.includes(endpoint)) {
-        headers.set('Authorization', `Bearer ${token}`)
+      if (token) {
+        headers.set('Authorization', `${token}`)
       }
 
       return headers

@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 @Repository
@@ -20,13 +21,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
      * Check if RSU exists in any of the given organizations using entity
      * relationships
      */
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-            "FROM Rsu r " +
-            "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE r.ipv4Address = :ipv4Address AND o.name IN :organizations")
-    boolean existsByIpAndOrganizations(@Param("ipv4Address") InetAddress ipv4Address,
-            @Param("organizations") List<String> organizations);
+    boolean existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
+            InetAddress ipv4Address, List<Organization> organizations);
 
     Rsu findByIpv4Address(InetAddress ipv4Address);
 
@@ -67,9 +63,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
-            "JOIN ro.organization o " +
-            "WHERE o.name in :organizationNames")
-    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizationNames") List<String> organizationNames);
+            "WHERE ro.organization in :organizations")
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching

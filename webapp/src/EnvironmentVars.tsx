@@ -48,6 +48,7 @@ class EnvironmentVars {
   static ENABLE_INTERSECTION_FEATURES = process.env.VITE_ENABLE_INTERSECTION_FEATURES !== 'false'
   static ENABLE_WZDX_FEATURES = process.env.VITE_ENABLE_WZDX_FEATURES !== 'false'
   static ENABLE_HAAS_FEATURES = process.env.VITE_ENABLE_HAAS_FEATURES !== 'false'
+  static ENABLE_RSU_STATUS_MONITOR_FEATURES = process.env.VITE_ENABLE_RSU_STATUS_MONITOR_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.VITE_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.VITE_WEBAPP_THEME_DARK
   static MAX_QUERY_DURATION_DAYS = Number(process.env.VITE_MAX_QUERY_DURATION_DAYS) || 90
@@ -63,11 +64,11 @@ class EnvironmentVars {
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
-  static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
   static adminOrg = `${this.getBaseApiUrl()}/admin-org`
   static adminOrgTimDeposit = `${this.getBaseApiUrl()}/admin-org-tim-deposit`
   static adminOrgSnmpMonitoring = `${this.getBaseApiUrl()}/admin-org-snmp-monitoring`
+  static readonly timeSyncEndpoint = `${this.CVIZ_API_SERVER_URL}/timesync/utc-millis`
 }
 
 export default EnvironmentVars
