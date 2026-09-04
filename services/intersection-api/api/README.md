@@ -142,6 +142,8 @@ Then open the following file in a browser: [index.html](./target/site/jacoco/ind
 The Intersection API utilizes swagger for viewing and testing api endpoints. The Swagger endpoint can be accessed here:
 http://localhost:8088/swagger-ui/index.html
 
+To facilitate easy development of front-end applications, the Intersection API is equipped with the capability to provide testData from each of its endpoints. To retrieve test data, set the url param testData to True when making the request.
+
 ## Testing signed Google Cloud Storage uploads locally
 
 ### Storage provider design
@@ -173,12 +175,12 @@ General object-storage settings:
 
 GCP settings and credentials:
 
-| Environment variable                         | Required?                                | Default                                                     | Purpose                                                                                                                                                                                                                                    |
-| -------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `OBJECT_STORAGE_GCP_BUCKET_NAME`             | Only to use GCS firmware uploads         | Empty                                                       | The existing GCS bucket that receives firmware. An empty value allows the API to start but causes firmware upload requests to return `503 Service Unavailable`. The application does not create buckets.                                    |
-| `GOOGLE_APPLICATION_CREDENTIALS`             | Conditional                              | Standard ADC lookup                                         | For an API process running directly on the host, points to a service-account JSON file outside the repository. It is unnecessary when another Application Default Credentials source is available.                                         |
-| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`   | Only to use GCS uploads in local Compose | `./resources/google/sample_gcp_service_account.json`         | Host path to the service-account JSON file. The default contains no credentials and only permits startup when storage is unused. Compose mounts the selected file read-only and sets the container's `GOOGLE_APPLICATION_CREDENTIALS`.      |
-| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Conditional                              | Empty                                                       | Target service-account email for keyless signing when ADC cannot sign locally, such as user ADC or GKE Workload Identity. Do not set it when local ADC is a service-account key with a private key using `GOOGLE_APPLICATION_CREDENTIALS`. |
+| Environment variable                         | Required?                                | Default                                              | Purpose                                                                                                                                                                                                                                    |
+| -------------------------------------------- | ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OBJECT_STORAGE_GCP_BUCKET_NAME`             | Only to use GCS firmware uploads         | Empty                                                | The existing GCS bucket that receives firmware. An empty value allows the API to start but causes firmware upload requests to return `503 Service Unavailable`. The application does not create buckets.                                   |
+| `GOOGLE_APPLICATION_CREDENTIALS`             | Conditional                              | Standard ADC lookup                                  | For an API process running directly on the host, points to a service-account JSON file outside the repository. It is unnecessary when another Application Default Credentials source is available.                                         |
+| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`   | Only to use GCS uploads in local Compose | `./resources/google/sample_gcp_service_account.json` | Host path to the service-account JSON file. The default contains no credentials and only permits startup when storage is unused. Compose mounts the selected file read-only and sets the container's `GOOGLE_APPLICATION_CREDENTIALS`.     |
+| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Conditional                              | Empty                                                | Target service-account email for keyless signing when ADC cannot sign locally, such as user ADC or GKE Workload Identity. Do not set it when local ADC is a service-account key with a private key using `GOOGLE_APPLICATION_CREDENTIALS`. |
 
 Firmware-upload cleanup settings all have workable defaults:
 
