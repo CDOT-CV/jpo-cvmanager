@@ -1,45 +1,75 @@
 package us.dot.its.jpo.ode.api.tasks;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.ConnectionOfTravelNotification;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
+import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
+import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.emails.EmailCategory;
 import us.dot.its.jpo.ode.api.models.emails.EmailContent;
 import us.dot.its.jpo.ode.api.models.emails.EmailFrequency;
 import us.dot.its.jpo.ode.api.models.emails.EmailRecipient;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
+import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountRsuItem;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.services.EmailService;
 
-import java.time.Instant;
-import java.util.*;
+@ExtendWith(MockitoExtension.class)
+public class EmailTaskTest {
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-class EmailTaskTest {
-
-    private IntersectionNotificationSummaryEmailGenerator emailGenerator;
+    @Mock
     private EmailService emailService;
+
+    @Mock
     private ActiveNotificationRepository activeNotificationRepo;
+
+    @Mock
+    private IntersectionNotificationSummaryEmailGenerator emailGenerator;
+
+    @Mock
+    private CountsRepository countsRepository;
+
+    @Mock
+    private OrganizationRepository organizationRepository;
+
     private EmailTask emailTask;
 
     private final int maximumResponseSize = 10;
 
     @BeforeEach
     void setUp() {
-        emailService = mock(EmailService.class);
-        activeNotificationRepo = mock(ActiveNotificationRepository.class);
-        emailGenerator = mock(IntersectionNotificationSummaryEmailGenerator.class);
-        emailTask = new EmailTask(emailService, activeNotificationRepo, maximumResponseSize, emailGenerator);
+        emailTask = new EmailTask(emailService, activeNotificationRepo, maximumResponseSize, emailGenerator,
+                countsRepository, organizationRepository, "test");
     }
 
     Notification createNotification(String key, String heading, String text, int intersectionId, long generatedAt) {
@@ -50,6 +80,114 @@ class EmailTaskTest {
         n.setIntersectionID(intersectionId);
         n.setNotificationGeneratedAt(generatedAt);
         return n;
+    }
+
+    private static Organization organization(String name) {
+        Organization org = new Organization();
+        org.setName(name);
+        return org;
+    }
+
+    @Test
+    void testSendDailyCountEmails() {
+        when(organizationRepository.findAll()).thenReturn(List.of(organization("Test Organization")));
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("BSM"), anyLong(),
+                anyLong()))
+                .thenReturn(List.of(new MessageCount("BSM", "192.168.1.1", 100L, 95L, "I-25")));
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("Map"), anyLong(),
+                anyLong()))
+                .thenReturn(List.of(new MessageCount("MAP", "192.168.1.1", 3600L, 1L, "I-25")));
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("SPaT"), anyLong(),
+                anyLong()))
+                .thenReturn(List.of(new MessageCount("SPAT", "192.168.1.1", 50L, 50L, "I-25")));
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("TIM"), anyLong(),
+                anyLong()))
+                .thenReturn(Collections.emptyList());
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("SRM"), anyLong(),
+                anyLong()))
+                .thenReturn(Collections.emptyList());
+        when(countsRepository.getRsuOrganizationMessageCounts(eq("Test Organization"), eq("SSM"), anyLong(),
+                anyLong()))
+                .thenReturn(Collections.emptyList());
+
+        emailTask.sendDailyCountEmails();
+
+        ArgumentCaptor<MessageCountEmailContents> captor = ArgumentCaptor.forClass(MessageCountEmailContents.class);
+        verify(emailService, times(1)).sendMessageCounts(captor.capture());
+        verify(emailService, never()).sendEmails(anyList(), any());
+
+        MessageCountEmailContents sent = captor.getValue();
+        assertThat(sent.getOrganizationName()).isEqualTo("Test Organization");
+        assertThat(sent.getDeploymentTitle()).isEqualTo("test Environment Counts - Test Organization");
+        assertThat(sent.getMessageTypeList()).containsExactly("BSM", "TIM", "Map", "SPaT", "SRM", "SSM");
+        assertThat(sent.getStartDate()).isNotNull();
+        assertThat(sent.getEndDate()).isNotNull();
+        assertThat(sent.getRsuCounts()).hasSize(1);
+
+        MessageCountRsuItem rsuItem = sent.getRsuCounts().get(0);
+        assertThat(rsuItem.getRsuIp()).isEqualTo("192.168.1.1");
+        assertThat(rsuItem.getPrimaryRoute()).isEqualTo("I-25");
+        assertThat(rsuItem.getMessageCountsByType().get("BSM").getIn()).isEqualTo(100);
+        assertThat(rsuItem.getMessageCountsByType().get("BSM").getOut()).isEqualTo(95);
+        assertThat(rsuItem.getMessageCountsByType().get("Map").getIn()).isEqualTo(3600);
+        assertThat(rsuItem.getMessageCountsByType().get("Map").getOut()).isEqualTo(1);
+        assertThat(rsuItem.getMessageCountsByType().get("SPaT").getIn()).isEqualTo(50);
+        assertThat(rsuItem.getMessageCountsByType().get("SPaT").getOut()).isEqualTo(50);
+        assertThat(rsuItem.getMessageCountsByType().get("TIM").getIn()).isEqualTo(0);
+        assertThat(rsuItem.getMessageCountsByType().get("TIM").getOut()).isEqualTo(0);
+        assertThat(rsuItem.getMessageCountsByType().get("SRM").getIn()).isEqualTo(0);
+        assertThat(rsuItem.getMessageCountsByType().get("SSM").getIn()).isEqualTo(0);
+    }
+
+    @Test
+    void testSendDailyCountEmails_EmptyCounts() {
+        when(organizationRepository.findAll()).thenReturn(List.of(organization("Test Organization")));
+        when(countsRepository.getRsuOrganizationMessageCounts(anyString(), anyString(), anyLong(), anyLong()))
+                .thenReturn(Collections.emptyList());
+
+        emailTask.sendDailyCountEmails();
+
+        verify(emailService, never()).sendMessageCounts(any());
+        verify(emailService, never()).sendEmails(any(), any());
+    }
+
+    @Test
+    void testToMessageCountEmailContentsGroupsByRsuAndCanonicalizesTypes() {
+        List<MessageCount> counts = new ArrayList<>();
+        counts.add(new MessageCount("BSM", "10.0.0.1", 10L, 9L, "US-36"));
+        counts.add(new MessageCount("MAP", "10.0.0.1", 3600L, 1L, "US-36"));
+        counts.add(new MessageCount("SPAT", "10.0.0.2", 20L, 20L, "I-70"));
+
+        LocalDateTime end = LocalDateTime.of(2026, 9, 2, 0, 0, 0);
+        LocalDateTime start = end.minusDays(1);
+
+        MessageCountEmailContents contents = emailTask.toMessageCountEmailContents("CDOT", counts, start, end);
+
+        assertThat(contents.getOrganizationName()).isEqualTo("CDOT");
+        assertThat(contents.getRsuCounts()).hasSize(2);
+
+        MessageCountRsuItem first = contents.getRsuCounts().get(0);
+        assertThat(first.getRsuIp()).isEqualTo("10.0.0.1");
+        assertThat(first.getPrimaryRoute()).isEqualTo("US-36");
+        assertThat(first.getMessageCountsByType()).containsKeys("BSM", "TIM", "Map", "SPaT", "SRM", "SSM");
+        assertThat(first.getMessageCountsByType().get("BSM").getIn()).isEqualTo(10);
+        assertThat(first.getMessageCountsByType().get("Map").getOut()).isEqualTo(1);
+
+        MessageCountRsuItem second = contents.getRsuCounts().get(1);
+        assertThat(second.getRsuIp()).isEqualTo("10.0.0.2");
+        assertThat(second.getMessageCountsByType().get("SPaT").getIn()).isEqualTo(20);
+        assertThat(second.getMessageCountsByType().get("BSM").getIn()).isEqualTo(0);
+    }
+
+    @Test
+    void testToMessageCountEmailContentsSkipsNullIps() {
+        List<MessageCount> counts = List.of(new MessageCount("BSM", null, 10L, 9L, "US-36"));
+        LocalDateTime end = LocalDateTime.of(2026, 9, 2, 0, 0, 0);
+
+        MessageCountEmailContents contents = emailTask.toMessageCountEmailContents("CDOT", counts, end.minusDays(1),
+                end);
+
+        assertThat(contents.getRsuCounts()).isEmpty();
     }
 
     @Test
@@ -148,14 +286,10 @@ class EmailTaskTest {
         when(emailService.getUsersForNotificationType(EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
                 EmailFrequency.ONCE_PER_HOUR)).thenReturn(recipients);
 
-        EmailContent content = new EmailContent("subject", "body");
-        when(emailGenerator.generateEmailBody(any())).thenReturn(content);
-
         emailTask.sendHourlyNotifications();
 
         verify(emailService, never()).sendEmails(anyList(), any(EmailContent.class));
     }
-
 
     @Test
     void testSendDailyNotificationsFirstRunSetsLastDayList() {
