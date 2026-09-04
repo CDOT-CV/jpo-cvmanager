@@ -21,7 +21,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from '@mui/material/Slider'
 import {
-  selectRsuOnlineStatus,
   selectRsuData,
   selectSelectedRsu,
   selectRsuIpv4,
@@ -37,7 +36,6 @@ import {
   // actions
   selectRsu,
   getRsuData,
-  getRsuLastOnline,
   toggleGeoMsgPointSelect,
   clearGeoMsg,
   updateGeoMsgPoints,
@@ -133,6 +131,7 @@ import { selectToken } from '../generalSlices/userSlice'
 import { MessageType } from '../models/MessageTypes'
 import { useGetRsuCountsQuery } from '../features/api/rsuCountsApiSlice'
 import { formatScmsExpiration, useGetScmsStatusQuery } from '../features/api/scmsApiSlice'
+import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 
@@ -152,8 +151,11 @@ function MapPage() {
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
-  const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
+  const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const rsuIpv4 = useSelector(selectRsuIpv4)
+  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
+    skip: !rsuIpv4,
+  })
   const addConfigPoint = useSelector(selectAddConfigPoint)
   const configCoordinates = useSelector(selectConfigCoordinates)
   const geoMsgType = useSelector(selectGeoMsgType)
@@ -690,9 +692,7 @@ function MapPage() {
   }
 
   const isOnline = () => {
-    return rsuIpv4 in rsuOnlineStatus && Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
+    return selectedRsuLastOnline?.last_online ? new Date(selectedRsuLastOnline.last_online).toLocaleString() : 'No Data'
   }
 
   const getStatus = () => {
@@ -1170,7 +1170,6 @@ function MapPage() {
                     setSelectedWZDxMarkerIndex(null)
                     setSelectedWZDxMarker(null)
                     dispatch(clearFirmware()) // TODO: Should remove??
-                    dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
                   }}
                 >
                   <button
@@ -1183,7 +1182,6 @@ function MapPage() {
                       dispatch(clearFirmware()) // TODO: Should remove??
                       setSelectedWZDxMarkerIndex(null)
                       setSelectedWZDxMarker(null)
-                      dispatch(getRsuLastOnline(rsu.properties.ipv4_address))
                     }}
                   >
                     <RsuMarker
