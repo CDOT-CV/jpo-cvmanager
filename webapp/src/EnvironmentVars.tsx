@@ -12,6 +12,18 @@ class EnvironmentVars {
     return messageTypes
   }
 
+  static getMessageTypes() {
+    const defaultTypes = ['BSM', 'MAP', 'SPAT', 'TIM', 'SRM', 'SSM']
+    const COUNT_MESSAGE_TYPES = process.env.VITE_COUNT_MESSAGE_TYPES
+    if (!COUNT_MESSAGE_TYPES) {
+      return defaultTypes
+    }
+    const types = COUNT_MESSAGE_TYPES.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    return types.length > 0 ? types : defaultTypes
+  }
+
   static getMapboxInitViewState() {
     const MAPBOX_INIT_LATITUDE = Number(process.env.VITE_MAPBOX_INIT_LATITUDE)
     const MAPBOX_INIT_LONGITUDE = Number(process.env.VITE_MAPBOX_INIT_LONGITUDE)
@@ -32,7 +44,10 @@ class EnvironmentVars {
   static KEYCLOAK_HOST_URL = process.env.VITE_KEYCLOAK_URL
   static KEYCLOAK_REALM = process.env.VITE_KEYCLOAK_REALM
   static KEYCLOAK_CLIENT_ID = process.env.VITE_KEYCLOAK_CLIENT_ID
-  static DOT_NAME = process.env.VITE_DOT_NAME
+  /** Read at use-time so vitest `vi.stubEnv` applies (CI has no `.env.local`). */
+  static get DOT_NAME() {
+    return process.env.VITE_DOT_NAME
+  }
   static ENABLE_RSU_FEATURES = process.env.VITE_ENABLE_RSU_FEATURES !== 'false'
   static ENABLE_INTERSECTION_FEATURES = process.env.VITE_ENABLE_INTERSECTION_FEATURES !== 'false'
   static ENABLE_WZDX_FEATURES = process.env.VITE_ENABLE_WZDX_FEATURES !== 'false'
@@ -40,6 +55,7 @@ class EnvironmentVars {
   static ENABLE_RSU_STATUS_MONITOR_FEATURES = process.env.VITE_ENABLE_RSU_STATUS_MONITOR_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.VITE_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.VITE_WEBAPP_THEME_DARK
+  static MAX_QUERY_DURATION_DAYS = Number(process.env.VITE_MAX_QUERY_DURATION_DAYS) || 90
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoPath = '/devices/rsus/info'

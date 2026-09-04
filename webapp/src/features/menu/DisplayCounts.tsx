@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import dayjs from 'dayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import BounceLoader from 'react-spinners/BounceLoader'
 
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import {
@@ -24,6 +25,7 @@ import { Box, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typograph
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { useGetRsuCountsQuery } from '../api/rsuCountsApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
+import EnvironmentVars from '../../EnvironmentVars'
 
 const DisplayCounts = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -35,51 +37,38 @@ const DisplayCounts = () => {
 
   const [currentSort, setCurrentSort] = React.useState<string | null>(null)
 
-  const { data: rsuCounts } = useGetRsuCountsQuery({ organization, startDate, endDate })
+  const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
+  const queryDurationExceeded = endDate.getTime() - startDate.getTime() > maxDurationMs
+  const longRangeWarning =
+    !queryDurationExceeded && endDate.getTime() - startDate.getTime() > 86400 * 1000 * 7
+
+  const {
+    data: messageCounts,
+    isFetching,
+    isError,
+  } = useGetRsuCountsQuery(
+    { organization, startDate, endDate, message: countsMsgType },
+    { skip: !organization || queryDurationExceeded }
+  )
 
   const messageTypeOptions = useMemo(() => {
-    // parse message types from rsuCounts count keys
-    const typesSet = new Set<string>()
-    Object.values(rsuCounts || {}).forEach((rsuCount) => {
-      Object.keys(rsuCount.messageTypeCounts || {}).forEach((msgType) => typesSet.add(msgType))
-    })
-    if (typesSet.size === 0) {
-      return [{ value: 'BSM', label: 'BSM' }]
-    }
-    return Array.from(typesSet).map((type) => ({ value: type, label: type?.toUpperCase() }))
-  }, [rsuCounts])
+    return EnvironmentVars.getMessageTypes().map((type) => ({ value: type, label: type.toUpperCase() }))
+  }, [])
 
-  const countList = useMemo(() => {
-    return Object.entries(rsuCounts ?? {}).map(([key, value]) => {
-      return {
-        key: key,
-        rsu: key,
-        road: value.road,
-        count: value.messageTypeCounts?.[countsMsgType] || 0,
-      }
-    })
-  }, [rsuCounts, countsMsgType])
-
-  const dateRangeValid = useMemo(() => {
-    const ONE_WEEK_MILLISECONDS = 86400 * 1000 * 7
-    return endDate.getTime() - startDate.getTime() > ONE_WEEK_MILLISECONDS
-  }, [startDate, endDate])
-
-  const getWarningMessage = (warning: boolean) =>
-    warning ? (
-      <Typography
-        component="span"
-        role="alert"
-        sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center' }}
-      >
-        Warning: time ranges greater than 7 days may have longer load times.
-      </Typography>
-    ) : null
+  const countList: CountsListElement[] = useMemo(() => {
+    return (messageCounts ?? []).map((msgCount) => ({
+      key: msgCount.rsu_ip,
+      rsu: msgCount.rsu_ip,
+      road: msgCount.road || '',
+      odeInputCount: msgCount.ode_input_count ?? 0,
+      odeOutputCount: msgCount.ode_output_count ?? 0,
+    }))
+  }, [messageCounts])
 
   const sortedCountList = useMemo(() => {
     if (!currentSort) return countList
 
-    const key = currentSort.replace('__desc', '')
+    const key = currentSort.replace('__desc', '') as keyof CountsListElement
     const isDescending = currentSort.includes('__desc')
 
     return [...countList].sort((a, b) => {
@@ -93,7 +82,6 @@ const DisplayCounts = () => {
   }, [currentSort, countList])
 
   const sortBy = (key: string) => {
-    // Default to ascending. If re-pressed (already sorting by this key), switch to descending.
     if (key === currentSort) {
       setCurrentSort(key + '__desc')
     } else {
@@ -101,22 +89,87 @@ const DisplayCounts = () => {
     }
   }
 
-  const getTable = (sortedCountList: CountsListElement[]) => (
-    <div className="table">
-      <div className="header">
-        <div onClick={() => sortBy('rsu')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
-          RSU
+  const getWarningMessage = () => {
+    if (queryDurationExceeded) {
+      return (
+        <Typography
+          component="span"
+          role="alert"
+          sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center', px: 1 }}
+        >
+          Query duration exceeds the maximum of {EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a shorter
+          time range.
+        </Typography>
+      )
+    }
+    if (isError) {
+      return (
+        <Typography
+          component="span"
+          role="alert"
+          sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center', px: 1 }}
+        >
+          Failed to load message counts from Intersection API.
+        </Typography>
+      )
+    }
+    if (longRangeWarning) {
+      return (
+        <Typography
+          component="span"
+          role="alert"
+          sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center', px: 1 }}
+        >
+          Warning: time ranges greater than 7 days may have longer load times.
+        </Typography>
+      )
+    }
+    return null
+  }
+
+  const getTable = (loading: boolean, rows: CountsListElement[]) => {
+    if (loading) {
+      return (
+        <div className="table">
+          <div className="header">
+            <div>RSU</div>
+            <div>Road</div>
+            <div>Input</div>
+            <div>Processed</div>
+          </div>
+          <span className="bounceLoader">
+            <BounceLoader color={theme.palette.primary.main} />
+          </span>
         </div>
-        <div onClick={() => sortBy('road')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
-          Road
+      )
+    }
+
+    return (
+      <div className="table">
+        <div className="header">
+          <div onClick={() => sortBy('rsu')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
+            RSU
+          </div>
+          <div onClick={() => sortBy('road')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
+            Road
+          </div>
+          <div
+            onClick={() => sortBy('odeInputCount')}
+            style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}
+          >
+            Input
+          </div>
+          <div
+            onClick={() => sortBy('odeOutputCount')}
+            style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}
+          >
+            Processed
+          </div>
         </div>
-        <div onClick={() => sortBy('count')} style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>
-          Count
-        </div>
+        <div className="body">{formatRows(rows)}</div>
       </div>
-      <div className="body">{formatRows(sortedCountList)}</div>
-    </div>
-  )
+    )
+  }
 
   const formatRows = (rows: CountsListElement[]) => {
     if (rows.length === 0) {
@@ -124,8 +177,9 @@ const DisplayCounts = () => {
         <div className="row">
           <div
             style={{
-              gridColumn: '1 / span 3',
+              gridColumn: '1 / span 4',
               textAlign: 'center',
+              flex: 4,
             }}
           >
             <Typography>No data found for the selected range</Typography>
@@ -133,8 +187,9 @@ const DisplayCounts = () => {
         </div>
       )
     }
-    return rows.map((rowData) => <Row {...rowData} />)
+    return rows.map((rowData) => <Row key={rowData.key} {...rowData} />)
   }
+
   return (
     <Paper sx={{ pb: 1, pl: 1, pr: 1 }}>
       <SideBarHeader
@@ -164,7 +219,6 @@ const DisplayCounts = () => {
               label="Select end date"
               value={dayjs(endDate)}
               minDateTime={dayjs(startDate)}
-              maxDateTime={dayjs(endDate)}
               onChange={(e) => {
                 if (e && !Number.isNaN(Date.parse(e.toString()))) {
                   dispatch(setCountsEndDate(e.toDate()))
@@ -195,20 +249,33 @@ const DisplayCounts = () => {
             </Select>
           </FormControl>
         </Box>
-        {getWarningMessage(dateRangeValid)}
-        {getTable(sortedCountList)}
+        {getWarningMessage()}
+        {getTable(isFetching, sortedCountList)}
       </Stack>
     </Paper>
   )
 }
-const Row = ({ rsu, road, count }: { rsu: string; road: string; count: number }) => {
+
+const Row = ({
+  rsu,
+  road,
+  odeInputCount,
+  odeOutputCount,
+}: {
+  rsu: string
+  road: string
+  odeInputCount: number
+  odeOutputCount: number
+}) => {
   const theme = useTheme()
   return (
     <div className="row">
       <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{rsu}</div>
       <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{road}</div>
-      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{count}</div>
+      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{odeInputCount}</div>
+      <div style={{ borderBottom: `1px solid ${theme.palette.text.primary}` }}>{odeOutputCount}</div>
     </div>
   )
 }
+
 export default DisplayCounts
