@@ -1,0 +1,1831 @@
+info:
+  name: Retrieve BSM Events
+  type: http
+  seq: 38
+  tags:
+    - cm-event-controller
+
+http:
+  method: GET
+  url: "{{baseUrl}}/data/cm-events/bsm-events"
+  params:
+    - name: intersection_id
+      value: ""
+      type: query
+    - name: start_time_utc_millis
+      value: ""
+      type: query
+      disabled: true
+    - name: end_time_utc_millis
+      value: ""
+      type: query
+      disabled: true
+    - name: latest
+      value: "false"
+      type: query
+    - name: page
+      value: "0"
+      type: query
+    - name: size
+      value: "10000"
+      type: query
+    - name: test
+      value: "false"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "startingBsm": {
+                  "type": "",
+                  "id": 0,
+                  "geometry": {
+                    "envelope": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "factory": {
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "coordinateSequenceFactory": "",
+                      "srid": 0
+                    },
+                    "userData": "",
+                    "coordinates": [
+                      {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      }
+                    ],
+                    "empty": false,
+                    "x": 0,
+                    "y": 0,
+                    "simple": false,
+                    "boundary": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "coordinate": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0,
+                      "valid": false,
+                      "coordinate": "",
+                      "m": 0
+                    },
+                    "numPoints": 0,
+                    "dimension": 0,
+                    "geometryType": "",
+                    "coordinateSequence": {
+                      "measures": 0,
+                      "dimension": 0
+                    },
+                    "boundaryDimension": 0,
+                    "length": 0,
+                    "valid": false,
+                    "envelopeInternal": {
+                      "null": false,
+                      "width": 0,
+                      "height": 0,
+                      "minX": 0,
+                      "minY": 0,
+                      "maxX": 0,
+                      "maxY": 0,
+                      "diameter": 0,
+                      "area": 0
+                    },
+                    "precisionModel": {
+                      "scale": 0,
+                      "type": "",
+                      "floating": false,
+                      "offsetX": 0,
+                      "offsetY": 0,
+                      "maximumSignificantDigits": 0
+                    },
+                    "interiorPoint": "",
+                    "rectangle": false,
+                    "centroid": "",
+                    "numGeometries": 0,
+                    "srid": 0,
+                    "area": 0
+                  },
+                  "properties": {
+                    "schemaVersion": 0,
+                    "messageType": "",
+                    "odeReceivedAt": "",
+                    "timeStamp": "",
+                    "originIp": "",
+                    "logName": "",
+                    "asn1": "",
+                    "validationMessages": [
+                      {
+                        "message": "",
+                        "jsonPath": "",
+                        "schemaPath": "",
+                        "exception": ""
+                      }
+                    ],
+                    "accelSet": {
+                      "accelLat": 0,
+                      "accelLong": 0,
+                      "accelVert": 0,
+                      "accelYaw": 0
+                    },
+                    "accuracy": {
+                      "semiMajor": 0,
+                      "semiMinor": 0,
+                      "orientation": 0
+                    },
+                    "angle": 0,
+                    "brakes": {
+                      "wheelBrakes": {
+                        "empty": false
+                      },
+                      "traction": "UNAVAILABLE",
+                      "abs": "UNAVAILABLE",
+                      "scs": "UNAVAILABLE",
+                      "brakeBoost": "UNAVAILABLE",
+                      "auxBrakes": "UNAVAILABLE"
+                    },
+                    "heading": 0,
+                    "id": "",
+                    "msgCnt": 0,
+                    "secMark": 0,
+                    "size": {
+                      "width": 0,
+                      "length": 0
+                    },
+                    "speed": 0,
+                    "transmission": "NEUTRAL"
+                  }
+                },
+                "endingBsm": {
+                  "type": "",
+                  "id": 0,
+                  "geometry": {
+                    "envelope": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "factory": {
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "coordinateSequenceFactory": "",
+                      "srid": 0
+                    },
+                    "userData": "",
+                    "coordinates": [
+                      {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      }
+                    ],
+                    "empty": false,
+                    "x": 0,
+                    "y": 0,
+                    "simple": false,
+                    "boundary": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "coordinate": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0,
+                      "valid": false,
+                      "coordinate": "",
+                      "m": 0
+                    },
+                    "numPoints": 0,
+                    "dimension": 0,
+                    "geometryType": "",
+                    "coordinateSequence": {
+                      "measures": 0,
+                      "dimension": 0
+                    },
+                    "boundaryDimension": 0,
+                    "length": 0,
+                    "valid": false,
+                    "envelopeInternal": {
+                      "null": false,
+                      "width": 0,
+                      "height": 0,
+                      "minX": 0,
+                      "minY": 0,
+                      "maxX": 0,
+                      "maxY": 0,
+                      "diameter": 0,
+                      "area": 0
+                    },
+                    "precisionModel": {
+                      "scale": 0,
+                      "type": "",
+                      "floating": false,
+                      "offsetX": 0,
+                      "offsetY": 0,
+                      "maximumSignificantDigits": 0
+                    },
+                    "interiorPoint": "",
+                    "rectangle": false,
+                    "centroid": "",
+                    "numGeometries": 0,
+                    "srid": 0,
+                    "area": 0
+                  },
+                  "properties": {
+                    "schemaVersion": 0,
+                    "messageType": "",
+                    "odeReceivedAt": "",
+                    "timeStamp": "",
+                    "originIp": "",
+                    "logName": "",
+                    "asn1": "",
+                    "validationMessages": [
+                      {
+                        "message": "",
+                        "jsonPath": "",
+                        "schemaPath": "",
+                        "exception": ""
+                      }
+                    ],
+                    "accelSet": {
+                      "accelLat": 0,
+                      "accelLong": 0,
+                      "accelVert": 0,
+                      "accelYaw": 0
+                    },
+                    "accuracy": {
+                      "semiMajor": 0,
+                      "semiMinor": 0,
+                      "orientation": 0
+                    },
+                    "angle": 0,
+                    "brakes": {
+                      "wheelBrakes": {
+                        "empty": false
+                      },
+                      "traction": "UNAVAILABLE",
+                      "abs": "UNAVAILABLE",
+                      "scs": "UNAVAILABLE",
+                      "brakeBoost": "UNAVAILABLE",
+                      "auxBrakes": "UNAVAILABLE"
+                    },
+                    "heading": 0,
+                    "id": "",
+                    "msgCnt": 0,
+                    "secMark": 0,
+                    "size": {
+                      "width": 0,
+                      "length": 0
+                    },
+                    "speed": 0,
+                    "transmission": "NEUTRAL"
+                  }
+                },
+                "startingBsmTimestamp": 0,
+                "endingBsmTimestamp": 0,
+                "wktPath": "",
+                "wktMapBoundingBox": "",
+                "inMapBoundingBox": false,
+                "intersectionID": 0,
+                "wallClockTimestamp": 0
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 400 Response
+    description: Bad Request
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "startingBsm": {
+                  "type": "",
+                  "id": 0,
+                  "geometry": {
+                    "envelope": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "factory": {
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "coordinateSequenceFactory": "",
+                      "srid": 0
+                    },
+                    "userData": "",
+                    "coordinates": [
+                      {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      }
+                    ],
+                    "empty": false,
+                    "x": 0,
+                    "y": 0,
+                    "simple": false,
+                    "boundary": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "coordinate": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0,
+                      "valid": false,
+                      "coordinate": "",
+                      "m": 0
+                    },
+                    "numPoints": 0,
+                    "dimension": 0,
+                    "geometryType": "",
+                    "coordinateSequence": {
+                      "measures": 0,
+                      "dimension": 0
+                    },
+                    "boundaryDimension": 0,
+                    "length": 0,
+                    "valid": false,
+                    "envelopeInternal": {
+                      "null": false,
+                      "width": 0,
+                      "height": 0,
+                      "minX": 0,
+                      "minY": 0,
+                      "maxX": 0,
+                      "maxY": 0,
+                      "diameter": 0,
+                      "area": 0
+                    },
+                    "precisionModel": {
+                      "scale": 0,
+                      "type": "",
+                      "floating": false,
+                      "offsetX": 0,
+                      "offsetY": 0,
+                      "maximumSignificantDigits": 0
+                    },
+                    "interiorPoint": "",
+                    "rectangle": false,
+                    "centroid": "",
+                    "numGeometries": 0,
+                    "srid": 0,
+                    "area": 0
+                  },
+                  "properties": {
+                    "schemaVersion": 0,
+                    "messageType": "",
+                    "odeReceivedAt": "",
+                    "timeStamp": "",
+                    "originIp": "",
+                    "logName": "",
+                    "asn1": "",
+                    "validationMessages": [
+                      {
+                        "message": "",
+                        "jsonPath": "",
+                        "schemaPath": "",
+                        "exception": ""
+                      }
+                    ],
+                    "accelSet": {
+                      "accelLat": 0,
+                      "accelLong": 0,
+                      "accelVert": 0,
+                      "accelYaw": 0
+                    },
+                    "accuracy": {
+                      "semiMajor": 0,
+                      "semiMinor": 0,
+                      "orientation": 0
+                    },
+                    "angle": 0,
+                    "brakes": {
+                      "wheelBrakes": {
+                        "empty": false
+                      },
+                      "traction": "UNAVAILABLE",
+                      "abs": "UNAVAILABLE",
+                      "scs": "UNAVAILABLE",
+                      "brakeBoost": "UNAVAILABLE",
+                      "auxBrakes": "UNAVAILABLE"
+                    },
+                    "heading": 0,
+                    "id": "",
+                    "msgCnt": 0,
+                    "secMark": 0,
+                    "size": {
+                      "width": 0,
+                      "length": 0
+                    },
+                    "speed": 0,
+                    "transmission": "NEUTRAL"
+                  }
+                },
+                "endingBsm": {
+                  "type": "",
+                  "id": 0,
+                  "geometry": {
+                    "envelope": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "factory": {
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "coordinateSequenceFactory": "",
+                      "srid": 0
+                    },
+                    "userData": "",
+                    "coordinates": [
+                      {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      }
+                    ],
+                    "empty": false,
+                    "x": 0,
+                    "y": 0,
+                    "simple": false,
+                    "boundary": {
+                      "envelope": "",
+                      "factory": {
+                        "precisionModel": {
+                          "scale": 0,
+                          "type": "",
+                          "floating": false,
+                          "offsetX": 0,
+                          "offsetY": 0,
+                          "maximumSignificantDigits": 0
+                        },
+                        "coordinateSequenceFactory": "",
+                        "srid": 0
+                      },
+                      "userData": "",
+                      "length": 0,
+                      "empty": false,
+                      "valid": false,
+                      "simple": false,
+                      "envelopeInternal": {
+                        "null": false,
+                        "width": 0,
+                        "height": 0,
+                        "minX": 0,
+                        "minY": 0,
+                        "maxX": 0,
+                        "maxY": 0,
+                        "diameter": 0,
+                        "area": 0
+                      },
+                      "precisionModel": {
+                        "scale": 0,
+                        "type": "",
+                        "floating": false,
+                        "offsetX": 0,
+                        "offsetY": 0,
+                        "maximumSignificantDigits": 0
+                      },
+                      "interiorPoint": "",
+                      "boundary": "",
+                      "rectangle": false,
+                      "centroid": "",
+                      "coordinate": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "valid": false,
+                        "coordinate": "",
+                        "m": 0
+                      },
+                      "numPoints": 0,
+                      "coordinates": [
+                        {
+                          "x": 0,
+                          "y": 0,
+                          "z": 0,
+                          "valid": false,
+                          "coordinate": "",
+                          "m": 0
+                        }
+                      ],
+                      "numGeometries": 0,
+                      "dimension": 0,
+                      "geometryType": "",
+                      "boundaryDimension": 0,
+                      "srid": 0,
+                      "area": 0
+                    },
+                    "coordinate": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0,
+                      "valid": false,
+                      "coordinate": "",
+                      "m": 0
+                    },
+                    "numPoints": 0,
+                    "dimension": 0,
+                    "geometryType": "",
+                    "coordinateSequence": {
+                      "measures": 0,
+                      "dimension": 0
+                    },
+                    "boundaryDimension": 0,
+                    "length": 0,
+                    "valid": false,
+                    "envelopeInternal": {
+                      "null": false,
+                      "width": 0,
+                      "height": 0,
+                      "minX": 0,
+                      "minY": 0,
+                      "maxX": 0,
+                      "maxY": 0,
+                      "diameter": 0,
+                      "area": 0
+                    },
+                    "precisionModel": {
+                      "scale": 0,
+                      "type": "",
+                      "floating": false,
+                      "offsetX": 0,
+                      "offsetY": 0,
+                      "maximumSignificantDigits": 0
+                    },
+                    "interiorPoint": "",
+                    "rectangle": false,
+                    "centroid": "",
+                    "numGeometries": 0,
+                    "srid": 0,
+                    "area": 0
+                  },
+                  "properties": {
+                    "schemaVersion": 0,
+                    "messageType": "",
+                    "odeReceivedAt": "",
+                    "timeStamp": "",
+                    "originIp": "",
+                    "logName": "",
+                    "asn1": "",
+                    "validationMessages": [
+                      {
+                        "message": "",
+                        "jsonPath": "",
+                        "schemaPath": "",
+                        "exception": ""
+                      }
+                    ],
+                    "accelSet": {
+                      "accelLat": 0,
+                      "accelLong": 0,
+                      "accelVert": 0,
+                      "accelYaw": 0
+                    },
+                    "accuracy": {
+                      "semiMajor": 0,
+                      "semiMinor": 0,
+                      "orientation": 0
+                    },
+                    "angle": 0,
+                    "brakes": {
+                      "wheelBrakes": {
+                        "empty": false
+                      },
+                      "traction": "UNAVAILABLE",
+                      "abs": "UNAVAILABLE",
+                      "scs": "UNAVAILABLE",
+                      "brakeBoost": "UNAVAILABLE",
+                      "auxBrakes": "UNAVAILABLE"
+                    },
+                    "heading": 0,
+                    "id": "",
+                    "msgCnt": 0,
+                    "secMark": 0,
+                    "size": {
+                      "width": 0,
+                      "length": 0
+                    },
+                    "speed": 0,
+                    "transmission": "NEUTRAL"
+                  }
+                },
+                "startingBsmTimestamp": 0,
+                "endingBsmTimestamp": 0,
+                "wktPath": "",
+                "wktMapBoundingBox": "",
+                "inMapBoundingBox": false,
+                "intersectionID": 0,
+                "wallClockTimestamp": 0
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 403 Response
+    description: Forbidden - Requires SUPER_USER, or USER role with access to the intersection requested
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 404 Response
+    description: Not Found
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 409 Response
+    description: Conflict
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 500 Response
+    description: Internal Server Error
+    request:
+      url: "{{baseUrl}}/data/cm-events/bsm-events"
+      method: GET
+      params:
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latest
+          value: "false"
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+
+docs: Get BSM Events, filtered by intersection ID, start time, and end time. The latest flag will only return the latest message satisfying the query.
