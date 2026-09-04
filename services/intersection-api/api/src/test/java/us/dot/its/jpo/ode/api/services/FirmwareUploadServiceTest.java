@@ -203,6 +203,56 @@ class FirmwareUploadServiceTest {
     }
 
     @Test
+    void rejectsCompletionWhenSizeDoesNotMatch() {
+        FirmwareUpload upload = pendingUpload();
+        when(firmwareUploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
+        when(objectStorageService.getObjectMetadata(any(ObjectStorageLocation.class), eq("CRC32C")))
+                .thenReturn(Optional.of(new StoredObjectMetadata(
+                        12344L, new ObjectChecksum("CRC32C", "ImIEBA=="), "17")));
+
+        assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(ex.getReason()).contains("size");
+                });
+        assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
+        assertThat(upload.getFailureReason()).isEqualTo("SIZE_MISMATCH");
+        assertThat(upload.getFinishedAt()).isNotNull();
+        verify(firmwareUploadRepository).save(upload);
+    }
+
+    @Test
+    void rejectsCompletionWhenChecksumAlgorithmDoesNotMatch() {
+        FirmwareUpload upload = pendingUpload();
+        when(firmwareUploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
+        when(objectStorageService.getObjectMetadata(any(ObjectStorageLocation.class), eq("CRC32C")))
+                .thenReturn(Optional.of(new StoredObjectMetadata(
+                        12345L, new ObjectChecksum("SHA256", "ImIEBA=="), "17")));
+
+        assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        ex -> assertThat(ex.getReason()).contains("checksum"));
+        assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
+        assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
+        verify(firmwareUploadRepository).save(upload);
+    }
+
+    @Test
+    void rejectsCompletionWhenProviderDoesNotReturnChecksum() {
+        FirmwareUpload upload = pendingUpload();
+        when(firmwareUploadRepository.findById(upload.getId())).thenReturn(Optional.of(upload));
+        when(objectStorageService.getObjectMetadata(any(ObjectStorageLocation.class), eq("CRC32C")))
+                .thenReturn(Optional.of(new StoredObjectMetadata(12345L, null, "17")));
+
+        assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
+                .isInstanceOfSatisfying(ResponseStatusException.class,
+                        ex -> assertThat(ex.getReason()).contains("checksum"));
+        assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
+        assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
+        verify(firmwareUploadRepository).save(upload);
+    }
+
+    @Test
     void verifiedCompletionIsIdempotent() {
         FirmwareUpload upload = pendingUpload();
         upload.setStatus(FirmwareUploadStatus.VERIFIED);

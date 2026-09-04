@@ -15,23 +15,16 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import us.dot.its.jpo.ode.api.controllers.advice.GlobalExceptionHandler;
-import us.dot.its.jpo.ode.api.keycloak.config.KeycloakSecurityConfig;
+import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
@@ -39,15 +32,11 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
-@WebMvcTest(value = AdminFirmwareController.class, properties = "enable.api=true",
-        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = KeycloakSecurityConfig.class))
-@Import({ GlobalExceptionHandler.class, AdminFirmwareControllerTest.TestSecurityConfiguration.class })
-@ContextConfiguration(classes = {
-        AdminFirmwareController.class,
-        GlobalExceptionHandler.class,
-        AdminFirmwareControllerTest.TestSecurityConfiguration.class
-})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+        properties = "firmware-upload.cleanup.enabled=false")
+@ActiveProfiles("integration-test")
+@AutoConfigureMockMvc
+@Import(TestcontainersConfiguration.class)
 class AdminFirmwareControllerTest {
     private static final String REQUEST_BODY = """
             {
@@ -70,18 +59,6 @@ class AdminFirmwareControllerTest {
 
     @MockitoBean
     private FirmwareUploadService firmwareUploadService;
-
-    @TestConfiguration
-    @EnableMethodSecurity
-    static class TestSecurityConfiguration {
-        @Bean
-        SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
-            return http
-                    .csrf(csrf -> csrf.disable())
-                    .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
-                    .build();
-        }
-    }
 
     @Test
     @WithMockUser

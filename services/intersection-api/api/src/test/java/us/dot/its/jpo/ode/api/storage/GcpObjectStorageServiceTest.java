@@ -136,6 +136,10 @@ class GcpObjectStorageServiceTest {
         var metadata = service.getObjectMetadata(new ObjectStorageLocation(
                 "gcp", "firmware-bucket", "Acme/RoadRunner/y20.97.0/firmware.bin"), "CRC32C");
 
+        ArgumentCaptor<BlobId> blobId = ArgumentCaptor.forClass(BlobId.class);
+        verify(storage).get(blobId.capture(), any(Storage.BlobGetOption[].class));
+        assertThat(blobId.getValue().getBucket()).isEqualTo("firmware-bucket");
+        assertThat(blobId.getValue().getName()).isEqualTo("Acme/RoadRunner/y20.97.0/firmware.bin");
         assertThat(metadata).hasValueSatisfying(value -> {
             assertThat(value.contentLength()).isEqualTo(12345L);
             assertThat(value.checksum()).isEqualTo(new ObjectChecksum("CRC32C", "ImIEBA=="));

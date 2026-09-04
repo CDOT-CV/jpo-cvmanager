@@ -144,6 +144,17 @@
 					<groupId>org.apache.kafka</groupId>
 					<artifactId>kafka-streams-test-utils</artifactId>
 				</exclusion>
+				<!-- Keep this Spring Boot 3 application from resolving Boot 4 starters
+				     transitively through the converter. Equivalent Boot 3 dependencies
+				     are already declared by this project. -->
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-webmvc</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-kafka</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
