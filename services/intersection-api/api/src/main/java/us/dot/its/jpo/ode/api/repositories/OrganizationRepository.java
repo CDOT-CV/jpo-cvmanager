@@ -13,5 +13,7 @@ public interface OrganizationRepository extends JpaRepository<Organization, Inte
 
     Optional<Organization> findByName(String name);
 
+    List<Organization> findByIdIn(List<Integer> organizationIds);
+
     List<Organization> findByNameIn(List<String> names);
 }

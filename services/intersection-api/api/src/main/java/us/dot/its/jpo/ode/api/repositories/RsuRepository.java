@@ -55,13 +55,13 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "ORDER BY m.name ASC, rm.name ASC")
     List<RsuModelProjection> findAllRsuModels();
 
-    @Query("SELECT o.name " +
+    @Query("SELECT o " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
-            "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+            "ORDER BY o.id ASC")
+    List<Organization> findAllOrganizationsByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
