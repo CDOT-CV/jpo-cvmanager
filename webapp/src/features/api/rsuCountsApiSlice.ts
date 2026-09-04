@@ -12,14 +12,11 @@ export const rsuCountsApiSlice = createApi({
   reducerPath: 'rsuCountsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: getIntersectionApiBaseUrl(),
-    prepareHeaders: (headers, { getState, endpoint }) => {
-      const currentState = getState() as RootState
-      const token = selectToken(currentState)
-
+    prepareHeaders: (headers, { getState }) => {
+      const token = selectToken(getState() as RootState)
       if (token) {
-        headers.set('Authorization', `${token}`)
+        headers.set('Authorization', `Bearer ${token}`)
       }
-
       return headers
     },
   }),
@@ -42,6 +39,7 @@ export const rsuCountsApiSlice = createApi({
             start_time_utc_millis: startDate.getTime().toString(),
             end_time_utc_millis: endDate.getTime().toString(),
           })}`,
+          headers: { Organization: organization },
         }
       },
       transformResponse: (response: MessageCount[] | null | undefined) => response ?? [],
