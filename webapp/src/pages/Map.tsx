@@ -501,29 +501,6 @@ function MapPage() {
     }
   }, [rsuData, rsuCounts])
 
-  const rsuDataWithCounts = useMemo(() => {
-    const countsByIp: Record<string, NonNullable<typeof rsuCounts>[number]> = Object.fromEntries(
-      (rsuCounts ?? []).map((c) => [c.rsu_ip, c])
-    )
-    return (
-      rsuData?.map((rsu) => {
-        const messageCount = countsByIp[rsu.properties.ipv4_address]
-        return {
-          ...rsu,
-          properties: {
-            ...rsu.properties,
-            counts: messageCount
-              ? {
-                  [`${countsMsgType} Input`]: messageCount.ode_input_count ?? 0,
-                  [`${countsMsgType} Processed`]: messageCount.ode_output_count ?? 0,
-                }
-              : {},
-          },
-        }
-      }) ?? []
-    )
-  }, [rsuData, rsuCounts, countsMsgType])
-
   function dateChanged(e: Date, type: 'start' | 'end') {
     try {
       const date = DateTime.fromISO(e.toISOString())
@@ -1176,7 +1153,7 @@ function MapPage() {
               )}
             </div>
           )}
-          {rsuDataWithCounts?.map(
+          {rsuData?.map(
             (rsu) =>
               activeLayers.includes(MAP_LAYERS.RSU.id) &&
               (selectedVendor === 'Select Vendor' || rsu['properties']['manufacturer_name'] === selectedVendor) && [

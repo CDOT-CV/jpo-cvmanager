@@ -27,8 +27,6 @@ import { useGetRsuCountsQuery } from '../api/rsuCountsApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 
-const DEFAULT_MESSAGE_TYPES: MessageType[] = ['BSM', 'MAP', 'SPAT', 'TIM', 'SRM', 'SSM']
-
 const DisplayCounts = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
@@ -54,9 +52,7 @@ const DisplayCounts = () => {
   )
 
   const messageTypeOptions = useMemo(() => {
-    const configured = EnvironmentVars.getMessageTypes()
-    const types = configured.length > 0 ? configured : DEFAULT_MESSAGE_TYPES
-    return types.map((type) => ({ value: type, label: type.toUpperCase() }))
+    return EnvironmentVars.getMessageTypes().map((type) => ({ value: type, label: type.toUpperCase() }))
   }, [])
 
   const countList: CountsListElement[] = useMemo(() => {

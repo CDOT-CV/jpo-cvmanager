@@ -13,11 +13,15 @@ class EnvironmentVars {
   }
 
   static getMessageTypes() {
+    const defaultTypes = ['BSM', 'MAP', 'SPAT', 'TIM', 'SRM', 'SSM']
     const COUNT_MESSAGE_TYPES = process.env.VITE_COUNT_MESSAGE_TYPES
     if (!COUNT_MESSAGE_TYPES) {
-      return []
+      return defaultTypes
     }
-    return COUNT_MESSAGE_TYPES.split(',').map((item) => item.trim())
+    const types = COUNT_MESSAGE_TYPES.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    return types.length > 0 ? types : defaultTypes
   }
 
   static getMapboxInitViewState() {

@@ -44,7 +44,32 @@ export const rsuCountsApiSlice = createApi({
       },
       transformResponse: (response: MessageCount[] | null | undefined) => response ?? [],
     }),
+    getRsuCountsByIp: builder.query<
+      MessageCount[],
+      { rsuIp: string; startDate: Date; endDate: Date; messages: string[] }
+    >({
+      query: ({ rsuIp, startDate, endDate, messages }) => {
+        const baseUrl = getIntersectionApiBaseUrl()
+        if (!baseUrl) {
+          throw new Error('VITE_CVIZ_API_SERVER_URL is not set (expected in webapp/.env.local)')
+        }
+
+        return {
+          url: `/data/counts/rsus/${encodeURIComponent(rsuIp)}${getQueryString({
+            ...(messages.length > 0 ? { message: messages.join(',') } : {}),
+            start_time_utc_millis: startDate.getTime().toString(),
+            end_time_utc_millis: endDate.getTime().toString(),
+          })}`,
+        }
+      },
+      transformResponse: (response: MessageCount[] | null | undefined) => response ?? [],
+    }),
   }),
 })
 
-export const { useGetRsuCountsQuery, useLazyGetRsuCountsQuery, util: rsuCountsApiUtil } = rsuCountsApiSlice
+export const {
+  useGetRsuCountsQuery,
+  useLazyGetRsuCountsQuery,
+  useGetRsuCountsByIpQuery,
+  util: rsuCountsApiUtil,
+} = rsuCountsApiSlice

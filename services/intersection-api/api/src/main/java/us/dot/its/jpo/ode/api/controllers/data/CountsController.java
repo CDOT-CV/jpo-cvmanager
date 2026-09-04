@@ -4,7 +4,6 @@ import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,10 +14,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
+import us.dot.its.jpo.ode.api.accessors.counts.MessageTypeParams;
 import us.dot.its.jpo.ode.api.models.MessageCount;
 
 @Slf4j
@@ -37,7 +38,8 @@ public class CountsController {
         this.countsRepository = countsRepository;
     }
 
-    @Operation(summary = "Get message counts for RSU", description = "Returns message counts for a specific RSU over a provided timespan")
+    @Operation(summary = "Get message counts for RSU", description = "Returns message counts for a specific RSU over a provided timespan. "
+            + "Supply one or more message types via repeated `message` parameters or a comma-separated list.")
     @RequestMapping(value = "/rsus/{rsu_ip}", method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRsu(#rsuIp, 'USER')")
     @ApiResponses(value = {
@@ -46,16 +48,17 @@ public class CountsController {
     })
     public ResponseEntity<List<MessageCount>> getRsuMessageCounts(
             @PathVariable(name = "rsu_ip") String rsuIp,
-            @RequestParam(name = "message", required = false) String message,
+            @Parameter(description = "Message types to include. Repeat the parameter or provide a comma-separated list (e.g. BSM,MAP,SPAT).") @RequestParam(name = "message", required = false) List<String> message,
             @RequestParam(name = "start_time_utc_millis", required = true) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = true) Long endTime) {
 
-        log.debug("Getting message counts for RSU {} message type {} from {} to {}", rsuIp, message, startTime,
+        List<String> messageTypes = MessageTypeParams.parse(message);
+        log.debug("Getting message counts for RSU {} message types {} from {} to {}", rsuIp, messageTypes, startTime,
                 endTime);
 
-        List<MessageCount> counts = countsRepository.getRsuMessageCounts(rsuIp, message, startTime, endTime);
+        List<MessageCount> counts = countsRepository.getRsuMessageCounts(rsuIp, messageTypes, startTime, endTime);
 
-        log.debug("Found {} message counts for RSU {} message type {}", counts.size(), rsuIp, message);
+        log.debug("Found {} message counts for RSU {} message types {}", counts.size(), rsuIp, messageTypes);
         return ResponseEntity.ok(counts);
     }
 

@@ -90,4 +90,60 @@ describe('rsuCountsApiSlice', () => {
     const request = getRequest()
     expect(request.headers.has('Authorization')).toBe(false)
   })
+
+  it('fetches all requested message types in one per-RSU request', async () => {
+    const store = setupStore(mockUserState)
+    fetchMock.mockResponseOnce(
+      JSON.stringify([
+        {
+          message_type: 'BSM',
+          rsu_ip: '10.0.0.16',
+          ode_input_count: 10,
+          ode_output_count: 9,
+          road: 'I70',
+        },
+        {
+          message_type: 'MAP',
+          rsu_ip: '10.0.0.16',
+          ode_input_count: 5,
+          ode_output_count: 4,
+          road: 'I70',
+        },
+      ])
+    )
+
+    const startDate = new Date('2026-09-01T00:00:00.000Z')
+    const endDate = new Date('2026-09-02T00:00:00.000Z')
+    const result = await store.dispatch(
+      rsuCountsApiSlice.endpoints.getRsuCountsByIp.initiate({
+        rsuIp: '10.0.0.16',
+        startDate,
+        endDate,
+        messages: ['BSM', 'MAP'],
+      })
+    )
+
+    expect(result.data).toEqual([
+      {
+        message_type: 'BSM',
+        rsu_ip: '10.0.0.16',
+        ode_input_count: 10,
+        ode_output_count: 9,
+        road: 'I70',
+      },
+      {
+        message_type: 'MAP',
+        rsu_ip: '10.0.0.16',
+        ode_input_count: 5,
+        ode_output_count: 4,
+        road: 'I70',
+      },
+    ])
+
+    expect(fetchMock.mock.calls).toHaveLength(1)
+    expect(getRequest().url).toBe(
+      `${BASE_URL}/data/counts/rsus/10.0.0.16?message=BSM%2CMAP&start_time_utc_millis=${startDate.getTime()}&end_time_utc_millis=${endDate.getTime()}`
+    )
+    expect(getRequest().headers.get('Authorization')).toBe('Bearer test-token')
+  })
 })

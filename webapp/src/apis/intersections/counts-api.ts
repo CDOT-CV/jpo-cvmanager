@@ -34,7 +34,7 @@ class CountsApi {
   }: {
     token: string
     rsuIp: string
-    message?: string
+    message?: string | string[]
     startTime: number
     endTime: number
     abortController?: AbortController
@@ -44,7 +44,7 @@ class CountsApi {
       end_time_utc_millis: endTime.toString(),
     }
     if (message) {
-      queryParams.message = message
+      queryParams.message = Array.isArray(message) ? message.join(',') : message
     }
 
     const response = await authApiHelper.invokeApi({

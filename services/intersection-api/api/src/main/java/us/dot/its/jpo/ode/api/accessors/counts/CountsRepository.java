@@ -6,15 +6,22 @@ import us.dot.its.jpo.ode.api.models.MessageCount;
 
 public interface CountsRepository {
     /**
-     * Get message counts for an RSU over a specified timespan
-     * 
+     * Get message counts for an RSU over a specified timespan.
+     *
      * @param rsuIp     the RSU IP address
-     * @param message   the message type to query for (e.g., "BSM", "MAP")
+     * @param messages  message types to query (e.g. {@code BSM}, {@code MAP})
      * @param startTime start time in UTC milliseconds
      * @param endTime   end time in UTC milliseconds
-     * @return list of message counts
+     * @return list of message counts, one entry per requested type
      */
-    List<MessageCount> getRsuMessageCounts(String rsuIp, String message, Long startTime, Long endTime);
+    List<MessageCount> getRsuMessageCounts(String rsuIp, List<String> messages, Long startTime, Long endTime);
+
+    /**
+     * Get message counts for an RSU for a single type or comma-separated types.
+     */
+    default List<MessageCount> getRsuMessageCounts(String rsuIp, String message, Long startTime, Long endTime) {
+        return getRsuMessageCounts(rsuIp, MessageTypeParams.parse(message), startTime, endTime);
+    }
 
     /**
      * Get message counts for all RSUs in an organization over a specified timespan
