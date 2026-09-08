@@ -214,7 +214,11 @@ def get_token():
         # Add new version to the secret
         new_version = add_secret_version(client, secret_id, parent, version_data)
         # Only clean up after the new token has been stored successfully.
-        destroy_old_secret_versions(client, secret_id, parent, new_version.name)
+        new_version = add_secret_version(client, secret_id, parent, version_data)
+        try:
+            destroy_old_secret_versions(client, secret_id, parent, new_version.name)
+        except Exception:
+            logger.exception("Failed to destroy old secret versions; continuing with new token")
     elif iss_health_check_environment.STORAGE_TYPE == "postgres":
         # add new entry to the table
         add_data(key_table_name, new_friendly_name, new_token)
