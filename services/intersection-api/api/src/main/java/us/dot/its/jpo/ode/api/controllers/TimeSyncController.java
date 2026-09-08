@@ -7,7 +7,7 @@ import java.time.Instant;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @RequiredArgsConstructor
 public class TimeSyncController {
     @Operation(summary = "Retrieve current time in milliseconds", description = "Returns the current time in milliseconds since the Unix epoch.")
-    @RequestMapping(value = "/utc-millis", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/utc-millis", produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Current time retrieved successfully"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error"),
