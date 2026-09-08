@@ -90,8 +90,11 @@ def destroy_old_secret_versions(client, secret_id, parent, current_version_name)
         ):
             continue
 
-        client.destroy_secret_version(request={"name": version.name})
-        logger.info(f"Destroyed old secret version: {version.name}")
+        try:
+            client.destroy_secret_version(request={"name": version.name})
+            logger.info(f"Destroyed old secret version: {version.name}")
+        except Exception:
+            logger.exception(f"Failed to destroy old secret version: {version.name}")
 
 
 # Postgres functions
