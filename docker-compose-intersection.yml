@@ -1,6 +1,7 @@
 include:
   - ./jpo-utils/docker-compose-kafka.yml
   - ./jpo-utils/docker-compose-mongo.yml
+  - ./jpo-utils/docker-compose-monitoring.yml
 
 services:
   intersection_api:
@@ -15,7 +16,7 @@ services:
         MAVEN_GITHUB_TOKEN: ${MAVEN_GITHUB_TOKEN:?error}
         MAVEN_GITHUB_ORG: ${MAVEN_GITHUB_ORG:-usdot-jpo-ode}
     ports:
-      - '8089:8089'
+      - "8089:8089"
     restart: always
     environment:
       AUTH_SERVER_URL: ${KEYCLOAK_ENDPOINT:-http://${DOCKER_HOST_IP:?error}:8084}
@@ -23,8 +24,8 @@ services:
       DB_HOST_PORT: ${DB_HOST_PORT:-27017}
       SPRING_KAFKA_BOOTSTRAPSERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
       CM_SERVER_URL: ${CM_SERVER_URL:-http://conflictmonitor:8082}
-      load: 'false'
-      KAFKA_TYPE: 'ON-PREM'
+      load: "false"
+      KAFKA_TYPE: "ON-PREM"
       ACM_CONFIG_FILE: adm.properties
       ACM_LOG_TO_CONSOLE: true
       ACM_LOG_TO_FILE: false
@@ -70,7 +71,9 @@ services:
       EMAIL_RATE_LIMIT_PER_INSTANCE: ${EMAIL_RATE_LIMIT_PER_INSTANCE:-120}
       TIMESYNC_RATE_LIMIT_PER_USER: ${TIMESYNC_RATE_LIMIT_PER_USER:-360}
       TIMESYNC_RATE_LIMIT_PER_INSTANCE: ${TIMESYNC_RATE_LIMIT_PER_INSTANCE:-18000}
-      
+
+      PROMETHEUS_URL: ${PROMETHEUS_URL:-http://prometheus:9090}
+      PROMETHEUS_AGGREGATION_STEP_SECONDS: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:-120}
     entrypoint:
       - sh
       - -c
@@ -78,8 +81,8 @@ services:
         java -Djava.rmi.server.hostname=$DOCKER_HOST_IP -Dcom.sun.management.jmxremote.port=9090 -Dcom.sun.management.jmxremote.rmi.port=9090 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dlogback.configurationFile=/home/logback.xml -jar /home/intersection-api.jar
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     depends_on:
       cvmanager_keycloak:
         condition: service_healthy
@@ -96,11 +99,40 @@ services:
     image: rnwood/smtp4dev:v3
     restart: always
     ports:
-      - '5000:80' # Web UI
-      - '25:25' # SMTP
+      - "5000:80" # Web UI
+      - "25:25" # SMTP
     environment:
       # Enable SMTP authentication
       - ServerOptions__AuthenticationRequired=true
       # Set username and password for SMTP auth
       - ServerOptions__Users__0__Username=${SMTP4DEV_USERNAME:-admin}
       - ServerOptions__Users__0__Password=${SMTP4DEV_PASSWORD:-password}
+
+  # One-shot seeder: imports a week of synthetic kafka_produced_rsu_messages_total
+  # samples (sample-data RSU IPs 10.0.0.11-17) into the Prometheus TSDB volume.
+  prometheus-sample-data:
+    profiles:
+      - intersection
+      - intersection_api
+      - prometheus
+      - monitoring_full
+      - all
+    image: prom/prometheus:v3.1.0
+    hostname: prometheus-sample-data
+    entrypoint: ["/bin/sh", "/scripts/seed_sample_data.sh"]
+    environment:
+      FORCE_RESEED: ${PROMETHEUS_FORCE_RESEED:-true}
+      SAMPLE_DAYS: ${PROMETHEUS_SAMPLE_DAYS:-7}
+      SAMPLE_STEP_SECONDS: ${PROMETHEUS_SAMPLE_STEP_SECONDS:-30}
+      HEAD_GAP_SECONDS: ${PROMETHEUS_HEAD_GAP_SECONDS:-10800}
+      MAX_SEED_AGE_SECONDS: ${PROMETHEUS_MAX_SEED_AGE_SECONDS:-3600}
+    volumes:
+      - ./resources/prometheus:/scripts:ro
+      - prom_data:/prometheus
+    restart: "no"
+
+  # Ensure Prometheus waits for sample history before starting (overrides merge from monitoring).
+  prometheus:
+    depends_on:
+      prometheus-sample-data:
+        condition: service_completed_successfully

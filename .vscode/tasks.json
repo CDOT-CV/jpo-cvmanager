@@ -48,7 +48,7 @@
         "up": {
           "detached": true,
           "build": true,
-          "profiles": ["mongo_full"]
+          "profiles": ["mongo_full", "prometheus"]
         },
         "files": ["${workspaceFolder}/docker-compose.yml"],
         "envFile": "${workspaceFolder}/.env"

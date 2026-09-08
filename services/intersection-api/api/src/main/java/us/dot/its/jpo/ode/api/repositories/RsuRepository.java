@@ -1,7 +1,9 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import java.net.InetAddress;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
@@ -65,6 +68,34 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "JOIN r.rsuOrganizations ro " +
             "WHERE ro.organization in :organizations")
     List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
+
+    /**
+     * Returns every RSU in an organization together with every ping in the status
+     * window. The left join is deliberate: an RSU without a recent ping is still
+     * represented so the API can report it as offline.
+     */
+    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "LEFT JOIN r.pings p ON p.timestamp >= :cutoff " +
+            "WHERE o.name = :organization " +
+            "ORDER BY r.ipv4Address ASC, p.timestamp DESC")
+    List<RsuOnlineStatusProjection> findOnlineStatusPingsByOrganization(
+            @Param("organization") String organization,
+            @Param("cutoff") Instant cutoff);
+
+    /**
+     * Returns the timestamp of the most recent successful ping for one RSU.
+     */
+    @Query("SELECT p.timestamp " +
+            "FROM Rsu r " +
+            "JOIN r.pings p " +
+            "WHERE r.ipv4Address = :ipv4Address " +
+            "AND p.result = true " +
+            "ORDER BY p.timestamp DESC " +
+            "LIMIT 1")
+    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address);
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching
