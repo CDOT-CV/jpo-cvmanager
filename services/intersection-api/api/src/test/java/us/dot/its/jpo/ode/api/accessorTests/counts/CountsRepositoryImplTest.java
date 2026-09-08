@@ -95,7 +95,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -152,7 +152,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-70"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -224,7 +224,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -480,7 +480,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());

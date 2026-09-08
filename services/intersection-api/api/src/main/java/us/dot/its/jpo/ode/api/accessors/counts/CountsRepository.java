@@ -17,13 +17,6 @@ public interface CountsRepository {
     List<MessageCount> getRsuMessageCounts(String rsuIp, List<String> messages, Long startTime, Long endTime);
 
     /**
-     * Get message counts for an RSU for a single type or comma-separated types.
-     */
-    default List<MessageCount> getRsuMessageCounts(String rsuIp, String message, Long startTime, Long endTime) {
-        return getRsuMessageCounts(rsuIp, MessageTypeParams.parse(message), startTime, endTime);
-    }
-
-    /**
      * Get message counts for all RSUs in an organization over a specified timespan
      * Returns the same format as getMessageCounts for consistency
      * 
