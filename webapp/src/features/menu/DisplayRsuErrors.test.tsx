@@ -8,7 +8,6 @@ import { setupStore } from '../../store'
 import DisplayRsuErrors from './DisplayRsuErrors'
 import { RsuInfo, RsuProperties } from '../../models/RsuApi'
 import { replaceChaoticIds } from '../../utils/test-utils'
-import RsuApi from '../../apis/rsu-api'
 
 vi.mock('../api/scmsApiSlice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/scmsApiSlice')>()
@@ -18,8 +17,20 @@ vi.mock('../api/scmsApiSlice', async (importOriginal) => {
   }
 })
 
+vi.mock('../api/rsuOnlineStatusApiSlice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/rsuOnlineStatusApiSlice')>()
+  return {
+    ...actual,
+    useGetRsuOnlineStatusesQuery: vi.fn(),
+    useGetRsuLastOnlineQuery: vi.fn(),
+  }
+})
+
 import { useGetScmsStatusQuery } from '../api/scmsApiSlice'
+import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../api/rsuOnlineStatusApiSlice'
 const mockUseGetScmsStatusQuery = vi.mocked(useGetScmsStatusQuery)
+const mockUseGetRsuOnlineStatusesQuery = vi.mocked(useGetRsuOnlineStatusesQuery)
+const mockUseGetRsuLastOnlineQuery = vi.mocked(useGetRsuLastOnlineQuery)
 
 const TEST_IP = '10.0.0.1'
 const VALID_EXPIRATION_ISO = '2026-12-31T23:59:59Z'
@@ -46,9 +57,6 @@ const rsuPreloadedState = {
     value: {
       selectedRsu: null,
       rsuData: [testRsu],
-      rsuOnlineStatus: {
-        [TEST_IP]: { current_status: 'online', last_online: '2026-04-10T10:00:00Z' },
-      },
       geoMsgType: 'BSM',
       rsuMapData: {},
       mapList: [],
@@ -76,12 +84,10 @@ const rsuPreloadedState = {
   },
 }
 
-const mockRsuOnline = () =>
-  vi.spyOn(RsuApi, 'getRsuOnline').mockResolvedValue({
-    ip: TEST_IP,
-    current_status: 'online',
-    last_online: '2026-04-10T10:00:00Z',
-  } as any)
+const mockRsuOnline = () => {
+  mockUseGetRsuOnlineStatusesQuery.mockReturnValue({ data: { [TEST_IP]: { current_status: 'online' } } } as any)
+  mockUseGetRsuLastOnlineQuery.mockReturnValue({ data: { ip: TEST_IP, last_online: '2026-04-10T10:00:00Z' } } as any)
+}
 
 function renderComponent(preloadedState = rsuPreloadedState) {
   return render(
