@@ -202,6 +202,9 @@ bucket-scoped permissions:
 - The ADC identity needs object-metadata permission on the bucket.
 
 No bucket-creation or bucket-listing permission is used by this workflow.
+The API does not delete objects and does not require `storage.objects.delete`.
+An operator performing the manual recovery procedure below needs that
+permission through a separate administrative identity.
 
 To enable GCS firmware uploads with Docker Compose, add these values to the
 root `.env` file:
@@ -250,3 +253,65 @@ rules required by deployed webapp origins when adding the localhost rule.
 | `VERIFIED` | Stored size and checksum match the upload request. Completion is idempotent.                  | Retained; automated cleanup never deletes the row or its object.                                                                          |
 | `FAILED`   | Completion found a size or checksum mismatch. `failure_reason` contains a stable reason code. | Row is deleted after `FIRMWARE_UPLOAD_RETENTION`; the cleanup task does not delete cloud objects.                                         |
 | `EXPIRED`  | The upload remained pending beyond its signed-URL expiration and grace period.                | Row is deleted after `FIRMWARE_UPLOAD_RETENTION`. A late completion can still change it to `VERIFIED` if the object exists and validates. |
+
+### Recovering interrupted or failed uploads
+
+Completion requests are safe to retry using the same upload ID:
+
+```text
+POST /admin/firmware/uploads/{uploadId}/complete
+```
+
+- Calling completion again for a `VERIFIED` upload returns its existing
+  verification result.
+- If the object is temporarily missing or object storage is unavailable, the
+  upload status is not changed and completion can be retried.
+- An `EXPIRED` upload can still become `VERIFIED` when its object exists and
+  matches the original size and checksum.
+- Retrying a `FAILED` size or checksum verification normally produces the same
+  result because the expected values are immutable. Do not change the expected
+  checksum to make an existing object pass verification.
+
+If a browser uploads the object but loses the upload ID or completion response,
+look up the most recent matching record in PostgreSQL:
+
+```sql
+SELECT upload_id,
+       status,
+       created_at,
+       expires_at,
+       finished_at,
+       failure_reason
+FROM public.firmware_uploads
+WHERE storage_provider = 'gcp'
+  AND storage_container = 'your-existing-bucket'
+  AND object_name = 'vendor/model/version/file_name'
+ORDER BY created_at DESC;
+```
+
+Use the returned `upload_id` with the completion endpoint before considering
+object deletion. This preserves a successfully uploaded object when only the
+browser response or completion request was lost.
+
+An unsuccessful object can prevent a new upload to the same immutable object
+name because signed uploads use a create-only condition. To recover manually:
+
+1. Confirm that the matching upload is not `VERIFIED`.
+2. Retry completion once to determine whether the existing object is valid.
+3. For a `FAILED` upload, wait until `expires_at` so its signed URL can no
+   longer recreate the object after deletion.
+4. For a `PENDING` upload, wait until cleanup changes it to `EXPIRED`. This
+   occurs after `expires_at`, `FIRMWARE_UPLOAD_EXPIRATION_GRACE`, and the next
+   cleanup run.
+5. If an invalid or abandoned object exists, delete it with an administrative
+   GCP identity:
+
+   ```powershell
+   gcloud storage rm gs://your-existing-bucket/vendor/model/version/file_name
+   ```
+
+6. Submit a new signed-upload-URL request for the firmware.
+
+Never use this recovery procedure to delete a `VERIFIED` object. Automated
+cleanup removes retained `FAILED` and `EXPIRED` PostgreSQL rows only; it does
+not remove their cloud objects.
