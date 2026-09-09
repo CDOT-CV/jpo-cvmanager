@@ -61,6 +61,12 @@ public interface RsuOrganizationRepository extends JpaRepository<RsuOrganization
             + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
     boolean existsOrphanRsuInOrganization(@Param("organization") Organization organization);
 
+    @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
+            + "FROM RsuOrganization ro "
+            + "WHERE ro.rsu.ipv4Address = :ipv4Address "
+            + "AND (SELECT COUNT(ro2) FROM RsuOrganization ro2 WHERE ro2.rsu.id = ro.rsu.id) = 1")
+    boolean hasSingleOrganization(@Param("ipv4Address") InetAddress ipv4Address);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuOrganization ro WHERE ro.organization = :organization")

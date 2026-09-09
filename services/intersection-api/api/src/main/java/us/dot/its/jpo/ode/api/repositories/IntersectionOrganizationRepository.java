@@ -51,6 +51,12 @@ public interface IntersectionOrganizationRepository extends JpaRepository<Inters
             + "AND (SELECT COUNT(io2) FROM IntersectionOrganization io2 WHERE io2.intersection.id = io.intersection.id) = 1")
     boolean existsOrphanIntersectionInOrganization(@Param("organization") Organization organization);
 
+    @Query("SELECT CASE WHEN COUNT(io) > 0 THEN true ELSE false END "
+            + "FROM IntersectionOrganization io "
+            + "WHERE io.intersection.intersectionNumber = :intersectionNumber "
+            + "AND (SELECT COUNT(io2) FROM IntersectionOrganization io2 WHERE io2.intersection.id = io.intersection.id) = 1")
+    boolean hasSingleOrganization(@Param("intersectionNumber") String intersectionNumber);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM IntersectionOrganization io WHERE io.organization = :organization")

@@ -116,7 +116,7 @@ class OrganizationManagementServiceTest {
         when(authToken.isSuperUser()).thenReturn(true);
         when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
+        lenient().when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
     }
 
     // =========================================================================
@@ -586,6 +586,23 @@ class OrganizationManagementServiceTest {
                 List.of("remove1@test.com", "remove2@test.com"), testOrg);
     }
 
+    @Test
+    void testUsersToRemove_OrphanedUser_ThrowsConflict() {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setUsersToRemove(List.of("orphan@test.com"));
+
+        when(userOrganizationRepository.hasSingleOrganization("orphan@test.com")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("orphan@test.com"));
+        verify(userOrganizationRepository).deleteByUserEmailsAndOrganization(List.of("orphan@test.com"), testOrg);
+        verify(userOrganizationRepository).hasSingleOrganization("orphan@test.com");
+    }
+
     // =========================================================================
     // handleRsusToAdd
     // =========================================================================
@@ -707,6 +724,24 @@ class OrganizationManagementServiceTest {
 
         verify(rsuOrganizationRepository).deleteByRsuIpv4AddressesAndOrganization(
                 List.of(ip1, ip2), testOrg);
+    }
+
+    @Test
+    void testRsusToRemove_OrphanedRsu_ThrowsConflict() throws UnknownHostException {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setRsusToRemove(List.of("10.0.1.9"));
+
+        InetAddress ip = InetAddress.getByName("10.0.1.9");
+        when(rsuOrganizationRepository.hasSingleOrganization(ip)).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("10.0.1.9"));
+        verify(rsuOrganizationRepository).hasSingleOrganization(ip);
+        verify(rsuOrganizationRepository, never()).deleteByRsuIpv4AddressesAndOrganization(any(), any());
     }
 
     @Test
@@ -842,6 +877,23 @@ class OrganizationManagementServiceTest {
 
         verify(intersectionOrganizationRepository).deleteByIntersectionNumbersAndOrganization(
                 List.of("1001", "1002"), testOrg);
+    }
+
+    @Test
+    void testIntersectionsToRemove_OrphanedIntersection_ThrowsConflict() {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setIntersectionsToRemove(List.of(1001));
+
+        when(intersectionOrganizationRepository.hasSingleOrganization("1001")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("1001"));
+        verify(intersectionOrganizationRepository).hasSingleOrganization("1001");
+        verify(intersectionOrganizationRepository, never()).deleteByIntersectionNumbersAndOrganization(any(), any());
     }
 
     // =========================================================================

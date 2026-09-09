@@ -117,6 +117,14 @@ public class OrganizationManagementService {
         if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
             userOrganizationRepository.deleteByUserEmailsAndOrganization(
                     patch.getUsersToRemove(), org);
+            List<String> orphanedUsers = patch.getUsersToRemove().stream()
+                    .filter(ip -> userOrganizationRepository.hasSingleOrganization(ip))
+                    .toList();
+            if (!orphanedUsers.isEmpty()) {
+                String orphanedEmails = String.join(", ", orphanedUsers);
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove user(s) that are only associated with this organization: " + orphanedEmails);
+            }
             log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
         }
 
@@ -126,6 +134,16 @@ public class OrganizationManagementService {
         // Step 8: Remove RSU associations
         if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
+            List<InetAddress> orphanedRsus = addresses.stream()
+                    .filter(ip -> rsuOrganizationRepository.hasSingleOrganization(ip))
+                    .toList();
+            if (!orphanedRsus.isEmpty()) {
+                String orphanedIps = orphanedRsus.stream()
+                        .map(InetAddress::getHostAddress)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove RSU(s) that are only associated with this organization: " + orphanedIps);
+            }
             rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganization(addresses, org);
             log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
@@ -138,6 +156,17 @@ public class OrganizationManagementService {
             List<String> numberStrings = patch.getIntersectionsToRemove().stream()
                     .map(Object::toString)
                     .toList();
+            List<Integer> orphanedIntersections = patch.getIntersectionsToRemove().stream()
+                    .filter(num -> intersectionOrganizationRepository.hasSingleOrganization(String.valueOf(num)))
+                    .toList();
+            if (!orphanedIntersections.isEmpty()) {
+                String orphanedIntersectionNumbers = orphanedIntersections.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove intersection(s) that are only associated with this organization: "
+                                + orphanedIntersectionNumbers);
+            }
             intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganization(
                     numberStrings, org);
             log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), org.getName());
