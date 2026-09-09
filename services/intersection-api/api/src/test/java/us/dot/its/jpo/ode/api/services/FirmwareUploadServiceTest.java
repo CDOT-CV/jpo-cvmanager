@@ -17,11 +17,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mapstruct.factory.Mappers;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
+import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -56,7 +58,7 @@ class FirmwareUploadServiceTest {
     void setUp() {
         properties.setMaxUploadSize(DataSize.ofMegabytes(100));
         service = new FirmwareUploadService(rsuModelRepository, firmwareUploadRepository,
-                objectStorageServices, properties);
+                objectStorageServices, properties, Mappers.getMapper(FirmwareUploadMapper.class));
 
         request = new FirmwareUploadUrlRequest();
         request.setVendorName("Commsignia");
@@ -79,6 +81,11 @@ class FirmwareUploadServiceTest {
 
     @Test
     void createsPendingUploadIntentAndReturnsItsId() {
+        request.setVersion(" y20.97.0 ");
+        request.setFileName(" rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig ");
+        request.setContentType(" application/octet-stream ");
+        request.setChecksumAlgorithm(" crc32c ");
+        request.setChecksum(" ImIEBA== ");
         SignedUploadUrl signedUrl = new SignedUploadUrl("https://storage.googleapis.com/signed", "PUT",
                 new ObjectStorageLocation("gcp", "firmware-bucket",
                         "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
@@ -98,6 +105,16 @@ class FirmwareUploadServiceTest {
         FirmwareUpload upload = uploadCaptor.getValue();
         assertThat(upload.getId()).isEqualTo(result.uploadId());
         assertThat(upload.getModel()).isSameAs(model);
+        assertThat(upload.getVersion()).isEqualTo("y20.97.0");
+        assertThat(upload.getFileName()).isEqualTo("rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig");
+        assertThat(upload.getContentType()).isEqualTo("application/octet-stream");
+        assertThat(upload.getObjectName()).isEqualTo(signedUrl.location().objectName());
+        assertThat(upload.getCreatedAt()).isNotNull();
+        assertThat(upload.getVerifiedAt()).isNull();
+        assertThat(upload.getFinishedAt()).isNull();
+        assertThat(upload.getFailureReason()).isNull();
+        assertThat(upload.getObservedChecksum()).isNull();
+        assertThat(upload.getProviderObjectVersion()).isNull();
         assertThat(upload.getExpectedSize()).isEqualTo(request.getContentLength());
         assertThat(upload.getChecksumAlgorithm()).isEqualTo("CRC32C");
         assertThat(upload.getExpectedChecksum()).isEqualTo("ImIEBA==");

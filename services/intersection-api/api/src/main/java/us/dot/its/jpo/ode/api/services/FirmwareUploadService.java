@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -37,6 +38,7 @@ public class FirmwareUploadService {
     private final FirmwareUploadRepository firmwareUploadRepository;
     private final ObjectStorageServiceRegistry objectStorageServices;
     private final ObjectStorageProperties objectStorageProperties;
+    private final FirmwareUploadMapper firmwareUploadMapper;
 
     public FirmwareUploadUrl createFirmwareSignedUploadUrl(FirmwareUploadUrlRequest request, String createdBy) {
         // Resolve the model from trusted database records instead of accepting an
@@ -79,22 +81,8 @@ public class FirmwareUploadService {
 
         // Persist the intent only after signing succeeds, so every PENDING row has a
         // usable set of upload instructions associated with it
-        FirmwareUpload upload = new FirmwareUpload();
-        upload.setId(UUID.randomUUID());
-        upload.setModel(model);
-        upload.setVersion(request.getVersion().trim());
-        upload.setFileName(request.getFileName().trim());
-        upload.setContentType(request.getContentType().trim());
-        upload.setStorageProvider(location.provider());
-        upload.setStorageContainer(location.container());
-        upload.setObjectName(location.objectName());
-        upload.setExpectedSize(request.getContentLength());
-        upload.setChecksumAlgorithm(checksumAlgorithm);
-        upload.setExpectedChecksum(expectedChecksum.value());
-        upload.setStatus(FirmwareUploadStatus.PENDING);
-        upload.setCreatedBy(normalizeCreatedBy(createdBy));
-        upload.setCreatedAt(now);
-        upload.setExpiresAt(signedUrl.expiresAt());
+        FirmwareUpload upload = firmwareUploadMapper.toEntity(request, model, signedUrl,
+                expectedChecksum, UUID.randomUUID(), normalizeCreatedBy(createdBy), now);
         firmwareUploadRepository.save(upload);
 
         return new FirmwareUploadUrl(upload.getId(), signedUrl.uploadUrl(), signedUrl.method(),
