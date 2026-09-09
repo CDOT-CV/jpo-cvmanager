@@ -191,6 +191,9 @@ function MapPage() {
   // RSU layer local state variables
   const [displayType, setDisplayType] = useState('online')
 
+  const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
+  const queryDurationExceeded = countsEndDate.getTime() - countsStartDate.getTime() > maxDurationMs
+
   const { data: rsuCounts } = useGetRsuCountsQuery(
     {
       organization,
@@ -198,7 +201,7 @@ function MapPage() {
       endDate: countsEndDate,
       message: countsMsgType,
     },
-    { skip: !organization }
+    { skip: !organization || queryDurationExceeded }
   )
 
   // Add these new state variables near the other source states

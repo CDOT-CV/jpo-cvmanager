@@ -2,7 +2,8 @@ package us.dot.its.jpo.ode.api.models.emails;
 
 /**
  * Email delivery frequencies. {@link #toQueryValue()} returns the string used by
- * {@code UserEmailNotificationRepository} frequency filters (e.g. {@code DAILY}),
+ * {@code UserEmailNotificationRepository} frequency filters
+ * ({@code IMMEDIATE}, {@code HOURLY}, {@code DAILY}, {@code WEEKLY}, {@code MONTHLY}),
  * which differ from the enum constant names for non-immediate frequencies.
  */
 public enum EmailFrequency {
