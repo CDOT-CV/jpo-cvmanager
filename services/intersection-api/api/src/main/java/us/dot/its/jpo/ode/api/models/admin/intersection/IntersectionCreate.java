@@ -37,7 +37,7 @@ public class IntersectionCreate {
     @NotNull
     @Size(min = 1, message = "At least one organization is required")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull

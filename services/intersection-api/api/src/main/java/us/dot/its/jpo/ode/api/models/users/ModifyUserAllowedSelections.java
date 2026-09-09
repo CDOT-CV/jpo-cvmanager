@@ -17,5 +17,5 @@ public class ModifyUserAllowedSelections {
     @JsonProperty("roles")
     List<String> roles;
     @JsonProperty("organizations")
-    List<String> organizations;
+    List<Integer> organizations;
 }

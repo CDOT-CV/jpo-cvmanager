@@ -77,6 +77,14 @@ public class PermissionService {
         return authToken.isSuperUser();
     }
 
+    public Organization getOrganizationById(Integer orgId) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        return authToken.getQualifiedOrgList(UserRole.ADMIN).stream()
+                .filter(org -> org.getId().equals(orgId))
+                .findFirst()
+                .orElseThrow(() -> new AccessDeniedException("User does not belong to the specified organization"));
+    }
+
     /**
      * Runs an organization-based permission check for the current user.
      * Invalid authentication returns false. Super users are always allowed.
@@ -164,6 +172,29 @@ public class PermissionService {
             return false;
         }
         return qualifiedOrgs.containsAll(organizations);
+    }
+
+    public boolean hasRoleInOrgIds(String role, List<Integer> organizations) {
+        return hasRoleInOrgIds(UserRole.fromString(role), organizations);
+    }
+
+    public boolean hasRoleInOrgIds(UserRole role, List<Integer> orgIds) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(role);
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            // No qualified organizations: deny access without hitting the repository
+            return false;
+        }
+        return qualifiedOrgs.stream().map(Organization::getId).collect(Collectors.toList())
+                .containsAll(orgIds);
+    }
+
+    public boolean hasRoleInOrgNames(String role, List<String> organizations) {
+        return hasRoleInOrgNames(UserRole.fromString(role), organizations);
     }
 
     // TODO: Remove when all are transitioned to hasRoleInOrgs

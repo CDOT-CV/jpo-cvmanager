@@ -42,7 +42,7 @@ public class IntersectionDto {
 
     @Schema(description = "Organizations associated with this intersection")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses associated with this intersection")
     @JsonProperty("rsus")

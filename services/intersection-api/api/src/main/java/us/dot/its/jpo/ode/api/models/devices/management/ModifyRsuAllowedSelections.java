@@ -25,5 +25,5 @@ public class ModifyRsuAllowedSelections {
     @JsonProperty("snmp_version_groups")
     List<String> snmpVersionGroups;
     @JsonProperty("organizations")
-    List<String> organizations;
+    List<Integer> organizations;
 }

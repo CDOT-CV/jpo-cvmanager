@@ -23,7 +23,7 @@ def get_all_orgs(organizations: list[str] | None):
     query = (
         "SELECT to_jsonb(row) "
         "FROM ("
-        "SELECT org.name, org.email, "
+        "SELECT org.organization_id, org.name, org.email, "
         "(SELECT COUNT(*) FROM public.user_organization uo WHERE uo.organization_id = org.organization_id) num_users, "
         "(SELECT COUNT(*) FROM public.rsu_organization ro WHERE ro.organization_id = org.organization_id) num_rsus, "
         "(SELECT COUNT(*) FROM public.intersection_organization io WHERE io.organization_id = org.organization_id) num_intersections "

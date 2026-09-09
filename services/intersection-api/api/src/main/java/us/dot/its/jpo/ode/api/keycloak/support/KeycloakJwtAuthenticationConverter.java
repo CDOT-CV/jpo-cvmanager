@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.keycloak.support;
 
 import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -16,14 +17,16 @@ import java.util.Collection;
  * the username and roles from the claims of the token, delegating
  * to the {@link KeycloakGrantedAuthoritiesConverter})
  */
-@RequiredArgsConstructor
 public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter;
+    private OrganizationRepository organizationRepository;
 
     public KeycloakJwtAuthenticationConverter(
-            Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter) {
+            Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter,
+            OrganizationRepository organizationRepository) {
         this.grantedAuthoritiesConverter = grantedAuthoritiesConverter;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override
@@ -46,6 +49,6 @@ public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, Abstra
             Collection<GrantedAuthority> authorities) {
 
         String username = getUsernameFrom(jwt);
-        return new CvManagerAuthToken(jwt, authorities, username);
+        return new CvManagerAuthToken(jwt, authorities, username, organizationRepository);
     }
 }

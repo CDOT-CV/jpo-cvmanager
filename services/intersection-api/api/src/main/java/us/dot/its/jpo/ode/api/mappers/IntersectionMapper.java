@@ -35,19 +35,19 @@ public interface IntersectionMapper {
   @Mapping(source = "intersectionName", target = "intersectionName")
   @Mapping(source = "originIp", target = "originIp")
   @Mapping(source = "intersectionOrganizations", target = "organizations",
-    qualifiedByName = "mapOrgNames")
+          qualifiedByName = "mapOrgIds")
   @Mapping(target = "rsus", ignore = true)
   IntersectionDto toDto(Intersection intersection);
 
-  @Named("mapOrgNames")
-  default List<String> mapOrgNames(List<IntersectionOrganization> intersectionOrganizations) {
+  @Named("mapOrgIds")
+  default List<Integer> mapOrgIds(List<IntersectionOrganization> intersectionOrganizations) {
     if (intersectionOrganizations == null) {
       return Collections.emptyList();
     }
     return intersectionOrganizations.stream()
-      .filter(io -> io.getOrganization() != null && io.getOrganization().getName() != null)
-      .map(io -> io.getOrganization().getName())
-      .collect(Collectors.toList());
+            .filter(io -> io.getOrganization() != null && io.getOrganization().getId() != null)
+            .map(io -> io.getOrganization().getId())
+            .collect(Collectors.toList());
   }
 
   @Mapping(target = "id", ignore = true)

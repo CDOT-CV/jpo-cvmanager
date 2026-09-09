@@ -123,7 +123,7 @@ class OrganizationControllerTest {
                 new SimplePosition(39.7392, -104.9903),
                 1.5, "I-25", "SN001", "SCMS001",
                 null, null, null, null,
-                List.of("TestOrg"), false, false);
+                List.of(1), false, false);
 
         sampleUserDto = new UserDto("user@example.com", "Test", "User", false, List.of());
 
