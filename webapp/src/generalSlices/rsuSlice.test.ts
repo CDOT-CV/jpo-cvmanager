@@ -61,6 +61,7 @@ describe('rsu reducer', () => {
   it('should handle initial state', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual({
       loading: false,
+      currentRequestId: null,
       value: {
         selectedRsu: null,
         rsuData: [],
@@ -86,6 +87,7 @@ describe('rsu reducer', () => {
 describe('async thunks', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,
@@ -128,20 +130,23 @@ describe('async thunks', () => {
         },
       })
       const action = getRsuData()
+      const rsuData = ['1.1.1.1'] as any
+      RsuApi.getRsuInfo = jest.fn().mockResolvedValue({ rsuList: rsuData })
 
-      await action(dispatch, getState, undefined)
-      expect(dispatch).toHaveBeenCalledTimes(3) // One inner thunk plus pending and fulfilled actions
+      const response = await action(dispatch, getState, undefined)
+      expect(response.payload).toEqual(rsuData)
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
+      expect(dispatch).toHaveBeenCalledTimes(2) // pending and fulfilled
     })
 
     it('Updates the state correctly pending', async () => {
       const loading = true
       const rsuData = [] as any
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/pending',
-      })
+      const state = reducer(initialState, getRsuData.pending('request-id', undefined))
       expect(state).toEqual({
         ...initialState,
         loading,
+        currentRequestId: 'request-id',
         value: {
           ...initialState.value,
           rsuData,
@@ -162,10 +167,8 @@ describe('async thunks', () => {
         },
       ] as any
       const state = reducer(
-        { ...initialState, value: { ...initialState.value, rsuData } },
-        {
-          type: 'rsu/getRsuData/fulfilled',
-        }
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.fulfilled(rsuData, 'request-id', undefined)
       )
 
       expect(state).toEqual({
@@ -177,10 +180,33 @@ describe('async thunks', () => {
 
     it('Updates the state correctly rejected', async () => {
       const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/rejected',
-      })
+      const state = reducer(
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.rejected(new Error('failed'), 'request-id', undefined)
+      )
       expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
+    })
+
+    it('ignores an older organization response after a newer refresh starts', () => {
+      const initial = reducer(undefined, { type: 'unknown' })
+      const firstPending = reducer(initial, getRsuData.pending('first-request', undefined))
+      const secondPending = reducer(firstPending, getRsuData.pending('second-request', undefined))
+      const staleRsuData = [{ properties: { ipv4_address: 'stale' } }] as any
+
+      const afterStaleResponse = reducer(
+        secondPending,
+        getRsuData.fulfilled(staleRsuData, 'first-request', undefined)
+      )
+      expect(afterStaleResponse.value.rsuData).toEqual([])
+      expect(afterStaleResponse.currentRequestId).toBe('second-request')
+
+      const currentRsuData = [{ properties: { ipv4_address: 'current' } }] as any
+      const afterCurrentResponse = reducer(
+        afterStaleResponse,
+        getRsuData.fulfilled(currentRsuData, 'second-request', undefined)
+      )
+      expect(afterCurrentResponse.value.rsuData).toEqual(currentRsuData)
+      expect(afterCurrentResponse.currentRequestId).toBeNull()
     })
   })
 
@@ -359,6 +385,7 @@ describe('async thunks', () => {
 describe('reducers', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,
