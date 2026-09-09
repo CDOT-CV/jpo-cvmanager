@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,6 +35,10 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 @Service
 @RequiredArgsConstructor
 public class FirmwareUploadService {
+    private static final String ACTIVE_DESTINATION_INDEX = "uq_firmware_uploads_active_destination";
+    private static final String DESTINATION_EXISTS_MESSAGE =
+            "A firmware file already exists for this vendor, model, version, and file name";
+
     private final RsuModelRepository rsuModelRepository;
     private final FirmwareUploadRepository firmwareUploadRepository;
     private final ObjectStorageServiceRegistry objectStorageServices;
@@ -69,8 +74,7 @@ public class FirmwareUploadService {
         // occupied. The provider's create-only upload condition remains the final
         // protection against another writer winning after this check
         if (objectStorageService.objectExists(objectName)) {
-            throw new FirmwareVersionAlreadyExistsException(
-                    "A firmware file already exists for this vendor, model, version, and file name");
+            throw new FirmwareVersionAlreadyExistsException(DESTINATION_EXISTS_MESSAGE);
         }
 
         SignedUploadUrl signedUrl = objectStorageService.createSignedUploadUrl(new ObjectUploadRequest(
@@ -83,7 +87,14 @@ public class FirmwareUploadService {
         // usable set of upload instructions associated with it
         FirmwareUpload upload = firmwareUploadMapper.toEntity(request, model, signedUrl,
                 expectedChecksum, UUID.randomUUID(), normalizeCreatedBy(createdBy), now);
-        firmwareUploadRepository.save(upload);
+        try {
+            firmwareUploadRepository.save(upload);
+        } catch (DataIntegrityViolationException ex) {
+            if (isActiveDestinationConflict(ex)) {
+                throw new FirmwareVersionAlreadyExistsException(DESTINATION_EXISTS_MESSAGE, ex);
+            }
+            throw ex;
+        }
 
         return new FirmwareUploadUrl(upload.getId(), signedUrl.uploadUrl(), signedUrl.method(),
                 location.objectName(), signedUrl.expiresAt(), signedUrl.requiredHeaders());
@@ -150,6 +161,18 @@ public class FirmwareUploadService {
         upload.setFailureReason(reason);
         upload.setFinishedAt(Instant.now());
         firmwareUploadRepository.save(upload);
+    }
+
+    private boolean isActiveDestinationConflict(Throwable exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            String message = cause.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains(ACTIVE_DESTINATION_INDEX)) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private String buildObjectName(FirmwareUploadUrlRequest request) {

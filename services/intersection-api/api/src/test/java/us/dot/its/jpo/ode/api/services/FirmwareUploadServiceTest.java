@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mapstruct.factory.Mappers;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.util.unit.DataSize;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -136,6 +137,21 @@ class FirmwareUploadServiceTest {
 
         verify(objectStorageService, never()).createSignedUploadUrl(any());
         verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @Test
+    void reportsConflictWhenConcurrentRequestClaimsSameDestination() {
+        SignedUploadUrl signedUrl = new SignedUploadUrl("https://storage.googleapis.com/signed", "PUT",
+                new ObjectStorageLocation("gcp", "firmware-bucket",
+                        "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
+                EXPIRES_AT, Map.of("x-goog-hash", "crc32c=ImIEBA=="));
+        when(objectStorageService.createSignedUploadUrl(any(ObjectUploadRequest.class))).thenReturn(signedUrl);
+        when(firmwareUploadRepository.save(any())).thenThrow(new DataIntegrityViolationException(
+                "duplicate key violates unique constraint uq_firmware_uploads_active_destination"));
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class)
+                .hasMessageContaining("already exists");
     }
 
     @Test

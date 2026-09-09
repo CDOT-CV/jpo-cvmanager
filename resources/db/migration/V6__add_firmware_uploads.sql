@@ -37,6 +37,12 @@ CREATE INDEX idx_firmware_uploads_model
 CREATE INDEX idx_firmware_uploads_status_expires_at
     ON public.firmware_uploads (status, expires_at);
 
+-- Prevent concurrent requests from creating more than one live upload intent for
+-- the same provider destination, while permitting retries after failure/expiry.
+CREATE UNIQUE INDEX uq_firmware_uploads_active_destination
+    ON public.firmware_uploads (storage_provider, storage_container, object_name)
+    WHERE status IN ('PENDING', 'VERIFIED');
+
 CREATE INDEX idx_firmware_uploads_finished_retention
     ON public.firmware_uploads (status, finished_at)
     WHERE status IN ('FAILED', 'EXPIRED');
