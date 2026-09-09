@@ -18,9 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mapstruct.factory.Mappers;
-import org.springframework.http.HttpStatus;
 import org.springframework.util.unit.DataSize;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
@@ -133,10 +131,8 @@ class FirmwareUploadServiceTest {
         when(objectStorageService.objectExists(any())).thenReturn(true);
 
         assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
-                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(ex.getReason()).contains("already exists");
-                });
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class)
+                .hasMessageContaining("already exists");
 
         verify(objectStorageService, never()).createSignedUploadUrl(any());
         verify(firmwareUploadRepository, never()).save(any());
@@ -195,8 +191,10 @@ class FirmwareUploadServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
-                .isInstanceOfSatisfying(ResponseStatusException.class,
-                        ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
+                .isInstanceOf(FirmwareUploadVerificationException.class)
+                .hasMessageContaining("expected firmware file was not found in storage")
+                .hasMessageContaining("signed URL completed successfully");
+        assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.PENDING);
         verify(firmwareUploadRepository, never()).save(upload);
     }
 
@@ -209,10 +207,8 @@ class FirmwareUploadServiceTest {
                         12345L, new ObjectChecksum("CRC32C", "AAAAAA=="), "17")));
 
         assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
-                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(ex.getReason()).contains("checksum");
-                });
+                .isInstanceOf(FirmwareUploadVerificationException.class)
+                .hasMessageContaining("checksum");
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
         assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
         assertThat(upload.getFinishedAt()).isNotNull();
@@ -228,10 +224,8 @@ class FirmwareUploadServiceTest {
                         12344L, new ObjectChecksum("CRC32C", "ImIEBA=="), "17")));
 
         assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
-                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
-                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(ex.getReason()).contains("size");
-                });
+                .isInstanceOf(FirmwareUploadVerificationException.class)
+                .hasMessageContaining("size");
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
         assertThat(upload.getFailureReason()).isEqualTo("SIZE_MISMATCH");
         assertThat(upload.getFinishedAt()).isNotNull();
@@ -247,8 +241,8 @@ class FirmwareUploadServiceTest {
                         12345L, new ObjectChecksum("SHA256", "ImIEBA=="), "17")));
 
         assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
-                .isInstanceOfSatisfying(ResponseStatusException.class,
-                        ex -> assertThat(ex.getReason()).contains("checksum"));
+                .isInstanceOf(FirmwareUploadVerificationException.class)
+                .hasMessageContaining("checksum");
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
         assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
         verify(firmwareUploadRepository).save(upload);
@@ -262,8 +256,8 @@ class FirmwareUploadServiceTest {
                 .thenReturn(Optional.of(new StoredObjectMetadata(12345L, null, "17")));
 
         assertThatThrownBy(() -> service.completeFirmwareUpload(upload.getId()))
-                .isInstanceOfSatisfying(ResponseStatusException.class,
-                        ex -> assertThat(ex.getReason()).contains("checksum"));
+                .isInstanceOf(FirmwareUploadVerificationException.class)
+                .hasMessageContaining("checksum");
         assertThat(upload.getStatus()).isEqualTo(FirmwareUploadStatus.FAILED);
         assertThat(upload.getFailureReason()).isEqualTo("CHECKSUM_MISMATCH");
         verify(firmwareUploadRepository).save(upload);

@@ -36,6 +36,9 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
+import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -97,6 +100,27 @@ public class GlobalExceptionHandler {
         String message = e.getMessage();
         log.warn(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler()
+    public ProblemDetail handleObjectStorageUnavailableException(ObjectStorageUnavailableException ex) {
+        log.warn("Object storage unavailable: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareVersionAlreadyExistsException(FirmwareVersionAlreadyExistsException ex) {
+        log.warn("Firmware file already exists: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareUploadVerificationException(FirmwareUploadVerificationException ex) {
+        log.warn("Firmware upload verification failed: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)

@@ -31,6 +31,9 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "firmware-upload.cleanup.enabled=false")
@@ -81,6 +84,53 @@ class AdminFirmwareControllerTest {
                 .andExpect(jsonPath("$.object_name")
                         .value("Acme/RoadRunner/y20.97.0/firmware.bin"))
                 .andExpect(jsonPath("$.required_headers.x-goog-if-generation-match").value("0"));
+    }
+
+    @Test
+    @WithMockUser
+    void unavailableStorageReturnsServiceUnavailable() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareUploadService.createFirmwareSignedUploadUrl(any(), eq("user")))
+                .thenThrow(new ObjectStorageUnavailableException("Object storage provider is not configured"));
+
+        mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST_BODY))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.detail").value("Object storage provider is not configured"));
+    }
+
+    @Test
+    @WithMockUser
+    void existingFirmwareReturnsConflict() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        String message = "A firmware file already exists for this vendor, model, version, and file name";
+        when(firmwareUploadService.createFirmwareSignedUploadUrl(any(), eq("user")))
+                .thenThrow(new FirmwareVersionAlreadyExistsException(message));
+
+        mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST_BODY))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value(message));
+    }
+
+    @Test
+    @WithMockUser
+    void verificationFailureReturnsConflict() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        UUID uploadId = UUID.randomUUID();
+        String message = "Cannot verify this upload because the expected firmware file was not found in storage. "
+                + "Ensure the file upload using the signed URL completed successfully before requesting verification.";
+        when(firmwareUploadService.completeFirmwareUpload(uploadId))
+                .thenThrow(new FirmwareUploadVerificationException(message));
+
+        mockMvc.perform(post("/admin/firmware/uploads/{uploadId}/complete", uploadId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value(message));
     }
 
     @Test

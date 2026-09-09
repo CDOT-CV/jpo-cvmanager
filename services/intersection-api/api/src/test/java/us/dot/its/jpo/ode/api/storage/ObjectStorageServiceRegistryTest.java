@@ -8,8 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 class ObjectStorageServiceRegistryTest {
     @Test
@@ -33,8 +31,24 @@ class ObjectStorageServiceRegistryTest {
                 properties, List.of(provider("gcp")));
 
         assertThatThrownBy(registry::getActiveService)
-                .isInstanceOfSatisfying(ResponseStatusException.class,
-                        ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE));
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessage("Object storage provider 'missing' is not available");
+    }
+
+    @Test
+    void reportsUnconfiguredProvider() {
+        ObjectStorageProperties properties = new ObjectStorageProperties();
+        ObjectStorageServiceRegistry registry = new ObjectStorageServiceRegistry(
+                properties, List.of(provider("gcp")));
+
+        properties.setProvider(null);
+        assertThatThrownBy(registry::getActiveService)
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessage("Object storage provider is not configured");
+        properties.setProvider(" ");
+        assertThatThrownBy(registry::getActiveService)
+                .isInstanceOf(ObjectStorageUnavailableException.class)
+                .hasMessage("Object storage provider is not configured");
     }
 
     private ObjectStorageService provider(String name) {

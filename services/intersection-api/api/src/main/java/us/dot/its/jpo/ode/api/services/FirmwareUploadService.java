@@ -69,7 +69,7 @@ public class FirmwareUploadService {
         // occupied. The provider's create-only upload condition remains the final
         // protection against another writer winning after this check
         if (objectStorageService.objectExists(objectName)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareVersionAlreadyExistsException(
                     "A firmware file already exists for this vendor, model, version, and file name");
         }
 
@@ -106,22 +106,24 @@ public class FirmwareUploadService {
                 upload.getStorageProvider(), upload.getStorageContainer(), upload.getObjectName());
         StoredObjectMetadata metadata = objectStorageService
                 .getObjectMetadata(location, upload.getChecksumAlgorithm())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
-                        "The firmware object has not been uploaded"));
+                .orElseThrow(() -> new FirmwareUploadVerificationException(
+                        "Cannot verify this upload because the expected firmware file was not found in storage. "
+                                + "Ensure the file upload using the signed URL completed successfully before "
+                                + "requesting verification."));
 
         // Verification requires both the expected byte size and the exact checksum
         // Comparing the algorithm prevents equal looking values from different hash
         // formats from being treated as equivalent
         if (metadata.contentLength() != upload.getExpectedSize()) {
             markFailed(upload, "SIZE_MISMATCH");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareUploadVerificationException(
                     "Uploaded object size does not match content_length");
         }
         if (metadata.checksum() == null
                 || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
                 || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
             markFailed(upload, "CHECKSUM_MISMATCH");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareUploadVerificationException(
                     "Uploaded object checksum does not match the expected checksum");
         }
 

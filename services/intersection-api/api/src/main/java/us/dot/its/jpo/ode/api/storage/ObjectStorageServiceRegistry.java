@@ -5,10 +5,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Indexes all installed storage adapters by provider name. New uploads use the
@@ -43,7 +41,7 @@ public class ObjectStorageServiceRegistry {
         // values to use different casing without changing provider identity
         ObjectStorageService service = services.get(normalize(provider));
         if (service == null) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+            throw new ObjectStorageUnavailableException(
                     "Object storage provider '" + provider + "' is not available");
         }
         return service;
@@ -51,7 +49,7 @@ public class ObjectStorageServiceRegistry {
 
     private String normalize(String provider) {
         if (!StringUtils.hasText(provider)) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+            throw new ObjectStorageUnavailableException(
                     "Object storage provider is not configured");
         }
         return provider.trim().toLowerCase(Locale.ROOT);
