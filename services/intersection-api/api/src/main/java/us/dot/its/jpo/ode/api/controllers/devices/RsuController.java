@@ -115,7 +115,7 @@ public class RsuController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
-        if (!permissionService.hasRoleInOrgs(UserRole.OPERATOR, body.getOrganizations())) {
+        if (!permissionService.hasRoleInOrgNames(UserRole.OPERATOR, body.getOrganizations())) {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "User not qualified to modify all specified organizations");

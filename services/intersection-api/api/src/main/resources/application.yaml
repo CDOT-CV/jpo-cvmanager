@@ -32,6 +32,13 @@ schema.rtcm: classpath:schemas/rtcm.schema.json
 # Amount of time to wait to try and increase batching
 kafka.linger_ms: 50
 
+# Prometheus Configuration (message counts)
+prometheus:
+  url: ${PROMETHEUS_URL:http://prometheus:9090}
+  aggregation:
+    step:
+      seconds: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:120}
+
 kafka.topics:
   autoCreateTopics: false
   numPartitions: 1
@@ -104,6 +111,8 @@ cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
+deployment:
+  environment: ${DEPLOYMENT_ENVIRONMENT:UNKNOWN}
 
 spring.main.allow-circular-references: true
 spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect

@@ -526,47 +526,11 @@
         },
         "notBefore": 0,
         "groups": []
-      },
-      {
-        "id": "fc3d8729-8526-4aaa-805b-d64bf3b93860",
-        "username": "test@gmail.com",
-        "firstName": "Test",
-        "lastName": "User",
-        "email": "test@gmail.com",
-        "emailVerified": false,
-        "attributes": {
-          "super_user": ["1"],
-          "organizations": ["[{\"org\":\"Test Org\",\"role\":\"admin\"},{\"org\":\"Test Org 2\",\"role\":\"user\"}]"],
-          "created_timestamp": ["1746773527283"]
-        },
-        "origin": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
-        "createdTimestamp": 1746773527283,
-        "enabled": true,
-        "totp": false,
-        "federationLink": "60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd",
-        "credentials": [
-          {
-            "id": "64f66e4b-868d-4805-835d-dba761c6e32b",
-            "type": "password",
-            "userLabel": "My password",
-            "createdDate": 1746774661287,
-            "secretData": "{\"value\":\"KXOpj1vu3jv+nf8Qvs7WJbd1NgZcOPg3ilp99kpW43U=\",\"salt\":\"+mN1WmKPXqvvdXKlhZF0LQ==\",\"additionalParameters\":{}}",
-            "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
-          }
-        ],
-        "disableableCredentialTypes": [],
-        "requiredActions": [],
-        "realmRoles": ["offline_access", "uma_authorization"],
-        "clientRoles": {
-          "account": ["manage-account", "view-profile"]
-        },
-        "notBefore": 0,
-        "groups": []
       }
     ],
     "federatedUsers": [
       {
-        "id": "fc3d8729-8526-4aaa-805b-d64bf3b93860",
+        "id": "f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:fc3d8729-8526-4aaa-805b-d64bf3b93860",
         "attributes": {
           "fedNotBefore": ["0"]
         },
@@ -577,6 +541,24 @@
             "userLabel": "My password",
             "createdDate": 1746774661287,
             "secretData": "{\"value\":\"KXOpj1vu3jv+nf8Qvs7WJbd1NgZcOPg3ilp99kpW43U=\",\"salt\":\"+mN1WmKPXqvvdXKlhZF0LQ==\",\"additionalParameters\":{}}",
+            "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+          }
+        ],
+        "notBefore": 0,
+        "groups": []
+      },
+      {
+        "id": "f:60b8a4e7-d427-4316-9ec0-cb8a6eeb34bd:9f0db92b-b703-40ae-a7e4-d9d61fd28f10",
+        "attributes": {
+          "ENABLED": ["true"]
+        },
+        "credentials": [
+          {
+            "id": "91837b06-6983-4602-821e-66410b8480b1",
+            "type": "password",
+            "userLabel": "My password",
+            "createdDate": 1778705478359,
+            "secretData": "{\"value\":\"5l7SNdx83IUexqSWbrocbxjCCh56/kYDTOTe22JQtJQ=\",\"salt\":\"dJ+UD5QKi7PrGmeO9L6Gew==\",\"additionalParameters\":{}}",
             "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
           }
         ],

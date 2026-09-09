@@ -117,6 +117,10 @@ get_org_data_intersection_return = [
     ),
 ]
 
+get_org_data_organization_return = [
+    (1,),
+]
+
 get_org_data_result = {
     "org_users": [
         {
@@ -142,6 +146,7 @@ get_org_data_result = {
             "origin_ip": "1.1.1.1",
         },
     ],
+    "organization_id": 1,
 }
 
 get_org_data_user_sql = (
@@ -187,6 +192,10 @@ get_org_data_intersection_sql = (
     ") i ON i.organization_id = org.organization_id "
     "WHERE org.name = :org_name"
     ") as row"
+)
+
+get_org_data_organization_sql = (
+    "SELECT organization_id FROM public.organizations WHERE name = :org_name"
 )
 
 # get_allowed_selections

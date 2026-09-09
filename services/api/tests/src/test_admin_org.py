@@ -141,6 +141,7 @@ def test_get_org_data(mock_query_db):
         admin_org_data.get_org_data_user_return,
         admin_org_data.get_org_data_rsu_return,
         admin_org_data.get_org_data_intersection_return,
+        admin_org_data.get_org_data_organization_return,
     ]
     expected_result = admin_org_data.get_org_data_result
     actual_result = admin_org.get_org_data("Test Org", user_valid)
@@ -150,6 +151,10 @@ def test_get_org_data(mock_query_db):
         call(admin_org_data.get_org_data_rsu_sql, params={"org_name": "Test Org"}),
         call(
             admin_org_data.get_org_data_intersection_sql,
+            params={"org_name": "Test Org"},
+        ),
+        call(
+            admin_org_data.get_org_data_organization_sql,
             params={"org_name": "Test Org"},
         ),
     ]

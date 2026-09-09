@@ -2,9 +2,7 @@ import reducer from './rsuSlice'
 import {
   // async thunks
   getRsuData,
-  getRsuLastOnline,
   _getRsuInfo,
-  _getRsuOnlineStatus,
   updateGeoMsgData,
 
   // reducers
@@ -27,7 +25,6 @@ import {
   selectRsuIpv4,
   selectRsuPrimaryRoute,
   selectRsuData,
-  selectRsuOnlineStatus,
   selectRsuMapData,
   selectMapList,
   selectMapDate,
@@ -68,7 +65,6 @@ describe('rsu reducer', () => {
       value: {
         selectedRsu: null,
         rsuData: [],
-        rsuOnlineStatus: {},
         rsuMapData: {},
         mapList: [],
         mapDate: '',
@@ -95,7 +91,6 @@ describe('async thunks', () => {
     value: {
       selectedRsu: null,
       rsuData: null,
-      rsuOnlineStatus: null,
       geoMsgType: null,
       rsuMapData: null,
       mapList: null,
@@ -128,32 +123,25 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
         rsu: {
-          value: {
-            rsuOnlineStatus: {},
-          },
         },
       })
       const action = getRsuData()
       const rsuData = ['1.1.1.1'] as any
-      const rsuOnlineStatus = { '1.1.1.1': { current_status: 'online' } } as any
       RsuApi.getRsuInfo = jest.fn().mockResolvedValue({ rsuList: rsuData })
-      RsuApi.getRsuOnline = jest.fn().mockResolvedValue(rsuOnlineStatus)
 
       const response = await action(dispatch, getState, undefined)
-      expect(response.payload).toEqual({ rsuData, rsuOnlineStatus })
-      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'name')
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
+      expect(response.payload).toEqual(rsuData)
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
       expect(dispatch).toHaveBeenCalledTimes(2) // pending and fulfilled
     })
 
     it('Updates the state correctly pending', async () => {
       const loading = true
       const rsuData = [] as any
-      const rsuOnlineStatus = {}
       const state = reducer(initialState, getRsuData.pending('request-id', undefined))
       expect(state).toEqual({
         ...initialState,
@@ -162,7 +150,6 @@ describe('async thunks', () => {
         value: {
           ...initialState.value,
           rsuData,
-          rsuOnlineStatus,
         },
       })
     })
@@ -179,16 +166,15 @@ describe('async thunks', () => {
           },
         },
       ] as any
-      const rsuOnlineStatus = { ipv4_address: { current_status: 'online' } } as any
       const state = reducer(
         { ...initialState, loading: true, currentRequestId: 'request-id' },
-        getRsuData.fulfilled({ rsuData, rsuOnlineStatus }, 'request-id', undefined)
+        getRsuData.fulfilled(rsuData, 'request-id', undefined)
       )
 
       expect(state).toEqual({
         ...initialState,
         loading,
-        value: { ...initialState.value, rsuData, rsuOnlineStatus },
+        value: { ...initialState.value, rsuData },
       })
     })
 
@@ -209,11 +195,7 @@ describe('async thunks', () => {
 
       const afterStaleResponse = reducer(
         secondPending,
-        getRsuData.fulfilled(
-          { rsuData: staleRsuData, rsuOnlineStatus: { stale: { current_status: 'online' } } as any },
-          'first-request',
-          undefined
-        )
+        getRsuData.fulfilled(staleRsuData, 'first-request', undefined)
       )
       expect(afterStaleResponse.value.rsuData).toEqual([])
       expect(afterStaleResponse.currentRequestId).toBe('second-request')
@@ -221,78 +203,10 @@ describe('async thunks', () => {
       const currentRsuData = [{ properties: { ipv4_address: 'current' } }] as any
       const afterCurrentResponse = reducer(
         afterStaleResponse,
-        getRsuData.fulfilled(
-          { rsuData: currentRsuData, rsuOnlineStatus: { current: { current_status: 'online' } } as any },
-          'second-request',
-          undefined
-        )
+        getRsuData.fulfilled(currentRsuData, 'second-request', undefined)
       )
       expect(afterCurrentResponse.value.rsuData).toEqual(currentRsuData)
       expect(afterCurrentResponse.currentRequestId).toBeNull()
-    })
-  })
-
-  describe('getRsuLastOnline', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const rsu_ip = '1.1.1.1'
-      const action = getRsuLastOnline(rsu_ip)
-
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsu_ip)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual(rsu_ip)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
-    })
-
-    it('Updates the state correctly pending', async () => {
-      const loading = true
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuLastOnline/pending',
-      })
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value },
-      })
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const loading = false
-      let rsuOnlineStatus = { '1.1.1.1': {} as any }
-      const payload = { last_online: '2021-03-01T00:00:00.000000Z', ip: '1.1.1.1' }
-      const state = reducer(
-        {
-          ...initialState,
-          value: { ...initialState.value, rsuOnlineStatus },
-        },
-        {
-          type: 'rsu/getRsuLastOnline/fulfilled',
-          payload: payload,
-        }
-      )
-
-      rsuOnlineStatus = { '1.1.1.1': { last_online: '2021-03-01T00:00:00.000000Z' } }
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, rsuOnlineStatus },
-      })
-    })
-
-    it('Updates the state correctly rejected', async () => {
-      const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuLastOnline/rejected',
-      })
-      expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
     })
   })
 
@@ -303,7 +217,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -313,7 +227,7 @@ describe('async thunks', () => {
       RsuApi.getRsuInfo = jest.fn().mockReturnValue({ rsuList })
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsuList)
-      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
     })
 
     it('Updates the state correctly fulfilled', async () => {
@@ -323,57 +237,6 @@ describe('async thunks', () => {
         payload: rsuData,
       })
       expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuData } })
-    })
-  })
-
-  describe('_getRsuOnlineStatus', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const action = _getRsuOnlineStatus({
-        rsuOnlineStatusState: 'rsuOnlineStatusState',
-      } as any)
-
-      const rsuOnlineStatus = 'rsuOnlineStatus'
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual(rsuOnlineStatus)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
-    })
-
-    it('returns and calls the api correctly default value', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const action = _getRsuOnlineStatus('rsuOnlineStatusState' as any)
-
-      const rsuOnlineStatus = null as any
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual('rsuOnlineStatusState')
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const rsuOnlineStatus = 'rsuOnlineStatus'
-      const state = reducer(initialState, {
-        type: 'rsu/_getRsuOnlineStatus/fulfilled',
-        payload: rsuOnlineStatus,
-      })
-      expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuOnlineStatus } })
     })
   })
 
@@ -526,7 +389,6 @@ describe('reducers', () => {
     value: {
       selectedRsu: null,
       rsuData: null,
-      rsuOnlineStatus: null,
       geoMsgType: null,
       rsuMapData: null,
       mapList: null,
@@ -666,7 +528,6 @@ describe('selectors', () => {
         },
       },
       rsuData: 'rsuData',
-      rsuOnlineStatus: 'rsuOnlineStatus',
       countsMsgType: 'countsMsgType',
       rsuMapData: 'rsuMapData',
       mapList: 'mapList',
@@ -693,7 +554,6 @@ describe('selectors', () => {
     expect(selectRsuIpv4(rsuState)).toEqual('ipv4_address')
     expect(selectRsuPrimaryRoute(rsuState)).toEqual('primary_route')
     expect(selectRsuData(rsuState)).toEqual('rsuData')
-    expect(selectRsuOnlineStatus(rsuState)).toEqual('rsuOnlineStatus')
     expect(selectRsuMapData(rsuState)).toEqual('rsuMapData')
     expect(selectMapList(rsuState)).toEqual('mapList')
     expect(selectMapDate(rsuState)).toEqual('mapDate')

@@ -20,7 +20,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Slider from '@mui/material/Slider'
 import {
-  selectRsuOnlineStatus,
   selectRsuData,
   selectSelectedRsu,
   selectRsuIpv4,
@@ -35,7 +34,6 @@ import {
 
   // actions
   selectRsu,
-  getRsuLastOnline,
   toggleGeoMsgPointSelect,
   clearGeoMsg,
   updateGeoMsgPoints,
@@ -138,6 +136,7 @@ import {
   WZDX_POINT_LAYER_ID,
   WzdxMapLayer,
 } from '../components/map-layers/WzdxMapLayer'
+import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
@@ -262,8 +261,11 @@ function MapPage() {
   const rsuData = useSelector(selectRsuData)
   const selectedRsu = useSelector(selectSelectedRsu)
   const { data: issScmsStatusData = {} } = useGetScmsStatusQuery(organization, { skip: !organization })
-  const rsuOnlineStatus = useSelector(selectRsuOnlineStatus)
+  const { data: rsuOnlineStatus = {} } = useGetRsuOnlineStatusesQuery(organization, { skip: !organization })
   const rsuIpv4 = useSelector(selectRsuIpv4)
+  const { data: selectedRsuLastOnline } = useGetRsuLastOnlineQuery(rsuIpv4 ?? '', {
+    skip: !rsuIpv4,
+  })
   const addConfigPoint = useSelector(selectAddConfigPoint)
   const configCoordinates = useSelector(selectConfigCoordinates)
   const geoMsgType = useSelector(selectGeoMsgType)
@@ -783,9 +785,7 @@ function MapPage() {
   }
 
   const isOnline = () => {
-    return rsuIpv4 in rsuOnlineStatus && Object.prototype.hasOwnProperty.call(rsuOnlineStatus[rsuIpv4], 'last_online')
-      ? rsuOnlineStatus[rsuIpv4].last_online
-      : 'No Data'
+    return selectedRsuLastOnline?.last_online ? new Date(selectedRsuLastOnline.last_online).toLocaleString() : 'No Data'
   }
 
   const getStatus = () => {
@@ -1218,7 +1218,6 @@ function MapPage() {
                 dispatch(selectRsu(clickedRsu))
                 setSelectedWZDxMarker(null)
                 dispatch(clearFirmware())
-                dispatch(getRsuLastOnline(clickedRsu.properties.ipv4_address))
               }
             } else if (selectedRsu) {
               // The popup no longer receives a DOM-marker click to stop propagation, so close it explicitly on map clicks.
