@@ -66,7 +66,7 @@ public class OrganizationController {
 
     @Operation(summary = "Modify Organization", description = "Updates an organization's name, email, and user/RSU/intersection memberships. Optionally bulk-applies tim_deposit and snmp_monitoring to all RSUs in the org.")
     @RequestMapping(path = "", method = RequestMethod.PATCH, produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrgById(#patch.id, 'ADMIN')")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRoleInOrgById(#patch.id, 'ADMIN') && @PermissionService.hasRsus(#patch.rsusToAdd, 'ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
