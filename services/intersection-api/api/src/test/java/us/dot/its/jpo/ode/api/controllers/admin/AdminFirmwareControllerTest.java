@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
@@ -94,9 +95,11 @@ class AdminFirmwareControllerTest {
                 .thenThrow(new ObjectStorageUnavailableException("Object storage provider is not configured"));
 
         mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST_BODY))
                 .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(503))
                 .andExpect(jsonPath("$.detail").value("Object storage provider is not configured"));
     }
@@ -110,9 +113,11 @@ class AdminFirmwareControllerTest {
                 .thenThrow(new FirmwareVersionAlreadyExistsException(message));
 
         mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST_BODY))
                 .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.detail").value(message));
     }
@@ -127,8 +132,10 @@ class AdminFirmwareControllerTest {
         when(firmwareUploadService.completeFirmwareUpload(uploadId))
                 .thenThrow(new FirmwareUploadVerificationException(message));
 
-        mockMvc.perform(post("/admin/firmware/uploads/{uploadId}/complete", uploadId))
+        mockMvc.perform(post("/admin/firmware/uploads/{uploadId}/complete", uploadId)
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.detail").value(message));
     }
