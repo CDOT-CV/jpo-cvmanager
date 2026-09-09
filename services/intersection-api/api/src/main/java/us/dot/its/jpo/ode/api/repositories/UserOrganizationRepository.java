@@ -7,9 +7,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,11 +35,36 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
 
     Optional<UserOrganization> findByUserAndOrganization_Name(User user, String organizationName);
 
-    @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.name = :organizationName")
-    List<String> findAllUserEmailsByOrganizationName(@Param("organizationName") String organizationName);
+    Optional<UserOrganization> findByUser_EmailAndOrganization(String email, Organization organization);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM UserOrganization uo WHERE uo.user.email IN :emails AND uo.organization = :organization")
+    void deleteByUserEmailsAndOrganization(@Param("emails") List<String> emails,
+            @Param("organization") Organization organization);
+
+    @Query("SELECT uo.user.email FROM UserOrganization uo WHERE uo.organization.id = :orgId")
+    List<String> findAllUserEmailsByOrganizationId(@Param("orgId") Integer orgId);
 
     @Query("SELECT DISTINCT u FROM User u WHERE NOT EXISTS " +
-            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization.name = :organizationName)")
-    List<User> findAllUserEmailsNotInOrganizationName(
-            @Param("organizationName") String organizationName);
+            "(SELECT 1 FROM UserOrganization uo WHERE uo.user.id = u.id AND uo.organization = :organization)")
+    List<User> findAllUserEmailsNotInOrganization(
+            @Param("organization") Organization organization);
+
+    @Query("SELECT CASE WHEN COUNT(uo) > 0 THEN true ELSE false END "
+            + "FROM UserOrganization uo "
+            + "WHERE uo.organization = :organization "
+            + "AND (SELECT COUNT(uo2) FROM UserOrganization uo2 WHERE uo2.user.id = uo.user.id) = 1")
+    boolean existsOrphanUserInOrganization(@Param("organization") Organization organization);
+
+    @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
+            + "FROM UserOrganization ro "
+            + "WHERE ro.user.email = :email "
+            + "AND (SELECT COUNT(ro2) FROM UserOrganization ro2 WHERE ro2.user.id = ro.user.id) = 1")
+    boolean hasSingleOrganization(@Param("email") String email);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM UserOrganization uo WHERE uo.organization = :organization")
+    void deleteAllByOrganization(@Param("organization") Organization organization);
 }

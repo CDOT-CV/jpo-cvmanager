@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -103,7 +104,7 @@ public class UnsubscribeControllerTest {
         void authenticated_validToken_200() throws Exception {
             User mockUser = mock(User.class);
             when(mockUser.getSuperUser()).thenReturn(true);
-            when(userRepository.findByEmail(email)).thenReturn(mockUser);
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(mockUser));
 
             Role roleOperator = mock(Role.class);
             when(roleOperator.getName()).thenReturn("operator");
@@ -162,7 +163,7 @@ public class UnsubscribeControllerTest {
         void superUser_returns200() throws Exception {
             User mockUser = mock(User.class);
             when(mockUser.getSuperUser()).thenReturn(true);
-            when(userRepository.findByEmail(email)).thenReturn(mockUser);
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(mockUser));
 
             when(unsubscribeTokenGenerator.parseAndValidateToken(validToken)).thenReturn(email);
             doNothing().when(emailService).updateEmailSubscriptions(email, true, true, validSubscriptionList);

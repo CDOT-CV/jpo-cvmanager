@@ -140,8 +140,12 @@ public class PermissionService {
         }
 
         String organization = getOrganizationFromHeader();
+        Integer orgId = tryGetOrgIdFromString(organization);
 
-        if (organization != null) {
+        if (orgId != null) {
+            Optional<UserRole> userRole = authToken.findRoleInOrgById(orgId);
+            return userRole.map(roleValue -> roleValue.hasMinimumRole(role)).orElse(false);
+        } else if (organization != null) {
             Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
             return userRole.map(roleValue -> roleValue.hasMinimumRole(role)).orElse(false);
         }
@@ -196,6 +200,27 @@ public class PermissionService {
         }
 
         Optional<UserRole> userRole = authToken.findRoleInOrg(organization);
+        return userRole.map(roleValue -> roleValue.hasMinimumRole(UserRole.fromString(role))).orElse(false);
+    }
+
+    /**
+     * Determines if the authenticated user has a specific role in the given
+     * organization.
+     *
+     * @param organization the ID of the organization to check the user's role in
+     * @param role         the role to be validated within the specified
+     *                     organization
+     * @return true if the user has the specified role or a role above it in the
+     *         organization,
+     *         or if the user is a superuser; false otherwise
+     */
+    public boolean hasRoleInOrgById(Integer organization, String role) {
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return true;
+        }
+
+        Optional<UserRole> userRole = authToken.findRoleInOrgById(organization);
         return userRole.map(roleValue -> roleValue.hasMinimumRole(UserRole.fromString(role))).orElse(false);
     }
 
@@ -358,5 +383,13 @@ public class PermissionService {
             organization = attributes.getRequest().getHeader("Organization");
         }
         return organization;
+    }
+
+    public static Integer tryGetOrgIdFromString(String str) {
+        try {
+            return Integer.parseInt(str);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

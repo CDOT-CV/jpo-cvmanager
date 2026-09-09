@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.emails.UnsubscribeTokenGenerator;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
@@ -55,7 +56,8 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
-        boolean isSuperUser = userRepository.findByEmail(userEmail).getSuperUser();
+        boolean isSuperUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail)).getSuperUser();
         List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
         boolean isOperator = isSuperUser || userOrganizations.stream()
                 .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
@@ -82,7 +84,9 @@ public class UnsubscribeController {
             throw new AccessDeniedException("Invalid or expired token");
         }
 
-        boolean isSuperUser = userRepository.findByEmail(userEmail).getSuperUser();
+        boolean isSuperUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail))
+                .getSuperUser();
         List<UserOrganization> userOrganizations = userOrganizationRepository.findAllByEmail(userEmail);
         boolean isOperator = isSuperUser || userOrganizations.stream()
                 .anyMatch(org -> UserRole.OPERATOR.equals(UserRole.fromString(org.getRole().getName())));
