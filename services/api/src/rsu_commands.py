@@ -118,6 +118,22 @@ def fetch_rsu_info(rsu_ip, organization):
     return None
 
 
+def get_rsu_owner_orgs(rsu_ips: list[str]) -> dict[str, str | None]:
+    query = (
+        "SELECT r.ipv4_address::text, org.name "
+        "FROM public.rsus r "
+        "JOIN public.rsu_credentials rc ON r.credential_id = rc.credential_id "
+        "JOIN public.organizations org ON rc.owner_organization_id = org.organization_id "
+        "WHERE r.ipv4_address = ANY(:rsu_ips)"
+    )
+    data = pgquery.query_db(query, params={"rsu_ips": rsu_ips})
+
+    owners = {ip: None for ip in rsu_ips}
+    for ip, org in data:
+        owners[str(ip).replace("/32", "")] = org
+
+    return owners
+
 def execute_upgrade_rsu(organization, rsu_list):
     return_dict = {}
     for rsu in rsu_list:
@@ -133,7 +149,7 @@ def execute_upgrade_rsu(organization, rsu_list):
 
 
 # Main driver function
-def perform_command(command, organization, role, rsu_list, args):
+def perform_command(command, organization, role, rsu_list, args, super_user: bool = False):
     # Check if command is a known command
     if command not in command_data:
         return f"Command unknown: {command}", 400
@@ -141,6 +157,23 @@ def perform_command(command, organization, role, rsu_list, args):
     # Check if the user is authorized to run the command
     if role not in command_data[command]["roles"]:
         return f"Unauthorized role to run {command}", 401
+
+    # Restrict all RSU operations to the RSU's owner organization
+    if not super_user:
+        owners = get_rsu_owner_orgs(rsu_list)
+        unauthorized = []
+        for rsu_ip in rsu_list:
+            owner_org = owners.get(rsu_ip)
+            if owner_org is None:
+                unauthorized.append(f"{rsu_ip} (not found or has no owner organization)")
+            elif owner_org != organization:
+                unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
+        if unauthorized:
+            return (
+                f"Organization '{organization}' does not have access to and/or does not own the following RSUs: "
+                + ", ".join(unauthorized),
+                403,
+            )
 
     # Handle functions supporting multiple RSUs
     if command == "rsufwdsnmpset" or command == "rsufwdsnmpset-del":
@@ -211,12 +244,12 @@ class RsuCommandRequest(Resource):
         if errors:
             logging.error(str(errors))
             abort(400, str(errors))
-
         data, code = perform_command(
             body["command"],
             user.organization,
             user.role,
             body["rsu_ip"],
             body["args"],
+            super_user=user.user_info.super_user,
         )
         return (data, code, self.headers)

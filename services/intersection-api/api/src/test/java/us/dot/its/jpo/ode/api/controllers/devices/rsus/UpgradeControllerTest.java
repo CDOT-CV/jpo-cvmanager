@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -21,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuUpgradeRequest;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeCheckResponseDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.FirmwareUpgradeResultDto;
@@ -54,6 +54,7 @@ class UpgradeControllerTest {
                 "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
 
         given(permissionService.isSuperUser()).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
@@ -70,6 +71,7 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_WithoutOrganizationHeader_ReturnsOk() throws Exception {
         given(permissionService.isSuperUser()).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
         given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(Map.of());
 
         RsuUpgradeRequest request = new RsuUpgradeRequest();
@@ -103,13 +105,35 @@ class UpgradeControllerTest {
     @Test
     void startUpgrade_Forbidden_ReturnsForbidden() throws Exception {
         given(permissionService.isSuperUser()).willReturn(false);
-        given(permissionService.hasRsus(any(), anyString())).willReturn(false);
+        given(permissionService.hasRole(UserRole.OPERATOR)).willReturn(true);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of("10.0.0.10"));
 
         mockMvc.perform(post("/devices/rsus/upgrade")
                 .with(jwt())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ips\": [\"10.0.0.10\"]}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void startUpgrade_NonSuperUser_IsRsuOwnerForAll_ReturnsOk() throws Exception {
+        Map<String, FirmwareUpgradeResultDto> serviceResponse = Map.of(
+                "rsu1", new FirmwareUpgradeResultDto(200, "ok"));
+
+        given(permissionService.isSuperUser()).willReturn(false);
+        given(permissionService.findUnauthorizedRsus(anyList(), anyString())).willReturn(List.of());
+        given(permissionService.hasRole(UserRole.OPERATOR)).willReturn(true);
+        given(rsuUpgradeService.startFirmwareUpgradeForRsus(anyList())).willReturn(serviceResponse);
+
+        RsuUpgradeRequest request = new RsuUpgradeRequest();
+        request.setRsuIps(List.of("10.0.0.10"));
+
+        mockMvc.perform(post("/devices/rsus/upgrade")
+                .with(jwt())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rsu1.code").value(200));
     }
 
     // POST /devices/rsus/upgrade/check (checkUpgrade) Tests
@@ -158,12 +182,30 @@ class UpgradeControllerTest {
     @Test
     void checkUpgrade_Forbidden_ReturnsForbidden() throws Exception {
         given(permissionService.isSuperUser()).willReturn(false);
-        given(permissionService.hasRsu(anyString(), anyString())).willReturn(false);
+        given(permissionService.isRsuOwner(anyString(), anyString())).willReturn(false);
 
         mockMvc.perform(post("/devices/rsus/upgrade/check")
                 .with(jwt())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rsu_ip\": \"10.0.0.10\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void checkUpgrade_NonSuperUser_IsRsuOwner_ReturnsOk() throws Exception {
+        FirmwareUpgradeCheckResponseDto serviceResponse = new FirmwareUpgradeCheckResponseDto(
+                true, 42L, "RSU Firmware v2.0", "2.0");
+
+        given(permissionService.isSuperUser()).willReturn(false);
+        given(permissionService.isRsuOwner(anyString(), anyString())).willReturn(true);
+        given(permissionService.hasRole(UserRole.OPERATOR)).willReturn(true);
+        given(rsuUpgradeService.checkFirmwareUpgrade(anyString())).willReturn(serviceResponse);
+
+        mockMvc.perform(post("/devices/rsus/upgrade/check")
+                .with(jwt())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rsu_ip\": \"10.0.0.10\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.upgrade_available").value(true));
     }
 }
