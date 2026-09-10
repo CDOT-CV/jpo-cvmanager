@@ -1,0 +1,1031 @@
+info:
+  name: List Reports
+  type: http
+  seq: 1
+  tags:
+    - reports-controller
+
+http:
+  method: GET
+  url: "{{baseUrl}}/reports/intersection"
+  params:
+    - name: report_name
+      value: ""
+      type: query
+      disabled: true
+    - name: intersection_id
+      value: ""
+      type: query
+    - name: start_time_utc_millis
+      value: ""
+      type: query
+    - name: end_time_utc_millis
+      value: ""
+      type: query
+    - name: page
+      value: "0"
+      type: query
+    - name: size
+      value: "10000"
+      type: query
+    - name: latest
+      value: ""
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "reportName": "",
+                "intersectionID": 0,
+                "reportGeneratedAt": 0,
+                "reportStartTime": 0,
+                "reportStopTime": 0,
+                "reportContents": "",
+                "laneDirectionOfTravelEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelMedianDistanceDistribution": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelMedianHeadingDistribution": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelReportData": [
+                  {
+                    "timestamp": 0,
+                    "laneID": 0,
+                    "segmentID": 0,
+                    "headingDelta": 0,
+                    "medianCenterlineDistance": 0
+                  }
+                ],
+                "headingTolerance": 0,
+                "distanceTolerance": 0,
+                "validConnectionOfTravelData": [
+                  {
+                    "connectionID": "",
+                    "ingressLaneID": 0,
+                    "egressLaneID": 0,
+                    "eventCount": 0
+                  }
+                ],
+                "invalidConnectionOfTravelData": [
+                  {
+                    "connectionID": "",
+                    "ingressLaneID": 0,
+                    "egressLaneID": 0,
+                    "eventCount": 0
+                  }
+                ],
+                "connectionOfTravelEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "signalStateConflictEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "stopLinePassageEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "stopLineStopEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "timeChangeDetailsEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "intersectionReferenceAlignmentEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "mapBroadcastRateEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "mapMinimumDataEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "spatMinimumDataEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "spatBroadcastRateEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "latestMapMinimumDataEventMissingElements": [],
+                "latestSpatMinimumDataEventMissingElements": [],
+                "stopLineStopReportData": [
+                  {
+                    "signalGroup": 0,
+                    "numberOfEvents": 0,
+                    "timeStoppedOnRed": 0,
+                    "timeStoppedOnYellow": 0,
+                    "timeStoppedOnGreen": 0,
+                    "timeStoppedOnDark": 0
+                  }
+                ],
+                "stopLinePassageReportData": [
+                  {
+                    "signalGroup": 0,
+                    "totalEvents": 0,
+                    "redEvents": 0,
+                    "yellowEvents": 0,
+                    "greenEvents": 0,
+                    "darkEvents": 0
+                  }
+                ]
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 400 Response
+    description: Bad Request
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "reportName": "",
+                "intersectionID": 0,
+                "reportGeneratedAt": 0,
+                "reportStartTime": 0,
+                "reportStopTime": 0,
+                "reportContents": "",
+                "laneDirectionOfTravelEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelMedianDistanceDistribution": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelMedianHeadingDistribution": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "laneDirectionOfTravelReportData": [
+                  {
+                    "timestamp": 0,
+                    "laneID": 0,
+                    "segmentID": 0,
+                    "headingDelta": 0,
+                    "medianCenterlineDistance": 0
+                  }
+                ],
+                "headingTolerance": 0,
+                "distanceTolerance": 0,
+                "validConnectionOfTravelData": [
+                  {
+                    "connectionID": "",
+                    "ingressLaneID": 0,
+                    "egressLaneID": 0,
+                    "eventCount": 0
+                  }
+                ],
+                "invalidConnectionOfTravelData": [
+                  {
+                    "connectionID": "",
+                    "ingressLaneID": 0,
+                    "egressLaneID": 0,
+                    "eventCount": 0
+                  }
+                ],
+                "connectionOfTravelEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "signalStateConflictEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "stopLinePassageEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "stopLineStopEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "timeChangeDetailsEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "intersectionReferenceAlignmentEventCounts": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "mapBroadcastRateEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "mapMinimumDataEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "spatMinimumDataEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "spatBroadcastRateEventCount": [
+                  {
+                    "id": "",
+                    "count": 0
+                  }
+                ],
+                "latestMapMinimumDataEventMissingElements": [],
+                "latestSpatMinimumDataEventMissingElements": [],
+                "stopLineStopReportData": [
+                  {
+                    "signalGroup": 0,
+                    "numberOfEvents": 0,
+                    "timeStoppedOnRed": 0,
+                    "timeStoppedOnYellow": 0,
+                    "timeStoppedOnGreen": 0,
+                    "timeStoppedOnDark": 0
+                  }
+                ],
+                "stopLinePassageReportData": [
+                  {
+                    "signalGroup": 0,
+                    "totalEvents": 0,
+                    "redEvents": 0,
+                    "yellowEvents": 0,
+                    "greenEvents": 0,
+                    "darkEvents": 0
+                  }
+                ]
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 403 Response
+    description: Forbidden - Requires SUPER_USER or USER role
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 404 Response
+    description: Not Found
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 409 Response
+    description: Conflict
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 500 Response
+    description: Internal Server Error
+    request:
+      url: "{{baseUrl}}/reports/intersection"
+      method: GET
+      params:
+        - name: report_name
+          value: ""
+          type: query
+          disabled: true
+        - name: intersection_id
+          value: ""
+          type: query
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: latest
+          value: ""
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+
+docs: Returns a list of existing intersection reports, as aggregated data, filtered by name, intersection ID, start time, and end time. The latest parameter will return the most recent report.

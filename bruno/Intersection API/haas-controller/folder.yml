@@ -1,0 +1,7 @@
+info:
+  name: haas-controller
+  type: folder
+  seq: 13
+
+request:
+  auth: inherit
