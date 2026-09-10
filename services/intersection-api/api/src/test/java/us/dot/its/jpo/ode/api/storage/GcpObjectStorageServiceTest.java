@@ -106,6 +106,25 @@ class GcpObjectStorageServiceTest {
     }
 
     @Test
+    void listsOnlyRequestedPageIncludingUnexpectedObjectNames() {
+        com.google.api.gax.paging.Page<Blob> page = mock(com.google.api.gax.paging.Page.class);
+        Blob blob = mock(Blob.class);
+        when(blob.getName()).thenReturn("loose file.bin");
+        when(blob.getSize()).thenReturn(9L);
+        when(blob.getGeneration()).thenReturn(17L);
+        when(blob.getCrc32c()).thenReturn("ImIEBA==");
+        when(page.getValues()).thenReturn(java.util.List.of(blob));
+        when(page.getNextPageToken()).thenReturn("next");
+        when(storage.list(eq("firmware-bucket"), any(Storage.BlobListOption[].class))).thenReturn(page);
+        var result = service.listObjects(25, "previous");
+        assertThat(result.nextPageToken()).isEqualTo("next");
+        assertThat(result.objects().getFirst().objectName()).isEqualTo("loose file.bin");
+        assertThat(result.objects().getFirst().providerObjectVersion()).isEqualTo("17");
+        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(25), Storage.BlobListOption.pageToken("previous"));
+        org.mockito.Mockito.verify(page, org.mockito.Mockito.never()).iterateAll();
+    }
+
+    @Test
     void checksWhetherObjectAlreadyExistsInConfiguredBucket() throws Exception {
         Blob blob = mock(Blob.class);
         when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(blob);

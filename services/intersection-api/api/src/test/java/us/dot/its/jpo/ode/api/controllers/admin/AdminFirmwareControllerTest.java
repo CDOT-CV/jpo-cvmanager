@@ -64,6 +64,29 @@ class AdminFirmwareControllerTest {
     @MockitoBean
     private FirmwareUploadService firmwareUploadService;
 
+    @MockitoBean
+    private us.dot.its.jpo.ode.api.services.FirmwareObjectService firmwareObjectService;
+
+    @Test
+    @WithMockUser
+    void listsObjectsForAdmins() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareObjectService.list(25, "next")).thenReturn(
+                new us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage("gcp", "bucket", java.util.List.of(), "more"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/firmware/objects")
+                .param("page_size", "25").param("page_token", "next").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.next_page_token").value("more"))
+                .andExpect(jsonPath("$.container").value("bucket"));
+    }
+
+    @Test
+    @WithMockUser
+    void rejectsObjectListingForNonAdmins() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/firmware/objects")
+                .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
+        verify(firmwareObjectService, never()).list(any(Integer.class), any());
+    }
+
     @Test
     @WithMockUser
     void adminReceivesSignedUploadResponse() throws Exception {

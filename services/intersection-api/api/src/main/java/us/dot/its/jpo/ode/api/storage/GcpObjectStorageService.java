@@ -5,6 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.ArrayList;
+import us.dot.its.jpo.ode.api.models.storage.StorageObject;
+import us.dot.its.jpo.ode.api.models.storage.StorageObjectPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +55,35 @@ public class GcpObjectStorageService implements ObjectStorageService {
     private final GcpStorageClientProvider clientProvider;
     private final ObjectStorageProperties properties;
     private final GcpObjectStorageProperties gcpProperties;
+
+    @Override
+    public StorageObjectPage listObjects(int pageSize, String pageToken) {
+        validateConfiguration();
+        if (pageSize < 1 || pageSize > 200) throw new IllegalArgumentException("page_size must be between 1 and 200");
+
+        try {
+            var options = new ArrayList<Storage.BlobListOption>();
+            options.add(Storage.BlobListOption.pageSize(pageSize));
+            if (StringUtils.hasText(pageToken)) options.add(Storage.BlobListOption.pageToken(pageToken));
+
+            var page = clientProvider.getStorage().list(gcpProperties.getBucketName().trim(),
+                    options.toArray(Storage.BlobListOption[]::new));
+
+            var objects = new ArrayList<StorageObject>();
+            // getValues deliberately avoids fetching subsequent provider pages.
+            for (Blob blob : page.getValues()) {
+                objects.add(new StorageObject(blob.getName(), blob.getSize(),
+                        blob.getUpdateTimeOffsetDateTime() == null ? null : blob.getUpdateTimeOffsetDateTime().toInstant(),
+                        String.valueOf(blob.getGeneration()), new ObjectChecksum(CRC32C, blob.getCrc32c())));
+            }
+
+            return new StorageObjectPage(PROVIDER_NAME,
+                    gcpProperties.getBucketName().trim(), objects, page.getNextPageToken());
+        } catch (Exception ex) {
+            log.error("Failed to list firmware objects", ex);
+            throw new ObjectStorageUnavailableException("Unable to list firmware objects");
+        }
+    }
 
     @Override
     public boolean objectExists(String objectName) {
