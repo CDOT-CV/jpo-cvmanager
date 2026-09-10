@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +58,14 @@ class FirmwareUploadRepositoryTest {
         model.setSupportedRadio("C-V2X");
         model.setManufacturer(manufacturer);
         model = rsuModelRepository.save(model);
+
+        // Integration tests use Hibernate DDL rather than the production Flyway
+        // migrations, so reproduce the migration's PostgreSQL-only partial index.
+        entityManager.createNativeQuery("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_firmware_uploads_active_destination
+                    ON firmware_uploads (storage_provider, storage_container, object_name)
+                    WHERE status IN ('PENDING', 'VERIFIED')
+                """).executeUpdate();
     }
 
     @Test
@@ -122,8 +132,36 @@ class FirmwareUploadRepositoryTest {
         assertThat(repository.findById(oldVerified.getId())).isPresent();
     }
 
+    @Test
+    void rejectsDuplicateActiveDestination() {
+        String objectName = "vendor/model/v1/concurrent.bin";
+        repository.saveAndFlush(newUpload(FirmwareUploadStatus.PENDING, NOW, null, objectName));
+
+        assertThatThrownBy(() -> repository.saveAndFlush(
+                newUpload(FirmwareUploadStatus.PENDING, NOW, null, objectName)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void allowsDestinationRetryAfterFailedUpload() {
+        String objectName = "vendor/model/v1/retry.bin";
+        repository.saveAndFlush(newUpload(
+                FirmwareUploadStatus.FAILED, NOW, NOW.minusSeconds(1), objectName));
+
+        FirmwareUpload retry = repository.saveAndFlush(
+                newUpload(FirmwareUploadStatus.PENDING, NOW, null, objectName));
+
+        assertThat(retry.getId()).isNotNull();
+    }
+
     private FirmwareUpload saveUpload(
             FirmwareUploadStatus status, Instant expiresAt, Instant finishedAt) {
+        return repository.save(newUpload(status, expiresAt, finishedAt,
+                "vendor/model/v1/" + UUID.randomUUID() + ".bin"));
+    }
+
+    private FirmwareUpload newUpload(
+            FirmwareUploadStatus status, Instant expiresAt, Instant finishedAt, String objectName) {
         UUID id = UUID.randomUUID();
         FirmwareUpload upload = new FirmwareUpload();
         upload.setId(id);
@@ -133,7 +171,7 @@ class FirmwareUploadRepositoryTest {
         upload.setContentType("application/octet-stream");
         upload.setStorageProvider("gcp");
         upload.setStorageContainer("firmware-bucket");
-        upload.setObjectName("vendor/model/v1/" + id + ".bin");
+        upload.setObjectName(objectName);
         upload.setExpectedSize(12345L);
         upload.setChecksumAlgorithm("CRC32C");
         upload.setExpectedChecksum("ImIEBA==");
@@ -148,6 +186,6 @@ class FirmwareUploadRepositoryTest {
         } else if (status == FirmwareUploadStatus.FAILED || status == FirmwareUploadStatus.EXPIRED) {
             upload.setFailureReason("PREVIOUS_REASON");
         }
-        return repository.save(upload);
+        return upload;
     }
 }

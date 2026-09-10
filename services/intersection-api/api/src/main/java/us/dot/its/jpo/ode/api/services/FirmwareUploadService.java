@@ -6,9 +6,11 @@ import java.util.UUID;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -33,10 +35,15 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 @Service
 @RequiredArgsConstructor
 public class FirmwareUploadService {
+    private static final String ACTIVE_DESTINATION_INDEX = "uq_firmware_uploads_active_destination";
+    private static final String DESTINATION_EXISTS_MESSAGE =
+            "A firmware file already exists for this vendor, model, version, and file name";
+
     private final RsuModelRepository rsuModelRepository;
     private final FirmwareUploadRepository firmwareUploadRepository;
     private final ObjectStorageServiceRegistry objectStorageServices;
     private final ObjectStorageProperties objectStorageProperties;
+    private final FirmwareUploadMapper firmwareUploadMapper;
 
     public FirmwareUploadUrl createFirmwareSignedUploadUrl(FirmwareUploadUrlRequest request, String createdBy) {
         // Resolve the model from trusted database records instead of accepting an
@@ -67,8 +74,7 @@ public class FirmwareUploadService {
         // occupied. The provider's create-only upload condition remains the final
         // protection against another writer winning after this check
         if (objectStorageService.objectExists(objectName)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A firmware file already exists for this vendor, model, version, and file name");
+            throw new FirmwareVersionAlreadyExistsException(DESTINATION_EXISTS_MESSAGE);
         }
 
         SignedUploadUrl signedUrl = objectStorageService.createSignedUploadUrl(new ObjectUploadRequest(
@@ -79,23 +85,16 @@ public class FirmwareUploadService {
 
         // Persist the intent only after signing succeeds, so every PENDING row has a
         // usable set of upload instructions associated with it
-        FirmwareUpload upload = new FirmwareUpload();
-        upload.setId(UUID.randomUUID());
-        upload.setModel(model);
-        upload.setVersion(request.getVersion().trim());
-        upload.setFileName(request.getFileName().trim());
-        upload.setContentType(request.getContentType().trim());
-        upload.setStorageProvider(location.provider());
-        upload.setStorageContainer(location.container());
-        upload.setObjectName(location.objectName());
-        upload.setExpectedSize(request.getContentLength());
-        upload.setChecksumAlgorithm(checksumAlgorithm);
-        upload.setExpectedChecksum(expectedChecksum.value());
-        upload.setStatus(FirmwareUploadStatus.PENDING);
-        upload.setCreatedBy(normalizeCreatedBy(createdBy));
-        upload.setCreatedAt(now);
-        upload.setExpiresAt(signedUrl.expiresAt());
-        firmwareUploadRepository.save(upload);
+        FirmwareUpload upload = firmwareUploadMapper.toEntity(request, model, signedUrl,
+                expectedChecksum, UUID.randomUUID(), normalizeCreatedBy(createdBy), now);
+        try {
+            firmwareUploadRepository.save(upload);
+        } catch (DataIntegrityViolationException ex) {
+            if (isActiveDestinationConflict(ex)) {
+                throw new FirmwareVersionAlreadyExistsException(DESTINATION_EXISTS_MESSAGE, ex);
+            }
+            throw ex;
+        }
 
         return new FirmwareUploadUrl(upload.getId(), signedUrl.uploadUrl(), signedUrl.method(),
                 location.objectName(), signedUrl.expiresAt(), signedUrl.requiredHeaders());
@@ -118,22 +117,24 @@ public class FirmwareUploadService {
                 upload.getStorageProvider(), upload.getStorageContainer(), upload.getObjectName());
         StoredObjectMetadata metadata = objectStorageService
                 .getObjectMetadata(location, upload.getChecksumAlgorithm())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
-                        "The firmware object has not been uploaded"));
+                .orElseThrow(() -> new FirmwareUploadVerificationException(
+                        "Cannot verify this upload because the expected firmware file was not found in storage. "
+                                + "Ensure the file upload using the signed URL completed successfully before "
+                                + "requesting verification."));
 
         // Verification requires both the expected byte size and the exact checksum
         // Comparing the algorithm prevents equal looking values from different hash
         // formats from being treated as equivalent
         if (metadata.contentLength() != upload.getExpectedSize()) {
             markFailed(upload, "SIZE_MISMATCH");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareUploadVerificationException(
                     "Uploaded object size does not match content_length");
         }
         if (metadata.checksum() == null
                 || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
                 || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
             markFailed(upload, "CHECKSUM_MISMATCH");
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new FirmwareUploadVerificationException(
                     "Uploaded object checksum does not match the expected checksum");
         }
 
@@ -160,6 +161,18 @@ public class FirmwareUploadService {
         upload.setFailureReason(reason);
         upload.setFinishedAt(Instant.now());
         firmwareUploadRepository.save(upload);
+    }
+
+    private boolean isActiveDestinationConflict(Throwable exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            String message = cause.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains(ACTIVE_DESTINATION_INDEX)) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private String buildObjectName(FirmwareUploadUrlRequest request) {
