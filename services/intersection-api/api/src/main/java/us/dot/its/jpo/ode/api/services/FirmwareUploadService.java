@@ -23,6 +23,7 @@ import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
@@ -44,6 +45,8 @@ public class FirmwareUploadService {
     private final ObjectStorageServiceRegistry objectStorageServices;
     private final ObjectStorageProperties objectStorageProperties;
     private final FirmwareUploadMapper firmwareUploadMapper;
+    private final FirmwareImageRepository firmwareImages;
+    private final FirmwareRegistrationService registration;
 
     public FirmwareUploadUrl createFirmwareSignedUploadUrl(FirmwareUploadUrlRequest request, String createdBy) {
         // Resolve the model from trusted database records instead of accepting an
@@ -65,6 +68,9 @@ public class FirmwareUploadService {
 
         // Build a provider-neutral upload request. The selected provider validates
         // whether it supports the requested checksum algorithm and encoding
+        if (firmwareImages.existsByModelIdAndVersion(model.getId(), request.getVersion().trim())) {
+            throw new FirmwareVersionAlreadyExistsException("Firmware already exists for this model and version");
+        }
         String checksumAlgorithm = request.getChecksumAlgorithm().trim().toUpperCase(Locale.ROOT);
         ObjectChecksum expectedChecksum = new ObjectChecksum(checksumAlgorithm, request.getChecksum().trim());
         String objectName = buildObjectName(request);
@@ -106,7 +112,7 @@ public class FirmwareUploadService {
                         "Firmware upload '" + uploadId + "' was not found"));
 
         if (upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-            return toVerification(upload);
+            return toVerification(register(uploadId, null));
         }
 
         // Route completion through the cloud provider recorded when the URL was
@@ -140,14 +146,18 @@ public class FirmwareUploadService {
 
         // Retain the provider's observed values so the verified record identifies the
         // exact stored object version that was checked
-        upload.setStatus(FirmwareUploadStatus.VERIFIED);
-        upload.setObservedChecksum(metadata.checksum().value());
-        upload.setProviderObjectVersion(metadata.providerObjectVersion());
-        upload.setVerifiedAt(Instant.now());
-        upload.setFinishedAt(upload.getVerifiedAt());
-        upload.setFailureReason(null);
-        firmwareUploadRepository.save(upload);
-        return toVerification(upload);
+        return toVerification(register(uploadId, metadata));
+    }
+
+    private FirmwareUpload register(UUID uploadId, StoredObjectMetadata metadata) {
+        try {
+            return registration.register(uploadId, metadata);
+        } catch (DataIntegrityViolationException ex) {
+            if (isActiveDestinationConflict(ex)) {
+                throw new FirmwareVersionAlreadyExistsException("Firmware already exists for this model and version", ex);
+            }
+            throw ex;
+        }
     }
 
     private FirmwareUploadVerification toVerification(FirmwareUpload upload) {
@@ -167,7 +177,9 @@ public class FirmwareUploadService {
         Throwable cause = exception;
         while (cause != null) {
             String message = cause.getMessage();
-            if (message != null && message.toLowerCase(Locale.ROOT).contains(ACTIVE_DESTINATION_INDEX)) {
+            if (message != null && (message.toLowerCase(Locale.ROOT).contains(ACTIVE_DESTINATION_INDEX)
+                    || message.contains("uq_firmware_uploads_active_model_version")
+                    || message.contains("firmware_images_model_version_unique"))) {
                 return true;
             }
             cause = cause.getCause();

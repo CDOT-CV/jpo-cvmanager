@@ -3,6 +3,9 @@ package us.dot.its.jpo.ode.api.repositories;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +19,10 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 
 @Repository
 public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select upload from FirmwareUpload upload where upload.id = :id")
+    Optional<FirmwareUpload> findByIdForUpdate(@Param("id") UUID id);
+
     @Modifying
     @Transactional
     @Query("""

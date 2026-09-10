@@ -247,6 +247,25 @@ rules required by deployed webapp origins when adding the localhost rule.
 
 ### Upload lifecycle
 
+Successful completion also registers one `firmware_images` row for the model and
+version. Registration and verification commit in the same database transaction;
+repeating completion does not create another image. The image's `name` is the
+version label, `install_package` is the original filename, and
+`verified_upload_id` links to the upload's checksum evidence and storage location.
+Different models may share version labels and filenames. A model/version can have
+only one registered image and one active upload attempt, regardless of filename
+or storage provider.
+
+Existing firmware images retain their IDs and upgrade references, with a null
+`verified_upload_id`; they are not automatically certified by this migration.
+Existing VERIFIED uploads without an image can be registered by calling completion
+again. A conflicting existing model/version returns `409` and is not overwritten.
+Rule management and enforcement of verified upgrade targets are separate work.
+
+Migration `V7__register_verified_firmware.sql` applies these constraints. Resolve
+duplicate PENDING/VERIFIED attempts for a model/version before applying V7; the
+migration deliberately fails rather than discarding upload history.
+
 | Status     | Meaning                                                                                       | Cleanup behavior                                                                                                                          |
 | ---------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `PENDING`  | Signed instructions were issued and completion has not verified the object.                   | Becomes `EXPIRED` after `expires_at` plus `FIRMWARE_UPLOAD_EXPIRATION_GRACE`, on the next cleanup run.                                    |

@@ -48,6 +48,8 @@ class FirmwareUploadServiceTest {
     private final ObjectStorageService objectStorageService = mock(ObjectStorageService.class);
     private final ObjectStorageServiceRegistry objectStorageServices = mock(ObjectStorageServiceRegistry.class);
     private final ObjectStorageProperties properties = new ObjectStorageProperties();
+    private final us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository images =
+            mock(us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository.class);
 
     private FirmwareUploadService service;
     private FirmwareUploadUrlRequest request;
@@ -57,7 +59,10 @@ class FirmwareUploadServiceTest {
     void setUp() {
         properties.setMaxUploadSize(DataSize.ofMegabytes(100));
         service = new FirmwareUploadService(rsuModelRepository, firmwareUploadRepository,
-                objectStorageServices, properties, Mappers.getMapper(FirmwareUploadMapper.class));
+                objectStorageServices, properties, Mappers.getMapper(FirmwareUploadMapper.class), images,
+                new FirmwareRegistrationService(firmwareUploadRepository, images, Mappers.getMapper(FirmwareUploadMapper.class)));
+        when(firmwareUploadRepository.findByIdForUpdate(any())).thenAnswer(invocation ->
+                firmwareUploadRepository.findById(invocation.getArgument(0)));
 
         request = new FirmwareUploadUrlRequest();
         request.setVendorName("Commsignia");
@@ -165,6 +170,16 @@ class FirmwareUploadServiceTest {
                 .hasMessageContaining("ITS-RS4-M")
                 .hasMessageContaining("Unknown");
         verify(objectStorageService, never()).createSignedUploadUrl(any());
+    }
+
+    @Test
+    void rejectsRegisteredVersionEvenWithDifferentFilename() {
+        when(images.existsByModelIdAndVersion(7, "y20.97.0")).thenReturn(true);
+        request.setFileName("different.bin");
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     @Test

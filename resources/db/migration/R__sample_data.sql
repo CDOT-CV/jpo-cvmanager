@@ -27,7 +27,7 @@ INSERT INTO public.rsu_models(name, supported_radio, manufacturer)
 
 INSERT INTO public.firmware_images(name, model, install_package, version)
   VALUES ('y20.0.0', 1, 'install_y20_0_0.tar', 'y20.0.0'), ('y20.1.0', 1, 'install_y20_1_0.tar', 'y20.1.0'), ('k1.0.0', 3, 'install_k1_0_0.tar', 'k1.0.0')
-  ON CONFLICT (name) DO NOTHING;
+  ON CONFLICT (model, version) DO NOTHING;
 
 -- Three upgrade rules across the three firmware images. UNIQUE (from_id, to_id)
 -- means a third meaningful rule is only possible because firmware_image 3 exists.
