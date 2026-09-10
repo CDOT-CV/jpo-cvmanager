@@ -52,26 +52,10 @@ This section describes the steps required to add this custom user provider to an
      | Add to access token | true |
      | Add to userinfo | false |
    - ![Keycloak admin console add custom token mapper](./screenshots/custom-protocol-mapper.png)
-7. Modify the google IDP authentication flow
-   - In the Authentication tab, select the "first broker login" flow
-   - under the Action tab (top left), select "Duplicate". Enter the following information:
-     | Property | Value |
-     |---------------------|------------------------------|
-     | Name | Google duplicate first broker login |
-     | Description | Actions taken after first broker login with identity provider account, which is not yet linked to any Keycloak account. This flow is modified to remove authentication from the account linking process, as postgres-provided users have no credentials set |
-   - hit "Duplicate"
-   - Remove all steps under "Google duplicate first broker login Handle Existing Account"
-   - On "Google duplicate first broker login Handle Existing Account", hit the + and Add Step
-   - Select "Automatically set existing user" and Add
-   - Set the "Automatically set existing user" Requirement dropdown to "Required"
-   - Confirm that your Google duplicate first broker login flow looks like the image below:
-   - ![Keycloak admin console update authentication flow](./screenshots/authentication-flow.png)
-   - Navigate to the Identity Providers tab, select "google"
-   - Under Advanced Settings, change the "First login flow" to "Google duplicate first broker login"
-8. If you deleted keycloak local users, re-set their passwords manually
+7. If you deleted keycloak local users, re-set their passwords manually
    - If you have email sending configured, send them a "Update Password" reset action under the user's credentials
    - Or, manually set new temporary passwords and manually send them to your users
-9. Complete
+8. Complete
    - Now, users can login through the google IDP, and their newly-created keycloak identities will be automatically linked to their existing postgres information!
    - In the future, consider reverting the changes to the first broker login authentication flow
 
