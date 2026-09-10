@@ -1,11 +1,17 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
-import { FirmwareUploadUrl, FirmwareUploadUrlRequest, FirmwareUploadVerification } from '../../models/Firmware'
+import {
+  FirmwareObjectPage,
+  FirmwareUploadUrl,
+  FirmwareUploadUrlRequest,
+  FirmwareUploadVerification,
+} from '../../models/Firmware'
 import { RootState } from '../../store'
 
 export const firmwareApiSlice = createApi({
   reducerPath: 'firmwareApi',
+  tagTypes: ['FirmwareObjects'],
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/admin/firmware`,
     prepareHeaders: (headers, { getState }) => {
@@ -19,6 +25,10 @@ export const firmwareApiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
+    listFirmwareObjects: builder.query<FirmwareObjectPage, { page_token?: string; page_size?: number }>({
+      query: (params) => ({ url: 'objects', params }),
+      providesTags: ['FirmwareObjects'],
+    }),
     createFirmwareUploadUrl: builder.mutation<FirmwareUploadUrl, FirmwareUploadUrlRequest>({
       query: (body) => ({
         url: 'signed-upload-url',
@@ -27,6 +37,7 @@ export const firmwareApiSlice = createApi({
       }),
     }),
     completeFirmwareUpload: builder.mutation<FirmwareUploadVerification, string>({
+      invalidatesTags: ['FirmwareObjects'],
       query: (uploadId) => ({
         url: `uploads/${encodeURIComponent(uploadId)}/complete`,
         method: 'POST',
@@ -35,4 +46,5 @@ export const firmwareApiSlice = createApi({
   }),
 })
 
-export const { useCreateFirmwareUploadUrlMutation, useCompleteFirmwareUploadMutation } = firmwareApiSlice
+export const { useListFirmwareObjectsQuery, useCreateFirmwareUploadUrlMutation, useCompleteFirmwareUploadMutation } =
+  firmwareApiSlice

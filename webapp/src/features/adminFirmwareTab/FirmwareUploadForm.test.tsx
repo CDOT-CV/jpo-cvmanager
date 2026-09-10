@@ -5,7 +5,7 @@ import fetchMock from 'jest-fetch-mock'
 import { vi } from 'vitest'
 import { setupStore } from '../../store'
 import { testTheme } from '../../styles'
-import AdminFirmwareTab from './AdminFirmwareTab'
+import FirmwareUploadForm from './FirmwareUploadForm'
 import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
 
 vi.mock('./firmwareUpload', () => ({
@@ -41,7 +41,7 @@ const renderTab = () => {
   return render(
     <ThemeProvider theme={testTheme}>
       <Provider store={store}>
-        <AdminFirmwareTab />
+        <FirmwareUploadForm />
       </Provider>
     </ThemeProvider>
   )
@@ -56,7 +56,7 @@ const fillForm = (container: HTMLElement) => {
   return file
 }
 
-describe('AdminFirmwareTab', () => {
+describe('FirmwareUploadForm', () => {
   beforeEach(() => {
     fetchMock.resetMocks()
     vi.mocked(calculateFileChecksum).mockClear()

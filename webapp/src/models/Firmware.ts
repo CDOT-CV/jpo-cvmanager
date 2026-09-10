@@ -1,5 +1,24 @@
 export type ChecksumAlgorithm = string
 
+export type FirmwareObject = {
+  object_id: string
+  object_name: string
+  content_length: number
+  updated_at: string | null
+  provider_object_version: string | null
+  upload_id: string | null
+  firmware_id: number | null
+  upload_status: string | null
+  verification_status: 'VERIFIED' | 'UNVERIFIED' | 'UNTRACKED' | 'CHANGED'
+}
+
+export type FirmwareObjectPage = {
+  provider: string
+  container: string
+  objects: FirmwareObject[]
+  next_page_token: string | null
+}
+
 export type FirmwareUploadUrlRequest = {
   vendor_name: string
   model_name: string
