@@ -4,7 +4,7 @@ export type FirmwareObject = {
   object_id: string
   object_name: string
   content_length: number
-  updated_at: string | null
+  updated_at: string | number | null
   provider_object_version: string | null
   upload_id: string | null
   firmware_id: number | null
@@ -14,7 +14,6 @@ export type FirmwareObject = {
 
 export type FirmwareObjectPage = {
   provider: string
-  container: string
   objects: FirmwareObject[]
   next_page_token: string | null
 }

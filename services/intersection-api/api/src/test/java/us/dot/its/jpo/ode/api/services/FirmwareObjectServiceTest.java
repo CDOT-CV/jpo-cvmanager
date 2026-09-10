@@ -2,7 +2,9 @@ package us.dot.its.jpo.ode.api.services;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,8 @@ class FirmwareObjectServiceTest {
         when(images.findByVerifiedUploadIdIn(any())).thenReturn(List.of(image));
         var result = new FirmwareObjectService(registry, uploads, images).list(100, "cursor");
         assertThat(result.nextPageToken()).isEqualTo("next");
+        assertThat(new String(Base64.getUrlDecoder().decode(result.objects().getFirst().objectId()),
+                StandardCharsets.UTF_8)).isEqualTo("gcp\nvendor/model/v1/file");
         assertThat(result.objects()).extracting(FirmwareObjectPage.Item::verificationStatus)
                 .containsExactly("VERIFIED", "CHANGED", "UNTRACKED");
         assertThat(result.objects().getFirst().firmwareId()).isEqualTo(7);

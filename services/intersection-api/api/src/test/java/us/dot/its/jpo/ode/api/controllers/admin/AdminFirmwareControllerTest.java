@@ -5,12 +5,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,9 +30,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
+import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
@@ -65,24 +69,29 @@ class AdminFirmwareControllerTest {
     private FirmwareUploadService firmwareUploadService;
 
     @MockitoBean
-    private us.dot.its.jpo.ode.api.services.FirmwareObjectService firmwareObjectService;
+    private FirmwareObjectService firmwareObjectService;
 
     @Test
     @WithMockUser
     void listsObjectsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareObjectService.list(25, "next")).thenReturn(
-                new us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage("gcp", "bucket", java.util.List.of(), "more"));
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/firmware/objects")
+                new FirmwareObjectPage("gcp", List.of(
+                        new FirmwareObjectPage.Item("object-id", "vendor/model/version/file.bin", 42,
+                                Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null, "UNTRACKED")),
+                        "more"));
+        mockMvc.perform(get("/admin/firmware/objects")
                 .param("page_size", "25").param("page_token", "next").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.next_page_token").value("more"))
-                .andExpect(jsonPath("$.container").value("bucket"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.next_page_token").value("more"))
+                .andExpect(jsonPath("$.objects[0].updated_at").value("2026-09-10T18:00:00Z"))
+                .andExpect(jsonPath("$.container").doesNotExist());
     }
 
     @Test
     @WithMockUser
     void rejectsObjectListingForNonAdmins() throws Exception {
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/admin/firmware/objects")
+        mockMvc.perform(get("/admin/firmware/objects")
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
         verify(firmwareObjectService, never()).list(any(Integer.class), any());
     }

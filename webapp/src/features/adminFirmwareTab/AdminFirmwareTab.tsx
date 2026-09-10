@@ -1,10 +1,12 @@
 import { ReactNode, useState } from 'react'
 import {
+  alpha,
   Alert,
   Box,
   Button,
   Chip,
   CircularProgress,
+  IconButton,
   Paper,
   Stack,
   Table,
@@ -14,10 +16,13 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useTheme,
 } from '@mui/material'
+import { AddCircleOutline, KeyboardArrowDown, KeyboardArrowRight, Refresh } from '@mui/icons-material'
 import { useListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
 import { FirmwareObject } from '../../models/Firmware'
 import FirmwareUploadForm from './FirmwareUploadForm'
+import '../adminRsuTab/Admin.css'
 
 type TreeNode = {
   path: string
@@ -31,23 +36,35 @@ function buildTree(objects: FirmwareObject[]) {
 
   for (const object of objects) {
     let node = root
-    object.object_name.split('/').forEach((part, index, parts) => {
-      const path = parts.slice(0, index + 1).join('/')
+
+    const pathSegments = object.object_name.split('/').filter((part) => part.length > 0)
+    pathSegments.forEach((part) => {
+      const path = node.path ? `${node.path}/${part}` : part
       if (!node.children.has(part))
         node.children.set(part, {
           path,
-          label: part || '(empty segment)',
+          label: part,
           children: new Map(),
         })
       node = node.children.get(part)!
     })
-    node.object = object
+
+    // GCS may return zero-byte directory marker objects whose names end in '/'.
+    // They define the folder structure but are not selectable firmware files.
+    if (pathSegments.length > 0 && !object.object_name.endsWith('/')) node.object = object
   }
 
   return root
 }
 
+const formatUpdatedAt = (value: string | number | null | undefined) => {
+  if (value == null) return '—'
+  const timestamp = typeof value === 'number' ? value * 1000 : value
+  return new Date(timestamp).toLocaleString()
+}
+
 const AdminFirmwareTab = () => {
+  const theme = useTheme()
   const [tokens, setTokens] = useState<(string | undefined)[]>([undefined])
   const [closed, setClosed] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState<string>()
@@ -77,34 +94,41 @@ const AdminFirmwareTab = () => {
       const object = child.object
       return [
         <TableRow key={child.path} hover selected={!!object && selected === object.object_id}>
-          <TableCell sx={{ pl: 2 + depth * 3, overflowWrap: 'anywhere' }}>
-            {child.children.size > 0 && (
-              <Button
-                size="small"
-                aria-label={`Toggle ${child.path}`}
-                aria-expanded={!closed.has(child.path)}
-                onClick={() => toggle(child.path)}
-              >
-                {closed.has(child.path) ? '+' : '−'}
-              </Button>
-            )}
-            {object ? (
-              <Button
-                sx={{
-                  textTransform: 'none',
-                  textAlign: 'left',
-                  overflowWrap: 'anywhere',
-                }}
-                onClick={() => setSelected(object.object_id)}
-              >
-                {child.label}
-              </Button>
-            ) : (
-              child.label
-            )}
+          <TableCell sx={{ overflowWrap: 'anywhere' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: depth * 3 }}>
+              {child.children.size > 0 ? (
+                <IconButton
+                  size="small"
+                  aria-label={`Toggle ${child.path}`}
+                  aria-expanded={!closed.has(child.path)}
+                  onClick={() => toggle(child.path)}
+                  sx={{ width: 32, height: 32, mr: 0.5 }}
+                >
+                  {closed.has(child.path) ? <KeyboardArrowRight /> : <KeyboardArrowDown />}
+                </IconButton>
+              ) : (
+                <Box sx={{ width: 32, mr: 0.5, flexShrink: 0 }} />
+              )}
+              {object ? (
+                <Button
+                  sx={{
+                    minWidth: 0,
+                    p: 0,
+                    textTransform: 'none',
+                    textAlign: 'left',
+                    overflowWrap: 'anywhere',
+                  }}
+                  onClick={() => setSelected(object.object_id)}
+                >
+                  {child.label}
+                </Button>
+              ) : (
+                child.label
+              )}
+            </Box>
           </TableCell>
-          <TableCell>{object ? `${object.content_length.toLocaleString()} bytes` : '—'}</TableCell>
-          <TableCell>{object?.updated_at ? new Date(object.updated_at).toLocaleString() : '—'}</TableCell>
+          <TableCell>{object ? `${object.content_length.toLocaleString()} bytes` : null}</TableCell>
+          <TableCell>{object ? formatUpdatedAt(object.updated_at) : null}</TableCell>
           <TableCell>
             {object && (
               <Chip
@@ -126,28 +150,18 @@ const AdminFirmwareTab = () => {
       ]
     })
 
-  if (showUpload)
-    return (
-      <Stack spacing={2}>
-        <Button
-          onClick={() => {
-            setShowUpload(false)
-            refetch()
-          }}
-        >
-          Back to firmware files
-        </Button>
-        <FirmwareUploadForm />
-      </Stack>
-    )
-
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} className="scroll-div-tab">
       <Stack direction="row" spacing={2} alignItems="center">
         <Typography variant="h5" className="panel-header" sx={{ flexGrow: 1, pl: 0 }}>
           Firmware
         </Typography>
         <Button
+          variant="outlined"
+          color="info"
+          size="small"
+          startIcon={<Refresh />}
+          className="museo-slab capital-case"
           disabled={isFetching}
           onClick={() => {
             setSelected(undefined)
@@ -157,12 +171,17 @@ const AdminFirmwareTab = () => {
         >
           Refresh
         </Button>
-        <Button variant="contained" onClick={() => setShowUpload(true)}>
-          Upload firmware
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddCircleOutline />}
+          className="museo-slab capital-case"
+          onClick={() => setShowUpload(true)}
+        >
+          Add Firmware
         </Button>
       </Stack>
 
-      {data && <Typography color="text.secondary">{data.container}</Typography>}
       {error && <Alert severity="error">Unable to load firmware files. Please try refreshing.</Alert>}
       {isFetching && (
         <Box role="status" aria-label="Loading firmware files">
@@ -172,7 +191,7 @@ const AdminFirmwareTab = () => {
 
       {!error && data && (
         <>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer component={Paper} sx={{ boxShadow: 'none' }} className="admin-table">
             <Table aria-label="Firmware files">
               <TableHead>
                 <TableRow>
@@ -182,7 +201,23 @@ const AdminFirmwareTab = () => {
                   <TableCell>Verification</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>{rows(buildTree(data.objects))}</TableBody>
+              <TableBody
+                sx={{
+                  '& .MuiTableRow-root': {
+                    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  },
+                  '& .MuiTableCell-body': {
+                    color: `${theme.palette.text.secondary} !important`,
+                    padding: '6px 16px',
+                    textTransform: 'none',
+                  },
+                  '& .MuiButtonBase-root': {
+                    borderRadius: '4px',
+                  },
+                }}
+              >
+                {rows(buildTree(data.objects))}
+              </TableBody>
             </Table>
             {data.objects.length === 0 && <Typography sx={{ p: 3 }}>No firmware files on this page.</Typography>}
           </TableContainer>
@@ -224,6 +259,17 @@ const AdminFirmwareTab = () => {
             </Paper>
           )}
         </>
+      )}
+      {showUpload && (
+        <FirmwareUploadForm
+          open
+          onClose={() => setShowUpload(false)}
+          onSuccess={() => {
+            setShowUpload(false)
+            setSelected(undefined)
+            setTokens([undefined])
+          }}
+        />
       )}
     </Stack>
   )

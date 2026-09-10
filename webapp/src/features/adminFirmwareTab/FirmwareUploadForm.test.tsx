@@ -7,6 +7,7 @@ import { setupStore } from '../../store'
 import { testTheme } from '../../styles'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
+import toast from 'react-hot-toast'
 
 vi.mock('./firmwareUpload', () => ({
   calculateFileChecksum: vi.fn().mockResolvedValue('4waSgw=='),
@@ -15,6 +16,9 @@ vi.mock('./firmwareUpload', () => ({
     onProgress(100)
     return Promise.resolve()
   }),
+}))
+vi.mock('react-hot-toast', () => ({
+  default: { success: vi.fn() },
 }))
 
 const signedUploadResponse = {
@@ -30,6 +34,8 @@ const signedUploadResponse = {
 }
 
 const renderTab = () => {
+  const onClose = vi.fn()
+  const onSuccess = vi.fn()
   const store = setupStore({
     user: {
       value: {
@@ -38,21 +44,22 @@ const renderTab = () => {
       },
     },
   })
-  return render(
+  const rendered = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={store}>
-        <FirmwareUploadForm />
+        <FirmwareUploadForm open onClose={onClose} onSuccess={onSuccess} />
       </Provider>
     </ThemeProvider>
   )
+  return { ...rendered, onClose, onSuccess }
 }
 
-const fillForm = (container: HTMLElement) => {
+const fillForm = () => {
   fireEvent.change(screen.getByLabelText(/Vendor Name/), { target: { value: 'Commsignia' } })
   fireEvent.change(screen.getByLabelText(/Model Name/), { target: { value: 'ITS-RS4-M' } })
   fireEvent.change(screen.getByLabelText(/Version/), { target: { value: 'y20.97.0' } })
   const file = new File(['123456789'], 'firmware.tar.sig', { type: 'application/octet-stream' })
-  fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } })
+  fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } })
   return file
 }
 
@@ -77,12 +84,13 @@ describe('FirmwareUploadForm', () => {
         verified_at: '2026-09-03T22:50:00Z',
       })
     )
-    const { container } = renderTab()
-    const file = fillForm(container)
+    const { onSuccess } = renderTab()
+    const file = fillForm()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Upload Firmware' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Firmware uploaded and verified successfully')
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+    expect(toast.success).toHaveBeenCalledWith('Firmware uploaded and verified successfully')
     expect(calculateFileChecksum).toHaveBeenCalledWith(file, 'CRC32C')
     expect(uploadFileToSignedUrl).toHaveBeenCalledWith(file, signedUploadResponse, expect.any(Function))
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -101,12 +109,14 @@ describe('FirmwareUploadForm', () => {
 
   it('shows API failures as red error text and does not upload the file', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ message: 'Vendor/model pair was not found' }), { status: 404 })
-    const { container } = renderTab()
-    fillForm(container)
+    const { onSuccess } = renderTab()
+    fillForm()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Upload Firmware' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Vendor/model pair was not found'))
     expect(uploadFileToSignedUrl).not.toHaveBeenCalled()
+    expect(onSuccess).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 })

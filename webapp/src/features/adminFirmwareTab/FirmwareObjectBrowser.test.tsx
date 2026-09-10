@@ -7,7 +7,12 @@ vi.mock('../api/firmwareApiSlice', () => ({
   useListFirmwareObjectsQuery: vi.fn(),
 }))
 vi.mock('./FirmwareUploadForm', () => ({
-  default: () => <div>Upload form</div>,
+  default: ({ open, onSuccess }: { open: boolean; onSuccess: () => void }) =>
+    open ? (
+      <div>
+        Upload form<button onClick={onSuccess}>Complete mocked upload</button>
+      </div>
+    ) : null,
 }))
 
 describe('Firmware object browser', () => {
@@ -17,8 +22,13 @@ describe('Firmware object browser', () => {
   it('groups arbitrary paths, shows verification and selects files', () => {
     query.mockReturnValue({
       currentData: {
-        container: 'bucket',
         objects: [
+          {
+            object_id: 'folder-marker',
+            object_name: 'Vendor/',
+            content_length: 0,
+            verification_status: 'UNTRACKED',
+          },
           {
             object_id: 'one',
             object_name: 'Vendor/Model/v1/file.bin',
@@ -39,6 +49,7 @@ describe('Firmware object browser', () => {
       refetch: vi.fn(),
     } as any)
     render(<AdminFirmwareTab />)
+    expect(screen.queryByText('(empty segment)')).not.toBeInTheDocument()
     expect(screen.getByText('Untracked')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Toggle Vendor' }))
     expect(screen.queryByRole('button', { name: 'file.bin' })).not.toBeInTheDocument()
@@ -63,7 +74,7 @@ describe('Firmware object browser', () => {
     expect(screen.getByRole('status', { name: 'Loading firmware files' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled()
     query.mockReturnValue({
-      currentData: { container: 'bucket', objects: [], next_page_token: null },
+      currentData: { objects: [], next_page_token: null },
       isFetching: false,
       refetch: vi.fn(),
     } as any)
@@ -82,7 +93,9 @@ describe('Firmware object browser', () => {
     } as any)
     render(<AdminFirmwareTab />)
     expect(screen.getByRole('alert')).toHaveTextContent('Unable to load firmware files')
-    fireEvent.click(screen.getByRole('button', { name: 'Upload firmware' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
     expect(screen.getByText('Upload form')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Complete mocked upload' }))
+    expect(screen.queryByText('Upload form')).not.toBeInTheDocument()
   })
 })

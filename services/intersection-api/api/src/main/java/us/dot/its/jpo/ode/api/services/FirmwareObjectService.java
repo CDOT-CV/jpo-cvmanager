@@ -31,7 +31,7 @@ public class FirmwareObjectService {
 
         var page = storage.getActiveService().listObjects(pageSize, pageToken);
         if (page.objects().isEmpty()) {
-            return new FirmwareObjectPage(page.provider(), page.container(), List.of(), page.nextPageToken());
+            return new FirmwareObjectPage(page.provider(), List.of(), page.nextPageToken());
         }
 
         // Join only the current storage page, keeping database work bounded too.
@@ -59,12 +59,12 @@ public class FirmwareObjectService {
             }
 
             String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                    (page.provider() + "\n" + page.container() + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
+                    (page.provider() + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
             return new FirmwareObjectPage.Item(id, object.objectName(), object.contentLength(), object.updatedAt(),
                     object.providerObjectVersion(), upload == null ? null : upload.getId(),
                     upload == null ? null : imageIds.get(upload.getId()), upload == null ? null : upload.getStatus().name(), state);
         }).toList();
 
-        return new FirmwareObjectPage(page.provider(), page.container(), items, page.nextPageToken());
+        return new FirmwareObjectPage(page.provider(), items, page.nextPageToken());
     }
 }

@@ -248,11 +248,12 @@ rules required by deployed webapp origins when adding the localhost rule.
 
 ### Browsing firmware files
 
-The Admin Firmware page lists the configured bucket through
+The Admin Firmware page lists objects from the configured bucket through
 `GET /admin/firmware/objects?page_size=100`. This endpoint requires the same
 ADMIN/superuser permission as uploading. Pass the returned `next_page_token` as
 `page_token` to fetch another page; page sizes are limited to 1–200 objects.
-It never lists buckets or permits the client to choose another bucket.
+It never lists buckets, returns the configured bucket name, or permits the client
+to choose another bucket.
 
 The table groups object paths on each page and supports file selection, refresh,
 and previous/next navigation. Objects with unexpected paths are also included.

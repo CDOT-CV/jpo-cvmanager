@@ -1,7 +1,19 @@
 import { ChangeEvent, FormEvent, useState } from 'react'
-import { Box, Button, CircularProgress, Paper, Stack, TextField, Typography } from '@mui/material'
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
+import toast from 'react-hot-toast'
 import { Upload } from '../../icons/upload'
-import { ErrorMessageText, SuccessMessageText } from '../../styles/components/Messages'
+import { ErrorMessageText } from '../../styles/components/Messages'
+import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { ChecksumAlgorithm } from '../../models/Firmware'
 import { useCompleteFirmwareUploadMutation, useCreateFirmwareUploadUrlMutation } from '../api/firmwareApiSlice'
 import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
@@ -11,6 +23,12 @@ const SAFE_FILE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 const SAFE_PATH_SEGMENT = /^[^/\\\p{Cc}]+$/u
 
 type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verifying' | 'complete'
+
+type FirmwareUploadFormProps = {
+  open: boolean
+  onClose: () => void
+  onSuccess: () => void
+}
 
 const stageLabel: Record<UploadStage, string> = {
   idle: 'Ready to upload',
@@ -38,7 +56,7 @@ const getErrorMessage = (error: unknown) => {
   return 'An unexpected error occurred while uploading the firmware.'
 }
 
-const FirmwareUploadForm = () => {
+const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProps) => {
   const [vendorName, setVendorName] = useState('')
   const [modelName, setModelName] = useState('')
   const [version, setVersion] = useState('')
@@ -47,18 +65,19 @@ const FirmwareUploadForm = () => {
   const [stage, setStage] = useState<UploadStage>('idle')
   const [progress, setProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
   const [createUploadUrl] = useCreateFirmwareUploadUrlMutation()
   const [completeUpload] = useCompleteFirmwareUploadMutation()
 
   const isWorking = !['idle', 'complete'].includes(stage)
+  const closeDialog = () => {
+    if (!isWorking) onClose()
+  }
 
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null
     setFile(selectedFile)
     if (selectedFile) setFileName(selectedFile.name)
     setErrorMessage('')
-    setSuccessMessage('')
     setProgress(0)
     setStage('idle')
   }
@@ -79,7 +98,6 @@ const FirmwareUploadForm = () => {
   const submitUpload = async (event: FormEvent) => {
     event.preventDefault()
     setErrorMessage('')
-    setSuccessMessage('')
     setProgress(0)
 
     const validationError = validateForm()
@@ -114,7 +132,8 @@ const FirmwareUploadForm = () => {
       }
 
       setStage('complete')
-      setSuccessMessage(`Firmware uploaded and verified successfully: ${verification.object_name}`)
+      toast.success('Firmware uploaded and verified successfully')
+      onSuccess()
     } catch (error) {
       setStage('idle')
       setErrorMessage(getErrorMessage(error))
@@ -122,12 +141,10 @@ const FirmwareUploadForm = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 720 }}>
-      <Typography variant="h5" className="panel-header" sx={{ pl: 0, pt: 0 }}>
-        Firmware Upload
-      </Typography>
-      <Paper variant="outlined" sx={{ p: 3 }}>
-        <Box component="form" onSubmit={submitUpload} noValidate>
+    <Dialog open={open} onClose={closeDialog}>
+      <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
+        <SideBarHeader onClick={closeDialog} title="Add Firmware" />
+        <Box id="add-firmware-form" component="form" onSubmit={submitUpload} noValidate>
           <Stack spacing={2.5}>
             <Typography color="text.secondary">
               Upload a firmware artifact directly to object storage and verify it with the firmware API.
@@ -177,43 +194,57 @@ const FirmwareUploadForm = () => {
             />
             <TextField label="Checksum Algorithm" value={DEFAULT_CHECKSUM_ALGORITHM} disabled />
 
-            <Stack direction="row" spacing={3} alignItems="center">
-              <Button type="submit" variant="contained" className="museo-slab capital-case" disabled={isWorking}>
-                Upload Firmware
-              </Button>
-              {(isWorking || stage === 'complete') && (
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-                    <CircularProgress
-                      variant="determinate"
-                      value={stage === 'complete' || stage === 'verifying' ? 100 : progress}
-                      aria-label="Firmware upload progress"
-                    />
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">{`${
-                        stage === 'complete' || stage === 'verifying' ? 100 : progress
-                      }%`}</Typography>
-                    </Box>
+            {(isWorking || stage === 'complete') && (
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <CircularProgress
+                    variant="determinate"
+                    value={stage === 'complete' || stage === 'verifying' ? 100 : progress}
+                    aria-label="Firmware upload progress"
+                  />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">{`${
+                      stage === 'complete' || stage === 'verifying' ? 100 : progress
+                    }%`}</Typography>
                   </Box>
-                  <Typography>{stageLabel[stage]}</Typography>
-                </Stack>
-              )}
-            </Stack>
+                </Box>
+                <Typography>{stageLabel[stage]}</Typography>
+              </Stack>
+            )}
 
             {errorMessage && <ErrorMessageText role="alert">{errorMessage}</ErrorMessageText>}
-            {successMessage && <SuccessMessageText role="status">{successMessage}</SuccessMessageText>}
           </Stack>
         </Box>
-      </Paper>
-    </Box>
+      </DialogContent>
+      <DialogActions sx={{ padding: '20px', mt: 1 }}>
+        <Button
+          variant="outlined"
+          color="info"
+          className="museo-slab capital-case"
+          disabled={isWorking}
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+        <Button
+          form="add-firmware-form"
+          type="submit"
+          variant="contained"
+          className="museo-slab capital-case"
+          disabled={isWorking}
+        >
+          {isWorking ? 'Uploading...' : 'Add Firmware'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }
 
