@@ -6,6 +6,11 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -15,12 +20,15 @@ import { Upload } from '../../icons/upload'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { ChecksumAlgorithm } from '../../models/Firmware'
-import { useCompleteFirmwareUploadMutation, useCreateFirmwareUploadUrlMutation } from '../api/firmwareApiSlice'
+import {
+  useCompleteFirmwareUploadMutation,
+  useCreateFirmwareUploadUrlMutation,
+  useGetFirmwareUploadOptionsQuery,
+} from '../api/firmwareApiSlice'
 import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
 
 const DEFAULT_CHECKSUM_ALGORITHM: ChecksumAlgorithm = 'CRC32C'
 const SAFE_FILE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
-const SAFE_PATH_SEGMENT = /^[^/\\\p{Cc}]+$/u
 
 type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verifying' | 'complete'
 
@@ -60,13 +68,19 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
   const [vendorName, setVendorName] = useState('')
   const [modelName, setModelName] = useState('')
   const [version, setVersion] = useState('')
-  const [fileName, setFileName] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [stage, setStage] = useState<UploadStage>('idle')
   const [progress, setProgress] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const [createUploadUrl] = useCreateFirmwareUploadUrlMutation()
   const [completeUpload] = useCompleteFirmwareUploadMutation()
+  const {
+    data: uploadOptions,
+    isLoading: isLoadingOptions,
+    isError: isOptionsError,
+  } = useGetFirmwareUploadOptionsQuery(undefined, { skip: !open })
+  const selectedManufacturer = uploadOptions?.manufacturers.find((option) => option.name === vendorName)
+  const hasUploadOptions = Boolean(uploadOptions?.manufacturers.length)
 
   const isWorking = !['idle', 'complete'].includes(stage)
   const closeDialog = () => {
@@ -76,7 +90,6 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null
     setFile(selectedFile)
-    if (selectedFile) setFileName(selectedFile.name)
     setErrorMessage('')
     setProgress(0)
     setStage('idle')
@@ -84,12 +97,12 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
 
   const validateForm = () => {
     if (!file) return 'Please choose a firmware file.'
-    if (!vendorName.trim() || !SAFE_PATH_SEGMENT.test(vendorName.trim())) return 'Please enter a valid vendor name.'
-    if (!modelName.trim() || !SAFE_PATH_SEGMENT.test(modelName.trim())) return 'Please enter a valid model name.'
+    if (!selectedManufacturer) return 'Please select a manufacturer.'
+    if (!selectedManufacturer.models.some((model) => model.name === modelName)) return 'Please select a model.'
     if (!SAFE_FILE_COMPONENT.test(version.trim())) {
       return 'Version must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens.'
     }
-    if (!SAFE_FILE_COMPONENT.test(fileName.trim())) {
+    if (file.name.length > 128 || !SAFE_FILE_COMPONENT.test(file.name)) {
       return 'File name must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens.'
     }
     return null
@@ -115,7 +128,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
         vendor_name: vendorName.trim(),
         model_name: modelName.trim(),
         version: version.trim(),
-        file_name: fileName.trim(),
+        file_name: file.name,
         content_length: file.size,
         content_type: file.type || 'application/octet-stream',
         checksum_algorithm: DEFAULT_CHECKSUM_ALGORITHM,
@@ -149,22 +162,43 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
             <Typography color="text.secondary">
               Upload a firmware artifact directly to object storage and verify it with the firmware API.
             </Typography>
-            <TextField
-              label="Vendor Name"
-              value={vendorName}
-              onChange={(event) => setVendorName(event.target.value)}
-              required
-              disabled={isWorking}
-              inputProps={{ maxLength: 128 }}
-            />
-            <TextField
-              label="Model Name"
-              value={modelName}
-              onChange={(event) => setModelName(event.target.value)}
-              required
-              disabled={isWorking}
-              inputProps={{ maxLength: 128 }}
-            />
+            <FormControl required disabled={isWorking || isLoadingOptions || isOptionsError || !hasUploadOptions}>
+              <InputLabel id="firmware-manufacturer-label">Manufacturer</InputLabel>
+              <Select
+                labelId="firmware-manufacturer-label"
+                label="Manufacturer"
+                value={vendorName}
+                onChange={(event) => {
+                  setVendorName(event.target.value)
+                  setModelName('')
+                }}
+              >
+                {uploadOptions?.manufacturers.map((manufacturer) => (
+                  <MenuItem key={manufacturer.manufacturer_id} value={manufacturer.name}>
+                    {manufacturer.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {isLoadingOptions && <FormHelperText>Loading manufacturers...</FormHelperText>}
+              {!isLoadingOptions && !isOptionsError && !hasUploadOptions && (
+                <FormHelperText>No RSU manufacturers with models are available.</FormHelperText>
+              )}
+            </FormControl>
+            <FormControl required disabled={isWorking || !selectedManufacturer}>
+              <InputLabel id="firmware-model-label">Model</InputLabel>
+              <Select
+                labelId="firmware-model-label"
+                label="Model"
+                value={modelName}
+                onChange={(event) => setModelName(event.target.value)}
+              >
+                {selectedManufacturer?.models.map((model) => (
+                  <MenuItem key={model.model_id} value={model.name}>
+                    {model.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Version"
               value={version}
@@ -183,16 +217,13 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 {file ? `${file.name} (${file.size.toLocaleString()} bytes)` : 'No file selected'}
               </Typography>
             </Stack>
-            <TextField
-              label="Stored File Name"
-              value={fileName}
-              onChange={(event) => setFileName(event.target.value)}
-              helperText="Defaults to the selected file name and may be changed before upload"
-              required
-              disabled={isWorking}
-              inputProps={{ maxLength: 128 }}
-            />
             <TextField label="Checksum Algorithm" value={DEFAULT_CHECKSUM_ALGORITHM} disabled />
+
+            {isOptionsError && (
+              <ErrorMessageText role="alert">
+                Unable to load firmware manufacturers and models. Close and reopen this form to try again.
+              </ErrorMessageText>
+            )}
 
             {(isWorking || stage === 'complete') && (
               <Stack direction="row" spacing={1.5} alignItems="center">
@@ -239,7 +270,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
           type="submit"
           variant="contained"
           className="museo-slab capital-case"
-          disabled={isWorking}
+          disabled={isWorking || isLoadingOptions || isOptionsError || !hasUploadOptions}
         >
           {isWorking ? 'Uploading...' : 'Add Firmware'}
         </Button>

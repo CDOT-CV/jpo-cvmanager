@@ -33,6 +33,24 @@ const signedUploadResponse = {
   },
 }
 
+const uploadOptionsResponse = {
+  manufacturers: [
+    {
+      manufacturer_id: 1,
+      name: 'Commsignia',
+      models: [
+        { model_id: 10, name: 'ITS-RS4-M' },
+        { model_id: 11, name: 'ITS-RS4-S' },
+      ],
+    },
+    {
+      manufacturer_id: 2,
+      name: 'Kapsch',
+      models: [{ model_id: 20, name: 'RIS-9260' }],
+    },
+  ],
+}
+
 const renderTab = () => {
   const onClose = vi.fn()
   const onSuccess = vi.fn()
@@ -54,9 +72,14 @@ const renderTab = () => {
   return { ...rendered, onClose, onSuccess }
 }
 
-const fillForm = () => {
-  fireEvent.change(screen.getByLabelText(/Vendor Name/), { target: { value: 'Commsignia' } })
-  fireEvent.change(screen.getByLabelText(/Model Name/), { target: { value: 'ITS-RS4-M' } })
+const chooseSelectOption = async (label: string, option: string) => {
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name: label }))
+  fireEvent.click(await screen.findByRole('option', { name: option }))
+}
+
+const fillForm = async () => {
+  await chooseSelectOption('Manufacturer', 'Commsignia')
+  await chooseSelectOption('Model', 'ITS-RS4-M')
   fireEvent.change(screen.getByLabelText(/Version/), { target: { value: 'y20.97.0' } })
   const file = new File(['123456789'], 'firmware.tar.sig', { type: 'application/octet-stream' })
   fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } })
@@ -71,6 +94,7 @@ describe('FirmwareUploadForm', () => {
   })
 
   it('creates an upload, transfers the file, and completes verification', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
     fetchMock.mockResponseOnce(JSON.stringify(signedUploadResponse))
     fetchMock.mockResponseOnce(
       JSON.stringify({
@@ -85,7 +109,7 @@ describe('FirmwareUploadForm', () => {
       })
     )
     const { onSuccess } = renderTab()
-    const file = fillForm()
+    const file = await fillForm()
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
 
@@ -93,9 +117,9 @@ describe('FirmwareUploadForm', () => {
     expect(toast.success).toHaveBeenCalledWith('Firmware uploaded and verified successfully')
     expect(calculateFileChecksum).toHaveBeenCalledWith(file, 'CRC32C')
     expect(uploadFileToSignedUrl).toHaveBeenCalledWith(file, signedUploadResponse, expect.any(Function))
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
 
-    const signedUrlRequest = fetchMock.mock.calls[0][0] as Request
+    const signedUrlRequest = fetchMock.mock.calls[1][0] as Request
     await expect(signedUrlRequest.json()).resolves.toMatchObject({
       vendor_name: 'Commsignia',
       model_name: 'ITS-RS4-M',
@@ -108,9 +132,10 @@ describe('FirmwareUploadForm', () => {
   })
 
   it('shows API failures as red error text and does not upload the file', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
     fetchMock.mockResponseOnce(JSON.stringify({ message: 'Vendor/model pair was not found' }), { status: 404 })
     const { onSuccess } = renderTab()
-    fillForm()
+    await fillForm()
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
 
@@ -118,5 +143,37 @@ describe('FirmwareUploadForm', () => {
     expect(uploadFileToSignedUrl).not.toHaveBeenCalled()
     expect(onSuccess).not.toHaveBeenCalled()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('limits models to the selected manufacturer and uses the selected file name', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
+    renderTab()
+
+    await chooseSelectOption('Manufacturer', 'Commsignia')
+    await chooseSelectOption('Model', 'ITS-RS4-S')
+    await chooseSelectOption('Manufacturer', 'Kapsch')
+
+    expect(screen.getByRole('combobox', { name: 'Model' })).not.toHaveTextContent('ITS-RS4-S')
+    expect(screen.queryByLabelText(/Stored File Name/)).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Model' }))
+    expect(await screen.findByRole('option', { name: 'RIS-9260' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'ITS-RS4-S' })).not.toBeInTheDocument()
+  })
+
+  it('shows an error and disables submission when upload options cannot be loaded', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ message: 'Unavailable' }), { status: 503 })
+    renderTab()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load firmware manufacturers and models')
+    expect(screen.getByRole('button', { name: 'Add Firmware' })).toBeDisabled()
+  })
+
+  it('disables submission when no RSU firmware models are configured', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ manufacturers: [] }))
+    renderTab()
+
+    expect(await screen.findByText('No RSU manufacturers with models are available.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add Firmware' })).toBeDisabled()
   })
 })

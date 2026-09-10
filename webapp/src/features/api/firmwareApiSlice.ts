@@ -3,6 +3,7 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import {
   FirmwareObjectPage,
+  FirmwareUploadOptions,
   FirmwareUploadUrl,
   FirmwareUploadUrlRequest,
   FirmwareUploadVerification,
@@ -25,7 +26,10 @@ export const firmwareApiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
-    listFirmwareObjects: builder.query<FirmwareObjectPage, { page_token?: string; page_size?: number }>({
+    getFirmwareUploadOptions: builder.query<FirmwareUploadOptions, void>({
+      query: () => 'upload-options',
+    }),
+    listFirmwareObjects: builder.query<FirmwareObjectPage, { manufacturer?: string }>({
       query: (params) => ({ url: 'objects', params }),
       providesTags: ['FirmwareObjects'],
     }),
@@ -46,5 +50,10 @@ export const firmwareApiSlice = createApi({
   }),
 })
 
-export const { useListFirmwareObjectsQuery, useCreateFirmwareUploadUrlMutation, useCompleteFirmwareUploadMutation } =
-  firmwareApiSlice
+export const {
+  useGetFirmwareUploadOptionsQuery,
+  useListFirmwareObjectsQuery,
+  useLazyListFirmwareObjectsQuery,
+  useCreateFirmwareUploadUrlMutation,
+  useCompleteFirmwareUploadMutation,
+} = firmwareApiSlice

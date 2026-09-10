@@ -15,7 +15,21 @@ export type FirmwareObject = {
 export type FirmwareObjectPage = {
   provider: string
   objects: FirmwareObject[]
-  next_page_token: string | null
+}
+
+export type FirmwareUploadModelOption = {
+  model_id: number
+  name: string
+}
+
+export type FirmwareUploadManufacturerOption = {
+  manufacturer_id: number
+  name: string
+  models: FirmwareUploadModelOption[]
+}
+
+export type FirmwareUploadOptions = {
+  manufacturers: FirmwareUploadManufacturerOption[]
 }
 
 export type FirmwareUploadUrlRequest = {

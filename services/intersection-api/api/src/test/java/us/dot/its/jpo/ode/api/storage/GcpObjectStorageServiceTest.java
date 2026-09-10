@@ -33,6 +33,7 @@ import com.google.cloud.storage.Storage;
 
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
+import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
 import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
 
@@ -106,7 +107,7 @@ class GcpObjectStorageServiceTest {
     }
 
     @Test
-    void listsOnlyRequestedPageIncludingUnexpectedObjectNames() {
+    void listsOneRecursivePrefixPageIncludingUnexpectedObjectNames() {
         com.google.api.gax.paging.Page<Blob> page = mock(com.google.api.gax.paging.Page.class);
         Blob blob = mock(Blob.class);
         when(blob.getName()).thenReturn("loose file.bin");
@@ -116,12 +117,32 @@ class GcpObjectStorageServiceTest {
         when(page.getValues()).thenReturn(java.util.List.of(blob));
         when(page.getNextPageToken()).thenReturn("next");
         when(storage.list(eq("firmware-bucket"), any(Storage.BlobListOption[].class))).thenReturn(page);
-        var result = service.listObjects(25, "previous");
+        var result = service.listObjects(new ObjectListRequest("Commsignia/", true, 25, "previous"));
         assertThat(result.nextPageToken()).isEqualTo("next");
         assertThat(result.objects().getFirst().objectName()).isEqualTo("loose file.bin");
         assertThat(result.objects().getFirst().providerObjectVersion()).isEqualTo("17");
-        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(25), Storage.BlobListOption.pageToken("previous"));
+        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(25),
+                Storage.BlobListOption.prefix("Commsignia/"), Storage.BlobListOption.pageToken("previous"));
         org.mockito.Mockito.verify(page, org.mockito.Mockito.never()).iterateAll();
+    }
+
+    @Test
+    void listsOnlyRootFoldersForManufacturerDiscovery() {
+        com.google.api.gax.paging.Page<Blob> page = mock(com.google.api.gax.paging.Page.class);
+        Blob folder = mock(Blob.class);
+        when(folder.getName()).thenReturn("Commsignia/");
+        when(folder.getSize()).thenReturn(null);
+        when(folder.getGeneration()).thenReturn(null);
+        when(page.getValues()).thenReturn(java.util.List.of(folder));
+        when(storage.list(eq("firmware-bucket"), any(Storage.BlobListOption[].class))).thenReturn(page);
+
+        var result = service.listObjects(new ObjectListRequest(null, false, 200, null));
+
+        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(200),
+                Storage.BlobListOption.currentDirectory());
+        assertThat(result.objects().getFirst().objectName()).isEqualTo("Commsignia/");
+        assertThat(result.objects().getFirst().contentLength()).isZero();
+        assertThat(result.objects().getFirst().providerObjectVersion()).isNull();
     }
 
     @Test

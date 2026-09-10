@@ -1,0 +1,45 @@
+package us.dot.its.jpo.ode.api.services;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ManufacturerOption;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ModelOption;
+import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+
+@Service
+@RequiredArgsConstructor
+public class FirmwareUploadOptionsService {
+    private static final String RESERVED_OBU_MANUFACTURER = "ota";
+
+    private final RsuModelRepository rsuModels;
+
+    public FirmwareUploadOptions getOptions() {
+        List<ManufacturerOption> manufacturers = new ArrayList<>();
+
+        for (var model : rsuModels.findAllWithManufacturerOrdered()) {
+            var manufacturer = model.getManufacturer();
+
+            // The ota storage hierarchy is reserved for the separate OBU firmware
+            // workflow and must not be offered as an RSU firmware upload destination.
+            if (RESERVED_OBU_MANUFACTURER.equalsIgnoreCase(manufacturer.getName())) {
+                continue;
+            }
+
+            var modelOption = new ModelOption(model.getId(), model.getName());
+            if (manufacturers.isEmpty()
+                    || !manufacturers.getLast().manufacturerId().equals(manufacturer.getId())) {
+                manufacturers.add(new ManufacturerOption(
+                        manufacturer.getId(), manufacturer.getName(), new ArrayList<>(List.of(modelOption))));
+            } else {
+                manufacturers.getLast().models().add(modelOption);
+            }
+        }
+
+        return new FirmwareUploadOptions(manufacturers);
+    }
+}

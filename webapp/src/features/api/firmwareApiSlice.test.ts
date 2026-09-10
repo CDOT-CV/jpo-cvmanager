@@ -28,6 +28,29 @@ const requestBody: FirmwareUploadUrlRequest = {
 describe('firmwareApiSlice', () => {
   beforeEach(() => fetchMock.resetMocks())
 
+  it('requests structured firmware upload options', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ manufacturers: [] }))
+    const store = setupStore(mockUserState)
+
+    await store.dispatch(firmwareApiSlice.endpoints.getFirmwareUploadOptions.initiate())
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toBe(`${BASE_URL}/upload-options`)
+    expect(request.method).toBe('GET')
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
+  it('requests one complete manufacturer listing', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ provider: 'gcp', objects: [] }))
+    const store = setupStore(mockUserState)
+
+    await store.dispatch(firmwareApiSlice.endpoints.listFirmwareObjects.initiate({ manufacturer: 'Yunex' }))
+
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toBe(`${BASE_URL}/objects?manufacturer=Yunex`)
+    expect(request.method).toBe('GET')
+  })
+
   it('requests signed upload instructions with authentication', async () => {
     fetchMock.mockResponseOnce(
       JSON.stringify({

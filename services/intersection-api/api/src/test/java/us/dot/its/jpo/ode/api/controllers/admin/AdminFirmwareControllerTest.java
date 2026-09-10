@@ -32,9 +32,13 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ManufacturerOption;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ModelOption;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
@@ -71,21 +75,49 @@ class AdminFirmwareControllerTest {
     @MockitoBean
     private FirmwareObjectService firmwareObjectService;
 
+    @MockitoBean
+    private FirmwareUploadOptionsService firmwareUploadOptionsService;
+
+    @Test
+    @WithMockUser
+    void listsStructuredUploadOptionsForAdmins() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareUploadOptionsService.getOptions()).thenReturn(new FirmwareUploadOptions(List.of(
+                new ManufacturerOption(1, "Commsignia", List.of(
+                        new ModelOption(10, "ITS-RS4-M"),
+                        new ModelOption(11, "ITS-RS4-S"))))));
+
+        mockMvc.perform(get("/admin/firmware/upload-options").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.manufacturers[0].manufacturer_id").value(1))
+                .andExpect(jsonPath("$.manufacturers[0].name").value("Commsignia"))
+                .andExpect(jsonPath("$.manufacturers[0].models[1].model_id").value(11))
+                .andExpect(jsonPath("$.manufacturers[0].models[1].name").value("ITS-RS4-S"));
+    }
+
+    @Test
+    @WithMockUser
+    void rejectsUploadOptionsForNonAdmins() throws Exception {
+        mockMvc.perform(get("/admin/firmware/upload-options").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        verify(firmwareUploadOptionsService, never()).getOptions();
+    }
+
     @Test
     @WithMockUser
     void listsObjectsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        when(firmwareObjectService.list(25, "next")).thenReturn(
+        when(firmwareObjectService.list("Acme")).thenReturn(
                 new FirmwareObjectPage("gcp", List.of(
                         new FirmwareObjectPage.Item("object-id", "vendor/model/version/file.bin", 42,
-                                Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null, "UNTRACKED")),
-                        "more"));
+                                Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null, "UNTRACKED"))));
         mockMvc.perform(get("/admin/firmware/objects")
-                .param("page_size", "25").param("page_token", "next").accept(MediaType.APPLICATION_JSON))
+                .param("manufacturer", "Acme").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.next_page_token").value("more"))
                 .andExpect(jsonPath("$.objects[0].updated_at").value("2026-09-10T18:00:00Z"))
                 .andExpect(jsonPath("$.container").doesNotExist());
+        verify(firmwareObjectService).list("Acme");
     }
 
     @Test
@@ -93,7 +125,7 @@ class AdminFirmwareControllerTest {
     void rejectsObjectListingForNonAdmins() throws Exception {
         mockMvc.perform(get("/admin/firmware/objects")
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
-        verify(firmwareObjectService, never()).list(any(Integer.class), any());
+        verify(firmwareObjectService, never()).list(any());
     }
 
     @Test
