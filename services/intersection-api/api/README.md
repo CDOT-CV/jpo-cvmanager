@@ -199,6 +199,7 @@ bucket-scoped permissions:
 - `storage.objects.create` to authorize signed uploads.
 - `storage.objects.get` to reject an occupied destination before signing and
   to verify metadata after an upload.
+- `storage.objects.list` to display current bucket objects in the Admin Firmware table.
 - The ADC identity needs object-metadata permission on the bucket.
 
 No bucket-creation or bucket-listing permission is used by this workflow.
@@ -244,6 +245,25 @@ gcloud storage buckets update gs://your-existing-bucket --cors-file=cors-local.j
 
 `--cors-file` replaces the bucket's existing CORS configuration. Preserve any
 rules required by deployed webapp origins when adding the localhost rule.
+
+### Browsing firmware files
+
+The Admin Firmware page lists the configured bucket through
+`GET /admin/firmware/objects?page_size=100`. This endpoint requires the same
+ADMIN/superuser permission as uploading. Pass the returned `next_page_token` as
+`page_token` to fetch another page; page sizes are limited to 1–200 objects.
+It never lists buckets or permits the client to choose another bucket.
+
+The table groups object paths on each page and supports file selection, refresh,
+and previous/next navigation. Objects with unexpected paths are also included.
+`VERIFIED` means the current object version, size, and checksum match recorded
+verification evidence; `CHANGED` means an object at a previously verified path
+no longer matches. `UNVERIFIED` objects have an unsuccessful/pending upload record,
+and `UNTRACKED` objects have no matching upload record. Neither listing nor
+selecting a file verifies it. Listing reports only objects present in storage.
+
+The existing upload form remains accessible from **Upload firmware**. The upload
+dialog redesign and deletion actions are separate increments.
 
 ### Upload lifecycle
 
