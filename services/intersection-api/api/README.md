@@ -155,19 +155,19 @@ be added without changing its API or lifecycle.
 Only the bucket and usable Google credentials are required to enable GCS. All
 other settings have workable defaults.
 
-| Environment variable | Required | Default | Purpose |
-| --- | --- | --- | --- |
-| `OBJECT_STORAGE_PROVIDER` | No | `gcp` | Selects the object-storage implementation. |
-| `OBJECT_STORAGE_GCP_BUCKET_NAME` | For GCS | Empty | Existing firmware bucket. When empty, the API starts but storage requests return `503`. |
-| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION` | No | `15m` | Lifetime of a signed upload URL. |
-| `OBJECT_STORAGE_MAX_UPLOAD_SIZE` | No | `1GB` | Maximum declared upload size. |
-| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Only for keyless signing | Empty | Service-account email used when ADC cannot sign directly. Do not set this when using a service-account key. |
-| `GOOGLE_APPLICATION_CREDENTIALS` | For a host-run API without another ADC source | ADC lookup | Path to a service-account JSON file. |
-| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH` | For local Compose with GCS | `./resources/google/sample_gcp_service_account.json` | Host credential file mounted into the container. The default file contains no credentials. |
-| `FIRMWARE_UPLOAD_CLEANUP_ENABLED` | No | `true` | Enables upload-record cleanup. |
-| `FIRMWARE_UPLOAD_CLEANUP_INTERVAL` | No | `1h` | Delay between cleanup runs. |
-| `FIRMWARE_UPLOAD_EXPIRATION_GRACE` | No | `1h` | Grace period before an expired `PENDING` upload becomes `EXPIRED`. |
-| `FIRMWARE_UPLOAD_RETENTION` | No | `30d` | Retention period for `FAILED` and `EXPIRED` records. |
+| Environment variable                         | Required                                      | Default                                              | Purpose                                                                                                     |
+| -------------------------------------------- | --------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `OBJECT_STORAGE_PROVIDER`                    | No                                            | `gcp`                                                | Selects the object-storage implementation.                                                                  |
+| `OBJECT_STORAGE_GCP_BUCKET_NAME`             | For GCS                                       | Empty                                                | Existing firmware bucket. When empty, the API starts but storage requests return `503`.                     |
+| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION`       | No                                            | `15m`                                                | Lifetime of a signed upload URL.                                                                            |
+| `OBJECT_STORAGE_MAX_UPLOAD_SIZE`             | No                                            | `1GB`                                                | Maximum declared upload size.                                                                               |
+| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Only for keyless signing                      | Empty                                                | Service-account email used when ADC cannot sign directly. Do not set this when using a service-account key. |
+| `GOOGLE_APPLICATION_CREDENTIALS`             | For a host-run API without another ADC source | ADC lookup                                           | Path to a service-account JSON file.                                                                        |
+| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`   | For local Compose with GCS                    | `./resources/google/sample_gcp_service_account.json` | Host credential file mounted into the container. The default file contains no credentials.                  |
+| `FIRMWARE_UPLOAD_CLEANUP_ENABLED`            | No                                            | `true`                                               | Enables upload-record cleanup.                                                                              |
+| `FIRMWARE_UPLOAD_CLEANUP_INTERVAL`           | No                                            | `1h`                                                 | Delay between cleanup runs.                                                                                 |
+| `FIRMWARE_UPLOAD_EXPIRATION_GRACE`           | No                                            | `1h`                                                 | Grace period before an expired `PENDING` upload becomes `EXPIRED`.                                          |
+| `FIRMWARE_UPLOAD_RETENTION`                  | No                                            | `30d`                                                | Retention period for `FAILED` and `EXPIRED` records.                                                        |
 
 For local Compose, add the following to the root `.env`:
 
@@ -216,8 +216,6 @@ webapp origins.
   model choices come from PostgreSQL, version is user-entered, and the required
   extension is configured on the manufacturer. The selected source file must
   have that extension.
-- The migration configures Commsignia for `.tar.sig` and Yunex for `.tar`.
-  Uploads remain unavailable for a manufacturer until its extension is configured.
 - One active or verified upload is allowed per RSU model and version. Different
   models may use the same version.
 - Signed uploads are create-only and never overwrite an existing object.
