@@ -185,9 +185,10 @@ The API identity needs the following bucket-scoped permissions:
 - `storage.objects.create`
 - `storage.objects.get`
 - `storage.objects.list`
+- `storage.objects.delete` (required for admin deletion)
 
 The application uses one existing configured bucket. It does not create or list
-buckets, and it does not currently delete objects.
+buckets.
 
 The browser uploads directly to GCS, so the bucket must allow the webapp origin
 and signed upload headers. A local development CORS rule is:
@@ -227,8 +228,15 @@ webapp origins.
   Listing an object does not verify it.
 - Cleanup marks stale uploads `EXPIRED` and removes retained `FAILED` and
   `EXPIRED` records. It never deletes cloud objects or verified records.
+- Admin deletion removes the selected cloud object, its upload/image records,
+  and rules involving that image. It rejects deletion while any matching signed
+  URL is valid or the image is referenced by an RSU's current/target version or
+  upgrade failure history. The `ota/` hierarchy cannot be deleted through this API.
+- Deletion requires the object version returned by the listing. If the file has
+  changed, refresh and confirm again. Database changes roll back on storage
+  failure; retrying deletion also handles an already-absent cloud object.
 
-### Manual recovery
+### Recovery
 
 If object upload succeeds but completion is interrupted, retry:
 
@@ -236,19 +244,19 @@ If object upload succeeds but completion is interrupted, retry:
 POST /admin/firmware/uploads/{uploadId}/complete
 ```
 
-An abandoned or invalid object can block another upload to the same path. Until
-an admin deletion API is available:
+An abandoned or invalid object can block another upload to the same path. Once
+its signed URL expires, use the Firmware table's delete action and retry the
+upload. The corresponding API call is:
 
-1. Confirm that the matching upload is not `VERIFIED`.
-2. Retry completion once.
-3. Wait for the signed URL to expire. For `PENDING` uploads, also wait for
-   cleanup to mark the record `EXPIRED`.
-4. Delete the invalid object using a separate administrative identity with
-   `storage.objects.delete`.
-5. Submit a new upload request.
-
-```powershell
-gcloud storage rm gs://your-existing-bucket/manufacturer/model/version/file_name
+```text
+DELETE /admin/firmware/objects/{objectId}?provider_object_version={listedVersion}
 ```
 
-Never manually delete a `VERIFIED` firmware object.
+Use `object_id` and `provider_object_version` from the listing. A successful
+delete returns `204`; conflicts return `409`. If a deletion response is lost,
+retry the same request to finish database cleanup. Cloud deletion and the
+database commit are separate operations, so the file may already be absent.
+
+GCS retention and soft-delete policies still apply. Avoid deleting verified
+firmware directly in the cloud console, which bypasses reference checks and
+database cleanup.
