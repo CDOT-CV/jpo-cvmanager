@@ -42,8 +42,8 @@ import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
