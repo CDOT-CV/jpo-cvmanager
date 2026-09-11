@@ -6,6 +6,7 @@ import AdminTable from '../../components/AdminTable'
 import { FirmwareObject } from '../../models/Firmware'
 import { useGetFirmwareUploadOptionsQuery, useLazyListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
+import { formatFileSize } from './firmwareUpload'
 import '../adminRsuTab/Admin.css'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -123,7 +124,7 @@ const AdminFirmwareTab = () => {
       field: 'content_length',
       sorting: false,
       headerStyle: HEADER_STYLE,
-      render: (object) => `${object.content_length.toLocaleString()} bytes`,
+      render: (object) => formatFileSize(object.content_length),
     },
     {
       title: 'Last Modified',

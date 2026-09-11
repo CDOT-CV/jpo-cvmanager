@@ -9,14 +9,18 @@ import FirmwareUploadForm from './FirmwareUploadForm'
 import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
 import toast from 'react-hot-toast'
 
-vi.mock('./firmwareUpload', () => ({
-  calculateFileChecksum: vi.fn().mockResolvedValue('4waSgw=='),
-  uploadFileToSignedUrl: vi.fn((_file, _instructions, onProgress) => {
-    onProgress(50)
-    onProgress(100)
-    return Promise.resolve()
-  }),
-}))
+vi.mock('./firmwareUpload', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./firmwareUpload')>()
+  return {
+    ...actual,
+    calculateFileChecksum: vi.fn().mockResolvedValue('4waSgw=='),
+    uploadFileToSignedUrl: vi.fn((_file, _instructions, onProgress) => {
+      onProgress(50)
+      onProgress(100)
+      return Promise.resolve()
+    }),
+  }
+})
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn() },
 }))
@@ -156,13 +160,36 @@ describe('FirmwareUploadForm', () => {
     await chooseSelectOption('Manufacturer', 'Kapsch')
 
     expect(screen.getByRole('combobox', { name: 'Model' })).not.toHaveTextContent('ITS-RS4-S')
-    expect(screen.getByText('Firmware uploads are not configured for this manufacturer.')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Firmware uploads are not configured for this manufacturer.')
     expect(screen.queryByLabelText(/Stored File Name/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Checksum Algorithm/)).not.toBeInTheDocument()
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Model' }))
     expect(await screen.findByRole('option', { name: 'RIS-9260' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'ITS-RS4-S' })).not.toBeInTheDocument()
+  })
+
+  it('limits file selection to the extension configured for the selected manufacturer', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
+    renderTab()
+
+    await screen.findByRole('combobox', { name: 'Manufacturer' })
+    expect(screen.getByRole('button', { name: 'Choose File' })).toHaveAttribute('aria-disabled', 'true')
+
+    await chooseSelectOption('Manufacturer', 'Commsignia')
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    expect(screen.getByRole('button', { name: 'Choose File' })).not.toHaveAttribute('aria-disabled')
+    expect(fileInput).toHaveAttribute('accept', '.tar.sig')
+    expect(fileInput).toBeEnabled()
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['firmware'], 'firmware.tar.sig', { type: 'application/octet-stream' })] },
+    })
+    expect(screen.getByText(/firmware\.tar\.sig/)).toBeInTheDocument()
+
+    await chooseSelectOption('Manufacturer', 'Kapsch')
+    expect(screen.getByRole('button', { name: 'Choose File' })).toHaveAttribute('aria-disabled', 'true')
+    expect(document.querySelector('input[type="file"]')).toBeDisabled()
+    expect(screen.getByText('No file selected')).toBeInTheDocument()
   })
 
   it('rejects a file that does not match the manufacturer extension', async () => {
@@ -180,6 +207,25 @@ describe('FirmwareUploadForm', () => {
       'The selected file must use the .tar.sig extension for Commsignia.'
     )
     expect(calculateFileChecksum).not.toHaveBeenCalled()
+  })
+
+  it('uses field-level required validation while retaining the custom missing-file error', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
+    renderTab()
+
+    await screen.findByRole('combobox', { name: 'Manufacturer' })
+    expect(document.querySelectorAll('input:required')).toHaveLength(3)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(calculateFileChecksum).not.toHaveBeenCalled()
+
+    await chooseSelectOption('Manufacturer', 'Commsignia')
+    await chooseSelectOption('Model', 'ITS-RS4-M')
+    fireEvent.change(screen.getByLabelText(/Version/), { target: { value: 'y20.97.0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please choose a firmware file.')
   })
 
   it('shows an error and disables submission when upload options cannot be loaded', async () => {

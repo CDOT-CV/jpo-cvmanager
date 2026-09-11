@@ -25,7 +25,7 @@ import {
   useCreateFirmwareUploadUrlMutation,
   useGetFirmwareUploadOptionsQuery,
 } from '../api/firmwareApiSlice'
-import { calculateFileChecksum, uploadFileToSignedUrl } from './firmwareUpload'
+import { calculateFileChecksum, formatFileSize, uploadFileToSignedUrl } from './firmwareUpload'
 
 const DEFAULT_CHECKSUM_ALGORITHM: ChecksumAlgorithm = 'CRC32C'
 const SAFE_FILE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
@@ -163,7 +163,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
     <Dialog open={open} onClose={closeDialog}>
       <DialogContent sx={{ width: '600px', padding: '5px 10px' }}>
         <SideBarHeader onClick={closeDialog} title="Add Firmware" />
-        <Box id="add-firmware-form" component="form" onSubmit={submitUpload} noValidate>
+        <Box id="add-firmware-form" component="form" onSubmit={submitUpload}>
           <Stack spacing={2.5}>
             <Typography color="text.secondary">
               Upload a firmware artifact directly to object storage and verify it with the firmware API.
@@ -171,12 +171,17 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
             <FormControl required disabled={isWorking || isLoadingOptions || isOptionsError || !hasUploadOptions}>
               <InputLabel id="firmware-manufacturer-label">Manufacturer</InputLabel>
               <Select
+                required
                 labelId="firmware-manufacturer-label"
                 label="Manufacturer"
                 value={vendorName}
                 onChange={(event) => {
                   setVendorName(event.target.value)
                   setModelName('')
+                  setFile(null)
+                  setErrorMessage('')
+                  setProgress(0)
+                  setStage('idle')
                 }}
               >
                 {uploadOptions?.manufacturers.map((manufacturer) => (
@@ -190,14 +195,24 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 <FormHelperText>No RSU manufacturers with models are available.</FormHelperText>
               )}
               {selectedManufacturer && !selectedManufacturer.file_extension && (
-                <FormHelperText error sx={{ color: 'error.light', fontWeight: 600 }}>
+                <Alert
+                  severity="error"
+                  variant="outlined"
+                  sx={{
+                    mt: 1,
+                    color: 'error.light',
+                    borderColor: 'error.light',
+                    '& .MuiAlert-icon': { color: 'error.light' },
+                  }}
+                >
                   Firmware uploads are not configured for this manufacturer.
-                </FormHelperText>
+                </Alert>
               )}
             </FormControl>
             <FormControl required disabled={isWorking || !selectedManufacturer}>
               <InputLabel id="firmware-model-label">Model</InputLabel>
               <Select
+                required
                 labelId="firmware-model-label"
                 label="Model"
                 value={modelName}
@@ -220,12 +235,25 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
               inputProps={{ maxLength: 128 }}
             />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-              <Button component="label" variant="outlined" color="info" startIcon={<Upload />} disabled={isWorking}>
+              <Button
+                component="label"
+                variant="outlined"
+                color="info"
+                startIcon={<Upload />}
+                disabled={isWorking || !selectedManufacturer?.file_extension}
+              >
                 Choose File
-                <input hidden type="file" onChange={selectFile} />
+                <input
+                  key={vendorName}
+                  hidden
+                  type="file"
+                  accept={selectedManufacturer?.file_extension}
+                  disabled={isWorking || !selectedManufacturer?.file_extension}
+                  onChange={selectFile}
+                />
               </Button>
               <Typography color={file ? 'text.primary' : 'text.secondary'}>
-                {file ? `${file.name} (${file.size.toLocaleString()} bytes)` : 'No file selected'}
+                {file ? `${file.name} (${formatFileSize(file.size)})` : 'No file selected'}
               </Typography>
             </Stack>
             {selectedManufacturer?.file_extension && (

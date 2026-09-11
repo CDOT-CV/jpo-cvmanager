@@ -2,6 +2,8 @@ import { ChecksumAlgorithm, FirmwareUploadUrl } from '../../models/Firmware'
 
 const CRC32C_POLYNOMIAL = 0x82f63b78
 const CHECKSUM_CHUNK_SIZE = 4 * 1024 * 1024
+const FILE_SIZE_BASE = 1024
+const FILE_SIZE_UNITS = ['bytes', 'KB', 'MB', 'GB'] as const
 
 const crc32cTable = new Uint32Array(256)
 for (let tableIndex = 0; tableIndex < crc32cTable.length; tableIndex++) {
@@ -48,6 +50,16 @@ export const getObjectStorageUploadError = (status: number) => {
     )
   }
   return new Error(`Object storage rejected the file upload (HTTP ${status}).`)
+}
+
+export const formatFileSize = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes < 0) return ''
+  if (bytes < FILE_SIZE_BASE) return `${bytes.toLocaleString()} ${bytes === 1 ? 'byte' : 'bytes'}`
+
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(FILE_SIZE_BASE)), FILE_SIZE_UNITS.length - 1)
+  const value = bytes / FILE_SIZE_BASE ** unitIndex
+  const formattedValue = value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+  return `${formattedValue} ${FILE_SIZE_UNITS[unitIndex]}`
 }
 
 // This dispatch point keeps checksum selection outside the form and leaves room

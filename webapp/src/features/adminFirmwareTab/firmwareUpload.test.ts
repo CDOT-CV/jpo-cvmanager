@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, vi } from 'vitest'
 import { FirmwareUploadUrl } from '../../models/Firmware'
-import { calculateFileChecksum, getObjectStorageUploadError, uploadFileToSignedUrl } from './firmwareUpload'
+import {
+  calculateFileChecksum,
+  formatFileSize,
+  getObjectStorageUploadError,
+  uploadFileToSignedUrl,
+} from './firmwareUpload'
 
 class FakeXMLHttpRequest {
   static instances: FakeXMLHttpRequest[] = []
@@ -71,6 +76,19 @@ describe('getObjectStorageUploadError', () => {
 
   it('retains the status for other object-storage failures', () => {
     expect(getObjectStorageUploadError(503).message).toBe('Object storage rejected the file upload (HTTP 503).')
+  })
+})
+
+describe('formatFileSize', () => {
+  it.each([
+    [0, '0 bytes'],
+    [1, '1 byte'],
+    [1024, '1 KB'],
+    [1536, '1.5 KB'],
+    [1024 ** 2, '1 MB'],
+    [1024 ** 3, '1 GB'],
+  ])('formats %s bytes as %s', (bytes, expected) => {
+    expect(formatFileSize(bytes)).toBe(expected)
   })
 })
 
