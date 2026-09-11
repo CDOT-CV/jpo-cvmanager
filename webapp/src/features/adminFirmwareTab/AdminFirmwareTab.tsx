@@ -74,21 +74,12 @@ const AdminFirmwareTab = () => {
           pageTokens.current.delete(query.page + 1)
         }
 
-        const normalizedSearch = query.search.trim().toLowerCase()
-        const objects = normalizedSearch
-          ? result.objects.filter((object) =>
-              [object.manufacturer, object.model, object.version, object.object_name].some((value) =>
-                value?.toLowerCase().includes(normalizedSearch)
-              )
-            )
-          : result.objects
-
         return {
-          data: objects,
+          data: result.objects,
           page: query.page,
           totalCount: result.next_page_token
             ? (query.page + 1) * query.pageSize + 1
-            : query.page * query.pageSize + objects.length,
+            : query.page * query.pageSize + result.objects.length,
         }
       } catch (error) {
         console.error('Failed to fetch firmware:', error)
@@ -207,6 +198,7 @@ const AdminFirmwareTab = () => {
         defaultPageSize={DEFAULT_PAGE_SIZE}
         handleQueryChange={handleQueryChange}
         isLoading={isRefreshing}
+        search={false}
         selection={false}
         tableRef={tableRef}
         title=""

@@ -24,6 +24,7 @@ interface AdminTableProps {
   selection?: boolean
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
+  search?: boolean
   // Server-side pagination props
   handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
@@ -165,7 +166,7 @@ const AdminTable = (props: AdminTableProps) => {
           pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
-          search: true, // Enable search UI; search term is passed to handleQueryChange for server-side filtering
+          search: props.search ?? true,
           debounceInterval: 500,
         }}
         components={{

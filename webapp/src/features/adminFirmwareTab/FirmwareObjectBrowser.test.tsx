@@ -63,14 +63,14 @@ describe('Firmware object browser', () => {
     } as any)
   })
 
-  it('uses the standard admin table toolbar and displays one firmware per row', async () => {
+  it('uses the standard admin table toolbar without page-local search', async () => {
     render(<AdminFirmwareTab />)
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toHaveStyle({ textTransform: 'none' })
     expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument()
