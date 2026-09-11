@@ -143,6 +143,21 @@ class FirmwareUploadRepositoryTest {
     }
 
     @Test
+    void listingSelectsVerifiedEvidenceAheadOfNewerFailedAttemptsAndScopesContainer() {
+        String name = "vendor/model/v1/listed.bin";
+        var verified = repository.saveAndFlush(newUpload(FirmwareUploadStatus.VERIFIED, NOW, NOW, name));
+        var failed = newUpload(FirmwareUploadStatus.FAILED, NOW, NOW, name);
+        failed.setCreatedAt(NOW);
+        repository.saveAndFlush(failed);
+        var elsewhere = newUpload(FirmwareUploadStatus.PENDING, NOW, null, name);
+        elsewhere.setStorageContainer("other-bucket");
+        repository.saveAndFlush(elsewhere);
+        entityManager.clear();
+        var result = repository.findListingUploads("gcp", "firmware-bucket", List.of(name));
+        assertThat(result).extracting(FirmwareUpload::getId).containsExactly(verified.getId());
+    }
+
+    @Test
     void allowsDestinationRetryAfterFailedUpload() {
         String objectName = "vendor/model/v1/retry.bin";
         repository.saveAndFlush(newUpload(
