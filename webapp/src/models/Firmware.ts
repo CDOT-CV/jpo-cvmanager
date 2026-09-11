@@ -3,6 +3,10 @@ export type ChecksumAlgorithm = string
 export type FirmwareObject = {
   object_id: string
   object_name: string
+  manufacturer: string | null
+  model: string | null
+  version: string | null
+  file_name: string
   content_length: number
   updated_at: string | number | null
   provider_object_version: string | null
@@ -15,6 +19,7 @@ export type FirmwareObject = {
 export type FirmwareObjectPage = {
   provider: string
   objects: FirmwareObject[]
+  next_page_token: string | null
 }
 
 export type FirmwareUploadModelOption = {

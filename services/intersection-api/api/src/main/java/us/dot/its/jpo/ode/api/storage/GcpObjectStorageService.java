@@ -68,7 +68,6 @@ public class GcpObjectStorageService implements ObjectStorageService {
             var options = new ArrayList<Storage.BlobListOption>();
             options.add(Storage.BlobListOption.pageSize(request.pageSize()));
             if (StringUtils.hasText(request.prefix())) options.add(Storage.BlobListOption.prefix(request.prefix()));
-            if (!request.recursive()) options.add(Storage.BlobListOption.currentDirectory());
             if (StringUtils.hasText(request.pageToken())) {
                 options.add(Storage.BlobListOption.pageToken(request.pageToken()));
             }

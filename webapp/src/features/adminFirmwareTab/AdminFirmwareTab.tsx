@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react'
+import { useState } from 'react'
 import {
   alpha,
   Alert,
@@ -6,8 +6,11 @@ import {
   Button,
   Chip,
   CircularProgress,
-  IconButton,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -15,51 +18,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
   useTheme,
 } from '@mui/material'
-import { AddCircleOutline, KeyboardArrowDown, KeyboardArrowRight, Refresh } from '@mui/icons-material'
-import { useLazyListFirmwareObjectsQuery, useListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
-import { FirmwareObject } from '../../models/Firmware'
+import { AddCircleOutline, Refresh } from '@mui/icons-material'
+import { useGetFirmwareUploadOptionsQuery, useListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import '../adminRsuTab/Admin.css'
 
-type TreeNode = {
-  path: string
-  label: string
-  children: Map<string, TreeNode>
-  object?: FirmwareObject
-  directory?: boolean
-}
-
-function buildTree(objects: FirmwareObject[]) {
-  const root: TreeNode = { path: '', label: '', children: new Map() }
-
-  for (const object of objects) {
-    let node = root
-
-    const pathSegments = object.object_name.split('/').filter((part) => part.length > 0)
-    pathSegments.forEach((part) => {
-      const path = node.path ? `${node.path}/${part}` : part
-      if (!node.children.has(part))
-        node.children.set(part, {
-          path,
-          label: part,
-          children: new Map(),
-        })
-      node = node.children.get(part)!
-    })
-
-    // GCS may return zero-byte directory marker objects whose names end in '/'.
-    // They define the folder structure but are not selectable firmware files.
-    if (pathSegments.length > 0) {
-      if (object.object_name.endsWith('/')) node.directory = true
-      else node.object = object
-    }
-  }
-
-  return root
-}
+const PAGE_SIZE = 100
 
 const formatUpdatedAt = (value: string | number | null | undefined) => {
   if (value == null) return '—'
@@ -67,13 +35,18 @@ const formatUpdatedAt = (value: string | number | null | undefined) => {
   return new Date(timestamp).toLocaleString()
 }
 
+const verificationLabel = {
+  VERIFIED: 'Verified',
+  UNVERIFIED: 'Unverified',
+  UNTRACKED: 'Untracked',
+  CHANGED: 'Object changed',
+}
+
 const AdminFirmwareTab = () => {
   const theme = useTheme()
-  const [closed, setClosed] = useState<Set<string>>(new Set())
-  const [expandedManufacturers, setExpandedManufacturers] = useState<Set<string>>(new Set())
-  const [manufacturerObjects, setManufacturerObjects] = useState<Record<string, FirmwareObject[]>>({})
-  const [loadingManufacturers, setLoadingManufacturers] = useState<Set<string>>(new Set())
-  const [manufacturerErrors, setManufacturerErrors] = useState<Set<string>>(new Set())
+  const [tokens, setTokens] = useState<(string | undefined)[]>([undefined])
+  const [manufacturer, setManufacturer] = useState('')
+  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string>()
   const [showUpload, setShowUpload] = useState(false)
 
@@ -82,136 +55,31 @@ const AdminFirmwareTab = () => {
     isFetching,
     error,
     refetch,
-  } = useListFirmwareObjectsQuery({}, { refetchOnMountOrArgChange: true })
-  const [loadManufacturer] = useLazyListFirmwareObjectsQuery()
-  const objects = [...(data?.objects ?? []), ...Object.values(manufacturerObjects).flat()]
-  const selectedObject = objects.find((object) => object.object_id === selected)
+  } = useListFirmwareObjectsQuery(
+    {
+      page_size: PAGE_SIZE,
+      page_token: tokens[tokens.length - 1],
+      manufacturer: manufacturer || undefined,
+    },
+    { refetchOnMountOrArgChange: true }
+  )
+  const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
 
-  const toggleFolder = (path: string) => {
-    setClosed((previous) => {
-      const next = new Set(previous)
-      if (next.has(path)) next.delete(path)
-      else next.add(path)
-      return next
-    })
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleObjects =
+    data?.objects.filter((object) => {
+      if (!normalizedSearch) return true
+      return [object.manufacturer, object.model, object.version, object.file_name, object.object_name].some((value) =>
+        value?.toLowerCase().includes(normalizedSearch)
+      )
+    }) ?? []
+  const selectedObject = data?.objects.find((object) => object.object_id === selected)
+
+  const resetListing = () => {
+    setSelected(undefined)
+    setTokens([undefined])
+    if (tokens.length === 1) refetch()
   }
-
-  const toggleManufacturer = async (manufacturer: string) => {
-    if (expandedManufacturers.has(manufacturer)) {
-      setExpandedManufacturers((previous) => {
-        const next = new Set(previous)
-        next.delete(manufacturer)
-        return next
-      })
-      return
-    }
-
-    setExpandedManufacturers((previous) => new Set(previous).add(manufacturer))
-    if (manufacturerObjects[manufacturer] || loadingManufacturers.has(manufacturer)) return
-
-    setLoadingManufacturers((previous) => new Set(previous).add(manufacturer))
-    setManufacturerErrors((previous) => {
-      const next = new Set(previous)
-      next.delete(manufacturer)
-      return next
-    })
-
-    try {
-      const result = await loadManufacturer({ manufacturer }).unwrap()
-      setManufacturerObjects((previous) => ({ ...previous, [manufacturer]: result.objects }))
-    } catch {
-      setManufacturerErrors((previous) => new Set(previous).add(manufacturer))
-    } finally {
-      setLoadingManufacturers((previous) => {
-        const next = new Set(previous)
-        next.delete(manufacturer)
-        return next
-      })
-    }
-  }
-
-  const resetManufacturerListings = () => {
-    setExpandedManufacturers(new Set())
-    setManufacturerObjects({})
-    setLoadingManufacturers(new Set())
-    setManufacturerErrors(new Set())
-    setClosed(new Set())
-  }
-
-  const rows = (node: TreeNode, depth = 0): ReactNode[] =>
-    [...node.children.values()].flatMap((child) => {
-      const object = child.object
-      const isManufacturer = depth === 0 && child.directory
-      const canExpand = child.children.size > 0 || isManufacturer
-      const isExpanded = isManufacturer ? expandedManufacturers.has(child.path) : !closed.has(child.path)
-
-      return [
-        <TableRow key={child.path} hover selected={!!object && selected === object.object_id}>
-          <TableCell sx={{ overflowWrap: 'anywhere' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: depth * 3 }}>
-              {canExpand ? (
-                <IconButton
-                  size="small"
-                  aria-label={`Toggle ${child.path}`}
-                  aria-expanded={isExpanded}
-                  disabled={loadingManufacturers.has(child.path)}
-                  onClick={() => {
-                    if (isManufacturer) void toggleManufacturer(child.path)
-                    else toggleFolder(child.path)
-                  }}
-                  sx={{ width: 32, height: 32, mr: 0.5 }}
-                >
-                  {loadingManufacturers.has(child.path) ? (
-                    <CircularProgress size={18} />
-                  ) : isExpanded ? (
-                    <KeyboardArrowDown />
-                  ) : (
-                    <KeyboardArrowRight />
-                  )}
-                </IconButton>
-              ) : (
-                <Box sx={{ width: 32, mr: 0.5, flexShrink: 0 }} />
-              )}
-              {object ? (
-                <Button
-                  sx={{
-                    minWidth: 0,
-                    p: 0,
-                    textTransform: 'none',
-                    textAlign: 'left',
-                    overflowWrap: 'anywhere',
-                  }}
-                  onClick={() => setSelected(object.object_id)}
-                >
-                  {child.label}
-                </Button>
-              ) : (
-                child.label
-              )}
-            </Box>
-          </TableCell>
-          <TableCell>{object ? `${object.content_length.toLocaleString()} bytes` : null}</TableCell>
-          <TableCell>{object ? formatUpdatedAt(object.updated_at) : null}</TableCell>
-          <TableCell>
-            {object && (
-              <Chip
-                size="small"
-                label={
-                  {
-                    VERIFIED: 'Verified',
-                    UNVERIFIED: 'Unverified',
-                    UNTRACKED: 'Untracked',
-                    CHANGED: 'Object changed',
-                  }[object.verification_status]
-                }
-                color={object.verification_status === 'VERIFIED' ? 'success' : 'default'}
-              />
-            )}
-          </TableCell>
-        </TableRow>,
-        ...(isExpanded ? rows(child, depth + 1) : []),
-      ]
-    })
 
   return (
     <Stack spacing={2} className="scroll-div-tab">
@@ -225,12 +93,8 @@ const AdminFirmwareTab = () => {
           size="small"
           startIcon={<Refresh />}
           className="museo-slab capital-case"
-          disabled={isFetching || loadingManufacturers.size > 0}
-          onClick={() => {
-            setSelected(undefined)
-            resetManufacturerListings()
-            refetch()
-          }}
+          disabled={isFetching}
+          onClick={resetListing}
         >
           Refresh
         </Button>
@@ -245,12 +109,37 @@ const AdminFirmwareTab = () => {
         </Button>
       </Stack>
 
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+        <TextField
+          label="Search firmware"
+          size="small"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          sx={{ minWidth: 280 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 240 }} disabled={isFetchingOptions}>
+          <InputLabel id="firmware-filter-manufacturer-label">Manufacturer</InputLabel>
+          <Select
+            labelId="firmware-filter-manufacturer-label"
+            label="Manufacturer"
+            value={manufacturer}
+            onChange={(event) => {
+              setManufacturer(event.target.value)
+              setSelected(undefined)
+              setTokens([undefined])
+            }}
+          >
+            <MenuItem value="">All manufacturers</MenuItem>
+            {uploadOptions?.manufacturers.map((option) => (
+              <MenuItem key={option.manufacturer_id} value={option.name}>
+                {option.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Stack>
+
       {error && <Alert severity="error">Unable to load firmware files. Please try refreshing.</Alert>}
-      {manufacturerErrors.size > 0 && (
-        <Alert severity="error">
-          Unable to load {Array.from(manufacturerErrors).join(', ')}. Collapse and expand the manufacturer to retry.
-        </Alert>
-      )}
       {isFetching && (
         <Box role="status" aria-label="Loading firmware files">
           <CircularProgress size={24} />
@@ -263,7 +152,10 @@ const AdminFirmwareTab = () => {
             <Table aria-label="Firmware files">
               <TableHead>
                 <TableRow>
-                  <TableCell>Name</TableCell>
+                  <TableCell>Manufacturer</TableCell>
+                  <TableCell>Model</TableCell>
+                  <TableCell>Version</TableCell>
+                  <TableCell>File</TableCell>
                   <TableCell>Size</TableCell>
                   <TableCell>Last modified</TableCell>
                   <TableCell>Verification</TableCell>
@@ -284,14 +176,59 @@ const AdminFirmwareTab = () => {
                   },
                 }}
               >
-                {rows(buildTree(objects))}
+                {visibleObjects.map((object) => (
+                  <TableRow key={object.object_id} hover selected={selected === object.object_id}>
+                    <TableCell>{object.manufacturer ?? ''}</TableCell>
+                    <TableCell>{object.model ?? ''}</TableCell>
+                    <TableCell>{object.version ?? ''}</TableCell>
+                    <TableCell sx={{ overflowWrap: 'anywhere' }}>
+                      <Button
+                        sx={{ minWidth: 0, p: 0, textTransform: 'none', textAlign: 'left' }}
+                        onClick={() => setSelected(object.object_id)}
+                      >
+                        {object.file_name}
+                      </Button>
+                    </TableCell>
+                    <TableCell>{`${object.content_length.toLocaleString()} bytes`}</TableCell>
+                    <TableCell>{formatUpdatedAt(object.updated_at)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={verificationLabel[object.verification_status]}
+                        color={object.verification_status === 'VERIFIED' ? 'success' : 'default'}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
-            {data.objects.length === 0 && <Typography sx={{ p: 3 }}>No firmware folders were found.</Typography>}
+            {visibleObjects.length === 0 && <Typography sx={{ p: 3 }}>No matching firmware on this page.</Typography>}
           </TableContainer>
+
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Button
+              disabled={tokens.length === 1 || isFetching}
+              onClick={() => {
+                setSelected(undefined)
+                setTokens(tokens.slice(0, -1))
+              }}
+            >
+              Previous
+            </Button>
+            <Typography>Page {tokens.length}</Typography>
+            <Button
+              disabled={!data.next_page_token || isFetching}
+              onClick={() => {
+                setSelected(undefined)
+                setTokens([...tokens, data.next_page_token!])
+              }}
+            >
+              Next
+            </Button>
+          </Stack>
           <Typography variant="caption" color="text.secondary">
-            Expanding a manufacturer loads its complete firmware folder. Untracked files have no upload record;
-            changed objects no longer match their verified version.
+            Search filters the current page. Untracked files have no upload record; changed objects no longer match
+            their verified version.
           </Typography>
 
           {selectedObject && (
@@ -306,14 +243,14 @@ const AdminFirmwareTab = () => {
           )}
         </>
       )}
+
       {showUpload && (
         <FirmwareUploadForm
           open
           onClose={() => setShowUpload(false)}
           onSuccess={() => {
             setShowUpload(false)
-            setSelected(undefined)
-            resetManufacturerListings()
+            resetListing()
           }}
         />
       )}

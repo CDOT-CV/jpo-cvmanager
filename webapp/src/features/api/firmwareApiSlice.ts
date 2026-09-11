@@ -29,7 +29,10 @@ export const firmwareApiSlice = createApi({
     getFirmwareUploadOptions: builder.query<FirmwareUploadOptions, void>({
       query: () => 'upload-options',
     }),
-    listFirmwareObjects: builder.query<FirmwareObjectPage, { manufacturer?: string }>({
+    listFirmwareObjects: builder.query<
+      FirmwareObjectPage,
+      { page_token?: string; page_size?: number; manufacturer?: string }
+    >({
       query: (params) => ({ url: 'objects', params }),
       providesTags: ['FirmwareObjects'],
     }),
@@ -53,7 +56,6 @@ export const firmwareApiSlice = createApi({
 export const {
   useGetFirmwareUploadOptionsQuery,
   useListFirmwareObjectsQuery,
-  useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
   useCompleteFirmwareUploadMutation,
 } = firmwareApiSlice

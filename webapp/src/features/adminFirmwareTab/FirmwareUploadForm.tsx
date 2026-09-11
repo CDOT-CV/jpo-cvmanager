@@ -217,8 +217,6 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 {file ? `${file.name} (${file.size.toLocaleString()} bytes)` : 'No file selected'}
               </Typography>
             </Stack>
-            <TextField label="Checksum Algorithm" value={DEFAULT_CHECKSUM_ALGORITHM} disabled />
-
             {isOptionsError && (
               <ErrorMessageText role="alert">
                 Unable to load firmware manufacturers and models. Close and reopen this form to try again.

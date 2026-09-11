@@ -155,6 +155,7 @@ describe('FirmwareUploadForm', () => {
 
     expect(screen.getByRole('combobox', { name: 'Model' })).not.toHaveTextContent('ITS-RS4-S')
     expect(screen.queryByLabelText(/Stored File Name/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Checksum Algorithm/)).not.toBeInTheDocument()
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Model' }))
     expect(await screen.findByRole('option', { name: 'RIS-9260' })).toBeInTheDocument()

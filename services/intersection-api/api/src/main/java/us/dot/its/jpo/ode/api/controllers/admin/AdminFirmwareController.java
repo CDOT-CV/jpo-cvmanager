@@ -52,8 +52,10 @@ public class AdminFirmwareController {
     @GetMapping(value = "/objects", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public FirmwareObjectPage listObjects(
+            @RequestParam(name = "page_size", defaultValue = "100") int pageSize,
+            @RequestParam(name = "page_token", required = false) String pageToken,
             @RequestParam(name = "manufacturer", required = false) String manufacturer) {
-        return firmwareObjectService.list(manufacturer);
+        return firmwareObjectService.list(pageSize, pageToken, manufacturer);
     }
 
     @Operation(summary = "Create a signed firmware upload URL")

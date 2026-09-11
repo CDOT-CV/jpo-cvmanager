@@ -117,7 +117,7 @@ class GcpObjectStorageServiceTest {
         when(page.getValues()).thenReturn(java.util.List.of(blob));
         when(page.getNextPageToken()).thenReturn("next");
         when(storage.list(eq("firmware-bucket"), any(Storage.BlobListOption[].class))).thenReturn(page);
-        var result = service.listObjects(new ObjectListRequest("Commsignia/", true, 25, "previous"));
+        var result = service.listObjects(new ObjectListRequest("Commsignia/", 25, "previous"));
         assertThat(result.nextPageToken()).isEqualTo("next");
         assertThat(result.objects().getFirst().objectName()).isEqualTo("loose file.bin");
         assertThat(result.objects().getFirst().providerObjectVersion()).isEqualTo("17");
@@ -127,22 +127,19 @@ class GcpObjectStorageServiceTest {
     }
 
     @Test
-    void listsOnlyRootFoldersForManufacturerDiscovery() {
+    void listsOneUnfilteredPageWithoutDirectoryGrouping() {
         com.google.api.gax.paging.Page<Blob> page = mock(com.google.api.gax.paging.Page.class);
-        Blob folder = mock(Blob.class);
-        when(folder.getName()).thenReturn("Commsignia/");
-        when(folder.getSize()).thenReturn(null);
-        when(folder.getGeneration()).thenReturn(null);
-        when(page.getValues()).thenReturn(java.util.List.of(folder));
+        Blob blob = mock(Blob.class);
+        when(blob.getName()).thenReturn("Commsignia/model/version/file.bin");
+        when(blob.getSize()).thenReturn(9L);
+        when(page.getValues()).thenReturn(java.util.List.of(blob));
         when(storage.list(eq("firmware-bucket"), any(Storage.BlobListOption[].class))).thenReturn(page);
 
-        var result = service.listObjects(new ObjectListRequest(null, false, 200, null));
+        var result = service.listObjects(new ObjectListRequest(null, 200, null));
 
-        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(200),
-                Storage.BlobListOption.currentDirectory());
-        assertThat(result.objects().getFirst().objectName()).isEqualTo("Commsignia/");
-        assertThat(result.objects().getFirst().contentLength()).isZero();
-        assertThat(result.objects().getFirst().providerObjectVersion()).isNull();
+        verify(storage).list("firmware-bucket", Storage.BlobListOption.pageSize(200));
+        assertThat(result.objects().getFirst().objectName())
+                .isEqualTo("Commsignia/model/version/file.bin");
     }
 
     @Test

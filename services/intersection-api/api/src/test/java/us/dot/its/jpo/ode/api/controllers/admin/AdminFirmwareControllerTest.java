@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.controllers.admin;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -108,16 +109,24 @@ class AdminFirmwareControllerTest {
     @WithMockUser
     void listsObjectsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        when(firmwareObjectService.list("Acme")).thenReturn(
+        when(firmwareObjectService.list(25, "cursor", "Acme")).thenReturn(
                 new FirmwareObjectPage("gcp", List.of(
-                        new FirmwareObjectPage.Item("object-id", "vendor/model/version/file.bin", 42,
-                                Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null, "UNTRACKED"))));
+                        new FirmwareObjectPage.Item("object-id", "Acme/model/version/file.bin",
+                                "Acme", "model", "version", "file.bin", 42,
+                                Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null,
+                                "UNTRACKED")), "next"));
         mockMvc.perform(get("/admin/firmware/objects")
-                .param("manufacturer", "Acme").accept(MediaType.APPLICATION_JSON))
+                .param("page_size", "25")
+                .param("page_token", "cursor")
+                .param("manufacturer", "Acme")
+                .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.objects[0].manufacturer").value("Acme"))
+                .andExpect(jsonPath("$.objects[0].model").value("model"))
                 .andExpect(jsonPath("$.objects[0].updated_at").value("2026-09-10T18:00:00Z"))
+                .andExpect(jsonPath("$.next_page_token").value("next"))
                 .andExpect(jsonPath("$.container").doesNotExist());
-        verify(firmwareObjectService).list("Acme");
+        verify(firmwareObjectService).list(25, "cursor", "Acme");
     }
 
     @Test
@@ -125,7 +134,7 @@ class AdminFirmwareControllerTest {
     void rejectsObjectListingForNonAdmins() throws Exception {
         mockMvc.perform(get("/admin/firmware/objects")
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
-        verify(firmwareObjectService, never()).list(any());
+        verify(firmwareObjectService, never()).list(anyInt(), any(), any());
     }
 
     @Test

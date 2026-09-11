@@ -40,14 +40,20 @@ describe('firmwareApiSlice', () => {
     expect(request.headers.get('Authorization')).toBe('Bearer test-token')
   })
 
-  it('requests one complete manufacturer listing', async () => {
-    fetchMock.mockResponseOnce(JSON.stringify({ provider: 'gcp', objects: [] }))
+  it('requests one paginated manufacturer listing', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ provider: 'gcp', objects: [], next_page_token: null }))
     const store = setupStore(mockUserState)
 
-    await store.dispatch(firmwareApiSlice.endpoints.listFirmwareObjects.initiate({ manufacturer: 'Yunex' }))
+    await store.dispatch(
+      firmwareApiSlice.endpoints.listFirmwareObjects.initiate({
+        manufacturer: 'Yunex',
+        page_size: 25,
+        page_token: 'cursor',
+      })
+    )
 
     const request = fetchMock.mock.calls[0][0] as Request
-    expect(request.url).toBe(`${BASE_URL}/objects?manufacturer=Yunex`)
+    expect(request.url).toBe(`${BASE_URL}/objects?manufacturer=Yunex&page_size=25&page_token=cursor`)
     expect(request.method).toBe('GET')
   })
 
