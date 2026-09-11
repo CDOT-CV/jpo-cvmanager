@@ -55,7 +55,7 @@ export const firmwareApiSlice = createApi({
 
 export const {
   useGetFirmwareUploadOptionsQuery,
-  useListFirmwareObjectsQuery,
+  useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
   useCompleteFirmwareUploadMutation,
 } = firmwareApiSlice

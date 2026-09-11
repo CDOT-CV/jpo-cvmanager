@@ -193,6 +193,10 @@ const AdminTable = (props: AdminTableProps) => {
             const { action } = actionProps
             const iconProps = action?.iconProps
 
+            if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
+              return iconProps.render()
+            }
+
             if (iconProps?.itemType === 'displayIcon') {
               return (
                 <Box>

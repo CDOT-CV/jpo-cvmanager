@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useState } from 'react'
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -17,7 +18,6 @@ import {
 } from '@mui/material'
 import toast from 'react-hot-toast'
 import { Upload } from '../../icons/upload'
-import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
 import { ChecksumAlgorithm } from '../../models/Firmware'
 import {
@@ -190,7 +190,9 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 <FormHelperText>No RSU manufacturers with models are available.</FormHelperText>
               )}
               {selectedManufacturer && !selectedManufacturer.file_extension && (
-                <FormHelperText error>Firmware uploads are not configured for this manufacturer.</FormHelperText>
+                <FormHelperText error sx={{ color: 'error.light', fontWeight: 600 }}>
+                  Firmware uploads are not configured for this manufacturer.
+                </FormHelperText>
               )}
             </FormControl>
             <FormControl required disabled={isWorking || !selectedManufacturer}>
@@ -230,9 +232,13 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
               <FormHelperText>Required file extension: {selectedManufacturer.file_extension}</FormHelperText>
             )}
             {isOptionsError && (
-              <ErrorMessageText role="alert">
+              <Alert
+                severity="error"
+                variant="outlined"
+                sx={{ color: 'error.light', borderColor: 'error.light', '& .MuiAlert-icon': { color: 'error.light' } }}
+              >
                 Unable to load firmware manufacturers and models. Close and reopen this form to try again.
-              </ErrorMessageText>
+              </Alert>
             )}
 
             {(isWorking || stage === 'complete') && (
@@ -261,7 +267,15 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
               </Stack>
             )}
 
-            {errorMessage && <ErrorMessageText role="alert">{errorMessage}</ErrorMessageText>}
+            {errorMessage && (
+              <Alert
+                severity="error"
+                variant="outlined"
+                sx={{ color: 'error.light', borderColor: 'error.light', '& .MuiAlert-icon': { color: 'error.light' } }}
+              >
+                {errorMessage}
+              </Alert>
+            )}
           </Stack>
         </Box>
       </DialogContent>
