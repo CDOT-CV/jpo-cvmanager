@@ -2,11 +2,15 @@ package us.dot.its.jpo.ode.api.controllers.admin;
 
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,6 +30,7 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.FirmwareDeletionService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 
@@ -40,6 +45,16 @@ public class AdminFirmwareController {
     private final FirmwareUploadService firmwareUploadService;
     private final FirmwareObjectService firmwareObjectService;
     private final FirmwareUploadOptionsService firmwareUploadOptionsService;
+    private final FirmwareDeletionService firmwareDeletionService;
+
+    @Operation(summary = "Delete a firmware file and its upload, image, and upgrade-rule records")
+    @DeleteMapping("/objects/{objectId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    public void deleteObject(@PathVariable String objectId,
+            @RequestParam(name = "provider_object_version") @NotBlank String providerObjectVersion) {
+        firmwareDeletionService.delete(objectId, providerObjectVersion);
+    }
 
     @Operation(summary = "List valid manufacturer and model options for firmware uploads")
     @GetMapping(value = "/upload-options", produces = "application/json")

@@ -169,10 +169,7 @@ public class FirmwareUploadService {
     }
 
     private void markFailed(FirmwareUpload upload, String reason) {
-        upload.setStatus(FirmwareUploadStatus.FAILED);
-        upload.setFailureReason(reason);
-        upload.setFinishedAt(Instant.now());
-        firmwareUploadRepository.save(upload);
+        registration.markFailed(upload.getId(), reason);
     }
 
     private boolean isActiveDestinationConflict(Throwable exception) {

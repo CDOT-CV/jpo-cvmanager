@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.repositories;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
 import jakarta.persistence.LockModeType;
@@ -19,6 +20,15 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 
 @Repository
 public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select upload from FirmwareUpload upload
+            where upload.storageProvider = :provider and upload.storageContainer = :container
+              and upload.objectName = :name order by upload.id
+            """)
+    List<FirmwareUpload> findDestinationForUpdate(@Param("provider") String provider,
+            @Param("container") String container, @Param("name") String name);
+
     // Prefer verified evidence for each object, falling back to its newest upload
     // attempt when no verified record exists
     @Query(value = """

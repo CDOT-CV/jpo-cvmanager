@@ -4,9 +4,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -38,6 +40,8 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ManufacturerO
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ModelOption;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.FirmwareDeletionService;
+import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
@@ -45,6 +49,7 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "firmware-upload.cleanup.enabled=false")
@@ -79,6 +84,61 @@ class AdminFirmwareControllerTest {
 
     @MockitoBean
     private FirmwareUploadOptionsService firmwareUploadOptionsService;
+
+    @MockitoBean
+    private FirmwareDeletionService firmwareDeletionService;
+
+    @Test
+    @WithMockUser
+    void adminCanDeleteTheSelectedObjectVersion() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        mockMvc.perform(delete(
+                        "/admin/firmware/objects/object-id").param("provider_object_version", "17"))
+                .andExpect(status().isNoContent());
+        verify(firmwareDeletionService).delete("object-id", "17");
+    }
+
+    @Test
+    @WithMockUser
+    void rejectsDeletionForNonAdmins() throws Exception {
+        mockMvc.perform(delete(
+                        "/admin/firmware/objects/object-id").param("provider_object_version", "17"))
+                .andExpect(status().isForbidden());
+        verify(firmwareDeletionService, never()).delete(any(), any());
+    }
+
+    @Test
+    @WithMockUser
+    void deletionRequiresObjectVersion() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        mockMvc.perform(delete(
+                        "/admin/firmware/objects/object-id"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete(
+                        "/admin/firmware/objects/object-id").param("provider_object_version", " "))
+                .andExpect(status().isBadRequest());
+        verify(firmwareDeletionService, never()).delete(any(), any());
+    }
+
+    @Test
+    @WithMockUser
+    void deletionConflictsAndProviderFailuresHaveUsefulResponses() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        doThrow(new FirmwareDeletionConflictException("Firmware is in use"))
+                .doThrow(new ObjectStorageConflictException("Refresh the firmware table"))
+                .doThrow(new ObjectStorageUnavailableException("Storage is unavailable"))
+                .when(firmwareDeletionService).delete("object-id", "17");
+
+        mockMvc.perform(delete("/admin/firmware/objects/object-id")
+                        .accept(MediaType.APPLICATION_JSON).param("provider_object_version", "17"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Firmware is in use"));
+        mockMvc.perform(delete("/admin/firmware/objects/object-id")
+                        .accept(MediaType.APPLICATION_JSON).param("provider_object_version", "17"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Refresh the firmware table"));
+        mockMvc.perform(delete("/admin/firmware/objects/object-id")
+                        .accept(MediaType.APPLICATION_JSON).param("provider_object_version", "17"))
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.detail").value("Storage is unavailable"));
+    }
 
     @Test
     @WithMockUser
