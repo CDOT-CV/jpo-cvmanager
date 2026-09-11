@@ -36,8 +36,8 @@ import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 /**

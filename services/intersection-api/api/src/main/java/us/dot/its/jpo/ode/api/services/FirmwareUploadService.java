@@ -211,4 +211,20 @@ public class FirmwareUploadService {
         String normalized = createdBy.trim();
         return normalized.length() <= 255 ? normalized : normalized.substring(0, 255);
     }
+
+    public static class FirmwareVersionAlreadyExistsException extends RuntimeException {
+        public FirmwareVersionAlreadyExistsException(String message) {
+            super(message);
+        }
+
+        public FirmwareVersionAlreadyExistsException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class FirmwareUploadVerificationException extends RuntimeException {
+        public FirmwareUploadVerificationException(String message) {
+            super(message);
+        }
+    }
 }
