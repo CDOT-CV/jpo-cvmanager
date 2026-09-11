@@ -30,6 +30,7 @@ export type FirmwareUploadModelOption = {
 export type FirmwareUploadManufacturerOption = {
   manufacturer_id: number
   name: string
+  file_extension: string | null
   models: FirmwareUploadModelOption[]
 }
 

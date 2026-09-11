@@ -27,7 +27,7 @@ public interface FirmwareUploadMapper {
     @Mapping(target = "id", source = "uploadId")
     @Mapping(target = "model", source = "model")
     @Mapping(target = "version", source = "request.version", qualifiedByName = "trim")
-    @Mapping(target = "fileName", source = "request.fileName", qualifiedByName = "trim")
+    @Mapping(target = "fileName", source = "storedFileName")
     @Mapping(target = "contentType", source = "request.contentType", qualifiedByName = "trim")
     @Mapping(target = "storageProvider", source = "signedUrl.location.provider")
     @Mapping(target = "storageContainer", source = "signedUrl.location.container")
@@ -46,7 +46,7 @@ public interface FirmwareUploadMapper {
     @Mapping(target = "observedChecksum", ignore = true)
     FirmwareUpload toEntity(FirmwareUploadUrlRequest request, RsuModel model,
             SignedUploadUrl signedUrl, ObjectChecksum checksum, UUID uploadId,
-            String createdBy, Instant createdAt);
+            String createdBy, Instant createdAt, String storedFileName);
 
     @Named("trim")
     default String trim(String value) {

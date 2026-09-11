@@ -25,8 +25,8 @@ describe('Firmware object browser', () => {
     optionsQuery.mockReturnValue({
       data: {
         manufacturers: [
-          { manufacturer_id: 1, name: 'Commsignia', models: [] },
-          { manufacturer_id: 2, name: 'Kapsch', models: [] },
+          { manufacturer_id: 1, name: 'Commsignia', file_extension: '.tar.sig', models: [] },
+          { manufacturer_id: 2, name: 'Kapsch', file_extension: null, models: [] },
         ],
       },
       isFetching: false,
@@ -69,14 +69,15 @@ describe('Firmware object browser', () => {
 
     expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'file.bin' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'update.tar' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'File' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Search firmware'), { target: { value: 'RS4' } })
-    expect(screen.getByRole('button', { name: 'file.bin' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'update.tar' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'v2' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'file.bin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'v1' }))
     expect(screen.getByText('Commsignia/ITS-RS4-M/v1/file.bin')).toBeInTheDocument()
   })
 

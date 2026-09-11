@@ -102,8 +102,14 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
     if (!SAFE_FILE_COMPONENT.test(version.trim())) {
       return 'Version must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens.'
     }
+    if (!selectedManufacturer.file_extension) {
+      return `Firmware uploads are not configured for ${selectedManufacturer.name}.`
+    }
     if (file.name.length > 128 || !SAFE_FILE_COMPONENT.test(file.name)) {
       return 'File name must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens.'
+    }
+    if (!file.name.toLowerCase().endsWith(selectedManufacturer.file_extension.toLowerCase())) {
+      return `The selected file must use the ${selectedManufacturer.file_extension} extension for ${selectedManufacturer.name}.`
     }
     return null
   }
@@ -183,6 +189,9 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
               {!isLoadingOptions && !isOptionsError && !hasUploadOptions && (
                 <FormHelperText>No RSU manufacturers with models are available.</FormHelperText>
               )}
+              {selectedManufacturer && !selectedManufacturer.file_extension && (
+                <FormHelperText error>Firmware uploads are not configured for this manufacturer.</FormHelperText>
+              )}
             </FormControl>
             <FormControl required disabled={isWorking || !selectedManufacturer}>
               <InputLabel id="firmware-model-label">Model</InputLabel>
@@ -217,6 +226,9 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 {file ? `${file.name} (${file.size.toLocaleString()} bytes)` : 'No file selected'}
               </Typography>
             </Stack>
+            {selectedManufacturer?.file_extension && (
+              <FormHelperText>Required file extension: {selectedManufacturer.file_extension}</FormHelperText>
+            )}
             {isOptionsError && (
               <ErrorMessageText role="alert">
                 Unable to load firmware manufacturers and models. Close and reopen this form to try again.
@@ -268,7 +280,13 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
           type="submit"
           variant="contained"
           className="museo-slab capital-case"
-          disabled={isWorking || isLoadingOptions || isOptionsError || !hasUploadOptions}
+          disabled={
+            isWorking ||
+            isLoadingOptions ||
+            isOptionsError ||
+            !hasUploadOptions ||
+            Boolean(selectedManufacturer && !selectedManufacturer.file_extension)
+          }
         >
           {isWorking ? 'Uploading...' : 'Add Firmware'}
         </Button>

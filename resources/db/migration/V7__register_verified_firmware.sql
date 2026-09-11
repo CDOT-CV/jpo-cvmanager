@@ -1,5 +1,21 @@
 BEGIN;
 
+ALTER TABLE public.manufacturers
+    ADD COLUMN firmware_file_extension character varying(32);
+
+UPDATE public.manufacturers
+SET firmware_file_extension = CASE lower(name)
+    WHEN 'commsignia' THEN '.tar.sig'
+    WHEN 'yunex' THEN '.tar'
+END
+WHERE lower(name) IN ('commsignia', 'yunex');
+
+ALTER TABLE public.manufacturers
+    ADD CONSTRAINT manufacturers_firmware_file_extension_valid CHECK (
+        firmware_file_extension IS NULL
+        OR firmware_file_extension ~ '^\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*$'
+    );
+
 ALTER TABLE public.firmware_images
     DROP CONSTRAINT firmware_images_name,
     DROP CONSTRAINT firmware_images_install_package,
@@ -16,5 +32,7 @@ CREATE UNIQUE INDEX uq_firmware_uploads_active_model_version
 
 COMMENT ON COLUMN public.firmware_images.verified_upload_id IS
     'Upload supplying verification evidence and the exact storage location/version. NULL for legacy images.';
+COMMENT ON COLUMN public.manufacturers.firmware_file_extension IS
+    'Required source-file suffix and canonical stored-file suffix for RSU firmware uploads.';
 
 COMMIT;

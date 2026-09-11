@@ -212,9 +212,12 @@ webapp origins.
 
 ### Intentional behavior
 
-- Objects use `manufacturer/model/version/file_name`. Manufacturer and model
-  choices come from PostgreSQL, version is user-entered, and the filename comes
-  from the selected file.
+- Objects use `manufacturer/model/version/version.extension`. Manufacturer and
+  model choices come from PostgreSQL, version is user-entered, and the required
+  extension is configured on the manufacturer. The selected source file must
+  have that extension.
+- The migration configures Commsignia for `.tar.sig` and Yunex for `.tar`.
+  Uploads remain unavailable for a manufacturer until its extension is configured.
 - One active or verified upload is allowed per RSU model and version. Different
   models may use the same version.
 - Signed uploads are create-only and never overwrite an existing object.

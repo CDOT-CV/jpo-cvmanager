@@ -34,7 +34,8 @@ public class FirmwareUploadOptionsService {
             if (manufacturers.isEmpty()
                     || !manufacturers.getLast().manufacturerId().equals(manufacturer.getId())) {
                 manufacturers.add(new ManufacturerOption(
-                        manufacturer.getId(), manufacturer.getName(), new ArrayList<>(List.of(modelOption))));
+                        manufacturer.getId(), manufacturer.getName(), manufacturer.getFirmwareFileExtension(),
+                        new ArrayList<>(List.of(modelOption))));
             } else {
                 manufacturers.getLast().models().add(modelOption);
             }

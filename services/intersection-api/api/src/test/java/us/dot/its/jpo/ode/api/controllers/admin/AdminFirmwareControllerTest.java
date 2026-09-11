@@ -37,9 +37,10 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ManufacturerOption;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ModelOption;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
@@ -84,7 +85,7 @@ class AdminFirmwareControllerTest {
     void listsStructuredUploadOptionsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUploadOptionsService.getOptions()).thenReturn(new FirmwareUploadOptions(List.of(
-                new ManufacturerOption(1, "Commsignia", List.of(
+                new ManufacturerOption(1, "Commsignia", ".tar.sig", List.of(
                         new ModelOption(10, "ITS-RS4-M"),
                         new ModelOption(11, "ITS-RS4-S"))))));
 
@@ -92,6 +93,7 @@ class AdminFirmwareControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.manufacturers[0].manufacturer_id").value(1))
                 .andExpect(jsonPath("$.manufacturers[0].name").value("Commsignia"))
+                .andExpect(jsonPath("$.manufacturers[0].file_extension").value(".tar.sig"))
                 .andExpect(jsonPath("$.manufacturers[0].models[1].model_id").value(11))
                 .andExpect(jsonPath("$.manufacturers[0].models[1].name").value("ITS-RS4-S"));
     }
@@ -181,7 +183,7 @@ class AdminFirmwareControllerTest {
     @WithMockUser
     void existingFirmwareReturnsConflict() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        String message = "A firmware file already exists for this vendor, model, version, and file name";
+        String message = "Firmware already exists for this manufacturer, model, and version";
         when(firmwareUploadService.createFirmwareSignedUploadUrl(any(), eq("user")))
                 .thenThrow(new FirmwareVersionAlreadyExistsException(message));
 
@@ -192,6 +194,24 @@ class AdminFirmwareControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value(message));
+    }
+
+    @Test
+    @WithMockUser
+    void missingManufacturerExtensionReturnsServiceUnavailable() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        String message = "Firmware uploads are not configured for manufacturer 'Kapsch'";
+        when(firmwareUploadService.createFirmwareSignedUploadUrl(any(), eq("user")))
+                .thenThrow(new FirmwareUploadConfigurationException(message));
+
+        mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST_BODY))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(503))
                 .andExpect(jsonPath("$.detail").value(message));
     }
 
@@ -235,6 +255,19 @@ class AdminFirmwareControllerTest {
         mockMvc.perform(post("/admin/firmware/signed-upload-url")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(REQUEST_BODY.replace("firmware.bin", "../firmware.bin")))
+                .andExpect(status().isBadRequest());
+
+        verify(firmwareUploadService, never()).createFirmwareSignedUploadUrl(any(), any());
+    }
+
+    @Test
+    @WithMockUser
+    void versionContainingSpacesIsRejected() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+
+        mockMvc.perform(post("/admin/firmware/signed-upload-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(REQUEST_BODY.replace("y20.97.0", "y20 97 0")))
                 .andExpect(status().isBadRequest());
 
         verify(firmwareUploadService, never()).createFirmwareSignedUploadUrl(any(), any());

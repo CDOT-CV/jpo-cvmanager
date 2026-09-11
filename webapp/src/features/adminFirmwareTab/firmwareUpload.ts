@@ -44,7 +44,7 @@ const checksumCalculators: Record<string, (file: Blob) => Promise<string>> = {
 export const getObjectStorageUploadError = (status: number) => {
   if (status === 409 || status === 412) {
     return new Error(
-      'A firmware file already exists for this vendor, model, version, and file name. Change the version or stored file name and try again.'
+      'Firmware already exists for this manufacturer, model, and version. Change the version and try again.'
     )
   }
   return new Error(`Object storage rejected the file upload (HTTP ${status}).`)

@@ -27,6 +27,7 @@ class FirmwareUploadOptionsServiceTest {
 
         assertThat(options.manufacturers()).hasSize(2);
         assertThat(options.manufacturers().getFirst().name()).isEqualTo("Commsignia");
+        assertThat(options.manufacturers().getFirst().fileExtension()).isEqualTo(".tar.sig");
         assertThat(options.manufacturers().getFirst().models())
                 .extracting(option -> option.name())
                 .containsExactly("ITS-RS4-M", "ITS-RS4-S");
@@ -47,6 +48,7 @@ class FirmwareUploadOptionsServiceTest {
         Manufacturer manufacturer = new Manufacturer();
         manufacturer.setId(manufacturerId);
         manufacturer.setName(manufacturerName);
+        manufacturer.setFirmwareFileExtension("Commsignia".equals(manufacturerName) ? ".tar.sig" : null);
 
         RsuModel model = new RsuModel();
         model.setId(modelId);

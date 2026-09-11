@@ -39,7 +39,7 @@ const uploadInstructions: FirmwareUploadUrl = {
   upload_id: 'c8ddabda-d98c-4b2d-b719-c79f180f5801',
   upload_url: 'https://storage.googleapis.com/signed',
   method: 'PUT',
-  object_name: 'Commsignia/ITS-RS4-M/y20.97.0/firmware.tar.sig',
+  object_name: 'Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig',
   expires_at: '2026-09-03T23:00:00Z',
   required_headers: {
     'Content-Type': 'application/octet-stream',
@@ -65,7 +65,7 @@ describe('calculateFileChecksum', () => {
 describe('getObjectStorageUploadError', () => {
   it.each([409, 412])('describes an existing object for HTTP %s', (status) => {
     expect(getObjectStorageUploadError(status).message).toBe(
-      'A firmware file already exists for this vendor, model, version, and file name. Change the version or stored file name and try again.'
+      'Firmware already exists for this manufacturer, model, and version. Change the version and try again.'
     )
   })
 
@@ -115,7 +115,7 @@ describe('uploadFileToSignedUrl', () => {
     request.status = 412
     request.onload?.()
 
-    await expect(upload).rejects.toThrow('A firmware file already exists')
+    await expect(upload).rejects.toThrow('Firmware already exists for this manufacturer, model, and version')
   })
 
   it('reports network errors and upload cancellation distinctly', async () => {

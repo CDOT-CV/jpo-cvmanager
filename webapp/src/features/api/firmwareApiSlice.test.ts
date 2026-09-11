@@ -63,7 +63,7 @@ describe('firmwareApiSlice', () => {
         upload_id: 'c8ddabda-d98c-4b2d-b719-c79f180f5801',
         upload_url: 'https://storage.googleapis.com/signed',
         method: 'PUT',
-        object_name: 'Commsignia/ITS-RS4-M/y20.97.0/firmware.tar.sig',
+        object_name: 'Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig',
         expires_at: '2026-09-03T23:00:00Z',
         required_headers: { 'Content-Type': 'application/octet-stream' },
       })

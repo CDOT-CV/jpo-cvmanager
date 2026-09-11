@@ -69,7 +69,7 @@ const AdminFirmwareTab = () => {
   const visibleObjects =
     data?.objects.filter((object) => {
       if (!normalizedSearch) return true
-      return [object.manufacturer, object.model, object.version, object.file_name, object.object_name].some((value) =>
+      return [object.manufacturer, object.model, object.version, object.object_name].some((value) =>
         value?.toLowerCase().includes(normalizedSearch)
       )
     }) ?? []
@@ -155,7 +155,6 @@ const AdminFirmwareTab = () => {
                   <TableCell>Manufacturer</TableCell>
                   <TableCell>Model</TableCell>
                   <TableCell>Version</TableCell>
-                  <TableCell>File</TableCell>
                   <TableCell>Size</TableCell>
                   <TableCell>Last modified</TableCell>
                   <TableCell>Verification</TableCell>
@@ -180,13 +179,12 @@ const AdminFirmwareTab = () => {
                   <TableRow key={object.object_id} hover selected={selected === object.object_id}>
                     <TableCell>{object.manufacturer ?? ''}</TableCell>
                     <TableCell>{object.model ?? ''}</TableCell>
-                    <TableCell>{object.version ?? ''}</TableCell>
                     <TableCell sx={{ overflowWrap: 'anywhere' }}>
                       <Button
                         sx={{ minWidth: 0, p: 0, textTransform: 'none', textAlign: 'left' }}
                         onClick={() => setSelected(object.object_id)}
                       >
-                        {object.file_name}
+                        {object.version ?? object.object_name}
                       </Button>
                     </TableCell>
                     <TableCell>{`${object.content_length.toLocaleString()} bytes`}</TableCell>

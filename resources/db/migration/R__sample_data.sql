@@ -17,9 +17,10 @@
 --   Intersections: Org1 -> 1,2,3   Org2 -> 1,4,5   Org3 -> 1,6,7
 --   Users:         Org1 -> 1,2,3   Org2 -> 1,4,5   Org3 -> 1,6,7
 
-INSERT INTO public.manufacturers(name)
-  VALUES ('Commsignia'), ('Yunex'), ('Kapsch')
-  ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.manufacturers(name, firmware_file_extension)
+  VALUES ('Commsignia', '.tar.sig'), ('Yunex', '.tar'), ('Kapsch', NULL)
+  ON CONFLICT (name) DO UPDATE
+    SET firmware_file_extension = EXCLUDED.firmware_file_extension;
 
 INSERT INTO public.rsu_models(name, supported_radio, manufacturer)
   VALUES ('ITS-RS4-M', 'DSRC,C-V2X', 1), ('RSU2X US', 'DSRC,C-V2X', 2), ('RIS-9260', 'C-V2X', 3)

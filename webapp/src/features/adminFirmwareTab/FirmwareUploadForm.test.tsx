@@ -25,7 +25,7 @@ const signedUploadResponse = {
   upload_id: 'c8ddabda-d98c-4b2d-b719-c79f180f5801',
   upload_url: 'https://storage.googleapis.com/signed',
   method: 'PUT',
-  object_name: 'Commsignia/ITS-RS4-M/y20.97.0/firmware.tar.sig',
+  object_name: 'Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig',
   expires_at: '2026-09-03T23:00:00Z',
   required_headers: {
     'Content-Type': 'application/octet-stream',
@@ -38,6 +38,7 @@ const uploadOptionsResponse = {
     {
       manufacturer_id: 1,
       name: 'Commsignia',
+      file_extension: '.tar.sig',
       models: [
         { model_id: 10, name: 'ITS-RS4-M' },
         { model_id: 11, name: 'ITS-RS4-S' },
@@ -46,6 +47,7 @@ const uploadOptionsResponse = {
     {
       manufacturer_id: 2,
       name: 'Kapsch',
+      file_extension: null,
       models: [{ model_id: 20, name: 'RIS-9260' }],
     },
   ],
@@ -145,7 +147,7 @@ describe('FirmwareUploadForm', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('limits models to the selected manufacturer and uses the selected file name', async () => {
+  it('limits models to the selected manufacturer and reports its upload configuration', async () => {
     fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
     renderTab()
 
@@ -154,12 +156,30 @@ describe('FirmwareUploadForm', () => {
     await chooseSelectOption('Manufacturer', 'Kapsch')
 
     expect(screen.getByRole('combobox', { name: 'Model' })).not.toHaveTextContent('ITS-RS4-S')
+    expect(screen.getByText('Firmware uploads are not configured for this manufacturer.')).toBeInTheDocument()
     expect(screen.queryByLabelText(/Stored File Name/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Checksum Algorithm/)).not.toBeInTheDocument()
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Model' }))
     expect(await screen.findByRole('option', { name: 'RIS-9260' })).toBeInTheDocument()
     expect(screen.queryByRole('option', { name: 'ITS-RS4-S' })).not.toBeInTheDocument()
+  })
+
+  it('rejects a file that does not match the manufacturer extension', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify(uploadOptionsResponse))
+    renderTab()
+
+    await chooseSelectOption('Manufacturer', 'Commsignia')
+    await chooseSelectOption('Model', 'ITS-RS4-M')
+    fireEvent.change(screen.getByLabelText(/Version/), { target: { value: 'y20.97.0' } })
+    const file = new File(['firmware'], 'firmware.tar', { type: 'application/octet-stream' })
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The selected file must use the .tar.sig extension for Commsignia.'
+    )
+    expect(calculateFileChecksum).not.toHaveBeenCalled()
   })
 
   it('shows an error and disables submission when upload options cannot be loaded', async () => {

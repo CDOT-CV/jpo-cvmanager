@@ -32,12 +32,13 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
+import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-import us.dot.its.jpo.ode.api.services.FirmwareVersionAlreadyExistsException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 /**
@@ -106,6 +107,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler()
     public ProblemDetail handleObjectStorageUnavailableException(ObjectStorageUnavailableException ex) {
         log.warn("Object storage unavailable: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareUploadConfigurationException(FirmwareUploadConfigurationException ex) {
+        log.warn("Firmware upload configuration unavailable: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
