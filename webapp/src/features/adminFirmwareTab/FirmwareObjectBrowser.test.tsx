@@ -45,7 +45,7 @@ describe('Firmware object browser', () => {
         verification_status: 'UNTRACKED' as const,
       },
     ],
-    next_page_token: null,
+    total_elements: 2,
   }
 
   beforeEach(() => {
@@ -63,14 +63,14 @@ describe('Firmware object browser', () => {
     } as any)
   })
 
-  it('uses the standard admin table toolbar without page-local search', async () => {
+  it('uses the standard admin table toolbar with global search', async () => {
     render(<AdminFirmwareTab />)
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toHaveStyle({ textTransform: 'none' })
     expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument()
@@ -89,15 +89,16 @@ describe('Firmware object browser', () => {
     await waitFor(() =>
       expect(trigger).toHaveBeenLastCalledWith({
         manufacturer: 'Kapsch',
-        page_size: 25,
-        page_token: undefined,
+        page: 0,
+        size: 25,
+        search: '',
       })
     )
   })
 
-  it('uses the provider page token with the standard table pagination', async () => {
+  it('uses numbered pages and the server result count for pagination', async () => {
     trigger.mockImplementation(() => ({
-      unwrap: () => Promise.resolve({ ...page, next_page_token: 'next-page' }),
+      unwrap: () => Promise.resolve({ ...page, total_elements: 26 }),
     }))
     render(<AdminFirmwareTab />)
     await screen.findByRole('button', { name: 'v1' })
@@ -107,10 +108,53 @@ describe('Firmware object browser', () => {
     await waitFor(() =>
       expect(trigger).toHaveBeenLastCalledWith({
         manufacturer: undefined,
-        page_size: 25,
-        page_token: 'next-page',
+        page: 1,
+        size: 25,
+        search: '',
       })
     )
+  })
+
+  it('searches through the API from page zero and displays matches not previously loaded', async () => {
+    trigger.mockImplementation(({ search }) => ({
+      unwrap: () => Promise.resolve(search ? {
+        objects: [{ ...page.objects[0], object_id: 'later', version: 'later-release' }],
+        total_elements: 1,
+      } : { ...page, total_elements: 26 }),
+    }))
+    render(<AdminFirmwareTab />)
+    await screen.findByRole('button', { name: 'v1' })
+    fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      page: 1, size: 25, search: '', manufacturer: undefined,
+    }))
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later-release' } })
+
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+    }))
+    expect(await screen.findByRole('button', { name: 'later-release' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+    }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await waitFor(() => expect(trigger).toHaveBeenCalledTimes(5))
+    expect(trigger).toHaveBeenLastCalledWith({
+      page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: '' } })
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      page: 0, size: 25, search: '', manufacturer: 'Kapsch',
+    }))
+    expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
   })
 
   it('refreshes the table after a successful upload', async () => {

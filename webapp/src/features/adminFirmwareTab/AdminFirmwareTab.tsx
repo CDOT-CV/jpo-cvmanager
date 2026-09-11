@@ -27,10 +27,6 @@ const verificationLabel = {
 
 const AdminFirmwareTab = () => {
   const tableRef = useRef<any>(null)
-  // Material Table uses page numbers while object storage returns opaque cursors
-  // Keep the cursor needed to request each page as the user moves through the table
-  const pageTokens = useRef<Map<number, string | undefined>>(new Map([[0, undefined]]))
-  const currentPageSize = useRef(DEFAULT_PAGE_SIZE)
   const manufacturerRef = useRef('')
   const [manufacturer, setManufacturer] = useState('')
   const [selectedObject, setSelectedObject] = useState<FirmwareObject>()
@@ -40,51 +36,26 @@ const AdminFirmwareTab = () => {
   const [listFirmwareObjects] = useLazyListFirmwareObjectsQuery()
   const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
 
-  const resetPagination = useCallback(() => {
-    pageTokens.current = new Map([[0, undefined]])
-    setSelectedObject(undefined)
-  }, [])
-
   const refreshListing = useCallback(() => {
-    resetPagination()
+    setSelectedObject(undefined)
     setIsRefreshing(true)
     Promise.resolve(tableRef.current?.onQueryChange({ page: 0 })).finally(() => setIsRefreshing(false))
-  }, [resetPagination])
+  }, [])
 
   const handleQueryChange = useCallback(
     async (query: Query<FirmwareObject>) => {
-      // Provider cursors depend on page size and cannot be reused after it changes
-      if (query.pageSize !== currentPageSize.current) {
-        currentPageSize.current = query.pageSize
-        pageTokens.current = new Map([[0, undefined]])
-      }
-
-      const pageToken = pageTokens.current.get(query.page)
-      if (query.page > 0 && pageToken === undefined) {
-        return { data: [], page: query.page, totalCount: query.page * query.pageSize }
-      }
-
       try {
         const result = await listFirmwareObjects({
-          page_size: query.pageSize,
-          page_token: pageToken,
+          page: query.page,
+          size: query.pageSize,
+          search: query.search || '',
           manufacturer: manufacturerRef.current || undefined,
         }).unwrap()
-
-        if (result.next_page_token) {
-          pageTokens.current.set(query.page + 1, result.next_page_token)
-        } else {
-          pageTokens.current.delete(query.page + 1)
-        }
 
         return {
           data: result.objects,
           page: query.page,
-          // The provider does not return a total. One extra row keeps Next enabled
-          // until the provider reports that no following cursor exists
-          totalCount: result.next_page_token
-            ? (query.page + 1) * query.pageSize + 1
-            : query.page * query.pageSize + result.objects.length,
+          totalCount: result.total_elements,
         }
       } catch (error) {
         console.error('Failed to fetch firmware:', error)
@@ -162,7 +133,7 @@ const AdminFirmwareTab = () => {
                 const value = event.target.value
                 manufacturerRef.current = value
                 setManufacturer(value)
-                resetPagination()
+                setSelectedObject(undefined)
                 tableRef.current?.onQueryChange({ page: 0 })
               }}
             >
@@ -203,7 +174,6 @@ const AdminFirmwareTab = () => {
         defaultPageSize={DEFAULT_PAGE_SIZE}
         handleQueryChange={handleQueryChange}
         isLoading={isRefreshing}
-        search={false}
         selection={false}
         tableRef={tableRef}
         title=""

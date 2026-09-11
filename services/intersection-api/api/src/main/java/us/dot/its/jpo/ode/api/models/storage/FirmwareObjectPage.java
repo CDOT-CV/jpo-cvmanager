@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public record FirmwareObjectPage(String provider, List<Item> objects, String nextPageToken) {
+public record FirmwareObjectPage(String provider, List<Item> objects, long totalElements) {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Item(String objectId, String objectName, String manufacturer, String model,
             String version, String fileName, long contentLength,

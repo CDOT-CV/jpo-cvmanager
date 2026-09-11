@@ -52,10 +52,11 @@ public class AdminFirmwareController {
     @GetMapping(value = "/objects", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public FirmwareObjectPage listObjects(
-            @RequestParam(name = "page_size", defaultValue = "100") int pageSize,
-            @RequestParam(name = "page_token", required = false) String pageToken,
-            @RequestParam(name = "manufacturer", required = false) String manufacturer) {
-        return firmwareObjectService.list(pageSize, pageToken, manufacturer);
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "100") int size,
+            @RequestParam(name = "manufacturer", required = false) String manufacturer,
+            @RequestParam(name = "search", required = false) String search) {
+        return firmwareObjectService.list(page, size, manufacturer, search);
     }
 
     @Operation(summary = "Create a signed firmware upload URL")

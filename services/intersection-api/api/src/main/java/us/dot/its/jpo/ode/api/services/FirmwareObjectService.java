@@ -1,7 +1,9 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -19,22 +21,29 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
+import us.dot.its.jpo.ode.api.models.storage.StorageObject;
+import us.dot.its.jpo.ode.api.models.storage.StorageObjectPage;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @Service
 @RequiredArgsConstructor
 public class FirmwareObjectService {
+    private static final int PROVIDER_PAGE_SIZE = 200;
     private static final Set<String> RESERVED_PREFIXES = Set.of("ota");
 
     private final ObjectStorageServiceRegistry storage;
     private final FirmwareUploadRepository uploads;
     private final FirmwareImageRepository images;
 
-    public FirmwareObjectPage list(int pageSize, String pageToken, String manufacturer) {
+    public FirmwareObjectPage list(int pageNumber, int pageSize, String manufacturer, String search) {
+        if (pageNumber < 0) {
+            throw new IllegalArgumentException("page must not be negative");
+        }
         if (pageSize < 1 || pageSize > 200) {
-            throw new IllegalArgumentException("page_size must be between 1 and 200");
+            throw new IllegalArgumentException("size must be between 1 and 200");
         }
 
         // Limit the provider query when a manufacturer is selected, then remove
@@ -42,15 +51,41 @@ public class FirmwareObjectService {
         String prefix = manufacturer == null || manufacturer.isBlank()
                 ? null
                 : validateManufacturer(manufacturer) + "/";
-        var page = storage.getActiveService().listObjects(new ObjectListRequest(prefix, pageSize, pageToken));
-        var objects = page.objects().stream()
-                .filter(object -> !object.objectName().endsWith("/"))
-                .filter(object -> !isReservedObject(object.objectName()))
-                .toList();
+        String searchTerm = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        var storageService = storage.getActiveService();
+        var objects = new ArrayList<StorageObject>();
+        var visitedTokens = new HashSet<String>();
+        long offset = (long) pageNumber * pageSize;
+        long totalElements = 0;
+        String pageToken = null;
+        StorageObjectPage page;
+
+        // Search every provider page before applying table pagination, including
+        // untracked files. Count all matches but retain only the requested rows.
+        do {
+            page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
+            for (var object : page.objects()) {
+                String name = object.objectName();
+                if (name.endsWith("/") || isReservedObject(name)
+                        || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
+                    continue;
+                }
+                if (totalElements >= offset && objects.size() < pageSize) {
+                    objects.add(object);
+                }
+                totalElements++;
+            }
+
+            pageToken = page.nextPageToken();
+            if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
+                throw new ObjectStorageUnavailableException("Object storage returned invalid pagination state");
+            }
+        } while (pageToken != null && !pageToken.isBlank());
 
         if (objects.isEmpty()) {
-            return new FirmwareObjectPage(page.provider(), List.of(), page.nextPageToken());
+            return new FirmwareObjectPage(page.provider(), List.of(), totalElements);
         }
+        String provider = page.provider();
 
         // Attach the best upload record and registered image, when present, to each
         // object returned by the storage provider
@@ -81,7 +116,7 @@ public class FirmwareObjectService {
             // Expose the conventional manufacturer/model/version/file path as table
             // columns while retaining the complete object name for later actions
             String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                    (page.provider() + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
+                    (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
             String[] path = object.objectName().split("/", 4);
             String manufacturerName = path.length == 4 ? path[0] : null;
             String modelName = path.length == 4 ? path[1] : null;
@@ -95,7 +130,7 @@ public class FirmwareObjectService {
                     upload == null ? null : upload.getStatus().name(), state);
         }).toList();
 
-        return new FirmwareObjectPage(page.provider(), items, page.nextPageToken());
+        return new FirmwareObjectPage(provider, items, totalElements);
     }
 
     private String validateManufacturer(String manufacturer) {

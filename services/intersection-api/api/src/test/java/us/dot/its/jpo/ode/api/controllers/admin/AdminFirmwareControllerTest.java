@@ -111,24 +111,25 @@ class AdminFirmwareControllerTest {
     @WithMockUser
     void listsObjectsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        when(firmwareObjectService.list(25, "cursor", "Acme")).thenReturn(
+        when(firmwareObjectService.list(1, 25, "Acme", "version")).thenReturn(
                 new FirmwareObjectPage("gcp", List.of(
                         new FirmwareObjectPage.Item("object-id", "Acme/model/version/file.bin",
                                 "Acme", "model", "version", "file.bin", 42,
                                 Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null,
-                                "UNTRACKED")), "next"));
+                                "UNTRACKED")), 26));
         mockMvc.perform(get("/admin/firmware/objects")
-                .param("page_size", "25")
-                .param("page_token", "cursor")
+                .param("size", "25")
+                .param("page", "1")
                 .param("manufacturer", "Acme")
+                .param("search", "version")
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.objects[0].manufacturer").value("Acme"))
                 .andExpect(jsonPath("$.objects[0].model").value("model"))
                 .andExpect(jsonPath("$.objects[0].updated_at").value("2026-09-10T18:00:00Z"))
-                .andExpect(jsonPath("$.next_page_token").value("next"))
+                .andExpect(jsonPath("$.total_elements").value(26))
                 .andExpect(jsonPath("$.container").doesNotExist());
-        verify(firmwareObjectService).list(25, "cursor", "Acme");
+        verify(firmwareObjectService).list(1, 25, "Acme", "version");
     }
 
     @Test
@@ -136,7 +137,7 @@ class AdminFirmwareControllerTest {
     void rejectsObjectListingForNonAdmins() throws Exception {
         mockMvc.perform(get("/admin/firmware/objects")
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
-        verify(firmwareObjectService, never()).list(anyInt(), any(), any());
+        verify(firmwareObjectService, never()).list(anyInt(), anyInt(), any(), any());
     }
 
     @Test
