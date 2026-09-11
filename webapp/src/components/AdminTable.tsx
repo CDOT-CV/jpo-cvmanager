@@ -194,6 +194,8 @@ const AdminTable = (props: AdminTableProps) => {
             const { action } = actionProps
             const iconProps = action?.iconProps
 
+            // Allow admin pages to place controls such as filters alongside the
+            // standard table actions without duplicating the shared toolbar
             if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
               return iconProps.render()
             }

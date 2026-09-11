@@ -27,6 +27,8 @@ const verificationLabel = {
 
 const AdminFirmwareTab = () => {
   const tableRef = useRef<any>(null)
+  // Material Table uses page numbers while object storage returns opaque cursors
+  // Keep the cursor needed to request each page as the user moves through the table
   const pageTokens = useRef<Map<number, string | undefined>>(new Map([[0, undefined]]))
   const currentPageSize = useRef(DEFAULT_PAGE_SIZE)
   const manufacturerRef = useRef('')
@@ -51,6 +53,7 @@ const AdminFirmwareTab = () => {
 
   const handleQueryChange = useCallback(
     async (query: Query<FirmwareObject>) => {
+      // Provider cursors depend on page size and cannot be reused after it changes
       if (query.pageSize !== currentPageSize.current) {
         currentPageSize.current = query.pageSize
         pageTokens.current = new Map([[0, undefined]])
@@ -77,6 +80,8 @@ const AdminFirmwareTab = () => {
         return {
           data: result.objects,
           page: query.page,
+          // The provider does not return a total. One extra row keeps Next enabled
+          // until the provider reports that no following cursor exists
           totalCount: result.next_page_token
             ? (query.page + 1) * query.pageSize + 1
             : query.page * query.pageSize + result.objects.length,

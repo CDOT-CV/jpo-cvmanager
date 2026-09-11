@@ -37,8 +37,11 @@ public class FirmwareObjectService {
             throw new IllegalArgumentException("page_size must be between 1 and 200");
         }
 
+        // Limit the provider query when a manufacturer is selected, then remove
+        // folder markers and the OBU hierarchy from the RSU firmware results
         String prefix = manufacturer == null || manufacturer.isBlank()
-                ? null : validateManufacturer(manufacturer) + "/";
+                ? null
+                : validateManufacturer(manufacturer) + "/";
         var page = storage.getActiveService().listObjects(new ObjectListRequest(prefix, pageSize, pageToken));
         var objects = page.objects().stream()
                 .filter(object -> !object.objectName().endsWith("/"))
@@ -49,19 +52,22 @@ public class FirmwareObjectService {
             return new FirmwareObjectPage(page.provider(), List.of(), page.nextPageToken());
         }
 
+        // Attach the best upload record and registered image, when present, to each
+        // object returned by the storage provider
         var records = uploads.findListingUploads(page.provider(), page.container(),
                 objects.stream().map(item -> item.objectName()).toList());
         var byName = records.stream().collect(Collectors.toMap(FirmwareUpload::getObjectName, Function.identity()));
-        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of() : images.findByVerifiedUploadIdIn(
-                records.stream().map(FirmwareUpload::getId).toList()).stream()
-                .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), image -> image.getId()));
+        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of()
+                : images.findByVerifiedUploadIdIn(
+                        records.stream().map(FirmwareUpload::getId).toList()).stream()
+                        .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), image -> image.getId()));
 
         var items = objects.stream().map(object -> {
             var upload = byName.get(object.objectName());
             String state = upload == null ? "UNTRACKED" : "UNVERIFIED";
 
             if (upload != null && upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-                // Verification belongs to the exact object version, not merely its path.
+                // Verification belongs to the exact object version, not just its path
                 boolean matches = object.providerObjectVersion() != null
                         && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
                         && Objects.equals(upload.getExpectedSize(), object.contentLength())
@@ -72,6 +78,8 @@ public class FirmwareObjectService {
                 state = matches ? "VERIFIED" : "CHANGED";
             }
 
+            // Expose the conventional manufacturer/model/version/file path as table
+            // columns while retaining the complete object name for later actions
             String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
                     (page.provider() + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
             String[] path = object.objectName().split("/", 4);

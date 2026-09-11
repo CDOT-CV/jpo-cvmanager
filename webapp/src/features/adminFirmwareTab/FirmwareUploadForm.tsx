@@ -126,6 +126,8 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
     }
 
     try {
+      // The API signs an upload for the checksum and size calculated here
+      // The browser uploads directly to storage, then asks the API to verify the result
       setStage('checksum')
       const checksum = await calculateFileChecksum(file, DEFAULT_CHECKSUM_ALGORITHM)
 

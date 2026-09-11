@@ -5,6 +5,7 @@ const CHECKSUM_CHUNK_SIZE = 4 * 1024 * 1024
 const FILE_SIZE_BASE = 1024
 const FILE_SIZE_UNITS = ['bytes', 'KB', 'MB', 'GB'] as const
 
+// Build the lookup table once so large files can be checksummed efficiently
 const crc32cTable = new Uint32Array(256)
 for (let tableIndex = 0; tableIndex < crc32cTable.length; tableIndex++) {
   let value = tableIndex
@@ -30,6 +31,7 @@ const readBlob = (blob: Blob) =>
 
 const calculateCrc32c = async (file: Blob) => {
   let crc = 0xffffffff
+  // Read in chunks to avoid loading the entire firmware artifact into memory
   for (let offset = 0; offset < file.size; offset += CHECKSUM_CHUNK_SIZE) {
     const bytes = new Uint8Array(await readBlob(file.slice(offset, offset + CHECKSUM_CHUNK_SIZE)))
     for (const byte of bytes) {
@@ -63,7 +65,7 @@ export const formatFileSize = (bytes: number) => {
 }
 
 // This dispatch point keeps checksum selection outside the form and leaves room
-// for storage providers that require a different checksum algorithm.
+// for storage providers that require a different checksum algorithm
 export const calculateFileChecksum = (file: Blob, algorithm: ChecksumAlgorithm) => {
   const calculator = checksumCalculators[algorithm.toUpperCase()]
   if (!calculator) throw new Error(`Checksum algorithm ${algorithm} is not supported.`)

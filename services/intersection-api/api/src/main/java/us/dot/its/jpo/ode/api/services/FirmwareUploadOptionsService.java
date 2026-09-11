@@ -21,11 +21,13 @@ public class FirmwareUploadOptionsService {
     public FirmwareUploadOptions getOptions() {
         List<ManufacturerOption> manufacturers = new ArrayList<>();
 
+        // The repository ordering lets adjacent models be grouped under one
+        // manufacturer without additional database queries
         for (var model : rsuModels.findAllWithManufacturerOrdered()) {
             var manufacturer = model.getManufacturer();
 
             // The ota storage hierarchy is reserved for the separate OBU firmware
-            // workflow and must not be offered as an RSU firmware upload destination.
+            // workflow and must not be offered as an RSU firmware upload destination
             if (RESERVED_OBU_MANUFACTURER.equalsIgnoreCase(manufacturer.getName())) {
                 continue;
             }

@@ -19,6 +19,8 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 
 @Repository
 public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID> {
+    // Prefer verified evidence for each object, falling back to its newest upload
+    // attempt when no verified record exists
     @Query(value = """
             select distinct on (object_name) * from firmware_uploads
             where storage_provider = :provider and storage_container = :container and object_name in (:names)
