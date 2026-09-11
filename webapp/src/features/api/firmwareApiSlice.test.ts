@@ -28,6 +28,23 @@ const requestBody: FirmwareUploadUrlRequest = {
 describe('firmwareApiSlice', () => {
   beforeEach(() => fetchMock.resetMocks())
 
+  it('deletes the selected object version with authentication', async () => {
+    fetchMock.mockResponseOnce('', { status: 204 })
+    const store = setupStore(mockUserState)
+    const result = await store.dispatch(
+      firmwareApiSlice.endpoints.deleteFirmwareObject.initiate({
+        object_id: 'object-id',
+        provider_object_version: 'version+1',
+      })
+    )
+
+    expect('error' in result).toBe(false)
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.method).toBe('DELETE')
+    expect(request.url).toBe(`${BASE_URL}/objects/object-id?provider_object_version=version%2B1`)
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
   it('requests structured firmware upload options', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ manufacturers: [] }))
     const store = setupStore(mockUserState)

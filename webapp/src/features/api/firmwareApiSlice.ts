@@ -43,6 +43,14 @@ export const firmwareApiSlice = createApi({
         body,
       }),
     }),
+    deleteFirmwareObject: builder.mutation<void, { object_id: string; provider_object_version: string }>({
+      query: ({ object_id, provider_object_version }) => ({
+        url: `objects/${encodeURIComponent(object_id)}`,
+        method: 'DELETE',
+        params: { provider_object_version },
+      }),
+      invalidatesTags: (_result, error) => (error ? [] : ['FirmwareObjects']),
+    }),
     completeFirmwareUpload: builder.mutation<FirmwareUploadVerification, string>({
       invalidatesTags: ['FirmwareObjects'],
       query: (uploadId) => ({
@@ -58,4 +66,5 @@ export const {
   useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
   useCompleteFirmwareUploadMutation,
+  useDeleteFirmwareObjectMutation,
 } = firmwareApiSlice

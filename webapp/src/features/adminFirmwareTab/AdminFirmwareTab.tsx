@@ -1,10 +1,17 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
-import { Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography } from '@mui/material'
+import { Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
+import { DeleteOutline } from '@mui/icons-material'
+import { confirmAlert } from 'react-confirm-alert'
+import { Options } from '../../components/AdminDeletionOptions'
 import toast from 'react-hot-toast'
 import AdminTable from '../../components/AdminTable'
 import { FirmwareObject } from '../../models/Firmware'
-import { useGetFirmwareUploadOptionsQuery, useLazyListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
+import {
+  useDeleteFirmwareObjectMutation,
+  useGetFirmwareUploadOptionsQuery,
+  useLazyListFirmwareObjectsQuery,
+} from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import { formatFileSize } from './firmwareUpload'
 import '../adminRsuTab/Admin.css'
@@ -26,6 +33,7 @@ const verificationLabel = {
 }
 
 const AdminFirmwareTab = () => {
+  const theme = useTheme()
   const tableRef = useRef<any>(null)
   // Material Table uses page numbers while object storage returns opaque cursors
   // Keep the cursor needed to request each page as the user moves through the table
@@ -36,7 +44,10 @@ const AdminFirmwareTab = () => {
   const [selectedObject, setSelectedObject] = useState<FirmwareObject>()
   const [showUpload, setShowUpload] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const deleting = useRef(false)
 
+  const [deleteFirmwareObject] = useDeleteFirmwareObjectMutation()
   const [listFirmwareObjects] = useLazyListFirmwareObjectsQuery()
   const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
 
@@ -50,6 +61,33 @@ const AdminFirmwareTab = () => {
     setIsRefreshing(true)
     Promise.resolve(tableRef.current?.onQueryChange({ page: 0 })).finally(() => setIsRefreshing(false))
   }, [resetPagination])
+
+  const deleteFirmware = async (object: FirmwareObject) => {
+    if (deleting.current) return
+    if (!object.provider_object_version) {
+      toast.error('This file has no object version. Refresh the table before deleting it.')
+      return
+    }
+    deleting.current = true
+    setIsDeleting(true)
+    const notification = toast.loading('Deleting firmware...')
+    try {
+      await deleteFirmwareObject({
+        object_id: object.object_id,
+        provider_object_version: object.provider_object_version,
+      }).unwrap()
+      toast.success('Firmware deleted successfully', { id: notification })
+      refreshListing()
+    } catch (error) {
+      const response = error as { data?: { detail?: string; message?: string } }
+      toast.error(response?.data?.detail || response?.data?.message || 'Failed to delete firmware. Please retry.', {
+        id: notification,
+      })
+    } finally {
+      deleting.current = false
+      setIsDeleting(false)
+    }
+  }
 
   const handleQueryChange = useCallback(
     async (query: Query<FirmwareObject>) => {
@@ -145,6 +183,22 @@ const AdminFirmwareTab = () => {
   ]
 
   const tableActions: Action<FirmwareObject>[] = [
+    {
+      position: 'row',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      iconProps: { itemType: 'rowAction' },
+      tooltip: 'Delete firmware',
+      disabled: isDeleting,
+      onClick: (_event, row: FirmwareObject) => {
+        const name = [row.manufacturer, row.model, row.version].filter(Boolean).join(' / ') || row.object_name
+        confirmAlert(
+          Options('Delete Firmware', `Delete "${name}"? Its file and associated upgrade rules will be removed.`, [
+            { label: 'Yes', onClick: () => deleteFirmware(row) },
+            { label: 'No', onClick: () => {} },
+          ])
+        )
+      },
+    },
     {
       position: 'toolbar',
       icon: () => null,
