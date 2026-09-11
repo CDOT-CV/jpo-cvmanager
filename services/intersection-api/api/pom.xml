@@ -144,6 +144,17 @@
 					<groupId>org.apache.kafka</groupId>
 					<artifactId>kafka-streams-test-utils</artifactId>
 				</exclusion>
+				<!-- Keep this Spring Boot 3 application from resolving Boot 4 starters
+				     transitively through the converter. Equivalent Boot 3 dependencies
+				     are already declared by this project. -->
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-webmvc</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-kafka</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -386,6 +397,10 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>jcache</artifactId>
         </dependency>
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+		</dependency>
 		<!-- Prometheus query client support -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
@@ -403,6 +418,13 @@
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>libraries-bom</artifactId>
+				<version>26.72.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<dependency>
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers-bom</artifactId>

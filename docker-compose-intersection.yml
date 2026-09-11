@@ -53,6 +53,17 @@ services:
 
       FIRMWARE_MANAGER_ENDPOINT: ${FIRMWARE_MANAGER_ENDPOINT:-http://firmware_manager_upgrade_scheduler:8080}
 
+      OBJECT_STORAGE_PROVIDER: ${OBJECT_STORAGE_PROVIDER:-gcp}
+      OBJECT_STORAGE_SIGNED_URL_EXPIRATION: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:-15m}
+      OBJECT_STORAGE_MAX_UPLOAD_SIZE: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:-1GB}
+      OBJECT_STORAGE_GCP_BUCKET_NAME: ${OBJECT_STORAGE_GCP_BUCKET_NAME:-}
+      OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT: ${OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT:-}
+      FIRMWARE_UPLOAD_CLEANUP_ENABLED: ${FIRMWARE_UPLOAD_CLEANUP_ENABLED:-true}
+      FIRMWARE_UPLOAD_CLEANUP_INTERVAL: ${FIRMWARE_UPLOAD_CLEANUP_INTERVAL:-1h}
+      FIRMWARE_UPLOAD_EXPIRATION_GRACE: ${FIRMWARE_UPLOAD_EXPIRATION_GRACE:-1h}
+      FIRMWARE_UPLOAD_RETENTION: ${FIRMWARE_UPLOAD_RETENTION:-30d}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/gcp/application-default-credentials.json
+
       BASE_ROUTE_PREFIX: ${INTERSECTION_API_ROUTE_PREFIX:-/}
 
       INTERSECTION_EMAIL_BROKER: ${INTERSECTION_EMAIL_BROKER:-SMTP}
@@ -74,6 +85,15 @@ services:
 
       PROMETHEUS_URL: ${PROMETHEUS_URL:-http://prometheus:9090}
       PROMETHEUS_AGGREGATION_STEP_SECONDS: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:-120}
+
+    volumes:
+      - type: bind
+        # The checked-in file contains no credentials. It allows the API to run when
+        # firmware storage is unused; configure a real host path to use GCS uploads
+        source: ${GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH:-./resources/google/sample_gcp_service_account.json}
+        target: /var/run/secrets/gcp/application-default-credentials.json
+        read_only: true
+
     entrypoint:
       - sh
       - -c
