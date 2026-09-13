@@ -46,10 +46,10 @@ public class CountsControllerTest {
         count1.setRoad("I-25");
         expectedCounts.add(count1);
 
-        when(countsRepository.getRsuMessageCounts(rsuIp, message, startTime, endTime))
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime))
                 .thenReturn(expectedCounts);
 
-        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, message, startTime,
+        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime,
                 endTime);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -58,6 +58,28 @@ public class CountsControllerTest {
         assertThat(result.getBody().get(0).getOdeInputCount()).isEqualTo(50L);
         assertThat(result.getBody().get(0).getOdeOutputCount()).isEqualTo(150L);
         assertThat(result.getBody().get(0).getRoad()).isEqualTo("I-25");
+    }
+
+    @Test
+    public void testGetRsuMessageCountsWithMultipleTypes() {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+
+        List<MessageCount> expectedCounts = new ArrayList<>();
+        expectedCounts.add(new MessageCount("BSM", rsuIp, 50L, 150L, "I-25"));
+        expectedCounts.add(new MessageCount("MAP", rsuIp, 10L, 10L, "I-25"));
+
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM", "MAP"), startTime, endTime))
+                .thenReturn(expectedCounts);
+
+        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, List.of("BSM,MAP"),
+                startTime, endTime);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).hasSize(2);
+        assertThat(result.getBody().get(0).getMessageType()).isEqualTo("BSM");
+        assertThat(result.getBody().get(1).getMessageType()).isEqualTo("MAP");
     }
 
     @Test
