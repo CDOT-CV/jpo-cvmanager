@@ -8,7 +8,7 @@ import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,9 +25,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -61,7 +58,7 @@ public class UserController {
             "super_user", "superUser");
 
     @Operation(summary = "Get All Users for Organization", description = "Get summary data for all Users the user has access to in the specified organization.")
-    @GetMapping( produces = "application/json")
+    @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -78,7 +75,7 @@ public class UserController {
 
     @Operation(summary = "Get Single User Management Data", description = "Get User data required for User modification page. "
             + "Returns detailed data for the specified User along with allowed selections for modification.")
-    @GetMapping( path = "{email}", produces = "application/json")
+    @RequestMapping(method = RequestMethod.GET, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -91,7 +88,7 @@ public class UserController {
 
     @Operation(summary = "Get Allowed Selections for User Management", description = "Get User data required for User modification page. "
             + "Returns detailed data for the specified User along with allowed selections for modification.")
-    @GetMapping( path = "/allowed-selections", produces = "application/json")
+    @RequestMapping(method = RequestMethod.GET, path = "/allowed-selections", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -105,7 +102,7 @@ public class UserController {
     }
 
     @Operation(summary = "Create User", description = "Create a new User")
-    @PostMapping( produces = "application/json")
+    @RequestMapping(method = RequestMethod.POST, produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
@@ -128,7 +125,7 @@ public class UserController {
     }
 
     @Operation(summary = "Modify User", description = "Modify User information")
-    @PatchMapping( path = "{email}", produces = "application/json")
+    @RequestMapping(method = RequestMethod.PATCH, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
@@ -143,7 +140,7 @@ public class UserController {
     }
 
     @Operation(summary = "Delete User", description = "Delete User from management system")
-    @DeleteMapping( path = "{email}", produces = "application/json")
+    @RequestMapping(method = RequestMethod.DELETE, path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
@@ -157,7 +154,7 @@ public class UserController {
     }
 
     @Operation(summary = "Delete Multiple Users", description = "Delete Multiple Users from management system")
-    @DeleteMapping( path = "/batch", produces = "application/json")
+    @RequestMapping(method = RequestMethod.DELETE, path = "/batch", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUsers(#emails, 'ADMIN') && @PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),

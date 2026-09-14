@@ -8,8 +8,7 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,7 +42,7 @@ public class UnsubscribeController {
     private final UserRepository userRepository;
     private final UnsubscribeTokenGenerator unsubscribeTokenGenerator;
 
-    @GetMapping(value = "/email-subscriptions", produces = "application/json")
+    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
@@ -69,7 +68,7 @@ public class UnsubscribeController {
     }
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
-    @PostMapping(value = "/email-subscriptions", produces = "application/json")
+    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "400", description = "Invalid message body"),
