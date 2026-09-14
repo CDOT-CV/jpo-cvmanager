@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import DisplayCounts from './DisplayCounts'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
@@ -7,26 +7,32 @@ import { setupStore } from '../../store'
 import { MockLocalizationProvider, replaceChaoticIds } from '../../utils/test-utils'
 import { MessageType } from '../../models/MessageTypes'
 import { vi } from 'vitest'
+import { useGetRsuCountsQuery } from '../api/rsuCountsApiSlice'
 
 vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/rsuCountsApiSlice')>()
   return {
     ...actual,
-    useGetRsuCountsQuery: () => ({
-      data: [
-        {
-          message_type: 'BSM',
-          rsu_ip: '10.0.0.11',
-          ode_input_count: 100,
-          ode_output_count: 95,
-          road: 'I25',
-        },
-      ],
-      isFetching: false,
-      isError: false,
-    }),
+    useGetRsuCountsQuery: vi.fn(),
   }
 })
+
+const mockUseGetRsuCountsQuery = vi.mocked(useGetRsuCountsQuery)
+
+const successCountsQuery = {
+  data: [
+    {
+      message_type: 'BSM',
+      rsu_ip: '10.0.0.11',
+      ode_input_count: 100,
+      ode_output_count: 95,
+      road: 'I25',
+    },
+  ],
+  isFetching: false,
+  isError: false,
+  error: undefined,
+}
 
 // // Mock the @mui/x-date-pickers module
 vi.mock('@mui/x-date-pickers', async () => {
@@ -71,6 +77,7 @@ vi.mock('dayjs', async () => {
 })
 
 it('should take a snapshot', () => {
+  mockUseGetRsuCountsQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsQuery>)
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider
@@ -99,4 +106,47 @@ it('should take a snapshot', () => {
   )
 
   expect(replaceChaoticIds(container)).toMatchSnapshot()
+})
+
+it('shows the Intersection API ProblemDetail when message counts fail', () => {
+  mockUseGetRsuCountsQuery.mockReturnValue({
+    data: undefined,
+    isFetching: false,
+    isError: true,
+    error: {
+      status: 400,
+      data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
+    },
+  } as ReturnType<typeof useGetRsuCountsQuery>)
+
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          menu: {
+            value: {
+              countsStartDate: new Date('2024-04-09T00:00:00Z'),
+              countsEndDate: new Date('2024-04-10T00:00:00Z'),
+              countsMsgType: 'BSM' as MessageType,
+              display: 'displayCounts',
+              mapMenuSelection: ['Display Message Counts'],
+            },
+          },
+          user: {
+            value: {
+              organization: {
+                organization: 'Test Org',
+              },
+            },
+          },
+        })}
+      >
+        <DisplayCounts />
+      </Provider>
+    </ThemeProvider>
+  )
+
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'The message counts query ran out of memory. Please select a shorter time range.'
+  )
 })

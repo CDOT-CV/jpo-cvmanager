@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.accessorTests.counts;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.MessageCount;
@@ -364,5 +367,46 @@ public class CountsRepositoryImplTest {
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(mc -> mc.getOdeInputCount() == 0 && mc.getOdeOutputCount() == 0));
+    }
+
+    @Test
+    void testGetMessageCounts_PrometheusOomPropagatesAsBadRequest() throws Exception {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
+                .thenThrow(oom);
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+                .thenReturn(mockRsu(rsuIp, "I-25"));
+
+        ResponseStatusException thrown = assertThrows(ResponseStatusException.class,
+                () -> repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime));
+
+        assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
+        assertEquals(PrometheusService.OOM_USER_MESSAGE, thrown.getReason());
+    }
+
+    @Test
+    void testGetOrganizationMessageCounts_PrometheusOomPropagatesAsBadRequest() throws Exception {
+        String organization = "TestOrg";
+        String messageType = "BSM";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(mockRsu("10.11.81.13", "I-25"))));
+        when(prometheusService.getOrganizationRsuCounts(any(), eq(startTime.longValue()), eq(endTime.longValue())))
+                .thenThrow(oom);
+
+        ResponseStatusException thrown = assertThrows(ResponseStatusException.class,
+                () -> repository.getRsuOrganizationMessageCounts(organization, messageType, startTime, endTime));
+
+        assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
+        assertEquals(PrometheusService.OOM_USER_MESSAGE, thrown.getReason());
     }
 }

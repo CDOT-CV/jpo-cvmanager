@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import ConfigureRSU from './ConfigureRSU'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from '@mui/material'
@@ -7,6 +7,7 @@ import { setupStore } from '../../store'
 import { replaceChaoticIds } from '../../utils/test-utils'
 import { vi } from 'vitest'
 import { RsuInfo } from '../../models/RsuApi'
+import { useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 
 vi.mock('../../components/SnmpwalkMenu', () => ({ default: () => null }))
 vi.mock('../../components/SnmpsetMenu', () => ({ default: () => null }))
@@ -17,28 +18,33 @@ vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/rsuCountsApiSlice')>()
   return {
     ...actual,
-    useGetRsuCountsByIpQuery: () => ({
-      data: [
-        {
-          message_type: 'BSM',
-          rsu_ip: '10.0.0.16',
-          ode_input_count: 327817,
-          ode_output_count: 327745,
-          road: 'I70',
-        },
-        {
-          message_type: 'MAP',
-          rsu_ip: '10.0.0.16',
-          ode_input_count: 12,
-          ode_output_count: 11,
-          road: 'I70',
-        },
-      ],
-      isFetching: false,
-      isError: false,
-    }),
+    useGetRsuCountsByIpQuery: vi.fn(),
   }
 })
+
+const mockUseGetRsuCountsByIpQuery = vi.mocked(useGetRsuCountsByIpQuery)
+
+const successCountsQuery = {
+  data: [
+    {
+      message_type: 'BSM',
+      rsu_ip: '10.0.0.16',
+      ode_input_count: 327817,
+      ode_output_count: 327745,
+      road: 'I70',
+    },
+    {
+      message_type: 'MAP',
+      rsu_ip: '10.0.0.16',
+      ode_input_count: 12,
+      ode_output_count: 11,
+      road: 'I70',
+    },
+  ],
+  isFetching: false,
+  isError: false,
+  error: undefined,
+}
 
 const selectedRsu: RsuInfo = {
   id: 1,
@@ -61,6 +67,7 @@ const selectedRsu: RsuInfo = {
 }
 
 it('should take a snapshot', () => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsByIpQuery>)
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
@@ -73,6 +80,7 @@ it('should take a snapshot', () => {
 })
 
 it('shows counts for all configured message types, not just the selected type', () => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsByIpQuery>)
   render(
     <ThemeProvider theme={testTheme}>
       <Provider
@@ -97,4 +105,37 @@ it('shows counts for all configured message types, not just the selected type', 
   expect(screen.getByText('327,745')).toBeInTheDocument()
   expect(screen.getByText('12')).toBeInTheDocument()
   expect(screen.queryByText('BSM Input')).not.toBeInTheDocument()
+})
+
+it('shows the Intersection API ProblemDetail when message counts fail', () => {
+  mockUseGetRsuCountsByIpQuery.mockReturnValue({
+    data: undefined,
+    isFetching: false,
+    isError: true,
+    error: {
+      status: 400,
+      data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
+    },
+  } as ReturnType<typeof useGetRsuCountsByIpQuery>)
+
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider
+        store={setupStore({
+          rsu: {
+            value: {
+              selectedRsu,
+            },
+          },
+        })}
+      >
+        <ConfigureRSU />
+      </Provider>
+    </ThemeProvider>
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'Message Counts' }))
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'The message counts query ran out of memory. Please select a shorter time range.'
+  )
 })

@@ -6,8 +6,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +26,10 @@ import us.dot.its.jpo.ode.api.models.PrometheusResponse;
 public class PrometheusService {
 
     private static final String METRIC_NAME = "kafka_produced_rsu_messages_total";
+    public static final String OOM_USER_MESSAGE =
+            "The message counts query ran out of memory. Please select a shorter time range.";
+    public static final String UNPROCESSABLE_USER_MESSAGE =
+            "The counts query could not be processed. Please select a shorter time range and try again.";
 
     private final RestTemplate restTemplate;
 
@@ -88,8 +95,7 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus: {}", e.getMessage());
-            throw new RuntimeException("Failed to query Prometheus", e);
+            throw wrapPrometheusFailure("querying Prometheus", e);
         }
     }
 
@@ -148,8 +154,7 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus range: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to query Prometheus range", e);
+            throw wrapPrometheusFailure("querying Prometheus range", e);
         }
     }
 
@@ -172,9 +177,36 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus instant: {}", e.getMessage());
-            throw new RuntimeException("Failed to query Prometheus instant", e);
+            throw wrapPrometheusFailure("querying Prometheus instant", e);
         }
+    }
+
+    /**
+     * Maps VictoriaMetrics/Prometheus HTTP 422 (including query OOM) to HTTP 400 so
+     * the counts API can tell the client to shorten the time range.
+     */
+    RuntimeException wrapPrometheusFailure(String action, Exception e) {
+        if (e instanceof ResponseStatusException responseStatusException) {
+            return responseStatusException;
+        }
+        if (e instanceof HttpStatusCodeException httpEx && httpEx.getStatusCode().value() == 422) {
+            String body = httpEx.getResponseBodyAsString();
+            String message = isOutOfMemoryError(body) ? OOM_USER_MESSAGE : UNPROCESSABLE_USER_MESSAGE;
+            log.warn("Prometheus returned 422 during {}: {}", action, body);
+            return new ResponseStatusException(HttpStatus.BAD_REQUEST, message, httpEx);
+        }
+        log.error("Error {}: {}", action, e.getMessage());
+        return new RuntimeException("Failed to query Prometheus", e);
+    }
+
+    static boolean isOutOfMemoryError(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+        String lower = body.toLowerCase();
+        return lower.contains("cannot allocate more memory")
+                || lower.contains("out of memory")
+                || lower.contains("maxmemoryperquery");
     }
 
     /**

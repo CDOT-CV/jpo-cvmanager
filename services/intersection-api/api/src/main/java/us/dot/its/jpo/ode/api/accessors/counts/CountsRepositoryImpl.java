@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -58,6 +59,8 @@ public class CountsRepositoryImpl implements CountsRepository {
         try {
             String response = prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime);
             applyTopicResults(prometheusResults(response), messageTypes::contains, rsuIp, road, rsuCountsMap, null);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error retrieving message counts from Prometheus for RSU {}: {}", rsuIp, e.getMessage());
         }
@@ -91,6 +94,8 @@ public class CountsRepositoryImpl implements CountsRepository {
                 String response = prometheusService.getOrganizationRsuCounts(rsuIps, startTime, endTime);
                 applyTopicResults(prometheusResults(response), requestedType::equals, null, null, rsuCountsMap,
                         rsuIpToRoadMap);
+            } catch (ResponseStatusException e) {
+                throw e;
             } catch (Exception e) {
                 log.error("Error querying Prometheus for organization {}: {}", organization, e.getMessage());
             }
@@ -101,6 +106,8 @@ public class CountsRepositoryImpl implements CountsRepository {
                         new MessageCount(requestedType, entry.getKey(), 0L, 0L, entry.getValue()));
             }
             allCounts.addAll(rsuCountsMap.values());
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error retrieving organization message counts for {}: {}", organization, e.getMessage());
         }

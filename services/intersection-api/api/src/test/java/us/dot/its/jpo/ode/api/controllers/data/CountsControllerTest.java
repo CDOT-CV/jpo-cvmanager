@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.controllers.data;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -13,9 +14,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.services.PrometheusService;
 
 @ExtendWith(MockitoExtension.class)
 public class CountsControllerTest {
@@ -105,5 +108,36 @@ public class CountsControllerTest {
         assertThat(result.getBody()).hasSize(2);
         assertThat(result.getBody().get(0).getRsuIp()).isEqualTo("10.11.81.13");
         assertThat(result.getBody().get(1).getRsuIp()).isEqualTo("10.11.81.14");
+    }
+
+    @Test
+    public void testGetRsuMessageCounts_PropagatesPrometheusOomAsBadRequest() {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime)).thenThrow(oom);
+
+        assertThatThrownBy(() -> controller.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime))
+                .isSameAs(oom);
+    }
+
+    @Test
+    public void testGetOrganizationRsuMessageCounts_PropagatesPrometheusOomAsBadRequest() {
+        String organization = "TestOrg";
+        String message = "BSM";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(countsRepository.getRsuOrganizationMessageCounts(organization, message, startTime, endTime))
+                .thenThrow(oom);
+
+        assertThatThrownBy(
+                () -> controller.getOrganizationRsuMessageCounts(organization, message, startTime, endTime))
+                .isSameAs(oom);
     }
 }
