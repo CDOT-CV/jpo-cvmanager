@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -55,18 +56,8 @@ public class CountsRepositoryImpl implements CountsRepository {
         Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
         try {
-            List<PrometheusResult> availableTopics = getAvailableTopics(startTime, endTime);
-            for (String messageType : messageTypes) {
-                String inTopic = findTopicForMessageType(availableTopics, messageType, true);
-                String outTopic = findTopicForMessageType(availableTopics, messageType, false);
-                if (inTopic != null) {
-                    queryAndProcessTopic(rsuIp, inTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_INPUT);
-                }
-                if (outTopic != null) {
-                    queryAndProcessTopic(rsuIp, outTopic, startTime, endTime, rsuCountsMap, road,
-                            CountType.ODE_OUTPUT);
-                }
-            }
+            String response = prometheusService.getRsuMessageCounts(rsuIp, startTime, endTime);
+            applyTopicResults(prometheusResults(response), messageTypes::contains, rsuIp, road, rsuCountsMap, null);
         } catch (Exception e) {
             log.error("Error retrieving message counts from Prometheus for RSU {}: {}", rsuIp, e.getMessage());
         }
@@ -77,138 +68,6 @@ public class CountsRepositoryImpl implements CountsRepository {
             counts.add(existing != null ? existing : new MessageCount(messageType, rsuIp, 0L, 0L, road));
         }
         return counts;
-    }
-
-    private void queryAndProcessTopic(String rsuIp, String topic, Long startTime, Long endTime,
-            Map<String, MessageCount> rsuCountsMap, String road, CountType countType) {
-        String response = prometheusService.getRsuMessageCounts(rsuIp, topic, startTime, endTime);
-        processPrometheusResponseByTopic(response, topic, rsuCountsMap, rsuIp, road, countType);
-    }
-
-    private void queryAndProcessOrganizationTopic(String rsuIps, String topic, Long startTime, Long endTime,
-            Map<String, MessageCount> rsuCountsMap, Map<String, String> rsuIpToRoadMap, CountType countType) {
-        String response = prometheusService.getOrganizationRsuCountsByTopic(rsuIps, topic, startTime, endTime);
-        processOrganizationResponseByTopic(response, topic, rsuCountsMap, rsuIpToRoadMap, countType);
-    }
-
-    private String extractMessageTypeFromTopic(String topic) {
-        if (topic == null || !topic.startsWith(TOPIC_PREFIX)) {
-            return null;
-        }
-
-        String messageType = topic.substring(TOPIC_PREFIX.length())
-                .replace(RAW_ENCODED_INDICATOR, "")
-                .replace(JSON_SUFFIX, "");
-
-        return messageType.isEmpty() ? null : messageType.toUpperCase();
-    }
-
-    private String determineTopicFromMessageType(String messageType, Long startTime, Long endTime,
-            boolean isRawEncoded) {
-        try {
-            return findTopicForMessageType(getAvailableTopics(startTime, endTime), messageType, isRawEncoded);
-        } catch (Exception e) {
-            log.error("Error determining topic for message type {} (RawEncoded: {}): {}", messageType, isRawEncoded,
-                    e.getMessage());
-            return null;
-        }
-    }
-
-    private List<PrometheusResult> getAvailableTopics(Long startTime, Long endTime) throws JsonProcessingException {
-        return prometheusResults(prometheusService.getAvailableTopicCounts(startTime, endTime));
-    }
-
-    private String findTopicForMessageType(List<PrometheusResult> availableTopics, String messageType,
-            boolean isRawEncoded) {
-        for (PrometheusResult result : availableTopics) {
-            String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
-            if (topicMatches(topic, messageType, isRawEncoded)) {
-                return topic;
-            }
-        }
-        return null;
-    }
-
-    private boolean topicMatches(String topic, String messageType, boolean isRawEncoded) {
-        if (topic == null) {
-            return false;
-        }
-        return messageType.equalsIgnoreCase(extractMessageTypeFromTopic(topic))
-                && topic.contains(RAW_ENCODED_INDICATOR) == isRawEncoded;
-    }
-
-    private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {
-        PrometheusResponse prometheusResponse = jsonMapper.readValue(response, PrometheusResponse.class);
-        if (!prometheusResponse.isSuccess()) {
-            return List.of();
-        }
-        return prometheusResponse.getResults();
-    }
-
-    private void processPrometheusResponseByTopic(String response, String topic,
-            Map<String, MessageCount> rsuCountsMap, String rsuIp, String road, CountType countType) {
-        try {
-            double value = 0.0;
-            for (PrometheusResult result : prometheusResults(response)) {
-                if (topic.equals(result.getMetricLabel(METRIC_LABEL_TOPIC))) {
-                    value = result.getInstantValue();
-                    break;
-                }
-            }
-
-            String messageType = extractMessageTypeFromTopic(topic);
-            if (messageType != null && value > 0) {
-                MessageCount rsuCounts = rsuCountsMap.get(messageType);
-                if (rsuCounts == null) {
-                    rsuCounts = new MessageCount(messageType, rsuIp, 0L, 0L, road);
-                    rsuCountsMap.put(messageType, rsuCounts);
-                }
-
-                if (countType == CountType.ODE_INPUT) {
-                    rsuCounts.setOdeInputCount(rsuCounts.getOdeInputCount() + (long) value);
-                } else if (countType == CountType.ODE_OUTPUT) {
-                    rsuCounts.setOdeOutputCount(rsuCounts.getOdeOutputCount() + (long) value);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing Prometheus response by topic for RSU {} topic {}: {}", rsuIp, topic,
-                    e.getMessage());
-        }
-    }
-
-    private void processOrganizationResponseByTopic(String response, String topic,
-            Map<String, MessageCount> rsuCountsMaps, Map<String, String> rsuIpToRoadMap, CountType countType) {
-        try {
-            Map<String, Long> rsuCounts = new HashMap<>();
-            for (PrometheusResult result : prometheusResults(response)) {
-                if (topic.equals(result.getMetricLabel(METRIC_LABEL_TOPIC))) {
-                    rsuCounts.put(result.getMetricLabel(METRIC_LABEL_RSU_IP), (long) result.getInstantValue());
-                }
-            }
-
-            String messageType = extractMessageTypeFromTopic(topic);
-
-            for (Map.Entry<String, String> entry : rsuIpToRoadMap.entrySet()) {
-                String rsuIp = entry.getKey();
-                String road = entry.getValue();
-                Long count = rsuCounts.getOrDefault(rsuIp, 0L);
-
-                String key = rsuIp + "_" + messageType;
-                MessageCount rsuCountsMap = rsuCountsMaps.get(key);
-                if (rsuCountsMap == null) {
-                    rsuCountsMap = new MessageCount(messageType, rsuIp, 0L, 0L, road);
-                    rsuCountsMaps.put(key, rsuCountsMap);
-                }
-
-                if (countType == CountType.ODE_INPUT) {
-                    rsuCountsMap.setOdeInputCount(rsuCountsMap.getOdeInputCount() + count);
-                } else if (countType == CountType.ODE_OUTPUT) {
-                    rsuCountsMap.setOdeOutputCount(rsuCountsMap.getOdeOutputCount() + count);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing optimized organization Prometheus response by topic: {}", e.getMessage());
-        }
     }
 
     @Override
@@ -224,36 +83,96 @@ public class CountsRepositoryImpl implements CountsRepository {
                 return allCounts;
             }
 
-            String inTopic = determineTopicFromMessageType(messageType, startTime, endTime, true);
-            String outTopic = determineTopicFromMessageType(messageType, startTime, endTime, false);
-
-            String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
+            String requestedType = messageType == null ? "" : messageType.toUpperCase();
             Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
-            if (inTopic != null) {
-                queryAndProcessOrganizationTopic(rsuIps, inTopic, startTime, endTime, rsuCountsMap, rsuIpToRoadMap,
-                        CountType.ODE_INPUT);
+            try {
+                String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
+                String response = prometheusService.getOrganizationRsuCounts(rsuIps, startTime, endTime);
+                applyTopicResults(prometheusResults(response), requestedType::equals, null, null, rsuCountsMap,
+                        rsuIpToRoadMap);
+            } catch (Exception e) {
+                log.error("Error querying Prometheus for organization {}: {}", organization, e.getMessage());
             }
 
-            if (outTopic != null) {
-                queryAndProcessOrganizationTopic(rsuIps, outTopic, startTime, endTime, rsuCountsMap, rsuIpToRoadMap,
-                        CountType.ODE_OUTPUT);
+            for (Map.Entry<String, String> entry : rsuIpToRoadMap.entrySet()) {
+                String key = entry.getKey() + "_" + requestedType;
+                rsuCountsMap.putIfAbsent(key,
+                        new MessageCount(requestedType, entry.getKey(), 0L, 0L, entry.getValue()));
             }
-
             allCounts.addAll(rsuCountsMap.values());
-
-            if (allCounts.isEmpty()) {
-                for (Map.Entry<String, String> entry : rsuIpToRoadMap.entrySet()) {
-                    String rsuIp = entry.getKey();
-                    String road = entry.getValue();
-                    allCounts.add(new MessageCount(messageType.toUpperCase(), rsuIp, 0L, 0L, road));
-                }
-            }
         } catch (Exception e) {
             log.error("Error retrieving organization message counts for {}: {}", organization, e.getMessage());
         }
 
         return allCounts;
+    }
+
+    private void applyTopicResults(List<PrometheusResult> results, Predicate<String> messageTypeFilter,
+            String fallbackRsuIp, String fallbackRoad, Map<String, MessageCount> rsuCountsMap,
+            Map<String, String> rsuIpToRoadMap) {
+        for (PrometheusResult result : results) {
+            String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
+            String messageType = extractMessageTypeFromTopic(topic);
+            if (messageType == null || !messageTypeFilter.test(messageType)) {
+                continue;
+            }
+
+            long value = (long) result.getInstantValue();
+            if (value <= 0) {
+                continue;
+            }
+
+            String rsuIp = result.getMetricLabel(METRIC_LABEL_RSU_IP);
+            if (rsuIp == null || rsuIp.isBlank()) {
+                rsuIp = fallbackRsuIp;
+            }
+            if (rsuIp == null) {
+                continue;
+            }
+
+            String road = fallbackRoad;
+            if (rsuIpToRoadMap != null) {
+                road = rsuIpToRoadMap.get(rsuIp);
+                if (road == null) {
+                    continue;
+                }
+            }
+
+            String key = rsuIpToRoadMap == null ? messageType : rsuIp + "_" + messageType;
+            MessageCount counts = rsuCountsMap.get(key);
+            if (counts == null) {
+                counts = new MessageCount(messageType, rsuIp, 0L, 0L, road);
+                rsuCountsMap.put(key, counts);
+            }
+
+            CountType countType = topic.contains(RAW_ENCODED_INDICATOR) ? CountType.ODE_INPUT : CountType.ODE_OUTPUT;
+            if (countType == CountType.ODE_INPUT) {
+                counts.setOdeInputCount(counts.getOdeInputCount() + value);
+            } else {
+                counts.setOdeOutputCount(counts.getOdeOutputCount() + value);
+            }
+        }
+    }
+
+    private String extractMessageTypeFromTopic(String topic) {
+        if (topic == null || !topic.startsWith(TOPIC_PREFIX)) {
+            return null;
+        }
+
+        String messageType = topic.substring(TOPIC_PREFIX.length())
+                .replace(RAW_ENCODED_INDICATOR, "")
+                .replace(JSON_SUFFIX, "");
+
+        return messageType.isEmpty() ? null : messageType.toUpperCase();
+    }
+
+    private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {
+        PrometheusResponse prometheusResponse = jsonMapper.readValue(response, PrometheusResponse.class);
+        if (!prometheusResponse.isSuccess()) {
+            return List.of();
+        }
+        return prometheusResponse.getResults();
     }
 
     private String getRsuPrimaryRoute(String rsuIp) {

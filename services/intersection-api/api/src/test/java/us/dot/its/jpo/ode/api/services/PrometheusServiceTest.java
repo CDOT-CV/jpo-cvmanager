@@ -33,9 +33,9 @@ public class PrometheusServiceTest {
         prometheusUrlField.setAccessible(true);
         prometheusUrlField.set(prometheusService, "http://localhost:9090");
 
-        Field stepField = PrometheusService.class.getDeclaredField("aggregationStepSeconds");
-        stepField.setAccessible(true);
-        stepField.set(prometheusService, 60);
+        Field lookbehindField = PrometheusService.class.getDeclaredField("minLookbehindSeconds");
+        lookbehindField.setAccessible(true);
+        lookbehindField.set(prometheusService, 60);
     }
 
     @Test
@@ -66,30 +66,42 @@ public class PrometheusServiceTest {
     }
 
     @Test
-    public void testBuildSumOverTimeIncreaseQuery_UsesConfiguredStep() {
+    public void testBuildIncreaseQuery_UsesWindowAndMinLookbehindFloor() {
         long startTime = 1640995200000L;
         long endTime = 1641081600000L; // 24h later
 
-        String promQL = prometheusService.buildSumOverTimeIncreaseQuery(
-                "rsu_ip=\"10.0.0.1\", topic=\"topic.OdeBsmJson\"",
+        String promQL = prometheusService.buildIncreaseQuery(
+                "rsu_ip=\"10.0.0.1\"",
                 "topic",
                 startTime,
                 endTime);
 
         assertThat(promQL).isEqualTo(
-                "sum by (topic) (sum_over_time(increase(kafka_produced_rsu_messages_total"
-                        + "{rsu_ip=\"10.0.0.1\", topic=\"topic.OdeBsmJson\"}[60s])[86400s:60s]))");
+                "sum by (topic) (increase(kafka_produced_rsu_messages_total{rsu_ip=\"10.0.0.1\"}[86400s]))");
+        assertThat(promQL).doesNotContain("sum_over_time");
+        assertThat(promQL).doesNotContain(":60s]");
     }
 
     @Test
-    public void testGetRsuMessageCounts_UsesSumOverTimeInstantQuery() {
+    public void testBuildIncreaseQuery_OmitsEmptySelector() {
+        long startTime = 1640995200000L;
+        long endTime = 1641081600000L;
+
+        String promQL = prometheusService.buildIncreaseQuery("", "topic", startTime, endTime);
+
+        assertThat(promQL).isEqualTo(
+                "sum by (topic) (increase(kafka_produced_rsu_messages_total[86400s]))");
+    }
+
+    @Test
+    public void testGetRsuMessageCounts_UsesIncreaseInstantQuery() {
         long startTime = 1640995200000L;
         long endTime = 1641081600000L;
         String expectedResponse = "{\"status\":\"success\",\"data\":{\"result\":[]}}";
 
         when(restTemplate.getForObject(any(URI.class), eq(String.class))).thenReturn(expectedResponse);
 
-        String result = prometheusService.getRsuMessageCounts("10.0.0.1", "topic.OdeBsmJson", startTime, endTime);
+        String result = prometheusService.getRsuMessageCounts("10.0.0.1", startTime, endTime);
 
         assertThat(result).isEqualTo(expectedResponse);
 
@@ -98,19 +110,22 @@ public class PrometheusServiceTest {
 
         String uri = uriCaptor.getValue().toString();
         assertThat(uri).contains("/api/v1/query");
-        assertThat(uri).contains("sum_over_time");
         assertThat(uri).contains("increase");
+        assertThat(uri).doesNotContain("sum_over_time");
         assertThat(uri).contains("time=1641081600");
+        assertThat(uri).contains("rsu_ip");
     }
 
     @Test
-    public void testGetAvailableTopicCounts_OmitsEmptySelector() {
-        long startTime = 1640995200000L;
-        long endTime = 1641081600000L;
+    public void testBaselineQuery_KeepsFrozenSubqueryShape() {
+        String baseline = PrometheusService.buildBaselineSumOverTimeIncreaseQuery(
+                "rsu_ip=\"10.0.0.1\", topic=\"topic.OdeBsmJson\"",
+                "topic",
+                86400,
+                120);
 
-        String promQL = prometheusService.buildSumOverTimeIncreaseQuery("", "topic", startTime, endTime);
-
-        assertThat(promQL).isEqualTo(
-                "sum by (topic) (sum_over_time(increase(kafka_produced_rsu_messages_total[60s])[86400s:60s]))");
+        assertThat(baseline).isEqualTo(
+                "sum by (topic) (sum_over_time(increase(kafka_produced_rsu_messages_total"
+                        + "{rsu_ip=\"10.0.0.1\", topic=\"topic.OdeBsmJson\"}[120s])[86400s:120s]))");
     }
 }

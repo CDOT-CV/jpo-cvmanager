@@ -36,8 +36,12 @@ public class PrometheusService {
     @Value("${prometheus.url:http://localhost:9090}")
     private String prometheusUrl;
 
+    /**
+     * Minimum increase() lookbehind in seconds. Used as a floor so short UI ranges
+     * still contain at least two samples.
+     */
     @Value("${prometheus.aggregation.step.seconds:120}")
-    private int aggregationStepSeconds;
+    private int minLookbehindSeconds;
 
     public PrometheusService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -174,67 +178,68 @@ public class PrometheusService {
     }
 
     /**
-     * Builds a sum_over_time(increase(...)) PromQL query that aggregates counter
-     * increases across ephemeral hosts/pods over the requested window.
+     * Builds {@code sum by (labels) (increase(metric[range]))} so increments from
+     * scaled/restarted ODE hosts (distinct {@code instance}/{@code host} series) are
+     * included without a memory-heavy subquery.
+     * <p>
+     * On Prometheus, {@code increase()} extrapolates about one scrape interval at
+     * series edges. VictoriaMetrics does not extrapolate.
      *
-     * @param metricSelector label selector body, e.g. {@code rsu_ip="1.2.3.4", topic="x"}
+     * @param metricSelector label selector body, e.g. {@code rsu_ip="1.2.3.4"}
      * @param groupBy        comma-separated label names for {@code sum by (...)}
      * @param startTime      start time in milliseconds
      * @param endTime        end time in milliseconds
      * @return PromQL string
      */
-    String buildSumOverTimeIncreaseQuery(String metricSelector, String groupBy, long startTime, long endTime) {
-        long rangeSeconds = Math.max((endTime - startTime) / 1000, aggregationStepSeconds);
-        int step = aggregationStepSeconds;
+    String buildIncreaseQuery(String metricSelector, String groupBy, long startTime, long endTime) {
+        long rangeSeconds = Math.max((endTime - startTime) / 1000, minLookbehindSeconds);
+        String metric = metricSelector == null || metricSelector.isBlank()
+                ? METRIC_NAME
+                : String.format("%s{%s}", METRIC_NAME, metricSelector);
+        return String.format("sum by (%s) (increase(%s[%ds]))", groupBy, metric, rangeSeconds);
+    }
+
+    /**
+     * Frozen previous production query. Kept for accuracy comparisons against the
+     * {@code increase([range])} query. Do not use for live counts.
+     */
+    static String buildBaselineSumOverTimeIncreaseQuery(String metricSelector, String groupBy, long rangeSeconds,
+            int stepSeconds) {
         String metric = metricSelector == null || metricSelector.isBlank()
                 ? METRIC_NAME
                 : String.format("%s{%s}", METRIC_NAME, metricSelector);
         return String.format(
                 "sum by (%s) (sum_over_time(increase(%s[%ds])[%ds:%ds]))",
-                groupBy, metric, step, rangeSeconds, step);
+                groupBy, metric, stepSeconds, rangeSeconds, stepSeconds);
     }
 
     /**
-     * RSU message counts for a single RSU IP and topic over a time range.
-     * Uses sum_over_time(increase()) so increments from scaled/restarted ODE hosts
-     * are included.
+     * RSU message counts for a single RSU IP over a time range, grouped by topic.
+     * Uses {@code sum by (topic) (increase(...[range]))} so increments from
+     * scaled/restarted ODE hosts are included.
      *
      * @param rsuIp     the IP address of the RSU
-     * @param topic     Kafka topic label
      * @param startTime start time in milliseconds
      * @param endTime   end time in milliseconds
      * @return the JSON response from Prometheus
      */
-    public String getRsuMessageCounts(String rsuIp, String topic, long startTime, long endTime) {
-        String selector = String.format("rsu_ip=\"%s\", topic=\"%s\"", rsuIp, topic);
-        String promQL = buildSumOverTimeIncreaseQuery(selector, "topic", startTime, endTime);
+    public String getRsuMessageCounts(String rsuIp, long startTime, long endTime) {
+        String selector = String.format("rsu_ip=\"%s\"", rsuIp);
+        String promQL = buildIncreaseQuery(selector, "topic", startTime, endTime);
         return queryInstant(promQL, endTime);
     }
 
     /**
-     * Organization RSU counts filtered by topic over a time range.
+     * Organization RSU counts over a time range, grouped by RSU IP and topic.
      *
-     * @param rsuIps    comma-separated list of RSU IPs or regex pattern
-     * @param topic     the specific topic to filter by
+     * @param rsuIps    pipe-delimited RSU IP regex pattern
      * @param startTime start time in milliseconds
      * @param endTime   end time in milliseconds
      * @return the JSON response from Prometheus
      */
-    public String getOrganizationRsuCountsByTopic(String rsuIps, String topic, long startTime, long endTime) {
-        String selector = String.format("rsu_ip=~\"%s\", topic=\"%s\"", rsuIps, topic);
-        String promQL = buildSumOverTimeIncreaseQuery(selector, "rsu_ip, topic", startTime, endTime);
-        return queryInstant(promQL, endTime);
-    }
-
-    /**
-     * Available topic counts over a time range (used to resolve message type → topic).
-     *
-     * @param startTime start time in milliseconds
-     * @param endTime   end time in milliseconds
-     * @return the JSON response from Prometheus
-     */
-    public String getAvailableTopicCounts(long startTime, long endTime) {
-        String promQL = buildSumOverTimeIncreaseQuery("", "topic", startTime, endTime);
+    public String getOrganizationRsuCounts(String rsuIps, long startTime, long endTime) {
+        String selector = String.format("rsu_ip=~\"%s\"", rsuIps);
+        String promQL = buildIncreaseQuery(selector, "rsu_ip, topic", startTime, endTime);
         return queryInstant(promQL, endTime);
     }
 
