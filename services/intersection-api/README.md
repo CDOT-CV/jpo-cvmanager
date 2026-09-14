@@ -136,6 +136,45 @@ See the [api/README.md](api/README.md#running-locally) for instructions
 
 An Smtp4dev server can be used locally to test the Email capabilities of the conflict monitor API: [smtp4dev](https://github.com/rnwood/smtp4dev). Once running, this server can be connected to the api (and Keycloak).
 
+### 3. RSU message counts accuracy test (`PrometheusRsuCountsAccuracyIT`)
+
+[`PrometheusRsuCountsAccuracyIT`](api/src/test/java/us/dot/its/jpo/ode/api/services/PrometheusRsuCountsAccuracyIT.java) is a Testcontainers integration test. It loads synthetic ODE restart samples into Prometheus and checks that the production counts query stays within 2% of ground-truth increments across multiple `instance`/`host` lifetimes (including an overlapping scale-out instance).
+
+It compares three numbers for `topic.OdeBsmJson`:
+
+- **actual** — sum of per-scrape counter increments in [`OdeRestartMetricsFixture`](api/src/test/java/us/dot/its/jpo/ode/api/services/OdeRestartMetricsFixture.java)
+- **baseline** — frozen `sum_over_time(increase(...)[range:step])` query (the previous production shape)
+- **new** — current `sum by (topic) (increase(metric[range]))` query used by the Intersection API
+
+Prometheus `increase()` extrapolates about one scrape interval at series edges, so the new query can sit slightly above actual (around 0.3% on this fixture). VictoriaMetrics (production) does not extrapolate. Both queries must stay within 2% of actual.
+
+This class is named `*IT` and is **not** included in a plain `mvn test` run. Run it explicitly.
+
+#### Prerequisites
+
+- Java 22 (`JAVA_HOME`) and Maven (see [api/README.md](api/README.md#running-locally))
+- Docker engine running, with access to pull `prom/prometheus:v3.1.0`
+- On Docker Desktop for Windows, use **Linux** containers. The Prometheus image is Linux-only.
+- GitHub packages credentials in `~/.m2/settings.xml` (same as a normal test compile)
+
+If Docker is not available, Testcontainers skips the class (`@Testcontainers(disabledWithoutDocker = true)`).
+
+#### Run
+
+From `services/intersection-api/api`:
+
+```sh
+mvn test -Dtest=PrometheusRsuCountsAccuracyIT
+```
+
+PowerShell treats `=` as parsing, so quote the property:
+
+```powershell
+mvn test "-Dtest=PrometheusRsuCountsAccuracyIT"
+```
+
+A passing run prints a line like `RSU counts accuracy topic=topic.OdeBsmJson actual=... baseline=... new=...` and exits 0. First run can take a couple of minutes while Testcontainers pulls the Prometheus image and imports OpenMetrics into TSDB.
+
 ## Updating the Asn.1 FFM Decoder Binaries
 
 1. View the FFM project tags on https://github.com/usdot-jpo-ode/j2735-ffm-java/tags and record the desired tag

@@ -2,9 +2,9 @@ package us.dot.its.jpo.ode.api.accessorTests.counts;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
@@ -19,6 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepositoryImpl;
 import us.dot.its.jpo.ode.api.models.MessageCount;
@@ -72,25 +74,7 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
-                endTime.longValue()))
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
@@ -129,25 +113,7 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmRawEncodedJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
-                endTime.longValue()))
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-70"));
@@ -193,33 +159,7 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmJson"
-                                }
-                            },
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmRawEncodedJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
-                endTime.longValue()))
-                .thenReturn(mockPrometheusResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmRawEncodedJson", startTime.longValue(),
-                endTime.longValue()))
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
@@ -241,27 +181,7 @@ public class CountsRepositoryImplTest {
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmJson"
-                                }
-                            },
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeMapJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        String bsmResponse = """
+        String mockPrometheusResponse = """
                 {
                     "status": "success",
                     "data": {
@@ -272,17 +192,7 @@ public class CountsRepositoryImplTest {
                                     "rsu_ip": "10.11.81.13"
                                 },
                                 "value": [1640995200, "150"]
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        String mapResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
+                            },
                             {
                                 "metric": {
                                     "topic": "topic.OdeMapJson",
@@ -295,14 +205,8 @@ public class CountsRepositoryImplTest {
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
-                endTime.longValue()))
-                .thenReturn(bsmResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeMapJson", startTime.longValue(),
-                endTime.longValue()))
-                .thenReturn(mapResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
+                .thenReturn(mockPrometheusResponse);
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
@@ -331,27 +235,7 @@ public class CountsRepositoryImplTest {
                         mockRsu("10.11.81.13", "I-25"),
                         mockRsu("10.11.81.14", "I-70"))));
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmJson"
-                                }
-                            },
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmRawEncodedJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        String mockInResponse = """
+        String mockResponse = """
                 {
                     "status": "success",
                     "data": {
@@ -369,17 +253,7 @@ public class CountsRepositoryImplTest {
                                     "rsu_ip": "10.11.81.14"
                                 },
                                 "value": [1640995200, "25"]
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        String mockOutResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
+                            },
                             {
                                 "metric": {
                                     "topic": "topic.OdeBsmJson",
@@ -393,21 +267,21 @@ public class CountsRepositoryImplTest {
                                     "rsu_ip": "10.11.81.14"
                                 },
                                 "value": [1640995200, "50"]
+                            },
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeMapJson",
+                                    "rsu_ip": "10.11.81.13"
+                                },
+                                "value": [1640995200, "999"]
                             }
                         ]
                     }
                 }
                 """;
 
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmRawEncodedJson"),
-                eq(startTime), eq(endTime)))
-                .thenReturn(mockInResponse);
-        when(prometheusService.getOrganizationRsuCountsByTopic(anyString(), eq("topic.OdeBsmJson"),
-                eq(startTime),
-                eq(endTime)))
-                .thenReturn(mockOutResponse);
+        when(prometheusService.getOrganizationRsuCounts(any(), eq(startTime.longValue()), eq(endTime.longValue())))
+                .thenReturn(mockResponse);
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
                 organization, messageType, startTime, endTime);
@@ -457,25 +331,7 @@ public class CountsRepositoryImplTest {
         Long startTime = 1640995200000L;
         Long endTime = 1641081600000L;
 
-        String mockTopicsResponse = """
-                {
-                    "status": "success",
-                    "data": {
-                        "result": [
-                            {
-                                "metric": {
-                                    "topic": "topic.OdeBsmJson"
-                                }
-                            }
-                        ]
-                    }
-                }
-                """;
-
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
-                .thenReturn(mockTopicsResponse);
-        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
-                endTime.longValue()))
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenThrow(new RuntimeException("Prometheus error"));
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
@@ -502,7 +358,7 @@ public class CountsRepositoryImplTest {
                 .thenReturn(new PageImpl<>(List.of(
                         mockRsu("10.11.81.13", "I-25"),
                         mockRsu("10.11.81.14", "I-70"))));
-        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
+        when(prometheusService.getOrganizationRsuCounts(any(), eq(startTime.longValue()), eq(endTime.longValue())))
                 .thenThrow(new RuntimeException("Prometheus error"));
 
         List<MessageCount> result = repository.getRsuOrganizationMessageCounts(
@@ -511,5 +367,46 @@ public class CountsRepositoryImplTest {
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(mc -> mc.getOdeInputCount() == 0 && mc.getOdeOutputCount() == 0));
+    }
+
+    @Test
+    void testGetMessageCounts_PrometheusOomPropagatesAsBadRequest() throws Exception {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
+                .thenThrow(oom);
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+                .thenReturn(mockRsu(rsuIp, "I-25"));
+
+        ResponseStatusException thrown = assertThrows(ResponseStatusException.class,
+                () -> repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime));
+
+        assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
+        assertEquals(PrometheusService.OOM_USER_MESSAGE, thrown.getReason());
+    }
+
+    @Test
+    void testGetOrganizationMessageCounts_PrometheusOomPropagatesAsBadRequest() throws Exception {
+        String organization = "TestOrg";
+        String messageType = "BSM";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(rsuRepository.findAllByOrganization(eq(organization), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(mockRsu("10.11.81.13", "I-25"))));
+        when(prometheusService.getOrganizationRsuCounts(any(), eq(startTime.longValue()), eq(endTime.longValue())))
+                .thenThrow(oom);
+
+        ResponseStatusException thrown = assertThrows(ResponseStatusException.class,
+                () -> repository.getRsuOrganizationMessageCounts(organization, messageType, startTime, endTime));
+
+        assertEquals(HttpStatus.BAD_REQUEST, thrown.getStatusCode());
+        assertEquals(PrometheusService.OOM_USER_MESSAGE, thrown.getReason());
     }
 }
