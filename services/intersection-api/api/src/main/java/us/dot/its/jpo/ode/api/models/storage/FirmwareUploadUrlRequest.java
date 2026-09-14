@@ -43,6 +43,7 @@ public class FirmwareUploadUrlRequest {
     @Pattern(regexp = SAFE_FILE_COMPONENT,
             message = "must start with an alphanumeric character and contain only letters, numbers, dots, underscores, or hyphens")
     @JsonProperty("file_name")
+    @Schema(description = "Original selected filename; must use the extension configured for the manufacturer")
     private String fileName;
 
     @NotNull
