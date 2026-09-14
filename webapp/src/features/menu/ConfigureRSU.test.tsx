@@ -24,6 +24,9 @@ vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
 
 const mockUseGetRsuCountsByIpQuery = vi.mocked(useGetRsuCountsByIpQuery)
 
+const mockQueryResult = <T,>(result: T): ReturnType<typeof useGetRsuCountsByIpQuery> =>
+  result as unknown as ReturnType<typeof useGetRsuCountsByIpQuery>
+
 const successCountsQuery = {
   data: [
     {
@@ -67,7 +70,7 @@ const selectedRsu: RsuInfo = {
 }
 
 it('should take a snapshot', () => {
-  mockUseGetRsuCountsByIpQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsByIpQuery>)
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
@@ -80,7 +83,7 @@ it('should take a snapshot', () => {
 })
 
 it('shows counts for all configured message types, not just the selected type', () => {
-  mockUseGetRsuCountsByIpQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsByIpQuery>)
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   render(
     <ThemeProvider theme={testTheme}>
       <Provider
@@ -108,15 +111,17 @@ it('shows counts for all configured message types, not just the selected type', 
 })
 
 it('shows the Intersection API ProblemDetail when message counts fail', () => {
-  mockUseGetRsuCountsByIpQuery.mockReturnValue({
-    data: undefined,
-    isFetching: false,
-    isError: true,
-    error: {
-      status: 400,
-      data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
-    },
-  } as ReturnType<typeof useGetRsuCountsByIpQuery>)
+  mockUseGetRsuCountsByIpQuery.mockReturnValue(
+    mockQueryResult({
+      data: undefined,
+      isFetching: false,
+      isError: true,
+      error: {
+        status: 400,
+        data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
+      },
+    })
+  )
 
   render(
     <ThemeProvider theme={testTheme}>

@@ -19,6 +19,9 @@ vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
 
 const mockUseGetRsuCountsQuery = vi.mocked(useGetRsuCountsQuery)
 
+const mockQueryResult = <T,>(result: T): ReturnType<typeof useGetRsuCountsQuery> =>
+  result as unknown as ReturnType<typeof useGetRsuCountsQuery>
+
 const successCountsQuery = {
   data: [
     {
@@ -77,7 +80,7 @@ vi.mock('dayjs', async () => {
 })
 
 it('should take a snapshot', () => {
-  mockUseGetRsuCountsQuery.mockReturnValue(successCountsQuery as ReturnType<typeof useGetRsuCountsQuery>)
+  mockUseGetRsuCountsQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider
@@ -109,15 +112,17 @@ it('should take a snapshot', () => {
 })
 
 it('shows the Intersection API ProblemDetail when message counts fail', () => {
-  mockUseGetRsuCountsQuery.mockReturnValue({
-    data: undefined,
-    isFetching: false,
-    isError: true,
-    error: {
-      status: 400,
-      data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
-    },
-  } as ReturnType<typeof useGetRsuCountsQuery>)
+  mockUseGetRsuCountsQuery.mockReturnValue(
+    mockQueryResult({
+      data: undefined,
+      isFetching: false,
+      isError: true,
+      error: {
+        status: 400,
+        data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
+      },
+    })
+  )
 
   render(
     <ThemeProvider theme={testTheme}>
