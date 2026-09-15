@@ -15,19 +15,23 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import lombok.Getter;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 
 @Getter
 public class CvManagerAuthToken extends JwtAuthenticationToken {
     private final Map<Integer, Pair<Organization, UserRole>> orgRoles; // Map<Org, Role>
     private final boolean isSuperUser;
     private final String email;
+    private final OrganizationRepository organizationRepository;
 
-    public CvManagerAuthToken(Jwt jwt, Collection<? extends GrantedAuthority> authorities, String username) {
+    public CvManagerAuthToken(Jwt jwt, Collection<? extends GrantedAuthority> authorities, String username,
+            OrganizationRepository organizationRepository) {
         super(jwt, authorities, username);
         Map<String, Object> cvmanagerClaims = Optional.ofNullable(jwt.getClaimAsMap("cvmanager_data")).orElse(Map.of());
         this.orgRoles = getOrgRolesFrom(cvmanagerClaims);
         this.isSuperUser = getIsSuperUserFrom(cvmanagerClaims);
         this.email = getEmailFrom(jwt);
+        this.organizationRepository = organizationRepository;
     }
 
     protected Boolean getIsSuperUserFrom(Map<String, Object> claims) {
@@ -105,6 +109,10 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
      * @return List of organization names where user meets the role requirement
      */
     public List<Organization> getQualifiedOrgList(UserRole requiredRole) {
+        if (isSuperUser) {
+            // Superusers are qualified for all organizations
+            return organizationRepository.findAll();
+        }
         return orgRoles.entrySet().stream()
                 .filter(entry -> entry != null && entry.getValue() != null
                         && entry.getValue().getRight().hasMinimumRole(requiredRole))

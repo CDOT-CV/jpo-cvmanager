@@ -76,6 +76,7 @@ class OrganizationManagementServiceTest {
     private OrganizationManagementService service;
 
     private Organization testOrg;
+    private Organization testOrgOther;
     private OrganizationDto testOrgDto;
 
     @BeforeEach
