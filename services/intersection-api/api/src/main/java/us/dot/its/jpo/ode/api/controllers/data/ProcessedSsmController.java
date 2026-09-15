@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,7 +40,7 @@ public class ProcessedSsmController {
     }
 
     @Operation(summary = "Find SSMs", description = "Returns a list of SSMs based on the provided parameters. The latest parameter will return the most recent SSM message. The compact flag will omit the \"recordGeneratedAt\", \"validationMessages\" fields.")
-    @RequestMapping(method = RequestMethod.GET, produces = "application/json")
+    @GetMapping( produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -74,7 +74,7 @@ public class ProcessedSsmController {
     }
 
     @Operation(summary = "Count SSMs", description = "Returns the count of SSMs based on the provided parameters.")
-    @RequestMapping(value = "/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
