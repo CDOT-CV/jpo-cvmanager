@@ -19,7 +19,7 @@ export type FirmwareObject = {
 export type FirmwareObjectPage = {
   provider: string
   objects: FirmwareObject[]
-  next_page_token: string | null
+  total_elements: number
 }
 
 export type FirmwareUploadModelOption = {

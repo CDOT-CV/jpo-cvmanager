@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import AdminFirmwareTab from './AdminFirmwareTab'
 import toast from 'react-hot-toast'
@@ -63,7 +63,7 @@ describe('Firmware object browser', () => {
         provider_object_version: '18',
       },
     ],
-    next_page_token: null,
+    total_elements: 2,
   }
 
   beforeEach(() => {
@@ -83,14 +83,14 @@ describe('Firmware object browser', () => {
     } as any)
   })
 
-  it('uses the standard admin table toolbar without page-local search', async () => {
+  it('uses the standard admin table toolbar with global search', async () => {
     renderFirmware()
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toHaveStyle({ textTransform: 'none' })
     expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument()
@@ -109,15 +109,16 @@ describe('Firmware object browser', () => {
     await waitFor(() =>
       expect(trigger).toHaveBeenLastCalledWith({
         manufacturer: 'Kapsch',
-        page_size: 25,
-        page_token: undefined,
+        page: 0,
+        size: 25,
+        search: '',
       })
     )
   })
 
-  it('uses the provider page token with the standard table pagination', async () => {
+  it('uses numbered pages and the server result count for pagination', async () => {
     trigger.mockImplementation(() => ({
-      unwrap: () => Promise.resolve({ ...page, next_page_token: 'next-page' }),
+      unwrap: () => Promise.resolve({ ...page, total_elements: 26 }),
     }))
     renderFirmware()
     await screen.findByRole('button', { name: 'v1' })
@@ -127,10 +128,122 @@ describe('Firmware object browser', () => {
     await waitFor(() =>
       expect(trigger).toHaveBeenLastCalledWith({
         manufacturer: undefined,
-        page_size: 25,
-        page_token: 'next-page',
+        page: 1,
+        size: 25,
+        search: '',
       })
     )
+  })
+
+  describe('server-side search', () => {
+    beforeEach(async () => {
+      // Exercise the real table debounce without waiting for wall-clock timers in CI.
+      vi.useFakeTimers()
+      trigger.mockImplementation(({ search }) => ({
+        unwrap: () => Promise.resolve(search ? {
+          objects: [{ ...page.objects[0], object_id: 'later', version: 'later-release' }],
+          total_elements: 1,
+        } : { ...page, total_elements: 26 }),
+      }))
+      await act(async () => { renderFirmware() })
+    })
+
+    afterEach(() => {
+      cleanup()
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    })
+
+    const searchFor = async (value: string) => {
+      fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    }
+
+    it('searches from page zero and displays matches not previously loaded', async () => {
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Next Page' })) })
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 1, size: 25, search: '', manufacturer: undefined,
+      })
+
+      await searchFor('later-release')
+
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+      })
+      expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
+    })
+
+    it('debounces typing into one request with the final search term', async () => {
+      fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later' } })
+      await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+      expect(trigger).toHaveBeenCalledTimes(1)
+
+      await searchFor('later-release')
+
+      expect(trigger).toHaveBeenCalledTimes(2)
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+      })
+    })
+
+    it('preserves the search when filtering by manufacturer and refreshing', async () => {
+      await searchFor('later-release')
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
+      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Kapsch' })) })
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+      })
+
+      trigger.mockClear()
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Refresh' })) })
+
+      expect(trigger).toHaveBeenCalledTimes(1)
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+      })
+      expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
+    })
+
+    it('restores the listing when search is cleared without losing the manufacturer filter', async () => {
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
+      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Kapsch' })) })
+      await searchFor('later-release')
+      expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+
+      await searchFor('')
+
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: '', manufacturer: 'Kapsch',
+      })
+      expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Next Page' })).toBeEnabled()
+    })
+
+    it('deletes a search result and refreshes with the current search and manufacturer', async () => {
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
+      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Commsignia' })) })
+      await searchFor('later-release')
+      fireEvent.click(screen.getByRole('button', { name: 'later-release' }))
+      expect(screen.getByText('File details')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete firmware' }))
+      expect(deleteObject).not.toHaveBeenCalled()
+      trigger.mockClear()
+      trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve({ objects: [], total_elements: 0 }) }))
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes' })) })
+
+      expect(deleteObject).toHaveBeenCalledWith({ object_id: 'later', provider_object_version: '17' })
+      expect(trigger).toHaveBeenCalledTimes(1)
+      expect(trigger).toHaveBeenLastCalledWith({
+        page: 0, size: 25, search: 'later-release', manufacturer: 'Commsignia',
+      })
+      expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument()
+      expect(screen.queryByText('File details')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
+      expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
+    })
   })
 
   it('refreshes the table after a successful upload', async () => {

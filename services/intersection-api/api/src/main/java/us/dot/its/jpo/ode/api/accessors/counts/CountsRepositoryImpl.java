@@ -45,38 +45,37 @@ public class CountsRepositoryImpl implements CountsRepository {
     }
 
     @Override
-    public List<MessageCount> getRsuMessageCounts(String rsuIp, String message, Long startTime, Long endTime) {
-        return getMessageCountsFromPrometheus(rsuIp, message, startTime, endTime);
-    }
+    public List<MessageCount> getRsuMessageCounts(String rsuIp, List<String> messages, Long startTime, Long endTime) {
+        List<String> messageTypes = MessageTypeParams.parse(messages);
+        if (messageTypes.isEmpty()) {
+            return List.of();
+        }
 
-    private List<MessageCount> getMessageCountsFromPrometheus(String rsuIp, String message, Long startTime,
-            Long endTime) {
-        List<MessageCount> counts = new ArrayList<>();
+        String road = getRsuPrimaryRoute(rsuIp);
+        Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
         try {
-            String inTopic = determineTopicFromMessageType(message, startTime, endTime, true);
-            String outTopic = determineTopicFromMessageType(message, startTime, endTime, false);
-            String road = getRsuPrimaryRoute(rsuIp);
-            Map<String, MessageCount> rsuCountsMap = new HashMap<>();
-
-            if (inTopic != null) {
-                queryAndProcessTopic(rsuIp, inTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_INPUT);
-            }
-
-            if (outTopic != null) {
-                queryAndProcessTopic(rsuIp, outTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_OUTPUT);
-            }
-
-            counts.addAll(rsuCountsMap.values());
-
-            if (counts.isEmpty()) {
-                counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, road));
+            List<PrometheusResult> availableTopics = getAvailableTopics(startTime, endTime);
+            for (String messageType : messageTypes) {
+                String inTopic = findTopicForMessageType(availableTopics, messageType, true);
+                String outTopic = findTopicForMessageType(availableTopics, messageType, false);
+                if (inTopic != null) {
+                    queryAndProcessTopic(rsuIp, inTopic, startTime, endTime, rsuCountsMap, road, CountType.ODE_INPUT);
+                }
+                if (outTopic != null) {
+                    queryAndProcessTopic(rsuIp, outTopic, startTime, endTime, rsuCountsMap, road,
+                            CountType.ODE_OUTPUT);
+                }
             }
         } catch (Exception e) {
             log.error("Error retrieving message counts from Prometheus for RSU {}: {}", rsuIp, e.getMessage());
-            createDefaultEntry(counts, rsuIp, message);
         }
 
+        List<MessageCount> counts = new ArrayList<>();
+        for (String messageType : messageTypes) {
+            MessageCount existing = rsuCountsMap.get(messageType);
+            counts.add(existing != null ? existing : new MessageCount(messageType, rsuIp, 0L, 0L, road));
+        }
         return counts;
     }
 
@@ -84,18 +83,6 @@ public class CountsRepositoryImpl implements CountsRepository {
             Map<String, MessageCount> rsuCountsMap, String road, CountType countType) {
         String response = prometheusService.getRsuMessageCounts(rsuIp, topic, startTime, endTime);
         processPrometheusResponseByTopic(response, topic, rsuCountsMap, rsuIp, road, countType);
-    }
-
-    private void createDefaultEntry(List<MessageCount> counts, String rsuIp, String message) {
-        if (counts.isEmpty()) {
-            try {
-                String road = getRsuPrimaryRoute(rsuIp);
-                counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, road));
-            } catch (Exception roadException) {
-                log.error("Error getting road for RSU {}: {}", rsuIp, roadException.getMessage());
-                counts.add(new MessageCount(message.toUpperCase(), rsuIp, 0L, 0L, "Unknown"));
-            }
-        }
     }
 
     private void queryAndProcessOrganizationTopic(String rsuIps, String topic, Long startTime, Long endTime,
@@ -119,19 +106,27 @@ public class CountsRepositoryImpl implements CountsRepository {
     private String determineTopicFromMessageType(String messageType, Long startTime, Long endTime,
             boolean isRawEncoded) {
         try {
-            String response = prometheusService.getAvailableTopicCounts(startTime, endTime);
-            for (PrometheusResult result : prometheusResults(response)) {
-                String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
-                if (topicMatches(topic, messageType, isRawEncoded)) {
-                    return topic;
-                }
-            }
-            return null;
+            return findTopicForMessageType(getAvailableTopics(startTime, endTime), messageType, isRawEncoded);
         } catch (Exception e) {
             log.error("Error determining topic for message type {} (RawEncoded: {}): {}", messageType, isRawEncoded,
                     e.getMessage());
             return null;
         }
+    }
+
+    private List<PrometheusResult> getAvailableTopics(Long startTime, Long endTime) throws JsonProcessingException {
+        return prometheusResults(prometheusService.getAvailableTopicCounts(startTime, endTime));
+    }
+
+    private String findTopicForMessageType(List<PrometheusResult> availableTopics, String messageType,
+            boolean isRawEncoded) {
+        for (PrometheusResult result : availableTopics) {
+            String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
+            if (topicMatches(topic, messageType, isRawEncoded)) {
+                return topic;
+            }
+        }
+        return null;
     }
 
     private boolean topicMatches(String topic, String messageType, boolean isRawEncoded) {
