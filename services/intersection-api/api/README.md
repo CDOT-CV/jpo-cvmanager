@@ -224,8 +224,11 @@ webapp origins.
   `firmware_images`, and is safe to retry with the same upload ID.
 - `ota/` is reserved for the separate OBU OTA workflow and is excluded from the
   RSU firmware browser and upload choices.
-- The browser reports `VERIFIED`, `CHANGED`, `UNVERIFIED`, or `UNTRACKED`.
-  Listing an object does not verify it.
+- The uploader manages firmware packages, not helper scripts. The upgrade runner
+  still supports the legacy Commsignia `post_upgrade.sh` but skips it when absent.
+- The browser reports `VERIFIED`, `CHANGED`, `UNVERIFIED`, `UNTRACKED`, or
+  `MISSING` (database records exist but the cloud file is absent). Listing a
+  file does not verify it.
 - Cleanup marks stale uploads `EXPIRED` and removes retained `FAILED` and
   `EXPIRED` records. It never deletes cloud objects or verified records.
 - Admin deletion removes the selected cloud object, its upload/image records,
@@ -238,25 +241,14 @@ webapp origins.
 
 ### Recovery
 
-If object upload succeeds but completion is interrupted, retry:
-
-```text
-POST /admin/firmware/uploads/{uploadId}/complete
-```
-
-An abandoned or invalid object can block another upload to the same path. Once
-its signed URL expires, use the Firmware table's delete action and retry the
-upload. The corresponding API call is:
-
-```text
-DELETE /admin/firmware/objects/{objectId}?provider_object_version={listedVersion}
-```
-
-Use `object_id` and `provider_object_version` from the listing. A successful
-delete returns `204`; conflicts return `409`. If a deletion response is lost,
-retry the same request to finish database cleanup. Cloud deletion and the
-database commit are separate operations, so the file may already be absent.
-
-GCS retention and soft-delete policies still apply. Avoid deleting verified
-firmware directly in the cloud console, which bypasses reference checks and
-database cleanup.
+- For an abandoned or invalid upload, wait for its signed URL to expire, then
+  delete it from the Firmware table and upload again.
+- If deletion is interrupted, refresh the table. A remaining cloud file can be
+  deleted normally. Leftover database records appear as **Missing file**; choose
+  **Clean Up Records** to remove them and their associated upgrade rules.
+- Cleanup checks references and valid signed URLs just like deletion. It never
+  deletes a cloud file and refuses cleanup if the file has reappeared. Storage
+  errors are reported, not treated as evidence that a file is absent.
+- Recovery is available through the Firmware table after reopening the page;
+  saving request IDs, editing PostgreSQL, or deleting files in the cloud console
+  is not required. GCS retention and soft-delete policies still apply.
