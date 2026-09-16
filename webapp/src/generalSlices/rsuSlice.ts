@@ -36,8 +36,13 @@ const initialState = {
 
 export const getRsuData = createAsyncThunk(
   'rsu/getRsuData',
-  async (_, { dispatch }) => {
-    await dispatch(_getRsuInfo())
+  async (_, { getState }) => {
+    const currentState = getState() as RootState
+    const token = selectToken(currentState)
+    const organization = selectOrganizationName(currentState)
+    const rsuInfo = await RsuApi.getRsuInfo(token, organization)
+
+    return rsuInfo.rsuList
   },
   {
     condition: (_, { getState }) => selectToken(getState() as RootState) != undefined,
@@ -125,6 +130,7 @@ export const rsuSlice = createSlice({
   name: 'rsu',
   initialState: {
     loading: false,
+    currentRequestId: null as string | null,
     value: initialState,
   },
   reducers: {
@@ -170,15 +176,21 @@ export const rsuSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getRsuData.pending, (state) => {
+      .addCase(getRsuData.pending, (state, action) => {
         state.loading = true
+        state.currentRequestId = action.meta.requestId
         state.value.rsuData = []
       })
-      .addCase(getRsuData.fulfilled, (state) => {
+      .addCase(getRsuData.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
+        state.value.rsuData = action.payload
         state.loading = false
+        state.currentRequestId = null
       })
-      .addCase(getRsuData.rejected, (state) => {
+      .addCase(getRsuData.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
         state.loading = false
+        state.currentRequestId = null
       })
       .addCase(_getRsuInfo.fulfilled, (state, action) => {
         state.value.rsuData = action.payload
