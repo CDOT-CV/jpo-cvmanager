@@ -57,6 +57,23 @@ describe('firmwareApiSlice', () => {
     expect(request.headers.get('Authorization')).toBe('Bearer test-token')
   })
 
+  it('uses the authenticated records-only endpoint for a missing file', async () => {
+    fetchMock.mockResponseOnce('', { status: 204 })
+    const store = setupStore(mockUserState)
+    const result = await store.dispatch(
+      firmwareApiSlice.endpoints.deleteFirmwareObject.initiate({
+        object_id: 'missing-id',
+        provider_object_version: null,
+      })
+    )
+
+    expect('error' in result).toBe(false)
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.method).toBe('DELETE')
+    expect(request.url).toBe(`${BASE_URL}/objects/missing-id/records`)
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
   it('passes global search and manufacturer filtering with the requested page', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ provider: 'gcp', objects: [], total_elements: 0 }))
     const store = setupStore(mockUserState)

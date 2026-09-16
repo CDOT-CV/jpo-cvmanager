@@ -30,6 +30,7 @@ const verificationLabel = {
   UNVERIFIED: 'Unverified',
   UNTRACKED: 'Untracked',
   CHANGED: 'Object changed',
+  MISSING: 'Missing file',
 }
 
 const AdminFirmwareTab = () => {
@@ -55,19 +56,22 @@ const AdminFirmwareTab = () => {
 
   const deleteFirmware = async (object: FirmwareObject) => {
     if (deleting.current) return
-    if (!object.provider_object_version) {
+    const missing = object.verification_status === 'MISSING'
+    if (!missing && !object.provider_object_version) {
       toast.error('This file has no object version. Refresh the table before deleting it.')
       return
     }
     deleting.current = true
     setIsDeleting(true)
-    const notification = toast.loading('Deleting firmware...')
+    const notification = toast.loading(missing ? 'Cleaning up firmware records...' : 'Deleting firmware...')
     try {
       await deleteFirmwareObject({
         object_id: object.object_id,
-        provider_object_version: object.provider_object_version,
+        provider_object_version: missing ? null : object.provider_object_version,
       }).unwrap()
-      toast.success('Firmware deleted successfully', { id: notification })
+      toast.success(missing ? 'Firmware records cleaned up successfully' : 'Firmware deleted successfully', {
+        id: notification,
+      })
       refreshListing()
     } catch (error) {
       const response = error as { data?: { detail?: string; message?: string } }
@@ -129,7 +133,7 @@ const AdminFirmwareTab = () => {
       field: 'content_length',
       sorting: false,
       headerStyle: HEADER_STYLE,
-      render: (object) => formatFileSize(object.content_length),
+      render: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
     },
     {
       title: 'Last Modified',
@@ -147,29 +151,44 @@ const AdminFirmwareTab = () => {
         <Chip
           size="small"
           label={verificationLabel[object.verification_status]}
-          color={object.verification_status === 'VERIFIED' ? 'success' : 'default'}
+          color={
+            object.verification_status === 'VERIFIED'
+              ? 'success'
+              : object.verification_status === 'MISSING' ? 'warning' : 'default'
+          }
         />
       ),
     },
   ]
 
-  const tableActions: Action<FirmwareObject>[] = [
-    {
+  const tableActions: (Action<FirmwareObject> | ((row: FirmwareObject) => Action<FirmwareObject>))[] = [
+    (object) => ({
       position: 'row',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: { itemType: 'rowAction' },
-      tooltip: 'Delete Firmware',
+      tooltip: object.verification_status === 'MISSING' ? 'Clean Up Records' : 'Delete Firmware',
       disabled: isDeleting,
       onClick: (_event, row: FirmwareObject) => {
-        const name = [row.manufacturer, row.model, row.version].filter(Boolean).join(' / ') || row.object_name
-        confirmAlert(
-          Options('Delete Firmware', `Delete "${name}"? Its file and associated upgrade rules will be removed.`, [
-            { label: 'Yes', onClick: () => deleteFirmware(row) },
-            { label: 'No', onClick: () => {} },
-          ])
-        )
+        const missing = row.verification_status === 'MISSING'
+        confirmAlert({
+          ...Options(
+            missing ? 'Clean Up Firmware Records' : 'Delete Firmware',
+            missing
+              ? 'The file is missing from storage. Remove its database records and associated upgrade rules?'
+              : 'Delete this file and its database records and associated upgrade rules?',
+            [
+              { label: 'Yes', onClick: () => deleteFirmware(row) },
+              { label: 'No', onClick: () => {} },
+            ]
+          ),
+          childrenElement: () => (
+            <div style={{ marginTop: 16, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+              {`Manufacturer: ${row.manufacturer ?? 'Unknown'}\nModel: ${row.model ?? 'Unknown'}\nVersion: ${row.version ?? 'Unknown'}\nFile: ${row.file_name}`}
+            </div>
+          ),
+        })
       },
-    },
+    }),
     {
       position: 'toolbar',
       icon: () => null,
@@ -248,6 +267,9 @@ const AdminFirmwareTab = () => {
         <Paper variant="outlined" sx={{ mt: 2, p: 2, overflowWrap: 'anywhere' }}>
           <Typography variant="h6">File details</Typography>
           <Typography>{selectedObject.object_name}</Typography>
+          {selectedObject.verification_status === 'MISSING' && (
+            <Typography>The cloud file is missing. Use Clean Up Records to finish removing its database records.</Typography>
+          )}
           <Typography>Upload status: {selectedObject.upload_status ?? 'No upload record'}</Typography>
           <Typography>Upload ID: {selectedObject.upload_id ?? ''}</Typography>
           <Typography>Firmware ID: {selectedObject.firmware_id ?? 'Not registered'}</Typography>

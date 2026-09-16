@@ -263,7 +263,9 @@ describe('Firmware object browser', () => {
     await screen.findByRole('button', { name: 'v1' })
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[0])
 
-    expect(screen.getByText(/Commsignia \/ ITS-RS4-M \/ v1/)).toBeInTheDocument()
+    const details = screen.getByText(/Manufacturer: Commsignia/)
+    expect(details.textContent).toBe('Manufacturer: Commsignia\nModel: ITS-RS4-M\nVersion: v1\nFile: file.bin')
+    expect(details).toHaveStyle({ whiteSpace: 'pre-line', overflowWrap: 'anywhere' })
     expect(deleteObject).not.toHaveBeenCalled()
     trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve({ ...page, objects: [page.objects[1]] }) }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
@@ -278,7 +280,7 @@ describe('Firmware object browser', () => {
     renderFirmware()
     await screen.findByRole('button', { name: 'v1' })
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[1])
-    expect(screen.getByText(/Kapsch \/ RIS-9260 \/ v2/)).toBeInTheDocument()
+    expect(screen.getByText(/File: update.tar/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'No' }))
     expect(deleteObject).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
@@ -300,6 +302,45 @@ describe('Firmware object browser', () => {
     expect(deleteObject).toHaveBeenCalledWith({ object_id: 'two', provider_object_version: '18' })
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
     expect(trigger).toHaveBeenCalledTimes(1)
+    expect(toast.success).not.toHaveBeenCalled()
+  })
+
+  it('discovers missing files on a fresh visit and cleans up their records', async () => {
+    trigger.mockImplementation(() => ({
+      unwrap: () => Promise.resolve({
+        objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
+        total_elements: 1,
+      }),
+    }))
+    renderFirmware()
+    expect(await screen.findByText('Missing file')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Clean Up Records' }))
+    expect(screen.getByText(/File: file.bin/)).toBeInTheDocument()
+    expect(deleteObject).not.toHaveBeenCalled()
+
+    trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve({ objects: [], total_elements: 0 }) }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'one', provider_object_version: null }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument())
+    expect(toast.success).toHaveBeenCalledWith('Firmware records cleaned up successfully', expect.any(Object))
+  })
+
+  it('keeps missing records visible if cleanup detects a reappeared file', async () => {
+    trigger.mockImplementation(() => ({
+      unwrap: () => Promise.resolve({
+        objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
+        total_elements: 1,
+      }),
+    }))
+    const message = 'The firmware file is present in storage. Refresh the table before deleting it.'
+    deleteObject.mockImplementation(() => ({ unwrap: () => Promise.reject({ status: 409, data: { detail: message } }) }))
+    renderFirmware()
+    fireEvent.click(await screen.findByRole('button', { name: 'Clean Up Records' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(message, expect.any(Object)))
+    expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(toast.success).not.toHaveBeenCalled()
   })
 })

@@ -43,11 +43,11 @@ export const firmwareApiSlice = createApi({
         body,
       }),
     }),
-    deleteFirmwareObject: builder.mutation<void, { object_id: string; provider_object_version: string }>({
+    deleteFirmwareObject: builder.mutation<void, { object_id: string; provider_object_version: string | null }>({
       query: ({ object_id, provider_object_version }) => ({
-        url: `objects/${encodeURIComponent(object_id)}`,
+        url: `objects/${encodeURIComponent(object_id)}${provider_object_version === null ? '/records' : ''}`,
         method: 'DELETE',
-        params: { provider_object_version },
+        params: provider_object_version === null ? undefined : { provider_object_version },
       }),
       invalidatesTags: (_result, error) => (error ? [] : ['FirmwareObjects']),
     }),
