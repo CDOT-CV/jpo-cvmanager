@@ -91,7 +91,8 @@ public class CountsRepositoryImpl implements CountsRepository {
 
             try {
                 String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
-                String response = prometheusService.getOrganizationRsuCounts(rsuIps, startTime, endTime);
+                String response = prometheusService.getOrganizationRsuCounts(rsuIps,
+                        topicRegexForMessageType(requestedType), startTime, endTime);
                 applyTopicResults(prometheusResults(response), requestedType::equals, null, null, rsuCountsMap,
                         rsuIpToRoadMap);
             } catch (ResponseStatusException e) {
@@ -172,6 +173,31 @@ public class CountsRepositoryImpl implements CountsRepository {
                 .replace(JSON_SUFFIX, "");
 
         return messageType.isEmpty() ? null : messageType.toUpperCase();
+    }
+
+    /**
+     * PromQL {@code topic=~} pattern for one message type. Matches both ODE naming
+     * variants ({@code topic.OdeBsmJson} and {@code topic.OdeRawEncodedBSMJson}).
+     */
+    static String topicRegexForMessageType(String messageType) {
+        if (messageType == null || messageType.isBlank()) {
+            return null;
+        }
+        StringBuilder charClasses = new StringBuilder(messageType.length() * 4);
+        for (int i = 0; i < messageType.length(); i++) {
+            char c = messageType.charAt(i);
+            if (Character.isLetter(c)) {
+                charClasses.append('[')
+                        .append(Character.toUpperCase(c))
+                        .append(Character.toLowerCase(c))
+                        .append(']');
+            } else if ("\\.^$|?*+()[]{}".indexOf(c) >= 0) {
+                charClasses.append('\\').append(c);
+            } else {
+                charClasses.append(c);
+            }
+        }
+        return "topic\\.Ode.*" + charClasses + ".*Json";
     }
 
     private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {

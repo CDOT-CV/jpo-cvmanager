@@ -123,6 +123,26 @@ public class PrometheusServiceTest {
     }
 
     @Test
+    public void testGetOrganizationRsuCounts_IncludesTopicSelector() {
+        long startTime = 1640995200000L;
+        long endTime = 1641081600000L;
+        String expectedResponse = "{\"status\":\"success\",\"data\":{\"result\":[]}}";
+
+        when(restTemplate.getForObject(any(URI.class), eq(String.class))).thenReturn(expectedResponse);
+
+        prometheusService.getOrganizationRsuCounts("10.0.0.1|10.0.0.2", "topic\\.Ode.*[Bb][Ss][Mm].*Json",
+                startTime, endTime);
+
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate).getForObject(uriCaptor.capture(), eq(String.class));
+
+        String query = uriCaptor.getValue().getQuery();
+        assertThat(query).contains("rsu_ip");
+        assertThat(query).contains("topic");
+        assertThat(query).doesNotContain("sum_over_time");
+    }
+
+    @Test
     public void testBaselineQuery_KeepsFrozenSubqueryShape() {
         String baseline = PrometheusService.buildBaselineSumOverTimeIncreaseQuery(
                 "rsu_ip=\"10.0.0.1\", topic=\"topic.OdeBsmJson\"",
@@ -157,7 +177,8 @@ public class PrometheusServiceTest {
                 .thenThrow(unprocessableEntity("{\"status\":\"error\",\"error\":\"invalid query\"}"));
 
         assertThatThrownBy(
-                () -> prometheusService.getOrganizationRsuCounts("10.0.0.1|10.0.0.2", 1640995200000L, 1641081600000L))
+                () -> prometheusService.getOrganizationRsuCounts("10.0.0.1|10.0.0.2",
+                        "topic\\.Ode.*[Bb][Ss][Mm].*Json", 1640995200000L, 1641081600000L))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;

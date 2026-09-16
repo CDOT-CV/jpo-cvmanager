@@ -264,13 +264,17 @@ public class PrometheusService {
     /**
      * Organization RSU counts over a time range, grouped by RSU IP and topic.
      *
-     * @param rsuIps    pipe-delimited RSU IP regex pattern
-     * @param startTime start time in milliseconds
-     * @param endTime   end time in milliseconds
+     * @param rsuIps     pipe-delimited RSU IP regex pattern
+     * @param topicRegex PromQL regex for {@code topic} (input + output names for one
+     *                   message type). Null/blank matches all topics.
+     * @param startTime  start time in milliseconds
+     * @param endTime    end time in milliseconds
      * @return the JSON response from Prometheus
      */
-    public String getOrganizationRsuCounts(String rsuIps, long startTime, long endTime) {
-        String selector = String.format("rsu_ip=~\"%s\"", rsuIps);
+    public String getOrganizationRsuCounts(String rsuIps, String topicRegex, long startTime, long endTime) {
+        String selector = topicRegex == null || topicRegex.isBlank()
+                ? String.format("rsu_ip=~\"%s\"", rsuIps)
+                : String.format("rsu_ip=~\"%s\", topic=~\"%s\"", rsuIps, topicRegex);
         String promQL = buildIncreaseQuery(selector, "rsu_ip, topic", startTime, endTime);
         return queryInstant(promQL, endTime);
     }
