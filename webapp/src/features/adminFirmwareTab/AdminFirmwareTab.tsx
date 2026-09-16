@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
-import { Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
+import { Box, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
 import { DeleteOutline } from '@mui/icons-material'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
@@ -158,7 +158,7 @@ const AdminFirmwareTab = () => {
       position: 'row',
       icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
       iconProps: { itemType: 'rowAction' },
-      tooltip: 'Delete firmware',
+      tooltip: 'Delete Firmware',
       disabled: isDeleting,
       onClick: (_event, row: FirmwareObject) => {
         const name = [row.manufacturer, row.model, row.version].filter(Boolean).join(' / ') || row.object_name
@@ -221,7 +221,18 @@ const AdminFirmwareTab = () => {
   ]
 
   return (
-    <div className="scroll-div-tab">
+    <Box
+      className="scroll-div-tab"
+      sx={{
+        // Match the action-column space of the two-button RSU and User tables.
+        '& thead th:last-child, & tbody td:last-child:not([colspan])': {
+          width: '96px !important',
+        },
+        '& tbody td:last-child:not([colspan]) > div': {
+          justifyContent: 'center',
+        },
+      }}
+    >
       <AdminTable
         actions={tableActions}
         columns={columns}
@@ -254,7 +265,7 @@ const AdminFirmwareTab = () => {
           }}
         />
       )}
-    </div>
+    </Box>
   )
 }
 

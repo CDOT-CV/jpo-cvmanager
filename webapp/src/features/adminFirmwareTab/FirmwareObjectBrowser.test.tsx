@@ -228,7 +228,7 @@ describe('Firmware object browser', () => {
       fireEvent.click(screen.getByRole('button', { name: 'later-release' }))
       expect(screen.getByText('File details')).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Delete firmware' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Firmware' }))
       expect(deleteObject).not.toHaveBeenCalled()
       trigger.mockClear()
       trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve({ objects: [], total_elements: 0 }) }))
@@ -261,7 +261,7 @@ describe('Firmware object browser', () => {
   it('confirms deletion and refreshes the table after the API succeeds', async () => {
     renderFirmware()
     await screen.findByRole('button', { name: 'v1' })
-    fireEvent.click(screen.getAllByRole('button', { name: 'Delete firmware' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[0])
 
     expect(screen.getByText(/Commsignia \/ ITS-RS4-M \/ v1/)).toBeInTheDocument()
     expect(deleteObject).not.toHaveBeenCalled()
@@ -277,7 +277,7 @@ describe('Firmware object browser', () => {
   it('cancels deletion without changing the listing', async () => {
     renderFirmware()
     await screen.findByRole('button', { name: 'v1' })
-    fireEvent.click(screen.getAllByRole('button', { name: 'Delete firmware' })[1])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[1])
     expect(screen.getByText(/Kapsch \/ RIS-9260 \/ v2/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'No' }))
     expect(deleteObject).not.toHaveBeenCalled()
@@ -291,7 +291,7 @@ describe('Firmware object browser', () => {
     }))
     renderFirmware()
     await screen.findByRole('button', { name: 'v2' })
-    fireEvent.click(screen.getAllByRole('button', { name: 'Delete firmware' })[1])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[1])
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
     await waitFor(() =>
