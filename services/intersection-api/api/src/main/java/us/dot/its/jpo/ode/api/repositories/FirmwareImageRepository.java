@@ -10,6 +10,13 @@ import org.springframework.data.repository.query.Param;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 
 public interface FirmwareImageRepository extends JpaRepository<FirmwareImage, Integer> {
+    @Query("""
+            select image from FirmwareImage image
+            join fetch image.model model join fetch model.manufacturer
+            where image.verifiedUpload is null
+            """)
+    List<FirmwareImage> findLegacyImagesWithModelAndManufacturer();
+
     // Legacy images have no upload link, so identify their file using the existing
     // manufacturer/model/version/package convention as well.
     @Query(value = """

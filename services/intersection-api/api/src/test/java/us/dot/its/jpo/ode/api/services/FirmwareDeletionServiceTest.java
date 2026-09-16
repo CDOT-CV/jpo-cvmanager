@@ -31,6 +31,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.Blob;
+import com.google.api.gax.paging.Page;
+import java.util.List;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
@@ -50,6 +53,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 @Import(TestcontainersConfiguration.class)
 class FirmwareDeletionServiceTest {
     @Autowired private FirmwareDeletionService deletion;
+    @Autowired private FirmwareObjectService listing;
     @Autowired private FirmwareRegistrationService registration;
     @Autowired private FirmwareUploadRepository uploads;
     @Autowired private FirmwareImageRepository images;
@@ -202,6 +206,80 @@ class FirmwareDeletionServiceTest {
     }
 
     @Test
+    void lostCloudResponseRemainsDiscoverableAndCanBeCleanedUpAfterReload() {
+        var upload = saveUpload(FirmwareUploadStatus.VERIFIED);
+        var image = saveImage(upload, "v1");
+        var rule = new FirmwareUpgradeRule();
+        rule.setFrom(saveImage(null, "v0"));
+        rule.setTo(image);
+        rule = rules.save(rule);
+        when(cloud.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class)))
+                .thenThrow(new StorageException(503, "response lost after deletion"));
+
+        assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
+                .isInstanceOf(ObjectStorageUnavailableException.class);
+
+        Page<Blob> page = mock(Page.class);
+        when(page.getValues()).thenReturn(List.of());
+        when(cloud.list(eq("deletion-test"), any(Storage.BlobListOption[].class))).thenReturn(page);
+        var result = listing.list(0, 25, manufacturer.getName(), "v1.tar");
+        assertThat(result.totalElements()).isOne();
+        var missing = result.objects().getFirst();
+        assertThat(missing.verificationStatus()).isEqualTo("MISSING");
+        assertThat(missing.providerObjectVersion()).isNull();
+
+        deletion.cleanupMissingObject(missing.objectId());
+
+        assertThat(uploads.findById(upload.getId())).isEmpty();
+        assertThat(images.findById(image.getId())).isEmpty();
+        assertThat(rules.findById(rule.getId())).isEmpty();
+        assertThat(listing.list(0, 25, manufacturer.getName(), "v1.tar").objects()).isEmpty();
+        // Recovery must not perform another cloud delete, with or without a version.
+        verify(cloud, times(1)).delete(any(BlobId.class), any(Storage.BlobSourceOption[].class));
+        registration.register(saveUpload(FirmwareUploadStatus.PENDING).getId(), metadata);
+        assertThat(images.findByModelIdAndVersion(model.getId(), "v1")).isPresent();
+    }
+
+    @Test
+    void cleanupRefusesAReappearedFileAndKeepsDatabaseRecords() {
+        var upload = saveUpload(FirmwareUploadStatus.VERIFIED);
+        var image = saveImage(upload, "v1");
+        when(cloud.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(mock(Blob.class));
+
+        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
+                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("present in storage");
+
+        assertThat(uploads.findById(upload.getId())).isPresent();
+        assertThat(images.findById(image.getId())).isPresent();
+        verify(cloud, never()).delete(any(BlobId.class), any(Storage.BlobSourceOption[].class));
+    }
+
+    @Test
+    void cleanupDoesNotTreatAStorageOutageAsAnAbsentFile() {
+        var upload = saveUpload(FirmwareUploadStatus.VERIFIED);
+        when(cloud.get(any(BlobId.class), any(Storage.BlobGetOption[].class)))
+                .thenThrow(new StorageException(503, "unavailable"));
+
+        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(uploads.findById(upload.getId())).isPresent();
+        verify(cloud, never()).delete(any(BlobId.class), any(Storage.BlobSourceOption[].class));
+    }
+
+    @Test
+    void missingLegacyImageCanBeListedAndCleanedUpWithoutAnUploadRecord() {
+        var image = saveImage(null, "v1");
+        Page<Blob> page = mock(Page.class);
+        when(page.getValues()).thenReturn(List.of());
+        when(cloud.list(eq("deletion-test"), any(Storage.BlobListOption[].class))).thenReturn(page);
+        var missing = listing.list(0, 25, manufacturer.getName(), null).objects().getFirst();
+        assertThat(missing.firmwareId()).isEqualTo(image.getId());
+        assertThat(missing.contentLength()).isNull();
+        deletion.cleanupMissingObject(missing.objectId());
+        assertThat(images.findById(image.getId())).isEmpty();
+    }
+
+    @Test
     void changedGenerationKeepsDatabaseRecords() {
         var upload = saveUpload(FirmwareUploadStatus.VERIFIED);
         var image = saveImage(upload, "v1");
@@ -220,6 +298,8 @@ class FirmwareDeletionServiceTest {
         uploads.saveAndFlush(upload);
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
                 .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("still valid");
+        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
+                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("still valid");
         assertThat(uploads.findById(upload.getId())).isPresent();
         verifyNoInteractions(cloud);
     }
@@ -236,6 +316,8 @@ class FirmwareDeletionServiceTest {
         });
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
                 .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("current or target");
+        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
+                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("current or target");
         assertThat(images.findById(image.getId())).isPresent();
         verifyNoInteractions(cloud);
     }
@@ -247,6 +329,8 @@ class FirmwareDeletionServiceTest {
         jdbc.update("insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values (?, now(), ?)",
                 rsu.getId(), image.getId());
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
+                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("failure history");
+        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
                 .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("failure history");
         verifyNoInteractions(cloud);
     }

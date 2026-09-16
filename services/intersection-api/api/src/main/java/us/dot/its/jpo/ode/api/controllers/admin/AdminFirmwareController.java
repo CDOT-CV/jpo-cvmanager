@@ -47,6 +47,14 @@ public class AdminFirmwareController {
     private final FirmwareUploadOptionsService firmwareUploadOptionsService;
     private final FirmwareDeletionService firmwareDeletionService;
 
+    @Operation(summary = "Clean up records for a firmware file missing from storage")
+    @DeleteMapping("/objects/{objectId}/records")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    public void cleanupMissingObject(@PathVariable String objectId) {
+        firmwareDeletionService.cleanupMissingObject(objectId);
+    }
+
     @Operation(summary = "Delete a firmware file and its upload, image, and upgrade-rule records")
     @DeleteMapping("/objects/{objectId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

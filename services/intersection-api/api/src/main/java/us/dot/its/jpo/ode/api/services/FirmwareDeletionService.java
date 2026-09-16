@@ -33,6 +33,15 @@ public class FirmwareDeletionService {
         if (providerObjectVersion == null || providerObjectVersion.isBlank()) {
             throw new IllegalArgumentException("The listed object version is required for deletion");
         }
+        deleteRecordsAndObject(objectId, providerObjectVersion);
+    }
+
+    @Transactional
+    public void cleanupMissingObject(String objectId) {
+        deleteRecordsAndObject(objectId, null);
+    }
+
+    private void deleteRecordsAndObject(String objectId, String providerObjectVersion) {
         String[] identity;
         try {
             identity = new String(Base64.getUrlDecoder().decode(objectId), StandardCharsets.UTF_8).split("\n", 2);
@@ -73,6 +82,13 @@ public class FirmwareDeletionService {
                     "This firmware is referenced by upgrade failure history and cannot be deleted.");
         }
 
+        // Recovery never deletes a cloud object. A file that reappeared must be
+        // listed and explicitly confirmed with its current version first.
+        if (providerObjectVersion == null && service.objectExists(objectName)) {
+            throw new FirmwareDeletionConflictException(
+                    "The firmware file is present in storage. Refresh the table before deleting it.");
+        }
+
         // Flush database deletes first so foreign-key conflicts are detected before
         // touching storage. A storage failure rolls them back; an absent object
         // allows a retry to finish cleanup if a previous database commit failed.
@@ -88,7 +104,9 @@ public class FirmwareDeletionService {
             throw new FirmwareDeletionConflictException(
                     "This firmware is still referenced by other records and cannot be deleted.");
         }
-        service.deleteObject(location, providerObjectVersion);
+        if (providerObjectVersion != null) {
+            service.deleteObject(location, providerObjectVersion);
+        }
     }
 
     public static class FirmwareDeletionConflictException extends RuntimeException {

@@ -20,6 +20,14 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 
 @Repository
 public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID> {
+    @Query(value = """
+            select distinct on (object_name) * from firmware_uploads
+            where storage_provider = :provider and storage_container = :container
+            order by object_name, (status = 'VERIFIED') desc, created_at desc, upload_id
+            """, nativeQuery = true)
+    List<FirmwareUpload> findListingCandidates(@Param("provider") String provider,
+            @Param("container") String container);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select upload from FirmwareUpload upload

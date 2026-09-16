@@ -109,6 +109,34 @@ class AdminFirmwareControllerTest {
 
     @Test
     @WithMockUser
+    void adminCanCleanUpMissingFileRecords() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        mockMvc.perform(delete("/admin/firmware/objects/object-id/records"))
+                .andExpect(status().isNoContent());
+        verify(firmwareDeletionService).cleanupMissingObject("object-id");
+    }
+
+    @Test
+    @WithMockUser
+    void rejectsMissingFileCleanupForNonAdmins() throws Exception {
+        mockMvc.perform(delete("/admin/firmware/objects/object-id/records"))
+                .andExpect(status().isForbidden());
+        verify(firmwareDeletionService, never()).cleanupMissingObject(any());
+    }
+
+    @Test
+    @WithMockUser
+    void cleanupReportsAReappearedFileAsAConflict() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        doThrow(new FirmwareDeletionConflictException("The firmware file is present in storage. Refresh the table."))
+                .when(firmwareDeletionService).cleanupMissingObject("object-id");
+        mockMvc.perform(delete("/admin/firmware/objects/object-id/records").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("The firmware file is present in storage. Refresh the table."));
+    }
+
+    @Test
+    @WithMockUser
     void deletionRequiresObjectVersion() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         mockMvc.perform(delete(
@@ -174,7 +202,7 @@ class AdminFirmwareControllerTest {
         when(firmwareObjectService.list(1, 25, "Acme", "version")).thenReturn(
                 new FirmwareObjectPage("gcp", List.of(
                         new FirmwareObjectPage.Item("object-id", "Acme/model/version/file.bin",
-                                "Acme", "model", "version", "file.bin", 42,
+                                "Acme", "model", "version", "file.bin", 42L,
                                 Instant.parse("2026-09-10T18:00:00Z"), "1", null, null, null,
                                 "UNTRACKED")), 26));
         mockMvc.perform(get("/admin/firmware/objects")
