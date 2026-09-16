@@ -8,6 +8,26 @@ import { MockLocalizationProvider, replaceChaoticIds } from '../../utils/test-ut
 import { MessageType } from '../../models/MessageTypes'
 import { vi } from 'vitest'
 
+vi.mock('../api/rsuCountsApiSlice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/rsuCountsApiSlice')>()
+  return {
+    ...actual,
+    useGetRsuCountsQuery: () => ({
+      data: [
+        {
+          message_type: 'BSM',
+          rsu_ip: '10.0.0.11',
+          ode_input_count: 100,
+          ode_output_count: 95,
+          road: 'I25',
+        },
+      ],
+      isFetching: false,
+      isError: false,
+    }),
+  }
+})
+
 // // Mock the @mui/x-date-pickers module
 vi.mock('@mui/x-date-pickers', async () => {
   const actual: any = await vi.importActual('@mui/x-date-pickers')
@@ -62,6 +82,13 @@ it('should take a snapshot', () => {
               countsMsgType: 'BSM' as MessageType,
               display: 'displayCounts',
               mapMenuSelection: ['Display Message Counts'],
+            },
+          },
+          user: {
+            value: {
+              organization: {
+                organization: 'Test Org',
+              },
             },
           },
         })}
