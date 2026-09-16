@@ -29,9 +29,11 @@ import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
@@ -58,11 +60,15 @@ class OrganizationManagementServiceTest {
     @Mock
     private RoleRepository roleRepository;
     @Mock
+    private RsuCredentialRepository rsuCredentialRepository;
+    @Mock
     private RsuRepository rsuRepository;
     @Mock
     private RsuOrganizationRepository rsuOrganizationRepository;
     @Mock
     private RsuOptionRepository rsuOptionRepository;
+    @Mock
+    private SnmpCredentialRepository snmpCredentialRepository;
     @Mock
     private IntersectionRepository intersectionRepository;
     @Mock
@@ -925,6 +931,8 @@ class OrganizationManagementServiceTest {
 
         assertTrue(ex.getMessage().contains("Intersection"));
         verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
+        verify(rsuCredentialRepository, never()).removeByOwnerOrganization(any());
+        verify(snmpCredentialRepository, never()).removeByOwnerOrganization(any());
         verify(organizationRepository, never()).delete(any());
     }
 
@@ -939,6 +947,8 @@ class OrganizationManagementServiceTest {
                 () -> service.deleteOrganization(testOrg));
 
         assertTrue(ex.getMessage().contains("user"));
+        verify(rsuCredentialRepository, never()).removeByOwnerOrganization(any());
+        verify(snmpCredentialRepository, never()).removeByOwnerOrganization(any());
         verify(organizationRepository, never()).delete(any());
     }
 
@@ -951,6 +961,8 @@ class OrganizationManagementServiceTest {
         service.deleteOrganization(testOrg);
 
         verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        verify(rsuCredentialRepository).removeByOwnerOrganization(testOrg);
+        verify(snmpCredentialRepository).removeByOwnerOrganization(testOrg);
         verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(organizationRepository).delete(testOrg);
@@ -972,6 +984,8 @@ class OrganizationManagementServiceTest {
         service.deleteOrganization(testOrg);
 
         inOrder.verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        inOrder.verify(rsuCredentialRepository).removeByOwnerOrganization(testOrg);
+        inOrder.verify(snmpCredentialRepository).removeByOwnerOrganization(testOrg);
         inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(organizationRepository).delete(testOrg);

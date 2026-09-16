@@ -40,6 +40,8 @@ import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +51,9 @@ public class OrganizationManagementService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final SnmpCredentialRepository snmpCredentialRepository;
     private final RoleRepository roleRepository;
+    private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuRepository rsuRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuOptionRepository rsuOptionRepository;
@@ -145,7 +149,6 @@ public class OrganizationManagementService {
                         "Cannot remove RSU(s) that are only associated with this organization: " + orphanedIps);
             }
             rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganization(addresses, org);
-            log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
 
         // Step 9: Add intersection associations
@@ -207,6 +210,8 @@ public class OrganizationManagementService {
 
         userOrganizationRepository.deleteAllByOrganization(org);
         rsuOrganizationRepository.deleteAllByOrganization(org);
+        rsuCredentialRepository.removeByOwnerOrganization(org);
+        snmpCredentialRepository.removeByOwnerOrganization(org);
         intersectionOrganizationRepository.deleteAllByOrganization(org);
         organizationRepository.delete(org);
         log.debug("Organization '{}' deleted", org.getName());
