@@ -58,7 +58,7 @@ public class EmailService {
 
     public List<EmailRecipient> getUsersForNotificationType(EmailCategory category, EmailFrequency frequency) {
         return userEmailNotificationRepository
-                .findUsersByNotificationType(category.getCategoryKey(), frequency.toString()).stream()
+                .findUsersByNotificationType(category.getCategoryKey(), frequency.toQueryValue()).stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();
     }
@@ -67,7 +67,7 @@ public class EmailService {
             EmailFrequency frequency) {
         try {
             return userEmailNotificationRepository
-                    .findUsersByNotificationTypeAndRsu(category.getCategoryKey(), frequency.toString(),
+                    .findUsersByNotificationTypeAndRsu(category.getCategoryKey(), frequency.toQueryValue(),
                             InetAddress.getByName(rsuIp))
                     .stream()
                     .map(email -> new EmailRecipient(email, null))
@@ -81,7 +81,8 @@ public class EmailService {
     public List<EmailRecipient> getUsersForNotificationTypeByOrganization(EmailCategory category, String orgName,
             EmailFrequency frequency) {
         return userEmailNotificationRepository
-                .findUsersByNotificationTypeAndOrganization(category.getCategoryKey(), frequency.toString(), orgName)
+                .findUsersByNotificationTypeAndOrganization(category.getCategoryKey(), frequency.toQueryValue(),
+                        orgName)
                 .stream()
                 .map(email -> new EmailRecipient(email, null))
                 .toList();

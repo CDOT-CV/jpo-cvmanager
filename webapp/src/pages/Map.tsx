@@ -364,7 +364,18 @@ function MapPage() {
     syncMapToViewState()
   }, [syncMapToViewState])
 
-  const { data: rsuCounts } = useGetRsuCountsQuery({ organization, startDate: countsStartDate, endDate: countsEndDate })
+  const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
+  const queryDurationExceeded = countsEndDate.getTime() - countsStartDate.getTime() > maxDurationMs
+
+  const { data: rsuCounts } = useGetRsuCountsQuery(
+    {
+      organization,
+      startDate: countsStartDate,
+      endDate: countsEndDate,
+      message: countsMsgType,
+    },
+    { skip: !organization || queryDurationExceeded }
+  )
 
   // Add these new state variables near the other source states
   const [previewPoint, setPreviewPoint] = useState<GeoJSON.Feature<GeoJSON.Point> | null>(null)
@@ -641,6 +652,9 @@ function MapPage() {
   }, [geoMsgData, startGeoMsgDate, filterStep, geoMsgFilterMaxOffset])
 
   const heatMapData = useMemo(() => {
+    const countsByIp: Record<string, number> = Object.fromEntries(
+      (rsuCounts ?? []).map((c) => [c.rsu_ip, c.ode_input_count ?? 0])
+    )
     return {
       type: 'FeatureCollection' as const,
       features:
@@ -655,31 +669,19 @@ function MapPage() {
                 },
                 properties: {
                   ipv4_address: rsu.properties.ipv4_address,
-                  count: rsuCounts?.[rsu.properties.ipv4_address]?.messageTypeCounts?.[countsMsgType] ?? 0,
+                  count: countsByIp[rsu.properties.ipv4_address] ?? 0,
                 },
               }) as GeoJSON.Feature<GeoJSON.Geometry>
           )
           ?.filter((feature) => feature.properties.count > 0) ?? [],
     }
-  }, [rsuData, rsuCounts, countsMsgType])
-
-  const rsuDataWithCounts = useMemo(() => {
-    return (
-      rsuData?.map((rsu) => ({
-        ...rsu,
-        properties: {
-          ...rsu.properties,
-          counts: rsuCounts?.[rsu.properties.ipv4_address]?.messageTypeCounts ?? {},
-        },
-      })) ?? []
-    )
   }, [rsuData, rsuCounts])
 
   const rsuPointData = useMemo(
     () =>
       ({
         type: 'FeatureCollection',
-        features: rsuDataWithCounts
+        features: (rsuData ?? [])
           .filter((rsu) => selectedVendor === 'Select Vendor' || rsu.properties.manufacturer_name === selectedVendor)
           .map((rsu) => {
             const ip = rsu.properties.ipv4_address
@@ -702,7 +704,7 @@ function MapPage() {
             }
           }),
       }) as GeoJSON.FeatureCollection<GeoJSON.Point>,
-    [displayType, issScmsStatusData, rsuDataWithCounts, rsuOnlineStatus, selectedVendor]
+    [displayType, issScmsStatusData, rsuData, rsuOnlineStatus, selectedVendor]
   )
 
   const intersectionPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
@@ -1213,7 +1215,7 @@ function MapPage() {
 
             const clickedRsuFeature = clickedFeatures.find((feature) => feature.layer.id === RSU_POINT_LAYER_ID)
             if (clickedRsuFeature && !addConfigPoint && !addGeoMsgPoint) {
-              const clickedRsu = rsuDataWithCounts.find(
+              const clickedRsu = (rsuData ?? []).find(
                 (rsu) => rsu.properties.ipv4_address === clickedRsuFeature.properties?.ipv4_address
               )
               if (clickedRsu) {

@@ -95,7 +95,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -152,7 +152,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-70"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -224,7 +224,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -233,6 +233,90 @@ public class CountsRepositoryImplTest {
         assertEquals(75L, result.get(0).getOdeInputCount());
         assertEquals(150L, result.get(0).getOdeOutputCount());
         assertEquals("I-25", result.get(0).getRoad());
+    }
+
+    @Test
+    void testGetMessageCounts_MultipleTypes() throws Exception {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+
+        String mockTopicsResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmJson"
+                                }
+                            },
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeMapJson"
+                                }
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        String bsmResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeBsmJson",
+                                    "rsu_ip": "10.11.81.13"
+                                },
+                                "value": [1640995200, "150"]
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        String mapResponse = """
+                {
+                    "status": "success",
+                    "data": {
+                        "result": [
+                            {
+                                "metric": {
+                                    "topic": "topic.OdeMapJson",
+                                    "rsu_ip": "10.11.81.13"
+                                },
+                                "value": [1640995200, "20"]
+                            }
+                        ]
+                    }
+                }
+                """;
+
+        when(prometheusService.getAvailableTopicCounts(startTime, endTime))
+                .thenReturn(mockTopicsResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeBsmJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(bsmResponse);
+        when(prometheusService.getRsuMessageCounts(rsuIp, "topic.OdeMapJson", startTime.longValue(),
+                endTime.longValue()))
+                .thenReturn(mapResponse);
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+                .thenReturn(mockRsu(rsuIp, "I-25"));
+
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM", "MAP", "SPAT"), startTime,
+                endTime);
+
+        assertEquals(3, result.size());
+        assertEquals("BSM", result.get(0).getMessageType());
+        assertEquals(150L, result.get(0).getOdeOutputCount());
+        assertEquals("MAP", result.get(1).getMessageType());
+        assertEquals(20L, result.get(1).getOdeOutputCount());
+        assertEquals("SPAT", result.get(2).getMessageType());
+        assertEquals(0L, result.get(2).getOdeInputCount());
+        assertEquals(0L, result.get(2).getOdeOutputCount());
     }
 
     @Test
@@ -396,7 +480,7 @@ public class CountsRepositoryImplTest {
         when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
-        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, "BSM", startTime, endTime);
+        List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
 
         assertNotNull(result);
         assertEquals(1, result.size());
