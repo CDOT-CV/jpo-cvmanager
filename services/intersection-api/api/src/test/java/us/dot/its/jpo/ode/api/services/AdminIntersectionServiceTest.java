@@ -117,10 +117,9 @@ class AdminIntersectionServiceTest {
      * Deletion order (leaf tables first):
      * rsu_intersection → intersection_organization → rsu_organization
      * → rsus → rsu_credentials → snmp_credentials → snmp_protocols → rsu_models
-     * → intersections → organizations
+     * → manufacturers → intersections → organizations
      *
-     * Note: manufacturer rows are left as orphans (no unique constraint in test
-     * data).
+     * Manufacturer rows are removed after their dependent model rows.
      */
     @BeforeEach
     void clearDatabaseBeforeTest() {
@@ -148,6 +147,7 @@ class AdminIntersectionServiceTest {
         snmpCredentialRepository.deleteAll();
         snmpProtocolRepository.deleteAll();
         rsuModelRepository.deleteAll();
+        manufacturerRepository.deleteAll();
         intersectionRepository.deleteAll();
         organizationRepository.deleteAll();
     }
