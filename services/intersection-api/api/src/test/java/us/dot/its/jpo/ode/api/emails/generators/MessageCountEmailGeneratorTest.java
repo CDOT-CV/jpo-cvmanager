@@ -172,28 +172,37 @@ class MessageCountEmailGeneratorTest {
     }
 
     @Test
-    void calculateDiffPercent_matchingBsmCountsAreZero() {
-        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent("BSM", 100, 100), 0.001);
+    void calculateDiffPercent_matchingCountsAreZero() {
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(100, 100), 0.001);
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(86382, 86382), 0.001);
     }
 
     @Test
-    void calculateDiffPercent_missingBsmOutboundIsFlagged() {
-        assertEquals(6.0, MessageCountEmailGenerator.calculateDiffPercent("BSM", 100, 0), 0.001);
+    void calculateDiffPercent_missingOutboundIsOneHundredPercent() {
+        assertEquals(100.0, MessageCountEmailGenerator.calculateDiffPercent(100, 0), 0.001);
     }
 
     @Test
-    void calculateDiffPercent_mapDedupWithinExpectedRatio() {
-        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent("Map", 3600, 1), 0.001);
+    void calculateDiffPercent_fivePercentBoundaryIsInclusive() {
+        assertEquals(5.0, MessageCountEmailGenerator.calculateDiffPercent(100, 105), 0.001);
+        assertEquals(5.0, MessageCountEmailGenerator.calculateDiffPercent(100, 95), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_mapUsesSameInOutRatio() {
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(3600, 3600), 0.001);
+        assertEquals(99.972, MessageCountEmailGenerator.calculateDiffPercent(3600, 1), 0.001);
     }
 
     @Test
     void calculateDiffPercent_spatDeviationExceedsFivePercent() {
-        assertEquals(10.0, MessageCountEmailGenerator.calculateDiffPercent("SPaT", 100, 110), 0.001);
+        assertEquals(10.0, MessageCountEmailGenerator.calculateDiffPercent(100, 110), 0.001);
     }
 
     @Test
     void calculateDiffPercent_zeroInboundWithOutboundIsFlagged() {
-        assertEquals(6.0, MessageCountEmailGenerator.calculateDiffPercent("SPaT", 0, 5), 0.001);
+        assertEquals(100.0, MessageCountEmailGenerator.calculateDiffPercent(0, 5), 0.001);
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(0, 0), 0.001);
     }
 
     @Test
@@ -212,6 +221,6 @@ class MessageCountEmailGeneratorTest {
 
         MessageCountEmailGenerator.populateDiffPercents(contents);
 
-        assertEquals(6.0, bsmCounts.getDiffPercent(), 0.001);
+        assertEquals(100.0, bsmCounts.getDiffPercent(), 0.001);
     }
 }

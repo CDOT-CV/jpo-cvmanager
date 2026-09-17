@@ -2,25 +2,6 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import MessageMonitorApi from '../apis/intersections/mm-api'
 import { selectToken } from './userSlice'
-import { SymbolLayer } from 'react-map-gl'
-
-export const intersectionMapLabelsLayer: SymbolLayer = {
-  id: 'intersection-labels',
-  type: 'symbol',
-  layout: {
-    'text-field': ['to-string', ['get', 'intersectionName']],
-    'text-size': 16,
-    'text-offset': [0, 2],
-    'text-variable-anchor': ['top', 'left', 'right', 'bottom'],
-    'text-allow-overlap': true,
-    'icon-text-fit': 'both',
-  },
-  paint: {
-    'text-color': '#000000',
-    'text-halo-color': '#ffffff',
-    'text-halo-width': 5,
-  },
-}
 
 export const initialState = {
   intersections: [
@@ -59,6 +40,7 @@ export const intersectionSlice = createSlice({
   name: 'intersection',
   initialState: {
     loading: false,
+    currentRequestId: null as string | null,
     value: initialState,
   },
   reducers: {
@@ -85,15 +67,20 @@ export const intersectionSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getIntersections.pending, (state) => {
+      .addCase(getIntersections.pending, (state, action) => {
         state.loading = true
+        state.currentRequestId = action.meta.requestId
       })
-      .addCase(getIntersections.fulfilled, (state, action: PayloadAction<IntersectionReferenceData[]>) => {
+      .addCase(getIntersections.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
         state.value.intersections = action.payload
         state.loading = false
+        state.currentRequestId = null
       })
-      .addCase(getIntersections.rejected, (state) => {
+      .addCase(getIntersections.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
         state.loading = false
+        state.currentRequestId = null
       })
   },
 })

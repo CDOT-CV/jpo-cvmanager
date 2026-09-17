@@ -31,6 +31,7 @@ schema.rtcm: classpath:schemas/rtcm.schema.json
 kafka.linger_ms: 50
 
 # Prometheus Configuration (message counts)
+# aggregation.step.seconds is the minimum increase() lookbehind for short time ranges.
 prometheus:
   url: ${PROMETHEUS_URL:http://prometheus:9090}
   aggregation:
