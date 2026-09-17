@@ -6,10 +6,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,9 +20,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
+import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 
 @Slf4j
@@ -32,6 +38,26 @@ import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 @Tag(name = "Admin Firmware", description = "Manage firmware uploads")
 public class AdminFirmwareController {
     private final FirmwareUploadService firmwareUploadService;
+    private final FirmwareObjectService firmwareObjectService;
+    private final FirmwareUploadOptionsService firmwareUploadOptionsService;
+
+    @Operation(summary = "List valid manufacturer and model options for firmware uploads")
+    @GetMapping(value = "/upload-options", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    public FirmwareUploadOptions getUploadOptions() {
+        return firmwareUploadOptionsService.getOptions();
+    }
+
+    @Operation(summary = "List firmware objects and their verification state")
+    @GetMapping(value = "/objects", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    public FirmwareObjectPage listObjects(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "100") int size,
+            @RequestParam(name = "manufacturer", required = false) String manufacturer,
+            @RequestParam(name = "search", required = false) String search) {
+        return firmwareObjectService.list(page, size, manufacturer, search);
+    }
 
     @Operation(summary = "Create a signed firmware upload URL")
     @ApiResponses(value = {

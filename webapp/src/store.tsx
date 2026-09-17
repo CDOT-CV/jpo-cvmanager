@@ -30,6 +30,7 @@ import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { firmwareApiSlice } from './features/api/firmwareApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -70,6 +71,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
+      [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -90,7 +92,8 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(rsuOnlineStatusApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
-        .concat(adminIntersectionApiSlice.middleware),
+        .concat(adminIntersectionApiSlice.middleware)
+        .concat(firmwareApiSlice.middleware),
     devTools: true,
   })
 }
