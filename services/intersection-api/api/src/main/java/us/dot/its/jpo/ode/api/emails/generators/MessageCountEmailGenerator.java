@@ -57,8 +57,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
                         + "Cells are <span style=\"background-color: #a4ffa1; color: #000; padding: 2px 8px; border-radius: 3px;\">green</span> if inbound and outbound counts are within 5%% of each other, and <span style=\"background-color: #ff7373; color: #000; padding: 2px 8px; border-radius: 3px;\">red</span> if the difference is greater than 5%%.</p>"
                         + "<p><strong>Inbound Message Count</strong>: Number of encoded messages received by the ODE from the load balancer.<br>"
                         + "<strong>Outbound Message Count</strong>: Number of decoded messages output by the ODE in JSON format, available for querying in MongoDB.<br>"
-                        + "Ideally, these counts should match, but small differences can occur due to timing.<br>"
-                        + "Note: Map and TIM outbound counts are deduplicated (one per hour), so these may be lower. The deviation calculation accounts for this.</p>"
+                        + "Ideally, these counts should match, but small differences can occur due to timing.</p>"
                         + "<h3>RSU Message Counts</h3>"
                         + "<div style=\"margin: 16px 0; padding: 12px; background-color: #f5f5f5; border-radius: 4px; display: inline-block;\">"
                         + "<strong>Legend:</strong>&nbsp;&nbsp;"
@@ -152,30 +151,24 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
             if (rsuItem.getMessageCountsByType() == null) {
                 continue;
             }
-            for (Map.Entry<String, MessageCountCountsItem> entry : rsuItem.getMessageCountsByType().entrySet()) {
-                MessageCountCountsItem countsItem = entry.getValue();
+            for (MessageCountCountsItem countsItem : rsuItem.getMessageCountsByType().values()) {
                 if (countsItem != null) {
-                    countsItem.setDiffPercent(
-                            calculateDiffPercent(entry.getKey(), countsItem.getIn(), countsItem.getOut()));
+                    countsItem.setDiffPercent(calculateDiffPercent(countsItem.getIn(), countsItem.getOut()));
                 }
             }
         }
     }
 
     /**
-     * Percentage difference between inbound and outbound counts. BSM/TIM use a
-     * pass/fail check (6% vs 0%) because of unique-message deduplication. MAP
-     * outbound counts are normalized for expected 1-per-hour deduplication.
+     * Absolute percentage difference of outbound vs inbound counts. All message
+     * types use the same ±5% green/red cutoff. When inbound is zero, any outbound
+     * count is treated as a 100% mismatch.
      */
-    static double calculateDiffPercent(String type, int inCount, int outCount) {
-        if (type != null && (type.equalsIgnoreCase("bsm") || type.equalsIgnoreCase("tim"))) {
-            return (inCount != 0 && outCount == 0) || (outCount > inCount) ? 6 : 0;
-        }
-        int x = type != null && type.equalsIgnoreCase("map") ? 3600 : 1;
+    static double calculateDiffPercent(int inCount, int outCount) {
         if (inCount != 0) {
-            return Math.abs(outCount / Math.ceil((double) inCount / x) - 1) * 100;
+            return Math.abs((double) outCount - inCount) / inCount * 100;
         }
-        return outCount > inCount ? 6 : 0;
+        return outCount > 0 ? 100 : 0;
     }
 
     private static String diffToColor(Number val) {

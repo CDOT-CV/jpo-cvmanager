@@ -67,6 +67,22 @@ export const rsuCountsApiSlice = createApi({
   }),
 })
 
+const DEFAULT_RSU_COUNTS_ERROR = 'Failed to load message counts from Intersection API.'
+
+/**
+ * User-facing message for Intersection API counts failures.
+ * Prefers RFC 7807 ProblemDetail.detail (for example VictoriaMetrics OOM mapped to HTTP 400).
+ */
+export function getRsuCountsErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object') {
+    const detail = (error.data as { detail?: unknown }).detail
+    if (typeof detail === 'string' && detail.trim()) {
+      return detail
+    }
+  }
+  return DEFAULT_RSU_COUNTS_ERROR
+}
+
 export const {
   useGetRsuCountsQuery,
   useLazyGetRsuCountsQuery,
