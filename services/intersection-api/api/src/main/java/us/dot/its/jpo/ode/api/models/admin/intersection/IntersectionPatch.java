@@ -2,6 +2,7 @@ package us.dot.its.jpo.ode.api.models.admin.intersection;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,6 +40,7 @@ public class IntersectionPatch {
 
     @Schema(description = "New bounding box; omit to leave unchanged")
     @Valid
+    @Nullable
     @JsonProperty("bbox")
     private Bbox bbox;
 
@@ -50,25 +52,14 @@ public class IntersectionPatch {
     @JsonProperty("origin_ip")
     private String originIp;
 
-    @Schema(description = "Organizations to add to this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Organizations associations for this intersection (missing will be removed)", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
-    @JsonProperty("organizations_to_add")
-    private List<String> organizationsToAdd;
+    @JsonProperty("organizations")
+    private List<Integer> organizations;
 
-    @Schema(description = "Organizations to remove from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "RSU IP addresses to associate with this intersection (missing will be removed)", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
-    @JsonProperty("organizations_to_remove")
-    private List<String> organizationsToRemove;
-
-    @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
-    @JsonProperty("rsus_to_add")
+    @JsonProperty("rsus")
     private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            message = "must be a valid IPv4 address") String> rsusToAdd;
-
-    @Schema(description = "RSU IP addresses to disassociate from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull
-    @JsonProperty("rsus_to_remove")
-    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            message = "must be a valid IPv4 address") String> rsusToRemove;
+            message = "must be a valid IPv4 address") String> rsus;
 }
