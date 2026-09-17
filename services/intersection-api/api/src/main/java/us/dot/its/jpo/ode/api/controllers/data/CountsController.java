@@ -44,6 +44,7 @@ public class CountsController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRsu(#rsuIp, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Bad Request - query could not be processed (for example VictoriaMetrics OOM)"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role with access to the requested RSU"),
     })
     public ResponseEntity<List<MessageCount>> getRsuMessageCounts(
@@ -67,6 +68,7 @@ public class CountsController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
+            @ApiResponse(responseCode = "400", description = "Bad Request - query could not be processed (for example VictoriaMetrics OOM)"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role in the requested organization"),
     })
     public ResponseEntity<List<MessageCount>> getOrganizationRsuMessageCounts(

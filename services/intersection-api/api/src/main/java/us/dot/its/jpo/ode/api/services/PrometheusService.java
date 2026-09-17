@@ -6,8 +6,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +26,10 @@ import us.dot.its.jpo.ode.api.models.PrometheusResponse;
 public class PrometheusService {
 
     private static final String METRIC_NAME = "kafka_produced_rsu_messages_total";
+    public static final String OOM_USER_MESSAGE =
+            "The message counts query ran out of memory. Please select a shorter time range.";
+    public static final String UNPROCESSABLE_USER_MESSAGE =
+            "The counts query could not be processed. Please select a shorter time range and try again.";
 
     private final RestTemplate restTemplate;
 
@@ -36,8 +43,12 @@ public class PrometheusService {
     @Value("${prometheus.url:http://localhost:9090}")
     private String prometheusUrl;
 
+    /**
+     * Minimum increase() lookbehind in seconds. Used as a floor so short UI ranges
+     * still contain at least two samples.
+     */
     @Value("${prometheus.aggregation.step.seconds:120}")
-    private int aggregationStepSeconds;
+    private int minLookbehindSeconds;
 
     public PrometheusService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -84,8 +95,7 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus: {}", e.getMessage());
-            throw new RuntimeException("Failed to query Prometheus", e);
+            throw wrapPrometheusFailure("querying Prometheus", e);
         }
     }
 
@@ -144,8 +154,7 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus range: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to query Prometheus range", e);
+            throw wrapPrometheusFailure("querying Prometheus range", e);
         }
     }
 
@@ -168,73 +177,105 @@ public class PrometheusService {
 
             return restTemplate.getForObject(uri, String.class);
         } catch (Exception e) {
-            log.error("Error querying Prometheus instant: {}", e.getMessage());
-            throw new RuntimeException("Failed to query Prometheus instant", e);
+            throw wrapPrometheusFailure("querying Prometheus instant", e);
         }
     }
 
     /**
-     * Builds a sum_over_time(increase(...)) PromQL query that aggregates counter
-     * increases across ephemeral hosts/pods over the requested window.
+     * Maps VictoriaMetrics/Prometheus HTTP 422 (including query OOM) to HTTP 400 so
+     * the counts API can tell the client to shorten the time range.
+     */
+    RuntimeException wrapPrometheusFailure(String action, Exception e) {
+        if (e instanceof ResponseStatusException responseStatusException) {
+            return responseStatusException;
+        }
+        if (e instanceof HttpStatusCodeException httpEx && httpEx.getStatusCode().value() == 422) {
+            String body = httpEx.getResponseBodyAsString();
+            String message = isOutOfMemoryError(body) ? OOM_USER_MESSAGE : UNPROCESSABLE_USER_MESSAGE;
+            log.warn("Prometheus returned 422 during {}: {}", action, body);
+            return new ResponseStatusException(HttpStatus.BAD_REQUEST, message, httpEx);
+        }
+        log.error("Error {}: {}", action, e.getMessage());
+        return new RuntimeException("Failed to query Prometheus", e);
+    }
+
+    static boolean isOutOfMemoryError(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+        String lower = body.toLowerCase();
+        return lower.contains("cannot allocate more memory")
+                || lower.contains("out of memory")
+                || lower.contains("maxmemoryperquery");
+    }
+
+    /**
+     * Builds {@code sum by (labels) (increase(metric[range]))} so increments from
+     * scaled/restarted ODE hosts (distinct {@code instance}/{@code host} series) are
+     * included without a memory-heavy subquery.
+     * <p>
+     * On Prometheus, {@code increase()} extrapolates about one scrape interval at
+     * series edges. VictoriaMetrics does not extrapolate.
      *
-     * @param metricSelector label selector body, e.g. {@code rsu_ip="1.2.3.4", topic="x"}
+     * @param metricSelector label selector body, e.g. {@code rsu_ip="1.2.3.4"}
      * @param groupBy        comma-separated label names for {@code sum by (...)}
      * @param startTime      start time in milliseconds
      * @param endTime        end time in milliseconds
      * @return PromQL string
      */
-    String buildSumOverTimeIncreaseQuery(String metricSelector, String groupBy, long startTime, long endTime) {
-        long rangeSeconds = Math.max((endTime - startTime) / 1000, aggregationStepSeconds);
-        int step = aggregationStepSeconds;
+    String buildIncreaseQuery(String metricSelector, String groupBy, long startTime, long endTime) {
+        long rangeSeconds = Math.max((endTime - startTime) / 1000, minLookbehindSeconds);
+        String metric = metricSelector == null || metricSelector.isBlank()
+                ? METRIC_NAME
+                : String.format("%s{%s}", METRIC_NAME, metricSelector);
+        return String.format("sum by (%s) (increase(%s[%ds]))", groupBy, metric, rangeSeconds);
+    }
+
+    /**
+     * Frozen previous production query. Kept for accuracy comparisons against the
+     * {@code increase([range])} query. Do not use for live counts.
+     */
+    static String buildBaselineSumOverTimeIncreaseQuery(String metricSelector, String groupBy, long rangeSeconds,
+            int stepSeconds) {
         String metric = metricSelector == null || metricSelector.isBlank()
                 ? METRIC_NAME
                 : String.format("%s{%s}", METRIC_NAME, metricSelector);
         return String.format(
                 "sum by (%s) (sum_over_time(increase(%s[%ds])[%ds:%ds]))",
-                groupBy, metric, step, rangeSeconds, step);
+                groupBy, metric, stepSeconds, rangeSeconds, stepSeconds);
     }
 
     /**
-     * RSU message counts for a single RSU IP and topic over a time range.
-     * Uses sum_over_time(increase()) so increments from scaled/restarted ODE hosts
-     * are included.
+     * RSU message counts for a single RSU IP over a time range, grouped by topic.
+     * Uses {@code sum by (topic) (increase(...[range]))} so increments from
+     * scaled/restarted ODE hosts are included.
      *
      * @param rsuIp     the IP address of the RSU
-     * @param topic     Kafka topic label
      * @param startTime start time in milliseconds
      * @param endTime   end time in milliseconds
      * @return the JSON response from Prometheus
      */
-    public String getRsuMessageCounts(String rsuIp, String topic, long startTime, long endTime) {
-        String selector = String.format("rsu_ip=\"%s\", topic=\"%s\"", rsuIp, topic);
-        String promQL = buildSumOverTimeIncreaseQuery(selector, "topic", startTime, endTime);
+    public String getRsuMessageCounts(String rsuIp, long startTime, long endTime) {
+        String selector = String.format("rsu_ip=\"%s\"", rsuIp);
+        String promQL = buildIncreaseQuery(selector, "topic", startTime, endTime);
         return queryInstant(promQL, endTime);
     }
 
     /**
-     * Organization RSU counts filtered by topic over a time range.
+     * Organization RSU counts over a time range, grouped by RSU IP and topic.
      *
-     * @param rsuIps    comma-separated list of RSU IPs or regex pattern
-     * @param topic     the specific topic to filter by
-     * @param startTime start time in milliseconds
-     * @param endTime   end time in milliseconds
+     * @param rsuIps     pipe-delimited RSU IP regex pattern
+     * @param topicRegex PromQL regex for {@code topic} (input + output names for one
+     *                   message type). Null/blank matches all topics.
+     * @param startTime  start time in milliseconds
+     * @param endTime    end time in milliseconds
      * @return the JSON response from Prometheus
      */
-    public String getOrganizationRsuCountsByTopic(String rsuIps, String topic, long startTime, long endTime) {
-        String selector = String.format("rsu_ip=~\"%s\", topic=\"%s\"", rsuIps, topic);
-        String promQL = buildSumOverTimeIncreaseQuery(selector, "rsu_ip, topic", startTime, endTime);
-        return queryInstant(promQL, endTime);
-    }
-
-    /**
-     * Available topic counts over a time range (used to resolve message type → topic).
-     *
-     * @param startTime start time in milliseconds
-     * @param endTime   end time in milliseconds
-     * @return the JSON response from Prometheus
-     */
-    public String getAvailableTopicCounts(long startTime, long endTime) {
-        String promQL = buildSumOverTimeIncreaseQuery("", "topic", startTime, endTime);
+    public String getOrganizationRsuCounts(String rsuIps, String topicRegex, long startTime, long endTime) {
+        String selector = topicRegex == null || topicRegex.isBlank()
+                ? String.format("rsu_ip=~\"%s\"", rsuIps)
+                : String.format("rsu_ip=~\"%s\", topic=~\"%s\"", rsuIps, topicRegex);
+        String promQL = buildIncreaseQuery(selector, "rsu_ip, topic", startTime, endTime);
         return queryInstant(promQL, endTime);
     }
 
