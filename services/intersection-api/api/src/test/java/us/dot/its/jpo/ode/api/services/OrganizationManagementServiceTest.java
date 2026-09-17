@@ -975,6 +975,8 @@ class OrganizationManagementServiceTest {
                 userOrganizationRepository,
                 rsuOrganizationRepository,
                 intersectionOrganizationRepository,
+                rsuCredentialRepository,
+                        snmpCredentialRepository,
                 organizationRepository);
 
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
@@ -984,9 +986,9 @@ class OrganizationManagementServiceTest {
         service.deleteOrganization(testOrg);
 
         inOrder.verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(rsuCredentialRepository).removeByOwnerOrganization(testOrg);
         inOrder.verify(snmpCredentialRepository).removeByOwnerOrganization(testOrg);
-        inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(organizationRepository).delete(testOrg);
     }
