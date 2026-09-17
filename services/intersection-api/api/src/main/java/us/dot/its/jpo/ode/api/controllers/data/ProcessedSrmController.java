@@ -11,7 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,7 +40,7 @@ public class ProcessedSrmController {
     }
 
     @Operation(summary = "Find Processed SRMs", description = "Returns a list of Processed SRMs based on the provided parameters. Use latitude, longitude, and distance to find Processed SRMs within a certain \"radius\" of a point (rectangle)")
-    @RequestMapping(method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -51,7 +51,7 @@ public class ProcessedSrmController {
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
             @RequestParam(name = "intersection_id", required = false) Integer intersectionId,
-                    @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
             @RequestParam(name = "size", required = false, defaultValue = "10000") int size,
             @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
@@ -69,7 +69,7 @@ public class ProcessedSrmController {
     }
 
     @Operation(summary = "Count Processed SRMs", description = "Returns the count of SRMs based on the provided parameters. Use latitude, longitude, and distance to find SRMs within a certain \"radius\" of a point (rectangle)")
-    @RequestMapping(value = "/count", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/count", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -77,10 +77,10 @@ public class ProcessedSrmController {
     })
     public ResponseEntity<Long> countProcessedSRMs(
             @RequestParam(name = "intersection_id", required = false) Integer intersectionId,
-                    @RequestParam(name = "vehicle_id", required = false) String vehicleId,
+            @RequestParam(name = "vehicle_id", required = false) String vehicleId,
             @RequestParam(name = "start_time_utc_millis", required = false) Long startTime,
             @RequestParam(name = "end_time_utc_millis", required = false) Long endTime,
-                    @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+            @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
         if (testData) {
             return ResponseEntity.ok(10L);

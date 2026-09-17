@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,7 +45,7 @@ public class EmailController {
     private final EmailService emailService;
 
     @Operation(summary = "Send Message Counts Emails", description = "Send message counts emails")
-    @RequestMapping(value = "/message-counts", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/message-counts", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_MESSAGE_COUNTS_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -58,7 +58,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Send Firmware Upgrade Failure Emails", description = "Send firmware upgrade failure emails")
-    @RequestMapping(value = "/firmware-upgrade-failures", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/firmware-upgrade-failures", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_FIRMWARE_UPGRADE_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -71,7 +71,7 @@ public class EmailController {
     }
 
     @Operation(summary = "API Error Summary", description = "Sends an email with a summary of API errors.")
-    @RequestMapping(value = "/api-errors", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/api-errors", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || hasRole('ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -85,7 +85,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Rsu Error Summary", description = "Sends an email with a summary of RSU errors.")
-    @RequestMapping(value = "/rsu-errors", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/rsu-errors", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -99,7 +99,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Send Support Request Email", description = "Send a support request email")
-    @RequestMapping(value = "/support-requests", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/support-requests", produces = "application/json")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
             @ApiResponse(responseCode = "207", description = "Partial success - some emails sent, some failed"),

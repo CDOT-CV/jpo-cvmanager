@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,7 +40,7 @@ public class CountsController {
 
     @Operation(summary = "Get message counts for RSU", description = "Returns message counts for a specific RSU over a provided timespan. "
             + "Supply one or more message types via repeated `message` parameters or a comma-separated list.")
-    @RequestMapping(value = "/rsus/{rsu_ip}", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/rsus/{rsu_ip}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRsu(#rsuIp, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -64,7 +64,7 @@ public class CountsController {
     }
 
     @Operation(summary = "Get organization RSU message counts", description = "Returns message counts for all RSUs in an organization over a provided timespan")
-    @RequestMapping(value = "/rsus/organizations/{organization}", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/rsus/organizations/{organization}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrg(#organization, 'USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
