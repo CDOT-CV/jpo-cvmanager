@@ -10,10 +10,11 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -21,6 +22,7 @@ import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
+@ExtendWith(MockitoExtension.class)
 public class IntersectionControllerTest {
 
     private IntersectionController controller;
@@ -33,7 +35,6 @@ public class IntersectionControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         controller = new IntersectionController(
                 processedMapRepo,
                 permissionService);
@@ -124,7 +125,7 @@ public class IntersectionControllerTest {
 
             ResponseEntity<List<IntersectionReferenceData>> response = controller.getIntersectionsByLocation(null, 5.0,
                     6.0, false);
-            assertThat(response.getStatusCodeValue()).isEqualTo(200);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).contains(intersection);
         }
     }
