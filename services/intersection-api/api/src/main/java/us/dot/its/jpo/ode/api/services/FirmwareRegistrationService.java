@@ -27,6 +27,20 @@ public class FirmwareRegistrationService {
     private final FirmwareUploadMapper mapper;
 
     @Transactional
+    public void markFailed(UUID uploadId, String reason) {
+        // A late verification response must not recreate a deleted upload or
+        // downgrade an upload already verified by another request.
+        uploads.findByIdForUpdate(uploadId).ifPresent(upload -> {
+            if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) {
+                upload.setStatus(FirmwareUploadStatus.FAILED);
+                upload.setFailureReason(reason);
+                upload.setFinishedAt(Instant.now());
+                uploads.save(upload);
+            }
+        });
+    }
+
+    @Transactional
     public FirmwareUpload register(UUID uploadId, StoredObjectMetadata metadata) {
         // Serialize repeated completion calls for the same upload
         FirmwareUpload upload = uploads.findByIdForUpdate(uploadId)
@@ -40,7 +54,7 @@ public class FirmwareRegistrationService {
             throw new FirmwareVersionAlreadyExistsException("Firmware already exists for this model and version");
         }
 
-        // Completion is idempotent. Only a pending upload needs its observed storage
+        // Completion is idempotent. An upload not yet verified needs its observed storage
         // metadata checked and its verification state updated
         if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) {
             if (metadata == null || metadata.contentLength() != upload.getExpectedSize()

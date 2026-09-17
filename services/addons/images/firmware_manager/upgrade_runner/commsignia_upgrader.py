@@ -21,7 +21,10 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
     def upgrade(self):
         try:
             # Download firmware installation package
-            self.download_blob()
+            if not self.download_blob():
+                raise FileNotFoundError(
+                    f"Firmware installation package not found: {self.blob_name}"
+                )
 
             # Make connection with the target device
             logging.info("Making SSH connection with " + self.rsu_ip + "...")
@@ -57,7 +60,7 @@ class CommsigniaUpgrader(upgrader.UpgraderAbstractClass):
             ssh.close()
 
             # If post_upgrade script exists execute it
-            if self.download_blob(
+            if self.download_optional_blob(
                 self.post_upgrade_blob_name, self.post_upgrade_file_name, ".sh"
             ):
                 self.post_upgrade()

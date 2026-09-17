@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
+import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
@@ -40,6 +41,7 @@ import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -128,6 +130,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler()
     public ProblemDetail handleFirmwareUploadVerificationException(FirmwareUploadVerificationException ex) {
         log.warn("Firmware upload verification failed: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class})
+    public ProblemDetail handleFirmwareDeletionConflict(RuntimeException ex) {
+        log.warn("Firmware deletion conflict: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 

@@ -7,13 +7,13 @@ export type FirmwareObject = {
   model: string | null
   version: string | null
   file_name: string
-  content_length: number
+  content_length: number | null
   updated_at: string | number | null
   provider_object_version: string | null
   upload_id: string | null
   firmware_id: number | null
   upload_status: string | null
-  verification_status: 'VERIFIED' | 'UNVERIFIED' | 'UNTRACKED' | 'CHANGED'
+  verification_status: 'VERIFIED' | 'UNVERIFIED' | 'UNTRACKED' | 'CHANGED' | 'MISSING'
 }
 
 export type FirmwareObjectPage = {
