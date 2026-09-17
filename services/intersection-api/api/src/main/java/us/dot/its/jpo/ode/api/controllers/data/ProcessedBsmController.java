@@ -41,7 +41,7 @@ public class ProcessedBsmController {
     }
 
     @Operation(summary = "Find Processed BSMs", description = "Returns a list of Processed BSMs based on the provided parameters. Use latitude, longitude, and distance to find Processed BSMs within a certain \"radius\" of a point (rectangle)")
-    @GetMapping( produces = "application/json")
+    @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

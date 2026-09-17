@@ -40,7 +40,7 @@ public class ProcessedSrmController {
     }
 
     @Operation(summary = "Find Processed SRMs", description = "Returns a list of Processed SRMs based on the provided parameters. Use latitude, longitude, and distance to find Processed SRMs within a certain \"radius\" of a point (rectangle)")
-    @GetMapping( produces = "application/json")
+    @GetMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

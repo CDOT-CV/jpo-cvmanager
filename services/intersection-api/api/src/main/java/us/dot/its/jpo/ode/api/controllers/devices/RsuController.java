@@ -61,7 +61,7 @@ public class RsuController {
             "snmp_monitoring", "rsuOption.snmpMonitoring");
 
     @Operation(summary = "Get All RSUs for Organization", description = "Get summary data for all RSUs the user has access to in the specified organization.")
-    @GetMapping( produces = "application/json", params = "!rsu_ip")
+    @GetMapping(produces = "application/json", params = "!rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -79,7 +79,7 @@ public class RsuController {
 
     @Operation(summary = "Get Single RSU Management Data", description = "Get RSU data required for RSU modification page. "
             + "Returns detailed data for the specified RSU along with allowed selections for modification.")
-    @GetMapping( produces = "application/json", params = "rsu_ip")
+    @GetMapping(produces = "application/json", params = "rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -97,7 +97,7 @@ public class RsuController {
 
     @Operation(summary = "Get Allowed Selections for RSU Management", description = "Get RSU data required for RSU modification page. "
             + "Returns detailed data for the specified RSU along with allowed selections for modification.")
-    @GetMapping( path = "/allowed-selections", produces = "application/json")
+    @GetMapping(path = "/allowed-selections", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -111,7 +111,7 @@ public class RsuController {
     }
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")
-    @PostMapping( produces = "application/json")
+    @PostMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
@@ -130,14 +130,14 @@ public class RsuController {
     }
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
-    @PatchMapping( produces = "application/json", params = "rsu_ip")
+    @PatchMapping(produces = "application/json", params = "rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with access to the RSU requested"),
     })
     public ResponseEntity<Void> modifyRsu(@RequestParam(name = "rsu_ip", required = true) String rsuIp,
-                                          @Validated @RequestBody RsuPatch body) {
+            @Validated @RequestBody RsuPatch body) {
         rsuManagementService.modifyRsu(rsuIp, body, permissionService.getCvManagerAuthToken());
         rsuOptionManagementService.modifyRsuOption(rsuIp, body);
 
@@ -145,7 +145,7 @@ public class RsuController {
     }
 
     @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
-    @DeleteMapping( produces = "application/json", params = "rsu_ip")
+    @DeleteMapping(produces = "application/json", params = "rsu_ip")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
@@ -158,7 +158,7 @@ public class RsuController {
     }
 
     @Operation(summary = "Delete Multiple RSUs", description = "Delete Multiple RSUs from management system")
-    @DeleteMapping( path = "/batch", produces = "application/json")
+    @DeleteMapping(path = "/batch", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsus(#rsuIps, 'OPERATOR') && @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),

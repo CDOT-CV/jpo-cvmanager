@@ -37,7 +37,7 @@ public class IntersectionController {
         private final PermissionService permissionService;
 
         @Operation(summary = "List Intersections", description = "Returns a list of intersections")
-        @GetMapping( produces = "application/json")
+        @GetMapping(produces = "application/json")
         @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Success"),
@@ -82,14 +82,14 @@ public class IntersectionController {
         @GetMapping(value = "/location", produces = "application/json")
         @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
         @ApiResponses(value = {
-                @ApiResponse(responseCode = "200", description = "Success"),
-                @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
+                        @ApiResponse(responseCode = "200", description = "Success"),
+                        @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or USER role"),
         })
         public ResponseEntity<List<IntersectionReferenceData>> getIntersectionsByLocation(
-                @RequestHeader(name = "Organization", required = false) String organization,
-                @RequestParam(name = "longitude", required = true) double longitude,
-                @RequestParam(name = "latitude", required = true) double latitude,
-                @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
+                        @RequestHeader(name = "Organization", required = false) String organization,
+                        @RequestParam(name = "longitude", required = true) double longitude,
+                        @RequestParam(name = "latitude", required = true) double latitude,
+                        @RequestParam(name = "test", required = false, defaultValue = "false") boolean testData) {
 
                 if (testData) {
                         IntersectionReferenceData ref = new IntersectionReferenceData();
@@ -103,23 +103,23 @@ public class IntersectionController {
                 } else {
 
                         List<IntersectionReferenceData> allIntersections = processedMapRepo
-                                .getIntersectionsContainingPoint(longitude, latitude);
+                                        .getIntersectionsContainingPoint(longitude, latitude);
                         if (organization == null) {
                                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                                 String username = PermissionService.getUsername(auth);
                                 List<Integer> allowedIntersectionIds = permissionService
-                                        .getAllowedIntersectionIdsByEmail(username);
+                                                .getAllowedIntersectionIdsByEmail(username);
                                 return ResponseEntity.ok(allIntersections.stream()
-                                        .filter(intersection -> allowedIntersectionIds
-                                                .contains(intersection.getIntersectionID()))
-                                        .collect(Collectors.toList()));
+                                                .filter(intersection -> allowedIntersectionIds
+                                                                .contains(intersection.getIntersectionID()))
+                                                .collect(Collectors.toList()));
                         } else {
                                 List<Integer> allowedIntersectionIds = permissionService
-                                        .getAllowedIntersectionIdsByOrganization(organization);
+                                                .getAllowedIntersectionIdsByOrganization(organization);
                                 return ResponseEntity.ok(allIntersections.stream()
-                                        .filter(intersection -> allowedIntersectionIds
-                                                .contains(intersection.getIntersectionID()))
-                                        .collect(Collectors.toList()));
+                                                .filter(intersection -> allowedIntersectionIds
+                                                                .contains(intersection.getIntersectionID()))
+                                                .collect(Collectors.toList()));
                         }
                 }
         }
