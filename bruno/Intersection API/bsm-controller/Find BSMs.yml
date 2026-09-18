@@ -1,0 +1,1079 @@
+info:
+  name: Find BSMs
+  type: http
+  seq: 1
+  tags:
+    - bsm-controller
+
+http:
+  method: GET
+  url: "{{baseUrl}}/data/ode-bsm-json"
+  params:
+    - name: origin_ip
+      value: ""
+      type: query
+      disabled: true
+    - name: vehicle_id
+      value: ""
+      type: query
+      disabled: true
+    - name: start_time_utc_millis
+      value: ""
+      type: query
+      disabled: true
+    - name: end_time_utc_millis
+      value: ""
+      type: query
+      disabled: true
+    - name: latitude
+      value: ""
+      type: query
+      disabled: true
+    - name: longitude
+      value: ""
+      type: query
+      disabled: true
+    - name: distance
+      value: ""
+      type: query
+      disabled: true
+    - name: page
+      value: "0"
+      type: query
+    - name: size
+      value: "10000"
+      type: query
+    - name: test
+      value: "false"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "metadata": {
+                  "logFileName": "",
+                  "recordType": "bsmLogDuringEvent",
+                  "securityResultCode": "success",
+                  "receivedMessageDetails": {
+                    "locationData": {
+                      "latitude": "",
+                      "longitude": "",
+                      "elevation": "",
+                      "speed": "",
+                      "heading": ""
+                    },
+                    "rxSource": "RSU"
+                  },
+                  "encodings": [
+                    {
+                      "elementName": "",
+                      "elementType": "",
+                      "encodingRule": "UPER"
+                    }
+                  ],
+                  "payloadType": "",
+                  "serialId": {
+                    "streamId": "",
+                    "bundleSize": 0,
+                    "bundleId": 0,
+                    "recordId": 0,
+                    "serialNumber": 0
+                  },
+                  "odeReceivedAt": "",
+                  "schemaVersion": 0,
+                  "maxDurationTime": 0,
+                  "recordGeneratedAt": "",
+                  "recordGeneratedBy": "TMC",
+                  "sanitized": false,
+                  "odePacketID": "",
+                  "odeTimStartDateTime": "",
+                  "asn1": "",
+                  "source": "RSU",
+                  "originIp": "",
+                  "request": {
+                    "ode": {
+                      "version": 0,
+                      "verb": "POST"
+                    },
+                    "sdw": {
+                      "serviceRegion": {
+                        "nwCorner": {
+                          "latitude": 0,
+                          "longitude": 0,
+                          "elevation": 0
+                        },
+                        "seCorner": {
+                          "latitude": 0,
+                          "longitude": 0,
+                          "elevation": 0
+                        }
+                      },
+                      "ttl": "oneminute",
+                      "groupID": "",
+                      "deliverystart": "",
+                      "deliverystop": "",
+                      "recordId": "",
+                      "estimatedRemovalDate": ""
+                    },
+                    "rsus": [
+                      {
+                        "rsuTarget": "",
+                        "rsuUsername": "",
+                        "rsuPassword": "",
+                        "rsuRetries": 0,
+                        "rsuTimeout": 0,
+                        "rsuIndex": 0,
+                        "snmpProtocol": "FOURDOT1"
+                      }
+                    ],
+                    "snmp": {
+                      "rsuid": "",
+                      "msgid": 0,
+                      "mode": 0,
+                      "channel": 0,
+                      "interval": 0,
+                      "deliverystart": "",
+                      "deliverystop": "",
+                      "enable": 0,
+                      "status": 0
+                    }
+                  },
+                  "isCertPresent": false
+                },
+                "payload": {
+                  "data": {
+                    "messageId": 0,
+                    "value": ""
+                  },
+                  "dataType": ""
+                }
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 400 Response
+    description: Bad Request
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          {
+            "totalElements": 0,
+            "totalPages": 0,
+            "first": false,
+            "last": false,
+            "size": 0,
+            "content": [
+              {
+                "metadata": {
+                  "logFileName": "",
+                  "recordType": "bsmLogDuringEvent",
+                  "securityResultCode": "success",
+                  "receivedMessageDetails": {
+                    "locationData": {
+                      "latitude": "",
+                      "longitude": "",
+                      "elevation": "",
+                      "speed": "",
+                      "heading": ""
+                    },
+                    "rxSource": "RSU"
+                  },
+                  "encodings": [
+                    {
+                      "elementName": "",
+                      "elementType": "",
+                      "encodingRule": "UPER"
+                    }
+                  ],
+                  "payloadType": "",
+                  "serialId": {
+                    "streamId": "",
+                    "bundleSize": 0,
+                    "bundleId": 0,
+                    "recordId": 0,
+                    "serialNumber": 0
+                  },
+                  "odeReceivedAt": "",
+                  "schemaVersion": 0,
+                  "maxDurationTime": 0,
+                  "recordGeneratedAt": "",
+                  "recordGeneratedBy": "TMC",
+                  "sanitized": false,
+                  "odePacketID": "",
+                  "odeTimStartDateTime": "",
+                  "asn1": "",
+                  "source": "RSU",
+                  "originIp": "",
+                  "request": {
+                    "ode": {
+                      "version": 0,
+                      "verb": "POST"
+                    },
+                    "sdw": {
+                      "serviceRegion": {
+                        "nwCorner": {
+                          "latitude": 0,
+                          "longitude": 0,
+                          "elevation": 0
+                        },
+                        "seCorner": {
+                          "latitude": 0,
+                          "longitude": 0,
+                          "elevation": 0
+                        }
+                      },
+                      "ttl": "oneminute",
+                      "groupID": "",
+                      "deliverystart": "",
+                      "deliverystop": "",
+                      "recordId": "",
+                      "estimatedRemovalDate": ""
+                    },
+                    "rsus": [
+                      {
+                        "rsuTarget": "",
+                        "rsuUsername": "",
+                        "rsuPassword": "",
+                        "rsuRetries": 0,
+                        "rsuTimeout": 0,
+                        "rsuIndex": 0,
+                        "snmpProtocol": "FOURDOT1"
+                      }
+                    ],
+                    "snmp": {
+                      "rsuid": "",
+                      "msgid": 0,
+                      "mode": 0,
+                      "channel": 0,
+                      "interval": 0,
+                      "deliverystart": "",
+                      "deliverystop": "",
+                      "enable": 0,
+                      "status": 0
+                    }
+                  },
+                  "isCertPresent": false
+                },
+                "payload": {
+                  "data": {
+                    "messageId": 0,
+                    "value": ""
+                  },
+                  "dataType": ""
+                }
+              }
+            ],
+            "number": 0,
+            "sort": {
+              "empty": false,
+              "unsorted": false,
+              "sorted": false
+            },
+            "numberOfElements": 0,
+            "pageable": {
+              "offset": 0,
+              "sort": {
+                "empty": false,
+                "unsorted": false,
+                "sorted": false
+              },
+              "unpaged": false,
+              "paged": false,
+              "pageNumber": 0,
+              "pageSize": 0
+            },
+            "empty": false
+          }
+  - name: 403 Response
+    description: Forbidden - Requires SUPER_USER or USER role
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 404 Response
+    description: Not Found
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+  - name: 409 Response
+    description: Conflict
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "",
+            "title": "",
+            "status": 0,
+            "detail": "",
+            "instance": "",
+            "properties": {}
+          }
+  - name: 500 Response
+    description: Internal Server Error
+    request:
+      url: "{{baseUrl}}/data/ode-bsm-json"
+      method: GET
+      params:
+        - name: origin_ip
+          value: ""
+          type: query
+          disabled: true
+        - name: vehicle_id
+          value: ""
+          type: query
+          disabled: true
+        - name: start_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: end_time_utc_millis
+          value: ""
+          type: query
+          disabled: true
+        - name: latitude
+          value: ""
+          type: query
+          disabled: true
+        - name: longitude
+          value: ""
+          type: query
+          disabled: true
+        - name: distance
+          value: ""
+          type: query
+          disabled: true
+        - name: page
+          value: "0"
+          type: query
+        - name: size
+          value: "10000"
+          type: query
+        - name: test
+          value: "false"
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/hal+json
+      body:
+        type: json
+        data: |-
+          {
+            "headers": {
+              "connection": [],
+              "ifModifiedSince": 0,
+              "contentType": {
+                "type": "",
+                "subtype": "",
+                "parameters": {},
+                "qualityValue": 0,
+                "wildcardType": false,
+                "wildcardSubtype": false,
+                "subtypeSuffix": "",
+                "concrete": false,
+                "charset": ""
+              },
+              "contentLength": 0,
+              "empty": false,
+              "location": "",
+              "host": {
+                "address": {
+                  "hostAddress": "",
+                  "address": "",
+                  "hostName": "",
+                  "linkLocalAddress": false,
+                  "multicastAddress": false,
+                  "anyLocalAddress": false,
+                  "loopbackAddress": false,
+                  "siteLocalAddress": false,
+                  "mcglobal": false,
+                  "mcnodeLocal": false,
+                  "mclinkLocal": false,
+                  "mcsiteLocal": false,
+                  "mcorgLocal": false,
+                  "canonicalHostName": ""
+                },
+                "port": 0,
+                "unresolved": false,
+                "hostName": "",
+                "hostString": ""
+              },
+              "all": {},
+              "lastModified": 0,
+              "date": 0,
+              "origin": "",
+              "acceptCharset": [],
+              "accessControlRequestHeaders": [],
+              "accessControlAllowMethods": [],
+              "accessControlAllowOrigin": "",
+              "accessControlExposeHeaders": [],
+              "accessControlAllowCredentials": false,
+              "accessControlRequestMethod": "",
+              "accessControlAllowHeaders": [],
+              "range": [],
+              "contentDisposition": {
+                "type": "",
+                "name": "",
+                "filename": "",
+                "charset": "",
+                "size": 0,
+                "creationDate": "",
+                "modificationDate": "",
+                "readDate": "",
+                "inline": false,
+                "formData": false,
+                "attachment": false
+              },
+              "allow": [],
+              "accept": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "cacheControl": "",
+              "contentLanguage": "",
+              "bearerAuth": "",
+              "basicAuth": "",
+              "acceptPatch": [
+                {
+                  "type": "",
+                  "subtype": "",
+                  "parameters": {},
+                  "qualityValue": 0,
+                  "wildcardType": false,
+                  "wildcardSubtype": false,
+                  "subtypeSuffix": "",
+                  "concrete": false,
+                  "charset": ""
+                }
+              ],
+              "ifNoneMatch": [],
+              "acceptLanguage": [
+                {
+                  "range": "",
+                  "weight": 0
+                }
+              ],
+              "acceptLanguageAsLocales": [],
+              "ifUnmodifiedSince": 0,
+              "accessControlMaxAge": 0,
+              "upgrade": "",
+              "pragma": "",
+              "etag": "",
+              "ifMatch": [],
+              "vary": [],
+              "expires": 0
+            },
+            "statusCode": "",
+            "body": {
+              "type": "",
+              "title": "",
+              "status": 0,
+              "detail": "",
+              "instance": "",
+              "properties": {}
+            },
+            "typeMessageCode": "",
+            "titleMessageCode": "",
+            "detailMessageCode": "",
+            "detailMessageArguments": []
+          }
+
+docs: Returns a list of BSMs based on the provided parameters. Use latitude, longitude, and distance to find BSMs within a certain "radius" of a point (rectangle)
