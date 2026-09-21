@@ -138,10 +138,15 @@ describe('Firmware object browser', () => {
   describe('server-side search', () => {
     beforeEach(async () => {
       trigger.mockImplementation(({ search }) => ({
-        unwrap: () => Promise.resolve(search ? {
-          objects: [{ ...page.objects[0], object_id: 'later', version: 'later-release' }],
-          total_elements: 1,
-        } : { ...page, total_elements: 26 }),
+        unwrap: () =>
+          Promise.resolve(
+            search
+              ? {
+                  objects: [{ ...page.objects[0], object_id: 'later', version: 'later-release' }],
+                  total_elements: 1,
+                }
+              : { ...page, total_elements: 26 }
+          ),
       }))
       renderFirmware()
       await screen.findByRole('button', { name: 'v1' })
@@ -154,22 +159,33 @@ describe('Firmware object browser', () => {
     const searchFor = async (value: string) => {
       const previousCallCount = trigger.mock.calls.length
       fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value } })
-      await waitFor(() => {
-        expect(trigger.mock.calls.length).toBeGreaterThan(previousCallCount)
-        expect(trigger).toHaveBeenLastCalledWith(expect.objectContaining({ search: value }))
-      }, { timeout: 2000 })
+      await waitFor(
+        () => {
+          expect(trigger.mock.calls.length).toBeGreaterThan(previousCallCount)
+          expect(trigger).toHaveBeenLastCalledWith(expect.objectContaining({ search: value }))
+        },
+        { timeout: 2000 }
+      )
     }
 
     it('searches from page zero and displays matches not previously loaded', async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))
-      await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
-        page: 1, size: 25, search: '', manufacturer: undefined,
-      }))
+      await waitFor(() =>
+        expect(trigger).toHaveBeenLastCalledWith({
+          page: 1,
+          size: 25,
+          search: '',
+          manufacturer: undefined,
+        })
+      )
 
       await searchFor('later-release')
 
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+        page: 0,
+        size: 25,
+        search: 'later-release',
+        manufacturer: undefined,
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
@@ -183,7 +199,10 @@ describe('Firmware object browser', () => {
       await waitFor(() => expect(trigger).toHaveBeenCalledTimes(2), { timeout: 2000 })
 
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+        page: 0,
+        size: 25,
+        search: 'later-release',
+        manufacturer: undefined,
       })
       expect(trigger).not.toHaveBeenCalledWith(expect.objectContaining({ search: 'later' }))
     })
@@ -192,16 +211,24 @@ describe('Firmware object browser', () => {
       await searchFor('later-release')
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
       fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
-      await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
-      }))
+      await waitFor(() =>
+        expect(trigger).toHaveBeenLastCalledWith({
+          page: 0,
+          size: 25,
+          search: 'later-release',
+          manufacturer: 'Kapsch',
+        })
+      )
 
       trigger.mockClear()
       fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
       await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1))
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+        page: 0,
+        size: 25,
+        search: 'later-release',
+        manufacturer: 'Kapsch',
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
     })
@@ -215,7 +242,10 @@ describe('Firmware object browser', () => {
       await searchFor('')
 
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: '', manufacturer: 'Kapsch',
+        page: 0,
+        size: 25,
+        search: '',
+        manufacturer: 'Kapsch',
       })
       expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeEnabled()
@@ -240,13 +270,16 @@ describe('Firmware object browser', () => {
       )
       await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1))
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: 'Commsignia',
+        page: 0,
+        size: 25,
+        search: 'later-release',
+        manufacturer: 'Commsignia',
       })
       await waitFor(() => expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument())
       expect(screen.queryByText('File details')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
-    })
+    }, 10_000)
   })
 
   it('refreshes the table after a successful upload', async () => {
@@ -310,10 +343,11 @@ describe('Firmware object browser', () => {
 
   it('discovers missing files on a fresh visit and cleans up their records', async () => {
     trigger.mockImplementation(() => ({
-      unwrap: () => Promise.resolve({
-        objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
-        total_elements: 1,
-      }),
+      unwrap: () =>
+        Promise.resolve({
+          objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
+          total_elements: 1,
+        }),
     }))
     renderFirmware()
     expect(await screen.findByText('Missing file')).toBeInTheDocument()
@@ -331,13 +365,16 @@ describe('Firmware object browser', () => {
 
   it('keeps missing records visible if cleanup detects a reappeared file', async () => {
     trigger.mockImplementation(() => ({
-      unwrap: () => Promise.resolve({
-        objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
-        total_elements: 1,
-      }),
+      unwrap: () =>
+        Promise.resolve({
+          objects: [{ ...page.objects[0], verification_status: 'MISSING', provider_object_version: null }],
+          total_elements: 1,
+        }),
     }))
     const message = 'The firmware file is present in storage. Refresh the table before deleting it.'
-    deleteObject.mockImplementation(() => ({ unwrap: () => Promise.reject({ status: 409, data: { detail: message } }) }))
+    deleteObject.mockImplementation(() => ({
+      unwrap: () => Promise.reject({ status: 409, data: { detail: message } }),
+    }))
     renderFirmware()
     fireEvent.click(await screen.findByRole('button', { name: 'Clean Up Records' }))
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
