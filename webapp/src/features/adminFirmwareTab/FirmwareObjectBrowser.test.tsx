@@ -225,6 +225,11 @@ describe('Firmware object browser', () => {
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
       await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Commsignia' })) })
       await searchFor('later-release')
+
+      // Search uses fake timers to exercise the table debounce. Deletion and
+      // its follow-up query are promise-driven, so observe them with real timers
+      // instead of depending on CI to flush both microtask chains immediately.
+      vi.useRealTimers()
       fireEvent.click(screen.getByRole('button', { name: 'later-release' }))
       expect(screen.getByText('File details')).toBeInTheDocument()
 
@@ -232,14 +237,16 @@ describe('Firmware object browser', () => {
       expect(deleteObject).not.toHaveBeenCalled()
       trigger.mockClear()
       trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve({ objects: [], total_elements: 0 }) }))
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Yes' })) })
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
-      expect(deleteObject).toHaveBeenCalledWith({ object_id: 'later', provider_object_version: '17' })
-      expect(trigger).toHaveBeenCalledTimes(1)
+      await waitFor(() =>
+        expect(deleteObject).toHaveBeenCalledWith({ object_id: 'later', provider_object_version: '17' })
+      )
+      await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1))
       expect(trigger).toHaveBeenLastCalledWith({
         page: 0, size: 25, search: 'later-release', manufacturer: 'Commsignia',
       })
-      expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument())
       expect(screen.queryByText('File details')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
