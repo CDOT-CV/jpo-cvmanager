@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import AdminFirmwareTab from './AdminFirmwareTab'
 import toast from 'react-hot-toast'
@@ -137,33 +137,34 @@ describe('Firmware object browser', () => {
 
   describe('server-side search', () => {
     beforeEach(async () => {
-      // Exercise the real table debounce without waiting for wall-clock timers in CI.
-      vi.useFakeTimers()
       trigger.mockImplementation(({ search }) => ({
         unwrap: () => Promise.resolve(search ? {
           objects: [{ ...page.objects[0], object_id: 'later', version: 'later-release' }],
           total_elements: 1,
         } : { ...page, total_elements: 26 }),
       }))
-      await act(async () => { renderFirmware() })
+      renderFirmware()
+      await screen.findByRole('button', { name: 'v1' })
     })
 
     afterEach(() => {
       cleanup()
-      vi.clearAllTimers()
-      vi.useRealTimers()
     })
 
     const searchFor = async (value: string) => {
+      const previousCallCount = trigger.mock.calls.length
       fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value } })
-      await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+      await waitFor(() => {
+        expect(trigger.mock.calls.length).toBeGreaterThan(previousCallCount)
+        expect(trigger).toHaveBeenLastCalledWith(expect.objectContaining({ search: value }))
+      }, { timeout: 2000 })
     }
 
     it('searches from page zero and displays matches not previously loaded', async () => {
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Next Page' })) })
-      expect(trigger).toHaveBeenLastCalledWith({
+      fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))
+      await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
         page: 1, size: 25, search: '', manufacturer: undefined,
-      })
+      }))
 
       await searchFor('later-release')
 
@@ -177,29 +178,28 @@ describe('Firmware object browser', () => {
 
     it('debounces typing into one request with the final search term', async () => {
       fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later' } })
-      await act(async () => { await vi.advanceTimersByTimeAsync(300) })
-      expect(trigger).toHaveBeenCalledTimes(1)
+      fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later-release' } })
 
-      await searchFor('later-release')
+      await waitFor(() => expect(trigger).toHaveBeenCalledTimes(2), { timeout: 2000 })
 
-      expect(trigger).toHaveBeenCalledTimes(2)
       expect(trigger).toHaveBeenLastCalledWith({
         page: 0, size: 25, search: 'later-release', manufacturer: undefined,
       })
+      expect(trigger).not.toHaveBeenCalledWith(expect.objectContaining({ search: 'later' }))
     })
 
     it('preserves the search when filtering by manufacturer and refreshing', async () => {
       await searchFor('later-release')
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
-      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Kapsch' })) })
-      expect(trigger).toHaveBeenLastCalledWith({
+      fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
+      await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
         page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
-      })
+      }))
 
       trigger.mockClear()
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Refresh' })) })
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
-      expect(trigger).toHaveBeenCalledTimes(1)
+      await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1))
       expect(trigger).toHaveBeenLastCalledWith({
         page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
       })
@@ -208,7 +208,7 @@ describe('Firmware object browser', () => {
 
     it('restores the listing when search is cleared without losing the manufacturer filter', async () => {
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
-      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Kapsch' })) })
+      fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
       await searchFor('later-release')
       expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
 
@@ -223,13 +223,9 @@ describe('Firmware object browser', () => {
 
     it('deletes a search result and refreshes with the current search and manufacturer', async () => {
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
-      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Commsignia' })) })
+      fireEvent.click(screen.getByRole('option', { name: 'Commsignia' }))
       await searchFor('later-release')
 
-      // Search uses fake timers to exercise the table debounce. Deletion and
-      // its follow-up query are promise-driven, so observe them with real timers
-      // instead of depending on CI to flush both microtask chains immediately.
-      vi.useRealTimers()
       fireEvent.click(screen.getByRole('button', { name: 'later-release' }))
       expect(screen.getByText('File details')).toBeInTheDocument()
 
