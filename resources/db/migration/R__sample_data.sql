@@ -42,7 +42,7 @@ INSERT INTO public.firmware_uploads(
   VALUES (
     '00000000-0000-0000-0000-000000000001', 1, 'missing-file-demo',
     'missing-file-demo.tar.sig', 'application/octet-stream',
-    'gcp', 'rsu-fw-updates-cdot-oim-cv-dev',
+    'gcp', '${firmware_storage_container}',
     'Commsignia/ITS-RS4-M/missing-file-demo/missing-file-demo.tar.sig',
     73400320, 'CRC32C', 'AAAAAA==', 'VERIFIED',
     'local-sample-data', '2026-09-01T12:00:00Z', '2026-09-01T12:15:00Z',

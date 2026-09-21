@@ -4,3 +4,8 @@ baselineOnMigrate = true
 baselineVersion = "1"
 validateMigrationNaming = true
 mixed = true
+
+[flyway.placeholders]
+# Keeps the dev-only missing-file fixture valid when object storage is unused.
+# Docker Compose overrides this with OBJECT_STORAGE_GCP_BUCKET_NAME when set.
+firmware_storage_container = "local-firmware-sample"

@@ -206,6 +206,7 @@ services:
       FLYWAY_URL: jdbc:postgresql://cvmanager_postgres:5432/${PG_DB_NAME:-postgres}
       FLYWAY_USER: ${PG_DB_USER:-postgres}
       FLYWAY_PASSWORD: ${PG_DB_PASS:-postgres}
+      FLYWAY_PLACEHOLDERS_FIRMWARE_STORAGE_CONTAINER: ${OBJECT_STORAGE_GCP_BUCKET_NAME:-local-firmware-sample}
     depends_on:
       cvmanager_postgres:
         condition: service_healthy
