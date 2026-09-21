@@ -15,6 +15,95 @@ vi.mock('../api/firmwareApiSlice', () => ({
   useLazyListFirmwareObjectsQuery: vi.fn(),
   useDeleteFirmwareObjectMutation: vi.fn(),
 }))
+
+// Keep feature tests focused on firmware queries and actions. AdminTable owns
+// Material Table rendering and debounce behavior, which are tested separately.
+vi.mock('../../components/AdminTable', async () => {
+  const React = await vi.importActual<typeof import('react')>('react')
+
+  return {
+    default: ({ actions, columns, defaultPageSize = 25, handleQueryChange, tableRef }: any) => {
+      const [rows, setRows] = React.useState<any[]>([])
+      const [totalCount, setTotalCount] = React.useState(0)
+      const queryRef = React.useRef({ page: 0, pageSize: defaultPageSize, search: '' })
+
+      const runQuery = React.useCallback(async (changes: Record<string, unknown> = {}) => {
+        const query = { ...queryRef.current, ...changes }
+        queryRef.current = query
+        const result = await handleQueryChange(query)
+        setRows(result.data)
+        setTotalCount(result.totalCount)
+      }, [handleQueryChange])
+
+      React.useEffect(() => {
+        tableRef.current = { onQueryChange: runQuery }
+        void runQuery()
+      }, [runQuery, tableRef])
+
+      const toolbarActions = actions.filter((action: any) => typeof action !== 'function' && action.position === 'toolbar')
+
+      return (
+        <div>
+          <input
+            placeholder="Search"
+            value={queryRef.current.search}
+            onChange={(event) => void runQuery({ page: 0, search: event.target.value })}
+          />
+          {toolbarActions.map((action: any, index: number) =>
+            action.iconProps?.itemType === 'custom' ? (
+              <React.Fragment key={index}>{action.iconProps.render()}</React.Fragment>
+            ) : (
+              <button key={index} onClick={action.onClick} disabled={action.disabled}>
+                {action.iconProps?.title}
+              </button>
+            )
+          )}
+          <table>
+            <thead>
+              <tr>
+                {columns.map((column: any) => (
+                  <th key={column.field} style={column.headerStyle}>{column.title}</th>
+                ))}
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: any) => (
+                <tr key={row.object_id}>
+                  {columns.map((column: any) => (
+                    <td key={column.field}>{column.render ? column.render(row) : row[column.field]}</td>
+                  ))}
+                  <td>
+                    {actions.filter((action: any) => typeof action === 'function').map((action: any, index: number) => {
+                      const rowAction = action(row)
+                      return (
+                        <button
+                          key={index}
+                          aria-label={rowAction.tooltip}
+                          disabled={rowAction.disabled}
+                          onClick={(event) => rowAction.onClick(event, row)}
+                        >
+                          {rowAction.tooltip}
+                        </button>
+                      )
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button
+            aria-label="Next Page"
+            disabled={(queryRef.current.page + 1) * queryRef.current.pageSize >= totalCount}
+            onClick={() => void runQuery({ page: queryRef.current.page + 1 })}
+          >
+            Next
+          </button>
+        </div>
+      )
+    },
+  }
+})
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn(), loading: vi.fn() } }))
 vi.mock('./FirmwareUploadForm', () => ({
   default: ({ open, onSuccess }: { open: boolean; onSuccess: () => void }) =>
@@ -83,7 +172,7 @@ describe('Firmware object browser', () => {
     } as any)
   })
 
-  it('uses the standard admin table toolbar with global search', async () => {
+  it('provides firmware columns and controls through the admin table', async () => {
     renderFirmware()
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
@@ -192,21 +281,6 @@ describe('Firmware object browser', () => {
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
     })
 
-    it('debounces typing into one request with the final search term', async () => {
-      fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later' } })
-      fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'later-release' } })
-
-      await waitFor(() => expect(trigger).toHaveBeenCalledTimes(2), { timeout: 2000 })
-
-      expect(trigger).toHaveBeenLastCalledWith({
-        page: 0,
-        size: 25,
-        search: 'later-release',
-        manufacturer: undefined,
-      })
-      expect(trigger).not.toHaveBeenCalledWith(expect.objectContaining({ search: 'later' }))
-    })
-
     it('preserves the search when filtering by manufacturer and refreshing', async () => {
       await searchFor('later-release')
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
@@ -279,7 +353,7 @@ describe('Firmware object browser', () => {
       expect(screen.queryByText('File details')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
-    }, 10_000)
+    })
   })
 
   it('refreshes the table after a successful upload', async () => {
