@@ -30,31 +30,13 @@ INSERT INTO public.firmware_images(name, model, install_package, version)
   VALUES ('y20.0.0', 1, 'install_y20_0_0.tar', 'y20.0.0'), ('y20.1.0', 1, 'install_y20_1_0.tar', 'y20.1.0'), ('k1.0.0', 3, 'install_k1_0_0.tar', 'k1.0.0')
   ON CONFLICT (model, version) DO NOTHING;
 
--- Demonstrates recovery when verified database records remain but the cloud
--- object is absent. This path is intentionally not created in the local GCS
--- bucket, so the Firmware table displays it as "Missing file".
-INSERT INTO public.firmware_uploads(
-    upload_id, model, version, file_name, content_type,
-    storage_provider, storage_container, object_name,
-    expected_size, checksum_algorithm, expected_checksum, status,
-    created_by, created_at, expires_at, verified_at, finished_at,
-    provider_object_version, observed_checksum)
-  VALUES (
-    '00000000-0000-0000-0000-000000000001', 1, 'missing-file-demo',
-    'missing-file-demo.tar.sig', 'application/octet-stream',
-    'gcp', '${firmware_storage_container}',
-    'Commsignia/ITS-RS4-M/missing-file-demo/missing-file-demo.tar.sig',
-    73400320, 'CRC32C', 'AAAAAA==', 'VERIFIED',
-    'local-sample-data', '2026-09-01T12:00:00Z', '2026-09-01T12:15:00Z',
-    '2026-09-01T12:05:00Z', '2026-09-01T12:05:00Z', 'sample-missing-object',
-    'AAAAAA==')
-  ON CONFLICT DO NOTHING;
-
+-- Demonstrates a registered legacy firmware image whose expected cloud object
+-- is absent. The API derives its path in the active storage container at runtime.
 INSERT INTO public.firmware_images(
-    name, model, install_package, version, verified_upload_id)
+    name, model, install_package, version)
   VALUES (
     'missing-file-demo', 1, 'missing-file-demo.tar.sig',
-    'missing-file-demo', '00000000-0000-0000-0000-000000000001')
+    'missing-file-demo')
   ON CONFLICT (model, version) DO NOTHING;
 
 -- Three upgrade rules across the three firmware images. UNIQUE (from_id, to_id)
