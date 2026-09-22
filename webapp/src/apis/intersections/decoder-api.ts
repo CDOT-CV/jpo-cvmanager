@@ -23,7 +23,7 @@ class DecoderApi {
       tag: 'intersection',
       abortController,
     })
-    return response as DecoderApiResponseGeneric | undefined
+    return (response ?? undefined) as DecoderApiResponseGeneric | undefined
   }
 }
 
