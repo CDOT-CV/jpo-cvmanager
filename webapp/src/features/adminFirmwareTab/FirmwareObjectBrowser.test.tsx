@@ -68,8 +68,8 @@ describe('Firmware object browser', () => {
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toHaveStyle({ textTransform: 'none' })
-    expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
+    expect(screen.getAllByRole('columnheader', { name: 'Manufacturer' })[0]).toHaveStyle({ textTransform: 'none' })
+    expect(screen.getAllByRole('columnheader', { name: 'Model' })[0]).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
@@ -92,6 +92,7 @@ describe('Firmware object browser', () => {
         page: 0,
         size: 25,
         search: '',
+        sort: 'manufacturer,asc',
       })
     )
   })
@@ -111,8 +112,24 @@ describe('Firmware object browser', () => {
         page: 1,
         size: 25,
         search: '',
+        sort: 'manufacturer,asc',
       })
     )
+  })
+
+  it('requests server-side sorting when a column header is selected', async () => {
+    render(<AdminFirmwareTab />)
+    await screen.findByRole('button', { name: 'v1' })
+
+    fireEvent.click(screen.getAllByRole('columnheader', { name: 'Version' })[1])
+
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      manufacturer: undefined,
+      page: 0,
+      size: 25,
+      search: '',
+      sort: 'version,asc',
+    }))
   })
 
   describe('server-side search', () => {
@@ -142,13 +159,13 @@ describe('Firmware object browser', () => {
     it('searches from page zero and displays matches not previously loaded', async () => {
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Next Page' })) })
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 1, size: 25, search: '', manufacturer: undefined,
+        page: 1, size: 25, search: '', manufacturer: undefined, sort: 'manufacturer,asc',
       })
 
       await searchFor('later-release')
 
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+        page: 0, size: 25, search: 'later-release', manufacturer: undefined, sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
@@ -164,7 +181,7 @@ describe('Firmware object browser', () => {
 
       expect(trigger).toHaveBeenCalledTimes(2)
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: undefined,
+        page: 0, size: 25, search: 'later-release', manufacturer: undefined, sort: 'manufacturer,asc',
       })
     })
 
@@ -173,7 +190,7 @@ describe('Firmware object browser', () => {
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
       await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Kapsch' })) })
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch', sort: 'manufacturer,asc',
       })
 
       trigger.mockClear()
@@ -181,7 +198,7 @@ describe('Firmware object browser', () => {
 
       expect(trigger).toHaveBeenCalledTimes(1)
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch',
+        page: 0, size: 25, search: 'later-release', manufacturer: 'Kapsch', sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
     })
@@ -195,7 +212,7 @@ describe('Firmware object browser', () => {
       await searchFor('')
 
       expect(trigger).toHaveBeenLastCalledWith({
-        page: 0, size: 25, search: '', manufacturer: 'Kapsch',
+        page: 0, size: 25, search: '', manufacturer: 'Kapsch', sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeEnabled()
