@@ -185,7 +185,7 @@ The API identity needs the following bucket-scoped permissions:
 - `storage.objects.create`
 - `storage.objects.get`
 - `storage.objects.list`
-- `storage.objects.delete` (required for admin deletion)
+- `storage.objects.delete`
 
 The application uses one existing configured bucket. It does not create or list
 buckets.

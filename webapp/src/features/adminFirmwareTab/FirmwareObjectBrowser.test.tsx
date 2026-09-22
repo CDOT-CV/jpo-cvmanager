@@ -8,11 +8,13 @@ import {
   useDeleteFirmwareObjectMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
+  useListFirmwareObjectsQuery,
 } from '../api/firmwareApiSlice'
 
 vi.mock('../api/firmwareApiSlice', () => ({
   useGetFirmwareUploadOptionsQuery: vi.fn(),
   useLazyListFirmwareObjectsQuery: vi.fn(),
+  useListFirmwareObjectsQuery: vi.fn(),
   useDeleteFirmwareObjectMutation: vi.fn(),
 }))
 
@@ -159,6 +161,7 @@ describe('Firmware object browser', () => {
     vi.resetAllMocks()
     trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve(page) }))
     lazyQuery.mockReturnValue([trigger] as any)
+    vi.mocked(useListFirmwareObjectsQuery).mockReturnValue({ data: undefined } as any)
     vi.mocked(useDeleteFirmwareObjectMutation).mockReturnValue([deleteObject] as any)
     deleteObject.mockImplementation(() => ({ unwrap: () => Promise.resolve() }))
     optionsQuery.mockReturnValue({
@@ -222,6 +225,27 @@ describe('Firmware object browser', () => {
         search: '',
       })
     )
+  })
+
+  it('renders firmware changes received by the subscribed listing', async () => {
+    const view = renderFirmware()
+    await screen.findByRole('button', { name: 'v1' })
+
+    const refreshedPage = {
+      objects: [{ ...page.objects[0], object_id: 'fresh', version: 'fresh-version' }],
+      total_elements: 1,
+    }
+    trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve(refreshedPage) }))
+    vi.mocked(useListFirmwareObjectsQuery).mockReturnValue({ data: refreshedPage } as any)
+
+    view.rerender(
+      <ThemeProvider theme={testTheme}>
+        <AdminFirmwareTab />
+      </ThemeProvider>
+    )
+
+    expect(await screen.findByRole('button', { name: 'fresh-version' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
   })
 
   describe('server-side search', () => {
