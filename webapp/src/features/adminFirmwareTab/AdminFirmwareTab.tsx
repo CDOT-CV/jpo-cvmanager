@@ -11,6 +11,23 @@ import '../adminRsuTab/Admin.css'
 
 const DEFAULT_PAGE_SIZE = 25
 const HEADER_STYLE = { textTransform: 'none' as const }
+const FIRMWARE_SORT_FIELDS = [
+  'manufacturer',
+  'model',
+  'version',
+  'content_length',
+  'updated_at',
+  'verification_status',
+]
+
+const firmwareSort = (query: Query<FirmwareObject>) => {
+  const sort = query.orderByCollection?.[0]
+  const orderBy = sort?.orderBy as number | Column<FirmwareObject> | undefined
+  const field = typeof orderBy === 'number' ? FIRMWARE_SORT_FIELDS[orderBy] : orderBy?.field
+  return typeof field === 'string'
+    ? `${field},${sort.orderDirection || 'asc'}`
+    : 'manufacturer,asc'
+}
 
 const formatUpdatedAt = (value: string | number | null | undefined) => {
   if (value == null) return ''
@@ -50,6 +67,7 @@ const AdminFirmwareTab = () => {
           size: query.pageSize,
           search: query.search || '',
           manufacturer: manufacturerRef.current || undefined,
+          sort: firmwareSort(query),
         }).unwrap()
 
         return {
@@ -67,12 +85,11 @@ const AdminFirmwareTab = () => {
   )
 
   const columns: Column<FirmwareObject>[] = [
-    { title: 'Manufacturer', field: 'manufacturer', sorting: false, headerStyle: HEADER_STYLE },
-    { title: 'Model', field: 'model', sorting: false, headerStyle: HEADER_STYLE },
+    { title: 'Manufacturer', field: 'manufacturer', headerStyle: HEADER_STYLE },
+    { title: 'Model', field: 'model', headerStyle: HEADER_STYLE },
     {
       title: 'Version',
       field: 'version',
-      sorting: false,
       headerStyle: HEADER_STYLE,
       render: (object) => (
         <Typography
@@ -89,21 +106,18 @@ const AdminFirmwareTab = () => {
     {
       title: 'Size',
       field: 'content_length',
-      sorting: false,
       headerStyle: HEADER_STYLE,
       render: (object) => formatFileSize(object.content_length),
     },
     {
       title: 'Last Modified',
       field: 'updated_at',
-      sorting: false,
       headerStyle: HEADER_STYLE,
       render: (object) => formatUpdatedAt(object.updated_at),
     },
     {
       title: 'Verification',
       field: 'verification_status',
-      sorting: false,
       headerStyle: HEADER_STYLE,
       render: (object) => (
         <Chip
