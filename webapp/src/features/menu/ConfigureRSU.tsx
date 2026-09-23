@@ -20,7 +20,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { RoomOutlined } from '@mui/icons-material'
 import { headerTabHeight } from '../../styles'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
+import { getRsuCountsErrorMessage, useGetRsuCountsByIpQuery } from '../api/rsuCountsApiSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import { buildRsuCountTableRows } from './rsuCountTable'
 import { RsuMessageCountsTable } from './RsuMessageCountsTable'
@@ -50,6 +50,7 @@ const ConfigureRSU = () => {
     data: rsuMessageCounts,
     isFetching,
     isError,
+    error,
   } = useGetRsuCountsByIpQuery(
     { rsuIp: rsuIp ?? '', startDate: countsStartDate, endDate: countsEndDate, messages: messageTypes },
     { skip: !rsuIp || queryDurationExceeded }
@@ -132,7 +133,7 @@ const ConfigureRSU = () => {
                   <CircularProgress size={24} />
                 </Box>
               ) : isError ? (
-                <Typography role="alert">Failed to load message counts from Intersection API.</Typography>
+                <Typography role="alert">{getRsuCountsErrorMessage(error)}</Typography>
               ) : (
                 <RsuMessageCountsTable rows={countTableRows} />
               )}
