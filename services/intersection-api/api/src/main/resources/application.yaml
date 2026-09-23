@@ -117,7 +117,7 @@ deployment:
 
 object-storage:
   provider: ${OBJECT_STORAGE_PROVIDER:gcp}
-  signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:15m}
+  signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:5m}
   max-upload-size: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:1GB}
   gcp:
     bucket-name: ${OBJECT_STORAGE_GCP_BUCKET_NAME:}
