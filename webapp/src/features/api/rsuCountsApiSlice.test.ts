@@ -1,7 +1,7 @@
 import fetchMock from 'jest-fetch-mock'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { setupStore } from '../../store'
-import { rsuCountsApiSlice } from './rsuCountsApiSlice'
+import { getRsuCountsErrorMessage, rsuCountsApiSlice } from './rsuCountsApiSlice'
 
 const BASE_URL = (process.env.VITE_CVIZ_API_SERVER_URL ?? '').replace(/\/$/, '')
 const mockUserState = {
@@ -145,5 +145,49 @@ describe('rsuCountsApiSlice', () => {
       `${BASE_URL}/data/counts/rsus/10.0.0.16?message=BSM%2CMAP&start_time_utc_millis=${startDate.getTime()}&end_time_utc_millis=${endDate.getTime()}`
     )
     expect(getRequest().headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
+  it('surfaces ProblemDetail detail from a 400 OOM response', async () => {
+    const store = setupStore(mockUserState)
+    const detail = 'The message counts query ran out of memory. Please select a shorter time range.'
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        type: 'about:blank',
+        title: 'Bad Request',
+        status: 400,
+        detail,
+      }),
+      { status: 400 }
+    )
+
+    const result = await store.dispatch(
+      rsuCountsApiSlice.endpoints.getRsuCounts.initiate({
+        organization: 'test-org',
+        startDate: new Date('2026-09-01T00:00:00.000Z'),
+        endDate: new Date('2026-09-02T00:00:00.000Z'),
+        message: 'MAP',
+      })
+    )
+
+    expect(result.error).toBeDefined()
+    expect(getRsuCountsErrorMessage(result.error)).toBe(detail)
+  })
+})
+
+describe('getRsuCountsErrorMessage', () => {
+  it('returns the ProblemDetail detail when present', () => {
+    expect(
+      getRsuCountsErrorMessage({
+        status: 400,
+        data: { detail: 'The message counts query ran out of memory. Please select a shorter time range.' },
+      })
+    ).toBe('The message counts query ran out of memory. Please select a shorter time range.')
+  })
+
+  it('falls back to a generic message when detail is missing', () => {
+    expect(getRsuCountsErrorMessage({ status: 500, data: {} })).toBe(
+      'Failed to load message counts from Intersection API.'
+    )
+    expect(getRsuCountsErrorMessage(undefined)).toBe('Failed to load message counts from Intersection API.')
   })
 })
