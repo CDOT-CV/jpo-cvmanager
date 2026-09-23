@@ -23,7 +23,7 @@ import { CountsListElement } from '../../models/Rsu'
 import { MessageType } from '../../models/MessageTypes'
 import { Box, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography, useTheme } from '@mui/material'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { useGetRsuCountsQuery } from '../api/rsuCountsApiSlice'
+import { getRsuCountsErrorMessage, useGetRsuCountsQuery } from '../api/rsuCountsApiSlice'
 import { selectOrganizationName } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 
@@ -46,6 +46,7 @@ const DisplayCounts = () => {
     data: messageCounts,
     isFetching,
     isError,
+    error,
   } = useGetRsuCountsQuery(
     { organization, startDate, endDate, message: countsMsgType },
     { skip: !organization || queryDurationExceeded }
@@ -109,7 +110,7 @@ const DisplayCounts = () => {
           role="alert"
           sx={{ backgroundColor: theme.palette.error.main, display: 'flex', justifyContent: 'center', px: 1 }}
         >
-          Failed to load message counts from Intersection API.
+          {getRsuCountsErrorMessage(error)}
         </Typography>
       )
     }

@@ -199,7 +199,7 @@ class AdminFirmwareControllerTest {
     @WithMockUser
     void listsObjectsForAdmins() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        when(firmwareObjectService.list(1, 25, "Acme", "version")).thenReturn(
+        when(firmwareObjectService.list(1, 25, "Acme", "version", "model,desc")).thenReturn(
                 new FirmwareObjectPage("gcp", List.of(
                         new FirmwareObjectPage.Item("object-id", "Acme/model/version/file.bin",
                                 "Acme", "model", "version", "file.bin", 42L,
@@ -210,6 +210,7 @@ class AdminFirmwareControllerTest {
                 .param("page", "1")
                 .param("manufacturer", "Acme")
                 .param("search", "version")
+                .param("sort", "model,desc")
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.objects[0].manufacturer").value("Acme"))
@@ -217,7 +218,7 @@ class AdminFirmwareControllerTest {
                 .andExpect(jsonPath("$.objects[0].updated_at").value("2026-09-10T18:00:00Z"))
                 .andExpect(jsonPath("$.total_elements").value(26))
                 .andExpect(jsonPath("$.container").doesNotExist());
-        verify(firmwareObjectService).list(1, 25, "Acme", "version");
+        verify(firmwareObjectService).list(1, 25, "Acme", "version", "model,desc");
     }
 
     @Test
@@ -225,7 +226,7 @@ class AdminFirmwareControllerTest {
     void rejectsObjectListingForNonAdmins() throws Exception {
         mockMvc.perform(get("/admin/firmware/objects")
                 .accept(MediaType.APPLICATION_JSON)).andExpect(status().isForbidden());
-        verify(firmwareObjectService, never()).list(anyInt(), anyInt(), any(), any());
+        verify(firmwareObjectService, never()).list(anyInt(), anyInt(), any(), any(), any());
     }
 
     @Test

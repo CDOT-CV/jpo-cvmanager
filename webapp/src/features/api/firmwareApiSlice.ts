@@ -31,7 +31,7 @@ export const firmwareApiSlice = createApi({
     }),
     listFirmwareObjects: builder.query<
       FirmwareObjectPage,
-      { page?: number; size?: number; manufacturer?: string; search?: string }
+      { page?: number; size?: number; manufacturer?: string; search?: string; sort?: string }
     >({
       query: (params) => ({ url: 'objects', params }),
       providesTags: ['FirmwareObjects'],

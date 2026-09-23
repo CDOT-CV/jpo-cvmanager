@@ -78,8 +78,9 @@ public class AdminFirmwareController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "100") int size,
             @RequestParam(name = "manufacturer", required = false) String manufacturer,
-            @RequestParam(name = "search", required = false) String search) {
-        return firmwareObjectService.list(page, size, manufacturer, search);
+            @RequestParam(name = "search", required = false) String search,
+            @RequestParam(name = "sort", defaultValue = "manufacturer,asc") String sort) {
+        return firmwareObjectService.list(page, size, manufacturer, search, sort);
     }
 
     @Operation(summary = "Create a signed firmware upload URL")

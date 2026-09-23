@@ -222,7 +222,7 @@ class FirmwareDeletionServiceTest {
         Page<Blob> page = mock(Page.class);
         when(page.getValues()).thenReturn(List.of());
         when(cloud.list(eq("deletion-test"), any(Storage.BlobListOption[].class))).thenReturn(page);
-        var result = listing.list(0, 25, manufacturer.getName(), "v1.tar");
+        var result = listing.list(0, 25, manufacturer.getName(), "v1.tar", "manufacturer,asc");
         assertThat(result.totalElements()).isOne();
         var missing = result.objects().getFirst();
         assertThat(missing.verificationStatus()).isEqualTo("MISSING");
@@ -233,7 +233,7 @@ class FirmwareDeletionServiceTest {
         assertThat(uploads.findById(upload.getId())).isEmpty();
         assertThat(images.findById(image.getId())).isEmpty();
         assertThat(rules.findById(rule.getId())).isEmpty();
-        assertThat(listing.list(0, 25, manufacturer.getName(), "v1.tar").objects()).isEmpty();
+        assertThat(listing.list(0, 25, manufacturer.getName(), "v1.tar", "manufacturer,asc").objects()).isEmpty();
         // Recovery must not perform another cloud delete, with or without a version.
         verify(cloud, times(1)).delete(any(BlobId.class), any(Storage.BlobSourceOption[].class));
         registration.register(saveUpload(FirmwareUploadStatus.PENDING).getId(), metadata);
@@ -272,7 +272,7 @@ class FirmwareDeletionServiceTest {
         Page<Blob> page = mock(Page.class);
         when(page.getValues()).thenReturn(List.of());
         when(cloud.list(eq("deletion-test"), any(Storage.BlobListOption[].class))).thenReturn(page);
-        var missing = listing.list(0, 25, manufacturer.getName(), null).objects().getFirst();
+        var missing = listing.list(0, 25, manufacturer.getName(), null, "manufacturer,asc").objects().getFirst();
         assertThat(missing.firmwareId()).isEqualTo(image.getId());
         assertThat(missing.contentLength()).isNull();
         deletion.cleanupMissingObject(missing.objectId());

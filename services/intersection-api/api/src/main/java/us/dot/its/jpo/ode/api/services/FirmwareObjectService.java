@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,7 +42,7 @@ public class FirmwareObjectService {
     private final FirmwareUploadRepository uploads;
     private final FirmwareImageRepository images;
 
-    public FirmwareObjectPage list(int pageNumber, int pageSize, String manufacturer, String search) {
+    public FirmwareObjectPage list(int pageNumber, int pageSize, String manufacturer, String search, String sort) {
         if (pageNumber < 0) {
             throw new IllegalArgumentException("page must not be negative");
         }
@@ -61,13 +62,11 @@ public class FirmwareObjectService {
         var missing = new TreeMap<String, StorageObject>();
         var legacyImageIds = new HashMap<String, Integer>();
         var missingNames = new HashSet<String>();
-        long offset = (long) pageNumber * pageSize;
-        long totalElements = 0;
         String pageToken = null;
         StorageObjectPage page;
 
-        // Search every provider page before applying table pagination, including
-        // untracked files. Count all matches but retain only the requested rows.
+        // Search every provider page so sorting and pagination apply to the complete
+        // filtered result, including untracked and missing files.
         do {
             page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
             if (pageToken == null) {
@@ -95,10 +94,7 @@ public class FirmwareObjectService {
                         || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
                     continue;
                 }
-                if (totalElements >= offset && objects.size() < pageSize) {
-                    objects.add(object);
-                }
-                totalElements++;
+                objects.add(object);
             }
 
             pageToken = page.nextPageToken();
@@ -107,8 +103,8 @@ public class FirmwareObjectService {
             }
         } while (pageToken != null && !pageToken.isBlank());
 
-        // Only a complete, successful storage listing establishes absence. Append
-        // missing records to the same searched, manufacturer-filtered pagination.
+        // Only a complete, successful storage listing establishes absence. Include
+        // missing records in the same searched and manufacturer-filtered result.
         for (var object : missing.values()) {
             String name = object.objectName();
             if (name.endsWith("/") || isReservedObject(name)
@@ -116,15 +112,12 @@ public class FirmwareObjectService {
                     || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
                 continue;
             }
-            if (totalElements >= offset && objects.size() < pageSize) {
-                objects.add(object);
-                missingNames.add(name);
-            }
-            totalElements++;
+            objects.add(object);
+            missingNames.add(name);
         }
 
         if (objects.isEmpty()) {
-            return new FirmwareObjectPage(page.provider(), List.of(), totalElements);
+            return new FirmwareObjectPage(page.provider(), List.of(), 0);
         }
         String provider = page.provider();
 
@@ -171,9 +164,38 @@ public class FirmwareObjectService {
                     object.providerObjectVersion(), upload == null ? null : upload.getId(),
                     upload == null ? legacyImageIds.get(object.objectName()) : imageIds.get(upload.getId()),
                     upload == null ? null : upload.getStatus().name(), state);
-        }).toList();
+        }).sorted(itemComparator(sort)).toList();
 
-        return new FirmwareObjectPage(provider, items, totalElements);
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
+        int toIndex = Math.min(fromIndex + pageSize, items.size());
+
+        return new FirmwareObjectPage(provider, items.subList(fromIndex, toIndex), items.size());
+    }
+
+    private Comparator<FirmwareObjectPage.Item> itemComparator(String sort) {
+        String[] parts = sort == null ? new String[0] : sort.trim().split(",", 2);
+        String field = parts.length == 0 || parts[0].isBlank() ? "manufacturer" : parts[0].trim();
+        boolean descending = parts.length == 2 && "desc".equalsIgnoreCase(parts[1].trim());
+        if (parts.length == 2 && !descending && !"asc".equalsIgnoreCase(parts[1].trim())) {
+            throw new IllegalArgumentException("sort direction must be asc or desc");
+        }
+
+        Comparator<String> text = Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER);
+        Comparator<FirmwareObjectPage.Item> comparator = switch (field) {
+            case "manufacturer" -> Comparator.comparing(FirmwareObjectPage.Item::manufacturer, text);
+            case "model" -> Comparator.comparing(FirmwareObjectPage.Item::model, text);
+            case "version" -> Comparator.comparing(FirmwareObjectPage.Item::version, text);
+            case "content_length" -> Comparator.comparing(FirmwareObjectPage.Item::contentLength,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+            case "updated_at" -> Comparator.comparing(FirmwareObjectPage.Item::updatedAt,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
+            case "verification_status" -> Comparator.comparing(FirmwareObjectPage.Item::verificationStatus, text);
+            default -> throw new IllegalArgumentException("sort field is not supported");
+        };
+        if (descending) {
+            comparator = comparator.reversed();
+        }
+        return comparator.thenComparing(FirmwareObjectPage.Item::objectName, text);
     }
 
     private String validateManufacturer(String manufacturer) {

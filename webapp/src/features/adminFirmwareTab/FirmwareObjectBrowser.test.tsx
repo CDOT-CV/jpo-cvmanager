@@ -63,8 +63,17 @@ vi.mock('../../components/AdminTable', async () => {
           <table>
             <thead>
               <tr>
-                {columns.map((column: any) => (
-                  <th key={column.field} style={column.headerStyle}>{column.title}</th>
+                {columns.map((column: any, index: number) => (
+                  <th
+                    key={column.field}
+                    style={column.headerStyle}
+                    onClick={() => void runQuery({
+                      page: 0,
+                      orderByCollection: [{ orderBy: index, orderDirection: 'asc' }],
+                    })}
+                  >
+                    {column.title}
+                  </th>
                 ))}
                 <th>Actions</th>
               </tr>
@@ -180,8 +189,8 @@ describe('Firmware object browser', () => {
 
     expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Manufacturer' })).toHaveStyle({ textTransform: 'none' })
-    expect(screen.getByRole('columnheader', { name: 'Model' })).toBeInTheDocument()
+    expect(screen.getAllByRole('columnheader', { name: 'Manufacturer' })[0]).toHaveStyle({ textTransform: 'none' })
+    expect(screen.getAllByRole('columnheader', { name: 'Model' })[0]).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
@@ -204,6 +213,7 @@ describe('Firmware object browser', () => {
         page: 0,
         size: 25,
         search: '',
+        sort: 'manufacturer,asc',
       })
     )
   })
@@ -223,6 +233,7 @@ describe('Firmware object browser', () => {
         page: 1,
         size: 25,
         search: '',
+        sort: 'manufacturer,asc',
       })
     )
   })
@@ -246,6 +257,21 @@ describe('Firmware object browser', () => {
 
     expect(await screen.findByRole('button', { name: 'fresh-version' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+  })
+
+  it('requests server-side sorting when a column header is selected', async () => {
+    renderFirmware()
+    await screen.findByRole('button', { name: 'v1' })
+
+    fireEvent.click(screen.getByRole('columnheader', { name: 'Version' }))
+
+    await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
+      manufacturer: undefined,
+      page: 0,
+      size: 25,
+      search: '',
+      sort: 'version,asc',
+    }))
   })
 
   describe('server-side search', () => {
@@ -289,6 +315,7 @@ describe('Firmware object browser', () => {
           size: 25,
           search: '',
           manufacturer: undefined,
+          sort: 'manufacturer,asc',
         })
       )
 
@@ -299,6 +326,7 @@ describe('Firmware object browser', () => {
         size: 25,
         search: 'later-release',
         manufacturer: undefined,
+        sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
@@ -315,6 +343,7 @@ describe('Firmware object browser', () => {
           size: 25,
           search: 'later-release',
           manufacturer: 'Kapsch',
+          sort: 'manufacturer,asc',
         })
       )
 
@@ -327,6 +356,7 @@ describe('Firmware object browser', () => {
         size: 25,
         search: 'later-release',
         manufacturer: 'Kapsch',
+        sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
     })
@@ -344,6 +374,7 @@ describe('Firmware object browser', () => {
         size: 25,
         search: '',
         manufacturer: 'Kapsch',
+        sort: 'manufacturer,asc',
       })
       expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeEnabled()
@@ -372,6 +403,7 @@ describe('Firmware object browser', () => {
         size: 25,
         search: 'later-release',
         manufacturer: 'Commsignia',
+        sort: 'manufacturer,asc',
       })
       await waitFor(() => expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument())
       expect(screen.queryByText('File details')).not.toBeInTheDocument()
