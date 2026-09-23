@@ -12,7 +12,6 @@ import { RootState } from '../../store'
 
 export const firmwareApiSlice = createApi({
   reducerPath: 'firmwareApi',
-  tagTypes: ['FirmwareObjects'],
   baseQuery: fetchBaseQuery({
     baseUrl: `${EnvironmentVars.CVIZ_API_SERVER_URL}/admin/firmware`,
     prepareHeaders: (headers, { getState }) => {
@@ -34,7 +33,6 @@ export const firmwareApiSlice = createApi({
       { page?: number; size?: number; manufacturer?: string; search?: string; sort?: string }
     >({
       query: (params) => ({ url: 'objects', params }),
-      providesTags: ['FirmwareObjects'],
     }),
     createFirmwareUploadUrl: builder.mutation<FirmwareUploadUrl, FirmwareUploadUrlRequest>({
       query: (body) => ({
@@ -49,10 +47,8 @@ export const firmwareApiSlice = createApi({
         method: 'DELETE',
         params: provider_object_version === null ? undefined : { provider_object_version },
       }),
-      invalidatesTags: (_result, error) => (error ? [] : ['FirmwareObjects']),
     }),
     completeFirmwareUpload: builder.mutation<FirmwareUploadVerification, string>({
-      invalidatesTags: ['FirmwareObjects'],
       query: (uploadId) => ({
         url: `uploads/${encodeURIComponent(uploadId)}/complete`,
         method: 'POST',
@@ -63,7 +59,6 @@ export const firmwareApiSlice = createApi({
 
 export const {
   useGetFirmwareUploadOptionsQuery,
-  useListFirmwareObjectsQuery,
   useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
   useCompleteFirmwareUploadMutation,

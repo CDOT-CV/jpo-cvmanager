@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
 import { Box, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
 import { DeleteOutline } from '@mui/icons-material'
@@ -11,7 +11,6 @@ import {
   useDeleteFirmwareObjectMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
-  useListFirmwareObjectsQuery,
 } from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import { formatFileSize } from './firmwareUpload'
@@ -37,17 +36,6 @@ const firmwareSort = (query: Query<FirmwareObject>) => {
     : 'manufacturer,asc'
 }
 
-type FirmwareListParams = {
-  page: number
-  size: number
-  search: string
-  manufacturer?: string
-  sort: string
-}
-
-const listingSignature = (params: FirmwareListParams, result: { objects: FirmwareObject[]; total_elements: number }) =>
-  JSON.stringify({ params, objects: result.objects, totalElements: result.total_elements })
-
 const formatUpdatedAt = (value: string | number | null | undefined) => {
   if (value == null) return ''
   const timestamp = typeof value === 'number' ? value * 1000 : value
@@ -66,36 +54,16 @@ const AdminFirmwareTab = () => {
   const theme = useTheme()
   const tableRef = useRef<any>(null)
   const manufacturerRef = useRef('')
-  const renderedListingSignature = useRef<string>()
   const [manufacturer, setManufacturer] = useState('')
   const [selectedObject, setSelectedObject] = useState<FirmwareObject>()
   const [showUpload, setShowUpload] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [listParams, setListParams] = useState<FirmwareListParams>({
-    page: 0,
-    size: DEFAULT_PAGE_SIZE,
-    search: '',
-    sort: 'manufacturer,asc',
-  })
   const deleting = useRef(false)
 
   const [deleteFirmwareObject] = useDeleteFirmwareObjectMutation()
   const [listFirmwareObjects] = useLazyListFirmwareObjectsQuery()
-  const { data: subscribedListing } = useListFirmwareObjectsQuery(listParams)
   const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
-
-  // Mutations refresh the subscribed cache. Notify Material Table when that
-  // result differs from the rows it most recently rendered.
-  useEffect(() => {
-    if (!subscribedListing || isRefreshing || !tableRef.current?.onQueryChange) return
-
-    const signature = listingSignature(listParams, subscribedListing)
-    if (signature !== renderedListingSignature.current) {
-      renderedListingSignature.current = signature
-      tableRef.current.onQueryChange({ page: listParams.page })
-    }
-  }, [isRefreshing, listParams, subscribedListing])
 
   const refreshListing = useCallback(() => {
     setSelectedObject(undefined)
@@ -147,10 +115,8 @@ const AdminFirmwareTab = () => {
           manufacturer: manufacturerRef.current || undefined,
           sort: firmwareSort(query),
         }
-        setListParams(params)
 
         const result = await listFirmwareObjects(params).unwrap()
-        renderedListingSignature.current = listingSignature(params, result)
 
         return {
           data: result.objects,
@@ -316,6 +282,7 @@ const AdminFirmwareTab = () => {
         isLoading={isRefreshing}
         selection={false}
         tableRef={tableRef}
+        thirdSortClick={false}
         title=""
       />
 

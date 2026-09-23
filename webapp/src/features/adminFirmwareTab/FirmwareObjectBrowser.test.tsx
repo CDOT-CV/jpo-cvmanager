@@ -8,13 +8,11 @@ import {
   useDeleteFirmwareObjectMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
-  useListFirmwareObjectsQuery,
 } from '../api/firmwareApiSlice'
 
 vi.mock('../api/firmwareApiSlice', () => ({
   useGetFirmwareUploadOptionsQuery: vi.fn(),
   useLazyListFirmwareObjectsQuery: vi.fn(),
-  useListFirmwareObjectsQuery: vi.fn(),
   useDeleteFirmwareObjectMutation: vi.fn(),
 }))
 
@@ -24,7 +22,7 @@ vi.mock('../../components/AdminTable', async () => {
   const React = await vi.importActual<typeof import('react')>('react')
 
   return {
-    default: ({ actions, columns, defaultPageSize = 25, handleQueryChange, tableRef }: any) => {
+    default: ({ actions, columns, defaultPageSize = 25, handleQueryChange, tableRef, thirdSortClick = true }: any) => {
       const [rows, setRows] = React.useState<any[]>([])
       const [totalCount, setTotalCount] = React.useState(0)
       const queryRef = React.useRef({ page: 0, pageSize: defaultPageSize, search: '' })
@@ -67,10 +65,19 @@ vi.mock('../../components/AdminTable', async () => {
                   <th
                     key={column.field}
                     style={column.headerStyle}
-                    onClick={() => void runQuery({
-                      page: 0,
-                      orderByCollection: [{ orderBy: index, orderDirection: 'asc' }],
-                    })}
+                    onClick={() => {
+                      const currentSort = (queryRef.current as any).orderByCollection?.[0]
+                      let orderDirection = 'asc'
+                      if (currentSort?.orderBy === index) {
+                        orderDirection = currentSort.orderDirection === 'asc'
+                          ? 'desc'
+                          : thirdSortClick ? '' : 'asc'
+                      }
+                      void runQuery({
+                        page: 0,
+                        orderByCollection: orderDirection ? [{ orderBy: index, orderDirection }] : [],
+                      })
+                    }}
                   >
                     {column.title}
                   </th>
@@ -170,7 +177,6 @@ describe('Firmware object browser', () => {
     vi.resetAllMocks()
     trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve(page) }))
     lazyQuery.mockReturnValue([trigger] as any)
-    vi.mocked(useListFirmwareObjectsQuery).mockReturnValue({ data: undefined } as any)
     vi.mocked(useDeleteFirmwareObjectMutation).mockReturnValue([deleteObject] as any)
     deleteObject.mockImplementation(() => ({ unwrap: () => Promise.resolve() }))
     optionsQuery.mockReturnValue({
@@ -238,33 +244,15 @@ describe('Firmware object browser', () => {
     )
   })
 
-  it('renders firmware changes received by the subscribed listing', async () => {
-    const view = renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
-
-    const refreshedPage = {
-      objects: [{ ...page.objects[0], object_id: 'fresh', version: 'fresh-version' }],
-      total_elements: 1,
-    }
-    trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve(refreshedPage) }))
-    vi.mocked(useListFirmwareObjectsQuery).mockReturnValue({ data: refreshedPage } as any)
-
-    view.rerender(
-      <ThemeProvider theme={testTheme}>
-        <AdminFirmwareTab />
-      </ThemeProvider>
-    )
-
-    expect(await screen.findByRole('button', { name: 'fresh-version' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
-  })
-
-  it('requests server-side sorting when a column header is selected', async () => {
+  it('alternates server-side sorting without clearing the selected column', async () => {
     renderFirmware()
     await screen.findByRole('button', { name: 'v1' })
+    trigger.mockClear()
 
-    fireEvent.click(screen.getByRole('columnheader', { name: 'Version' }))
+    const versionHeader = screen.getByRole('columnheader', { name: 'Version' })
+    fireEvent.click(versionHeader)
 
+    await waitFor(() => expect(trigger).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(trigger).toHaveBeenLastCalledWith({
       manufacturer: undefined,
       page: 0,
@@ -272,6 +260,26 @@ describe('Firmware object browser', () => {
       search: '',
       sort: 'version,asc',
     }))
+
+    fireEvent.click(versionHeader)
+    await waitFor(() => expect(trigger).toHaveBeenCalledTimes(2))
+    expect(trigger).toHaveBeenLastCalledWith({
+      manufacturer: undefined,
+      page: 0,
+      search: '',
+      size: 25,
+      sort: 'version,desc',
+    })
+
+    fireEvent.click(versionHeader)
+    await waitFor(() => expect(trigger).toHaveBeenCalledTimes(3))
+    expect(trigger).toHaveBeenLastCalledWith({
+      manufacturer: undefined,
+      page: 0,
+      search: '',
+      size: 25,
+      sort: 'version,asc',
+    })
   })
 
   describe('server-side search', () => {
