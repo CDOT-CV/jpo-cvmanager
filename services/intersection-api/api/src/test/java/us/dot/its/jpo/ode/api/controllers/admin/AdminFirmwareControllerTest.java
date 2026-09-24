@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,6 +41,9 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ManufacturerO
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadOptions.ModelOption;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadVerification;
 import us.dot.its.jpo.ode.api.services.FirmwareObjectService;
+import us.dot.its.jpo.ode.api.services.FirmwareRuleService;
+import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
@@ -87,6 +91,65 @@ class AdminFirmwareControllerTest {
 
     @MockitoBean
     private FirmwareDeletionService firmwareDeletionService;
+
+    @MockitoBean
+    private FirmwareRuleService firmwareRuleService;
+
+    @Test
+    @WithMockUser
+    void onlyAdminsCanReadOrModifyUpgradePaths() throws Exception {
+        mockMvc.perform(get("/admin/firmware/upgrade-rules")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/admin/firmware/images/3/upgrade-rules")).andExpect(status().isForbidden());
+        mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sources\":[{\"source_id\":1,\"expected_target_id\":2}]}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/admin/firmware/upgrade-rules/1").param("expected_target_id", "2"))
+                .andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(firmwareRuleService);
+    }
+
+    @Test
+    @WithMockUser
+    void adminCanAssignPathsAndInvalidSelectionsAreRejected() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sources\":[{\"source_id\":1,\"expected_target_id\":2}]}"))
+                .andExpect(status().isNoContent());
+        verify(firmwareRuleService).assign(eq(3), eq(new Assignments(List.of(new Assignment(1, 2)))));
+        for (var body : List.of("{}", "{\"sources\":[]}", "{\"sources\":[null]}", "{\"sources\":[{\"source_id\":-1}]}")) {
+            mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
+                    .content(body)).andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    @WithMockUser
+    void ruleConflictsHaveAnActionable409Response() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        doThrow(new FirmwareRuleConflictException("Upgrade paths changed"))
+                .when(firmwareRuleService).assign(eq(3), any());
+        mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sources\":[{\"source_id\":1}]}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Upgrade paths changed"));
+    }
+
+    @Test
+    @WithMockUser
+    void rulesExposeVersionNamesAndDeletionRequiresTheDisplayedDestination() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        var source = new Image(1, "Acme", "RoadRunner", "v1", true);
+        var target = new Image(2, "Acme", "RoadRunner", "v2", false);
+        var rule = new Rule(4, source, target, false);
+        when(firmwareRuleService.list()).thenReturn(List.of(rule));
+        mockMvc.perform(get("/admin/firmware/upgrade-rules")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].source.version").value("v1"))
+                .andExpect(jsonPath("$[0].destination.version").value("v2"))
+                .andExpect(jsonPath("$[0].legacy_destination").value(false));
+        mockMvc.perform(delete("/admin/firmware/upgrade-rules/4")).andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/admin/firmware/upgrade-rules/4").param("expected_target_id", "2"))
+                .andExpect(status().isNoContent());
+        verify(firmwareRuleService).delete(4, 2);
+    }
 
     @Test
     @WithMockUser
@@ -383,12 +446,13 @@ class AdminFirmwareControllerTest {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUploadService.completeFirmwareUpload(uploadId)).thenReturn(new FirmwareUploadVerification(
                 uploadId, FirmwareUploadStatus.VERIFIED, "Acme/RoadRunner/y20.97.0/firmware.bin",
-                12345L, "CRC32C", "ImIEBA==", "17", Instant.parse("2026-09-02T12:10:00Z")));
+                12345L, "CRC32C", "ImIEBA==", "17", Instant.parse("2026-09-02T12:10:00Z"), 12));
 
         mockMvc.perform(post("/admin/firmware/uploads/{uploadId}/complete", uploadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.upload_id").value(uploadId.toString()))
                 .andExpect(jsonPath("$.status").value("VERIFIED"))
+                .andExpect(jsonPath("$.firmware_id").value(12))
                 .andExpect(jsonPath("$.checksum_algorithm").value("CRC32C"))
                 .andExpect(jsonPath("$.checksum").value("ImIEBA=="))
                 .andExpect(jsonPath("$.provider_object_version").value("17"));
