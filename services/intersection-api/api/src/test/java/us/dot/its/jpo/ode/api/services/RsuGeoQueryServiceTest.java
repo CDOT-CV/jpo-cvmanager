@@ -96,6 +96,57 @@ class RsuGeoQueryServiceTest {
     }
 
     @Test
+    void findRsuIps_rejectsRingShorterThanFourPositions() {
+        List<List<Double>> geometry = new ArrayList<>();
+        geometry.add(new ArrayList<>(List.of(0.0, 0.0)));
+        geometry.add(new ArrayList<>(List.of(1.0, 0.0)));
+        geometry.add(new ArrayList<>(List.of(0.0, 0.0)));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.findRsuIps(ORGANIZATION, geometry, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Polygon ring must have at least 4 positions", exception.getReason());
+        verifyRepositoryNotCalled();
+    }
+
+    @Test
+    void findRsuIps_rejectsUnclosedRing() {
+        List<List<Double>> geometry = new ArrayList<>();
+        geometry.add(new ArrayList<>(List.of(0.0, 0.0)));
+        geometry.add(new ArrayList<>(List.of(1.0, 0.0)));
+        geometry.add(new ArrayList<>(List.of(1.0, 1.0)));
+        geometry.add(new ArrayList<>(List.of(0.0, 1.0)));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.findRsuIps(ORGANIZATION, geometry, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Polygon ring must be closed", exception.getReason());
+        verifyRepositoryNotCalled();
+    }
+
+    @Test
+    void findRsuIps_rejectsNonFiniteCoordinate() {
+        List<List<Double>> geometry = new ArrayList<>(sampleRing());
+        geometry.set(1, new ArrayList<>(List.of(Double.NaN, 39.670180083300174)));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.findRsuIps(ORGANIZATION, geometry, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Each geometry coordinate must be a finite number", exception.getReason());
+
+        geometry.set(1, new ArrayList<>(List.of(-105.34666901855489, Double.POSITIVE_INFINITY)));
+        exception = assertThrows(ResponseStatusException.class,
+                () -> service.findRsuIps(ORGANIZATION, geometry, null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("Each geometry coordinate must be a finite number", exception.getReason());
+        verifyRepositoryNotCalled();
+    }
+
+    @Test
     void findRsuIps_passesPolygonBuiltFromSampleRing() {
         when(rsuRepository.findIpv4AddressesInPolygon(eq(ORGANIZATION), any())).thenReturn(List.of());
 
@@ -104,6 +155,11 @@ class RsuGeoQueryServiceTest {
         ArgumentCaptor<String> polygon = ArgumentCaptor.forClass(String.class);
         verify(rsuRepository).findIpv4AddressesInPolygon(eq(ORGANIZATION), polygon.capture());
         assertEquals(EXPECTED_POLYGON, polygon.getValue());
+    }
+
+    private void verifyRepositoryNotCalled() {
+        verify(rsuRepository, never()).findIpv4AddressesInPolygon(any(), any());
+        verify(rsuRepository, never()).findIpv4AddressesInPolygonByManufacturer(any(), any(), any());
     }
 
     private static List<List<Double>> sampleRing() {
