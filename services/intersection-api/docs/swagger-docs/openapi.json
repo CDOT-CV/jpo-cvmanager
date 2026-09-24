@@ -3070,10 +3070,78 @@
           }
         }
       }
+    },
+    "/devices/rsus/geo-query": {
+      "post": {
+        "tags": ["rsu-geo-query-controller"],
+        "summary": "Query RSU IPs inside a polygon",
+        "description": "Returns IPv4 addresses of RSUs in the organization whose geography lies inside the supplied polygon. Replaces the Python API route POST /rsu-config-geo-query. A vendor of \"Select Vendor\", blank, or omitted applies no manufacturer filter. The polygon ring must be closed and contain at least four positions.",
+        "operationId": "queryRsusByGeometry",
+        "parameters": [
+          {
+            "name": "Organization",
+            "in": "header",
+            "description": "Organization whose RSUs are searched",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RsuGeoQueryRequest" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "IPv4 addresses of matching RSUs. Empty when none match.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "string", "example": "10.11.81.12" }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Geometry is missing, a point does not contain finite longitude and latitude, or the ring is unclosed or has fewer than 4 positions"
+          },
+          "401": { "description": "Unauthorized" },
+          "403": {
+            "description": "Forbidden - Requires SUPER_USER or USER role in the organization"
+          },
+          "500": { "description": "Internal Server Error" }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "RsuGeoQueryRequest": {
+        "type": "object",
+        "description": "Polygon ring and optional manufacturer filter for an RSU geo query",
+        "required": ["geometry"],
+        "properties": {
+          "geometry": {
+            "type": "array",
+            "description": "Closed polygon ring of [longitude, latitude] pairs. At least four positions, including the repeated closing point. Each coordinate must be a finite number.",
+            "example": [
+              [-105.34460908203145, 39.724583197251334],
+              [-105.34666901855489, 39.670180083300174],
+              [-105.25122529296911, 39.679162192647944],
+              [-105.2539718750002, 39.72088725644132],
+              [-105.34460908203145, 39.724583197251334]
+            ],
+            "items": { "type": "array", "items": { "type": "number", "format": "double" } }
+          },
+          "vendor": {
+            "type": "string",
+            "description": "Manufacturer name. Null, blank, and \"Select Vendor\" apply no manufacturer filter.",
+            "example": "Commsignia"
+          }
+        }
+      },
       "EncodedMessage": {
         "type": "object",
         "properties": {

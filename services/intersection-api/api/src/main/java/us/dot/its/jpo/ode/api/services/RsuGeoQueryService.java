@@ -23,18 +23,23 @@ public class RsuGeoQueryService {
      */
     private static final String UNFILTERED_VENDOR = "Select Vendor";
 
+    /**
+     * Minimum positions in a PostGIS polygon ring, including the repeated closing position.
+     */
+    private static final int MIN_RING_POSITIONS = 4;
+
     private final RsuRepository rsuRepository;
 
     /**
      * Returns IPv4 host addresses of RSUs in {@code organization} whose geography lies inside {@code geometry}.
      *
      * @param organization organization name
-     * @param geometry polygon ring of {@code [longitude, latitude]} pairs; must be non-empty, and each point
-     *                 must contain longitude and latitude
+     * @param geometry polygon ring of {@code [longitude, latitude]} pairs; must be closed, contain at least four
+     *                 positions, and each position must contain finite longitude and latitude
      * @param vendor manufacturer name, or {@code null}, blank, or {@code "Select Vendor"} for no manufacturer filter
      * @return host addresses of matching RSUs; empty when the organization has no matches
-     * @throws ResponseStatusException {@code 400} when {@code geometry} is missing, empty, or a point has fewer than
-     *                                 two coordinates
+     * @throws ResponseStatusException {@code 400} when {@code geometry} is missing, a point is incomplete or
+     *                                 non-finite, the ring has fewer than four positions, or the ring is not closed
      */
     @Transactional(readOnly = true)
     public List<String> findRsuIps(String organization, List<List<Double>> geometry, String vendor) {
@@ -51,19 +56,37 @@ public class RsuGeoQueryService {
 
     /**
      * Builds a WKT polygon from {@code [longitude, latitude]} pairs without modifying {@code geometry}.
+     *
+     * @throws ResponseStatusException {@code 400} when the ring is missing, a point is incomplete or non-finite,
+     *                                 the ring has fewer than four positions, or the ring is not closed
      */
     private static String toPolygonWkt(List<List<Double>> geometry) {
         if (geometry == null || geometry.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "geometry is required");
         }
-
-        StringBuilder wkt = new StringBuilder("POLYGON((");
-        for (int i = 0; i < geometry.size(); i++) {
-            List<Double> point = geometry.get(i);
+        for (List<Double> point : geometry) {
             if (point == null || point.size() < 2 || point.get(0) == null || point.get(1) == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Each geometry point must contain longitude and latitude");
             }
+            if (!Double.isFinite(point.get(0)) || !Double.isFinite(point.get(1))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Each geometry coordinate must be a finite number");
+            }
+        }
+        if (geometry.size() < MIN_RING_POSITIONS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Polygon ring must have at least 4 positions");
+        }
+        List<Double> first = geometry.getFirst();
+        List<Double> last = geometry.getLast();
+        if (Double.compare(first.get(0), last.get(0)) != 0 || Double.compare(first.get(1), last.get(1)) != 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Polygon ring must be closed");
+        }
+
+        StringBuilder wkt = new StringBuilder("POLYGON((");
+        for (int i = 0; i < geometry.size(); i++) {
+            List<Double> point = geometry.get(i);
             if (i > 0) {
                 wkt.append(',');
             }
