@@ -59,6 +59,7 @@ export type FirmwareUploadUrl = {
 }
 
 export type FirmwareUploadVerification = {
+  firmware_id?: number | null
   upload_id: string
   status: 'PENDING' | 'VERIFIED' | 'FAILED' | 'EXPIRED'
   object_name: string
@@ -67,4 +68,26 @@ export type FirmwareUploadVerification = {
   checksum: string
   provider_object_version: string | null
   verified_at: string | null
+}
+
+export type FirmwareRuleImage = {
+  firmware_id: number
+  manufacturer: string
+  model: string
+  version: string
+  legacy: boolean
+}
+
+export type FirmwareRule = {
+  rule_id: number
+  source: FirmwareRuleImage
+  destination: FirmwareRuleImage
+  legacy_destination: boolean
+}
+
+export type FirmwareRuleOptions = {
+  destination: FirmwareRuleImage
+  can_target: boolean
+  sources: FirmwareRuleImage[]
+  rules: FirmwareRule[]
 }

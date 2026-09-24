@@ -28,6 +28,29 @@ const requestBody: FirmwareUploadUrlRequest = {
 describe('firmwareApiSlice', () => {
   beforeEach(() => fetchMock.resetMocks())
 
+  it('sends bulk rule assignments with the destinations the administrator saw', async () => {
+    fetchMock.mockResponseOnce('', { status: 204 })
+    const store = setupStore(mockUserState)
+    const sources = [{ source_id: 1, expected_target_id: 2 }, { source_id: 4, expected_target_id: null }]
+    const result = await store.dispatch(firmwareApiSlice.endpoints.assignFirmwareRules.initiate({ destinationId: 3, sources }))
+    expect('error' in result).toBe(false)
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toBe(`${BASE_URL}/images/3/upgrade-rules`)
+    expect(request.method).toBe('PUT')
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+    expect(await request.json()).toEqual({ sources })
+  })
+
+  it('includes the expected destination when deleting a rule', async () => {
+    fetchMock.mockResponseOnce('', { status: 204 })
+    const store = setupStore(mockUserState)
+    await store.dispatch(firmwareApiSlice.endpoints.deleteFirmwareRule.initiate({ ruleId: 5, expectedTargetId: 3 }))
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toBe(`${BASE_URL}/upgrade-rules/5?expected_target_id=3`)
+    expect(request.method).toBe('DELETE')
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
   it('deletes the selected object version with authentication', async () => {
     fetchMock.mockResponseOnce('', { status: 204 })
     const store = setupStore(mockUserState)

@@ -105,6 +105,7 @@ describe('FirmwareUploadForm', () => {
     fetchMock.mockResponseOnce(
       JSON.stringify({
         upload_id: signedUploadResponse.upload_id,
+        firmware_id: 12,
         status: 'VERIFIED',
         object_name: signedUploadResponse.object_name,
         content_length: 9,
@@ -120,6 +121,7 @@ describe('FirmwareUploadForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Firmware' }))
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+    expect(onSuccess).toHaveBeenCalledWith(12)
     expect(toast.success).toHaveBeenCalledWith('Firmware uploaded and verified successfully')
     expect(calculateFileChecksum).toHaveBeenCalledWith(file, 'CRC32C')
     expect(uploadFileToSignedUrl).toHaveBeenCalledWith(file, signedUploadResponse, expect.any(Function))

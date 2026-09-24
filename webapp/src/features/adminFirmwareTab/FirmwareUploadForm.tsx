@@ -35,7 +35,7 @@ type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verif
 type FirmwareUploadFormProps = {
   open: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (firmwareId?: number | null) => void
 }
 
 const stageLabel: Record<UploadStage, string> = {
@@ -154,7 +154,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
 
       setStage('complete')
       toast.success('Firmware uploaded and verified successfully')
-      onSuccess()
+      onSuccess(verification.firmware_id)
     } catch (error) {
       setStage('idle')
       setErrorMessage(getErrorMessage(error))
@@ -242,6 +242,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 variant="outlined"
                 color="info"
                 startIcon={<Upload />}
+                sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                 disabled={isWorking || !selectedManufacturer?.file_extension}
               >
                 Choose File
@@ -254,9 +255,18 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                   onChange={selectFile}
                 />
               </Button>
-              <Typography color={file ? 'text.primary' : 'text.secondary'}>
-                {file ? `${file.name} (${formatFileSize(file.size)})` : 'No file selected'}
-              </Typography>
+              {file ? (
+                <Stack direction="row" spacing={0.5} sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography noWrap title={file.name} sx={{ minWidth: 0 }}>
+                    {file.name}
+                  </Typography>
+                  <Typography sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    ({formatFileSize(file.size)})
+                  </Typography>
+                </Stack>
+              ) : (
+                <Typography color="text.secondary">No file selected</Typography>
+              )}
             </Stack>
             {selectedManufacturer?.file_extension && (
               <FormHelperText>Required file extension: {selectedManufacturer.file_extension}</FormHelperText>

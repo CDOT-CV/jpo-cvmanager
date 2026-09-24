@@ -8,13 +8,16 @@ import {
   useDeleteFirmwareObjectMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
+  useListFirmwareRulesQuery,
 } from '../api/firmwareApiSlice'
 
 vi.mock('../api/firmwareApiSlice', () => ({
   useGetFirmwareUploadOptionsQuery: vi.fn(),
   useLazyListFirmwareObjectsQuery: vi.fn(),
   useDeleteFirmwareObjectMutation: vi.fn(),
+  useListFirmwareRulesQuery: vi.fn(),
 }))
+vi.mock('./FirmwareRulesDialog', () => ({ default: () => <div>Upgrade path editor</div> }))
 
 // Keep feature tests focused on firmware queries and actions. AdminTable owns
 // Material Table rendering and debounce behavior, which are tested separately.
@@ -63,7 +66,7 @@ vi.mock('../../components/AdminTable', async () => {
               <tr>
                 {columns.map((column: any, index: number) => (
                   <th
-                    key={column.field}
+                    key={column.field ?? column.title}
                     style={column.headerStyle}
                     onClick={() => {
                       const currentSort = (queryRef.current as any).orderByCollection?.[0]
@@ -89,7 +92,7 @@ vi.mock('../../components/AdminTable', async () => {
               {rows.map((row: any) => (
                 <tr key={row.object_id}>
                   {columns.map((column: any) => (
-                    <td key={column.field}>{column.render ? column.render(row) : row[column.field]}</td>
+                    <td key={column.field ?? column.title}>{column.render ? column.render(row) : row[column.field]}</td>
                   ))}
                   <td>
                     {actions.filter((action: any) => typeof action === 'function').map((action: any, index: number) => {
@@ -124,10 +127,10 @@ vi.mock('../../components/AdminTable', async () => {
 })
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn(), loading: vi.fn() } }))
 vi.mock('./FirmwareUploadForm', () => ({
-  default: ({ open, onSuccess }: { open: boolean; onSuccess: () => void }) =>
+  default: ({ open, onSuccess }: { open: boolean; onSuccess: (firmwareId?: number) => void }) =>
     open ? (
       <div>
-        Upload form<button onClick={onSuccess}>Complete mocked upload</button>
+        Upload form<button onClick={() => onSuccess(12)}>Complete mocked upload</button>
       </div>
     ) : null,
 }))
@@ -148,6 +151,7 @@ describe('Firmware object browser', () => {
     objects: [
       {
         object_id: 'one',
+        firmware_id: 12,
         object_name: 'Commsignia/ITS-RS4-M/v1/file.bin',
         manufacturer: 'Commsignia',
         model: 'ITS-RS4-M',
@@ -177,6 +181,7 @@ describe('Firmware object browser', () => {
     vi.resetAllMocks()
     trigger.mockImplementation(() => ({ unwrap: () => Promise.resolve(page) }))
     lazyQuery.mockReturnValue([trigger] as any)
+    vi.mocked(useListFirmwareRulesQuery).mockReturnValue({ data: [], refetch: vi.fn() } as any)
     vi.mocked(useDeleteFirmwareObjectMutation).mockReturnValue([deleteObject] as any)
     deleteObject.mockImplementation(() => ({ unwrap: () => Promise.resolve() }))
     optionsQuery.mockReturnValue({
@@ -193,8 +198,8 @@ describe('Firmware object browser', () => {
   it('provides firmware columns and controls through the admin table', async () => {
     renderFirmware()
 
-    expect(await screen.findByRole('button', { name: 'v1' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
+    expect(await screen.findByText('v1')).toBeInTheDocument()
+    expect(screen.getByText('v2')).toBeInTheDocument()
     expect(screen.getAllByRole('columnheader', { name: 'Manufacturer' })[0]).toHaveStyle({ textTransform: 'none' })
     expect(screen.getAllByRole('columnheader', { name: 'Model' })[0]).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument()
@@ -202,13 +207,49 @@ describe('Firmware object browser', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'v1' }))
-    expect(screen.getByText('Commsignia/ITS-RS4-M/v1/file.bin')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('v1'))
+    expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Upgrade path editor')).not.toBeInTheDocument()
+    expect(screen.queryByText('File details')).not.toBeInTheDocument()
+  })
+
+  it('makes verified firmware without rules visible and opens the rule editor', async () => {
+    renderFirmware()
+    expect(screen.getByRole('columnheader', { name: 'Upgrade Rules' })).toBeInTheDocument()
+    const paths = await screen.findByRole('button', { name: 'No upgrade rules' })
+    fireEvent.click(paths)
+    expect(screen.getByText('Upgrade path editor')).toBeInTheDocument()
+  })
+
+  it('counts incoming and outgoing rules together without labeling the firmware as legacy', async () => {
+    const image = (firmware_id: number) => ({ firmware_id })
+    vi.mocked(useListFirmwareRulesQuery).mockReturnValue({
+      data: [
+        { rule_id: 1, source: image(10), destination: image(12), legacy_destination: true },
+        { rule_id: 2, source: image(12), destination: image(13), legacy_destination: false },
+        { rule_id: 3, source: image(14), destination: image(15), legacy_destination: false },
+      ],
+      refetch: vi.fn(),
+    } as any)
+    renderFirmware()
+    fireEvent.click(await screen.findByRole('button', { name: '2 rules' }))
+    expect(screen.queryByText(/Legacy rules/)).not.toBeInTheDocument()
+    expect(screen.getByText('Upgrade path editor')).toBeInTheDocument()
+  })
+
+  it('returns to the table after upload without opening upgrade paths', async () => {
+    renderFirmware()
+    await screen.findByText('v1')
+    fireEvent.click(screen.getByRole('button', { name: 'New' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Complete mocked upload' }))
+    expect(screen.queryByText('Upgrade path editor')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
+    expect(screen.queryByText('Upload form')).not.toBeInTheDocument()
   })
 
   it('reloads the first page when a manufacturer is selected', async () => {
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
     fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
@@ -229,7 +270,7 @@ describe('Firmware object browser', () => {
       unwrap: () => Promise.resolve({ ...page, total_elements: 26 }),
     }))
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
 
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }))
 
@@ -246,7 +287,7 @@ describe('Firmware object browser', () => {
 
   it('alternates server-side sorting without clearing the selected column', async () => {
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
     trigger.mockClear()
 
     const versionHeader = screen.getByRole('columnheader', { name: 'Version' })
@@ -296,7 +337,7 @@ describe('Firmware object browser', () => {
           ),
       }))
       renderFirmware()
-      await screen.findByRole('button', { name: 'v1' })
+      await screen.findByText('v1')
     })
 
     afterEach(() => {
@@ -336,8 +377,8 @@ describe('Firmware object browser', () => {
         manufacturer: undefined,
         sort: 'manufacturer,asc',
       })
-      expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+      expect(screen.getByText('later-release')).toBeInTheDocument()
+      expect(screen.queryByText('v1')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
     })
 
@@ -366,14 +407,14 @@ describe('Firmware object browser', () => {
         manufacturer: 'Kapsch',
         sort: 'manufacturer,asc',
       })
-      expect(screen.getByRole('button', { name: 'later-release' })).toBeInTheDocument()
+      expect(screen.getByText('later-release')).toBeInTheDocument()
     })
 
     it('restores the listing when search is cleared without losing the manufacturer filter', async () => {
       fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Manufacturer' }))
       fireEvent.click(screen.getByRole('option', { name: 'Kapsch' }))
       await searchFor('later-release')
-      expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument()
+      expect(screen.queryByText('v1')).not.toBeInTheDocument()
 
       await searchFor('')
 
@@ -384,7 +425,7 @@ describe('Firmware object browser', () => {
         manufacturer: 'Kapsch',
         sort: 'manufacturer,asc',
       })
-      expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
+      expect(screen.getByText('v1')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeEnabled()
     })
 
@@ -393,8 +434,6 @@ describe('Firmware object browser', () => {
       fireEvent.click(screen.getByRole('option', { name: 'Commsignia' }))
       await searchFor('later-release')
 
-      fireEvent.click(screen.getByRole('button', { name: 'later-release' }))
-      expect(screen.getByText('File details')).toBeInTheDocument()
 
       fireEvent.click(screen.getByRole('button', { name: 'Delete Firmware' }))
       expect(deleteObject).not.toHaveBeenCalled()
@@ -413,7 +452,7 @@ describe('Firmware object browser', () => {
         manufacturer: 'Commsignia',
         sort: 'manufacturer,asc',
       })
-      await waitFor(() => expect(screen.queryByRole('button', { name: 'later-release' })).not.toBeInTheDocument())
+      await waitFor(() => expect(screen.queryByText('later-release')).not.toBeInTheDocument())
       expect(screen.queryByText('File details')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Next Page' })).toBeDisabled()
       expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
@@ -422,7 +461,7 @@ describe('Firmware object browser', () => {
 
   it('refreshes the table after a successful upload', async () => {
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
 
     fireEvent.click(screen.getByRole('button', { name: 'New' }))
     expect(screen.getByText('Upload form')).toBeInTheDocument()
@@ -434,7 +473,7 @@ describe('Firmware object browser', () => {
 
   it('confirms deletion and refreshes the table after the API succeeds', async () => {
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[0])
 
     const details = screen.getByText(/Manufacturer: Commsignia/)
@@ -445,19 +484,19 @@ describe('Firmware object browser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'one', provider_object_version: '17' }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument())
-    expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('v1')).not.toBeInTheDocument())
+    expect(screen.getByText('v2')).toBeInTheDocument()
     expect(toast.success).toHaveBeenCalledWith('Firmware deleted successfully', expect.any(Object))
   })
 
   it('cancels deletion without changing the listing', async () => {
     renderFirmware()
-    await screen.findByRole('button', { name: 'v1' })
+    await screen.findByText('v1')
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[1])
     expect(screen.getByText(/File: update.tar/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'No' }))
     expect(deleteObject).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
+    expect(screen.getByText('v2')).toBeInTheDocument()
     expect(trigger).toHaveBeenCalledTimes(1)
   })
 
@@ -466,7 +505,7 @@ describe('Firmware object browser', () => {
       unwrap: () => Promise.reject({ status: 409, data: { detail: 'The firmware file changed. Refresh the table.' } }),
     }))
     renderFirmware()
-    await screen.findByRole('button', { name: 'v2' })
+    await screen.findByText('v2')
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete Firmware' })[1])
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
@@ -474,7 +513,7 @@ describe('Firmware object browser', () => {
       expect(toast.error).toHaveBeenCalledWith('The firmware file changed. Refresh the table.', expect.any(Object))
     )
     expect(deleteObject).toHaveBeenCalledWith({ object_id: 'two', provider_object_version: '18' })
-    expect(screen.getByRole('button', { name: 'v2' })).toBeInTheDocument()
+    expect(screen.getByText('v2')).toBeInTheDocument()
     expect(trigger).toHaveBeenCalledTimes(1)
     expect(toast.success).not.toHaveBeenCalled()
   })
@@ -497,7 +536,7 @@ describe('Firmware object browser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
     await waitFor(() => expect(deleteObject).toHaveBeenCalledWith({ object_id: 'one', provider_object_version: null }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'v1' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('v1')).not.toBeInTheDocument())
     expect(toast.success).toHaveBeenCalledWith('Firmware records cleaned up successfully', expect.any(Object))
   })
 
@@ -518,7 +557,7 @@ describe('Firmware object browser', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(message, expect.any(Object)))
-    expect(screen.getByRole('button', { name: 'v1' })).toBeInTheDocument()
+    expect(screen.getByText('v1')).toBeInTheDocument()
     expect(toast.success).not.toHaveBeenCalled()
   })
 })
