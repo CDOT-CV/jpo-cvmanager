@@ -45,6 +45,12 @@ Returns the message counts for a single, selected RSU from a BigQuery table. It 
 
 Returns the list of all ipv4 addresses with MAP message data in the PostgreSQL database when argument ip_list is true. Returns the MAP message geoJSON data for the RSU specified in the ip_address argument as a single JSON object when ip_list is false.
 
+### <b>/rsu-config-geo-query</b> <b>(POST)</b>
+
+RSU IPv4 lookup inside a polygon is now served by the Intersection API as `POST /devices/rsus/geo-query`. The request body, organization header, manufacturer filter, and polygon rules are in the [Intersection API Swagger docs](../intersection-api/docs/swagger-docs/docs.html).
+
+This Python service still registers `POST /rsu-config-geo-query` for existing callers. New clients should call the Intersection API.
+
 ### <b>/rsu-geo-msg-data</b> <b>(POST)</b>
 
 Returns geoJSON data for BSM / PSM messages from a MongoDB collection given start time, end time, and geofence coordinates. It performs a find query on on either the MONGO_PROCESSED_BSM_COLLECTION_NAME or MONGO_PROCESSED_PSM_COLLECTION_NAME collection depending on the requested message type. Returns an array of GeoJSON objects. In the event that the number of records exceeds the threshold specified by the MAX_GEO_QUERY_RECORDS environment variable filtering will occur so that each nth record is returned.

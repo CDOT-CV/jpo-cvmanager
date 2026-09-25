@@ -111,6 +111,50 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "WHERE o.name = :orgName")
     List<Rsu> findAllRsusByOrganizationName(@Param("orgName") String orgName);
 
+    /**
+     * IPv4 host addresses of RSUs in an organization whose geography lies inside the polygon.
+     *
+     * @param organization organization name
+     * @param polygon WKT {@code POLYGON((lon lat, ...))} in SRID 4326
+     * @return host addresses of matching RSUs; empty when none match
+     */
+    @Query(value = """
+            SELECT host(rsus.ipv4_address)
+            FROM rsus
+            JOIN rsu_organization ro ON ro.rsu_id = rsus.rsu_id
+            JOIN organizations o ON o.organization_id = ro.organization_id
+            WHERE o.name = :organization
+            AND ST_Contains(ST_SetSRID(ST_GeomFromText(:polygon), 4326), CAST(rsus.geography AS geometry))
+            """, nativeQuery = true)
+    List<String> findIpv4AddressesInPolygon(
+            @Param("organization") String organization,
+            @Param("polygon") String polygon);
+
+    /**
+     * IPv4 host addresses of RSUs in an organization whose geography lies inside the polygon
+     * and whose model manufacturer name equals {@code vendor}.
+     *
+     * @param organization organization name
+     * @param polygon WKT {@code POLYGON((lon lat, ...))} in SRID 4326
+     * @param vendor manufacturer name
+     * @return host addresses of matching RSUs; empty when none match
+     */
+    @Query(value = """
+            SELECT host(rsus.ipv4_address)
+            FROM rsus
+            JOIN rsu_organization ro ON ro.rsu_id = rsus.rsu_id
+            JOIN organizations o ON o.organization_id = ro.organization_id
+            JOIN rsu_models rm ON rm.rsu_model_id = rsus.model
+            JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer
+            WHERE o.name = :organization
+            AND man.name = :vendor
+            AND ST_Contains(ST_SetSRID(ST_GeomFromText(:polygon), 4326), CAST(rsus.geography AS geometry))
+            """, nativeQuery = true)
+    List<String> findIpv4AddressesInPolygonByManufacturer(
+            @Param("organization") String organization,
+            @Param("polygon") String polygon,
+            @Param("vendor") String vendor);
+
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);
 
