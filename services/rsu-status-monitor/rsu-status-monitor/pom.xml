@@ -7,20 +7,20 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.4</version>
+        <version>4.0.3</version>
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
 
     <groupId>usdot.jpo.ode</groupId>
     <artifactId>rsu-status-monitor</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0-alpha1</version>
     <packaging>jar</packaging>
     <name>rsu-status-monitor</name>
     <description>RSU Status Monitor for better RSU management integration with the JPO CV Manager</description>
 
     <properties>
         <java.version>22</java.version>
-        <jacoco.version>0.8.11</jacoco.version>
+        <jacoco.version>0.8.15</jacoco.version>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.language>java</sonar.language>
@@ -66,7 +66,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -82,8 +82,8 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
         <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>
@@ -101,7 +101,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.14.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -148,7 +147,7 @@
         <dependency>
 			<groupId>usdot.jpo.ode</groupId>
 			<artifactId>jpo-geojsonconverter</artifactId>
-			<version>3.2.0</version>
+			<version>4.0.0-alpha1</version>
 			<!-- Allow using newer streams version than geojsonconverter -->
 			<exclusions>
 				<exclusion>
@@ -165,7 +164,7 @@
         <dependency>
 			<groupId>usdot.jpo.ode</groupId>
 			<artifactId>jpo-conflictmonitor</artifactId>
-			<version>3.1.1</version>
+			<version>4.0.0-alpha2</version>
 		</dependency>
     </dependencies>
 
