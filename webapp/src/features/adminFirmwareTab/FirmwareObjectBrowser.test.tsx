@@ -127,10 +127,10 @@ vi.mock('../../components/AdminTable', async () => {
 })
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn(), loading: vi.fn() } }))
 vi.mock('./FirmwareUploadForm', () => ({
-  default: ({ open, onSuccess }: { open: boolean; onSuccess: (firmwareId?: number) => void }) =>
+  default: ({ open, onSuccess }: { open: boolean; onSuccess: () => void }) =>
     open ? (
       <div>
-        Upload form<button onClick={() => onSuccess(12)}>Complete mocked upload</button>
+        Upload form<button onClick={() => onSuccess()}>Complete mocked upload</button>
       </div>
     ) : null,
 }))

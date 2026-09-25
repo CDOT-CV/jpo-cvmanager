@@ -35,7 +35,7 @@ type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verif
 type FirmwareUploadFormProps = {
   open: boolean
   onClose: () => void
-  onSuccess: (firmwareId?: number | null) => void
+  onSuccess: () => void
 }
 
 const stageLabel: Record<UploadStage, string> = {
@@ -154,7 +154,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
 
       setStage('complete')
       toast.success('Firmware uploaded and verified successfully')
-      onSuccess(verification.firmware_id)
+      onSuccess()
     } catch (error) {
       setStage('idle')
       setErrorMessage(getErrorMessage(error))

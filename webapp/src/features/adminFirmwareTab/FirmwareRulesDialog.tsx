@@ -123,7 +123,9 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
   const ruleEditor = data?.can_target && editingRules && (
     <Box id="firmware-rule-editor" sx={{ mt: 2 }}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Select source versions to add or redirect. Unselected version rules are preserved.
+        Select source versions to upgrade to <Box component="span" sx={{ fontWeight: 'bold' }}>{data.destination.version}</Box>.
+        {' Existing targets will be replaced when saved. Unselected rules are preserved.'}
+        {selected.length > 0 && ' Save or cancel your selections before deleting a rule.'}
       </Typography>
       <Box
         role="group"
@@ -151,7 +153,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
               sx={{ display: 'flex' }}
               control={
                 <Checkbox
-                  disabled={busy || alreadyAssigned}
+                  disabled={busy || alreadyAssigned || !!removeRule}
                   checked={alreadyAssigned || selected.includes(source.firmware_id)}
                   onChange={(_, checked) => {
                     setConfirmReplace(false)
@@ -161,21 +163,24 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
                   }}
                 />
               }
-              label={`${source.version}${source.legacy ? ' (Legacy)' : ''}${rule ? ` — currently targets ${rule.destination.version}` : ' — no destination'}`}
+              label={
+                <>
+                  <Box component="span" sx={{ fontWeight: 'bold' }}>{source.version}</Box>
+                  {source.legacy && ' (Legacy)'}
+                  <Box component="span" sx={{ color: busy || alreadyAssigned || !!removeRule ? 'text.disabled' : 'text.secondary' }}>
+                    {' · '}{rule ? `Target: ${rule.destination.version}` : 'No target'}
+                  </Box>
+                </>
+              }
             />
           )
         })}
       </Box>
       {confirmReplace && (
         <Alert severity="warning" sx={{ mt: 2, alignItems: 'center' }}>
-          Replace these destinations with {data.destination.version}?
-          {replacements.map((rule) => (
-            <Typography key={rule.rule_id}>
-              {rule.source.version} → {rule.destination.version}
-            </Typography>
-          ))}
+          Redirect {replacements.length} existing {replacements.length === 1 ? 'rule' : 'rules'} to {data.destination.version}?
           <Button onClick={save} disabled={busy}>
-            Confirm Reassignment
+            Confirm
           </Button>
           <Button onClick={() => setConfirmReplace(false)} disabled={busy}>
             Cancel
@@ -244,7 +249,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
                       {section.incoming && data.can_target && (
                         <Button variant="contained" size="small" startIcon={<AddCircleOutline />}
                           sx={{ padding: '6px 8px', margin: '0px 4px' }}
-                          disabled={busy || !!removeRule} aria-expanded={editingRules}
+                          disabled={editingRules || busy || !!removeRule} aria-expanded={editingRules}
                           aria-controls={editingRules ? 'firmware-rule-editor' : undefined}
                           onClick={() => setEditingRules(true)}>
                           <Typography className="capital-case museo-slab" fontSize="12px">New</Typography>
@@ -291,7 +296,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
                               <TableCell>
                                 <Tooltip title="Delete Rule">
                                   <span>
-                                    <IconButton aria-label="Delete Rule" disabled={busy} onClick={() => setRemoveRule(rule)}
+                                    <IconButton aria-label="Delete Rule" disabled={busy || selected.length > 0} onClick={() => setRemoveRule(rule)}
                                       sx={{ color: 'custom.rowActionIcon', borderRadius: 1 }}>
                                       <DeleteOutline />
                                     </IconButton>
@@ -320,7 +325,8 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
                 {section.incoming && ruleEditor}
               </Box>
             ))}
-            {!data.can_target && (
+            {data.eligibility_error && <Alert severity="warning">{data.eligibility_error}</Alert>}
+            {!data.can_target && !data.eligibility_error && (
               <Alert severity="info">
                 New rules must target a verified file that is present and unchanged. Existing legacy rules remain
                 operational. To replace an existing destination, open Upgrade Rules on a verified firmware version for
