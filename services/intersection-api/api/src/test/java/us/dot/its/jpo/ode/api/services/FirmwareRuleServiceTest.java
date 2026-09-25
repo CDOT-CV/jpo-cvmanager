@@ -9,6 +9,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -30,7 +34,6 @@ import us.dot.its.jpo.ode.api.storage.*;
 @Transactional
 class FirmwareRuleServiceTest {
     @Autowired private FirmwareRuleService service;
-    @Autowired private FirmwareUploadService uploadService;
     @Autowired private FirmwareImageRepository images;
     @Autowired private FirmwareUploadRepository uploads;
     @Autowired private FirmwareUpgradeRuleRepository rules;
@@ -58,13 +61,6 @@ class FirmwareRuleServiceTest {
         source = image("v1", false);
         otherSource = image("v2", false);
         destination = image("v3", true);
-    }
-
-    @Test
-    void completionReturnsTheRegisteredImageForTheRuleEditor() {
-        var result = uploadService.completeFirmwareUpload(destination.getVerifiedUpload().getId());
-        assertThat(result.firmwareId()).isEqualTo(destination.getId());
-        assertThat(result.status()).isEqualTo(FirmwareUploadStatus.VERIFIED);
     }
 
     @Test
@@ -174,6 +170,28 @@ class FirmwareRuleServiceTest {
         assertThat(rules.findById(legacy.getId())).isEmpty();
         assertThat(images.findById(source.getId())).isPresent();
         verify(provider, never()).getObjectMetadata(any(), any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("storageFailures")
+    void storageFailureStillAllowsReadingAndDeletingRulesButNotAssignments(RuntimeException failure) {
+        var existing = rule(source, destination);
+        when(provider.getObjectMetadata(any(), any())).thenThrow(failure);
+
+        var options = service.options(destination.getId());
+        assertThat(options.canTarget()).isFalse();
+        assertThat(options.eligibilityError()).contains("Close and reopen");
+        assertThat(options.rules()).extracting(Rule::ruleId).contains(existing.getId());
+        service.delete(existing.getId(), destination.getId());
+        assertThat(rules.findById(existing.getId())).isEmpty();
+        assertThatThrownBy(() -> service.assign(destination.getId(), assignments(new Assignment(source.getId(), null))))
+                .isSameAs(failure);
+        assertThat(rules.findFirstByFrom_Id(source.getId())).isEmpty();
+    }
+
+    private static List<RuntimeException> storageFailures() {
+        return List.of(new ObjectStorageUnavailableException("Storage unavailable"),
+                new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Metadata unavailable"));
     }
 
     @Test

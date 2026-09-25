@@ -19,7 +19,8 @@ public final class FirmwareRuleModels {
     public record Rule(Integer ruleId, Image source, Image destination, boolean legacyDestination) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Options(Image destination, boolean canTarget, List<Image> sources, List<Rule> rules) {}
+    public record Options(Image destination, boolean canTarget, String eligibilityError,
+            List<Image> sources, List<Rule> rules) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Assignment(@NotNull @Positive Integer sourceId, @Positive Integer expectedTargetId) {}

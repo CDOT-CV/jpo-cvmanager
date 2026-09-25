@@ -165,9 +165,7 @@ public class FirmwareUploadService {
     private FirmwareUploadVerification toVerification(FirmwareUpload upload) {
         return new FirmwareUploadVerification(upload.getId(), upload.getStatus(), upload.getObjectName(),
                 upload.getExpectedSize(), upload.getChecksumAlgorithm(), upload.getObservedChecksum(),
-                upload.getProviderObjectVersion(), upload.getVerifiedAt(),
-                firmwareImages.findByModelIdAndVersion(upload.getModel().getId(), upload.getVersion())
-                        .map(us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage::getId).orElse(null));
+                upload.getProviderObjectVersion(), upload.getVerifiedAt());
     }
 
     private void markFailed(FirmwareUpload upload, String reason) {

@@ -126,11 +126,11 @@ class AdminFirmwareControllerTest {
     @WithMockUser
     void ruleConflictsHaveAnActionable409Response() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
-        doThrow(new FirmwareRuleConflictException("Upgrade paths changed"))
+        doThrow(new FirmwareRuleConflictException("Upgrade rules changed"))
                 .when(firmwareRuleService).assign(eq(3), any());
         mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sources\":[{\"source_id\":1}]}"))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Upgrade paths changed"));
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Upgrade rules changed"));
     }
 
     @Test
@@ -159,6 +159,21 @@ class AdminFirmwareControllerTest {
                         "/admin/firmware/objects/object-id").param("provider_object_version", "17"))
                 .andExpect(status().isNoContent());
         verify(firmwareDeletionService).delete("object-id", "17");
+    }
+
+    @Test
+    @WithMockUser
+    void ruleOptionsExplainUnavailableVerificationWhileStillReturningExistingRules() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        var source = new Image(1, "Acme", "RoadRunner", "v1", true);
+        var target = new Image(2, "Acme", "RoadRunner", "v2", false);
+        when(firmwareRuleService.options(2)).thenReturn(new Options(target, false, "Storage verification unavailable",
+                List.of(source), List.of(new Rule(4, source, target, false))));
+        mockMvc.perform(get("/admin/firmware/images/2/upgrade-rules"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.can_target").value(false))
+                .andExpect(jsonPath("$.eligibility_error").value("Storage verification unavailable"))
+                .andExpect(jsonPath("$.rules[0].rule_id").value(4));
     }
 
     @Test
@@ -446,13 +461,12 @@ class AdminFirmwareControllerTest {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         when(firmwareUploadService.completeFirmwareUpload(uploadId)).thenReturn(new FirmwareUploadVerification(
                 uploadId, FirmwareUploadStatus.VERIFIED, "Acme/RoadRunner/y20.97.0/firmware.bin",
-                12345L, "CRC32C", "ImIEBA==", "17", Instant.parse("2026-09-02T12:10:00Z"), 12));
+                12345L, "CRC32C", "ImIEBA==", "17", Instant.parse("2026-09-02T12:10:00Z")));
 
         mockMvc.perform(post("/admin/firmware/uploads/{uploadId}/complete", uploadId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.upload_id").value(uploadId.toString()))
                 .andExpect(jsonPath("$.status").value("VERIFIED"))
-                .andExpect(jsonPath("$.firmware_id").value(12))
                 .andExpect(jsonPath("$.checksum_algorithm").value("CRC32C"))
                 .andExpect(jsonPath("$.checksum").value("ImIEBA=="))
                 .andExpect(jsonPath("$.provider_object_version").value("17"));

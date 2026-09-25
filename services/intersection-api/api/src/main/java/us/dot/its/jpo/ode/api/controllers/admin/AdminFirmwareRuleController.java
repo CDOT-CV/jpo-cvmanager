@@ -20,16 +20,16 @@ import us.dot.its.jpo.ode.api.services.FirmwareRuleService;
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
 @RequestMapping(value = "/admin/firmware", produces = "application/json")
 @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
-@Tag(name = "Admin Firmware", description = "Manage firmware upgrade paths")
+@Tag(name = "Admin Firmware", description = "Manage firmware upgrade rules")
 public class AdminFirmwareRuleController {
     private final FirmwareRuleService rules;
 
     @GetMapping("/upgrade-rules")
-    @Operation(summary = "List firmware upgrade paths, including legacy paths")
+    @Operation(summary = "List firmware upgrade rules, including legacy rules")
     public List<Rule> list() { return rules.list(); }
 
     @GetMapping("/images/{imageId}/upgrade-rules")
-    @Operation(summary = "Get eligible source versions and existing paths for a firmware image")
+    @Operation(summary = "Get eligible source versions and existing rules for a firmware image")
     public Options options(@PathVariable @Positive Integer imageId) { return rules.options(imageId); }
 
     @PutMapping(value = "/images/{imageId}/upgrade-rules", consumes = "application/json")
@@ -41,7 +41,7 @@ public class AdminFirmwareRuleController {
 
     @DeleteMapping("/upgrade-rules/{ruleId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Remove an upgrade path without deleting either firmware image")
+    @Operation(summary = "Remove an upgrade rule without deleting either firmware image")
     public void delete(@PathVariable @Positive Integer ruleId,
             @RequestParam(name = "expected_target_id") @Positive Integer expectedTargetId) {
         rules.delete(ruleId, expectedTargetId);

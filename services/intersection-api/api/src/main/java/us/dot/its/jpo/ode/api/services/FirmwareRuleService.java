@@ -8,8 +8,10 @@ import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpgradeRule;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
@@ -18,10 +20,12 @@ import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUpgradeRuleRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 import us.dot.its.jpo.ode.api.mappers.FirmwareRuleMapper;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FirmwareRuleService {
     private final FirmwareImageRepository images;
     private final FirmwareUpgradeRuleRepository rules;
@@ -45,7 +49,18 @@ public class FirmwareRuleService {
         var related = list().stream().filter(rule -> rule.destination().firmwareId().equals(imageId)
                 || sources.stream().anyMatch(source -> source.firmwareId().equals(rule.source().firmwareId()))
                 || rule.source().firmwareId().equals(imageId)).toList();
-        return new Options(mapper.toImage(destination), matchesVerifiedObject(destination), sources, related);
+        // Storage availability only controls adding rules. Existing database rules
+        // must remain visible and removable even when verification is unavailable.
+        boolean canTarget = false;
+        String eligibilityError = null;
+        try {
+            canTarget = matchesVerifiedObject(destination);
+        } catch (ObjectStorageUnavailableException | ResponseStatusException ex) {
+            log.warn("Unable to check destination eligibility for firmware {}", imageId, ex);
+            eligibilityError = "Unable to check the firmware file in storage. Existing rules can still be viewed or deleted. "
+                    + "Close and reopen this dialog to retry before adding rules.";
+        }
+        return new Options(mapper.toImage(destination), canTarget, eligibilityError, sources, related);
     }
 
     @Transactional
@@ -82,7 +97,7 @@ public class FirmwareRuleService {
             var existing = current.get(assignment.sourceId());
             Integer previousTarget = existing == null ? null : existing.getTo().getId();
             if (!Objects.equals(previousTarget, assignment.expectedTargetId())) {
-                throw new FirmwareRuleConflictException("Upgrade paths changed. Reload the rules before saving.");
+                throw new FirmwareRuleConflictException("Upgrade rules changed. Close and reopen the dialog before saving.");
             }
         }
         for (var assignment : request.sources()) {
@@ -96,17 +111,17 @@ public class FirmwareRuleService {
 
     @Transactional
     public void delete(Integer ruleId, Integer expectedTargetId) {
-        var sourceId = rules.findSourceId(ruleId).orElseThrow(() -> new EntityNotFoundException("Upgrade path was not found"));
+        var sourceId = rules.findSourceId(ruleId).orElseThrow(() -> new EntityNotFoundException("Upgrade rule was not found"));
         var source = image(sourceId);
         // Match assignment's lock order before re-reading the path being removed.
         images.findModelForUpdate(source.getModel().getId());
         var current = rules.findRulesWithImages().stream().filter(item -> item.getId().equals(ruleId))
-                .findFirst().orElseThrow(() -> new EntityNotFoundException("Upgrade path was not found"));
+                .findFirst().orElseThrow(() -> new EntityNotFoundException("Upgrade rule was not found"));
         if (isObu(current.getTo())) {
             throw new IllegalArgumentException("OBU firmware is managed separately");
         }
         if (!Objects.equals(current.getTo().getId(), expectedTargetId)) {
-            throw new FirmwareRuleConflictException("Upgrade path changed. Reload the rules before deleting it.");
+            throw new FirmwareRuleConflictException("Upgrade rule changed. Close and reopen the dialog before deleting it.");
         }
         rules.delete(current);
     }

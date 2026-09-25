@@ -17,6 +17,5 @@ public record FirmwareUploadVerification(
         @JsonProperty("checksum_algorithm") String checksumAlgorithm,
         String checksum,
         @JsonProperty("provider_object_version") String providerObjectVersion,
-        @JsonProperty("verified_at") Instant verifiedAt,
-        @JsonProperty("firmware_id") Integer firmwareId) {
+        @JsonProperty("verified_at") Instant verifiedAt) {
 }
