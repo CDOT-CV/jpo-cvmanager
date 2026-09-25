@@ -3,6 +3,8 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import {
   FirmwareObjectPage,
+  FirmwareRule,
+  FirmwareRuleOptions,
   FirmwareUploadOptions,
   FirmwareUploadUrl,
   FirmwareUploadUrlRequest,
@@ -25,6 +27,25 @@ export const firmwareApiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
+    listFirmwareRules: builder.query<FirmwareRule[], void>({
+      query: () => 'upgrade-rules',
+    }),
+    getFirmwareRuleOptions: builder.query<FirmwareRuleOptions, number>({
+      query: (id) => `images/${id}/upgrade-rules`,
+    }),
+    assignFirmwareRules: builder.mutation<void, {
+      destinationId: number
+      sources: { source_id: number; expected_target_id: number | null }[]
+    }>({
+      query: ({ destinationId, sources }) => ({
+        url: `images/${destinationId}/upgrade-rules`, method: 'PUT', body: { sources },
+      }),
+    }),
+    deleteFirmwareRule: builder.mutation<void, { ruleId: number; expectedTargetId: number }>({
+      query: ({ ruleId, expectedTargetId }) => ({
+        url: `upgrade-rules/${ruleId}`, method: 'DELETE', params: { expected_target_id: expectedTargetId },
+      }),
+    }),
     getFirmwareUploadOptions: builder.query<FirmwareUploadOptions, void>({
       query: () => 'upload-options',
     }),
@@ -58,6 +79,10 @@ export const firmwareApiSlice = createApi({
 })
 
 export const {
+  useListFirmwareRulesQuery,
+  useGetFirmwareRuleOptionsQuery,
+  useAssignFirmwareRulesMutation,
+  useDeleteFirmwareRuleMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
