@@ -1,5 +1,8 @@
 package us.dot.its.jpo.ode.api.repositories;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -7,10 +10,15 @@ import org.springframework.stereotype.Repository;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 
-import java.util.Optional;
-
 @Repository
 public interface RsuModelRepository extends JpaRepository<RsuModel, Integer> {
+
+    @Query("""
+            SELECT rm FROM RsuModel rm
+            JOIN FETCH rm.manufacturer m
+            ORDER BY LOWER(m.name), LOWER(rm.name)
+            """)
+    List<RsuModel> findAllWithManufacturerOrdered();
 
     @Query("SELECT rm FROM RsuModel rm " +
             "JOIN rm.manufacturer m " +

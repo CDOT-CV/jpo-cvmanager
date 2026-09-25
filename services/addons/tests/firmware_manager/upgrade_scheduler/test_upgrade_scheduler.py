@@ -701,7 +701,7 @@ def test_firmware_upgrade_completed_fail_status_reached_max_retries(
                         "UPDATE public.rsus SET target_firmware_version=firmware_version WHERE ipv4_address='8.8.8.8'"
                     ),
                     call(
-                        "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values ((select rsu_id from rsus where ipv4_address='8.8.8.8'), now(), (select firmware_id from firmware_images where name='y20.39.0'))"
+                        "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) select r.rsu_id, now(), fi.firmware_id from rsus r join firmware_images fi on fi.model = r.model where r.ipv4_address='8.8.8.8' and fi.version='y20.39.0'"
                     ),
                 ]
             )
@@ -1092,7 +1092,7 @@ def test_is_rsu_at_max_retries_limit_NO_RESULTS(mock_query_db):
 def test_log_max_retries_reached_incident_for_rsu_to_postgres(mock_write_db):
     # prepare
     rsu_ip = "8.8.8.8"
-    expected_query = "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values ((select rsu_id from rsus where ipv4_address='8.8.8.8'), now(), (select firmware_id from firmware_images where name='y20.39.0'))"
+    expected_query = "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) select r.rsu_id, now(), fi.firmware_id from rsus r join firmware_images fi on fi.model = r.model where r.ipv4_address='8.8.8.8' and fi.version='y20.39.0'"
 
     # execute
     upgrade_scheduler.log_max_retries_reached_incident_for_rsu_to_postgres(
