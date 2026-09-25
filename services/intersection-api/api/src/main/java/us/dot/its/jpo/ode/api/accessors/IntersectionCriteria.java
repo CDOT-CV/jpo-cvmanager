@@ -2,8 +2,8 @@ package us.dot.its.jpo.ode.api.accessors;
 
 import org.springframework.data.mongodb.core.query.Criteria;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.time.Instant;
 import java.util.Date;
 
