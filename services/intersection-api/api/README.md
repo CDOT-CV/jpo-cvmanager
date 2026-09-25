@@ -159,7 +159,7 @@ other settings have workable defaults.
 | -------------------------------------------- | --------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `OBJECT_STORAGE_PROVIDER`                    | No                                            | `gcp`                                                | Selects the object-storage implementation.                                                                  |
 | `OBJECT_STORAGE_GCP_BUCKET_NAME`             | For GCS                                       | Empty                                                | Existing firmware bucket. When empty, the API starts but storage requests return `503`.                     |
-| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION`       | No                                            | `15m`                                                | Lifetime of a signed upload URL.                                                                            |
+| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION`       | No                                            | `5m`                                                 | Lifetime of a signed upload URL.                                                                            |
 | `OBJECT_STORAGE_MAX_UPLOAD_SIZE`             | No                                            | `1GB`                                                | Maximum declared upload size.                                                                               |
 | `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Only for keyless signing                      | Empty                                                | Service-account email used when ADC cannot sign directly. Do not set this when using a service-account key. |
 | `GOOGLE_APPLICATION_CREDENTIALS`             | For a host-run API without another ADC source | ADC lookup                                           | Path to a service-account JSON file.                                                                        |
@@ -185,9 +185,10 @@ The API identity needs the following bucket-scoped permissions:
 - `storage.objects.create`
 - `storage.objects.get`
 - `storage.objects.list`
+- `storage.objects.delete`
 
 The application uses one existing configured bucket. It does not create or list
-buckets, and it does not currently delete objects.
+buckets.
 
 The browser uploads directly to GCS, so the bucket must allow the webapp origin
 and signed upload headers. A local development CORS rule is:
@@ -223,32 +224,31 @@ webapp origins.
   `firmware_images`, and is safe to retry with the same upload ID.
 - `ota/` is reserved for the separate OBU OTA workflow and is excluded from the
   RSU firmware browser and upload choices.
-- The browser reports `VERIFIED`, `CHANGED`, `UNVERIFIED`, or `UNTRACKED`.
-  Listing an object does not verify it.
+- The uploader manages firmware packages, not helper scripts. The upgrade runner
+  still supports the legacy Commsignia `post_upgrade.sh` but skips it when absent.
+- The browser reports `VERIFIED`, `CHANGED`, `UNVERIFIED`, `UNTRACKED`, or
+  `MISSING` (database records exist but the cloud file is absent). Listing a
+  file does not verify it.
 - Cleanup marks stale uploads `EXPIRED` and removes retained `FAILED` and
   `EXPIRED` records. It never deletes cloud objects or verified records.
+- Admin deletion removes the selected cloud object, its upload/image records,
+  and rules involving that image. It rejects deletion while any matching signed
+  URL is valid or the image is referenced by an RSU's current/target version or
+  upgrade failure history. The `ota/` hierarchy cannot be deleted through this API.
+- Deletion requires the object version returned by the listing. If the file has
+  changed, refresh and confirm again. Database changes roll back on storage
+  failure; retrying deletion also handles an already-absent cloud object.
 
-### Manual recovery
+### Recovery
 
-If object upload succeeds but completion is interrupted, retry:
-
-```text
-POST /admin/firmware/uploads/{uploadId}/complete
-```
-
-An abandoned or invalid object can block another upload to the same path. Until
-an admin deletion API is available:
-
-1. Confirm that the matching upload is not `VERIFIED`.
-2. Retry completion once.
-3. Wait for the signed URL to expire. For `PENDING` uploads, also wait for
-   cleanup to mark the record `EXPIRED`.
-4. Delete the invalid object using a separate administrative identity with
-   `storage.objects.delete`.
-5. Submit a new upload request.
-
-```powershell
-gcloud storage rm gs://your-existing-bucket/manufacturer/model/version/file_name
-```
-
-Never manually delete a `VERIFIED` firmware object.
+- For an abandoned or invalid upload, wait for its signed URL to expire, then
+  delete it from the Firmware table and upload again.
+- If deletion is interrupted, refresh the table. A remaining cloud file can be
+  deleted normally. Leftover database records appear as **Missing file**; choose
+  **Clean Up Records** to remove them and their associated upgrade rules.
+- Cleanup checks references and valid signed URLs just like deletion. It never
+  deletes a cloud file and refuses cleanup if the file has reappeared. Storage
+  errors are reported, not treated as evidence that a file is absent.
+- Recovery is available through the Firmware table after reopening the page;
+  saving request IDs, editing PostgreSQL, or deleting files in the cloud console
+  is not required. GCS retention and soft-delete policies still apply.

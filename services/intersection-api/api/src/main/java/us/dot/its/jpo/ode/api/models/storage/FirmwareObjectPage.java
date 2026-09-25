@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 public record FirmwareObjectPage(String provider, List<Item> objects, long totalElements) {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Item(String objectId, String objectName, String manufacturer, String model,
-            String version, String fileName, long contentLength,
+            String version, String fileName, Long contentLength,
             @JsonFormat(shape = JsonFormat.Shape.STRING) Instant updatedAt,
             String providerObjectVersion, UUID uploadId, Integer firmwareId, String uploadStatus,
             String verificationStatus) {}

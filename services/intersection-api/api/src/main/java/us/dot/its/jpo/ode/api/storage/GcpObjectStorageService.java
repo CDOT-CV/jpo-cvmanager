@@ -24,6 +24,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +57,43 @@ public class GcpObjectStorageService implements ObjectStorageService {
     private final GcpStorageClientProvider clientProvider;
     private final ObjectStorageProperties properties;
     private final GcpObjectStorageProperties gcpProperties;
+
+    @Override
+    public ObjectStorageLocation getLocation(String objectName) {
+        validateConfiguration();
+        return new ObjectStorageLocation(PROVIDER_NAME, gcpProperties.getBucketName().trim(),
+                validateObjectName(objectName));
+    }
+
+    @Override
+    public void deleteObject(ObjectStorageLocation location, String providerObjectVersion) {
+        validateLocation(location);
+        long generation;
+        try {
+            generation = Long.parseLong(providerObjectVersion);
+            if (generation <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("A valid object version is required for deletion");
+        }
+
+        try {
+            // Apply the condition to the live object, rather than deleting an old
+            // generation while a replacement remains at the same path.
+            clientProvider.getStorage().delete(BlobId.of(location.container(), location.objectName()),
+                    Storage.BlobSourceOption.generationMatch(generation));
+        } catch (StorageException ex) {
+            if (ex.getCode() == 404) return;
+            if (ex.getCode() == 412) {
+                throw new ObjectStorageConflictException(
+                        "The firmware file changed since it was listed. Refresh the table before deleting it.");
+            }
+            log.error("Failed to delete firmware object {}", location.objectName(), ex);
+            throw new ObjectStorageUnavailableException("Unable to delete the firmware file. Please retry.");
+        } catch (Exception ex) {
+            log.error("Failed to access storage for firmware deletion", ex);
+            throw new ObjectStorageUnavailableException("Unable to delete the firmware file. Please retry.");
+        }
+    }
 
     @Override
     public StorageObjectPage listObjects(ObjectListRequest request) {

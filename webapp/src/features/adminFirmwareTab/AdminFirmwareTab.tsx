@@ -1,10 +1,17 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
-import { Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography } from '@mui/material'
+import { Box, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
+import { DeleteOutline } from '@mui/icons-material'
+import { confirmAlert } from 'react-confirm-alert'
+import { Options } from '../../components/AdminDeletionOptions'
 import toast from 'react-hot-toast'
 import AdminTable from '../../components/AdminTable'
 import { FirmwareObject } from '../../models/Firmware'
-import { useGetFirmwareUploadOptionsQuery, useLazyListFirmwareObjectsQuery } from '../api/firmwareApiSlice'
+import {
+  useDeleteFirmwareObjectMutation,
+  useGetFirmwareUploadOptionsQuery,
+  useLazyListFirmwareObjectsQuery,
+} from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
 import { formatFileSize } from './firmwareUpload'
 import '../adminRsuTab/Admin.css'
@@ -40,35 +47,76 @@ const verificationLabel = {
   UNVERIFIED: 'Unverified',
   UNTRACKED: 'Untracked',
   CHANGED: 'Object changed',
+  MISSING: 'Missing file',
 }
 
 const AdminFirmwareTab = () => {
+  const theme = useTheme()
   const tableRef = useRef<any>(null)
   const manufacturerRef = useRef('')
   const [manufacturer, setManufacturer] = useState('')
   const [selectedObject, setSelectedObject] = useState<FirmwareObject>()
   const [showUpload, setShowUpload] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const deleting = useRef(false)
 
+  const [deleteFirmwareObject] = useDeleteFirmwareObjectMutation()
   const [listFirmwareObjects] = useLazyListFirmwareObjectsQuery()
   const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
 
   const refreshListing = useCallback(() => {
     setSelectedObject(undefined)
     setIsRefreshing(true)
-    Promise.resolve(tableRef.current?.onQueryChange({ page: 0 })).finally(() => setIsRefreshing(false))
+    if (!tableRef.current?.onQueryChange) {
+      setIsRefreshing(false)
+      return
+    }
+    tableRef.current.onQueryChange({ page: 0 })
   }, [])
+
+  const deleteFirmware = async (object: FirmwareObject) => {
+    if (deleting.current) return
+    const missing = object.verification_status === 'MISSING'
+    if (!missing && !object.provider_object_version) {
+      toast.error('This file has no object version. Refresh the table before deleting it.')
+      return
+    }
+    deleting.current = true
+    setIsDeleting(true)
+    const notification = toast.loading(missing ? 'Cleaning up firmware records...' : 'Deleting firmware...')
+    try {
+      await deleteFirmwareObject({
+        object_id: object.object_id,
+        provider_object_version: missing ? null : object.provider_object_version,
+      }).unwrap()
+      toast.success(missing ? 'Firmware records cleaned up successfully' : 'Firmware deleted successfully', {
+        id: notification,
+      })
+      refreshListing()
+    } catch (error) {
+      const response = error as { data?: { detail?: string; message?: string } }
+      toast.error(response?.data?.detail || response?.data?.message || 'Failed to delete firmware. Please retry.', {
+        id: notification,
+      })
+    } finally {
+      deleting.current = false
+      setIsDeleting(false)
+    }
+  }
 
   const handleQueryChange = useCallback(
     async (query: Query<FirmwareObject>) => {
       try {
-        const result = await listFirmwareObjects({
+        const params = {
           page: query.page,
           size: query.pageSize,
           search: query.search || '',
           manufacturer: manufacturerRef.current || undefined,
           sort: firmwareSort(query),
-        }).unwrap()
+        }
+
+        const result = await listFirmwareObjects(params).unwrap()
 
         return {
           data: result.objects,
@@ -79,6 +127,8 @@ const AdminFirmwareTab = () => {
         console.error('Failed to fetch firmware:', error)
         toast.error('Failed to fetch firmware')
         throw error
+      } finally {
+        setIsRefreshing(false)
       }
     },
     [listFirmwareObjects]
@@ -107,7 +157,7 @@ const AdminFirmwareTab = () => {
       title: 'Size',
       field: 'content_length',
       headerStyle: HEADER_STYLE,
-      render: (object) => formatFileSize(object.content_length),
+      render: (object) => (object.content_length == null ? '' : formatFileSize(object.content_length)),
     },
     {
       title: 'Last Modified',
@@ -123,13 +173,44 @@ const AdminFirmwareTab = () => {
         <Chip
           size="small"
           label={verificationLabel[object.verification_status]}
-          color={object.verification_status === 'VERIFIED' ? 'success' : 'default'}
+          color={
+            object.verification_status === 'VERIFIED'
+              ? 'success'
+              : object.verification_status === 'MISSING' ? 'warning' : 'default'
+          }
         />
       ),
     },
   ]
 
-  const tableActions: Action<FirmwareObject>[] = [
+  const tableActions: (Action<FirmwareObject> | ((row: FirmwareObject) => Action<FirmwareObject>))[] = [
+    (object) => ({
+      position: 'row',
+      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      iconProps: { itemType: 'rowAction' },
+      tooltip: object.verification_status === 'MISSING' ? 'Clean Up Records' : 'Delete Firmware',
+      disabled: isDeleting,
+      onClick: (_event, row: FirmwareObject) => {
+        const missing = row.verification_status === 'MISSING'
+        confirmAlert({
+          ...Options(
+            missing ? 'Clean Up Firmware Records' : 'Delete Firmware',
+            missing
+              ? 'The file is missing from storage. Remove its database records and associated upgrade rules?'
+              : 'Delete this file and its database records and associated upgrade rules?',
+            [
+              { label: 'Yes', onClick: () => deleteFirmware(row) },
+              { label: 'No', onClick: () => {} },
+            ]
+          ),
+          childrenElement: () => (
+            <div style={{ marginTop: 16, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+              {`Manufacturer: ${row.manufacturer ?? 'Unknown'}\nModel: ${row.model ?? 'Unknown'}\nVersion: ${row.version ?? 'Unknown'}\nFile: ${row.file_name}`}
+            </div>
+          ),
+        })
+      },
+    }),
     {
       position: 'toolbar',
       icon: () => null,
@@ -181,7 +262,18 @@ const AdminFirmwareTab = () => {
   ]
 
   return (
-    <div className="scroll-div-tab">
+    <Box
+      className="scroll-div-tab"
+      sx={{
+        // Match the action-column space of the two-button RSU and User tables.
+        '& thead th:last-child, & tbody td:last-child:not([colspan])': {
+          width: '96px !important',
+        },
+        '& tbody td:last-child:not([colspan]) > div': {
+          justifyContent: 'center',
+        },
+      }}
+    >
       <AdminTable
         actions={tableActions}
         columns={columns}
@@ -190,6 +282,7 @@ const AdminFirmwareTab = () => {
         isLoading={isRefreshing}
         selection={false}
         tableRef={tableRef}
+        thirdSortClick={false}
         title=""
       />
 
@@ -197,6 +290,9 @@ const AdminFirmwareTab = () => {
         <Paper variant="outlined" sx={{ mt: 2, p: 2, overflowWrap: 'anywhere' }}>
           <Typography variant="h6">File details</Typography>
           <Typography>{selectedObject.object_name}</Typography>
+          {selectedObject.verification_status === 'MISSING' && (
+            <Typography>The cloud file is missing. Use Clean Up Records to finish removing its database records.</Typography>
+          )}
           <Typography>Upload status: {selectedObject.upload_status ?? 'No upload record'}</Typography>
           <Typography>Upload ID: {selectedObject.upload_id ?? ''}</Typography>
           <Typography>Firmware ID: {selectedObject.firmware_id ?? 'Not registered'}</Typography>
@@ -214,7 +310,7 @@ const AdminFirmwareTab = () => {
           }}
         />
       )}
-    </div>
+    </Box>
   )
 }
 

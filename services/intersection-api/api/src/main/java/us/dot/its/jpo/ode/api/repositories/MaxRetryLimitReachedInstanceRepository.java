@@ -12,10 +12,13 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstanc
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.Collection;
 
 @Repository
 public interface MaxRetryLimitReachedInstanceRepository
         extends JpaRepository<MaxRetryLimitReachedInstance, MaxRetryLimitReachedInstanceId> {
+
+    boolean existsByTargetFirmwareVersionIdIn(Collection<Integer> ids);
 
     @Modifying
     @Transactional

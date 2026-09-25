@@ -5,7 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
 import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
@@ -95,7 +98,8 @@ class FirmwareObjectServiceTest {
 
         assertThat(result.objects()).isEmpty();
         assertThat(result.totalElements()).isZero();
-        verifyNoInteractions(uploads, images);
+        verify(uploads, never()).findListingUploads(any(), any(), any());
+        verify(images, never()).findByVerifiedUploadIdIn(any());
     }
 
     @Test
@@ -153,7 +157,7 @@ class FirmwareObjectServiceTest {
                 "Commsignia/model/release1/release1.tar.sig",
                 "Commsignia/model/release2/release2.tar.sig",
                 "Commsignia/model/release3/release3.tar.sig"));
-        verifyNoInteractions(images);
+        verify(images, never()).findByVerifiedUploadIdIn(any());
     }
 
     @Test
@@ -218,6 +222,77 @@ class FirmwareObjectServiceTest {
                 .hasMessageContaining("pagination");
     }
 
+    @Test
+    void listsMissingTrackedAndLegacyFilesAfterAllStoragePagesAndAppliesFilters() {
+        var registry = mock(ObjectStorageServiceRegistry.class);
+        var storage = mock(ObjectStorageService.class);
+        var uploads = mock(FirmwareUploadRepository.class);
+        var images = mock(FirmwareImageRepository.class);
+        when(registry.getActiveService()).thenReturn(storage);
+        var missing = verified("Commsignia/model/v1/v1.tar");
+        var present = verified("Commsignia/model/v2/v2.tar");
+        var pending = verified("Commsignia/model/v3/v3.tar");
+        pending.setStatus(FirmwareUploadStatus.PENDING);
+        pending.setExpiresAt(Instant.now().plusSeconds(900));
+        when(uploads.findListingCandidates("gcp", "bucket")).thenReturn(List.of(missing, present, pending));
+        var manufacturer = new Manufacturer();
+        manufacturer.setName("Commsignia");
+        var model = new RsuModel();
+        model.setManufacturer(manufacturer);
+        model.setName("model");
+        var legacy = new FirmwareImage();
+        legacy.setId(42);
+        legacy.setModel(model);
+        legacy.setVersion("v0");
+        legacy.setInstallPackage("legacy.tar");
+        when(images.findLegacyImagesWithModelAndManufacturer()).thenReturn(List.of(legacy));
+        when(storage.listObjects(new ObjectListRequest("Commsignia/", 200, null)))
+                .thenReturn(new StorageObjectPage("gcp", "bucket", List.of(), "next"));
+        when(storage.listObjects(new ObjectListRequest("Commsignia/", 200, "next")))
+                .thenReturn(new StorageObjectPage("gcp", "bucket", List.of(object(present.getObjectName())), null));
+        when(uploads.findListingUploads("gcp", "bucket", List.of(
+                present.getObjectName(),
+                legacy.getModel().getManufacturer().getName() + "/model/v0/legacy.tar",
+                missing.getObjectName())))
+                .thenReturn(List.of(missing, present));
+        var service = new FirmwareObjectService(registry, uploads, images);
+
+        var first = service.list(0, 1, "Commsignia", null, "manufacturer,asc");
+        var second = service.list(1, 1, "Commsignia", null, "manufacturer,asc");
+        var third = service.list(2, 1, "Commsignia", null, "manufacturer,asc");
+
+        assertThat(first.totalElements()).isEqualTo(3);
+        assertThat(first.objects().getFirst()).returns("MISSING", FirmwareObjectPage.Item::verificationStatus)
+                .returns(42, FirmwareObjectPage.Item::firmwareId).returns(null, FirmwareObjectPage.Item::contentLength);
+        assertThat(second.objects().getFirst()).returns("MISSING", FirmwareObjectPage.Item::verificationStatus)
+                .returns(missing.getId(), FirmwareObjectPage.Item::uploadId)
+                .returns(null, FirmwareObjectPage.Item::providerObjectVersion);
+        assertThat(third.objects().getFirst().objectName()).isEqualTo(present.getObjectName());
+        assertThat(service.list(0, 25, "Commsignia", "legacy", "manufacturer,asc").totalElements()).isOne();
+
+        when(storage.listObjects(new ObjectListRequest("Yunex/", 200, null)))
+                .thenReturn(new StorageObjectPage("gcp", "bucket", List.of(), null));
+        assertThat(service.list(0, 25, "Yunex", null, "manufacturer,asc").objects()).isEmpty();
+    }
+
+    @Test
+    void doesNotReportMissingFilesWhenStorageListingFails() {
+        var registry = mock(ObjectStorageServiceRegistry.class);
+        var storage = mock(ObjectStorageService.class);
+        var uploads = mock(FirmwareUploadRepository.class);
+        when(registry.getActiveService()).thenReturn(storage);
+        when(uploads.findListingCandidates("gcp", "bucket"))
+                .thenReturn(List.of(verified("Commsignia/model/v1/v1.tar")));
+        when(storage.listObjects(new ObjectListRequest(null, 200, null)))
+                .thenReturn(new StorageObjectPage("gcp", "bucket", List.of(), "next"));
+        when(storage.listObjects(new ObjectListRequest(null, 200, "next")))
+                .thenThrow(new ObjectStorageUnavailableException("unavailable"));
+        var service = new FirmwareObjectService(registry, uploads, mock(FirmwareImageRepository.class));
+
+        assertThatThrownBy(() -> service.list(0, 25, null, null, "manufacturer,asc"))
+                .isInstanceOf(ObjectStorageUnavailableException.class);
+    }
+
     private StorageObject object(String name) {
         return new StorageObject(name, 9L, Instant.EPOCH, "1", null);
     }
@@ -231,6 +306,7 @@ class FirmwareObjectServiceTest {
         upload.setProviderObjectVersion("1");
         upload.setChecksumAlgorithm("CRC32C");
         upload.setObservedChecksum("ImIEBA==");
+        upload.setExpiresAt(Instant.EPOCH);
         return upload;
     }
 }
