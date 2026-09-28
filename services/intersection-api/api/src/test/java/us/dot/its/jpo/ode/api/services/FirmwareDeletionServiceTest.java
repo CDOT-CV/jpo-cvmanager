@@ -322,7 +322,7 @@ class FirmwareDeletionServiceTest {
                 .hasMessage("An upload URL for this firmware is still valid. Try again in 15 minutes.");
         assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
                 .isInstanceOf(FirmwareDeletionConflictException.class)
-                .hasMessage("An upload URL for this firmware is still valid. Try again in ~15 minutes.");
+                .hasMessage("An upload URL for this firmware is still valid. Try again in 15 minutes.");
         assertThat(uploads.findById(upload.getId())).isPresent();
         verifyNoInteractions(cloud);
     }
