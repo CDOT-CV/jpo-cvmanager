@@ -121,7 +121,7 @@ public class ConfigController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or OPERATOR role with access to the intersection requested"),
             @ApiResponse(responseCode = "404", description = "Configuration setting not found to modify/override"),
     })
-    
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public @ResponseBody <T> ResponseEntity<IntersectionConfig<T>> intersection_config(
             @RequestBody IntersectionConfig<T> config) {
