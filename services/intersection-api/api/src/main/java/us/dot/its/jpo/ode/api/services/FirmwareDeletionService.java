@@ -67,9 +67,17 @@ public class FirmwareDeletionService {
         // upload URL remains usable even after verification or failure.
         var records = uploads.findDestinationForUpdate(location.provider(), location.container(), objectName);
         Instant now = Instant.now();
-        if (records.stream().anyMatch(upload -> upload.getExpiresAt().isAfter(now))) {
+        var latestActiveExpiration = records.stream()
+                .map(upload -> upload.getExpiresAt())
+                .filter(expiration -> expiration.isAfter(now))
+                .max(Instant::compareTo);
+        if (latestActiveExpiration.isPresent()) {
+            long remainingMillis = latestActiveExpiration.get().toEpochMilli() - now.toEpochMilli();
+            long remainingMinutes = Math.max(1, Math.ceilDiv(remainingMillis, 60_000L));
+            String minuteLabel = remainingMinutes == 1 ? "minute" : "minutes";
             throw new FirmwareDeletionConflictException(
-                    "An upload URL for this firmware is still valid. Wait for it to expire before deleting the file.");
+                    "An upload URL for this firmware is still valid. Try again in "
+                            + remainingMinutes + " " + minuteLabel + ".");
         }
         var registeredImages = images.findDestinationForUpdate(location.provider(), location.container(), objectName);
         var imageIds = registeredImages.stream().map(FirmwareImage::getId).toList();

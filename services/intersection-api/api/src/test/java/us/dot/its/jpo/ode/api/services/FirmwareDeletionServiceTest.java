@@ -47,23 +47,35 @@ import us.dot.its.jpo.ode.api.storage.GcpStorageClientProvider;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
-@SpringBootTest(properties = {"firmware-upload.cleanup.enabled=false", "object-storage.provider=gcp",
-        "object-storage.gcp.bucket-name=deletion-test"})
+@SpringBootTest(properties = { "firmware-upload.cleanup.enabled=false", "object-storage.provider=gcp",
+        "object-storage.gcp.bucket-name=deletion-test" })
 @ActiveProfiles("integration-test")
 @Import(TestcontainersConfiguration.class)
 class FirmwareDeletionServiceTest {
-    @Autowired private FirmwareDeletionService deletion;
-    @Autowired private FirmwareObjectService listing;
-    @Autowired private FirmwareRegistrationService registration;
-    @Autowired private FirmwareUploadRepository uploads;
-    @Autowired private FirmwareImageRepository images;
-    @Autowired private FirmwareUpgradeRuleRepository rules;
-    @Autowired private ManufacturerRepository manufacturers;
-    @Autowired private RsuModelRepository models;
-    @Autowired private PlatformTransactionManager transactions;
-    @Autowired private EntityManager entityManager;
-    @Autowired private JdbcTemplate jdbc;
-    @MockitoBean private GcpStorageClientProvider clientProvider;
+    @Autowired
+    private FirmwareDeletionService deletion;
+    @Autowired
+    private FirmwareObjectService listing;
+    @Autowired
+    private FirmwareRegistrationService registration;
+    @Autowired
+    private FirmwareUploadRepository uploads;
+    @Autowired
+    private FirmwareImageRepository images;
+    @Autowired
+    private FirmwareUpgradeRuleRepository rules;
+    @Autowired
+    private ManufacturerRepository manufacturers;
+    @Autowired
+    private RsuModelRepository models;
+    @Autowired
+    private PlatformTransactionManager transactions;
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbc;
+    @MockitoBean
+    private GcpStorageClientProvider clientProvider;
 
     private Storage cloud;
     private Manufacturer manufacturer;
@@ -95,17 +107,24 @@ class FirmwareDeletionServiceTest {
         // Fixtures are committed so these tests exercise the service's real commit
         // and rollback boundaries. Remove only this test's model and dependencies.
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
-            jdbc.update("delete from max_retry_limit_reached_instances where rsu_id in (select rsu_id from rsus where model = ?)", model.getId());
+            jdbc.update(
+                    "delete from max_retry_limit_reached_instances where rsu_id in (select rsu_id from rsus where model = ?)",
+                    model.getId());
             jdbc.update("delete from rsus where model = ?", model.getId());
-            jdbc.update("delete from firmware_upgrade_rules where from_id in (select firmware_id from firmware_images where model = ?) or to_id in (select firmware_id from firmware_images where model = ?)", model.getId(), model.getId());
+            jdbc.update(
+                    "delete from firmware_upgrade_rules where from_id in (select firmware_id from firmware_images where model = ?) or to_id in (select firmware_id from firmware_images where model = ?)",
+                    model.getId(), model.getId());
             jdbc.update("delete from firmware_images where model = ?", model.getId());
             jdbc.update("delete from firmware_uploads where model = ?", model.getId());
             models.deleteById(model.getId());
             manufacturers.deleteById(manufacturer.getId());
             if (organization != null) {
-                entityManager.createQuery("delete from RsuCredential credential where credential.ownerOrganization.id = :id")
+                entityManager
+                        .createQuery("delete from RsuCredential credential where credential.ownerOrganization.id = :id")
                         .setParameter("id", organization.getId()).executeUpdate();
-                entityManager.createQuery("delete from SnmpCredential credential where credential.ownerOrganization.id = :id")
+                entityManager
+                        .createQuery(
+                                "delete from SnmpCredential credential where credential.ownerOrganization.id = :id")
                         .setParameter("id", organization.getId()).executeUpdate();
                 entityManager.remove(entityManager.find(Organization.class, organization.getId()));
                 entityManager.remove(entityManager.find(SnmpProtocol.class, protocol.getId()));
@@ -139,7 +158,7 @@ class FirmwareDeletionServiceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = FirmwareUploadStatus.class, names = {"PENDING", "FAILED", "EXPIRED"})
+    @EnumSource(value = FirmwareUploadStatus.class, names = { "PENDING", "FAILED", "EXPIRED" })
     void deletesUnverifiedUploads(FirmwareUploadStatus state) {
         var upload = saveUpload(state);
         deletion.delete(objectId(), "17");
@@ -152,7 +171,8 @@ class FirmwareDeletionServiceTest {
         when(cloud.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenReturn(true, false);
         deletion.delete(objectId(), "17");
         deletion.delete(objectId(), "17");
-        verify(cloud, times(2)).delete(BlobId.of("deletion-test", objectName), Storage.BlobSourceOption.generationMatch(17L));
+        verify(cloud, times(2)).delete(BlobId.of("deletion-test", objectName),
+                Storage.BlobSourceOption.generationMatch(17L));
     }
 
     @Test
@@ -194,7 +214,8 @@ class FirmwareDeletionServiceTest {
         when(cloud.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class)))
                 .thenThrow(new StorageException(503, "response lost")).thenReturn(false);
 
-        assertThatThrownBy(() -> deletion.delete(objectId(), "17")).isInstanceOf(ObjectStorageUnavailableException.class);
+        assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
+                .isInstanceOf(ObjectStorageUnavailableException.class);
         assertThat(uploads.findById(upload.getId())).isPresent();
         assertThat(images.findById(image.getId())).isPresent();
         assertThat(rules.findById(rule.getId())).isPresent();
@@ -297,22 +318,26 @@ class FirmwareDeletionServiceTest {
         upload.setExpiresAt(Instant.now().plusSeconds(900));
         uploads.saveAndFlush(upload);
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
-                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("still valid");
+                .isInstanceOf(FirmwareDeletionConflictException.class)
+                .hasMessage("An upload URL for this firmware is still valid. Try again in 15 minutes.");
         assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
-                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("still valid");
+                .isInstanceOf(FirmwareDeletionConflictException.class)
+                .hasMessage("An upload URL for this firmware is still valid. Try again in ~15 minutes.");
         assertThat(uploads.findById(upload.getId())).isPresent();
         verifyNoInteractions(cloud);
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
+    @ValueSource(booleans = { false, true })
     void rejectsCurrentAndTargetRsuReferencesIncludingLegacyImages(boolean target) throws Exception {
         var image = saveImage(null, "v1");
         var rsu = createRsu();
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
             var managed = entityManager.find(Rsu.class, rsu.getId());
-            if (target) managed.setTargetFirmwareVersion(image);
-            else managed.setFirmwareVersion(image);
+            if (target)
+                managed.setTargetFirmwareVersion(image);
+            else
+                managed.setFirmwareVersion(image);
         });
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
                 .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("current or target");
@@ -326,7 +351,8 @@ class FirmwareDeletionServiceTest {
     void rejectsFailureHistoryReferences() throws Exception {
         var image = saveImage(null, "v1");
         var rsu = createRsu();
-        jdbc.update("insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values (?, now(), ?)",
+        jdbc.update(
+                "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values (?, now(), ?)",
                 rsu.getId(), image.getId());
         assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
                 .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("failure history");
@@ -342,7 +368,8 @@ class FirmwareDeletionServiceTest {
         var finishDelete = new CountDownLatch(1);
         when(cloud.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class))).thenAnswer(invocation -> {
             deleting.countDown();
-            if (!finishDelete.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Timed out");
+            if (!finishDelete.await(10, TimeUnit.SECONDS))
+                throw new IllegalStateException("Timed out");
             return true;
         });
         try (var executor = Executors.newFixedThreadPool(2)) {
@@ -352,7 +379,8 @@ class FirmwareDeletionServiceTest {
                 var complete = executor.submit(() -> registration.register(upload.getId(), metadata));
                 finishDelete.countDown();
                 delete.get(10, TimeUnit.SECONDS);
-                assertThatThrownBy(() -> complete.get(10, TimeUnit.SECONDS)).hasCauseInstanceOf(EntityNotFoundException.class);
+                assertThatThrownBy(() -> complete.get(10, TimeUnit.SECONDS))
+                        .hasCauseInstanceOf(EntityNotFoundException.class);
             } finally {
                 finishDelete.countDown();
             }
@@ -363,7 +391,8 @@ class FirmwareDeletionServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"!invalid", "Z2Nw", "gcp\nota/update.tar", "gcp\nOTA/update.tar", "gcp\nfolder/", "other\nfile.tar"})
+    @ValueSource(strings = { "!invalid", "Z2Nw", "gcp\nota/update.tar", "gcp\nOTA/update.tar", "gcp\nfolder/",
+            "other\nfile.tar" })
     void rejectsMalformedReservedOrOtherProviderIdentifiers(String value) {
         String id = value.startsWith("!") || value.equals("Z2Nw") ? value : encode(value);
         assertThatThrownBy(() -> deletion.delete(id, "17"))
