@@ -45,7 +45,6 @@ public class RsuGeoQueryController {
      * @return host addresses of RSUs inside the polygon
      */
     @Operation(summary = "Query RSU IPs inside a polygon", description = "Returns IPv4 addresses of RSUs in the organization whose geography lies inside the supplied polygon. "
-            + "Replaces the Python API route POST /rsu-config-geo-query. "
             + "A vendor of \"Select Vendor\", blank, or omitted applies no manufacturer filter. "
             + "The polygon ring must be closed and contain at least four positions.")
     @ApiResponses({
