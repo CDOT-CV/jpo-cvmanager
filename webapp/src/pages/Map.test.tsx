@@ -60,9 +60,17 @@ it('snapshot bsmCoordinates wzdx', () => {
     </ThemeProvider>
   )
 
-  fireEvent.click(screen.queryByText('RSU Viewer'))
-  fireEvent.click(screen.queryByText('Heatmap'))
-  fireEvent.click(screen.queryByText('WZDx Viewer'))
+  const rsuCheckbox = screen.getByRole('checkbox', { name: 'RSU Viewer' })
+  const heatmapCheckbox = screen.getByRole('checkbox', { name: 'Heatmap' })
+  const wzdxCheckbox = screen.getByRole('checkbox', { name: 'WZDx Viewer' })
+
+  fireEvent.click(screen.getByText('RSU Viewer'))
+  fireEvent.click(screen.getByText('Heatmap'))
+  fireEvent.click(screen.getByText('WZDx Viewer'))
+
+  expect(rsuCheckbox).not.toBeChecked()
+  expect(heatmapCheckbox).toBeChecked()
+  expect(wzdxCheckbox).toBeChecked()
 
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
@@ -98,6 +106,10 @@ it('snapshot bsmData clicked', () => {
         configList: ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
         addConfigPoint: false,
       },
+    },
+    wzdx: {
+      loading: false,
+      value: null,
     },
     user: { value: { authLoginData: { token: 'testToken' } } },
   }

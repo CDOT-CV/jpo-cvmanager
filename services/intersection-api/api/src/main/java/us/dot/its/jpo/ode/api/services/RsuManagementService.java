@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -93,11 +94,10 @@ public class RsuManagementService {
         allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
 
         if (userToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAllOrganizationNames());
+            allowed.setOrganizations(organizationRepository.findAll().stream().map(o -> o.getName()).toList());
         } else {
-            allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN));
+            allowed.setOrganizations(userToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(o -> o.getName()).toList());
         }
-
         return allowed;
     }
 
@@ -179,7 +179,7 @@ public class RsuManagementService {
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, CvManagerAuthToken userToken) {
         try {
-            List<String> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
+            List<Organization> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
 
             // 1. Find existing RSU by original IP
             InetAddress inetAddress = InetAddress.getByName(rsuIp);
@@ -254,53 +254,70 @@ public class RsuManagementService {
         }
     }
 
-    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<String> authorizedOrgs) {
-
+    /**
+     * Applies RSU organization membership changes and reports the most common
+     * validation failures.
+     *
+     * <p>
+     * When adding organizations, this method rejects names that the caller is not
+     * authorized to manage by throwing an {@link AccessDeniedException}. If the RSU
+     * is already associated with an organization in the add list, the repository
+     * save will fail with a DataIntegrityViolationException, which is re-formatted
+     * by the GlobalExceptionHandler as a 409 Conflict Response.
+     * 
+     * For removals, it rejects unauthorized orgs and deletes only the matching
+     * RSU-to-organization relationship when the association exists; otherwise, the
+     * removal is a no-op.
+     *
+     * <p>
+     * Simple errors covered here include missing or unauthorized org names, invalid
+     * organization lookups, and any unmatched add/remove entries that do not
+     * resolve to an authorized organization.
+     */
+    private void handleOrganizationChanges(Rsu rsu, RsuPatch patch, List<Organization> authorizedOrgs) {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.contains(org))
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to add RSU to organization(s): "
-                                + String.join(", ", unqualifiedAdds));
+                throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
+                        + String.join(", ", unqualifiedAdds));
             }
             for (String orgName : patch.getOrganizationsToAdd()) {
-                // Check if already associated
-                boolean exists = rsuRepository.existsByIpAndOrganizations(
-                        rsu.getIpv4Address(),
-                        List.of(orgName));
+                Organization org = authorizedOrgs.stream()
+                        .filter(o -> o.getName().equals(orgName))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + orgName));
 
-                if (!exists) {
-                    Organization org = organizationRepository.findByName(orgName)
-                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                    "Organization not found: " + orgName));
+                RsuOrganization rsuOrg = new RsuOrganization();
+                rsuOrg.setRsu(rsu);
+                rsuOrg.setOrganization(org);
 
-                    RsuOrganization rsuOrg = new RsuOrganization();
-                    rsuOrg.setRsu(rsu);
-                    rsuOrg.setOrganization(org);
-
-                    rsuOrganizationRepository.save(rsuOrg);
-                }
+                rsuOrganizationRepository.save(rsuOrg);
             }
         }
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.contains(org))
+            List<String> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
+                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
                     .toList();
-            if (!unqualifiedRemoves.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "User does not have permission to remove RSU from organization(s): "
-                                + String.join(", ", unqualifiedRemoves));
+            if (!unqualifiedRemovals.isEmpty()) {
+                throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "
+                        + String.join(", ", unqualifiedRemovals));
             }
             for (String orgName : patch.getOrganizationsToRemove()) {
+                Organization org = authorizedOrgs.stream()
+                        .filter(o -> o.getName().equals(orgName))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + orgName));
                 // Find and delete the specific association
                 rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization_Name(
                         rsu.getIpv4Address(),
-                        orgName).ifPresent(rsuOrganizationRepository::delete);
+                        org.getName()).ifPresent(rsuOrganizationRepository::delete);
             }
         }
     }

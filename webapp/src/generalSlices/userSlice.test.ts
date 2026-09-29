@@ -1,4 +1,5 @@
 import reducer, {
+  addOrModifyOrgAssociationByOrgName,
   selectIsAdminOrAbove,
   selectIsOperatorOrAbove,
   selectIsSuperUser,
@@ -11,6 +12,7 @@ import {
   // reducers
   logout,
   changeOrganization,
+  changeOrganizationName,
   setLoading,
   setLoginFailure,
 
@@ -26,8 +28,11 @@ import {
   selectLoginFailure,
   selectLoading,
   selectLoadingGlobal,
+  selectOrganizationId,
 } from './userSlice'
 import AuthApi from '../apis/auth-api'
+import apiHelper from '../apis/api-helper'
+import EnvironmentVars from '../EnvironmentVars'
 import { UserManager, LocalStorageManager } from '../managers'
 import { setupJestCanvasMock } from 'jest-canvas-mock'
 
@@ -147,6 +152,82 @@ describe('async thunks', () => {
   })
 })
 
+describe('addOrModifyOrgAssociationByOrgName', () => {
+  it('returns null when there is no token or auth data', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: null,
+        },
+      },
+    }))
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Alpha', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toBeNull()
+  })
+
+  it('updates the role when the organization already exists', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: {
+            token: 'token-123',
+            data: {
+              organizations: [{ name: 'Alpha', role: 'VIEWER', organization: 'org-1' }],
+            },
+          },
+        },
+      },
+    }))
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Alpha', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toEqual({ name: 'Alpha', role: 'ADMIN', organization: 'org-1' })
+  })
+
+  it('fetches the organization id and adds a brand new association', async () => {
+    const dispatch = jest.fn()
+    const getState = jest.fn(() => ({
+      user: {
+        value: {
+          authLoginData: {
+            token: 'token-123',
+            data: {
+              organizations: [{ name: 'Alpha', role: 'VIEWER', organization: 'org-1' }],
+            },
+          },
+        },
+      },
+    }))
+    apiHelper._getDataWithCodes = jest.fn().mockResolvedValue({ status: 200, body: { organization_id: 'org-2' } })
+
+    const action = await addOrModifyOrgAssociationByOrgName({ name: 'Beta', role: 'ADMIN' })(
+      dispatch,
+      getState,
+      undefined
+    )
+
+    expect(action.payload).toEqual({ name: 'Beta', role: 'ADMIN', organization: 'org-2' })
+
+    expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
+      url: EnvironmentVars.adminOrg,
+      token: 'token-123',
+      query_params: { org_name: 'Beta' },
+    })
+  })
+})
+
 describe('reducers', () => {
   const initialState: RootState['user'] = {
     loading: null,
@@ -187,13 +268,13 @@ describe('reducers', () => {
           ...initialState,
           value: { ...initialState.value, authLoginData: 'authLoginData' },
         } as any,
-        changeOrganization('payload')
+        changeOrganization(1)
       )
     ).toEqual({
       ...initialState,
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
-    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 'payload')
+    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
 
     UserManager.getOrganization = jest.fn().mockReturnValue(null)
     expect(
@@ -202,13 +283,46 @@ describe('reducers', () => {
           ...initialState,
           value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
         } as any,
-        changeOrganization('payload')
+        changeOrganization(1)
       )
     ).toEqual({
       ...initialState,
       value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
     })
-    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 'payload')
+    expect(UserManager.getOrganization).toHaveBeenCalledWith('authLoginData', 1)
+  })
+
+  it('changeOrganizationName reducer updates state correctly', async () => {
+    const organization = 'organization'
+    UserManager.getOrganizationByName = jest.fn().mockReturnValue(organization)
+    expect(
+      reducer(
+        {
+          ...initialState,
+          value: { ...initialState.value, authLoginData: 'authLoginData' },
+        } as any,
+        changeOrganizationName('organizationName')
+      )
+    ).toEqual({
+      ...initialState,
+      value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+    })
+    expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
+
+    UserManager.getOrganizationByName = jest.fn().mockReturnValue(null)
+    expect(
+      reducer(
+        {
+          ...initialState,
+          value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+        } as any,
+        changeOrganizationName('organizationName')
+      )
+    ).toEqual({
+      ...initialState,
+      value: { ...initialState.value, organization, authLoginData: 'authLoginData' },
+    })
+    expect(UserManager.getOrganizationByName).toHaveBeenCalledWith('authLoginData', 'organizationName')
   })
 
   it('setLoading reducer updates state correctly', async () => {
@@ -235,7 +349,8 @@ describe('selectors', () => {
     value: {
       organization: {
         role: 'USER',
-        organization: 'organizationName',
+        name: 'organizationName',
+        organization: 1,
       },
       authLoginData: {
         token: 'token',
@@ -257,6 +372,7 @@ describe('selectors', () => {
     expect(selectIsSuperUser(state)).toEqual(false)
     expect(selectRole(state)).toEqual('USER')
     expect(selectOrganizationName(state)).toEqual('organizationName')
+    expect(selectOrganizationId(state)).toEqual(1)
     expect(selectName(state)).toEqual('name')
     expect(selectEmail(state)).toEqual('email')
     expect(selectSuperUser(state)).toEqual(false)

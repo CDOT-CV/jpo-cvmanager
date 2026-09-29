@@ -4,8 +4,6 @@ import {
   RsuInfo,
   RsuMapInfo,
   RsuMapInfoIpList,
-  RsuOnlineStatusRespMultiple,
-  RsuOnlineStatusRespSingle,
 } from '../models/RsuApi'
 import { RootState } from '../store'
 import { selectToken, selectOrganizationName } from './userSlice'
@@ -18,7 +16,6 @@ const currentDate = DateTime.local()
 const initialState = {
   selectedRsu: null as RsuInfo,
   rsuData: [] as RsuInfo[],
-  rsuOnlineStatus: {} as RsuOnlineStatusRespMultiple,
   geoMsgType: 'BSM' as MessageType | undefined,
   rsuMapData: {} as RsuMapInfo['geojson'],
   mapList: [] as RsuMapInfoIpList,
@@ -39,23 +36,18 @@ const initialState = {
 
 export const getRsuData = createAsyncThunk(
   'rsu/getRsuData',
-  async (_, { getState, dispatch }) => {
+  async (_, { getState }) => {
     const currentState = getState() as RootState
+    const token = selectToken(currentState)
+    const organization = selectOrganizationName(currentState)
+    const rsuInfo = await RsuApi.getRsuInfo(token, organization)
 
-    await Promise.all([dispatch(_getRsuInfo()), dispatch(_getRsuOnlineStatus(currentState.rsu.value.rsuOnlineStatus))])
+    return rsuInfo.rsuList
   },
   {
     condition: (_, { getState }) => selectToken(getState() as RootState) != undefined,
   }
 )
-
-export const getRsuLastOnline = createAsyncThunk('rsu/getRsuLastOnline', async (rsu_ip: string, { getState }) => {
-  const currentState = getState() as RootState
-  const token = selectToken(currentState)
-  const organization = selectOrganizationName(currentState)
-  const rsuLastOnline = await RsuApi.getRsuOnline(token, organization, '', { rsu_ip })
-  return rsuLastOnline
-})
 
 export const _getRsuInfo = createAsyncThunk('rsu/_getRsuInfo', async (_, { getState }) => {
   const currentState = getState() as RootState
@@ -66,18 +58,6 @@ export const _getRsuInfo = createAsyncThunk('rsu/_getRsuInfo', async (_, { getSt
 
   return rsuData
 })
-
-export const _getRsuOnlineStatus = createAsyncThunk(
-  'rsu/_getRsuOnlineStatus',
-  async (rsuOnlineStatusState: RsuOnlineStatusRespMultiple, { getState }) => {
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
-    const organization = selectOrganizationName(currentState)
-    const rsuOnlineStatus = (await RsuApi.getRsuOnline(token, organization)) ?? rsuOnlineStatusState
-
-    return rsuOnlineStatus
-  }
-)
 
 export const updateGeoMsgData = createAsyncThunk(
   'rsu/updateGeoMsgData',
@@ -150,6 +130,7 @@ export const rsuSlice = createSlice({
   name: 'rsu',
   initialState: {
     loading: false,
+    currentRequestId: null as string | null,
     value: initialState,
   },
   reducers: {
@@ -195,35 +176,24 @@ export const rsuSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getRsuData.pending, (state) => {
+      .addCase(getRsuData.pending, (state, action) => {
         state.loading = true
+        state.currentRequestId = action.meta.requestId
         state.value.rsuData = []
-        state.value.rsuOnlineStatus = {}
       })
-      .addCase(getRsuData.fulfilled, (state) => {
+      .addCase(getRsuData.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
+        state.value.rsuData = action.payload
         state.loading = false
+        state.currentRequestId = null
       })
-      .addCase(getRsuData.rejected, (state) => {
+      .addCase(getRsuData.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) return
         state.loading = false
-      })
-      .addCase(getRsuLastOnline.pending, (state) => {
-        state.loading = true
-      })
-      .addCase(getRsuLastOnline.fulfilled, (state, action) => {
-        state.loading = false
-        const payload = action.payload as RsuOnlineStatusRespSingle
-        if (Object.prototype.hasOwnProperty.call(state.value.rsuOnlineStatus, payload.ip)) {
-          ;(state.value.rsuOnlineStatus as RsuOnlineStatusRespMultiple)[payload.ip]['last_online'] = payload.last_online
-        }
-      })
-      .addCase(getRsuLastOnline.rejected, (state) => {
-        state.loading = false
+        state.currentRequestId = null
       })
       .addCase(_getRsuInfo.fulfilled, (state, action) => {
         state.value.rsuData = action.payload
-      })
-      .addCase(_getRsuOnlineStatus.fulfilled, (state, action) => {
-        state.value.rsuOnlineStatus = action.payload as RsuOnlineStatusRespMultiple
       })
       .addCase(updateGeoMsgData.pending, (state) => {
         state.loading = true
@@ -249,7 +219,6 @@ export const selectRsuManufacturer = (state: RootState) => state.rsu.value.selec
 export const selectRsuIpv4 = (state: RootState) => state.rsu.value.selectedRsu?.properties?.ipv4_address
 export const selectRsuPrimaryRoute = (state: RootState) => state.rsu.value.selectedRsu?.properties?.primary_route
 export const selectRsuData = (state: RootState) => state.rsu.value.rsuData
-export const selectRsuOnlineStatus = (state: RootState) => state.rsu.value.rsuOnlineStatus
 export const selectGeoMsgType = (state: RootState) => state.rsu.value.geoMsgType
 export const selectRsuMapData = (state: RootState) => state.rsu.value.rsuMapData
 export const selectMapList = (state: RootState) => state.rsu.value.mapList

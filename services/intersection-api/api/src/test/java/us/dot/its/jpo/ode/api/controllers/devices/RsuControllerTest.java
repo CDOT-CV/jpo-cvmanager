@@ -1,5 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.devices;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.UserRole;
@@ -61,6 +63,15 @@ class RsuControllerTest {
 
     @InjectMocks
     private RsuController rsuController;
+
+    private Organization sampleOrganization;
+
+    @BeforeEach
+    void setUp() {
+        sampleOrganization = new Organization();
+        sampleOrganization.setId(1);
+        sampleOrganization.setName("TestOrg");
+    }
 
     @Nested
     @DisplayName("Tests for getAllRsus endpoint")
@@ -576,7 +587,7 @@ class RsuControllerTest {
 
                 Rsu mockRsu = new Rsu();
 
-                when(permissionService.hasRoleInOrgs(role, orgsToAdd)).thenReturn(true);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd)).thenReturn(mockRsu);
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
@@ -585,7 +596,7 @@ class RsuControllerTest {
                 assertEquals(HttpStatus.CREATED, result.getStatusCode());
                 assertNull(result.getBody());
 
-                verify(permissionService).hasRoleInOrgs(role, orgsToAdd);
+                verify(permissionService).hasRoleInOrgNames(role, orgsToAdd);
                 verify(rsuManagementService).createRsu(rsuInfoDto, orgsToAdd);
             }
 
@@ -609,7 +620,7 @@ class RsuControllerTest {
                         true,
                         true);
 
-                when(permissionService.hasRoleInOrgs(role, orgsToAdd)).thenReturn(false);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(false);
 
                 ResponseStatusException exception = assertThrows(
                         ResponseStatusException.class,
@@ -641,7 +652,7 @@ class RsuControllerTest {
                         true,
                         true);
 
-                when(permissionService.hasRoleInOrgs(role, orgsToAdd)).thenReturn(true);
+                when(permissionService.hasRoleInOrgNames(role, orgsToAdd)).thenReturn(true);
 
                 when(rsuManagementService.createRsu(rsuInfoDto, orgsToAdd))
                         .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT,

@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
+import us.dot.its.jpo.ode.api.services.PrometheusService;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
@@ -208,6 +209,17 @@ class GlobalExceptionHandlerTest {
 
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertEquals("Invalid request parameters", response.getBody().getDetail());
+        }
+
+        @Test
+        void testBadRequestPrometheusOomDetail() {
+            ResponseStatusException ex = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    PrometheusService.OOM_USER_MESSAGE);
+
+            ErrorResponse response = handler.handleResponseStatusException(ex);
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertEquals(PrometheusService.OOM_USER_MESSAGE, response.getBody().getDetail());
         }
 
         @Test

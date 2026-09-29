@@ -136,6 +136,14 @@ def get_org_data(org_name: str, is_admin_in_org: bool):
         intersection_obj["origin_ip"] = row["origin_ip"]
         org_obj["org_intersections"].append(intersection_obj)
 
+    organization_query = (
+        "SELECT organization_id FROM public.organizations WHERE name = :org_name"
+    )
+    params = {"org_name": org_name}
+    data = pgquery.query_db(organization_query, params=params)
+    if data:
+        org_obj["organization_id"] = data[0][0]
+
     return org_obj
 
 

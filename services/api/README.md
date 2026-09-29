@@ -28,10 +28,6 @@ Expected headers for all endpoints:
 
 Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a basic select all query from a table named "RsuData" that is located in a database specified by the environments variables. Returns single JSON object.
 
-### <b>/rsu-online-status</b> <b>(GET)</b>
-
-Returns the online status of every RSU and the last time each RSU has been documented to be online in a single JSON object.
-
 ### <b>/rsucounts</b> <b>(GET)</b>
 
 Returns the message counts for a single, selected RSU from a BigQuery table. It performs a basic select query on a table specified by the environments variable. Returns single JSON object.

@@ -12,11 +12,10 @@ public class MessageCountCountsItem {
     private int in;
     @Schema(description = "Egress message counts")
     private int out;
-    @Schema(description = "Percentage difference between egress and ingress message counts " +
-            "(absolute value, always positive), where 0% difference means identical counts. For commonly " +
-            "deduplicated message types (like MAP), the percent difference accounts for expected 3600:1 " +
-            "deduplication. In cases where the in counts are zero or the out counts are greater than the " +
-            "in counts, the diff percent is set to 6%, enough to trigger an error (>5%)")
+    @Schema(description = "Absolute percentage difference of outbound vs inbound counts " +
+            "(|out/in - 1| * 100). 0% means identical counts. Cells with a difference greater " +
+            "than 5% are highlighted as errors. When inbound is zero and outbound is not, " +
+            "the value is 100%.")
     @JsonProperty("diff_percent")
     private double diffPercent;
 }
