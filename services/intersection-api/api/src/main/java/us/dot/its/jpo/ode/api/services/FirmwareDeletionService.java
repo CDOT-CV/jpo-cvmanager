@@ -85,11 +85,6 @@ public class FirmwareDeletionService {
             throw new FirmwareDeletionConflictException(
                     "This firmware is an RSU's current or target version and cannot be deleted.");
         }
-        if (!imageIds.isEmpty() && failureHistory.existsByTargetFirmwareVersionIdIn(imageIds)) {
-            throw new FirmwareDeletionConflictException(
-                    "This firmware is referenced by upgrade failure history and cannot be deleted.");
-        }
-
         // Recovery never deletes a cloud object. A file that reappeared must be
         // listed and explicitly confirmed with its current version first.
         if (providerObjectVersion == null && service.objectExists(objectName)) {
@@ -102,6 +97,9 @@ public class FirmwareDeletionService {
         // allows a retry to finish cleanup if a previous database commit failed.
         try {
             if (!imageIds.isEmpty()) {
+                // Retry-limit entries describe the image being removed and cannot
+                // remain once that image is no longer registered.
+                failureHistory.deleteByTargetFirmwareVersionIdIn(imageIds);
                 rules.deleteForImages(imageIds);
                 images.deleteAll(registeredImages);
                 images.flush();

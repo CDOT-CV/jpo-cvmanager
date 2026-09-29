@@ -57,6 +57,7 @@ public class FirmwareObjectService {
                 : validateManufacturer(manufacturer) + "/";
         String searchTerm = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         var storageService = storage.getActiveService();
+        var listedObjects = new ArrayList<StorageObject>();
         var objects = new ArrayList<StorageObject>();
         var visitedTokens = new HashSet<String>();
         var missing = new TreeMap<String, StorageObject>();
@@ -69,33 +70,7 @@ public class FirmwareObjectService {
         // filtered result, including untracked and missing files.
         do {
             page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
-            if (pageToken == null) {
-                // Database records remain discoverable after a lost deletion response
-                // or failed commit, even when the cloud file is already gone.
-                Instant now = Instant.now();
-                for (var upload : uploads.findListingCandidates(page.provider(), page.container())) {
-                    if (!upload.getExpiresAt().isAfter(now)
-                            || upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-                        missing.put(upload.getObjectName(), new StorageObject(upload.getObjectName(),
-                                upload.getExpectedSize(), null, null, null));
-                    }
-                }
-                for (var image : images.findLegacyImagesWithModelAndManufacturer()) {
-                    String name = String.join("/", image.getModel().getManufacturer().getName(),
-                            image.getModel().getName(), image.getVersion(), image.getInstallPackage());
-                    legacyImageIds.put(name, image.getId());
-                    missing.putIfAbsent(name, new StorageObject(name, 0L, null, null, null));
-                }
-            }
-            for (var object : page.objects()) {
-                String name = object.objectName();
-                missing.remove(name);
-                if (name.endsWith("/") || isReservedObject(name)
-                        || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
-                    continue;
-                }
-                objects.add(object);
-            }
+            listedObjects.addAll(page.objects());
 
             pageToken = page.nextPageToken();
             if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
@@ -103,8 +78,34 @@ public class FirmwareObjectService {
             }
         } while (pageToken != null && !pageToken.isBlank());
 
-        // Only a complete, successful storage listing establishes absence. Include
-        // missing records in the same searched and manufacturer-filtered result.
+        // Only a complete, successful storage listing establishes absence. Database
+        // records remain discoverable after a lost deletion response or failed commit.
+        Instant now = Instant.now();
+        for (var upload : uploads.findListingCandidates(page.provider(), page.container())) {
+            if (!upload.getExpiresAt().isAfter(now)
+                    || upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
+                missing.put(upload.getObjectName(), new StorageObject(upload.getObjectName(),
+                        upload.getExpectedSize(), null, null, null));
+            }
+        }
+        for (var image : images.findLegacyImagesWithModelAndManufacturer()) {
+            String name = String.join("/", image.getModel().getManufacturer().getName(),
+                    image.getModel().getName(), image.getVersion(), image.getInstallPackage());
+            legacyImageIds.put(name, image.getId());
+            missing.putIfAbsent(name, new StorageObject(name, 0L, null, null, null));
+        }
+
+        for (var object : listedObjects) {
+            String name = object.objectName();
+            missing.remove(name);
+            if (name.endsWith("/") || isReservedObject(name)
+                    || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
+                continue;
+            }
+            objects.add(object);
+        }
+
+        // Include missing records in the same searched and manufacturer-filtered result.
         for (var object : missing.values()) {
             String name = object.objectName();
             if (name.endsWith("/") || isReservedObject(name)

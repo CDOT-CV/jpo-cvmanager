@@ -291,6 +291,7 @@ class FirmwareObjectServiceTest {
 
         assertThatThrownBy(() -> service.list(0, 25, null, null, "manufacturer,asc"))
                 .isInstanceOf(ObjectStorageUnavailableException.class);
+        verify(uploads, never()).findListingCandidates(any(), any());
     }
 
     private StorageObject object(String name) {
