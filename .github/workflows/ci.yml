@@ -458,6 +458,22 @@ jobs:
         run: |
           find "$GITHUB_WORKSPACE" -name "lcov.info"
 
+      - name: Validate Coverage Reports
+        shell: bash
+        run: |
+          reports=(
+            "services/coverage.xml"
+            "webapp/lcov.info"
+            "services/intersection-api/api/target/site/jacoco/jacoco.xml"
+            "services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml"
+          )
+          for report in "${reports[@]}"; do
+            if [ ! -s "$report" ]; then
+              echo "::error::Missing or empty coverage report: $report"
+              exit 1
+            fi
+          done
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -470,14 +486,14 @@ jobs:
           sonar.exclusions=**/__init__.py,**/*test*.py,**/test/**
           sonar.cpd.exclusions=services/intersection-api/api/src/test/resources/snapshots/**,services/intersection-api/api/src/main/resources/templates/**,services/intersection-api/docs/**,resources/deprecated/**
           sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**
-          sonar.javascript.lcov.reportPaths=/home/runner/work/jpo-cvmanager/jpo-cvmanager/webapp/lcov.info
+          sonar.javascript.lcov.reportPaths=webapp/lcov.info
           sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/rsu_status_check,services/api/src,services/common/pgquery.py,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java
           sonar.tests=services/addons/tests,services/api/tests,services/common/tests,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java
           sonar.organization=${{ vars.SONAR_ORGANIZATION || github.repository_owner }}
           sonar.projectBaseDir=$GITHUB_WORKSPACE
           sonar.projectKey=${{ github.repository_owner }}_jpo-cvmanager
           sonar.projectName=jpo-cvmanager
-          sonar.python.coverage.reportPaths=$GITHUB_WORKSPACE/services/coverage.xml
+          sonar.python.coverage.reportPaths=services/coverage.xml
           sonar.python.version=3.12.2
           sonar.java.binaries=resources/keycloak/custom-user-provider/target/classes,services/rsu-info-bridge/target/classes,services/intersection-api/api/target/classes,services/rsu-status-monitor/rsu-status-monitor/target/classes
           sonar.java.test.binaries=resources/keycloak/custom-user-provider/target/test-classes,services/rsu-info-bridge/target/test-classes,services/intersection-api/api/target/test-classes,services/rsu-status-monitor/rsu-status-monitor/target/test-classes
