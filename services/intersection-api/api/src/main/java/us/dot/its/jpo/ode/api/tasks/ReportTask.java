@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.accessors.map.ProcessedMapRepository;
+import us.dot.its.jpo.ode.api.config.SchedulingConfig;
 import us.dot.its.jpo.ode.api.models.IntersectionReferenceData;
 import us.dot.its.jpo.ode.api.services.ReportService;
 
@@ -39,37 +40,67 @@ public class ReportTask {
         return LocalDateTime.of(today, time).atZone(ZoneOffset.UTC);
     }
 
-    @Scheduled(cron = DAILY_NOTIFICATION_CRON)
+    @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateDailyReports() {
-        log.info("Generating Daily Report", dateFormat.format(new Date()));
-        ZonedDateTime midnight = generateTimestampMidnightUTC();
-        ZonedDateTime midnightYesterday = midnight.minusDays(1);
-        generateReportForTimeRange(midnightYesterday.toInstant(), midnight.toInstant());
+        runScheduledTask("daily report task", () -> {
+            log.info("Generating Daily Report: {}", dateFormat.format(new Date()));
+            ZonedDateTime midnight = generateTimestampMidnightUTC();
+            ZonedDateTime midnightYesterday = midnight.minusDays(1);
+            generateReportForTimeRange(midnightYesterday.toInstant(), midnight.toInstant());
+        });
     }
 
-    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON)
+    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateWeeklyReports() {
-        log.info("Generating Weekly Report", dateFormat.format(new Date()));
-        ZonedDateTime midnight = generateTimestampMidnightUTC();
-        ZonedDateTime midnightLastWeek = midnight.minusWeeks(1);
-        generateReportForTimeRange(midnightLastWeek.toInstant(), midnight.toInstant());
+        runScheduledTask("weekly report task", () -> {
+            log.info("Generating Weekly Report: {}", dateFormat.format(new Date()));
+            ZonedDateTime midnight = generateTimestampMidnightUTC();
+            ZonedDateTime midnightLastWeek = midnight.minusWeeks(1);
+            generateReportForTimeRange(midnightLastWeek.toInstant(), midnight.toInstant());
+        });
     }
 
-    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON)
+    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateMonthlyReports() {
-        log.info("Generating Monthly Report", dateFormat.format(new Date()));
-        ZonedDateTime midnight = generateTimestampMidnightUTC();
-        ZonedDateTime midnightLastMonth = midnight.minusMonths(1);
-        generateReportForTimeRange(midnightLastMonth.toInstant(), midnight.toInstant());
+        runScheduledTask("monthly report task", () -> {
+            log.info("Generating Monthly Report: {}", dateFormat.format(new Date()));
+            ZonedDateTime midnight = generateTimestampMidnightUTC();
+            ZonedDateTime midnightLastMonth = midnight.minusMonths(1);
+            generateReportForTimeRange(midnightLastMonth.toInstant(), midnight.toInstant());
+        });
     }
 
     public void generateReportForTimeRange(Instant start, Instant end) {
         for (IntersectionReferenceData data : processedMapRepo.getIntersectionIDs()) {
+            long startNanos = System.nanoTime();
             log.info("Generating Report for Intersection {} Start Time: {} End Time: {}", data.getIntersectionID(),
                     start, end);
 
             // build report and save it back to the database.
-            reportService.buildReport(data.getIntersectionID(), start.toEpochMilli(), end.toEpochMilli());
+            try {
+                reportService.buildReport(data.getIntersectionID(), start.toEpochMilli(), end.toEpochMilli());
+                log.info("Completed report for intersection {} in {} ms", data.getIntersectionID(),
+                        elapsedMillis(startNanos));
+            } catch (RuntimeException | Error e) {
+                log.error("Failed report for intersection {} after {} ms", data.getIntersectionID(),
+                        elapsedMillis(startNanos), e);
+                throw e;
+            }
         }
+    }
+
+    private void runScheduledTask(String taskName, Runnable task) {
+        long startNanos = System.nanoTime();
+        try {
+            task.run();
+            log.info("Completed {} in {} ms", taskName, elapsedMillis(startNanos));
+        } catch (RuntimeException | Error e) {
+            log.error("Failed {} after {} ms", taskName, elapsedMillis(startNanos), e);
+            throw e;
+        }
+    }
+
+    private static long elapsedMillis(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 }
