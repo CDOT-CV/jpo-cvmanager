@@ -197,7 +197,8 @@ public class CountsRepositoryImpl implements CountsRepository {
                 charClasses.append(c);
             }
         }
-        return "topic\\.Ode.*" + charClasses + ".*Json";
+        // Match the literal topic.Ode separator without PromQL string escaping
+        return "topic[.]Ode.*" + charClasses + ".*Json";
     }
 
     private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {

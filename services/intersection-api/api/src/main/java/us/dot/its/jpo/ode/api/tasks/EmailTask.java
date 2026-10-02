@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
+import us.dot.its.jpo.ode.api.config.SchedulingConfig;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.MessageCount;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -81,112 +82,135 @@ public class EmailTask {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.of("UTC"));
 
-    @Scheduled(fixedRate = HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS)
+    @Scheduled(fixedRate = HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS,
+            scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendHourlyNotifications() {
-        log.info("Checking Hourly Notifications: {}", dateFormat.format(new Date()));
-        if (lastHourList == null) {
-            lastHourList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastHourList);
-
-        lastHourList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_HOUR);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
+        runScheduledTask("hourly notification email task", () -> {
+            log.info("Checking Hourly Notifications: {}", dateFormat.format(new Date()));
+            if (lastHourList == null) {
+                lastHourList = getActiveNotifications();
+                return;
             }
-        }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastHourList);
+
+            lastHourList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_HOUR);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
     }
 
-    @Scheduled(cron = DAILY_NOTIFICATION_CRON)
+    @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendDailyNotifications() {
-        log.info("Checking Daily Notifications: {}", dateFormat.format(new Date()));
-        if (lastDayList == null) {
-            lastDayList = getActiveNotifications();
+        runScheduledTask("daily notification and count email task", () -> {
+            log.info("Checking Daily Notifications: {}", dateFormat.format(new Date()));
+            if (lastDayList == null) {
+                lastDayList = getActiveNotifications();
+                sendDailyCountEmails();
+                return;
+            }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastDayList);
+
+            lastDayList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_DAY);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+
             sendDailyCountEmails();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastDayList);
-
-        lastDayList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_DAY);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
-            }
-        }
-
-        sendDailyCountEmails();
+        });
     }
 
-    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON)
+    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendWeeklyNotifications() {
-        log.info("Checking Weekly Notifications: {}", dateFormat.format(new Date()));
-        if (lastWeekList == null) {
-            lastWeekList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastWeekList);
-
-        lastWeekList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_WEEK);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
+        runScheduledTask("weekly notification email task", () -> {
+            log.info("Checking Weekly Notifications: {}", dateFormat.format(new Date()));
+            if (lastWeekList == null) {
+                lastWeekList = getActiveNotifications();
+                return;
             }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastWeekList);
+
+            lastWeekList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_WEEK);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
+    }
+
+    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
+    public void sendMonthlyNotifications() {
+        runScheduledTask("monthly notification email task", () -> {
+            log.info("Checking Monthly Notifications: {}", dateFormat.format(new Date()));
+            if (lastMonthList == null) {
+                lastMonthList = getActiveNotifications();
+                return;
+            }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastMonthList);
+
+            lastMonthList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_MONTH);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
+    }
+
+    private void runScheduledTask(String taskName, Runnable task) {
+        long startNanos = System.nanoTime();
+        try {
+            task.run();
+            log.info("Completed {} in {} ms", taskName, elapsedMillis(startNanos));
+        } catch (RuntimeException | Error e) {
+            log.error("Failed {} after {} ms", taskName, elapsedMillis(startNanos), e);
+            throw e;
         }
     }
 
-    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON)
-    public void sendMonthlyNotifications() {
-        log.info("Checking Monthly Notifications: {}", dateFormat.format(new Date()));
-        if (lastMonthList == null) {
-            lastMonthList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastMonthList);
-
-        lastMonthList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_MONTH);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
-            }
-        }
-
+    private static long elapsedMillis(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
     public List<Notification> getActiveNotifications() {
@@ -219,6 +243,7 @@ public class EmailTask {
      * Isolated so errors do not affect other notification emails.
      */
     void sendDailyCountEmails() {
+        long startNanos = System.nanoTime();
         try {
             log.info("Starting daily count email task");
 
@@ -255,9 +280,9 @@ public class EmailTask {
                 log.info("Sent daily count emails for organization: {}", orgName);
             }
 
-            log.info("Completed daily count email task");
+            log.info("Completed daily count email task in {} ms", elapsedMillis(startNanos));
         } catch (Exception e) {
-            log.error("Error in daily count email task: {}", e.getMessage(), e);
+            log.error("Failed daily count email task after {} ms: {}", elapsedMillis(startNanos), e.getMessage(), e);
         }
     }
 
