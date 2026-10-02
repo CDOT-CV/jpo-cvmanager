@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
-import { Box, Chip, FormControl, InputLabel, MenuItem, Paper, Select, Typography, useTheme } from '@mui/material'
+import { Box, Button, FormControl, InputLabel, MenuItem, Select, Typography, useTheme } from '@mui/material'
 import { DeleteOutline } from '@mui/icons-material'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
@@ -11,29 +11,22 @@ import {
   useDeleteFirmwareObjectMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
+  useListFirmwareRulesQuery,
 } from '../api/firmwareApiSlice'
 import FirmwareUploadForm from './FirmwareUploadForm'
+import FirmwareRulesDialog from './FirmwareRulesDialog'
 import { formatFileSize } from './firmwareUpload'
 import '../adminRsuTab/Admin.css'
 
 const DEFAULT_PAGE_SIZE = 25
 const HEADER_STYLE = { textTransform: 'none' as const }
-const FIRMWARE_SORT_FIELDS = [
-  'manufacturer',
-  'model',
-  'version',
-  'content_length',
-  'updated_at',
-  'verification_status',
-]
+const FIRMWARE_SORT_FIELDS = ['manufacturer', 'model', 'version', 'content_length', 'updated_at', 'verification_status']
 
 const firmwareSort = (query: Query<FirmwareObject>) => {
   const sort = query.orderByCollection?.[0]
   const orderBy = sort?.orderBy as number | Column<FirmwareObject> | undefined
   const field = typeof orderBy === 'number' ? FIRMWARE_SORT_FIELDS[orderBy] : orderBy?.field
-  return typeof field === 'string'
-    ? `${field},${sort.orderDirection || 'asc'}`
-    : 'manufacturer,asc'
+  return typeof field === 'string' ? `${field},${sort.orderDirection || 'asc'}` : 'manufacturer,asc'
 }
 
 const formatUpdatedAt = (value: string | number | null | undefined) => {
@@ -50,13 +43,21 @@ const verificationLabel = {
   MISSING: 'Missing file',
 }
 
+const verificationColor = {
+  VERIFIED: 'success.light',
+  UNVERIFIED: 'warning.light',
+  UNTRACKED: 'text.primary',
+  CHANGED: 'error.light',
+  MISSING: 'warning.light',
+}
+
 const AdminFirmwareTab = () => {
   const theme = useTheme()
   const tableRef = useRef<any>(null)
   const manufacturerRef = useRef('')
   const [manufacturer, setManufacturer] = useState('')
-  const [selectedObject, setSelectedObject] = useState<FirmwareObject>()
   const [showUpload, setShowUpload] = useState(false)
+  const [rulesFirmwareId, setRulesFirmwareId] = useState<number>()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const deleting = useRef(false)
@@ -64,16 +65,17 @@ const AdminFirmwareTab = () => {
   const [deleteFirmwareObject] = useDeleteFirmwareObjectMutation()
   const [listFirmwareObjects] = useLazyListFirmwareObjectsQuery()
   const { data: uploadOptions, isFetching: isFetchingOptions } = useGetFirmwareUploadOptionsQuery()
+  const { data: upgradeRules, isError: rulesFailed, refetch: refreshRules } = useListFirmwareRulesQuery()
 
   const refreshListing = useCallback(() => {
-    setSelectedObject(undefined)
+    void refreshRules()
     setIsRefreshing(true)
     if (!tableRef.current?.onQueryChange) {
       setIsRefreshing(false)
       return
     }
     tableRef.current.onQueryChange({ page: 0 })
-  }, [])
+  }, [refreshRules])
 
   const deleteFirmware = async (object: FirmwareObject) => {
     if (deleting.current) return
@@ -141,17 +143,7 @@ const AdminFirmwareTab = () => {
       title: 'Version',
       field: 'version',
       headerStyle: HEADER_STYLE,
-      render: (object) => (
-        <Typography
-          component="button"
-          variant="body2"
-          color="primary"
-          sx={{ background: 'none', border: 0, cursor: 'pointer', p: 0, textAlign: 'left' }}
-          onClick={() => setSelectedObject(object)}
-        >
-          {object.version ?? object.object_name}
-        </Typography>
-      ),
+      render: (object) => object.version ?? object.object_name,
     },
     {
       title: 'Size',
@@ -170,18 +162,44 @@ const AdminFirmwareTab = () => {
       field: 'verification_status',
       headerStyle: HEADER_STYLE,
       render: (object) => (
-        <Chip
-          size="small"
-          label={verificationLabel[object.verification_status]}
-          color={
-            object.verification_status === 'VERIFIED'
-              ? 'success'
-              : object.verification_status === 'MISSING' ? 'warning' : 'default'
-          }
-        />
+        <Typography variant="body2" sx={{ color: verificationColor[object.verification_status], fontWeight: 'bold' }}>
+          {verificationLabel[object.verification_status]}
+        </Typography>
       ),
     },
   ]
+
+  columns.push({
+    title: 'Upgrade Rules',
+    sorting: false,
+    headerStyle: HEADER_STYLE,
+    render: (object) => {
+      if (!object.firmware_id) return <Typography variant="body2">Not Verified</Typography>
+      const related = upgradeRules?.filter(
+        (rule) => rule.source.firmware_id === object.firmware_id || rule.destination.firmware_id === object.firmware_id
+      )
+      const label = rulesFailed
+        ? 'Could not load rules'
+        : !related
+          ? 'Loading rules…'
+          : related.length
+            ? `${related.length} rule${related.length === 1 ? '' : 's'}`
+            : 'No upgrade rules'
+      return (
+        <Button
+          size="small"
+          color={related?.length === 0 && object.verification_status === 'VERIFIED' ? 'warning' : 'primary'}
+          sx={{
+            px: 0, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left',
+            ...(related?.length === 0 && object.verification_status === 'VERIFIED' && { color: 'warning.light' }),
+          }}
+          onClick={() => setRulesFirmwareId(object.firmware_id!)}
+        >
+          {label}
+        </Button>
+      )
+    },
+  })
 
   const tableActions: (Action<FirmwareObject> | ((row: FirmwareObject) => Action<FirmwareObject>))[] = [
     (object) => ({
@@ -228,7 +246,6 @@ const AdminFirmwareTab = () => {
                 const value = event.target.value
                 manufacturerRef.current = value
                 setManufacturer(value)
-                setSelectedObject(undefined)
                 tableRef.current?.onQueryChange({ page: 0 })
               }}
             >
@@ -286,20 +303,6 @@ const AdminFirmwareTab = () => {
         title=""
       />
 
-      {selectedObject && (
-        <Paper variant="outlined" sx={{ mt: 2, p: 2, overflowWrap: 'anywhere' }}>
-          <Typography variant="h6">File details</Typography>
-          <Typography>{selectedObject.object_name}</Typography>
-          {selectedObject.verification_status === 'MISSING' && (
-            <Typography>The cloud file is missing. Use Clean Up Records to finish removing its database records.</Typography>
-          )}
-          <Typography>Upload status: {selectedObject.upload_status ?? 'No upload record'}</Typography>
-          <Typography>Upload ID: {selectedObject.upload_id ?? ''}</Typography>
-          <Typography>Firmware ID: {selectedObject.firmware_id ?? 'Not registered'}</Typography>
-          <Typography>Object version: {selectedObject.provider_object_version ?? ''}</Typography>
-        </Paper>
-      )}
-
       {showUpload && (
         <FirmwareUploadForm
           open
@@ -307,6 +310,16 @@ const AdminFirmwareTab = () => {
           onSuccess={() => {
             setShowUpload(false)
             refreshListing()
+          }}
+        />
+      )}
+      {rulesFirmwareId !== undefined && (
+        <FirmwareRulesDialog
+          key={rulesFirmwareId}
+          firmwareId={rulesFirmwareId}
+          onClose={() => setRulesFirmwareId(undefined)}
+          onChanged={() => {
+            void refreshRules()
           }}
         />
       )}
