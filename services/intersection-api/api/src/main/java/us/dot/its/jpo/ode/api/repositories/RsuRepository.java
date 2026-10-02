@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.repositories;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +21,9 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
 @Repository
 public interface RsuRepository extends JpaRepository<Rsu, Integer> {
+    @Query("select count(rsu) > 0 from Rsu rsu where rsu.firmwareVersion.id in :ids or rsu.targetFirmwareVersion.id in :ids")
+    boolean referencesFirmwareImages(@Param("ids") Collection<Integer> ids);
+
     /**
      * Check if RSU exists in any of the given organizations using entity
      * relationships
