@@ -4,10 +4,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.stream.Collectors;
 
 /**
  * Global exception handler for the RSU Info Bridge application.
@@ -77,6 +80,27 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
         problemDetail.setTitle("Internal Server Error");
+
+        return problemDetail;
+    }
+
+    /**
+     * Handle binding failures on parameter objects (e.g., invalid boolean in RsuFilter)
+     */
+    @ExceptionHandler(BindException.class)
+    public ProblemDetail handleBindException(BindException ex) {
+        log.warn("Request binding failed: {}", ex.getMessage());
+
+        String message = ex.getFieldErrors().stream()
+                .map(error -> String.format("Parameter '%s' has invalid value '%s'", error.getField(), error.getRejectedValue()))
+                .collect(Collectors.joining("; "));
+
+        if (message.isEmpty()) {
+            message = "Invalid request parameters";
+        }
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
+        problemDetail.setTitle("Type Mismatch");
 
         return problemDetail;
     }

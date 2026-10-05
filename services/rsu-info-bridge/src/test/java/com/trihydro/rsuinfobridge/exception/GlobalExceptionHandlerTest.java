@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.exception;
 
+import com.trihydro.rsuinfobridge.models.dtos.RsuFilter;
 import com.trihydro.rsuinfobridge.service.RsuService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,7 +51,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleDataAccessException_returnsServiceUnavailable() throws Exception {
         // Arrange
-        when(rsuService.getAll(anyBoolean()))
+        when(rsuService.getAll(any(RsuFilter.class)))
                 .thenThrow(new DataAccessResourceFailureException("Database connection failed"));
 
         // Act & Assert
@@ -64,7 +65,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleDataAccessException_withDataIntegrityViolation_returnsServiceUnavailable() throws Exception {
         // Arrange - DataIntegrityViolationException is a subclass of DataAccessException
-        when(rsuService.getAll(anyBoolean()))
+        when(rsuService.getAll(any(RsuFilter.class)))
                 .thenThrow(new DataIntegrityViolationException("Unique constraint violated"));
 
         // Act & Assert - handled by DataAccessException handler
@@ -77,7 +78,7 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleGenericException_returnsInternalServerError() throws Exception {
         // Arrange
-        when(rsuService.getAll(anyBoolean()))
+        when(rsuService.getAll(any(RsuFilter.class)))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
         // Act & Assert

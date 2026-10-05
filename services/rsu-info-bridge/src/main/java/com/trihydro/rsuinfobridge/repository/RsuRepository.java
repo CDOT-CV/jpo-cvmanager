@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     List<Rsu> findByRsuOptionTimDepositIsTrue();
+    List<Rsu> findByPrimaryRouteIgnoreCase(String primaryRoute);
+    List<Rsu> findByPrimaryRouteIgnoreCaseAndRsuOptionTimDepositIsTrue(String primaryRoute);
 }

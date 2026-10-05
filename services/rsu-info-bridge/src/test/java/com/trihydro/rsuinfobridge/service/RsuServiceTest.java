@@ -1,5 +1,6 @@
 package com.trihydro.rsuinfobridge.service;
 
+import com.trihydro.rsuinfobridge.models.dtos.RsuFilter;
 import com.trihydro.rsuinfobridge.models.tables.Rsu;
 import com.trihydro.rsuinfobridge.models.tables.RsuCredential;
 import com.trihydro.rsuinfobridge.models.tables.RsuModel;
@@ -106,7 +107,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.11", 2.0, "SN002", false);
 
         // Act & Assert
-        assertEquals(2, rsuService.getAll(false).size());
+        assertEquals(2, rsuService.getAll(new RsuFilter(null, false)).size());
     }
 
     @Test
@@ -116,7 +117,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.11", 2.0, "SN002", false);
 
         // Act
-        List<Rsu> result = rsuService.getAll(true);
+        List<Rsu> result = rsuService.getAll(new RsuFilter(null, true));
 
         // Assert
         assertEquals(1, result.size());
@@ -131,7 +132,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.12", 3.0, "SN003", true);
 
         // Act & Assert
-        assertEquals(3, rsuService.getAll(true).size());
+        assertEquals(3, rsuService.getAll(new RsuFilter(null, true)).size());
     }
 
     @Test
@@ -140,7 +141,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.10", 5.5, "SN-ABC", "SCMS-XYZ", "I-70", true, false);
 
         // Act
-        List<Rsu> result = rsuService.getAll(false);
+        List<Rsu> result = rsuService.getAll(new RsuFilter(null, false));
 
         // Assert
         assertEquals(1, result.size());
@@ -159,8 +160,8 @@ class RsuServiceTest {
     @Test
     void testGetAll_emptyDatabase_returnsEmptyList() {
         // Act & Assert
-        assertTrue(rsuService.getAll(false).isEmpty());
-        assertTrue(rsuService.getAll(true).isEmpty());
+        assertTrue(rsuService.getAll(new RsuFilter(null, false)).isEmpty());
+        assertTrue(rsuService.getAll(new RsuFilter(null, true)).isEmpty());
     }
 
     @Test
@@ -170,7 +171,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.11", 2.0, "SN002", false);
 
         // Act & Assert
-        assertTrue(rsuService.getAll(true).isEmpty());
+        assertTrue(rsuService.getAll(new RsuFilter(null, true)).isEmpty());
     }
 
     @Test
@@ -180,7 +181,7 @@ class RsuServiceTest {
         createRsuWithOptions("10.10.10.11", 2.0, "SN002", false);
 
         // Act & Assert
-        assertEquals(2, rsuService.getAll(false).size());
+        assertEquals(2, rsuService.getAll(new RsuFilter(null, false)).size());
     }
 
     /**
