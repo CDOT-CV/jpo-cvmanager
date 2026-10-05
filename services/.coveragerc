@@ -1,0 +1,10 @@
+[run]
+relative_files = True
+source =
+    addons/images/count_metric
+    addons/images/firmware_manager
+    addons/images/iss_health_check
+    addons/images/obu_ota_server
+    addons/images/rsu_status_check
+    api/src
+    common
