@@ -1,5 +1,5 @@
 # Build React App With Node 
-FROM node:22-alpine AS builder
+FROM node:24-alpine3.23 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -83,21 +83,22 @@ ENV VITE_ENABLE_RSU_STATUS_MONITOR_FEATURES=$ENABLE_RSU_STATUS_MONITOR_FEATURES
 RUN npm run build
 
 # === Serve React App with Nginx ===
-FROM nginx:1.21-alpine
+FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24-slim
+
+USER root
 
 # Set working directory
 WORKDIR /usr/share/nginx/html
 
-# Remove default Nginx configuration
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Copy custom Nginx configuration
-COPY default.conf /etc/nginx/conf.d/
-
 # Remove default static files
 RUN rm -rf ./*
 
-# Copy the built React app from the builder stage
-COPY --from=builder /app/build .
+# Replace the default Nginx configuration
+COPY --chown=101:101 default.conf /etc/nginx/conf.d/default.conf
 
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# Copy the built React app from the builder stage
+COPY --from=builder --chown=101:101 /app/build/ ./
+
+USER 101
+
+EXPOSE 8080

@@ -89,17 +89,7 @@ public class CountsRepositoryImpl implements CountsRepository {
             String requestedType = messageType == null ? "" : messageType.toUpperCase();
             Map<String, MessageCount> rsuCountsMap = new HashMap<>();
 
-            try {
-                String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
-                String response = prometheusService.getOrganizationRsuCounts(rsuIps,
-                        topicRegexForMessageType(requestedType), startTime, endTime);
-                applyTopicResults(prometheusResults(response), requestedType::equals, null, null, rsuCountsMap,
-                        rsuIpToRoadMap);
-            } catch (ResponseStatusException e) {
-                throw e;
-            } catch (Exception e) {
-                log.error("Error querying Prometheus for organization {}: {}", organization, e.getMessage());
-            }
+            queryOrganizationCounts(organization, requestedType, startTime, endTime, rsuIpToRoadMap, rsuCountsMap);
 
             for (Map.Entry<String, String> entry : rsuIpToRoadMap.entrySet()) {
                 String key = entry.getKey() + "_" + requestedType;
@@ -116,50 +106,66 @@ public class CountsRepositoryImpl implements CountsRepository {
         return allCounts;
     }
 
+    private void queryOrganizationCounts(String organization, String requestedType, Long startTime, Long endTime,
+            Map<String, String> rsuIpToRoadMap, Map<String, MessageCount> rsuCountsMap) {
+        try {
+            String rsuIps = String.join("|", rsuIpToRoadMap.keySet());
+            String response = prometheusService.getOrganizationRsuCounts(rsuIps,
+                    topicRegexForMessageType(requestedType), startTime, endTime);
+            applyTopicResults(prometheusResults(response), requestedType::equals, null, null, rsuCountsMap,
+                    rsuIpToRoadMap);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error querying Prometheus for organization {}: {}", organization, e.getMessage());
+        }
+    }
+
     private void applyTopicResults(List<PrometheusResult> results, Predicate<String> messageTypeFilter,
             String fallbackRsuIp, String fallbackRoad, Map<String, MessageCount> rsuCountsMap,
             Map<String, String> rsuIpToRoadMap) {
         for (PrometheusResult result : results) {
-            String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
-            String messageType = extractMessageTypeFromTopic(topic);
-            if (messageType == null || !messageTypeFilter.test(messageType)) {
-                continue;
-            }
+            applyTopicResult(result, messageTypeFilter, fallbackRsuIp, fallbackRoad, rsuCountsMap, rsuIpToRoadMap);
+        }
+    }
 
-            long value = (long) result.getInstantValue();
-            if (value <= 0) {
-                continue;
-            }
+    private void applyTopicResult(PrometheusResult result, Predicate<String> messageTypeFilter,
+            String fallbackRsuIp, String fallbackRoad, Map<String, MessageCount> rsuCountsMap,
+            Map<String, String> rsuIpToRoadMap) {
+        String topic = result.getMetricLabel(METRIC_LABEL_TOPIC);
+        String messageType = extractMessageTypeFromTopic(topic);
+        long value = (long) result.getInstantValue();
+        if (messageType == null || !messageTypeFilter.test(messageType) || value <= 0) {
+            return;
+        }
 
-            String rsuIp = result.getMetricLabel(METRIC_LABEL_RSU_IP);
-            if (rsuIp == null || rsuIp.isBlank()) {
-                rsuIp = fallbackRsuIp;
-            }
-            if (rsuIp == null) {
-                continue;
-            }
+        String rsuIp = resolveRsuIp(result, fallbackRsuIp);
+        String road = resolveRoad(rsuIp, fallbackRoad, rsuIpToRoadMap);
+        if (rsuIp == null || road == null) {
+            return;
+        }
 
-            String road = fallbackRoad;
-            if (rsuIpToRoadMap != null) {
-                road = rsuIpToRoadMap.get(rsuIp);
-                if (road == null) {
-                    continue;
-                }
-            }
+        String key = rsuIpToRoadMap == null ? messageType : rsuIp + "_" + messageType;
+        MessageCount counts = rsuCountsMap.computeIfAbsent(key,
+                ignored -> new MessageCount(messageType, rsuIp, 0L, 0L, road));
+        addCount(counts, topic, value);
+    }
 
-            String key = rsuIpToRoadMap == null ? messageType : rsuIp + "_" + messageType;
-            MessageCount counts = rsuCountsMap.get(key);
-            if (counts == null) {
-                counts = new MessageCount(messageType, rsuIp, 0L, 0L, road);
-                rsuCountsMap.put(key, counts);
-            }
+    private static String resolveRsuIp(PrometheusResult result, String fallbackRsuIp) {
+        String rsuIp = result.getMetricLabel(METRIC_LABEL_RSU_IP);
+        return rsuIp == null || rsuIp.isBlank() ? fallbackRsuIp : rsuIp;
+    }
 
-            CountType countType = topic.contains(RAW_ENCODED_INDICATOR) ? CountType.ODE_INPUT : CountType.ODE_OUTPUT;
-            if (countType == CountType.ODE_INPUT) {
-                counts.setOdeInputCount(counts.getOdeInputCount() + value);
-            } else {
-                counts.setOdeOutputCount(counts.getOdeOutputCount() + value);
-            }
+    private static String resolveRoad(String rsuIp, String fallbackRoad, Map<String, String> rsuIpToRoadMap) {
+        return rsuIpToRoadMap == null ? fallbackRoad : rsuIpToRoadMap.get(rsuIp);
+    }
+
+    private static void addCount(MessageCount counts, String topic, long value) {
+        CountType countType = topic.contains(RAW_ENCODED_INDICATOR) ? CountType.ODE_INPUT : CountType.ODE_OUTPUT;
+        if (countType == CountType.ODE_INPUT) {
+            counts.setOdeInputCount(counts.getOdeInputCount() + value);
+        } else {
+            counts.setOdeOutputCount(counts.getOdeOutputCount() + value);
         }
     }
 
@@ -197,7 +203,8 @@ public class CountsRepositoryImpl implements CountsRepository {
                 charClasses.append(c);
             }
         }
-        return "topic\\.Ode.*" + charClasses + ".*Json";
+        // Match the literal topic.Ode separator without PromQL string escaping
+        return "topic[.]Ode.*" + charClasses + ".*Json";
     }
 
     private List<PrometheusResult> prometheusResults(String response) throws JsonProcessingException {

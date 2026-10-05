@@ -8,16 +8,23 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.net.URL;
 import java.time.Duration;
 import java.util.Map;
+import java.util.List;
+import java.util.stream.Stream;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.springframework.http.HttpStatus;
@@ -25,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.google.auth.ServiceAccountSigner;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -232,5 +240,147 @@ class GcpObjectStorageServiceTest {
                     assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
                     assertThat(ex.getReason()).isEqualTo("Unable to generate signed upload URL");
                 });
+    }
+
+    @Test
+    void hidesProviderErrorsWhenCheckingExistenceOrReadingMetadata() throws Exception {
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class)))
+                .thenThrow(new IllegalStateException("secret SDK detail"));
+
+        assertThatThrownBy(() -> service.objectExists("firmware.bin"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(ex.getReason()).isEqualTo("Unable to check whether the firmware object already exists");
+                });
+        assertThatThrownBy(() -> service.getObjectMetadata(
+                new ObjectStorageLocation("gcp", "firmware-bucket", "firmware.bin"), "CRC32C"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(ex.getReason()).isEqualTo("Unable to verify uploaded object");
+                });
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void rejectsMissingBucketBeforeAccessingCredentials(String bucket) {
+        gcpProperties.setBucketName(bucket);
+        assertThatThrownBy(() -> service.createSignedUploadUrl(request))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(ex.getReason()).contains("bucket");
+                });
+        verifyNoInteractions(clientProvider);
+    }
+
+    static Stream<Duration> invalidExpirations() {
+        return Stream.of(null, Duration.ZERO, Duration.ofSeconds(-1), Duration.ofDays(8));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidExpirations")
+    void rejectsInvalidExpirationBeforeCallingCloud(Duration expiration) {
+        properties.setSignedUrlExpiration(expiration);
+        assertThatThrownBy(() -> service.createSignedUploadUrl(request))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(ex.getReason()).contains("expiration");
+                });
+        verifyNoInteractions(clientProvider);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = { 0, -1 })
+    void rejectsNonpositiveSize(long size) {
+        var invalid = new ObjectUploadRequest(request.objectName(), size, request.contentType(), request.checksum());
+        assertThatThrownBy(() -> service.createSignedUploadUrl(invalid))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("content_length");
+        verifyNoInteractions(clientProvider);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void rejectsBlankObjectName(String name) {
+        assertThatThrownBy(() -> service.objectExists(name))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("object_name");
+        verifyNoInteractions(clientProvider);
+    }
+
+    static Stream<ObjectStorageLocation> invalidLocations() {
+        return Stream.of(null,
+                new ObjectStorageLocation("aws", "bucket", "file"),
+                new ObjectStorageLocation("gcp", " ", "file"),
+                new ObjectStorageLocation("gcp", "bucket", " "));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidLocations")
+    void rejectsInvalidMetadataLocation(ObjectStorageLocation location) {
+        assertThatThrownBy(() -> service.getObjectMetadata(location, "CRC32C"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("location");
+        verifyNoInteractions(clientProvider);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { "AAAA", "ImIEBA", "ImIEBB==" })
+    void rejectsMissingWrongSizeOrNoncanonicalChecksum(String value) {
+        var invalid = new ObjectUploadRequest(request.objectName(), request.contentLength(), request.contentType(),
+                new ObjectChecksum("CRC32C", value));
+        assertThatThrownBy(() -> service.createSignedUploadUrl(invalid))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("canonical base64");
+        verifyNoInteractions(clientProvider);
+    }
+
+    @Test
+    void rejectsMissingChecksum() {
+        var invalid = new ObjectUploadRequest(request.objectName(), request.contentLength(), request.contentType(), null);
+        assertThatThrownBy(() -> service.createSignedUploadUrl(invalid))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("checksum is required");
+        verifyNoInteractions(clientProvider);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void preservesServiceUnavailableWhenAdcCannotSignAndNoAccountIsConfigured(String account) throws Exception {
+        when(clientProvider.getCredentials()).thenReturn(mock(GoogleCredentials.class));
+        gcpProperties.setSigningServiceAccount(account);
+        assertThatThrownBy(() -> service.createSignedUploadUrl(request))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(ex.getReason()).contains("signing service account");
+                });
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void usesConfiguredImpersonatedAccountForAdcWithoutLocalSigning() throws Exception {
+        GoogleCredentials adc = mock(GoogleCredentials.class);
+        ImpersonatedCredentials signer = mock(ImpersonatedCredentials.class);
+        when(clientProvider.getCredentials()).thenReturn(adc);
+        gcpProperties.setSigningServiceAccount(" signer@example.com ");
+        when(storage.signUrl(any(BlobInfo.class), anyLong(), any(TimeUnit.class),
+                any(Storage.SignUrlOption[].class))).thenReturn(new URL("https://example.com/signed"));
+        try (MockedStatic<ImpersonatedCredentials> factory = mockStatic(ImpersonatedCredentials.class);
+                MockedStatic<Storage.SignUrlOption> options = mockStatic(Storage.SignUrlOption.class)) {
+            factory.when(() -> ImpersonatedCredentials.create(adc, "signer@example.com", null,
+                    List.of("https://www.googleapis.com/auth/cloud-platform"), 3600)).thenReturn(signer);
+
+            assertThat(service.createSignedUploadUrl(request).uploadUrl()).isEqualTo("https://example.com/signed");
+            options.verify(() -> Storage.SignUrlOption.signWith(signer));
+        }
+    }
+
+    @Test
+    void readsMetadataWithoutProviderGeneration() throws Exception {
+        Blob blob = mock(Blob.class);
+        when(blob.getSize()).thenReturn(12345L);
+        when(blob.getCrc32c()).thenReturn("ImIEBA==");
+        when(blob.getGeneration()).thenReturn(null);
+        when(storage.get(any(BlobId.class), any(Storage.BlobGetOption[].class))).thenReturn(blob);
+        assertThat(service.getObjectMetadata(new ObjectStorageLocation("gcp", "bucket", "file"), "CRC32C"))
+                .hasValueSatisfying(value -> assertThat(value.providerObjectVersion()).isNull());
     }
 }

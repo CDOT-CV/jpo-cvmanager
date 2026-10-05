@@ -294,6 +294,7 @@ public class CountsRepositoryImplTest {
         ArgumentCaptor<String> topicRegexCaptor = ArgumentCaptor.forClass(String.class);
         verify(prometheusService).getOrganizationRsuCounts(any(), topicRegexCaptor.capture(),
                 eq(startTime.longValue()), eq(endTime.longValue()));
+        assertEquals("topic[.]Ode.*[Bb][Ss][Mm].*Json", topicRegexCaptor.getValue());
         Pattern topicPattern = Pattern.compile(topicRegexCaptor.getValue());
         assertTrue(topicPattern.matcher("topic.OdeBsmJson").matches());
         assertTrue(topicPattern.matcher("topic.OdeRawEncodedBSMJson").matches());
