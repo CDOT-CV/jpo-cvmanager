@@ -485,7 +485,8 @@ jobs:
           sonar.host.url=https://sonarcloud.io
           sonar.exclusions=**/__init__.py,**/*test*.py,**/test/**,**/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx
           sonar.cpd.exclusions=services/intersection-api/api/src/test/resources/snapshots/**,services/intersection-api/api/src/main/resources/templates/**,services/intersection-api/docs/**,resources/deprecated/**
-          sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**
+          # Match JaCoCo's Java model exclusions and omit Lombok-only configuration holders.
+          sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**,services/intersection-api/api/src/main/java/**/models/**,services/intersection-api/api/src/main/java/**/GcpObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/ObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/FirmwareUploadCleanupProperties.java
           sonar.javascript.lcov.reportPaths=webapp/lcov.info
           sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/obu_ota_server,services/addons/images/rsu_status_check,services/api/src,services/common,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java
           sonar.tests=services/addons/tests,services/api/tests,services/common/tests,webapp/src,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java

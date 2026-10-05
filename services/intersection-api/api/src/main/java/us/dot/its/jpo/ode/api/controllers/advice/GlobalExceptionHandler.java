@@ -280,7 +280,7 @@ public class GlobalExceptionHandler {
         String originalMessage = ex.getMessage();
         log.warn("Data integrity violation: {}", originalMessage);
 
-        String userFriendlyMessage = buildUserFriendlyMessage(originalMessage, ex);
+        String userFriendlyMessage = buildUserFriendlyMessage(originalMessage);
 
         // Use HTTP 409 Conflict for constraint violations (more appropriate than 400
         // Bad Request)
@@ -347,7 +347,7 @@ public class GlobalExceptionHandler {
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
-    private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
+    private String buildUserFriendlyMessage(String message) {
         if (message == null) {
             return "A database constraint was violated. Please check your input and try again.";
         }
