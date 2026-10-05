@@ -1,11 +1,10 @@
 package us.dot.its.jpo.ode.api.tasks;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +41,7 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 @ConditionalOnProperty(name = "enable.email", havingValue = "true", matchIfMissing = false)
 public class EmailTask {
 
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final int HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS = 60 * 60 * 1000; // 1 hour
     private static final String DAILY_NOTIFICATION_CRON = "0 0 0 * * ?"; // every day at midnight
     private static final String WEEKLY_NOTIFICATION_CRON = "0 0 0 * * 0"; // every sunday at midnight
@@ -86,7 +85,8 @@ public class EmailTask {
             scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendHourlyNotifications() {
         TimedTask.run(log, "hourly notification email task", () -> {
-            log.info("Checking Hourly Notifications: {}", dateFormat.format(new Date()));
+            log.info("Checking Hourly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             if (lastHourList == null) {
                 lastHourList = getActiveNotifications();
                 return;
@@ -114,7 +114,8 @@ public class EmailTask {
     @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendDailyNotifications() {
         TimedTask.run(log, "daily notification and count email task", () -> {
-            log.info("Checking Daily Notifications: {}", dateFormat.format(new Date()));
+            log.info("Checking Daily Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             if (lastDayList == null) {
                 lastDayList = getActiveNotifications();
                 sendDailyCountEmails();
@@ -145,7 +146,8 @@ public class EmailTask {
     @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendWeeklyNotifications() {
         TimedTask.run(log, "weekly notification email task", () -> {
-            log.info("Checking Weekly Notifications: {}", dateFormat.format(new Date()));
+            log.info("Checking Weekly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             if (lastWeekList == null) {
                 lastWeekList = getActiveNotifications();
                 return;
@@ -173,7 +175,8 @@ public class EmailTask {
     @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendMonthlyNotifications() {
         TimedTask.run(log, "monthly notification email task", () -> {
-            log.info("Checking Monthly Notifications: {}", dateFormat.format(new Date()));
+            log.info("Checking Monthly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             if (lastMonthList == null) {
                 lastMonthList = getActiveNotifications();
                 return;

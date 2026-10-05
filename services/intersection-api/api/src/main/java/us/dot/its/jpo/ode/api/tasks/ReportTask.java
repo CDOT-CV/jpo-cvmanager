@@ -1,13 +1,13 @@
 package us.dot.its.jpo.ode.api.tasks;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.Date;
+import java.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,7 +29,7 @@ public class ReportTask {
     private final ProcessedMapRepository processedMapRepo;
 
     private static final Logger log = LoggerFactory.getLogger(ReportTask.class);
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final String DAILY_NOTIFICATION_CRON = "0 0 0 * * ?"; // every day at midnight
     private static final String WEEKLY_NOTIFICATION_CRON = "0 0 0 * * 0"; // every sunday at midnight
     private static final String MONTHLY_NOTIFICATION_CRON = "0 0 0 1 * ?"; // first day of the month at midnight
@@ -43,7 +43,8 @@ public class ReportTask {
     @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateDailyReports() {
         TimedTask.run(log, "daily report task", () -> {
-            log.info("Generating Daily Report: {}", dateFormat.format(new Date()));
+            log.info("Generating Daily Report: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightYesterday = midnight.minusDays(1);
             generateReportForTimeRange(midnightYesterday.toInstant(), midnight.toInstant());
@@ -53,7 +54,8 @@ public class ReportTask {
     @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateWeeklyReports() {
         TimedTask.run(log, "weekly report task", () -> {
-            log.info("Generating Weekly Report: {}", dateFormat.format(new Date()));
+            log.info("Generating Weekly Report: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightLastWeek = midnight.minusWeeks(1);
             generateReportForTimeRange(midnightLastWeek.toInstant(), midnight.toInstant());
@@ -63,7 +65,8 @@ public class ReportTask {
     @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateMonthlyReports() {
         TimedTask.run(log, "monthly report task", () -> {
-            log.info("Generating Monthly Report: {}", dateFormat.format(new Date()));
+            log.info("Generating Monthly Report: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightLastMonth = midnight.minusMonths(1);
             generateReportForTimeRange(midnightLastMonth.toInstant(), midnight.toInstant());
