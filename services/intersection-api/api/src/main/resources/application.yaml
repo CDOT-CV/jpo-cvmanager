@@ -86,6 +86,7 @@ spring:
         smtp:
           ssl:
             trust: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
+            checkserveridentity: ${INTERSECTION_SMTP_CHECK_SERVER_IDENTITY:false}
           auth: ${INTERSECTION_SMTP_AUTH:false}
           starttls:
             enable: ${INTERSECTION_SMTP_STARTTLS:false}
