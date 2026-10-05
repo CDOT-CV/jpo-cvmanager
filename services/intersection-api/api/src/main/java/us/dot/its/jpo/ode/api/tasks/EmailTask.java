@@ -42,7 +42,7 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 @ConditionalOnProperty(name = "enable.email", havingValue = "true", matchIfMissing = false)
 public class EmailTask {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private static final int HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS = 60 * 60 * 1000; // 1 hour
     private static final String DAILY_NOTIFICATION_CRON = "0 0 0 * * ?"; // every day at midnight
     private static final String WEEKLY_NOTIFICATION_CRON = "0 0 0 * * 0"; // every sunday at midnight
@@ -85,7 +85,7 @@ public class EmailTask {
     @Scheduled(fixedRate = HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS,
             scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendHourlyNotifications() {
-        runScheduledTask("hourly notification email task", () -> {
+        TimedTask.run(log, "hourly notification email task", () -> {
             log.info("Checking Hourly Notifications: {}", dateFormat.format(new Date()));
             if (lastHourList == null) {
                 lastHourList = getActiveNotifications();
@@ -113,7 +113,7 @@ public class EmailTask {
 
     @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendDailyNotifications() {
-        runScheduledTask("daily notification and count email task", () -> {
+        TimedTask.run(log, "daily notification and count email task", () -> {
             log.info("Checking Daily Notifications: {}", dateFormat.format(new Date()));
             if (lastDayList == null) {
                 lastDayList = getActiveNotifications();
@@ -144,7 +144,7 @@ public class EmailTask {
 
     @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendWeeklyNotifications() {
-        runScheduledTask("weekly notification email task", () -> {
+        TimedTask.run(log, "weekly notification email task", () -> {
             log.info("Checking Weekly Notifications: {}", dateFormat.format(new Date()));
             if (lastWeekList == null) {
                 lastWeekList = getActiveNotifications();
@@ -172,7 +172,7 @@ public class EmailTask {
 
     @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendMonthlyNotifications() {
-        runScheduledTask("monthly notification email task", () -> {
+        TimedTask.run(log, "monthly notification email task", () -> {
             log.info("Checking Monthly Notifications: {}", dateFormat.format(new Date()));
             if (lastMonthList == null) {
                 lastMonthList = getActiveNotifications();
@@ -196,21 +196,6 @@ public class EmailTask {
                 }
             }
         });
-    }
-
-    private void runScheduledTask(String taskName, Runnable task) {
-        long startNanos = System.nanoTime();
-        try {
-            task.run();
-            log.info("Completed {} in {} ms", taskName, elapsedMillis(startNanos));
-        } catch (RuntimeException | Error e) {
-            log.error("Failed {} after {} ms", taskName, elapsedMillis(startNanos), e);
-            throw e;
-        }
-    }
-
-    private static long elapsedMillis(long startNanos) {
-        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
     public List<Notification> getActiveNotifications() {
@@ -247,7 +232,8 @@ public class EmailTask {
         try {
             log.info("Starting daily count email task");
 
-            LocalDateTime endDateTime = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime endDateTime = LocalDateTime.now(ZoneId.systemDefault())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
             LocalDateTime startDateTime = endDateTime.minusDays(1);
 
             long startTimeMillis = startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
@@ -280,9 +266,10 @@ public class EmailTask {
                 log.info("Sent daily count emails for organization: {}", orgName);
             }
 
-            log.info("Completed daily count email task in {} ms", elapsedMillis(startNanos));
+            log.info("Completed daily count email task in {} ms", TimedTask.elapsedMillis(startNanos));
         } catch (Exception e) {
-            log.error("Failed daily count email task after {} ms: {}", elapsedMillis(startNanos), e.getMessage(), e);
+            log.error("Failed daily count email task after {} ms: {}", TimedTask.elapsedMillis(startNanos),
+                    e.getMessage(), e);
         }
     }
 
@@ -290,34 +277,8 @@ public class EmailTask {
             LocalDateTime startDateTime, LocalDateTime endDateTime) {
         Map<String, MessageCountRsuItem> rsuItems = new LinkedHashMap<>();
 
-        for (MessageCount count : allCounts) {
-            if (count == null || count.getRsuIp() == null) {
-                continue;
-            }
-            String typeKey = canonicalMessageType(count.getMessageType());
-            if (typeKey == null) {
-                continue;
-            }
-
-            MessageCountRsuItem rsuItem = rsuItems.computeIfAbsent(count.getRsuIp(), ip -> {
-                MessageCountRsuItem item = new MessageCountRsuItem();
-                item.setRsuIp(ip);
-                item.setPrimaryRoute(count.getRoad() != null ? count.getRoad() : "Unknown");
-                item.setMessageCountsByType(new HashMap<>());
-                return item;
-            });
-
-            MessageCountCountsItem countsItem = new MessageCountCountsItem();
-            countsItem.setIn(count.getOdeInputCount() != null ? count.getOdeInputCount().intValue() : 0);
-            countsItem.setOut(count.getOdeOutputCount() != null ? count.getOdeOutputCount().intValue() : 0);
-            rsuItem.getMessageCountsByType().put(typeKey, countsItem);
-        }
-
-        for (MessageCountRsuItem item : rsuItems.values()) {
-            for (String type : MESSAGE_TYPES) {
-                item.getMessageCountsByType().putIfAbsent(type, emptyCountsItem());
-            }
-        }
+        allCounts.forEach(count -> addCountToRsuItems(count, rsuItems));
+        rsuItems.values().forEach(EmailTask::addMissingMessageTypes);
 
         MessageCountEmailContents emailContents = new MessageCountEmailContents();
         emailContents.setOrganizationName(orgName);
@@ -328,6 +289,41 @@ public class EmailTask {
         emailContents.setMessageTypeList(List.of(MESSAGE_TYPES));
         emailContents.setRsuCounts(new ArrayList<>(rsuItems.values()));
         return emailContents;
+    }
+
+    private static void addCountToRsuItems(MessageCount count, Map<String, MessageCountRsuItem> rsuItems) {
+        if (count == null || count.getRsuIp() == null) {
+            return;
+        }
+
+        String typeKey = canonicalMessageType(count.getMessageType());
+        if (typeKey == null) {
+            return;
+        }
+
+        MessageCountRsuItem rsuItem = rsuItems.computeIfAbsent(count.getRsuIp(), ip -> newRsuItem(count));
+        rsuItem.getMessageCountsByType().put(typeKey, toCountsItem(count));
+    }
+
+    private static MessageCountRsuItem newRsuItem(MessageCount count) {
+        MessageCountRsuItem item = new MessageCountRsuItem();
+        item.setRsuIp(count.getRsuIp());
+        item.setPrimaryRoute(count.getRoad() != null ? count.getRoad() : "Unknown");
+        item.setMessageCountsByType(new HashMap<>());
+        return item;
+    }
+
+    private static MessageCountCountsItem toCountsItem(MessageCount count) {
+        MessageCountCountsItem countsItem = new MessageCountCountsItem();
+        countsItem.setIn(count.getOdeInputCount() != null ? count.getOdeInputCount().intValue() : 0);
+        countsItem.setOut(count.getOdeOutputCount() != null ? count.getOdeOutputCount().intValue() : 0);
+        return countsItem;
+    }
+
+    private static void addMissingMessageTypes(MessageCountRsuItem item) {
+        for (String type : MESSAGE_TYPES) {
+            item.getMessageCountsByType().putIfAbsent(type, emptyCountsItem());
+        }
     }
 
     private static MessageCountCountsItem emptyCountsItem() {

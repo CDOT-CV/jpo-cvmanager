@@ -29,7 +29,7 @@ public class ReportTask {
     private final ProcessedMapRepository processedMapRepo;
 
     private static final Logger log = LoggerFactory.getLogger(ReportTask.class);
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
     private static final String DAILY_NOTIFICATION_CRON = "0 0 0 * * ?"; // every day at midnight
     private static final String WEEKLY_NOTIFICATION_CRON = "0 0 0 * * 0"; // every sunday at midnight
     private static final String MONTHLY_NOTIFICATION_CRON = "0 0 0 1 * ?"; // first day of the month at midnight
@@ -42,7 +42,7 @@ public class ReportTask {
 
     @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateDailyReports() {
-        runScheduledTask("daily report task", () -> {
+        TimedTask.run(log, "daily report task", () -> {
             log.info("Generating Daily Report: {}", dateFormat.format(new Date()));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightYesterday = midnight.minusDays(1);
@@ -52,7 +52,7 @@ public class ReportTask {
 
     @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateWeeklyReports() {
-        runScheduledTask("weekly report task", () -> {
+        TimedTask.run(log, "weekly report task", () -> {
             log.info("Generating Weekly Report: {}", dateFormat.format(new Date()));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightLastWeek = midnight.minusWeeks(1);
@@ -62,7 +62,7 @@ public class ReportTask {
 
     @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.REPORT_TASK_SCHEDULER)
     public void generateMonthlyReports() {
-        runScheduledTask("monthly report task", () -> {
+        TimedTask.run(log, "monthly report task", () -> {
             log.info("Generating Monthly Report: {}", dateFormat.format(new Date()));
             ZonedDateTime midnight = generateTimestampMidnightUTC();
             ZonedDateTime midnightLastMonth = midnight.minusMonths(1);
@@ -80,27 +80,13 @@ public class ReportTask {
             try {
                 reportService.buildReport(data.getIntersectionID(), start.toEpochMilli(), end.toEpochMilli());
                 log.info("Completed report for intersection {} in {} ms", data.getIntersectionID(),
-                        elapsedMillis(startNanos));
+                        TimedTask.elapsedMillis(startNanos));
             } catch (RuntimeException | Error e) {
                 log.error("Failed report for intersection {} after {} ms", data.getIntersectionID(),
-                        elapsedMillis(startNanos), e);
+                        TimedTask.elapsedMillis(startNanos), e);
                 throw e;
             }
         }
     }
 
-    private void runScheduledTask(String taskName, Runnable task) {
-        long startNanos = System.nanoTime();
-        try {
-            task.run();
-            log.info("Completed {} in {} ms", taskName, elapsedMillis(startNanos));
-        } catch (RuntimeException | Error e) {
-            log.error("Failed {} after {} ms", taskName, elapsedMillis(startNanos), e);
-            throw e;
-        }
-    }
-
-    private static long elapsedMillis(long startNanos) {
-        return (System.nanoTime() - startNanos) / 1_000_000;
-    }
 }
