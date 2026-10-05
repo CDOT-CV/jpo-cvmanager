@@ -387,7 +387,7 @@ class FirmwareUploadServiceTest {
     }
 
     static Stream<ObjectStorageLocation> invalidSignedLocations() {
-        String name = "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig";
+        String name = "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig";
         return Stream.of(null,
                 new ObjectStorageLocation("aws", "bucket", name),
                 new ObjectStorageLocation("gcp", null, name),
@@ -457,7 +457,7 @@ class FirmwareUploadServiceTest {
     private void stubSignedUrl() {
         when(objectStorageService.createSignedUploadUrl(any())).thenReturn(new SignedUploadUrl(
                 "https://example.com/signed", "PUT", new ObjectStorageLocation("gcp", "bucket",
-                        "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
+                        "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
                 EXPIRES_AT, Map.of()));
     }
 
