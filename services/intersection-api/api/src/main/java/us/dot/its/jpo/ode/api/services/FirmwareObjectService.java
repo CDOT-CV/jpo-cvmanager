@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
@@ -53,6 +54,29 @@ public class FirmwareObjectService {
                 ? null
                 : validateManufacturer(manufacturer) + "/";
         String searchTerm = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        StorageObjectPage page = readListing(prefix, searchTerm);
+        var objects = page.objects();
+        if (objects.isEmpty()) {
+            return new FirmwareObjectPage(page.provider(), List.of(), 0);
+        }
+
+        // Attach upload and image evidence before sorting the complete result.
+        var records = uploads.findListingUploads(page.provider(), page.container(),
+                objects.stream().map(StorageObject::objectName).toList());
+        var byName = records.stream().collect(Collectors.toMap(FirmwareUpload::getObjectName, Function.identity()));
+        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of()
+                : images.findByVerifiedUploadIdIn(records.stream().map(FirmwareUpload::getId).toList()).stream()
+                        .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), FirmwareImage::getId));
+        var items = objects.stream()
+                .map(object -> toItem(page.provider(), object, byName.get(object.objectName()), imageIds))
+                .sorted(itemComparator(sort)).toList();
+
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
+        int toIndex = Math.min(fromIndex + pageSize, items.size());
+        return new FirmwareObjectPage(page.provider(), items.subList(fromIndex, toIndex), items.size());
+    }
+
+    private StorageObjectPage readListing(String prefix, String searchTerm) {
         var storageService = storage.getActiveService();
         var objects = new ArrayList<StorageObject>();
         var visitedTokens = new HashSet<String>();
@@ -63,14 +87,8 @@ public class FirmwareObjectService {
         // filtered result, including untracked files.
         do {
             page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
-            for (var object : page.objects()) {
-                String name = object.objectName();
-                if (name.endsWith("/") || isReservedObject(name)
-                        || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
-                    continue;
-                }
-                objects.add(object);
-            }
+            page.objects().stream().filter(object -> isMatchingObject(object.objectName(), searchTerm))
+                    .forEach(objects::add);
 
             pageToken = page.nextPageToken();
             if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
@@ -78,58 +96,41 @@ public class FirmwareObjectService {
             }
         } while (pageToken != null && !pageToken.isBlank());
 
-        if (objects.isEmpty()) {
-            return new FirmwareObjectPage(page.provider(), List.of(), 0);
-        }
-        String provider = page.provider();
+        return new StorageObjectPage(page.provider(), page.container(), objects, null);
+    }
 
-        // Attach the best upload record and registered image, when present, to each
-        // object returned by the storage provider
-        var records = uploads.findListingUploads(page.provider(), page.container(),
-                objects.stream().map(item -> item.objectName()).toList());
-        var byName = records.stream().collect(Collectors.toMap(FirmwareUpload::getObjectName, Function.identity()));
-        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of()
-                : images.findByVerifiedUploadIdIn(
-                        records.stream().map(FirmwareUpload::getId).toList()).stream()
-                        .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), image -> image.getId()));
+    private boolean isMatchingObject(String name, String searchTerm) {
+        return !name.endsWith("/") && !isReservedObject(name)
+                && name.toLowerCase(Locale.ROOT).contains(searchTerm);
+    }
 
-        var items = objects.stream().map(object -> {
-            var upload = byName.get(object.objectName());
-            String state = upload == null ? "UNTRACKED" : "UNVERIFIED";
+    private FirmwareObjectPage.Item toItem(String provider, StorageObject object, FirmwareUpload upload,
+            Map<UUID, Integer> imageIds) {
+        // Parse conventional paths into columns, retaining the full path for actions.
+        String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
+        String[] path = object.objectName().split("/", 4);
+        String manufacturerName = path.length == 4 ? path[0] : null;
+        String modelName = path.length == 4 ? path[1] : null;
+        String version = path.length == 4 ? path[2] : null;
+        String fileName = path.length == 4 ? path[3] : object.objectName();
+        return new FirmwareObjectPage.Item(id, object.objectName(), manufacturerName, modelName,
+                version, fileName, object.contentLength(), object.updatedAt(), object.providerObjectVersion(),
+                upload == null ? null : upload.getId(), upload == null ? null : imageIds.get(upload.getId()),
+                upload == null ? null : upload.getStatus().name(), verificationState(object, upload));
+    }
 
-            if (upload != null && upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-                // Verification belongs to the exact object version, not just its path
-                boolean matches = object.providerObjectVersion() != null
-                        && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
-                        && Objects.equals(upload.getExpectedSize(), object.contentLength())
-                        && object.checksum() != null
-                        && upload.getObservedChecksum() != null
-                        && upload.getChecksumAlgorithm().equalsIgnoreCase(object.checksum().algorithm())
-                        && Objects.equals(upload.getObservedChecksum(), object.checksum().value());
-                state = matches ? "VERIFIED" : "CHANGED";
-            }
-
-            // Expose the conventional manufacturer/model/version/file path as table
-            // columns while retaining the complete object name for later actions
-            String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                    (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
-            String[] path = object.objectName().split("/", 4);
-            String manufacturerName = path.length == 4 ? path[0] : null;
-            String modelName = path.length == 4 ? path[1] : null;
-            String version = path.length == 4 ? path[2] : null;
-            String fileName = path.length == 4 ? path[3] : object.objectName();
-
-            return new FirmwareObjectPage.Item(id, object.objectName(), manufacturerName, modelName,
-                    version, fileName, object.contentLength(), object.updatedAt(),
-                    object.providerObjectVersion(), upload == null ? null : upload.getId(),
-                    upload == null ? null : imageIds.get(upload.getId()),
-                    upload == null ? null : upload.getStatus().name(), state);
-        }).sorted(itemComparator(sort)).toList();
-
-        int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
-        int toIndex = Math.min(fromIndex + pageSize, items.size());
-
-        return new FirmwareObjectPage(provider, items.subList(fromIndex, toIndex), items.size());
+    private String verificationState(StorageObject object, FirmwareUpload upload) {
+        if (upload == null) return "UNTRACKED";
+        if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) return "UNVERIFIED";
+        // Verification belongs to the exact object version, not just its path.
+        boolean matches = object.providerObjectVersion() != null
+                && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
+                && Objects.equals(upload.getExpectedSize(), object.contentLength())
+                && object.checksum() != null && upload.getObservedChecksum() != null
+                && upload.getChecksumAlgorithm().equalsIgnoreCase(object.checksum().algorithm())
+                && Objects.equals(upload.getObservedChecksum(), object.checksum().value());
+        return matches ? "VERIFIED" : "CHANGED";
     }
 
     private Comparator<FirmwareObjectPage.Item> itemComparator(String sort) {

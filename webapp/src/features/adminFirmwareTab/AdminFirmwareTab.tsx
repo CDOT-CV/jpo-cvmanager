@@ -56,7 +56,9 @@ const AdminFirmwareTab = () => {
   const refreshListing = useCallback(() => {
     setSelectedObject(undefined)
     setIsRefreshing(true)
-    Promise.resolve(tableRef.current?.onQueryChange({ page: 0 })).finally(() => setIsRefreshing(false))
+    void Promise.resolve(tableRef.current?.onQueryChange({ page: 0 }))
+      .catch(() => { /* The query handler displays the fetch error. */ })
+      .finally(() => setIsRefreshing(false))
   }, [])
 
   const handleQueryChange = useCallback(

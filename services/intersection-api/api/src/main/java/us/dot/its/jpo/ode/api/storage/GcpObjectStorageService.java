@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -75,14 +76,13 @@ public class GcpObjectStorageService implements ObjectStorageService {
             var page = clientProvider.getStorage().list(gcpProperties.getBucketName().trim(),
                     options.toArray(Storage.BlobListOption[]::new));
 
-            var objects = new ArrayList<StorageObject>();
             // getValues deliberately avoids fetching subsequent provider pages.
-            for (Blob blob : page.getValues()) {
-                objects.add(new StorageObject(blob.getName(), blob.getSize() == null ? 0 : blob.getSize(),
+            var objects = StreamSupport.stream(page.getValues().spliterator(), false)
+                    .map(blob -> new StorageObject(blob.getName(), blob.getSize() == null ? 0 : blob.getSize(),
                         blob.getUpdateTimeOffsetDateTime() == null ? null : blob.getUpdateTimeOffsetDateTime().toInstant(),
                         blob.getGeneration() == null ? null : String.valueOf(blob.getGeneration()),
-                        new ObjectChecksum(CRC32C, blob.getCrc32c())));
-            }
+                        new ObjectChecksum(CRC32C, blob.getCrc32c())))
+                    .toList();
 
             return new StorageObjectPage(PROVIDER_NAME,
                     gcpProperties.getBucketName().trim(), objects, page.getNextPageToken());

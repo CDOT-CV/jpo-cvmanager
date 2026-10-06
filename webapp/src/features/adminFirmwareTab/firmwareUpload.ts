@@ -1,4 +1,4 @@
-import { ChecksumAlgorithm, FirmwareUploadUrl } from '../../models/Firmware'
+import { FirmwareUploadUrl } from '../../models/Firmware'
 
 const CRC32C_POLYNOMIAL = 0x82f63b78
 const CHECKSUM_CHUNK_SIZE = 4 * 1024 * 1024
@@ -18,27 +18,25 @@ for (let tableIndex = 0; tableIndex < crc32cTable.length; tableIndex++) {
 const uint32ToBase64 = (value: number) => {
   const bytes = new Uint8Array(4)
   new DataView(bytes.buffer).setUint32(0, value, false)
-  return btoa(String.fromCharCode(...bytes))
+  return btoa(String.fromCodePoint(...bytes))
 }
 
-const readBlob = (blob: Blob) =>
-  new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('The firmware file could not be read.'))
-    reader.onload = () => resolve(reader.result as ArrayBuffer)
-    reader.readAsArrayBuffer(blob)
-  })
-
-const calculateCrc32c = async (file: Blob) => {
-  let crc = 0xffffffff
-  // Read in chunks to avoid loading the entire firmware artifact into memory
-  for (let offset = 0; offset < file.size; offset += CHECKSUM_CHUNK_SIZE) {
-    const bytes = new Uint8Array(await readBlob(file.slice(offset, offset + CHECKSUM_CHUNK_SIZE)))
-    for (const byte of bytes) {
-      crc = (crc >>> 8) ^ crc32cTable[(crc ^ byte) & 0xff]
+const checksumChunk = (file: Blob, offset: number, crc: number): Promise<string> => {
+  if (offset >= file.size) return Promise.resolve(uint32ToBase64((crc ^ 0xffffffff) >>> 0))
+  // Read sequentially to keep memory bounded to one chunk, even for large artifacts.
+  return file.slice(offset, offset + CHECKSUM_CHUNK_SIZE).arrayBuffer().then((buffer) => {
+    let nextCrc = crc
+    for (const byte of new Uint8Array(buffer)) {
+      nextCrc = (nextCrc >>> 8) ^ crc32cTable[(nextCrc ^ byte) & 0xff]
     }
-  }
-  return uint32ToBase64((crc ^ 0xffffffff) >>> 0)
+    return checksumChunk(file, offset + CHECKSUM_CHUNK_SIZE, nextCrc)
+  }, () => {
+    throw new Error('The firmware file could not be read.')
+  })
+}
+
+const calculateCrc32c = (file: Blob) => {
+  return checksumChunk(file, 0, 0xffffffff)
 }
 
 const checksumCalculators: Record<string, (file: Blob) => Promise<string>> = {
@@ -66,7 +64,7 @@ export const formatFileSize = (bytes: number) => {
 
 // This dispatch point keeps checksum selection outside the form and leaves room
 // for storage providers that require a different checksum algorithm
-export const calculateFileChecksum = (file: Blob, algorithm: ChecksumAlgorithm) => {
+export const calculateFileChecksum = (file: Blob, algorithm: string) => {
   const calculator = checksumCalculators[algorithm.toUpperCase()]
   if (!calculator) throw new Error(`Checksum algorithm ${algorithm} is not supported.`)
   return calculator(file)

@@ -49,6 +49,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 class FirmwareUploadServiceTest {
@@ -459,6 +460,25 @@ class FirmwareUploadServiceTest {
                 "https://example.com/signed", "PUT", new ObjectStorageLocation("gcp", "bucket",
                         "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
                 EXPIRES_AT, Map.of()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { ".tar.", ".tar..sig", ".tar/sig", "tar.sig" })
+    void rejectsMalformedManufacturerExtensions(String extension) {
+        model.getManufacturer().setFirmwareFileExtension(extension);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsLongMalformedManufacturerExtensionWithoutRegexStackOverflow() {
+        model.getManufacturer().setFirmwareFileExtension(".tar".repeat(10000) + ".");
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     private FirmwareUpload pendingUpload() {

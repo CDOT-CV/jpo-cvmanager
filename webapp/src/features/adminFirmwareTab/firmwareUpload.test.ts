@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest'
+import { Blob as NodeBlob } from 'node:buffer'
 import { FirmwareUploadUrl } from '../../models/Firmware'
 import {
   calculateFileChecksum,
@@ -54,6 +55,10 @@ const uploadInstructions: FirmwareUploadUrl = {
 }
 
 describe('calculateFileChecksum', () => {
+  // jsdom's Blob lacks arrayBuffer; Node's implementation supplies the browser API.
+  beforeEach(() => vi.stubGlobal('Blob', NodeBlob))
+  afterEach(() => vi.unstubAllGlobals())
+
   it('calculates the canonical base64 CRC32C checksum', async () => {
     const file = new Blob(['123456789'])
 
@@ -64,6 +69,25 @@ describe('calculateFileChecksum', () => {
     const file = new Blob([])
 
     await expect(calculateFileChecksum(file, 'CRC32C')).resolves.toBe('AAAAAA==')
+  })
+
+  it('reports a file read failure', async () => {
+    const file = new Blob(['firmware'])
+    vi.spyOn(file, 'slice').mockReturnValue({
+      arrayBuffer: vi.fn().mockRejectedValue(new Error('Read failed')),
+    } as unknown as Blob)
+    await expect(calculateFileChecksum(file, 'CRC32C')).rejects.toThrow('The firmware file could not be read.')
+  })
+
+  it('preserves the checksum across chunk boundaries', async () => {
+    const file = new Blob([new Uint8Array(4 * 1024 * 1024 + 9)])
+    const slice = vi.spyOn(file, 'slice')
+
+    // Reference value from java.util.zip.CRC32C for this zero-filled payload.
+    await expect(calculateFileChecksum(file, 'CRC32C')).resolves.toBe('cjjDGg==')
+    expect(slice).toHaveBeenCalledTimes(2)
+    expect(slice).toHaveBeenNthCalledWith(1, 0, 4 * 1024 * 1024)
+    expect(slice).toHaveBeenNthCalledWith(2, 4 * 1024 * 1024, 8 * 1024 * 1024)
   })
 })
 
