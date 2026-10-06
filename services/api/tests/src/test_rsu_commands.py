@@ -263,7 +263,7 @@ def test_perform_command_blocks_rsu_without_owner_org(mock_execute_command, mock
 
     # check — command is blocked, not silently skipped
     expected_result = (
-        f"Organization '{organization}' does not have access to the following RSUs: "
+        f"Organization '{organization}' does not have access to and/or does not own the following RSUs: "
         f"{rsu_ip[0]} (not found or has no owner organization)",
         403,
     )
