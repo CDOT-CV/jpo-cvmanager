@@ -1,5 +1,3 @@
-export type ChecksumAlgorithm = string
-
 export type FirmwareObject = {
   object_id: string
   object_name: string
@@ -45,7 +43,7 @@ export type FirmwareUploadUrlRequest = {
   file_name: string
   content_length: number
   content_type: string
-  checksum_algorithm: ChecksumAlgorithm
+  checksum_algorithm: string
   checksum: string
 }
 

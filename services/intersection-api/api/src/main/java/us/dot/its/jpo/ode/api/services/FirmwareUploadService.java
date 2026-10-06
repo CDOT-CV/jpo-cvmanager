@@ -189,7 +189,7 @@ public class FirmwareUploadService {
     private String buildStoredFileName(FirmwareUploadUrlRequest request, RsuModel model) {
         String manufacturerName = model.getManufacturer().getName();
         String extension = model.getManufacturer().getFirmwareFileExtension();
-        if (extension == null || !extension.matches("^\\.[A-Za-z0-9]+(?:\\.[A-Za-z0-9]+)*$")) {
+        if (extension == null || !extension.matches("^\\.[A-Za-z0-9]++(?:\\.[A-Za-z0-9]++)*+$")) {
             throw new FirmwareUploadConfigurationException(
                     "Firmware uploads are not configured for manufacturer '" + manufacturerName + "'");
         }

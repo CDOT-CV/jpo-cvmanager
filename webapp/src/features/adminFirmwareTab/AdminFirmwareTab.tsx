@@ -72,7 +72,8 @@ const AdminFirmwareTab = () => {
       setIsRefreshing(false)
       return
     }
-    tableRef.current.onQueryChange({ page: 0 })
+    void Promise.resolve(tableRef.current.onQueryChange({ page: 0 }))
+      .catch(() => { /* The query handler displays the fetch error. */ })
   }, [])
 
   const deleteFirmware = async (object: FirmwareObject) => {

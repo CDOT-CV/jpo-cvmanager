@@ -25,7 +25,7 @@ const initialState = {
   includeSecurityHeader: false,
   addConfigPoint: false,
   configCoordinates: [] as number[][],
-  configList: [] as number[],
+    configList: [] as string[],
   msgFwdConfigType: 'database' as 'database' | 'rsu',
 }
 
@@ -299,17 +299,12 @@ export const geoRsuQuery = createAsyncThunk(
     const organization = selectOrganizationName(currentState)
     const configCoordinates = selectConfigCoordinates(currentState)
 
-    const response = await RsuApi.postRsuGeo(
-      token,
-      organization,
-      JSON.stringify({
-        geometry: configCoordinates,
-        vendor: vendor,
-      }),
-      ''
-    )
-    if (!response) {
-      return rejectWithValue('Failed to query RSUs by geometry')
+    const response = await RsuApi.postRsuGeo(token, organization, {
+      geometry: configCoordinates,
+      vendor,
+    })
+    if (!response || response.status !== 200) {
+      return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
     return response
   },
