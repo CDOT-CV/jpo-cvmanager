@@ -188,13 +188,14 @@ const AdminFirmwareTab = () => {
       const related = upgradeRules?.filter(
         (rule) => rule.source.firmware_id === object.firmware_id || rule.destination.firmware_id === object.firmware_id
       )
-      const label = rulesFailed
-        ? 'Could not load rules'
-        : !related
-          ? 'Loading rules…'
-          : related.length
-            ? `${related.length} rule${related.length === 1 ? '' : 's'}`
-            : 'No upgrade rules'
+      let label = 'No upgrade rules'
+      if (rulesFailed) {
+        label = 'Could not load rules'
+      } else if (!related) {
+        label = 'Loading rules…'
+      } else if (related.length) {
+        label = `${related.length} rule${related.length === 1 ? '' : 's'}`
+      }
       return (
         <Button
           size="small"

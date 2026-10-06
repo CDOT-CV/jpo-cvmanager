@@ -95,8 +95,8 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
       toast.success('Upgrade rules saved')
       reload()
       onChanged()
-    } catch (failure) {
-      setError(errorMessage(failure))
+    } catch (error_) {
+      setError(errorMessage(error_))
     } finally {
       setBusy(false)
       setConfirmReplace(false)
@@ -112,8 +112,8 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
       toast.success('Upgrade rule deleted')
       reload()
       onChanged()
-    } catch (failure) {
-      setError(errorMessage(failure))
+    } catch (error_) {
+      setError(errorMessage(error_))
     } finally {
       setBusy(false)
       setRemoveRule(undefined)
