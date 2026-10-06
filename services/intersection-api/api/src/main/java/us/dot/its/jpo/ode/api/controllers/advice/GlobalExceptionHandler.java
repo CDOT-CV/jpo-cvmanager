@@ -41,7 +41,7 @@ import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 
 /**
  * Global exception handler for REST API endpoints.

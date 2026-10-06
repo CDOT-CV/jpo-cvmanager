@@ -83,7 +83,7 @@ class GcpObjectStorageServiceTest {
                 .thenThrow(new StorageException(412, "changed"))
                 .thenThrow(new StorageException(403, "forbidden"));
         assertThatThrownBy(() -> service.deleteObject(location, "17"))
-                .isInstanceOf(ObjectStorageService.ObjectStorageConflictException.class);
+                .isInstanceOf(ObjectStorageConflictException.class);
         assertThatThrownBy(() -> service.deleteObject(location, "17"))
                 .isInstanceOf(ObjectStorageUnavailableException.class);
         verify(storage, times(2)).delete(BlobId.of("firmware-bucket", "file.bin"),

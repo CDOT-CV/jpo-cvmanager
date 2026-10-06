@@ -44,7 +44,7 @@ import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 import us.dot.its.jpo.ode.api.repositories.*;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.storage.GcpStorageClientProvider;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @SpringBootTest(properties = { "firmware-upload.cleanup.enabled=false", "object-storage.provider=gcp",

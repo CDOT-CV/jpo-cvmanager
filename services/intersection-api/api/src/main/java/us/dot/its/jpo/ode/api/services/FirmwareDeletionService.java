@@ -16,6 +16,7 @@ import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 
 @Service
@@ -68,7 +69,7 @@ public class FirmwareDeletionService {
         var records = uploads.findDestinationForUpdate(location.provider(), location.container(), objectName);
         Instant now = Instant.now();
         var latestActiveExpiration = records.stream()
-                .map(upload -> upload.getExpiresAt())
+                .map(FirmwareUpload::getExpiresAt)
                 .filter(expiration -> expiration.isAfter(now))
                 .max(Instant::compareTo);
         if (latestActiveExpiration.isPresent()) {
