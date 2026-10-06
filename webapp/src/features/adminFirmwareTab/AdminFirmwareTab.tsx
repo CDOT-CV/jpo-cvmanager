@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Action, Column, Query } from '@material-table/core'
-import { Box, Button, FormControl, InputLabel, MenuItem, Select, Typography, useTheme } from '@mui/material'
+import { Box, Button, FormControl, InputLabel, MenuItem, Select, Typography } from '@mui/material'
 import { DeleteOutline } from '@mui/icons-material'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
@@ -51,8 +51,17 @@ const verificationColor = {
   MISSING: 'warning.light',
 }
 
+const FirmwareDeleteIcon = () => (
+  <DeleteOutline sx={{ color: (theme) => theme.palette.custom.rowActionIcon }} />
+)
+
+const FirmwareDeletionDetails = ({ object }: { object: FirmwareObject }) => (
+  <div style={{ marginTop: 16, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
+    {`Manufacturer: ${object.manufacturer ?? 'Unknown'}\nModel: ${object.model ?? 'Unknown'}\nVersion: ${object.version ?? 'Unknown'}\nFile: ${object.file_name}`}
+  </div>
+)
+
 const AdminFirmwareTab = () => {
-  const theme = useTheme()
   const tableRef = useRef<any>(null)
   const manufacturerRef = useRef('')
   const [manufacturer, setManufacturer] = useState('')
@@ -74,7 +83,8 @@ const AdminFirmwareTab = () => {
       setIsRefreshing(false)
       return
     }
-    tableRef.current.onQueryChange({ page: 0 })
+    void Promise.resolve(tableRef.current.onQueryChange({ page: 0 }))
+      .catch(() => { /* The query handler displays the fetch error. */ })
   }, [refreshRules])
 
   const deleteFirmware = async (object: FirmwareObject) => {
@@ -204,7 +214,7 @@ const AdminFirmwareTab = () => {
   const tableActions: (Action<FirmwareObject> | ((row: FirmwareObject) => Action<FirmwareObject>))[] = [
     (object) => ({
       position: 'row',
-      icon: () => <DeleteOutline sx={{ color: theme.palette.custom.rowActionIcon }} />,
+      icon: FirmwareDeleteIcon,
       iconProps: { itemType: 'rowAction' },
       tooltip: object.verification_status === 'MISSING' ? 'Clean Up Records' : 'Delete Firmware',
       disabled: isDeleting,
@@ -221,11 +231,7 @@ const AdminFirmwareTab = () => {
               { label: 'No', onClick: () => {} },
             ]
           ),
-          childrenElement: () => (
-            <div style={{ marginTop: 16, whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>
-              {`Manufacturer: ${row.manufacturer ?? 'Unknown'}\nModel: ${row.model ?? 'Unknown'}\nVersion: ${row.version ?? 'Unknown'}\nFile: ${row.file_name}`}
-            </div>
-          ),
+          childrenElement: FirmwareDeletionDetails.bind(null, { object: row }),
         })
       },
     }),

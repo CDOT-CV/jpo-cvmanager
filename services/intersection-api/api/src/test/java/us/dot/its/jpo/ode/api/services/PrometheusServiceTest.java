@@ -130,7 +130,7 @@ public class PrometheusServiceTest {
 
         when(restTemplate.getForObject(any(URI.class), eq(String.class))).thenReturn(expectedResponse);
 
-        prometheusService.getOrganizationRsuCounts("10.0.0.1|10.0.0.2", "topic\\.Ode.*[Bb][Ss][Mm].*Json",
+        prometheusService.getOrganizationRsuCounts("10.0.0.1|10.0.0.2", "topic[.]Ode.*[Bb][Ss][Mm].*Json",
                 startTime, endTime);
 
         ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
@@ -138,7 +138,7 @@ public class PrometheusServiceTest {
 
         String query = uriCaptor.getValue().getQuery();
         assertThat(query).contains("rsu_ip");
-        assertThat(query).contains("topic");
+        assertThat(query).contains("topic=~\"topic[.]Ode.*[Bb][Ss][Mm].*Json\"");
         assertThat(query).doesNotContain("sum_over_time");
     }
 

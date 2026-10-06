@@ -18,7 +18,10 @@ import java.util.Collection;
 public interface MaxRetryLimitReachedInstanceRepository
         extends JpaRepository<MaxRetryLimitReachedInstance, MaxRetryLimitReachedInstanceId> {
 
-    boolean existsByTargetFirmwareVersionIdIn(Collection<Integer> ids);
+    @Modifying
+    @Query("DELETE FROM MaxRetryLimitReachedInstance instance "
+            + "WHERE instance.targetFirmwareVersion.id IN :ids")
+    void deleteByTargetFirmwareVersionIdIn(@Param("ids") Collection<Integer> ids);
 
     @Modifying
     @Transactional

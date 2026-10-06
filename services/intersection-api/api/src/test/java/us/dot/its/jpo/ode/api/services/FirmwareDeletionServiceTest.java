@@ -44,7 +44,7 @@ import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 import us.dot.its.jpo.ode.api.repositories.*;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.storage.GcpStorageClientProvider;
-import us.dot.its.jpo.ode.api.storage.ObjectStorageService.ObjectStorageConflictException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @SpringBootTest(properties = { "firmware-upload.cleanup.enabled=false", "object-storage.provider=gcp",
@@ -348,17 +348,21 @@ class FirmwareDeletionServiceTest {
     }
 
     @Test
-    void rejectsFailureHistoryReferences() throws Exception {
+    void deletesFailureHistoryWithTheReferencedFirmware() throws Exception {
         var image = saveImage(null, "v1");
         var rsu = createRsu();
         jdbc.update(
                 "insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values (?, now(), ?)",
                 rsu.getId(), image.getId());
-        assertThatThrownBy(() -> deletion.delete(objectId(), "17"))
-                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("failure history");
-        assertThatThrownBy(() -> deletion.cleanupMissingObject(objectId()))
-                .isInstanceOf(FirmwareDeletionConflictException.class).hasMessageContaining("failure history");
-        verifyNoInteractions(cloud);
+
+        deletion.delete(objectId(), "17");
+
+        assertThat(jdbc.queryForObject(
+                "select count(*) from max_retry_limit_reached_instances where target_firmware_version = ?",
+                Integer.class, image.getId())).isZero();
+        assertThat(images.findById(image.getId())).isEmpty();
+        verify(cloud).delete(BlobId.of("deletion-test", objectName),
+                Storage.BlobSourceOption.generationMatch(17L));
     }
 
     @Test

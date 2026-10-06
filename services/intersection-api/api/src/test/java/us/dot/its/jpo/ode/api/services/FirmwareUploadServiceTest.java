@@ -13,9 +13,17 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.mockito.ArgumentCaptor;
 import org.mapstruct.factory.Mappers;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -41,6 +49,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 class FirmwareUploadServiceTest {
@@ -354,6 +363,122 @@ class FirmwareUploadServiceTest {
         assertThat(upload.getFailureReason()).isNull();
         assertThat(upload.getFinishedAt()).isEqualTo(upload.getVerifiedAt());
         verify(firmwareUploadRepository).save(upload);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = { 0, -1 })
+    @NullSource
+    void rejectsMissingOrNonpositiveContentLength(Long length) {
+        request.setContentLength(length);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("content_length");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { " ", ".", "..", "dir/file", "dir\\file", "file\u0001name" })
+    void rejectsUnsafePathSegmentsBeforeSigning(String segment) {
+        request.setFileName(segment);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("file_name");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    static Stream<ObjectStorageLocation> invalidSignedLocations() {
+        String name = "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig";
+        return Stream.of(null,
+                new ObjectStorageLocation("aws", "bucket", name),
+                new ObjectStorageLocation("gcp", null, name),
+                new ObjectStorageLocation("gcp", " ", name),
+                new ObjectStorageLocation("gcp", "bucket", "another-file"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSignedLocations")
+    void doesNotPersistIntentWhenProviderReturnsInvalidLocation(ObjectStorageLocation location) {
+        when(objectStorageService.createSignedUploadUrl(any())).thenReturn(
+                new SignedUploadUrl("https://example.com/signed", "PUT", location, EXPIRES_AT, Map.of()));
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(ex.getReason()).isEqualTo("Object storage returned an invalid upload location");
+                });
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @Test
+    void preservesUnrelatedDatabaseFailures() {
+        stubSignedUrl();
+        var failure = new DataIntegrityViolationException("unrelated constraint");
+        when(firmwareUploadRepository.save(any())).thenThrow(failure);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin")).isSameAs(failure);
+    }
+
+    @Test
+    void recognizesDestinationConflictInNestedDatabaseCause() {
+        stubSignedUrl();
+        var failure = new DataIntegrityViolationException("save failed",
+                new IllegalStateException("uq_firmware_uploads_active_destination"));
+        when(firmwareUploadRepository.save(any())).thenThrow(failure);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class).hasCause(failure);
+    }
+
+    @Test
+    void preservesDatabaseFailureWithoutMessage() {
+        stubSignedUrl();
+        var failure = new DataIntegrityViolationException(null);
+        when(firmwareUploadRepository.save(any())).thenThrow(failure);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin")).isSameAs(failure);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void recordsUnknownCreatorWhenIdentityIsAbsent(String creator) {
+        stubSignedUrl();
+        service.createFirmwareSignedUploadUrl(request, creator);
+        ArgumentCaptor<FirmwareUpload> upload = ArgumentCaptor.forClass(FirmwareUpload.class);
+        verify(firmwareUploadRepository).save(upload.capture());
+        assertThat(upload.getValue().getCreatedBy()).isEqualTo("unknown");
+    }
+
+    @Test
+    void trimsAndBoundsCreatorToDatabaseColumnSize() {
+        stubSignedUrl();
+        service.createFirmwareSignedUploadUrl(request, " " + "a".repeat(256) + " ");
+        ArgumentCaptor<FirmwareUpload> upload = ArgumentCaptor.forClass(FirmwareUpload.class);
+        verify(firmwareUploadRepository).save(upload.capture());
+        assertThat(upload.getValue().getCreatedBy()).isEqualTo("a".repeat(255));
+    }
+
+    private void stubSignedUrl() {
+        when(objectStorageService.createSignedUploadUrl(any())).thenReturn(new SignedUploadUrl(
+                "https://example.com/signed", "PUT", new ObjectStorageLocation("gcp", "bucket",
+                        "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
+                EXPIRES_AT, Map.of()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { ".tar.", ".tar..sig", ".tar/sig", "tar.sig" })
+    void rejectsMalformedManufacturerExtensions(String extension) {
+        model.getManufacturer().setFirmwareFileExtension(extension);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsLongMalformedManufacturerExtensionWithoutRegexStackOverflow() {
+        model.getManufacturer().setFirmwareFileExtension(".tar".repeat(10000) + ".");
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     private FirmwareUpload pendingUpload() {

@@ -19,7 +19,6 @@ import {
 import toast from 'react-hot-toast'
 import { Upload } from '../../icons/upload'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { ChecksumAlgorithm } from '../../models/Firmware'
 import {
   useCompleteFirmwareUploadMutation,
   useCreateFirmwareUploadUrlMutation,
@@ -27,7 +26,7 @@ import {
 } from '../api/firmwareApiSlice'
 import { calculateFileChecksum, formatFileSize, uploadFileToSignedUrl } from './firmwareUpload'
 
-const DEFAULT_CHECKSUM_ALGORITHM: ChecksumAlgorithm = 'CRC32C'
+const DEFAULT_CHECKSUM_ALGORITHM = 'CRC32C'
 const SAFE_FILE_COMPONENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 
 type UploadStage = 'idle' | 'checksum' | 'requesting-url' | 'uploading' | 'verifying' | 'complete'
@@ -245,7 +244,7 @@ const FirmwareUploadForm = ({ open, onClose, onSuccess }: FirmwareUploadFormProp
                 sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                 disabled={isWorking || !selectedManufacturer?.file_extension}
               >
-                Choose File
+                <span>Choose File</span>
                 <input
                   key={vendorName}
                   hidden

@@ -29,9 +29,4 @@ public interface ObjectStorageService {
 
     String providerName();
 
-    class ObjectStorageConflictException extends RuntimeException {
-        public ObjectStorageConflictException(String message) {
-            super(message);
-        }
-    }
 }

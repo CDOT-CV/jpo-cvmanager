@@ -112,7 +112,7 @@ services:
         condition: service_healthy
         required: false
     ports:
-      - '${WEBAPP_PORT:-3000}:80'
+      - '${WEBAPP_PORT:-3000}:8080'
     logging:
       options:
         max-size: '10m'

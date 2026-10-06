@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
@@ -56,10 +57,36 @@ public class FirmwareObjectService {
                 ? null
                 : validateManufacturer(manufacturer) + "/";
         String searchTerm = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        Listing listing = readListing(prefix, searchTerm);
+        StorageObjectPage page = listing.page();
+        var objects = page.objects();
+        if (objects.isEmpty()) {
+            return new FirmwareObjectPage(page.provider(), List.of(), 0);
+        }
+
+        // Attach upload and image evidence before sorting the complete result.
+        var records = uploads.findListingUploads(page.provider(), page.container(),
+                objects.stream().map(StorageObject::objectName).toList());
+        var byName = records.stream().collect(Collectors.toMap(FirmwareUpload::getObjectName, Function.identity()));
+        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of()
+                : images.findByVerifiedUploadIdIn(records.stream().map(FirmwareUpload::getId).toList()).stream()
+                        .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), FirmwareImage::getId));
+        var items = objects.stream()
+                .map(object -> toItem(page.provider(), object, byName.get(object.objectName()), imageIds, listing))
+                .sorted(itemComparator(sort)).toList();
+
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
+        int toIndex = Math.min(fromIndex + pageSize, items.size());
+        return new FirmwareObjectPage(page.provider(), items.subList(fromIndex, toIndex), items.size());
+    }
+
+    private record Listing(StorageObjectPage page, Set<String> missingNames, Map<String, Integer> legacyImageIds) {}
+
+    private Listing readListing(String prefix, String searchTerm) {
         var storageService = storage.getActiveService();
+        var listedObjects = new ArrayList<StorageObject>();
         var objects = new ArrayList<StorageObject>();
         var visitedTokens = new HashSet<String>();
-        var missing = new TreeMap<String, StorageObject>();
         var legacyImageIds = new HashMap<String, Integer>();
         var missingNames = new HashSet<String>();
         String pageToken = null;
@@ -69,33 +96,7 @@ public class FirmwareObjectService {
         // filtered result, including untracked and missing files.
         do {
             page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
-            if (pageToken == null) {
-                // Database records remain discoverable after a lost deletion response
-                // or failed commit, even when the cloud file is already gone.
-                Instant now = Instant.now();
-                for (var upload : uploads.findListingCandidates(page.provider(), page.container())) {
-                    if (!upload.getExpiresAt().isAfter(now)
-                            || upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-                        missing.put(upload.getObjectName(), new StorageObject(upload.getObjectName(),
-                                upload.getExpectedSize(), null, null, null));
-                    }
-                }
-                for (var image : images.findLegacyImagesWithModelAndManufacturer()) {
-                    String name = String.join("/", image.getModel().getManufacturer().getName(),
-                            image.getModel().getName(), image.getVersion(), image.getInstallPackage());
-                    legacyImageIds.put(name, image.getId());
-                    missing.putIfAbsent(name, new StorageObject(name, 0L, null, null, null));
-                }
-            }
-            for (var object : page.objects()) {
-                String name = object.objectName();
-                missing.remove(name);
-                if (name.endsWith("/") || isReservedObject(name)
-                        || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
-                    continue;
-                }
-                objects.add(object);
-            }
+            listedObjects.addAll(page.objects());
 
             pageToken = page.nextPageToken();
             if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
@@ -103,73 +104,80 @@ public class FirmwareObjectService {
             }
         } while (pageToken != null && !pageToken.isBlank());
 
-        // Only a complete, successful storage listing establishes absence. Include
-        // missing records in the same searched and manufacturer-filtered result.
+        // Only a complete, successful storage listing establishes absence. Database
+        // records remain discoverable after a lost deletion response or failed commit.
+        var missing = missingCandidates(page, legacyImageIds);
+
+        for (var object : listedObjects) {
+            String name = object.objectName();
+            missing.remove(name);
+            if (isMatchingObject(name, searchTerm)) objects.add(object);
+        }
+
+        // Include missing records in the same searched and manufacturer-filtered result.
         for (var object : missing.values()) {
             String name = object.objectName();
-            if (name.endsWith("/") || isReservedObject(name)
-                    || (prefix != null && !name.startsWith(prefix))
-                    || !name.toLowerCase(Locale.ROOT).contains(searchTerm)) {
-                continue;
+            if (isMatchingObject(name, searchTerm) && (prefix == null || name.startsWith(prefix))) {
+                objects.add(object);
+                missingNames.add(name);
             }
-            objects.add(object);
-            missingNames.add(name);
         }
+        return new Listing(new StorageObjectPage(page.provider(), page.container(), objects, null),
+                missingNames, legacyImageIds);
+    }
 
-        if (objects.isEmpty()) {
-            return new FirmwareObjectPage(page.provider(), List.of(), 0);
-        }
-        String provider = page.provider();
-
-        // Attach the best upload record and registered image, when present, to
-        // each listed file or missing-file record.
-        var records = uploads.findListingUploads(page.provider(), page.container(),
-                objects.stream().map(item -> item.objectName()).toList());
-        var byName = records.stream().collect(Collectors.toMap(FirmwareUpload::getObjectName, Function.identity()));
-        Map<UUID, Integer> imageIds = records.isEmpty() ? Map.of()
-                : images.findByVerifiedUploadIdIn(
-                        records.stream().map(FirmwareUpload::getId).toList()).stream()
-                        .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), image -> image.getId()));
-
-        var items = objects.stream().map(object -> {
-            var upload = byName.get(object.objectName());
-            boolean absent = missingNames.contains(object.objectName());
-            String state = absent ? "MISSING" : upload == null ? "UNTRACKED" : "UNVERIFIED";
-
-            if (!absent && upload != null && upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
-                // Verification belongs to the exact object version, not just its path
-                boolean matches = object.providerObjectVersion() != null
-                        && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
-                        && Objects.equals(upload.getExpectedSize(), object.contentLength())
-                        && object.checksum() != null
-                        && upload.getObservedChecksum() != null
-                        && upload.getChecksumAlgorithm().equalsIgnoreCase(object.checksum().algorithm())
-                        && Objects.equals(upload.getObservedChecksum(), object.checksum().value());
-                state = matches ? "VERIFIED" : "CHANGED";
+    private Map<String, StorageObject> missingCandidates(StorageObjectPage page, Map<String, Integer> legacyImageIds) {
+        var missing = new TreeMap<String, StorageObject>();
+        Instant now = Instant.now();
+        for (var upload : uploads.findListingCandidates(page.provider(), page.container())) {
+            if (!upload.getExpiresAt().isAfter(now) || upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
+                missing.put(upload.getObjectName(), new StorageObject(upload.getObjectName(),
+                        upload.getExpectedSize(), null, null, null));
             }
+        }
+        for (var image : images.findLegacyImagesWithModelAndManufacturer()) {
+            String name = String.join("/", image.getModel().getManufacturer().getName(),
+                    image.getModel().getName(), image.getVersion(), image.getInstallPackage());
+            legacyImageIds.put(name, image.getId());
+            missing.putIfAbsent(name, new StorageObject(name, 0L, null, null, null));
+        }
+        return missing;
+    }
 
-            // Expose the conventional manufacturer/model/version/file path as table
-            // columns while retaining the complete object name for later actions
-            String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                    (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
-            String[] path = object.objectName().split("/", 4);
-            String manufacturerName = path.length == 4 ? path[0] : null;
-            String modelName = path.length == 4 ? path[1] : null;
-            String version = path.length == 4 ? path[2] : null;
-            String fileName = path.length == 4 ? path[3] : object.objectName();
+    private boolean isMatchingObject(String name, String searchTerm) {
+        return !name.endsWith("/") && !isReservedObject(name)
+                && name.toLowerCase(Locale.ROOT).contains(searchTerm);
+    }
 
-            return new FirmwareObjectPage.Item(id, object.objectName(), manufacturerName, modelName,
-                    version, fileName, absent && upload == null ? null : Long.valueOf(object.contentLength()),
-                    object.updatedAt(),
-                    object.providerObjectVersion(), upload == null ? null : upload.getId(),
-                    upload == null ? legacyImageIds.get(object.objectName()) : imageIds.get(upload.getId()),
-                    upload == null ? null : upload.getStatus().name(), state);
-        }).sorted(itemComparator(sort)).toList();
+    private FirmwareObjectPage.Item toItem(String provider, StorageObject object, FirmwareUpload upload,
+            Map<UUID, Integer> imageIds, Listing listing) {
+        boolean absent = listing.missingNames().contains(object.objectName());
+        // Parse conventional paths into columns, retaining the full path for actions.
+        String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
+        String[] path = object.objectName().split("/", 4);
+        String manufacturerName = path.length == 4 ? path[0] : null;
+        String modelName = path.length == 4 ? path[1] : null;
+        String version = path.length == 4 ? path[2] : null;
+        String fileName = path.length == 4 ? path[3] : object.objectName();
+        return new FirmwareObjectPage.Item(id, object.objectName(), manufacturerName, modelName,
+                version, fileName, absent && upload == null ? null : Long.valueOf(object.contentLength()),
+                object.updatedAt(), object.providerObjectVersion(), upload == null ? null : upload.getId(),
+                upload == null ? listing.legacyImageIds().get(object.objectName()) : imageIds.get(upload.getId()),
+                upload == null ? null : upload.getStatus().name(), absent ? "MISSING" : verificationState(object, upload));
+    }
 
-        int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
-        int toIndex = Math.min(fromIndex + pageSize, items.size());
-
-        return new FirmwareObjectPage(provider, items.subList(fromIndex, toIndex), items.size());
+    private String verificationState(StorageObject object, FirmwareUpload upload) {
+        if (upload == null) return "UNTRACKED";
+        if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) return "UNVERIFIED";
+        // Verification belongs to the exact object version, not just its path.
+        boolean matches = object.providerObjectVersion() != null
+                && object.providerObjectVersion().equals(upload.getProviderObjectVersion())
+                && Objects.equals(upload.getExpectedSize(), object.contentLength())
+                && object.checksum() != null && upload.getObservedChecksum() != null
+                && upload.getChecksumAlgorithm().equalsIgnoreCase(object.checksum().algorithm())
+                && Objects.equals(upload.getObservedChecksum(), object.checksum().value());
+        return matches ? "VERIFIED" : "CHANGED";
     }
 
     private Comparator<FirmwareObjectPage.Item> itemComparator(String sort) {

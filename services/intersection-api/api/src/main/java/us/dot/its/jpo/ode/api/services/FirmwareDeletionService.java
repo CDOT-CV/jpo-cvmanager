@@ -16,6 +16,7 @@ import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 
 @Service
@@ -68,7 +69,7 @@ public class FirmwareDeletionService {
         var records = uploads.findDestinationForUpdate(location.provider(), location.container(), objectName);
         Instant now = Instant.now();
         var latestActiveExpiration = records.stream()
-                .map(upload -> upload.getExpiresAt())
+                .map(FirmwareUpload::getExpiresAt)
                 .filter(expiration -> expiration.isAfter(now))
                 .max(Instant::compareTo);
         if (latestActiveExpiration.isPresent()) {
@@ -85,11 +86,6 @@ public class FirmwareDeletionService {
             throw new FirmwareDeletionConflictException(
                     "This firmware is an RSU's current or target version and cannot be deleted.");
         }
-        if (!imageIds.isEmpty() && failureHistory.existsByTargetFirmwareVersionIdIn(imageIds)) {
-            throw new FirmwareDeletionConflictException(
-                    "This firmware is referenced by upgrade failure history and cannot be deleted.");
-        }
-
         // Recovery never deletes a cloud object. A file that reappeared must be
         // listed and explicitly confirmed with its current version first.
         if (providerObjectVersion == null && service.objectExists(objectName)) {
@@ -102,6 +98,9 @@ public class FirmwareDeletionService {
         // allows a retry to finish cleanup if a previous database commit failed.
         try {
             if (!imageIds.isEmpty()) {
+                // Retry-limit entries describe the image being removed and cannot
+                // remain once that image is no longer registered.
+                failureHistory.deleteByTargetFirmwareVersionIdIn(imageIds);
                 rules.deleteForImages(imageIds);
                 images.deleteAll(registeredImages);
                 images.flush();
