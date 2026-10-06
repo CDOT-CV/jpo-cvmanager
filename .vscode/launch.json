@@ -76,7 +76,9 @@
         "INTERSECTION_SMTP_USERNAME": "admin",
         "INTERSECTION_SMTP_PASSWORD": "password",
         "INTERSECTION_SMTP_AUTH": "true",
-        "INTERSECTION_SMTP_STARTTLS": "false"
+        "INTERSECTION_SMTP_STARTTLS": "false",
+        "INTERSECTION_SMTP_CHECK_SERVER_IDENTITY": "false",
+        "PROMETHEUS_URL": "http://localhost:9090"
       }
     }
   ],

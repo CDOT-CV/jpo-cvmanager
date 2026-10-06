@@ -1,5 +1,5 @@
 # Build React App With Node 
-FROM node:22-alpine AS builder
+FROM node:24-alpine3.23 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -33,6 +33,12 @@ ENV VITE_KEYCLOAK_CLIENT_ID=$KEYCLOAK_CLIENT_ID
 
 ARG VIEWER_MESSAGE_TYPES
 ENV VITE_VIEWER_MESSAGE_TYPES=$VIEWER_MESSAGE_TYPES
+
+ARG COUNT_MESSAGE_TYPES
+ENV VITE_COUNT_MESSAGE_TYPES=$COUNT_MESSAGE_TYPES
+
+ARG MAX_QUERY_DURATION_DAYS
+ENV VITE_MAX_QUERY_DURATION_DAYS=$MAX_QUERY_DURATION_DAYS
 
 ARG DOT_NAME
 ENV VITE_DOT_NAME=$DOT_NAME
@@ -70,25 +76,29 @@ ENV VITE_WEBAPP_THEME_DARK=$WEBAPP_THEME_DARK
 ARG ENABLE_HAAS_FEATURES
 ENV VITE_ENABLE_HAAS_FEATURES=$ENABLE_HAAS_FEATURES
 
+ARG ENABLE_RSU_STATUS_MONITOR_FEATURES
+ENV VITE_ENABLE_RSU_STATUS_MONITOR_FEATURES=$ENABLE_RSU_STATUS_MONITOR_FEATURES
+
 # Build the React app
 RUN npm run build
 
 # === Serve React App with Nginx ===
-FROM nginx:1.21-alpine
+FROM nginxinc/nginx-unprivileged:1.30.5-alpine3.24-slim
+
+USER root
 
 # Set working directory
 WORKDIR /usr/share/nginx/html
 
-# Remove default Nginx configuration
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Copy custom Nginx configuration
-COPY default.conf /etc/nginx/conf.d/
-
 # Remove default static files
 RUN rm -rf ./*
 
-# Copy the built React app from the builder stage
-COPY --from=builder /app/build .
+# Replace the default Nginx configuration
+COPY --chown=101:101 default.conf /etc/nginx/conf.d/default.conf
 
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# Copy the built React app from the builder stage
+COPY --from=builder --chown=101:101 /app/build/ ./
+
+USER 101
+
+EXPOSE 8080
