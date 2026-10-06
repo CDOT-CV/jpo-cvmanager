@@ -147,6 +147,16 @@ def execute_upgrade_rsu(organization, rsu_list):
             return_dict[rsu] = {"code": status_code, "data": json_msg}
     return return_dict
 
+def get_rsus_not_owned_by_organization(rsu_list, organization):
+    owners = get_rsu_owner_orgs(rsu_list)
+    unauthorized = []
+    for rsu_ip in rsu_list:
+        owner_org = owners.get(rsu_ip)
+        if owner_org is None:
+            unauthorized.append(f"{rsu_ip} (not found or has no owner organization)")
+        elif owner_org != organization:
+            unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
+    return unauthorized
 
 # Main driver function
 def perform_command(command, organization, role, rsu_list, args, super_user: bool = False):
@@ -161,13 +171,7 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
     # Restrict all RSU operations to the RSU's owner organization
     if not super_user:
         owners = get_rsu_owner_orgs(rsu_list)
-        unauthorized = []
-        for rsu_ip in rsu_list:
-            owner_org = owners.get(rsu_ip)
-            if owner_org is None:
-                unauthorized.append(f"{rsu_ip} (not found or has no owner organization)")
-            elif owner_org != organization:
-                unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
+        unauthorized = get_rsus_not_owned_by_organization(rsu_list, organization)
         if unauthorized:
             return (
                 f"Organization '{organization}' does not have access to and/or does not own the following RSUs: "
