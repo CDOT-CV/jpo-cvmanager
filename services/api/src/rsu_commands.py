@@ -170,7 +170,6 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
 
     # Restrict all RSU operations to the RSU's owner organization
     if not super_user:
-        owners = get_rsu_owner_orgs(rsu_list)
         unauthorized = get_rsus_not_owned_by_organization(rsu_list, organization)
         if unauthorized:
             return (
