@@ -165,6 +165,15 @@ describe('Map geo-message query', () => {
     await waitFor(() => expect(store.getState().rsu.value.geoMsgData).toEqual([]))
   })
 
+  it('shows the numeric API status when an error response has no Problem Details message', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({}), { status: 503 })
+
+    renderMapPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+    expect(await screen.findByText('Query failed: 503')).toBeInTheDocument()
+  })
+
   it('does not submit while the polygon is still being drawn', () => {
     const store = makeStore()
     store.dispatch(toggleGeoMsgPointSelect())

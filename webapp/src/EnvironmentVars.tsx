@@ -59,7 +59,7 @@ class EnvironmentVars {
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoPath = '/devices/rsus/info'
-  static rsuGeoQueryPath = '/devices/rsus/geo-query'
+  static readonly rsuGeoQueryPath = '/devices/rsus/geo-query'
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
   static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
   static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`

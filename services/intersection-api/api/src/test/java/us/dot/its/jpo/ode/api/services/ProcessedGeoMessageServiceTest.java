@@ -25,6 +25,7 @@ import java.util.stream.StreamSupport;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -323,6 +324,23 @@ class ProcessedGeoMessageServiceTest {
     }
 
     @Test
+    void rejectsMissingRequestAndTimestampFieldsBeforeMongo() {
+        ProcessedGeoMessageRepository repository = mock(ProcessedGeoMessageRepository.class);
+        ProcessedGeoMessageService service = service(repository, "10");
+        ProcessedGeoMessageRequest valid = request("BSM");
+
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(null));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
+                null, valid.start(), valid.end(), "BSM")));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), " ", valid.end(), "BSM")));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), valid.start(), null, "BSM")));
+
+        verify(repository, never()).find(anyString(), anyList(), anyString(), anyString());
+    }
+
+    @Test
     void rejectsNegativeAndNonIntegerRecordCapsAtStartup() {
         ProcessedGeoMessageRepository repository = mock(ProcessedGeoMessageRepository.class);
 
@@ -384,6 +402,41 @@ class ProcessedGeoMessageServiceTest {
         ResponseStatusException queryFailure = assertThrows(ResponseStatusException.class,
                 () -> queryFailureService.query(request("BSM")));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, queryFailure.getStatusCode());
+
+        ProcessedGeoMessageRepository timeoutRepository = mock(ProcessedGeoMessageRepository.class);
+        when(timeoutRepository.find(anyString(), anyList(), anyString(), anyString()))
+                .thenThrow(new QueryTimeoutException("internal timeout"));
+        ResponseStatusException timeout = assertThrows(ResponseStatusException.class,
+                () -> service(timeoutRepository, "10").query(request("BSM")));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, timeout.getStatusCode());
+    }
+
+    @Test
+    void mapsMalformedStoredFeaturesToInternalServerError() {
+        Document missingId = feature("missing-id", "2024-01-01T00:00:20Z", 0d, 0d);
+        ((Document) missingId.get("properties")).remove("id");
+
+        Document missingTimestamp = feature("missing-time", "2024-01-01T00:00:20Z", 0d, 0d);
+        ((Document) missingTimestamp.get("properties")).remove("timeStamp");
+
+        Document missingGeometry = feature("missing-geometry", "2024-01-01T00:00:20Z", 0d, 0d);
+        missingGeometry.remove("geometry");
+
+        Document malformedCoordinates = feature("bad-coordinates", "2024-01-01T00:00:20Z", 0d, 0d);
+        malformedCoordinates.put("geometry", new Document("coordinates", List.of("west", 0d)));
+
+        Document invalidTimestamp = feature("bad-time", "2024-01-01T00:00:20Z", 0d, 0d);
+        ((Document) invalidTimestamp.get("properties")).put("timeStamp", "not-a-timestamp");
+
+        for (Document malformed : List.of(missingId, missingTimestamp, missingGeometry,
+                malformedCoordinates, invalidTimestamp)) {
+            ProcessedGeoMessageRepository repository = mock(ProcessedGeoMessageRepository.class);
+            when(repository.find(anyString(), anyList(), anyString(), anyString()))
+                    .thenReturn(Stream.of(malformed));
+
+            assertStatus(HttpStatus.INTERNAL_SERVER_ERROR,
+                    () -> service(repository, "10").query(request("BSM")));
+        }
     }
 
     @Test

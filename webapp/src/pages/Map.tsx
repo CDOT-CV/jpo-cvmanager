@@ -164,7 +164,9 @@ const getGeoMsgApiErrorMessage = (error: unknown): string => {
     if (typeof apiError.data?.detail === 'string') return apiError.data.detail
     if (typeof apiError.data?.title === 'string') return apiError.data.title
     if (typeof apiError.error === 'string') return apiError.error
-    if (apiError.status !== undefined) return String(apiError.status)
+    if (typeof apiError.status === 'number' || typeof apiError.status === 'string') {
+      return String(apiError.status)
+    }
   }
   return 'Unknown error'
 }
@@ -1030,7 +1032,7 @@ function MapPage() {
       const coloredFeatures = features.map((feature) => ({
         ...feature,
         properties: {
-          ...(feature.properties ?? {}),
+          ...feature.properties,
           colorIndex: idToColorIndex.get(feature.properties?.id),
         },
       }))
