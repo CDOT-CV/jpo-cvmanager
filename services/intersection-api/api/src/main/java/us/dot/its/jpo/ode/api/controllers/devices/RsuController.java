@@ -131,7 +131,7 @@ public class RsuController {
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
     @PatchMapping(produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
@@ -146,7 +146,7 @@ public class RsuController {
 
     @Operation(summary = "Delete RSU", description = "Delete RSU from management system")
     @DeleteMapping(produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRsu(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
