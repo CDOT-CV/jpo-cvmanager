@@ -26,6 +26,9 @@ To provide feedback, we recommend that you create an "issue" in this repository 
 
 ## Quick Start
 
+For automated dependency and built-image vulnerability reports, see
+[CVE scanning](docs/cve-scanning.md).
+
 This section is brief - for more detailed instructions, please see [Getting Started](#getting-started)
 
 ### Requirements
