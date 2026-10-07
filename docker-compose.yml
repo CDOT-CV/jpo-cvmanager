@@ -16,7 +16,7 @@ services:
     image: jpo_cvmanager_api:latest
     restart: always
     ports:
-      - '8081:5000'
+      - "8081:5000"
     environment:
       PG_DB_HOST: ${PG_DB_HOST:-cvmanager_postgres:5432}
       PG_DB_USER: ${PG_DB_USER:-postgres}
@@ -24,7 +24,7 @@ services:
       PG_DB_NAME: ${PG_DB_NAME:-postgres}
       INSTANCE_CONNECTION_NAME: ${INSTANCE_CONNECTION_NAME}
 
-      MONGO_DB_URI: ${MONGO_DB_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace-me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=admin}
+      MONGO_DB_URI: ${MONGO_DB_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace_me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=admin}
       MONGO_DB_NAME: ${CM_DATABASE_NAME:-CV}
       FIRMWARE_MANAGER_ENDPOINT: ${FIRMWARE_MANAGER_ENDPOINT}
 
@@ -65,8 +65,8 @@ services:
         condition: service_completed_successfully
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   cvmanager_webapp:
     profiles:
@@ -107,10 +107,10 @@ services:
         condition: service_healthy
         required: false
     ports:
-      - '${WEBAPP_PORT:-3000}:8080'
+      - "${WEBAPP_PORT:-3000}:8080"
     logging:
       options:
-        max-size: '10m'
+        max-size: "10m"
 
   cvmanager_postgres:
     profiles:
@@ -119,7 +119,7 @@ services:
     image: postgis/postgis:15-master
     restart: always
     ports:
-      - '5432:5432'
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${PG_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${PG_DB_PASS:-postgres}
@@ -132,7 +132,7 @@ services:
       retries: 10
     logging:
       options:
-        max-size: '10m'
+        max-size: "10m"
 
   cvmanager_keycloak:
     profiles:
@@ -151,15 +151,15 @@ services:
         required: false
         condition: service_started
     ports:
-      - '8084:8080'
-      - '9000:9000'
+      - "8084:8080"
+      - "9000:9000"
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       WEBAPP_ENDPOINT: ${WEBAPP_ENDPOINT:-http://localhost:${WEBAPP_PORT:-3000}}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_HEALTH_ENABLED: 'true'
+      KC_HEALTH_ENABLED: "true"
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
       KC_DB: postgres
       KC_DB_SCHEMA: keycloak
@@ -180,9 +180,9 @@ services:
       - --import-realm
     logging:
       options:
-        max-size: '10m'
+        max-size: "10m"
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/health']
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

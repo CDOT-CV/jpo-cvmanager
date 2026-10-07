@@ -100,6 +100,25 @@ services:
       kafka-setup:
         condition: service_started
         required: false
+  mock_geo_message_generator:
+    profiles:
+      - intersection
+      - intersection_api
+    image: mongo:8
+    restart: "no"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MOCK_GEO_MESSAGES_ENABLED: ${MOCK_GEO_MESSAGES_ENABLED:-false}
+      MONGO_DB_URI: ${MONGO_DB_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace_me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=admin}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-CV}
+      MONGO_PROCESSED_BSM_COLLECTION_NAME: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:-processed_bsm}
+      MONGO_PROCESSED_PSM_COLLECTION_NAME: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:-processed_psm}
+    volumes:
+      - ./resources/mock-geo-message-generator/seed.js:/seed.js:ro
+      - ./resources/mock-geo-message-generator/run.sh:/run.sh:ro
+    entrypoint: ["/bin/sh", "/run.sh"]
   smtp4dev:
     profiles:
       - smtp4dev
