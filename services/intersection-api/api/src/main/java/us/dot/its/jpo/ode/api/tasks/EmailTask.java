@@ -1,11 +1,10 @@
 package us.dot.its.jpo.ode.api.tasks;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.conflictmonitor.monitor.models.notifications.Notification;
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.accessors.notifications.active_notification.ActiveNotificationRepository;
+import us.dot.its.jpo.ode.api.config.SchedulingConfig;
 import us.dot.its.jpo.ode.api.emails.generators.IntersectionNotificationSummaryEmailGenerator;
 import us.dot.its.jpo.ode.api.models.MessageCount;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
@@ -41,7 +41,7 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 @ConditionalOnProperty(name = "enable.email", havingValue = "true", matchIfMissing = false)
 public class EmailTask {
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final int HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS = 60 * 60 * 1000; // 1 hour
     private static final String DAILY_NOTIFICATION_CRON = "0 0 0 * * ?"; // every day at midnight
     private static final String WEEKLY_NOTIFICATION_CRON = "0 0 0 * * 0"; // every sunday at midnight
@@ -81,112 +81,124 @@ public class EmailTask {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.of("UTC"));
 
-    @Scheduled(fixedRate = HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS)
+    @Scheduled(fixedRate = HOURLY_NOTIFICATION_EMAIL_RATE_MILLISECONDS,
+            scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendHourlyNotifications() {
-        log.info("Checking Hourly Notifications: {}", dateFormat.format(new Date()));
-        if (lastHourList == null) {
-            lastHourList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastHourList);
-
-        lastHourList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_HOUR);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
+        TimedTask.run(log, "hourly notification email task", () -> {
+            log.info("Checking Hourly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
+            if (lastHourList == null) {
+                lastHourList = getActiveNotifications();
+                return;
             }
-        }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastHourList);
+
+            lastHourList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_HOUR);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
     }
 
-    @Scheduled(cron = DAILY_NOTIFICATION_CRON)
+    @Scheduled(cron = DAILY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendDailyNotifications() {
-        log.info("Checking Daily Notifications: {}", dateFormat.format(new Date()));
-        if (lastDayList == null) {
-            lastDayList = getActiveNotifications();
+        TimedTask.run(log, "daily notification and count email task", () -> {
+            log.info("Checking Daily Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
+            if (lastDayList == null) {
+                lastDayList = getActiveNotifications();
+                sendDailyCountEmails();
+                return;
+            }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastDayList);
+
+            lastDayList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_DAY);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+
             sendDailyCountEmails();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastDayList);
-
-        lastDayList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_DAY);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
-            }
-        }
-
-        sendDailyCountEmails();
+        });
     }
 
-    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON)
+    @Scheduled(cron = WEEKLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendWeeklyNotifications() {
-        log.info("Checking Weekly Notifications: {}", dateFormat.format(new Date()));
-        if (lastWeekList == null) {
-            lastWeekList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastWeekList);
-
-        lastWeekList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_WEEK);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
+        TimedTask.run(log, "weekly notification email task", () -> {
+            log.info("Checking Weekly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
+            if (lastWeekList == null) {
+                lastWeekList = getActiveNotifications();
+                return;
             }
-        }
+
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastWeekList);
+
+            lastWeekList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_WEEK);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
     }
 
-    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON)
+    @Scheduled(cron = MONTHLY_NOTIFICATION_CRON, scheduler = SchedulingConfig.EMAIL_TASK_SCHEDULER)
     public void sendMonthlyNotifications() {
-        log.info("Checking Monthly Notifications: {}", dateFormat.format(new Date()));
-        if (lastMonthList == null) {
-            lastMonthList = getActiveNotifications();
-            return;
-        }
-
-        List<Notification> currentNotifications = getActiveNotifications();
-
-        List<Notification> newNotifications = getNewNotifications(currentNotifications, lastMonthList);
-
-        lastMonthList = currentNotifications;
-
-        if (!newNotifications.isEmpty()) {
-            List<EmailRecipient> recipients = email.getUsersForNotificationType(
-                    EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
-                    EmailFrequency.ONCE_PER_MONTH);
-            if (!recipients.isEmpty()) {
-                EmailContent content = emailGenerator
-                        .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
-                email.sendEmails(recipients, content);
+        TimedTask.run(log, "monthly notification email task", () -> {
+            log.info("Checking Monthly Notifications: {}",
+                    TIME_FORMATTER.format(LocalTime.now(ZoneId.systemDefault())));
+            if (lastMonthList == null) {
+                lastMonthList = getActiveNotifications();
+                return;
             }
-        }
 
+            List<Notification> currentNotifications = getActiveNotifications();
+
+            List<Notification> newNotifications = getNewNotifications(currentNotifications, lastMonthList);
+
+            lastMonthList = currentNotifications;
+
+            if (!newNotifications.isEmpty()) {
+                List<EmailRecipient> recipients = email.getUsersForNotificationType(
+                        EmailCategory.INTERSECTION_NOTIFICATION_SUMMARY,
+                        EmailFrequency.ONCE_PER_MONTH);
+                if (!recipients.isEmpty()) {
+                    EmailContent content = emailGenerator
+                            .generateEmailBody(new IntersectionNotificationSummaryEmailContents(newNotifications));
+                    email.sendEmails(recipients, content);
+                }
+            }
+        });
     }
 
     public List<Notification> getActiveNotifications() {
@@ -219,10 +231,12 @@ public class EmailTask {
      * Isolated so errors do not affect other notification emails.
      */
     void sendDailyCountEmails() {
+        long startNanos = System.nanoTime();
         try {
             log.info("Starting daily count email task");
 
-            LocalDateTime endDateTime = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime endDateTime = LocalDateTime.now(ZoneId.systemDefault())
+                    .withHour(0).withMinute(0).withSecond(0).withNano(0);
             LocalDateTime startDateTime = endDateTime.minusDays(1);
 
             long startTimeMillis = startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
@@ -255,9 +269,10 @@ public class EmailTask {
                 log.info("Sent daily count emails for organization: {}", orgName);
             }
 
-            log.info("Completed daily count email task");
+            log.info("Completed daily count email task in {} ms", TimedTask.elapsedMillis(startNanos));
         } catch (Exception e) {
-            log.error("Error in daily count email task: {}", e.getMessage(), e);
+            log.error("Failed daily count email task after {} ms: {}", TimedTask.elapsedMillis(startNanos),
+                    e.getMessage(), e);
         }
     }
 
@@ -265,34 +280,8 @@ public class EmailTask {
             LocalDateTime startDateTime, LocalDateTime endDateTime) {
         Map<String, MessageCountRsuItem> rsuItems = new LinkedHashMap<>();
 
-        for (MessageCount count : allCounts) {
-            if (count == null || count.getRsuIp() == null) {
-                continue;
-            }
-            String typeKey = canonicalMessageType(count.getMessageType());
-            if (typeKey == null) {
-                continue;
-            }
-
-            MessageCountRsuItem rsuItem = rsuItems.computeIfAbsent(count.getRsuIp(), ip -> {
-                MessageCountRsuItem item = new MessageCountRsuItem();
-                item.setRsuIp(ip);
-                item.setPrimaryRoute(count.getRoad() != null ? count.getRoad() : "Unknown");
-                item.setMessageCountsByType(new HashMap<>());
-                return item;
-            });
-
-            MessageCountCountsItem countsItem = new MessageCountCountsItem();
-            countsItem.setIn(count.getOdeInputCount() != null ? count.getOdeInputCount().intValue() : 0);
-            countsItem.setOut(count.getOdeOutputCount() != null ? count.getOdeOutputCount().intValue() : 0);
-            rsuItem.getMessageCountsByType().put(typeKey, countsItem);
-        }
-
-        for (MessageCountRsuItem item : rsuItems.values()) {
-            for (String type : MESSAGE_TYPES) {
-                item.getMessageCountsByType().putIfAbsent(type, emptyCountsItem());
-            }
-        }
+        allCounts.forEach(count -> addCountToRsuItems(count, rsuItems));
+        rsuItems.values().forEach(EmailTask::addMissingMessageTypes);
 
         MessageCountEmailContents emailContents = new MessageCountEmailContents();
         emailContents.setOrganizationName(orgName);
@@ -303,6 +292,41 @@ public class EmailTask {
         emailContents.setMessageTypeList(List.of(MESSAGE_TYPES));
         emailContents.setRsuCounts(new ArrayList<>(rsuItems.values()));
         return emailContents;
+    }
+
+    private static void addCountToRsuItems(MessageCount count, Map<String, MessageCountRsuItem> rsuItems) {
+        if (count == null || count.getRsuIp() == null) {
+            return;
+        }
+
+        String typeKey = canonicalMessageType(count.getMessageType());
+        if (typeKey == null) {
+            return;
+        }
+
+        MessageCountRsuItem rsuItem = rsuItems.computeIfAbsent(count.getRsuIp(), ip -> newRsuItem(count));
+        rsuItem.getMessageCountsByType().put(typeKey, toCountsItem(count));
+    }
+
+    private static MessageCountRsuItem newRsuItem(MessageCount count) {
+        MessageCountRsuItem item = new MessageCountRsuItem();
+        item.setRsuIp(count.getRsuIp());
+        item.setPrimaryRoute(count.getRoad() != null ? count.getRoad() : "Unknown");
+        item.setMessageCountsByType(new HashMap<>());
+        return item;
+    }
+
+    private static MessageCountCountsItem toCountsItem(MessageCount count) {
+        MessageCountCountsItem countsItem = new MessageCountCountsItem();
+        countsItem.setIn(count.getOdeInputCount() != null ? count.getOdeInputCount().intValue() : 0);
+        countsItem.setOut(count.getOdeOutputCount() != null ? count.getOdeOutputCount().intValue() : 0);
+        return countsItem;
+    }
+
+    private static void addMissingMessageTypes(MessageCountRsuItem item) {
+        for (String type : MESSAGE_TYPES) {
+            item.getMessageCountsByType().putIfAbsent(type, emptyCountsItem());
+        }
     }
 
     private static MessageCountCountsItem emptyCountsItem() {
