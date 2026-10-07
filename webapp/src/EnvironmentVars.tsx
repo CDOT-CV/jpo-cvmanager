@@ -66,7 +66,6 @@ class EnvironmentVars {
   static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-config-geo-query`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
-  static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
   static adminOrg = `${this.getBaseApiUrl()}/admin-org`
   static adminOrgTimDeposit = `${this.getBaseApiUrl()}/admin-org-tim-deposit`

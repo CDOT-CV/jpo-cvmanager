@@ -38,8 +38,8 @@ import {
   toggleGeoMsgPointSelect,
   clearGeoMsg,
   updateGeoMsgPoints,
-  updateGeoMsgData,
   updateGeoMsgDate,
+  setGeoMsgDataResult,
   setGeoMsgFilter,
   setGeoMsgFilterStep,
   setGeoMsgFilterOffset,
@@ -138,6 +138,7 @@ import {
   WzdxMapLayer,
 } from '../components/map-layers/WzdxMapLayer'
 import { useGetRsuLastOnlineQuery, useGetRsuOnlineStatusesQuery } from '../features/api/rsuOnlineStatusApiSlice'
+import { useGetGeoMsgDataMutation } from '../features/api/geoMsgApiSlice'
 
 const MILLISECONDS_PER_MINUTE = 60000
 const EMPTY_WZDX_FEATURES: WZDxFeature[] = []
@@ -148,6 +149,25 @@ const MAP_CLICK_LAYER_IDS = [
   INTERSECTION_POINT_LAYER_ID,
   WZDX_POINT_LAYER_ID,
 ]
+
+const serializeTimestampAsUtc = (value: string): string => {
+  const dateTime = DateTime.fromISO(value)
+  if (!dateTime.isValid) throw new Error(`Invalid timestamp: ${value}`)
+  return dateTime.toUTC().toISO({ suppressMilliseconds: true }) ?? dateTime.toUTC().toISO()!
+}
+
+const getGeoMsgApiErrorMessage = (error: unknown): string => {
+  if (typeof error === 'string') return error
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object') {
+    const apiError = error as { data?: { detail?: unknown; title?: unknown }; error?: unknown; status?: unknown }
+    if (typeof apiError.data?.detail === 'string') return apiError.data.detail
+    if (typeof apiError.data?.title === 'string') return apiError.data.title
+    if (typeof apiError.error === 'string') return apiError.error
+    if (apiError.status !== undefined) return String(apiError.status)
+  }
+  return 'Unknown error'
+}
 
 const breakLine = (value: string) => {
   const lines = []
@@ -252,6 +272,7 @@ Legend.displayName = 'Legend'
 
 function MapPage() {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
+  const [getGeoMsgData, { isLoading: isGeoMsgLoading }] = useGetGeoMsgDataMutation()
 
   const theme = useTheme()
 
@@ -949,6 +970,76 @@ function MapPage() {
   const handlePopupClick = (rsuIp: string) => {
     setSelectedRsuIp(rsuIp)
     setStatusDialogOpen(true)
+  }
+
+  const handleGeoMsgDataSubmit = async () => {
+    if (isGeoMsgLoading) return
+    if (addGeoMsgPoint) {
+      toast.error('Please complete the polygon (double click to close) before submitting')
+      return
+    }
+    if (!evaluateFeatureFlags('rsu')) return
+    if (!startGeoMsgDate || !endGeoMsgDate || geoMsgCoordinates.length <= 2) return
+
+    const firstPoint = geoMsgCoordinates[0]
+    const lastPoint = geoMsgCoordinates[geoMsgCoordinates.length - 1]
+    if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+      toast.error('Please complete the polygon (double click to close) before submitting')
+      return
+    }
+
+    let requestBody
+    try {
+      if (!geoMsgType) throw new Error('Please select a message type')
+      requestBody = {
+        msg_type: geoMsgType,
+        start: serializeTimestampAsUtc(startGeoMsgDate),
+        end: serializeTimestampAsUtc(endGeoMsgDate),
+        geometry: geoMsgCoordinates,
+      }
+    } catch (error) {
+      toast.error(`Query failed: ${getGeoMsgApiErrorMessage(error)}`)
+      dispatch(setGeoMsgDataResult([]))
+      return
+    }
+
+    const responsePromise = getGeoMsgData(requestBody).unwrap()
+    toast.promise(responsePromise, {
+      loading: `Retrieving ${requestBody.msg_type} Data`,
+      success: (features) =>
+        Array.isArray(features) ? `Retrieved ${features.length.toLocaleString()} messages` : 'No data returned from API',
+      error: (error) => `Query failed: ${getGeoMsgApiErrorMessage(error)}`,
+    })
+
+    try {
+      const features = await responsePromise
+      if (!Array.isArray(features)) {
+        toast.error('No data returned from API')
+        dispatch(setGeoMsgDataResult([]))
+        return
+      }
+
+      if (features.length === 0) {
+        toast.error('No messages found for the selected criteria')
+        dispatch(setGeoMsgDataResult([]))
+        return
+      }
+
+      const uniqueIds = Array.from(new Set(features.map((feature) => feature.properties?.id)))
+      const idToColorIndex = new globalThis.Map(uniqueIds.map((id, index) => [id, index % 10]))
+      const coloredFeatures = features.map((feature) => ({
+        ...feature,
+        properties: {
+          ...(feature.properties ?? {}),
+          colorIndex: idToColorIndex.get(feature.properties?.id),
+        },
+      }))
+
+      dispatch(setGeoMsgDataResult(coloredFeatures))
+    } catch (error) {
+      console.error(error)
+      dispatch(setGeoMsgDataResult([]))
+    }
   }
 
   return (
@@ -1726,13 +1817,8 @@ function MapPage() {
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => {
-                  if (!addGeoMsgPoint) {
-                    dispatch(updateGeoMsgData())
-                  } else {
-                    toast.error('Please complete the polygon (double click to close) before submitting')
-                  }
-                }}
+                disabled={isGeoMsgLoading}
+                onClick={handleGeoMsgDataSubmit}
                 className="museo-slab capital-case"
               >
                 Submit

@@ -3,7 +3,6 @@ import {
   // async thunks
   getRsuData,
   _getRsuInfo,
-  updateGeoMsgData,
 
   // reducers
   selectRsu,
@@ -16,6 +15,7 @@ import {
   setGeoMsgFilter,
   setGeoMsgFilterStep,
   setGeoMsgFilterOffset,
+  setGeoMsgDataResult,
   setLoading,
 
   // selectors
@@ -240,146 +240,6 @@ describe('async thunks', () => {
     })
   })
 
-  describe('updateGeoMsgData', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-          },
-        },
-        rsu: {
-          value: {
-            geoMsgType: 'geoMsgType',
-            geoMsgStart: 'geoMsgStart',
-            geoMsgEnd: 'geoMsgEnd',
-            geoMsgCoordinates: [1, 2, 3],
-          },
-        },
-      })
-      const action = updateGeoMsgData()
-
-      RsuApi.postGeoMsgData = jest.fn().mockReturnValue('msgCounts')
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual({ body: [] })
-      expect(RsuApi.postGeoMsgData).toHaveBeenCalledWith(
-        'token',
-        JSON.stringify({
-          msg_type: 'geoMsgType',
-          start: 'geoMsgStart',
-          end: 'geoMsgEnd',
-          geometry: [1, 2, 3],
-        }),
-        ''
-      )
-    })
-
-    it('condition blocks execution', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-          },
-        },
-        rsu: {
-          value: {
-            geoMsgStart: '',
-            geoMsgEnd: '',
-            geoMsgCoordinates: [1, 2],
-          },
-        },
-      })
-      const action = updateGeoMsgData()
-
-      RsuApi.postGeoMsgData = jest.fn().mockReturnValue('msgCounts')
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual(undefined)
-      expect(RsuApi.postGeoMsgData).not.toHaveBeenCalled()
-    })
-
-    it('Updates the state correctly pending', async () => {
-      const addGeoMsgPoint = false
-      const loading = true
-      const geoMsgStart = 1 as any
-      const geoMsgEnd = 86400000 as any
-      const state = reducer(
-        {
-          ...initialState,
-          value: { ...initialState.value, geoMsgStart, geoMsgEnd },
-        },
-        {
-          type: 'rsu/updateGeoMsgData/pending',
-        }
-      )
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, addGeoMsgPoint, geoMsgStart, geoMsgEnd },
-      })
-    })
-
-    it('Updates the state correctly pending date error', async () => {
-      const addGeoMsgPoint = false
-      const loading = true
-      const geoMsgStart = 1 as any
-      const geoMsgEnd = 86400002 as any
-      const state = reducer(
-        {
-          ...initialState,
-          value: { ...initialState.value, geoMsgStart, geoMsgEnd },
-        },
-        {
-          type: 'rsu/updateGeoMsgData/pending',
-        }
-      )
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, addGeoMsgPoint, geoMsgStart, geoMsgEnd },
-      })
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const geoMsgData = ['geoMsgData']
-      const loading = false
-      const geoMsgFilter = true
-      const geoMsgFilterStep = 60
-      const geoMsgFilterOffset = 0
-      const state = reducer(initialState, {
-        type: 'rsu/updateGeoMsgData/fulfilled',
-        payload: { body: geoMsgData },
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: {
-          ...initialState.value,
-          geoMsgData,
-          geoMsgFilter,
-          geoMsgFilterStep,
-          geoMsgFilterOffset,
-        },
-      })
-    })
-
-    it('Updates the state correctly rejected', async () => {
-      const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/updateGeoMsgData/rejected',
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value },
-      })
-    })
-  })
 })
 
 describe('reducers', () => {
@@ -504,6 +364,27 @@ describe('reducers', () => {
       ...initialState,
       value: { ...initialState.value, geoMsgFilterOffset },
     })
+  })
+
+  it('setGeoMsgDataResult replaces results and resets the message filter', () => {
+    const geoMsgData = [{ type: 'Feature', properties: { id: 'vehicle-1' }, geometry: null }] as any
+    const state = reducer(
+      {
+        ...initialState,
+        value: {
+          ...initialState.value,
+          geoMsgFilter: false,
+          geoMsgFilterStep: 15,
+          geoMsgFilterOffset: 7,
+        },
+      },
+      setGeoMsgDataResult(geoMsgData)
+    )
+
+    expect(state.value.geoMsgData).toEqual(geoMsgData)
+    expect(state.value.geoMsgFilter).toBe(true)
+    expect(state.value.geoMsgFilterStep).toBe(60)
+    expect(state.value.geoMsgFilterOffset).toBe(0)
   })
 
   it('setLoading reducer updates state correctly', async () => {

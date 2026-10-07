@@ -95,10 +95,6 @@ class RsuApi {
     })
 
   // POST
-  postGeoMsgData = async (token: string, body: string, url_ext = ''): Promise<ApiMsgRespWithCodes<any>> =>
-    apiHelper._postData({ url: EnvironmentVars.geoMsgDataEndpoint + url_ext, body, token, tag: 'rsu' })
-
-  // POST
   postRsuData = async (
     token: string,
     org: string,

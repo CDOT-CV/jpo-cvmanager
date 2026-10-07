@@ -8,7 +8,6 @@ import {
 import { RootState } from '../store'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { MessageType } from '../models/MessageTypes'
-import { toast } from 'react-hot-toast'
 import { DateTime } from 'luxon'
 
 const currentDate = DateTime.local()
@@ -59,73 +58,6 @@ export const _getRsuInfo = createAsyncThunk('rsu/_getRsuInfo', async (_, { getSt
   return rsuData
 })
 
-export const updateGeoMsgData = createAsyncThunk(
-  'rsu/updateGeoMsgData',
-  async (_, { getState }) => {
-    const currentState = getState() as RootState
-    const token = selectToken(currentState)
-
-    const requestBody = {
-      msg_type: currentState.rsu.value.geoMsgType,
-      start: currentState.rsu.value.geoMsgStart,
-      end: currentState.rsu.value.geoMsgEnd,
-      geometry: currentState.rsu.value.geoMsgCoordinates,
-    }
-
-    try {
-      const geoMapDataPromise = RsuApi.postGeoMsgData(token, JSON.stringify(requestBody), '')
-      toast.promise(geoMapDataPromise, {
-        loading: `Retrieving ${requestBody.msg_type} Data`,
-        success: (data) => `Retrieved ${data.body.length.toLocaleString()} messages`,
-        error: (err) => `Query failed: ${err}`,
-      })
-      const geoMapData = await geoMapDataPromise
-
-      // Check if response exists and has a body
-      if (!geoMapData || !geoMapData.body) {
-        toast.error('No data returned from API')
-        return { body: [] }
-      }
-
-      // Check if body is empty
-      if (geoMapData.body.length === 0) {
-        toast.error('No messages found for the selected criteria')
-        return { body: [] }
-      }
-
-      // Get unique IDs and assign color indices
-      const uniqueIds = Array.from(new Set(geoMapData.body.map((item) => item.properties.id)))
-      const idToColorIndex = Object.fromEntries(
-        uniqueIds.map((id, index) => [id, index % 10]) // Using modulo 10 to cycle through 10 colors
-      )
-
-      // Assign color indices to each feature
-      geoMapData.body = geoMapData.body.map((feature) => ({
-        ...feature,
-        properties: {
-          ...feature.properties,
-          colorIndex: idToColorIndex[feature.properties.id],
-        },
-      }))
-
-      return geoMapData
-    } catch (err) {
-      const toastMessage = `Query failed: ${err}`
-      toast.error(toastMessage)
-      console.error(err)
-      return { body: [] } // Return empty body on error
-    }
-  },
-  {
-    // Will guard thunk from being executed
-    condition: (_, { getState }) => {
-      const { rsu } = getState() as RootState
-      const valid = rsu.value.geoMsgStart !== '' && rsu.value.geoMsgEnd !== '' && rsu.value.geoMsgCoordinates.length > 2
-      return valid
-    },
-  }
-)
-
 export const rsuSlice = createSlice({
   name: 'rsu',
   initialState: {
@@ -170,6 +102,12 @@ export const rsuSlice = createSlice({
     setGeoMsgFilterOffset: (state, action: PayloadAction<number>) => {
       state.value.geoMsgFilterOffset = action.payload
     },
+    setGeoMsgDataResult: (state, action: PayloadAction<Array<GeoJSON.Feature<GeoJSON.Geometry>>>) => {
+      state.value.geoMsgData = action.payload
+      state.value.geoMsgFilter = true
+      state.value.geoMsgFilterStep = 60
+      state.value.geoMsgFilterOffset = 0
+    },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload
     },
@@ -194,20 +132,6 @@ export const rsuSlice = createSlice({
       })
       .addCase(_getRsuInfo.fulfilled, (state, action) => {
         state.value.rsuData = action.payload
-      })
-      .addCase(updateGeoMsgData.pending, (state) => {
-        state.loading = true
-        state.value.addGeoMsgPoint = false
-      })
-      .addCase(updateGeoMsgData.fulfilled, (state, action) => {
-        state.value.geoMsgData = action.payload.body
-        state.loading = false
-        state.value.geoMsgFilter = true
-        state.value.geoMsgFilterStep = 60
-        state.value.geoMsgFilterOffset = 0
-      })
-      .addCase(updateGeoMsgData.rejected, (state) => {
-        state.loading = false
       })
   },
 })
@@ -246,6 +170,7 @@ export const {
   setGeoMsgFilter,
   setGeoMsgFilterStep,
   setGeoMsgFilterOffset,
+  setGeoMsgDataResult,
   setLoading,
 } = rsuSlice.actions
 
