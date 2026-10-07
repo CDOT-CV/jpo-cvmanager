@@ -130,7 +130,7 @@ def get_rsu_owner_orgs(rsu_ips: list[str]) -> dict[str, str | None]:
 
     owners = {ip: None for ip in rsu_ips}
     for ip, org in data:
-        owners[str(ip).replace("/32", "")] = org
+        owners[str(ip).removesuffix("/32")] = org
 
     return owners
 

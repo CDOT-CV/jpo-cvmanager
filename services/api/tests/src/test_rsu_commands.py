@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import pytest
 import api.src.rsu_commands as rsu_commands
 
 # shared arguments
@@ -157,10 +158,11 @@ def test_perform_command_unauthorized_role(mock_execute_command, mock_fetch_rsu_
     mock_execute_command.assert_not_called()
 
 
+@pytest.mark.parametrize("database_ip", ["192.168.0.20", "192.168.0.20/32"])
 @patch("api.src.rsu_commands.pgquery.query_db")
-def test_get_rsu_owner_orgs(mock_query_db):
+def test_get_rsu_owner_orgs(mock_query_db, database_ip):
     # mock
-    mock_query_db.return_value = [("192.168.0.20", "test_org")]
+    mock_query_db.return_value = [(database_ip, "test_org")]
 
     # call
     result = rsu_commands.get_rsu_owner_orgs(["192.168.0.20"])
