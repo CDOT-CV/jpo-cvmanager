@@ -1,13 +1,8 @@
 #!/bin/sh
 set -eu
 
-if [ "${MOCK_GEO_MESSAGES_ENABLED:-false}" != "true" ]; then
-  echo "Mock geo message generation is disabled; skipping."
-  exit 0
-fi
-
 if [ -z "${MONGO_DB_URI:-}" ]; then
-  echo "MOCK_GEO_MESSAGES_ENABLED is true but MONGO_DB_URI is empty." >&2
+  echo "MONGO_DB_URI is empty, skipping geo-message seeding." >&2
   exit 1
 fi
 
