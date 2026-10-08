@@ -27,6 +27,7 @@ import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepositor
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
@@ -66,6 +67,7 @@ public class RsuManagementService {
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
+    private final RsuHealthRepository rsuHealthRepository;
 
     public RsuInfoDto getRsuInfo(String ipv4Address) {
         try {
@@ -352,12 +354,7 @@ public class RsuManagementService {
             pingRepository.removePingByIpv4Address(inetAddress);
             rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
             scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
-            snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
-            rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(inetAddress);
-            consecutiveFirmwareUpgradeFailureRepository
-                    .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
-            maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
-            rsuOptionRepository.removeRsuOptionByIpv4Address(inetAddress);
+            rsuHealthRepository.removeRsuHealthByIpv4Address(inetAddress);
 
             // Finally, delete the RSU itself
             rsuRepository.removeRsuByIpv4Address(inetAddress);

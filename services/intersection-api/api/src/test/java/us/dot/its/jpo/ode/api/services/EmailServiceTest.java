@@ -29,6 +29,7 @@ import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -409,6 +410,7 @@ class EmailServiceTest {
         List<UserEmailNotification> emailSubscriptions = SUBSCRIPTION_LIST;
 
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(emailSubscriptions);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findAll()).thenReturn(VALID_EMAIL_TYPES);
 
         emailService.updateEmailSubscriptions(TEST_EMAIL, true, true, List.of(SUPPORT_REQUEST_DTO,
@@ -458,7 +460,7 @@ class EmailServiceTest {
                 VALID_EMAIL_TYPES.get(2))).thenReturn(dailyMessageCounts);
         when(userEmailNotificationMapper.toEntity(accessRequestDto, TEST_USER,
                 VALID_EMAIL_TYPES.get(3))).thenReturn(accessRequests);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(TEST_USER);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findAll()).thenReturn(VALID_EMAIL_TYPES);
 
         emailService.updateEmailSubscriptions(TEST_EMAIL, true, true,
@@ -526,7 +528,7 @@ class EmailServiceTest {
         when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto, TEST_USER,
                 VALID_EMAIL_TYPES.get(1)))
                 .thenReturn(intersectionNotificationSummaries);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(TEST_USER);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findAll()).thenReturn(VALID_EMAIL_TYPES);
 
         emailService.updateEmailSubscriptions(TEST_EMAIL, true, true,
@@ -594,7 +596,7 @@ class EmailServiceTest {
         when(userEmailNotificationMapper.toEntity(intersectionNotificationSummaryDto, TEST_USER,
                 SUBSCRIPTION_LIST.get(1).getEmailType()))
                 .thenReturn(intersectionNotificationSummaries);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(TEST_USER);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findByEmailType("Support Requests"))
                 .thenReturn(SUBSCRIPTION_LIST.get(0).getEmailType());
         when(emailTypeRepository.findByEmailType("Intersection Notification Summary"))
@@ -676,7 +678,7 @@ class EmailServiceTest {
                 VALID_EMAIL_TYPES.get(2))).thenReturn(dailyMessageCounts);
         when(userEmailNotificationMapper.toEntity(accessRequestDto, TEST_USER,
                 VALID_EMAIL_TYPES.get(3))).thenReturn(accessRequests);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(TEST_USER);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findAll()).thenReturn(VALID_EMAIL_TYPES);
 
         emailService.updateEmailSubscriptions(TEST_EMAIL, true, true,
@@ -774,7 +776,7 @@ class EmailServiceTest {
                 SUBSCRIPTION_LIST.get(2).getEmailType())).thenReturn(dailyMessageCounts);
         when(userEmailNotificationMapper.toEntity(accessRequestDto, TEST_USER, SUBSCRIPTION_LIST.get(3).getEmailType()))
                 .thenReturn(accessRequests);
-        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(TEST_USER);
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(emailTypeRepository.findByEmailType("Support Requests"))
                 .thenReturn(SUBSCRIPTION_LIST.get(0).getEmailType());
         when(emailTypeRepository.findByEmailType("Intersection Notification Summary"))
@@ -803,6 +805,7 @@ class EmailServiceTest {
         EmailType knownType = createEmailType("Known Category", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(knownType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -820,6 +823,7 @@ class EmailServiceTest {
         EmailType userType = createEmailType("User Notifications", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(userType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         // subscribed=false (all frequency flags false) → nothing is added, no exception
@@ -843,6 +847,7 @@ class EmailServiceTest {
         operatorType.setRequiredRole(operatorRole);
         operatorType.setSupportsImmediate(true);
         when(emailTypeRepository.findAll()).thenReturn(List.of(operatorType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -859,6 +864,7 @@ class EmailServiceTest {
         EmailType adminType = createEmailType("Admin Notifications", "desc", "admin",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(adminType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -879,6 +885,7 @@ class EmailServiceTest {
         operatorType.setRequiredRole(operatorRole);
         operatorType.setSupportsImmediate(true);
         when(emailTypeRepository.findAll()).thenReturn(List.of(operatorType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -896,6 +903,7 @@ class EmailServiceTest {
         EmailType adminType = createEmailType("Admin Notifications", "desc", "admin",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(adminType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -912,6 +920,7 @@ class EmailServiceTest {
         EmailType adminType = createEmailType("Admin Notifications", "desc", "admin",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(adminType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -933,6 +942,7 @@ class EmailServiceTest {
         operatorType.setRequiredRole(operatorRole);
         operatorType.setSupportsImmediate(true);
         when(emailTypeRepository.findAll()).thenReturn(List.of(operatorType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -951,6 +961,7 @@ class EmailServiceTest {
         EmailType emailType = createEmailType("Daily Only", "desc", "user",
                 false, false, true, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(emailType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -968,6 +979,7 @@ class EmailServiceTest {
         EmailType emailType = createEmailType("Immediate Only", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(emailType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -985,6 +997,7 @@ class EmailServiceTest {
         EmailType emailType = createEmailType("Immediate Only", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(emailType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -1002,6 +1015,7 @@ class EmailServiceTest {
         EmailType emailType = createEmailType("Immediate Only", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(emailType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -1019,6 +1033,7 @@ class EmailServiceTest {
         EmailType emailType = createEmailType("Immediate Only", "desc", "user",
                 true, false, false, false, false);
         when(emailTypeRepository.findAll()).thenReturn(List.of(emailType));
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
 
         UserEmailNotificationDto dto = new UserEmailNotificationDto(
@@ -1035,6 +1050,7 @@ class EmailServiceTest {
     void testFilterValidSubscriptions_EmptySubscriptionList_ReturnsZero() {
         when(emailTypeRepository.findAll()).thenReturn(List.of());
         when(userEmailNotificationRepository.findNotificationsByUser(TEST_EMAIL)).thenReturn(List.of());
+        when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(TEST_USER));
 
         emailService.updateEmailSubscriptions(TEST_EMAIL, false, false, List.of());
         verify(userEmailNotificationRepository, never()).saveAll(anyList());
