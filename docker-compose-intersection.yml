@@ -102,17 +102,16 @@ services:
         required: false
   mock_geo_message_generator:
     profiles:
-      - intersection
-      - intersection_api
+      - mock_geo_messages
     image: mongo:8
     restart: "no"
     depends_on:
-      mongo:
-        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
     environment:
       MOCK_GEO_MESSAGES_ENABLED: ${MOCK_GEO_MESSAGES_ENABLED:-false}
-      MONGO_DB_URI: ${MONGO_DB_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace_me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=admin}
-      MONGO_DB_NAME: ${MONGO_DB_NAME:-CV}
+      MONGO_DB_URI: ${CM_MONGO_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace_me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=${CM_MONGO_AUTH_DB:-admin}}
+      MONGO_DB_NAME: ${CM_DATABASE_NAME:-CV}
       MONGO_PROCESSED_BSM_COLLECTION_NAME: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:-processed_bsm}
       MONGO_PROCESSED_PSM_COLLECTION_NAME: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:-processed_psm}
     volumes:

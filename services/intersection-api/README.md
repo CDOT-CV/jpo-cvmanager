@@ -61,6 +61,20 @@ curl --fail-with-body --request POST "${CVIZ_API_SERVER_URL%/}/rsu-geo-msg-data"
 
 If the release needs rollback, restore the previous Intersection API, Python API, webapp, and Compose configuration together so the previous webapp continues to call the Python route.
 
+### Mock messages for local review
+
+The optional `mock_geo_message_generator` service seeds 12 BSM and 12 PSM schema-version-2 features around Denver. To enable it:
+
+1. Copy `sample-full.env` to `.env` if needed.
+2. Add `mock_geo_messages` to `COMPOSE_PROFILES`, alongside `intersection` and `mongo_full` and your existing profiles.
+3. Set `MOCK_GEO_MESSAGES_ENABLED=true` and `VIEWER_MSG_TYPES='BSM,PSM'`.
+4. Run `docker compose up -d --build`.
+5. Query BSM or PSM messages around Denver over the last 15 minutes.
+
+The service waits for `mongo-setup` to complete replica-set, user, and sample-data initialization before writing. It uses the Java API's `CM_DATABASE_NAME`, `CM_MONGO_URI`, and fallback Mongo connection settings, plus the configured processed-message collections. For a custom local database, keep `MONGO_DB_NAME` used by `mongo-setup` aligned with `CM_DATABASE_NAME`; `sample-full.env` already aliases them.
+
+Mock generation requires both the `mock_geo_messages` profile and `MOCK_GEO_MESSAGES_ENABLED=true`; it is disabled by default. The generator writes directly to MongoDB, bypassing Kafka. Stable IDs update the same records on reruns. To refresh timestamps, run `docker compose run --rm mock_geo_message_generator`. Check `docker compose logs mongo-setup mock_geo_message_generator` if seeding fails.
+
 ## Emails
 
 The intersection API exposes a set of `/emails/*` endpoints for triggering outbound notification emails. The following email types are supported:
