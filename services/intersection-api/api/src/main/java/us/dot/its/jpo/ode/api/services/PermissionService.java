@@ -309,13 +309,10 @@ public class PermissionService {
         }
 
         List<InetAddress> ownedAddresses = rsuRepository.findOwnedRsuIpsInOrganizations(orgsToCheck, ipv4Addresses);
-        List<String> unauthorized = new ArrayList<>();
-        for (int i = 0; i < rsuIPs.size(); i++) {
-            if (!ownedAddresses.contains(ipv4Addresses.get(i))) {
-                unauthorized.add(rsuIPs.get(i));
-            }
-        }
-        return unauthorized;
+        return ipv4Addresses.stream()
+                .filter(ip -> !ownedAddresses.contains(ip))
+                .map(InetAddress::getHostAddress)
+                .toList();
     }
 
     // Allow Connection if the users organization(s) control the specified User
