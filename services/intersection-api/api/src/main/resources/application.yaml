@@ -94,7 +94,7 @@ spring:
   cache:
     jcache:
       provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
-    cache-names: 
+    cache-names:
       - email-rate-limit
       - timesync-rate-limit
     caffeine:
@@ -109,6 +109,7 @@ enable:
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
+  wzdx-feed: ${ENABLE_WZDX_FEATURES:true}
 
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
@@ -172,3 +173,7 @@ bucket4j:
             - capacity: ${TIMESYNC_RATE_LIMIT_PER_INSTANCE:18000}
               time: 1
               unit: hours
+
+wzdx-feed:
+  base-url: https://${WZDX_ENDPOINT}
+  api-key: ${WZDX_API_KEY}
