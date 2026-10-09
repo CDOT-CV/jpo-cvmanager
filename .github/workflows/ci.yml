@@ -61,13 +61,13 @@ jobs:
       - name: Run Tests and Generate Coverage
         continue-on-error: false
         run: |
-          # Set PYTHONPATH and navigate to the tests directory
+          # Generate coverage paths relative to Sonar's repository-root projectBaseDir
           export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
-          cd $GITHUB_WORKSPACE/services
+          cd "$GITHUB_WORKSPACE"
 
           # Run tests and generate coverage report
-          python3 -m coverage run -m pytest
-          python3 -m coverage xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
+          python3 -m coverage run --rcfile=services/.coveragerc -m pytest -c services/pytest.ini services
+          python3 -m coverage xml --rcfile=services/.coveragerc -o services/coverage.xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
 
       - name: Archive Code Coverage Results
         uses: actions/upload-artifact@v4
