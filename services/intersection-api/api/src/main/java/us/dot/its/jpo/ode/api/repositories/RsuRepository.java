@@ -98,6 +98,19 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address);
 
     /**
+     * Check if the RSU's credential is owned by any of the given organizations
+     */
+    boolean existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+            InetAddress ipv4Address, List<Organization> organizations);
+
+    @Query("SELECT r.ipv4Address " +
+            "FROM Rsu r " +
+            "JOIN r.credential rc " +
+            "WHERE rc.ownerOrganization IN :organizations AND r.ipv4Address IN :ipv4Addresses")
+    List<InetAddress> findOwnedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations,
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
+    /**
      * Returns all RSUs belonging to the given organisation, fetching
      * model, manufacturer, and rsuOption.
      */

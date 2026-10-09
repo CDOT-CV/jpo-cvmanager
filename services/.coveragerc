@@ -1,4 +1,5 @@
 [run]
+# Run coverage from the repository root so XML paths match Sonar's projectBaseDir.
 relative_files = True
 source =
     services/addons/images/count_metric
@@ -8,9 +9,3 @@ source =
     services/addons/images/rsu_status_check
     services/api/src
     services/common
-
-[report]
-omit =
-    */tests/*
-    */test/*
-    */__init__.py
