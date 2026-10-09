@@ -82,6 +82,7 @@ Table descriptions are stored as SQL comments in the database (applied by migrat
 | `manufacturers`                         | RSU and OBU manufacturers supported by this deployment. Tested: Commsignia, Kapsch, Yunex.                  |
 | `rsu_models`                            | RSU hardware models. Linked to a manufacturer; used for display and firmware upgrade identification.        |
 | `firmware_images`                       | Known RSU firmware packages. Stores retrieval and install information used by the API.                      |
+| `firmware_uploads`                      | Tracks firmware artifact uploads and their expected and verified object-storage checksums.                  |
 | `firmware_upgrade_rules`                | Valid firmware upgrade paths. A from_id->to_id row authorizes a direct upgrade; no row blocks it.           |
 | `rsu_credentials`                       | SSH credentials for RSU remote access. Referenced by nickname only — never transmitted over the network.    |
 | `snmp_credentials`                      | SNMP credentials for message forwarding configuration. Referenced by nickname only.                         |

@@ -26,6 +26,9 @@ import us.dot.its.jpo.ode.api.services.PrometheusService;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -38,6 +41,35 @@ import org.junit.jupiter.api.Nested;
 
 class GlobalExceptionHandlerTest {
     GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    @Nested
+    class HandleFirmwareExceptionsTests {
+        @Test
+        void unavailableStorageReturnsServiceUnavailableWithDetail() {
+            ProblemDetail response = handler.handleObjectStorageUnavailableException(
+                    new ObjectStorageUnavailableException("Provider is not configured"));
+            assertEquals(503, response.getStatus());
+            assertEquals("Provider is not configured", response.getDetail());
+        }
+
+        @Test
+        void existingDestinationReturnsConflictWithDetail() {
+            ProblemDetail response = handler.handleFirmwareVersionAlreadyExistsException(
+                    new FirmwareVersionAlreadyExistsException(
+                            "Firmware already exists"));
+            assertEquals(409, response.getStatus());
+            assertEquals("Firmware already exists", response.getDetail());
+        }
+
+        @Test
+        void verificationFailureReturnsConflictWithDetail() {
+            ProblemDetail response = handler.handleFirmwareUploadVerificationException(
+                    new FirmwareUploadVerificationException(
+                            "Checksum does not match"));
+            assertEquals(409, response.getStatus());
+            assertEquals("Checksum does not match", response.getDetail());
+        }
+    }
 
     @Nested
     class HandleEntityNotFoundTests {

@@ -72,6 +72,10 @@ class ScmsHealthServiceTest {
         rsuModelRepository.deleteAll();
         manufacturerRepository.deleteAll();
         organizationRepository.deleteAll();
+
+        // Force queued deletes to execute before fixtures with unique values are
+        // inserted in the same test transaction.
+        manufacturerRepository.flush();
     }
 
     @Test
