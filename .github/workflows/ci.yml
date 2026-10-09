@@ -46,6 +46,18 @@ jobs:
     container:
       image: python:3.12.2
       options: --user root
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ISS_TEST_DATABASE_URL: postgresql+pg8000://postgres:postgres@postgres:5432/postgres
     steps:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4

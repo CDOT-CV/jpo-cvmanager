@@ -132,9 +132,13 @@ def test_failure_releases_lock_and_preserves_previous_token(database, monkeypatc
     monkeypatch.setattr(
         iss_token.requests, "post", Mock(side_effect=iss_token.requests.Timeout())
     )
-    with pytest.raises(iss_token.requests.Timeout):
+
+    def run_check():
         with iss_token.token_for_check():
-            pytest.fail("Token creation should fail")
+            pass
+
+    with pytest.raises(iss_token.requests.Timeout):
+        run_check()
     with database.connect() as connection:
         assert (
             connection.execute(text("SELECT token FROM iss_keys")).scalar_one()
@@ -156,9 +160,13 @@ def test_bootstrap_and_device_failure_preserve_committed_token(database, monkeyp
     )
     revoke = Mock()
     monkeypatch.setattr(iss_token.requests, "delete", revoke)
-    with pytest.raises(RuntimeError, match="device request"):
+
+    def run_check():
         with iss_token.token_for_check():
             raise RuntimeError("device request failed")
+
+    with pytest.raises(RuntimeError, match="device request"):
+        run_check()
     revoke.assert_not_called()
     with database.connect() as connection:
         assert (
@@ -185,9 +193,13 @@ def test_database_rejects_refresh_without_losing_old_token(database, monkeypatch
     )
     revoke = Mock()
     monkeypatch.setattr(iss_token.requests, "delete", revoke)
-    with pytest.raises(DBAPIError, match="reject_new_token"):
+
+    def run_check():
         with iss_token.token_for_check():
-            pytest.fail("Storage should fail")
+            pass
+
+    with pytest.raises(DBAPIError, match="reject_new_token"):
+        run_check()
     revoke.assert_not_called()
     with database.connect() as connection:
         assert (
