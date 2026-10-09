@@ -9,7 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "firmware_images")
+@Table(name = "firmware_images", uniqueConstraints = @UniqueConstraint(
+        name = "firmware_images_model_version_unique", columnNames = {"model", "version"}))
 public class FirmwareImage {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "firmware_images_id_gen")
@@ -19,7 +20,7 @@ public class FirmwareImage {
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "name", nullable = false, unique = true, length = 128)
+    @Column(name = "name", nullable = false, length = 128)
     private String name;
 
     @NotNull
@@ -29,13 +30,18 @@ public class FirmwareImage {
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "install_package", nullable = false, unique = true, length = 128)
+    @Column(name = "install_package", nullable = false, length = 128)
     private String installPackage;
 
     @Size(max = 128)
     @NotNull
-    @Column(name = "version", nullable = false, unique = true, length = 128)
+    @Column(name = "version", nullable = false, length = 128)
     private String version;
+
+    // Legacy images have no verification evidence until explicitly registered.
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verified_upload_id", unique = true)
+    private FirmwareUpload verifiedUpload;
 
 
 }

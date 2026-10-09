@@ -4,11 +4,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,10 +28,13 @@ import com.google.cloud.storage.Storage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
+import us.dot.its.jpo.ode.api.models.storage.ObjectListRequest;
 import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.models.storage.ObjectUploadRequest;
+import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
+import us.dot.its.jpo.ode.api.models.storage.StorageObject;
+import us.dot.its.jpo.ode.api.models.storage.StorageObjectPage;
 import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
 
 /**
@@ -52,6 +57,40 @@ public class GcpObjectStorageService implements ObjectStorageService {
     private final GcpStorageClientProvider clientProvider;
     private final ObjectStorageProperties properties;
     private final GcpObjectStorageProperties gcpProperties;
+
+    @Override
+    public StorageObjectPage listObjects(ObjectListRequest request) {
+        validateConfiguration();
+        if (request.pageSize() < 1 || request.pageSize() > 200) {
+            throw new IllegalArgumentException("page_size must be between 1 and 200");
+        }
+
+        try {
+            var options = new ArrayList<Storage.BlobListOption>();
+            options.add(Storage.BlobListOption.pageSize(request.pageSize()));
+            if (StringUtils.hasText(request.prefix())) options.add(Storage.BlobListOption.prefix(request.prefix()));
+            if (StringUtils.hasText(request.pageToken())) {
+                options.add(Storage.BlobListOption.pageToken(request.pageToken()));
+            }
+
+            var page = clientProvider.getStorage().list(gcpProperties.getBucketName().trim(),
+                    options.toArray(Storage.BlobListOption[]::new));
+
+            // getValues deliberately avoids fetching subsequent provider pages.
+            var objects = StreamSupport.stream(page.getValues().spliterator(), false)
+                    .map(blob -> new StorageObject(blob.getName(), blob.getSize() == null ? 0 : blob.getSize(),
+                        blob.getUpdateTimeOffsetDateTime() == null ? null : blob.getUpdateTimeOffsetDateTime().toInstant(),
+                        blob.getGeneration() == null ? null : String.valueOf(blob.getGeneration()),
+                        new ObjectChecksum(CRC32C, blob.getCrc32c())))
+                    .toList();
+
+            return new StorageObjectPage(PROVIDER_NAME,
+                    gcpProperties.getBucketName().trim(), objects, page.getNextPageToken());
+        } catch (Exception ex) {
+            log.error("Failed to list firmware objects", ex);
+            throw new ObjectStorageUnavailableException("Unable to list firmware objects");
+        }
+    }
 
     @Override
     public boolean objectExists(String objectName) {
