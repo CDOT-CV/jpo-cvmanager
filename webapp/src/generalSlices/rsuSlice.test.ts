@@ -2,18 +2,13 @@ import reducer from './rsuSlice'
 import {
   // async thunks
   getRsuData,
-  getRsuLastOnline,
   _getRsuInfo,
-  _getRsuOnlineStatus,
-  getSsmSrmData,
   updateGeoMsgData,
 
   // reducers
   selectRsu,
   toggleMapDisplay,
   clearGeoMsg,
-  toggleSsmSrmDisplay,
-  setSelectedSrm,
   toggleGeoMsgPointSelect,
   updateGeoMsgPoints,
   updateGeoMsgDate,
@@ -30,7 +25,6 @@ import {
   selectRsuIpv4,
   selectRsuPrimaryRoute,
   selectRsuData,
-  selectRsuOnlineStatus,
   selectRsuMapData,
   selectMapList,
   selectMapDate,
@@ -44,9 +38,6 @@ import {
   selectGeoMsgFilter,
   selectGeoMsgFilterStep,
   selectGeoMsgFilterOffset,
-  selectSsmDisplay,
-  selectSrmSsmList,
-  selectSelectedSrm,
 } from './rsuSlice'
 import RsuApi from '../apis/rsu-api'
 import { RootState } from '../store'
@@ -70,10 +61,10 @@ describe('rsu reducer', () => {
   it('should handle initial state', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual({
       loading: false,
+      currentRequestId: null,
       value: {
         selectedRsu: null,
         rsuData: [],
-        rsuOnlineStatus: {},
         rsuMapData: {},
         mapList: [],
         mapDate: '',
@@ -88,9 +79,6 @@ describe('rsu reducer', () => {
         geoMsgFilter: false,
         geoMsgFilterStep: 60,
         geoMsgFilterOffset: 0,
-        ssmDisplay: false,
-        srmSsmList: [],
-        selectedSrm: [],
       },
     })
   })
@@ -99,10 +87,10 @@ describe('rsu reducer', () => {
 describe('async thunks', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,
-      rsuOnlineStatus: null,
       geoMsgType: null,
       rsuMapData: null,
       mapList: null,
@@ -117,9 +105,6 @@ describe('async thunks', () => {
       geoMsgFilter: null,
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
-      ssmDisplay: null,
-      srmSsmList: null,
-      selectedSrm: null,
     },
   }
 
@@ -138,35 +123,33 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
         rsu: {
-          value: {
-            rsuOnlineStatus: {},
-          },
         },
       })
       const action = getRsuData()
+      const rsuData = ['1.1.1.1'] as any
+      RsuApi.getRsuInfo = jest.fn().mockResolvedValue({ rsuList: rsuData })
 
-      await action(dispatch, getState, undefined)
-      expect(dispatch).toHaveBeenCalledTimes(2 + 2) // 2 for the 2 dispatched actions, 2 for the pending and fulfilled actions
+      const response = await action(dispatch, getState, undefined)
+      expect(response.payload).toEqual(rsuData)
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
+      expect(dispatch).toHaveBeenCalledTimes(2) // pending and fulfilled
     })
 
     it('Updates the state correctly pending', async () => {
       const loading = true
       const rsuData = [] as any
-      const rsuOnlineStatus = {}
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/pending',
-      })
+      const state = reducer(initialState, getRsuData.pending('request-id', undefined))
       expect(state).toEqual({
         ...initialState,
         loading,
+        currentRequestId: 'request-id',
         value: {
           ...initialState.value,
           rsuData,
-          rsuOnlineStatus,
         },
       })
     })
@@ -184,10 +167,8 @@ describe('async thunks', () => {
         },
       ] as any
       const state = reducer(
-        { ...initialState, value: { ...initialState.value, rsuData } },
-        {
-          type: 'rsu/getRsuData/fulfilled',
-        }
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.fulfilled(rsuData, 'request-id', undefined)
       )
 
       expect(state).toEqual({
@@ -199,74 +180,33 @@ describe('async thunks', () => {
 
     it('Updates the state correctly rejected', async () => {
       const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuData/rejected',
-      })
-      expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
-    })
-  })
-
-  describe('getRsuLastOnline', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const rsu_ip = '1.1.1.1'
-      const action = getRsuLastOnline(rsu_ip)
-
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsu_ip)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual(rsu_ip)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
-    })
-
-    it('Updates the state correctly pending', async () => {
-      const loading = true
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuLastOnline/pending',
-      })
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value },
-      })
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const loading = false
-      let rsuOnlineStatus = { '1.1.1.1': {} as any }
-      const payload = { last_online: '2021-03-01T00:00:00.000000Z', ip: '1.1.1.1' }
       const state = reducer(
-        {
-          ...initialState,
-          value: { ...initialState.value, rsuOnlineStatus },
-        },
-        {
-          type: 'rsu/getRsuLastOnline/fulfilled',
-          payload: payload,
-        }
+        { ...initialState, loading: true, currentRequestId: 'request-id' },
+        getRsuData.rejected(new Error('failed'), 'request-id', undefined)
       )
-
-      rsuOnlineStatus = { '1.1.1.1': { last_online: '2021-03-01T00:00:00.000000Z' } }
-      expect(state).toEqual({
-        ...initialState,
-        loading,
-        value: { ...initialState.value, rsuOnlineStatus },
-      })
+      expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
     })
 
-    it('Updates the state correctly rejected', async () => {
-      const loading = false
-      const state = reducer(initialState, {
-        type: 'rsu/getRsuLastOnline/rejected',
-      })
-      expect(state).toEqual({ ...initialState, loading, value: { ...initialState.value } })
+    it('ignores an older organization response after a newer refresh starts', () => {
+      const initial = reducer(undefined, { type: 'unknown' })
+      const firstPending = reducer(initial, getRsuData.pending('first-request', undefined))
+      const secondPending = reducer(firstPending, getRsuData.pending('second-request', undefined))
+      const staleRsuData = [{ properties: { ipv4_address: 'stale' } }] as any
+
+      const afterStaleResponse = reducer(
+        secondPending,
+        getRsuData.fulfilled(staleRsuData, 'first-request', undefined)
+      )
+      expect(afterStaleResponse.value.rsuData).toEqual([])
+      expect(afterStaleResponse.currentRequestId).toBe('second-request')
+
+      const currentRsuData = [{ properties: { ipv4_address: 'current' } }] as any
+      const afterCurrentResponse = reducer(
+        afterStaleResponse,
+        getRsuData.fulfilled(currentRsuData, 'second-request', undefined)
+      )
+      expect(afterCurrentResponse.value.rsuData).toEqual(currentRsuData)
+      expect(afterCurrentResponse.currentRequestId).toBeNull()
     })
   })
 
@@ -277,7 +217,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -287,7 +227,7 @@ describe('async thunks', () => {
       RsuApi.getRsuInfo = jest.fn().mockReturnValue({ rsuList })
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsuList)
-      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'name')
+      expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')
     })
 
     it('Updates the state correctly fulfilled', async () => {
@@ -299,90 +239,6 @@ describe('async thunks', () => {
       expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuData } })
     })
   })
-
-  describe('_getRsuOnlineStatus', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const action = _getRsuOnlineStatus({
-        rsuOnlineStatusState: 'rsuOnlineStatusState',
-      } as any)
-
-      const rsuOnlineStatus = 'rsuOnlineStatus'
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual(rsuOnlineStatus)
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
-    })
-
-    it('returns and calls the api correctly default value', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
-          },
-        },
-      })
-      const action = _getRsuOnlineStatus('rsuOnlineStatusState' as any)
-
-      const rsuOnlineStatus = null as any
-      RsuApi.getRsuOnline = jest.fn().mockReturnValue(rsuOnlineStatus)
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual('rsuOnlineStatusState')
-      expect(RsuApi.getRsuOnline).toHaveBeenCalledWith('token', 'name')
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const rsuOnlineStatus = 'rsuOnlineStatus'
-      const state = reducer(initialState, {
-        type: 'rsu/_getRsuOnlineStatus/fulfilled',
-        payload: rsuOnlineStatus,
-      })
-      expect(state).toEqual({ ...initialState, value: { ...initialState.value, rsuOnlineStatus } })
-    })
-  })
-
-  describe('getSsmSrmData', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-          },
-        },
-      })
-      const action = getSsmSrmData()
-
-      RsuApi.getSsmSrmData = jest.fn().mockReturnValue('srmSsmList')
-      const resp = await action(dispatch, getState, undefined)
-      expect(resp.payload).toEqual('srmSsmList')
-      expect(RsuApi.getSsmSrmData).toHaveBeenCalledWith('token')
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const srmSsmList = 'srmSsmList'
-      const state = reducer(initialState, {
-        type: 'rsu/getSsmSrmData/fulfilled',
-        payload: srmSsmList,
-      })
-
-      expect(state).toEqual({
-        ...initialState,
-        value: { ...initialState.value, srmSsmList },
-      })
-    })
-  })
-
 
   describe('updateGeoMsgData', () => {
     it('returns and calls the api correctly', async () => {
@@ -529,10 +385,10 @@ describe('async thunks', () => {
 describe('reducers', () => {
   const initialState: RootState['rsu'] = {
     loading: null,
+    currentRequestId: null,
     value: {
       selectedRsu: null,
       rsuData: null,
-      rsuOnlineStatus: null,
       geoMsgType: null,
       rsuMapData: null,
       mapList: null,
@@ -547,9 +403,6 @@ describe('reducers', () => {
       geoMsgFilter: null,
       geoMsgFilterStep: null,
       geoMsgFilterOffset: null,
-      ssmDisplay: null,
-      srmSsmList: null,
-      selectedSrm: null,
     },
   }
 
@@ -587,37 +440,6 @@ describe('reducers', () => {
         geoMsgData: [],
         geoMsgDateError: false,
       },
-    })
-  })
-
-  it('toggleSsmSrmDisplay reducer updates state correctly', async () => {
-    expect(
-      reducer({ ...initialState, value: { ...initialState.value, ssmDisplay: true } }, toggleSsmSrmDisplay())
-    ).toEqual({
-      ...initialState,
-      value: { ...initialState.value, ssmDisplay: false },
-    })
-  })
-
-  it('setSelectedSrm reducer updates state correctly', async () => {
-    const selectedSrm = {
-      time: 'a',
-      requestedId: 'b',
-      role: 'c',
-      status: 'd',
-      type: 'e',
-      requestId: 'f',
-      lat: 1,
-      long: 2,
-    }
-    expect(reducer(initialState, setSelectedSrm(selectedSrm))).toEqual({
-      ...initialState,
-      value: { ...initialState.value, selectedSrm: [selectedSrm] },
-    })
-
-    expect(reducer(initialState, setSelectedSrm(null))).toEqual({
-      ...initialState,
-      value: { ...initialState.value, selectedSrm: [] },
     })
   })
 
@@ -706,7 +528,6 @@ describe('selectors', () => {
         },
       },
       rsuData: 'rsuData',
-      rsuOnlineStatus: 'rsuOnlineStatus',
       countsMsgType: 'countsMsgType',
       rsuMapData: 'rsuMapData',
       mapList: 'mapList',
@@ -721,9 +542,6 @@ describe('selectors', () => {
       geoMsgFilter: 'geoMsgFilter',
       geoMsgFilterStep: 'geoMsgFilterStep',
       geoMsgFilterOffset: 'geoMsgFilterOffset',
-      ssmDisplay: 'ssmDisplay',
-      srmSsmList: 'srmSsmList',
-      selectedSrm: 'selectedSrm',
     },
   }
   const rsuState = { rsu: initialState } as any
@@ -736,7 +554,6 @@ describe('selectors', () => {
     expect(selectRsuIpv4(rsuState)).toEqual('ipv4_address')
     expect(selectRsuPrimaryRoute(rsuState)).toEqual('primary_route')
     expect(selectRsuData(rsuState)).toEqual('rsuData')
-    expect(selectRsuOnlineStatus(rsuState)).toEqual('rsuOnlineStatus')
     expect(selectRsuMapData(rsuState)).toEqual('rsuMapData')
     expect(selectMapList(rsuState)).toEqual('mapList')
     expect(selectMapDate(rsuState)).toEqual('mapDate')
@@ -750,8 +567,5 @@ describe('selectors', () => {
     expect(selectGeoMsgFilter(rsuState)).toEqual('geoMsgFilter')
     expect(selectGeoMsgFilterStep(rsuState)).toEqual('geoMsgFilterStep')
     expect(selectGeoMsgFilterOffset(rsuState)).toEqual('geoMsgFilterOffset')
-    expect(selectSsmDisplay(rsuState)).toEqual('ssmDisplay')
-    expect(selectSrmSsmList(rsuState)).toEqual('srmSsmList')
-    expect(selectSelectedSrm(rsuState)).toEqual('selectedSrm')
   })
 })

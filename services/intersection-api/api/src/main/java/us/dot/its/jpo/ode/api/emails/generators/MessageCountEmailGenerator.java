@@ -27,6 +27,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
 
     @Override
     public EmailContent generateEmailBody(MessageCountEmailContents data) {
+        populateDiffPercents(data);
 
         Context context = this.generateEmailContextBasic();
         context.setVariable("preview_text", "Message Counts from CV Manager");
@@ -56,8 +57,7 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
                         + "Cells are <span style=\"background-color: #a4ffa1; color: #000; padding: 2px 8px; border-radius: 3px;\">green</span> if inbound and outbound counts are within 5%% of each other, and <span style=\"background-color: #ff7373; color: #000; padding: 2px 8px; border-radius: 3px;\">red</span> if the difference is greater than 5%%.</p>"
                         + "<p><strong>Inbound Message Count</strong>: Number of encoded messages received by the ODE from the load balancer.<br>"
                         + "<strong>Outbound Message Count</strong>: Number of decoded messages output by the ODE in JSON format, available for querying in MongoDB.<br>"
-                        + "Ideally, these counts should match, but small differences can occur due to timing.<br>"
-                        + "Note: Map and TIM outbound counts are deduplicated (one per hour), so these may be lower. The deviation calculation accounts for this.</p>"
+                        + "Ideally, these counts should match, but small differences can occur due to timing.</p>"
                         + "<h3>RSU Message Counts</h3>"
                         + "<div style=\"margin: 16px 0; padding: 12px; background-color: #f5f5f5; border-radius: 4px; display: inline-block;\">"
                         + "<strong>Legend:</strong>&nbsp;&nbsp;"
@@ -118,6 +118,8 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
             return "";
         }
 
+        populateDiffPercents(countsData);
+
         StringBuilder html = new StringBuilder();
         html.append("<table class=\"dataframe\">\n")
                 .append(generateTableHeader(countsData.getMessageTypeList()))
@@ -125,47 +127,48 @@ public class MessageCountEmailGenerator extends AbstractEmailGenerator<MessageCo
 
         boolean styleSwitch = false;
         for (MessageCountRsuItem rsuItem : countsData.getRsuCounts()) {
-            String rsuIp = rsuItem.getRsuIp();
-            Map<String, MessageCountCountsItem> countEntry = rsuItem.getMessageCountsByType();
             String rowStyle = styleSwitch
                     ? "text-align: center;background-color: #f2f2f2;"
                     : "text-align: center;";
             styleSwitch = !styleSwitch;
 
-            // Calculate differences between In and Out counts (%)
-            for (String type : countEntry.keySet()) {
-                MessageCountCountsItem countsItem = countEntry.get(type);
-                int inCount = countsItem.getIn();
-                int outCount = countsItem.getOut();
-
-                double diffPercent;
-                if (type.equalsIgnoreCase("bsm") || type.equalsIgnoreCase("tim")) {
-                    // For unique deduplication situations, don't validate counts unless zero
-                    // Assign the percentage difference between the in and out counts as pass or
-                    // fail since no validation is occurring
-                    // 6 being 6% and 0 being 0% difference. The 6% is enough to flag the table cell
-                    // value
-                    diffPercent = (inCount != 0 && outCount == 0) || (outCount > inCount) ? 6 : 0;
-                } else {
-                    // Normalize the diff_percent depending on message types that are deduplicated
-                    // to 1/hour
-                    int x = type.equalsIgnoreCase("map") ? 3600 : 1;
-                    // Assign the calculated percentage difference between the in and out counts
-                    if (inCount != 0) {
-                        diffPercent = Math.abs(outCount / Math.ceil((double) inCount / x) - 1) * 100;
-                    } else {
-                        // If inCount is zero, assign 6% to trigger error coloring
-                        diffPercent = outCount > inCount ? 6 : 0;
-                    }
-                }
-                countsItem.setDiffPercent(diffPercent);
-            }
-
-            html.append(generateTableRow(rsuIp, rsuItem, rowStyle, countsData.getMessageTypeList()));
+            html.append(generateTableRow(rsuItem.getRsuIp(), rsuItem, rowStyle, countsData.getMessageTypeList()));
         }
 
         html.append("</tbody>\n</table>");
         return html.toString();
+    }
+
+    /**
+     * Computes in/out deviation for each RSU/message-type cell so the Thymeleaf
+     * template can color cells red when deviation exceeds 5%.
+     */
+    static void populateDiffPercents(MessageCountEmailContents data) {
+        if (data == null || data.getRsuCounts() == null) {
+            return;
+        }
+        for (MessageCountRsuItem rsuItem : data.getRsuCounts()) {
+            if (rsuItem.getMessageCountsByType() == null) {
+                continue;
+            }
+            for (MessageCountCountsItem countsItem : rsuItem.getMessageCountsByType().values()) {
+                if (countsItem != null) {
+                    countsItem.setDiffPercent(calculateDiffPercent(countsItem.getIn(), countsItem.getOut()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Absolute percentage difference of outbound vs inbound counts. All message
+     * types use the same ±5% green/red cutoff. When inbound is zero, any outbound
+     * count is treated as a 100% mismatch.
+     */
+    static double calculateDiffPercent(int inCount, int outCount) {
+        if (inCount != 0) {
+            return Math.abs((double) outCount - inCount) / inCount * 100;
+        }
+        return outCount > 0 ? 100 : 0;
     }
 
     private static String diffToColor(Number val) {

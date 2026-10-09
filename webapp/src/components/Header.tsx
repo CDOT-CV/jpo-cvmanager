@@ -13,6 +13,7 @@ import {
   logout,
   changeOrganization,
   selectLoginMessage,
+  selectOrganizationId,
 } from '../generalSlices/userSlice'
 import { useKeycloak } from '@react-keycloak/web'
 
@@ -43,6 +44,7 @@ const Header = () => {
 
   const authLoginData = useSelector(selectAuthLoginData)
   const organizationName = useSelector(selectOrganizationName)
+  const organizationId = useSelector(selectOrganizationId)
   const userName = useSelector(selectName)
   const userEmail = useSelector(selectEmail)
   const loginFailure = useSelector(selectLoginFailure)
@@ -135,19 +137,19 @@ const Header = () => {
                     </Typography>
                     <RadioGroup
                       id="organizationRadioGroup"
-                      onChange={(event) => dispatch(changeOrganization(event.target.value))}
-                      defaultValue={organizationName}
+                      onChange={(event) => dispatch(changeOrganization(Number(event.target.value)))}
+                      defaultValue={organizationId}
                     >
                       {(authLoginData?.data?.organizations ?? []).map((permission) => (
                         <FormControlLabel
                           key={permission.organization}
-                          label={permission.organization}
+                          label={permission.name}
                           control={<Radio size="small" />}
                           value={permission.organization}
                           sx={{
                             '& .MuiTypography-root': {
                               color:
-                                permission.organization === organizationName
+                                permission.organization === organizationId
                                   ? theme.palette.text.primary
                                   : theme.palette.text.secondary,
                               fontFamily: 'Trebuchet MS, Arial, Helvetica, sans-serif',

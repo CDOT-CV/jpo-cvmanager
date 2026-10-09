@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.emails.generators;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -169,5 +169,58 @@ class MessageCountEmailGeneratorTest {
         verify(thymeLeafContext).setVariable("messageTypes", List.of("BSM", "MAP", "TIM"));
         verify(thymeLeafContext).setVariable("messageCounts", List.of(rsuCountsItem));
         verify(templateEngine).process("emails/email_template_message_counts", thymeLeafContext);
+    }
+
+    @Test
+    void calculateDiffPercent_matchingCountsAreZero() {
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(100, 100), 0.001);
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(86382, 86382), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_missingOutboundIsOneHundredPercent() {
+        assertEquals(100.0, MessageCountEmailGenerator.calculateDiffPercent(100, 0), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_fivePercentBoundaryIsInclusive() {
+        assertEquals(5.0, MessageCountEmailGenerator.calculateDiffPercent(100, 105), 0.001);
+        assertEquals(5.0, MessageCountEmailGenerator.calculateDiffPercent(100, 95), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_mapUsesSameInOutRatio() {
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(3600, 3600), 0.001);
+        assertEquals(99.972, MessageCountEmailGenerator.calculateDiffPercent(3600, 1), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_spatDeviationExceedsFivePercent() {
+        assertEquals(10.0, MessageCountEmailGenerator.calculateDiffPercent(100, 110), 0.001);
+    }
+
+    @Test
+    void calculateDiffPercent_zeroInboundWithOutboundIsFlagged() {
+        assertEquals(100.0, MessageCountEmailGenerator.calculateDiffPercent(0, 5), 0.001);
+        assertEquals(0.0, MessageCountEmailGenerator.calculateDiffPercent(0, 0), 0.001);
+    }
+
+    @Test
+    void populateDiffPercents_computesValuesForTemplateColoring() {
+        MessageCountCountsItem bsmCounts = new MessageCountCountsItem();
+        bsmCounts.setIn(100);
+        bsmCounts.setOut(0);
+
+        MessageCountRsuItem rsuCountsItem = new MessageCountRsuItem();
+        rsuCountsItem.setRsuIp("10.0.0.1");
+        rsuCountsItem.setPrimaryRoute("US-36");
+        rsuCountsItem.setMessageCountsByType(Map.of("BSM", bsmCounts));
+
+        MessageCountEmailContents contents = new MessageCountEmailContents();
+        contents.setRsuCounts(List.of(rsuCountsItem));
+
+        MessageCountEmailGenerator.populateDiffPercents(contents);
+
+        assertEquals(100.0, bsmCounts.getDiffPercent(), 0.001);
     }
 }

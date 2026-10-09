@@ -1,6 +1,7 @@
 name: cv-manager
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
@@ -8,6 +9,7 @@ on:
   pull_request:
     branches:
       - "**" # Run on PRs to any branch
+    types: [opened, reopened, synchronize]
 
 jobs:
   test_change_limit:
@@ -59,13 +61,13 @@ jobs:
       - name: Run Tests and Generate Coverage
         continue-on-error: false
         run: |
-          # Set PYTHONPATH and navigate to the tests directory
+          # Generate coverage paths relative to Sonar's repository-root projectBaseDir
           export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
-          cd $GITHUB_WORKSPACE/services
+          cd "$GITHUB_WORKSPACE"
 
           # Run tests and generate coverage report
-          python3 -m coverage run -m pytest
-          python3 -m coverage xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
+          python3 -m coverage run --rcfile=services/.coveragerc -m pytest -c services/pytest.ini services
+          python3 -m coverage xml --rcfile=services/.coveragerc -o services/coverage.xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
 
       - name: Archive Code Coverage Results
         uses: actions/upload-artifact@v4
@@ -83,7 +85,7 @@ jobs:
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     container:
-      image: node:22
+      image: node:24
       options: --user root
       env:
         CI: true
@@ -97,7 +99,7 @@ jobs:
         run: |
           # Navigate to the webapp directory and perform necessary setup
           cd $GITHUB_WORKSPACE/webapp
-          npm ci
+          npm ci --ignore-scripts
 
           # Run tests with coverage and suppress failures
           npm test -- --coverage
@@ -127,8 +129,10 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: "adopt"
-          java-version: "21"
+          distribution: 'adopt'
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: resources/keycloak/custom-user-provider/pom.xml
 
       - name: Build and Test with Maven
         run: |
@@ -140,6 +144,15 @@ jobs:
         with:
           name: keycloak-user-provider-test-results
           path: $GITHUB_WORKSPACE/resources/keycloak/custom-user-provider/target/surefire-reports
+
+      - name: Archive Sonar Inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: keycloak-user-provider-sonar-inputs
+          path: |
+            resources/keycloak/custom-user-provider/target/classes
+            resources/keycloak/custom-user-provider/target/test-classes
+          if-no-files-found: error
 
   build_rsu_info_bridge:
     needs: test_change_limit
@@ -175,9 +188,18 @@ jobs:
           name: rsu-info-bridge-test-results
           path: $GITHUB_WORKSPACE/services/rsu-info-bridge/target/surefire-reports
 
+      - name: Archive Sonar Inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsu-info-bridge-sonar-inputs
+          path: |
+            services/rsu-info-bridge/target/classes
+            services/rsu-info-bridge/target/test-classes
+          if-no-files-found: error
+
   build_intersection_api:
     needs: test_change_limit
-    if: ${{ always() && !cancelled() }}
+    if: ${{ always() && !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -222,9 +244,77 @@ jobs:
           name: intersection-api-test-results
           path: $GITHUB_WORKSPACE/services/intersection-api/api/target/surefire-reports
 
+      - name: Archive Sonar Inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: intersection-api-sonar-inputs
+          path: |
+            services/intersection-api/api/target/classes
+            services/intersection-api/api/target/test-classes
+            services/intersection-api/api/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
+
       - name: Clean up
         run: |
           rm -rf $GITHUB_WORKSPACE/services/intersection-api/api/target
+
+  build_rsu_status_monitor:
+    needs: test_change_limit
+    if: ${{ always() && !failure() && !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    container:
+      image: maven:3.9.9-eclipse-temurin-22
+      options: --user root
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/settings.xml') }}-${{ runner.os }}-java-22
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ runner.os }}-java-22
+            ${{ runner.os }}-maven-${{ runner.os }}-java-22
+            ${{ runner.os }}-maven
+
+      - name: Install Dependencies
+        env:
+          MAVEN_GITHUB_TOKEN: ${{ secrets.MAVEN_GITHUB_TOKEN }}
+          MAVEN_GITHUB_ORG: ${{ github.repository_owner }}
+        run: |
+          cd $GITHUB_WORKSPACE/services/rsu-status-monitor/rsu-status-monitor
+          mvn clean install -DskipTests -s ./settings.xml
+          mvn dependency:go-offline -s ./settings.xml
+
+      - name: Run tests
+        env:
+          MAVEN_GITHUB_TOKEN: ${{ secrets.MAVEN_GITHUB_TOKEN }}
+          MAVEN_GITHUB_ORG: ${{ github.repository_owner }}
+        run: |
+          cd $GITHUB_WORKSPACE/services/rsu-status-monitor/rsu-status-monitor
+          mvn verify -s ./settings.xml
+
+      - name: Archive Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsu-status-monitor-test-results
+          path: $GITHUB_WORKSPACE/services/rsu-status-monitor/rsu-status-monitor/target/surefire-reports
+
+      - name: Archive Sonar Inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsu-status-monitor-sonar-inputs
+          path: |
+            services/rsu-status-monitor/rsu-status-monitor/target/classes
+            services/rsu-status-monitor/rsu-status-monitor/target/test-classes
+            services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
+
+      - name: Clean up
+        run: |
+          rm -rf $GITHUB_WORKSPACE/services/rsu-status-monitor/rsu-status-monitor/target
 
   build_flyway_image:
     needs: [test_change_limit, validate_migrations]
@@ -313,8 +403,8 @@ jobs:
             info
 
   sonar:
-    if: github.event.pull_request.base.repo.owner.login == 'usdot-jpo-ode'
-    needs: [build_api, webapp]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [build_api, webapp, build_keycloak_provider, build_rsu_info_bridge, build_intersection_api, build_rsu_status_monitor]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -326,13 +416,37 @@ jobs:
         continue-on-error: false
         with:
           name: build_api
-          path: services/coverage.xml
+          path: services
 
       - name: Download Code Coverage Results
         uses: actions/download-artifact@v4
         with:
           name: webapp
           path: webapp
+
+      - name: Download Keycloak Sonar Inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: keycloak-user-provider-sonar-inputs
+          path: resources/keycloak/custom-user-provider/target
+
+      - name: Download RSU Info Bridge Sonar Inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: rsu-info-bridge-sonar-inputs
+          path: services/rsu-info-bridge/target
+
+      - name: Download Intersection API Sonar Inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: intersection-api-sonar-inputs
+          path: services/intersection-api/api/target
+
+      - name: Download RSU Status Monitor Sonar Inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: rsu-status-monitor-sonar-inputs
+          path: services/rsu-status-monitor/rsu-status-monitor/target
 
       - name: Find coverage.xml
         shell: bash
@@ -344,38 +458,50 @@ jobs:
         run: |
           find "$GITHUB_WORKSPACE" -name "lcov.info"
 
+      - name: Validate Coverage Reports
+        shell: bash
+        run: |
+          reports=(
+            "services/coverage.xml"
+            "webapp/lcov.info"
+            "services/intersection-api/api/target/site/jacoco/jacoco.xml"
+            "services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml"
+          )
+          for report in "${reports[@]}"; do
+            if [ ! -s "$report" ]; then
+              echo "::error::Missing or empty coverage report: $report"
+              exit 1
+            fi
+          done
+
       - uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "17"
-
-      - name: Setup SonarScanner
-        uses: warchant/setup-sonar-scanner@v7
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Generate Sonar Properties File
         run: |
-          cat <<EOF > /tmp/sonar-scanner.properties
+          cat <<EOF > sonar-project.properties
           sonar.host.url=https://sonarcloud.io
-          sonar.exclusions=**/__init__.py,**/*test*.py,**/test/**
+          sonar.exclusions=**/__init__.py,**/*test*.py,**/test/**,**/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx
+          sonar.cpd.exclusions=services/intersection-api/api/src/test/resources/snapshots/**,services/intersection-api/api/src/main/resources/templates/**,services/intersection-api/docs/**,resources/deprecated/**
           sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**
-          sonar.javascript.lcov.reportPaths=/home/runner/work/jpo-cvmanager/jpo-cvmanager/webapp/lcov.info
-          sonar.modules=api,webapp
-          sonar.organization=usdot-jpo-ode
+          sonar.javascript.lcov.reportPaths=webapp/lcov.info
+          sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/obu_ota_server,services/addons/images/rsu_status_check,services/api/src,services/common,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java
+          sonar.tests=services/addons/tests,services/api/tests,services/common/tests,webapp/src,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java
+          sonar.test.inclusions=services/addons/tests/**,services/api/tests/**,services/common/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx,resources/keycloak/custom-user-provider/src/test/java/**,services/rsu-info-bridge/src/test/java/**,services/intersection-api/api/src/test/java/**,services/rsu-status-monitor/rsu-status-monitor/src/test/java/**
+          sonar.organization=${{ vars.SONAR_ORGANIZATION || github.repository_owner }}
           sonar.projectBaseDir=$GITHUB_WORKSPACE
-          sonar.projectKey=usdot-jpo-ode_jpo-cvmanager
+          sonar.projectKey=${{ github.repository_owner }}_jpo-cvmanager
           sonar.projectName=jpo-cvmanager
-          sonar.python.coverage.reportPaths=$GITHUB_WORKSPACE/services/coverage.xml
+          sonar.python.coverage.reportPaths=services/coverage.xml
           sonar.python.version=3.12.2
-          api.sonar.projectBaseDir=$GITHUB_WORKSPACE/services
-          api.sonar.sources=addons/images/count_metric,addons/images/firmware_manager,addons/images/iss_health_check,addons/images/rsu_status_check,api/src,common/pgquery.py
-          api.sonar.tests=addons/tests,api/tests,common/tests
-          webapp.sonar.projectBaseDir=$GITHUB_WORKSPACE/webapp
-          webapp.sonar.sources=src
+          sonar.java.binaries=resources/keycloak/custom-user-provider/target/classes,services/rsu-info-bridge/target/classes,services/intersection-api/api/target/classes,services/rsu-status-monitor/rsu-status-monitor/target/classes
+          sonar.java.test.binaries=resources/keycloak/custom-user-provider/target/test-classes,services/rsu-info-bridge/target/test-classes,services/intersection-api/api/target/test-classes,services/rsu-status-monitor/rsu-status-monitor/target/test-classes
+          sonar.coverage.jacoco.xmlReportPaths=services/intersection-api/api/target/site/jacoco/jacoco.xml,services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml
           EOF
 
       - name: Run SonarScanner
-        uses: usdot-fhwa-stol/actions/sonar-scanner@main
-        with:
-          sonar-properties-path: /tmp/sonar-scanner.properties
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
-          working-dir: $GITHUB_WORKSPACE
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

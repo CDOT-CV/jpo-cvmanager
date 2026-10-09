@@ -52,22 +52,16 @@ def get_user_role(token) -> UserInfo | None:
 
 
 organization_required = {
-    "/rsu-online-status": True,
     "/rsucounts": True,
     "/rsu-msgfwd-query": True,
     "/rsu-command": True,
     "/wzdx-feed": False,
     "/rsu-geo-msg-data": False,
-    "/rsu-ssm-srm-data": False,
     "/admin-new-rsu": False,
     "/admin-new-org": False,
     "/admin-org": False,
     "/admin-org-tim-deposit": False,
     "/admin-org-snmp-monitoring": False,
-    "/rsu-config-geo-query": True,
-    "/rsu-geo-query": True,
-    "/admin-new-notification": False,
-    "/admin-notification": False,
 }
 
 # Tag endpoints with the feature they require. The tagged endpoints will automatically be disabled if the feature is disabled
@@ -76,23 +70,17 @@ organization_required = {
 # Dictionary: Method specific feature required (e.g. {"GET": "rsu", "POST": "intersection"})
 feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/": None,
-    "/rsu-online-status": FEATURE_KEYS_LITERAL.RSU,
     "/rsucounts": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-msgfwd-query": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-command": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-map-info": FEATURE_KEYS_LITERAL.RSU,
     "/wzdx-feed": FEATURE_KEYS_LITERAL.WZDX,
     "/rsu-geo-msg-data": FEATURE_KEYS_LITERAL.RSU,
-    "/rsu-ssm-srm-data": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-rsu": FEATURE_KEYS_LITERAL.RSU,
     "/admin-new-org": None,
     "/admin-org": None,
     "/admin-org-tim-deposit": None,
     "/admin-org-snmp-monitoring": None,
-    "/rsu-config-geo-query": FEATURE_KEYS_LITERAL.RSU,
-    "/rsu-geo-query": FEATURE_KEYS_LITERAL.RSU,
-    "/admin-new-notification": None,
-    "/admin-notification": None,
 }
 
 

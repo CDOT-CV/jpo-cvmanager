@@ -24,6 +24,7 @@ exports[`<Header /> > should take a snapshot 1`] = `
             class="museo-slab"
             id="header-text"
           >
+            CDOT
              CV Manager
           </h1>
         </div>
