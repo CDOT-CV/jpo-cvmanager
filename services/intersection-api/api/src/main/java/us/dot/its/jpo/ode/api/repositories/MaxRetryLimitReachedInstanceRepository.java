@@ -12,10 +12,16 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstanc
 
 import java.net.InetAddress;
 import java.util.List;
+import java.util.Collection;
 
 @Repository
 public interface MaxRetryLimitReachedInstanceRepository
         extends JpaRepository<MaxRetryLimitReachedInstance, MaxRetryLimitReachedInstanceId> {
+
+    @Modifying
+    @Query("DELETE FROM MaxRetryLimitReachedInstance instance "
+            + "WHERE instance.targetFirmwareVersion.id IN :ids")
+    void deleteByTargetFirmwareVersionIdIn(@Param("ids") Collection<Integer> ids);
 
     @Modifying
     @Transactional

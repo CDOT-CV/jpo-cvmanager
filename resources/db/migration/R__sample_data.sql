@@ -30,6 +30,15 @@ INSERT INTO public.firmware_images(name, model, install_package, version)
   VALUES ('y20.0.0', 1, 'install_y20_0_0.tar', 'y20.0.0'), ('y20.1.0', 1, 'install_y20_1_0.tar', 'y20.1.0'), ('k1.0.0', 3, 'install_k1_0_0.tar', 'k1.0.0')
   ON CONFLICT (model, version) DO NOTHING;
 
+-- Demonstrates a registered legacy firmware image whose expected cloud object
+-- is absent. The API derives its path in the active storage container at runtime.
+INSERT INTO public.firmware_images(
+    name, model, install_package, version)
+  VALUES (
+    'missing-file-demo', 1, 'missing-file-demo.tar.sig',
+    'missing-file-demo')
+  ON CONFLICT (model, version) DO NOTHING;
+
 -- Three upgrade rules across the three firmware images. UNIQUE (from_id, to_id)
 -- means a third meaningful rule is only possible because firmware_image 3 exists.
 INSERT INTO public.firmware_upgrade_rules(from_id, to_id)

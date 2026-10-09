@@ -92,6 +92,17 @@ class FirmwareRegistrationServiceTest {
     }
 
     @Test
+    void lateVerificationFailureDoesNotDowngradeVerifiedUpload() {
+        registration.register(upload.getId(), metadata);
+        registration.markFailed(upload.getId(), "CHECKSUM_MISMATCH");
+
+        var verified = uploads.findById(upload.getId()).orElseThrow();
+        assertThat(verified.getStatus()).isEqualTo(FirmwareUploadStatus.VERIFIED);
+        assertThat(verified.getFailureReason()).isNull();
+        assertThat(images.findByModelIdAndVersion(model.getId(), "v1")).isPresent();
+    }
+
+    @Test
     void rollsBackVerificationIfImagePersistenceFails() {
         doThrow(new DataIntegrityViolationException("image insert failed")).when(images).saveAndFlush(any());
         assertThatThrownBy(() -> registration.register(upload.getId(), metadata))

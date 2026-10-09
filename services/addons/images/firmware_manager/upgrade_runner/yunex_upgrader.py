@@ -55,7 +55,10 @@ class YunexUpgrader(upgrader.UpgraderAbstractClass):
     def upgrade(self):
         try:
             # Download firmware installation package TAR file
-            self.download_blob()
+            if not self.download_blob():
+                raise FileNotFoundError(
+                    f"Firmware installation package not found: {self.blob_name}"
+                )
 
             # Unpack TAR file which must contain the following:
             # - Core upgrade file
