@@ -414,8 +414,7 @@ Note that it is recommended to work with the Python API from a [virtual environm
 
 <b>API Variables</b>
 
-- MONGO_PROCESSED_BSM_COLLECTION_NAME: The collection name in MongoDB for processed BSM messages.
-- MONGO_PROCESSED_PSM_COLLECTION_NAME: The collection name in MongoDB for processed PSM messages.
+- Processed BSM/PSM geospatial queries are served by the Java Intersection API; see its configuration in [services/intersection-api/README.md](services/intersection-api/README.md#processed-rsu-geospatial-messages).
 - FIRMWARE_MANAGER_ENDPOINT: Endpoint for the firmware manager deployment's API.
 - IAPI_ENDPOINT: Intersection API endpoint for making REST requests to send emails
 - KC_SA_CLIENT_ID: Keycloak service account client ID for generating authenticating to the Intersection API

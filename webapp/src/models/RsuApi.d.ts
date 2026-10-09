@@ -54,13 +54,6 @@ export type IssScmsStatus = {
   }
 }
 
-export type GeoMsgDataPostBody = {
-  msg_type: string
-  start: string
-  end: string
-  geometry: number[][]
-}
-
 export type RsuCommandPostBody = {
   command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'reboot' | 'upgrade-rsu' | 'upgrade-check'
   rsu_ip: string[]

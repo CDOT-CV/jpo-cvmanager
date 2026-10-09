@@ -22,6 +22,11 @@ services:
       AUTH_SERVER_URL: ${KEYCLOAK_ENDPOINT:-http://${DOCKER_HOST_IP:?error}:8084}
       DB_HOST_IP: ${DB_HOST_IP:-mongo}
       DB_HOST_PORT: ${DB_HOST_PORT:-27017}
+      CM_DATABASE_NAME: ${CM_DATABASE_NAME:-CV}
+      CM_MONGO_AUTH_DB: ${CM_MONGO_AUTH_DB:-admin}
+      CM_MONGO_URI: ${CM_MONGO_URI:-}
+      MONGO_READ_WRITE_USER: ${MONGO_READ_WRITE_USER:-ode}
+      MONGO_READ_WRITE_PASS: ${MONGO_READ_WRITE_PASS:-replace_me}
       SPRING_KAFKA_BOOTSTRAPSERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
       CM_SERVER_URL: ${CM_SERVER_URL:-http://conflictmonitor:8082}
       load: "false"
@@ -30,10 +35,11 @@ services:
       ACM_LOG_TO_CONSOLE: true
       ACM_LOG_TO_FILE: false
       ACM_LOG_LEVEL: DEBUG
-      MONGO_READ_WRITE_USER: ${MONGO_READ_WRITE_USER:-ode}
-      MONGO_READ_WRITE_PASS: ${MONGO_READ_WRITE_PASS:-replace_me}
       CM_MAXIMUM_RESPONSE_SIZE: ${CM_MAXIMUM_RESPONSE_SIZE:-10000}
-      SPRING_DATA_MONGODB_DATABASE: ${CM_DATABASE_NAME:-CV}
+      MONGO_PROCESSED_BSM_COLLECTION_NAME: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:-processed_bsm}
+      MONGO_PROCESSED_PSM_COLLECTION_NAME: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:-processed_psm}
+      MAX_GEO_QUERY_RECORDS: ${MAX_GEO_QUERY_RECORDS:-10000}
+      ENABLE_RSU_FEATURES: ${ENABLE_RSU_FEATURES:-true}
 
       KEYCLOAK_CLIENT_API_ID: ${KEYCLOAK_API_CLIENT_ID:-cvmanager-api}
       KEYCLOAK_CLIENT_API_SECRET: ${KEYCLOAK_API_CLIENT_SECRET_KEY:-keycloak-secret-key}
@@ -94,6 +100,24 @@ services:
       kafka-setup:
         condition: service_started
         required: false
+  mock_geo_message_generator:
+    profiles:
+      - mock_geo_messages
+    image: mongo:8
+    restart: "no"
+    depends_on:
+      mongo-setup:
+        condition: service_completed_successfully
+    environment:
+      MOCK_GEO_MESSAGES_ENABLED: ${MOCK_GEO_MESSAGES_ENABLED:-false}
+      MONGO_DB_URI: ${CM_MONGO_URI:-mongodb://${MONGO_READ_WRITE_USER:-ode}:${MONGO_READ_WRITE_PASS:-replace_me}@${DB_HOST_IP:-mongo}:${DB_HOST_PORT:-27017}/?directConnection=true&authSource=${CM_MONGO_AUTH_DB:-admin}}
+      MONGO_DB_NAME: ${CM_DATABASE_NAME:-CV}
+      MONGO_PROCESSED_BSM_COLLECTION_NAME: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:-processed_bsm}
+      MONGO_PROCESSED_PSM_COLLECTION_NAME: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:-processed_psm}
+    volumes:
+      - ./resources/mock-geo-message-generator/seed.js:/seed.js:ro
+      - ./resources/mock-geo-message-generator/run.sh:/run.sh:ro
+    entrypoint: ["/bin/sh", "/run.sh"]
   smtp4dev:
     profiles:
       - smtp4dev
