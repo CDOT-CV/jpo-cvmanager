@@ -6,9 +6,9 @@ freezegun==1.2.2
 pytest-env==1.0.1
 confluent-kafka==2.3.0
 google-cloud-storage==2.19.0
-google-cloud-secret-manager==2.22.0
 APScheduler==3.10.4
 google-auth==2.37.0
+cryptography==50.0.2
 DateTime==5.2
 requests==2.31.0
 pymongo==4.5.0

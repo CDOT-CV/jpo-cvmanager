@@ -91,7 +91,7 @@ Table descriptions are stored as SQL comments in the database (applied by migrat
 | `ping`                                  | RSU online/offline ping results. Keep to last 24 hours per RSU — a large table degrades map load times.     |
 | `rsu_health`                            | RSU health records from SNMP monitoring. Keep recent data only (same guidance as `ping`).                   |
 | `scms_health`                           | ISS SCMS certificate health per RSU. Polled every 6 hours. Requires an ISS SCMS service agreement.          |
-| `iss_keys`                              | ISS SCMS API tokens used by `iss_health_check` to query certificate status.                                 |
+| `iss_keys`                              | Encrypted ISS SCMS API token used by `iss_health_check` to query certificate status.                        |
 | `roles`                                 | User roles. Required rows: `admin`, `operator`, `user`.                                                     |
 | `users`                                 | Authorized CV Manager users. `keycloak_id` links to Keycloak. `super_user=1` grants cross-org admin access. |
 | `organizations`                         | Deployment organizations. Users and RSUs are scoped to organizations.                                       |
