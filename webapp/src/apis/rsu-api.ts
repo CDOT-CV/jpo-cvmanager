@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast'
 import EnvironmentVars from '../EnvironmentVars'
 import { WZDxWorkZoneFeed } from '../models/wzdx/WzdxWorkZoneFeed42'
 import apiHelper from './api-helper'
@@ -115,14 +116,45 @@ class RsuApi {
   }
 
   // POST
-  postRsuGeo = async (token: string, org: string, body: string, url_ext: string): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.rsuGeoQueryEndpoint + url_ext,
-      body,
+  postRsuGeo = async (
+    token: string,
+    org: string,
+    body: { geometry: number[][]; vendor?: string },
+    url_ext = ''
+  ): Promise<ApiMsgRespWithCodes<string[]> | null> => {
+    const response = await authApiHelper.invokeApi({
+      path: `${EnvironmentVars.rsuGeoQueryPath}${url_ext}`,
+      method: 'POST',
       token,
-      additional_headers: { Organization: org },
+      headers: { Organization: org },
+      body,
       tag: 'rsu',
+      toastOnFailure: false,
+      returnErrorBody: true,
+      failureMessage: 'Failed to query RSUs by geometry',
     })
+
+    if (!response) {
+      return null
+    }
+
+    if (response.__isErrorResponse) {
+      const message = response.body?.detail ?? `Failed to query RSUs by geometry (${response.status})`
+      if (response.status !== 401 && response.status !== 403) {
+        toast.error(message)
+      }
+      return {
+        body: [],
+        status: response.status,
+        message,
+      }
+    }
+
+    return {
+      body: Array.isArray(response) ? response : [],
+      status: 200,
+      message: '',
+    }
   }
 }
 

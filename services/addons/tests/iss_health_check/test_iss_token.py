@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import call, patch, MagicMock
 import json
 
 from addons.images.iss_health_check import iss_token
@@ -82,13 +82,61 @@ def test_add_secret_version(mock_sm_client):
     secret_id = "test-secret_id"
     parent = "test-parent"
     data = {"message": "Secret payload data"}
-    iss_token.add_secret_version(mock_sm_client, secret_id, parent, data)
+    mock_response = MagicMock()
+    mock_response.name = "test-parent/secrets/test-secret_id/versions/2"
+    mock_sm_client.add_secret_version.return_value = mock_response
+
+    actual_value = iss_token.add_secret_version(
+        mock_sm_client, secret_id, parent, data
+    )
 
     expected_request = {
         "parent": f"{parent}/secrets/{secret_id}",
         "payload": {"data": str.encode(json.dumps(data))},
     }
     mock_sm_client.add_secret_version.assert_called_with(request=expected_request)
+    assert actual_value == mock_response
+
+
+def test_destroy_old_secret_versions():
+    mock_sm_client = MagicMock()
+    old_enabled = MagicMock()
+    old_enabled.name = "test-parent/secrets/test-secret_id/versions/1"
+    old_enabled.state = iss_token.secretmanager.SecretVersion.State.ENABLED
+    old_disabled = MagicMock()
+    old_disabled.name = "test-parent/secrets/test-secret_id/versions/2"
+    old_disabled.state = iss_token.secretmanager.SecretVersion.State.DISABLED
+    old_destroyed = MagicMock()
+    old_destroyed.name = "test-parent/secrets/test-secret_id/versions/3"
+    old_destroyed.state = iss_token.secretmanager.SecretVersion.State.DESTROYED
+    current = MagicMock()
+    current.name = "test-parent/secrets/test-secret_id/versions/4"
+    current.state = iss_token.secretmanager.SecretVersion.State.ENABLED
+    newer = MagicMock()
+    newer.name = "test-parent/secrets/test-secret_id/versions/5"
+    newer.state = iss_token.secretmanager.SecretVersion.State.ENABLED
+    mock_sm_client.list_secret_versions.return_value = [
+        old_enabled,
+        old_disabled,
+        old_destroyed,
+        current,
+        newer,
+    ]
+
+    iss_token.destroy_old_secret_versions(
+        mock_sm_client,
+        "test-secret_id",
+        "test-parent",
+        current.name,
+    )
+
+    mock_sm_client.list_secret_versions.assert_called_once_with(
+        request={"parent": "test-parent/secrets/test-secret_id"}
+    )
+    assert mock_sm_client.destroy_secret_version.call_args_list == [
+        call(request={"name": old_enabled.name}),
+        call(request={"name": old_disabled.name}),
+    ]
 
 
 @patch("iss_health_check_environment.PROJECT_ID", "test-proj")
@@ -102,6 +150,7 @@ def test_add_secret_version(mock_sm_client):
 @patch("addons.images.iss_health_check.iss_token.requests.Response")
 @patch("addons.images.iss_health_check.iss_token.requests")
 @patch("addons.images.iss_health_check.iss_token.uuid")
+@patch("addons.images.iss_health_check.iss_token.destroy_old_secret_versions")
 @patch("addons.images.iss_health_check.iss_token.add_secret_version")
 @patch("addons.images.iss_health_check.iss_token.create_secret")
 @patch("addons.images.iss_health_check.iss_token.check_if_secret_exists")
@@ -111,6 +160,7 @@ def test_get_token_create_secret(
     mock_check_if_secret_exists,
     mock_create_secret,
     mock_add_secret_version,
+    mock_destroy_old_secret_versions,
     mock_uuid,
     mock_requests,
     mock_response,
@@ -122,6 +172,9 @@ def test_get_token_create_secret(
     mock_uuid.uuid4.return_value = 12345
     mock_requests.post.return_value = mock_response
     mock_response.json.return_value = {"Item": "new-iss-token"}
+    mock_new_version = MagicMock()
+    mock_new_version.name = "projects/test-proj/secrets/iss-token-secret/versions/1"
+    mock_add_secret_version.return_value = mock_new_version
 
     # Call function
     expected_value = "new-iss-token"
@@ -139,6 +192,12 @@ def test_get_token_create_secret(
         "iss-token-secret",
         "projects/test-proj",
         {"name": "test-api-key-name_12345", "token": expected_value},
+    )
+    mock_destroy_old_secret_versions.assert_called_once_with(
+        mock_sm_client,
+        "iss-token-secret",
+        "projects/test-proj",
+        mock_new_version.name,
     )
 
     # Check if HTTP requests were made correctly
@@ -165,6 +224,7 @@ def test_get_token_create_secret(
 @patch("addons.images.iss_health_check.iss_token.requests.Response")
 @patch("addons.images.iss_health_check.iss_token.requests")
 @patch("addons.images.iss_health_check.iss_token.uuid")
+@patch("addons.images.iss_health_check.iss_token.destroy_old_secret_versions")
 @patch("addons.images.iss_health_check.iss_token.add_secret_version")
 @patch("addons.images.iss_health_check.iss_token.get_latest_secret_version")
 @patch("addons.images.iss_health_check.iss_token.check_if_secret_exists")
@@ -174,6 +234,7 @@ def test_get_token_secret_exists(
     mock_check_if_secret_exists,
     mock_get_latest_secret_version,
     mock_add_secret_version,
+    mock_destroy_old_secret_versions,
     mock_uuid,
     mock_requests,
     mock_response,
@@ -189,6 +250,9 @@ def test_get_token_secret_exists(
     mock_uuid.uuid4.return_value = 12345
     mock_requests.post.return_value = mock_response
     mock_response.json.return_value = {"Item": "new-iss-token"}
+    mock_new_version = MagicMock()
+    mock_new_version.name = "projects/test-proj/secrets/iss-token-secret/versions/2"
+    mock_add_secret_version.return_value = mock_new_version
 
     # Call function
     expected_value = "new-iss-token"
@@ -206,6 +270,12 @@ def test_get_token_secret_exists(
         "iss-token-secret",
         "projects/test-proj",
         {"name": "test-api-key-name_12345", "token": expected_value},
+    )
+    mock_destroy_old_secret_versions.assert_called_once_with(
+        mock_sm_client,
+        "iss-token-secret",
+        "projects/test-proj",
+        mock_new_version.name,
     )
 
     # Check if HTTP requests were made correctly

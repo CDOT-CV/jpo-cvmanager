@@ -8,7 +8,6 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,6 +24,8 @@ import us.dot.its.jpo.ode.api.services.EmailService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @Slf4j
@@ -40,7 +41,7 @@ public class SubscriptionController {
     private final EmailService emailService;
     private final PermissionService permissionService;
 
-    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/email-subscriptions", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -59,7 +60,7 @@ public class SubscriptionController {
     }
 
     @Operation(summary = "Update email subscription preferences", description = "Update the user's email subscription preferences")
-    @RequestMapping(value = "/email-subscriptions", method = RequestMethod.POST, produces = "application/json")
+    @PostMapping(value = "/email-subscriptions", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

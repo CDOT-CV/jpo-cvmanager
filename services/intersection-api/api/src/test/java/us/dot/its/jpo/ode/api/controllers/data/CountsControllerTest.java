@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.controllers.data;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -13,9 +14,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.accessors.counts.CountsRepository;
 import us.dot.its.jpo.ode.api.models.MessageCount;
+import us.dot.its.jpo.ode.api.services.PrometheusService;
 
 @ExtendWith(MockitoExtension.class)
 public class CountsControllerTest {
@@ -46,10 +49,10 @@ public class CountsControllerTest {
         count1.setRoad("I-25");
         expectedCounts.add(count1);
 
-        when(countsRepository.getRsuMessageCounts(rsuIp, message, startTime, endTime))
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime))
                 .thenReturn(expectedCounts);
 
-        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, message, startTime,
+        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime,
                 endTime);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -58,6 +61,28 @@ public class CountsControllerTest {
         assertThat(result.getBody().get(0).getOdeInputCount()).isEqualTo(50L);
         assertThat(result.getBody().get(0).getOdeOutputCount()).isEqualTo(150L);
         assertThat(result.getBody().get(0).getRoad()).isEqualTo("I-25");
+    }
+
+    @Test
+    public void testGetRsuMessageCountsWithMultipleTypes() {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+
+        List<MessageCount> expectedCounts = new ArrayList<>();
+        expectedCounts.add(new MessageCount("BSM", rsuIp, 50L, 150L, "I-25"));
+        expectedCounts.add(new MessageCount("MAP", rsuIp, 10L, 10L, "I-25"));
+
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM", "MAP"), startTime, endTime))
+                .thenReturn(expectedCounts);
+
+        ResponseEntity<List<MessageCount>> result = controller.getRsuMessageCounts(rsuIp, List.of("BSM,MAP"),
+                startTime, endTime);
+
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).hasSize(2);
+        assertThat(result.getBody().get(0).getMessageType()).isEqualTo("BSM");
+        assertThat(result.getBody().get(1).getMessageType()).isEqualTo("MAP");
     }
 
     @Test
@@ -83,5 +108,36 @@ public class CountsControllerTest {
         assertThat(result.getBody()).hasSize(2);
         assertThat(result.getBody().get(0).getRsuIp()).isEqualTo("10.11.81.13");
         assertThat(result.getBody().get(1).getRsuIp()).isEqualTo("10.11.81.14");
+    }
+
+    @Test
+    public void testGetRsuMessageCounts_PropagatesPrometheusOomAsBadRequest() {
+        String rsuIp = "10.11.81.13";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(countsRepository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime)).thenThrow(oom);
+
+        assertThatThrownBy(() -> controller.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime))
+                .isSameAs(oom);
+    }
+
+    @Test
+    public void testGetOrganizationRsuMessageCounts_PropagatesPrometheusOomAsBadRequest() {
+        String organization = "TestOrg";
+        String message = "BSM";
+        Long startTime = 1640995200000L;
+        Long endTime = 1641081600000L;
+        ResponseStatusException oom = new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                PrometheusService.OOM_USER_MESSAGE);
+
+        when(countsRepository.getRsuOrganizationMessageCounts(organization, message, startTime, endTime))
+                .thenThrow(oom);
+
+        assertThatThrownBy(
+                () -> controller.getOrganizationRsuMessageCounts(organization, message, startTime, endTime))
+                .isSameAs(oom);
     }
 }
