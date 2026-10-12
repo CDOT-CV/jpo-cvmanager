@@ -1,7 +1,9 @@
 package us.dot.its.jpo.ode.api.repositories;
 
 import java.net.InetAddress;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.transaction.Transactional;
+import us.dot.its.jpo.ode.api.models.postgres.projections.RsuOnlineStatusProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 
@@ -66,6 +69,47 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
 
     /**
+     * Returns every RSU in an organization together with every ping in the status
+     * window. The left join is deliberate: an RSU without a recent ping is still
+     * represented so the API can report it as offline.
+     */
+    @Query("SELECT r.ipv4Address AS ipv4Address, p.timestamp AS timestamp, p.result AS result " +
+            "FROM Rsu r " +
+            "JOIN r.rsuOrganizations ro " +
+            "JOIN ro.organization o " +
+            "LEFT JOIN r.pings p ON p.timestamp >= :cutoff " +
+            "WHERE o.name = :organization " +
+            "ORDER BY r.ipv4Address ASC, p.timestamp DESC")
+    List<RsuOnlineStatusProjection> findOnlineStatusPingsByOrganization(
+            @Param("organization") String organization,
+            @Param("cutoff") Instant cutoff);
+
+    /**
+     * Returns the timestamp of the most recent successful ping for one RSU.
+     */
+    @Query("SELECT p.timestamp " +
+            "FROM Rsu r " +
+            "JOIN r.pings p " +
+            "WHERE r.ipv4Address = :ipv4Address " +
+            "AND p.result = true " +
+            "ORDER BY p.timestamp DESC " +
+            "LIMIT 1")
+    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address);
+
+    /**
+     * Check if the RSU's credential is owned by any of the given organizations
+     */
+    boolean existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+            InetAddress ipv4Address, List<Organization> organizations);
+
+    @Query("SELECT r.ipv4Address " +
+            "FROM Rsu r " +
+            "JOIN r.credential rc " +
+            "WHERE rc.ownerOrganization IN :organizations AND r.ipv4Address IN :ipv4Addresses")
+    List<InetAddress> findOwnedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations,
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+
+    /**
      * Returns all RSUs belonging to the given organisation, fetching
      * model, manufacturer, and rsuOption.
      */
@@ -78,6 +122,50 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "JOIN ro.organization o " +
             "WHERE o.name = :orgName")
     List<Rsu> findAllRsusByOrganizationName(@Param("orgName") String orgName);
+
+    /**
+     * IPv4 host addresses of RSUs in an organization whose geography lies inside the polygon.
+     *
+     * @param organization organization name
+     * @param polygon WKT {@code POLYGON((lon lat, ...))} in SRID 4326
+     * @return host addresses of matching RSUs; empty when none match
+     */
+    @Query(value = """
+            SELECT host(rsus.ipv4_address)
+            FROM rsus
+            JOIN rsu_organization ro ON ro.rsu_id = rsus.rsu_id
+            JOIN organizations o ON o.organization_id = ro.organization_id
+            WHERE o.name = :organization
+            AND ST_Contains(ST_SetSRID(ST_GeomFromText(:polygon), 4326), CAST(rsus.geography AS geometry))
+            """, nativeQuery = true)
+    List<String> findIpv4AddressesInPolygon(
+            @Param("organization") String organization,
+            @Param("polygon") String polygon);
+
+    /**
+     * IPv4 host addresses of RSUs in an organization whose geography lies inside the polygon
+     * and whose model manufacturer name equals {@code vendor}.
+     *
+     * @param organization organization name
+     * @param polygon WKT {@code POLYGON((lon lat, ...))} in SRID 4326
+     * @param vendor manufacturer name
+     * @return host addresses of matching RSUs; empty when none match
+     */
+    @Query(value = """
+            SELECT host(rsus.ipv4_address)
+            FROM rsus
+            JOIN rsu_organization ro ON ro.rsu_id = rsus.rsu_id
+            JOIN organizations o ON o.organization_id = ro.organization_id
+            JOIN rsu_models rm ON rm.rsu_model_id = rsus.model
+            JOIN manufacturers man ON man.manufacturer_id = rm.manufacturer
+            WHERE o.name = :organization
+            AND man.name = :vendor
+            AND ST_Contains(ST_SetSRID(ST_GeomFromText(:polygon), 4326), CAST(rsus.geography AS geometry))
+            """, nativeQuery = true)
+    List<String> findIpv4AddressesInPolygonByManufacturer(
+            @Param("organization") String organization,
+            @Param("polygon") String polygon,
+            @Param("vendor") String vendor);
 
     @Transactional
     void removeRsuByIpv4Address(InetAddress ipv4Address);

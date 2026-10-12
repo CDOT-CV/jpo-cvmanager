@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -185,6 +185,7 @@ class OrganizationControllerTest {
         void adminInOrg_returns200() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
+            when(permissionService.hasRsus(eq(validPatch.getRsusToAdd()), eq("ADMIN"))).thenReturn(true);
             when(organizationManagementService.modifyOrganization(any(), any())).thenReturn(sampleOrgDto);
 
             mockMvc.perform(patch("/organizations")

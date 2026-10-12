@@ -40,6 +40,8 @@ import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +51,9 @@ public class OrganizationManagementService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final SnmpCredentialRepository snmpCredentialRepository;
     private final RoleRepository roleRepository;
+    private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuRepository rsuRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuOptionRepository rsuOptionRepository;
@@ -117,6 +121,14 @@ public class OrganizationManagementService {
         if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
             userOrganizationRepository.deleteByUserEmailsAndOrganization(
                     patch.getUsersToRemove(), org);
+            List<String> orphanedUsers = patch.getUsersToRemove().stream()
+                    .filter(ip -> userOrganizationRepository.hasSingleOrganization(ip))
+                    .toList();
+            if (!orphanedUsers.isEmpty()) {
+                String orphanedEmails = String.join(", ", orphanedUsers);
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove user(s) that are only associated with this organization: " + orphanedEmails);
+            }
             log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
         }
 
@@ -126,8 +138,17 @@ public class OrganizationManagementService {
         // Step 8: Remove RSU associations
         if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
+            List<InetAddress> orphanedRsus = addresses.stream()
+                    .filter(ip -> rsuOrganizationRepository.hasSingleOrganization(ip))
+                    .toList();
+            if (!orphanedRsus.isEmpty()) {
+                String orphanedIps = orphanedRsus.stream()
+                        .map(InetAddress::getHostAddress)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove RSU(s) that are only associated with this organization: " + orphanedIps);
+            }
             rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganization(addresses, org);
-            log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
 
         // Step 9: Add intersection associations
@@ -138,6 +159,17 @@ public class OrganizationManagementService {
             List<String> numberStrings = patch.getIntersectionsToRemove().stream()
                     .map(Object::toString)
                     .toList();
+            List<Integer> orphanedIntersections = patch.getIntersectionsToRemove().stream()
+                    .filter(num -> intersectionOrganizationRepository.hasSingleOrganization(String.valueOf(num)))
+                    .toList();
+            if (!orphanedIntersections.isEmpty()) {
+                String orphanedIntersectionNumbers = orphanedIntersections.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove intersection(s) that are only associated with this organization: "
+                                + orphanedIntersectionNumbers);
+            }
             intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganization(
                     numberStrings, org);
             log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), org.getName());
@@ -178,6 +210,8 @@ public class OrganizationManagementService {
 
         userOrganizationRepository.deleteAllByOrganization(org);
         rsuOrganizationRepository.deleteAllByOrganization(org);
+        rsuCredentialRepository.removeByOwnerOrganization(org);
+        snmpCredentialRepository.removeByOwnerOrganization(org);
         intersectionOrganizationRepository.deleteAllByOrganization(org);
         organizationRepository.delete(org);
         log.debug("Organization '{}' deleted", org.getName());
