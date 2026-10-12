@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -65,7 +67,7 @@ public class OrganizationController {
     final UserOrganizationRepository userOrganizationRepository;
 
     @Operation(summary = "Modify Organization", description = "Updates an organization's name, email, and user/RSU/intersection memberships. Optionally bulk-applies tim_deposit and snmp_monitoring to all RSUs in the org.")
-    @RequestMapping(path = "", method = RequestMethod.PATCH, produces = "application/json", consumes = "application/json")
+    @PatchMapping(path = "", produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRoleInOrgById(#patch.id, 'ADMIN') && @PermissionService.hasRsus(#patch.rsusToAdd, 'ADMIN'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -81,7 +83,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Get Organizations", description = "Retrieves all organizations where the authenticated user has ADMIN role. Superusers receive all organizations.")
-    @RequestMapping(path = "", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(path = "", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -193,7 +195,7 @@ public class OrganizationController {
     }
 
     @Operation(summary = "Delete Organization", description = "Deletes an organization and all its junction-table relationships. Refuses deletion if any RSU, intersection, or user would become orphaned.")
-    @RequestMapping(path = "/{orgId}", method = RequestMethod.DELETE, produces = "application/json")
+    @DeleteMapping(path = "/{orgId}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRoleInOrgById(#orgId, 'ADMIN')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
