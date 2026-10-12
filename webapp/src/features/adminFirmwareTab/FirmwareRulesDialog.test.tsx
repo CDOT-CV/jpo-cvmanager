@@ -30,6 +30,57 @@ const renderDialog = () => render(<ThemeProvider theme={testTheme}>
 </ThemeProvider>)
 
 describe('Firmware upgrade rules', () => {
+  const impactError = { status: 409, data: {
+    code: 'UPGRADE_IMPACT_ACKNOWLEDGMENT_REQUIRED', detail: '2 RSUs use v1; this change affects their upgrade path.',
+  } }
+
+  it('requires a second confirmation before redirecting installed firmware', async () => {
+    assign.mockReturnValueOnce({ unwrap: () => Promise.reject(impactError) })
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'New' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /v1.*Target: v2/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Rules' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(await screen.findByText(impactError.data.detail)).toBeVisible()
+    expect(changed).not.toHaveBeenCalled()
+    expect(refetch).not.toHaveBeenCalled()
+    expect(screen.getByRole('checkbox', { name: /v1.*Target: v2/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1))
+    expect(assign).toHaveBeenLastCalledWith({ destinationId: 3,
+      sources: [{ source_id: 1, expected_target_id: 2 }], acknowledgeUpgradeImpact: true })
+  })
+
+  it('warns before deleting an installed source rule and sends acknowledgment only after confirmation', async () => {
+    vi.mocked(useGetFirmwareRuleOptionsQuery).mockReturnValue({
+      currentData: { ...options, rules: [{ ...options.rules[0], destination }] }, refetch,
+    } as any)
+    remove.mockReturnValueOnce({ unwrap: () => Promise.reject(impactError) })
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Rule' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(await screen.findByText(impactError.data.detail)).toBeVisible()
+    expect(remove).toHaveBeenNthCalledWith(1, { ruleId: 10, expectedTargetId: 3 })
+    expect(changed).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(changed).toHaveBeenCalledTimes(1))
+    expect(remove).toHaveBeenLastCalledWith({ ruleId: 10, expectedTargetId: 3, acknowledgeUpgradeImpact: true })
+  })
+
+  it('allows canceling an impact warning without retrying deletion', async () => {
+    vi.mocked(useGetFirmwareRuleOptionsQuery).mockReturnValue({
+      currentData: { ...options, rules: [{ ...options.rules[0], destination }] }, refetch,
+    } as any)
+    remove.mockReturnValueOnce({ unwrap: () => Promise.reject(impactError) })
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Rule' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(await screen.findByText(impactError.data.detail)).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText(impactError.data.detail)).not.toBeInTheDocument()
+    expect(remove).toHaveBeenCalledTimes(1)
+    expect(changed).not.toHaveBeenCalled()
+  })
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(useGetFirmwareRuleOptionsQuery).mockReturnValue({ currentData: options, refetch } as any)

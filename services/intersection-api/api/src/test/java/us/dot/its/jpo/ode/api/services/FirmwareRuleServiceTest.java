@@ -39,6 +39,8 @@ class FirmwareRuleServiceTest {
     @Autowired private FirmwareUpgradeRuleRepository rules;
     @Autowired private ManufacturerRepository manufacturers;
     @Autowired private RsuModelRepository models;
+    @Autowired private jakarta.persistence.EntityManager entityManager;
+    @Autowired private RsuRepository rsus;
     @MockitoBean private ObjectStorageServiceRegistry storage;
     private ObjectStorageService provider;
     private RsuModel model;
@@ -206,6 +208,76 @@ class FirmwareRuleServiceTest {
     void databaseRejectsASecondDestinationForTheSameSource() {
         rule(source, otherSource);
         assertThatThrownBy(() -> rule(source, destination)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void deletionWarnsForInstalledSourcesAndRequiresAcknowledgment() throws Exception {
+        installedRsu(source);
+        var existing = rule(source, destination);
+        assertThat(rsus.countByFirmwareVersionId(source.getId())).isEqualTo(1);
+        assertThatThrownBy(() -> service.delete(existing.getId(), destination.getId()))
+                .isInstanceOf(FirmwareRuleService.FirmwareRuleImpactException.class)
+                .hasMessageContaining("1 RSU(s) use v1").hasMessageContaining("without a configured upgrade path");
+        assertThat(rules.findById(existing.getId())).isPresent();
+        assertThatThrownBy(() -> service.delete(existing.getId(), otherSource.getId(), true))
+                .isInstanceOf(FirmwareRuleConflictException.class).hasMessageContaining("changed");
+        service.delete(existing.getId(), destination.getId(), true);
+        assertThat(rules.findById(existing.getId())).isEmpty();
+    }
+
+    @Test
+    void redirectionWarnsBeforeAnyAssignmentAndAcknowledgmentPreservesStaleChecks() throws Exception {
+        installedRsu(source);
+        rule(source, otherSource);
+        var selections = List.of(new Assignment(otherSource.getId(), null),
+                new Assignment(source.getId(), otherSource.getId()));
+        assertThatThrownBy(() -> service.assign(destination.getId(), new Assignments(selections)))
+                .isInstanceOf(FirmwareRuleService.FirmwareRuleImpactException.class)
+                .hasMessageContaining("from v2 to v3");
+        assertThat(rules.findFirstByFrom_Id(otherSource.getId())).isEmpty();
+        assertThat(rules.findFirstByFrom_Id(source.getId()).orElseThrow().getTo()).isEqualTo(otherSource);
+        assertThatThrownBy(() -> service.assign(destination.getId(),
+                new Assignments(List.of(new Assignment(source.getId(), null)), true)))
+                .isInstanceOf(FirmwareRuleConflictException.class).hasMessageContaining("changed");
+        service.assign(destination.getId(), new Assignments(selections, true));
+        assertThat(rules.findFirstByFrom_Id(source.getId()).orElseThrow().getTo()).isEqualTo(destination);
+        assertThat(rules.findFirstByFrom_Id(otherSource.getId()).orElseThrow().getTo()).isEqualTo(destination);
+    }
+
+    @Test
+    void addingOrKeepingARuleForInstalledFirmwareNeedsNoAcknowledgment() throws Exception {
+        installedRsu(source);
+        service.assign(destination.getId(), assignments(new Assignment(source.getId(), null)));
+        service.assign(destination.getId(), assignments(new Assignment(source.getId(), destination.getId())));
+        assertThat(rules.findFirstByFrom_Id(source.getId()).orElseThrow().getTo()).isEqualTo(destination);
+    }
+
+    @Test
+    void targetOnlyReferencesDoNotRequireAcknowledgment() throws Exception {
+        var rsu = installedRsu(otherSource);
+        rsu.setTargetFirmwareVersion(source);
+        entityManager.flush();
+        var existing = rule(source, destination);
+        service.delete(existing.getId(), destination.getId());
+        assertThat(rules.findById(existing.getId())).isEmpty();
+    }
+
+    private Rsu installedRsu(FirmwareImage firmware) throws Exception {
+        var fixtures = new us.dot.its.jpo.ode.api.fixtures.TestFixtures();
+        var organization = fixtures.createOrg(null, "Rules-" + UUID.randomUUID(), "test@example.com");
+        var credential = fixtures.createRandomRsuCredential(organization);
+        var snmp = fixtures.createRandomSnmpCredential(organization);
+        var protocol = fixtures.createRandomSnmpProtocol();
+        protocol.setNickname("Rules-" + UUID.randomUUID());
+        var rsu = fixtures.createRsu("192.0.2.199", model, credential, snmp, protocol);
+        rsu.setFirmwareVersion(firmware);
+        entityManager.persist(organization);
+        entityManager.persist(credential);
+        entityManager.persist(snmp);
+        entityManager.persist(protocol);
+        entityManager.persist(rsu);
+        entityManager.flush();
+        return rsu;
     }
 
     private Assignments assignments(Assignment... values) { return new Assignments(List.of(values)); }

@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleImpactException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
@@ -58,7 +59,11 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(FirmwareRuleConflictException.class)
     public ProblemDetail handleFirmwareRuleConflict(FirmwareRuleConflictException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        if (ex instanceof FirmwareRuleImpactException) {
+            problem.setProperty("code", "UPGRADE_IMPACT_ACKNOWLEDGMENT_REQUIRED");
+        }
+        return problem;
     }
 
     // Pattern to extract constraint name from PostgreSQL error messages

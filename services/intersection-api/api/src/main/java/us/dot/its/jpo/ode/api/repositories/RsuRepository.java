@@ -24,6 +24,8 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
     @Query("select count(rsu) > 0 from Rsu rsu where rsu.firmwareVersion.id in :ids or rsu.targetFirmwareVersion.id in :ids")
     boolean referencesFirmwareImages(@Param("ids") Collection<Integer> ids);
 
+    long countByFirmwareVersionId(Integer firmwareId);
+
     /**
      * Check if RSU exists in any of the given organizations using entity
      * relationships

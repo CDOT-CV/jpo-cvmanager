@@ -43,7 +43,8 @@ public class AdminFirmwareRuleController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Remove an upgrade rule without deleting either firmware image")
     public void delete(@PathVariable @Positive Integer ruleId,
-            @RequestParam(name = "expected_target_id") @Positive Integer expectedTargetId) {
-        rules.delete(ruleId, expectedTargetId);
+            @RequestParam(name = "expected_target_id") @Positive Integer expectedTargetId,
+            @RequestParam(name = "acknowledge_upgrade_impact", defaultValue = "false") boolean acknowledgeUpgradeImpact) {
+        rules.delete(ruleId, expectedTargetId, acknowledgeUpgradeImpact);
     }
 }

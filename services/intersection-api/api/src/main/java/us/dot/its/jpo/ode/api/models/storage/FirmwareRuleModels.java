@@ -29,5 +29,12 @@ public final class FirmwareRuleModels {
     // The previous destination is part of the request so reassignment requires an
     // explicit choice based on the rules the administrator actually saw.
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Assignments(@NotEmpty @Size(max = 1000) List<@NotNull @Valid Assignment> sources) {}
+    public record Assignments(@NotEmpty @Size(max = 1000) List<@NotNull @Valid Assignment> sources,
+            Boolean acknowledgeUpgradeImpact) {
+        // Omitted or null acknowledgment must preserve existing clients' requests.
+        public Assignments {
+            acknowledgeUpgradeImpact = Boolean.TRUE.equals(acknowledgeUpgradeImpact);
+        }
+        public Assignments(List<Assignment> sources) { this(sources, false); }
+    }
 }

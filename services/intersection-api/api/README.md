@@ -227,7 +227,9 @@ also available through this API and the Firmware tab.
   a verified, unchanged cloud file. Each source can have only one destination.
   Legacy rules remain usable, and legacy firmware can be a source. Resolve any
   existing multiple-destination rules before upgrading the database. Editing rules
-  does not start an upgrade.
+  does not start an upgrade. Deleting or redirecting a rule whose source is installed
+  on RSUs requires confirmation; API clients retry the impact warning (`409`) with
+  `acknowledge_upgrade_impact=true` (assignment body or deletion query parameter).
 - Deletion removes the file and associated upload, image, and rule records.
   Use the object ID and object version from the listing. Deletion is blocked
   while a signed URL is valid or the firmware is referenced by an RSU's

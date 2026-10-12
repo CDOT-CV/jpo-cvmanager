@@ -51,6 +51,24 @@ describe('firmwareApiSlice', () => {
     expect(request.headers.get('Authorization')).toBe('Bearer test-token')
   })
 
+  it('sends upgrade-impact acknowledgment only when explicitly requested', async () => {
+    const store = setupStore(mockUserState)
+    const sources = [{ source_id: 1, expected_target_id: 2 }]
+    fetchMock.mockResponseOnce('', { status: 204 })
+    await store.dispatch(firmwareApiSlice.endpoints.assignFirmwareRules.initiate({
+      destinationId: 3, sources, acknowledgeUpgradeImpact: true,
+    }))
+    const assignment = fetchMock.mock.calls[0][0] as Request
+    expect(await assignment.json()).toEqual({ sources, acknowledge_upgrade_impact: true })
+    fetchMock.mockResponseOnce('', { status: 204 })
+    await store.dispatch(firmwareApiSlice.endpoints.deleteFirmwareRule.initiate({
+      ruleId: 5, expectedTargetId: 3, acknowledgeUpgradeImpact: true,
+    }))
+    const deletion = fetchMock.mock.calls[1][0] as Request
+    expect(new URL(deletion.url).searchParams.get('acknowledge_upgrade_impact')).toBe('true')
+    expect(new URL(deletion.url).searchParams.get('expected_target_id')).toBe('3')
+  })
+
   it('deletes the selected object version with authentication', async () => {
     fetchMock.mockResponseOnce('', { status: 204 })
     const store = setupStore(mockUserState)

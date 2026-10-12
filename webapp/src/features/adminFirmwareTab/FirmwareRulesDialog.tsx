@@ -35,6 +35,11 @@ const errorMessage = (error: unknown) => {
   return response?.data?.detail || response?.data?.message || 'Could not save upgrade rules. Please retry.'
 }
 
+const requiresImpactAcknowledgment = (error: unknown) => {
+  const response = error as { status?: number; data?: { code?: string } }
+  return response.status === 409 && response.data?.code === 'UPGRADE_IMPACT_ACKNOWLEDGMENT_REQUIRED'
+}
+
 type FirmwareRulesDialogProps = {
   firmwareId: number
   onClose: () => void
@@ -58,6 +63,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
   const [error, setError] = useState('')
   const [confirmReplace, setConfirmReplace] = useState(false)
   const [removeRule, setRemoveRule] = useState<FirmwareRule>()
+  const [impact, setImpact] = useState<{ operation: 'save' | 'delete'; message: string }>()
   const currentRules = new Map(data?.rules.map((rule) => [rule.source.firmware_id, rule]))
   const incoming = data?.rules.filter((rule) => rule.destination.firmware_id === firmwareId) ?? []
   const outgoing = data?.rules.filter((rule) => rule.source.firmware_id === firmwareId) ?? []
@@ -74,10 +80,11 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
     setSelected([])
     setConfirmReplace(false)
     setRemoveRule(undefined)
+    setImpact(undefined)
     void refetch()
   }
 
-  const save = async () => {
+  const save = async (acknowledgeUpgradeImpact = false) => {
     if (!data || busy) return
     setBusy(true)
     setError('')
@@ -86,6 +93,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
       // produces a conflict instead of silently replacing somebody else's rule.
       await assign({
         destinationId: firmwareId,
+        ...(acknowledgeUpgradeImpact && { acknowledgeUpgradeImpact: true }),
         sources: selected.map((id) => ({
           source_id: id,
           expected_target_id: currentRules.get(id)?.destination.firmware_id ?? null,
@@ -96,27 +104,38 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
       reload()
       onChanged()
     } catch (error_) {
-      setError(errorMessage(error_))
+      if (requiresImpactAcknowledgment(error_)) {
+        setImpact({ operation: 'save', message: errorMessage(error_) })
+      } else {
+        setImpact(undefined)
+        setError(errorMessage(error_))
+      }
     } finally {
       setBusy(false)
       setConfirmReplace(false)
     }
   }
 
-  const deleteRule = async () => {
+  const deleteRule = async (acknowledgeUpgradeImpact = false) => {
     if (!removeRule || busy) return
     setBusy(true)
     setError('')
     try {
-      await remove({ ruleId: removeRule.rule_id, expectedTargetId: removeRule.destination.firmware_id }).unwrap()
+      await remove({ ruleId: removeRule.rule_id, expectedTargetId: removeRule.destination.firmware_id,
+        ...(acknowledgeUpgradeImpact && { acknowledgeUpgradeImpact: true }) }).unwrap()
       toast.success('Upgrade rule deleted')
       reload()
       onChanged()
     } catch (error_) {
-      setError(errorMessage(error_))
+      if (requiresImpactAcknowledgment(error_)) {
+        setImpact({ operation: 'delete', message: errorMessage(error_) })
+      } else {
+        setImpact(undefined)
+        setRemoveRule(undefined)
+        setError(errorMessage(error_))
+      }
     } finally {
       setBusy(false)
-      setRemoveRule(undefined)
     }
   }
 
@@ -153,7 +172,7 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
               sx={{ display: 'flex' }}
               control={
                 <Checkbox
-                  disabled={busy || alreadyAssigned || !!removeRule}
+                  disabled={busy || alreadyAssigned || !!removeRule || !!impact}
                   checked={alreadyAssigned || selected.includes(source.firmware_id)}
                   onChange={(_, checked) => {
                     setConfirmReplace(false)
@@ -176,15 +195,22 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
           )
         })}
       </Box>
-      {confirmReplace && (
+      {confirmReplace && !impact && (
         <Alert severity="warning" sx={{ mt: 2, alignItems: 'center' }}>
           Redirect {replacements.length} existing {replacements.length === 1 ? 'rule' : 'rules'} to {data.destination.version}?
-          <Button onClick={save} disabled={busy}>
+          <Button onClick={() => void save()} disabled={busy}>
             Confirm
           </Button>
           <Button onClick={() => setConfirmReplace(false)} disabled={busy}>
             Cancel
           </Button>
+        </Alert>
+      )}
+      {impact?.operation === 'save' && (
+        <Alert severity="warning" sx={{ mt: 2, alignItems: 'center' }}>
+          {impact.message}
+          <Button disabled={busy} onClick={() => void save(true)}>Confirm</Button>
+          <Button disabled={busy} onClick={() => setImpact(undefined)}>Cancel</Button>
         </Alert>
       )}
       <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 2 }}>
@@ -193,11 +219,12 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
           setSelected([])
           setConfirmReplace(false)
           setError('')
+          setImpact(undefined)
         }}>Cancel</Button>
         <Button
           variant="contained"
           disabled={
-            busy || isFetching || isError || !data?.can_target || !selected.length || confirmReplace || !!removeRule
+            busy || isFetching || isError || !data?.can_target || !selected.length || confirmReplace || !!removeRule || !!impact
           }
           onClick={() => (replacements.length ? setConfirmReplace(true) : void save())}
         >
@@ -312,12 +339,12 @@ const FirmwareRulesDialog = ({ firmwareId, onClose, onChanged }: FirmwareRulesDi
                 </Box>
                 {removeRule && section.rules.some(rule => rule.rule_id === removeRule.rule_id) && (
                   <Alert severity="warning" sx={{ mt: 2, alignItems: 'center' }}>
-                    Delete rule {removeRule.source.version} → {removeRule.destination.version}? Firmware files will remain
-                    available.
-                    <Button onClick={deleteRule} disabled={busy}>
+                    {impact?.operation === 'delete' ? impact.message
+                      : `Delete rule ${removeRule.source.version} → ${removeRule.destination.version}? Firmware files will remain available.`}
+                    <Button onClick={() => void deleteRule(impact?.operation === 'delete')} disabled={busy}>
                       Confirm
                     </Button>
-                    <Button onClick={() => setRemoveRule(undefined)} disabled={busy}>
+                    <Button onClick={() => { setRemoveRule(undefined); setImpact(undefined) }} disabled={busy}>
                       Cancel
                     </Button>
                   </Alert>

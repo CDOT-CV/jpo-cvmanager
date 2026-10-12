@@ -116,6 +116,14 @@ class AdminFirmwareControllerTest {
                 .content("{\"sources\":[{\"source_id\":1,\"expected_target_id\":2}]}"))
                 .andExpect(status().isNoContent());
         verify(firmwareRuleService).assign(eq(3), eq(new Assignments(List.of(new Assignment(1, 2)))));
+        for (var acknowledgment : List.of("null", "false")) {
+            mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"sources\":[{\"source_id\":1,\"expected_target_id\":2}],\"acknowledge_upgrade_impact\":"
+                            + acknowledgment + "}"))
+                    .andExpect(status().isNoContent());
+        }
+        verify(firmwareRuleService, org.mockito.Mockito.times(3))
+                .assign(3, new Assignments(List.of(new Assignment(1, 2)), false));
         for (var body : List.of("{}", "{\"sources\":[]}", "{\"sources\":[null]}", "{\"sources\":[{\"source_id\":-1}]}")) {
             mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
                     .content(body)).andExpect(status().isBadRequest());
@@ -135,6 +143,26 @@ class AdminFirmwareControllerTest {
 
     @Test
     @WithMockUser
+    void impactWarningsHaveADistinctCodeAndAcknowledgmentBindsForBothEndpoints() throws Exception {
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        var impact = new us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleImpactException(
+                "2 RSUs will lose their upgrade path");
+        doThrow(impact).when(firmwareRuleService).delete(4, 2, false);
+        mockMvc.perform(delete("/admin/firmware/upgrade-rules/4").param("expected_target_id", "2"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("UPGRADE_IMPACT_ACKNOWLEDGMENT_REQUIRED"))
+                .andExpect(jsonPath("$.detail").value(impact.getMessage()));
+        mockMvc.perform(delete("/admin/firmware/upgrade-rules/4").param("expected_target_id", "2")
+                .param("acknowledge_upgrade_impact", "true")).andExpect(status().isNoContent());
+        verify(firmwareRuleService).delete(4, 2, true);
+        mockMvc.perform(put("/admin/firmware/images/3/upgrade-rules").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sources\":[{\"source_id\":1,\"expected_target_id\":2}],\"acknowledge_upgrade_impact\":true}"))
+                .andExpect(status().isNoContent());
+        verify(firmwareRuleService).assign(3, new Assignments(List.of(new Assignment(1, 2)), true));
+    }
+
+    @Test
+    @WithMockUser
     void rulesExposeVersionNamesAndDeletionRequiresTheDisplayedDestination() throws Exception {
         when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
         var source = new Image(1, "Acme", "RoadRunner", "v1", true);
@@ -148,7 +176,7 @@ class AdminFirmwareControllerTest {
         mockMvc.perform(delete("/admin/firmware/upgrade-rules/4")).andExpect(status().isBadRequest());
         mockMvc.perform(delete("/admin/firmware/upgrade-rules/4").param("expected_target_id", "2"))
                 .andExpect(status().isNoContent());
-        verify(firmwareRuleService).delete(4, 2);
+        verify(firmwareRuleService).delete(4, 2, false);
     }
 
     @Test

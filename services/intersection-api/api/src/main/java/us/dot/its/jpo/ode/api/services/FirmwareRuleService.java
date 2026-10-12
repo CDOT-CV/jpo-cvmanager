@@ -1,8 +1,10 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,7 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
 import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
 import us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUpgradeRuleRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 import us.dot.its.jpo.ode.api.mappers.FirmwareRuleMapper;
@@ -31,6 +34,7 @@ public class FirmwareRuleService {
     private final FirmwareUpgradeRuleRepository rules;
     private final ObjectStorageServiceRegistry storage;
     private final FirmwareRuleMapper mapper;
+    private final RsuRepository rsus;
 
     @Transactional(readOnly = true)
     public List<Rule> list() {
@@ -100,6 +104,7 @@ public class FirmwareRuleService {
                 throw new FirmwareRuleConflictException("Upgrade rules changed. Close and reopen the dialog before saving.");
             }
         }
+        requireAcknowledgment(request, current, destination);
         for (var assignment : request.sources()) {
             var rule = current.getOrDefault(assignment.sourceId(), new FirmwareUpgradeRule());
             rule.setFrom(modelImages.get(assignment.sourceId()));
@@ -109,8 +114,31 @@ public class FirmwareRuleService {
         rules.flush();
     }
 
+    private void requireAcknowledgment(Assignments request, Map<Integer, FirmwareUpgradeRule> current,
+            FirmwareImage destination) {
+        if (request.acknowledgeUpgradeImpact()) return;
+        var impacts = new ArrayList<String>();
+        for (var assignment : request.sources()) {
+            var existing = current.get(assignment.sourceId());
+            if (existing == null || destination.getId().equals(existing.getTo().getId())) continue;
+            long count = rsus.countByFirmwareVersionId(assignment.sourceId());
+            if (count > 0) {
+                impacts.add(count + " RSU(s) use " + existing.getFrom().getVersion()
+                        + "; their upgrade destination will change from " + existing.getTo().getVersion()
+                        + " to " + destination.getVersion() + ".");
+            }
+        }
+        // Reject the entire batch before writing; acknowledgment bypasses only this warning.
+        if (!impacts.isEmpty()) throw new FirmwareRuleImpactException(String.join(" ", impacts));
+    }
+
     @Transactional
     public void delete(Integer ruleId, Integer expectedTargetId) {
+        delete(ruleId, expectedTargetId, false);
+    }
+
+    @Transactional
+    public void delete(Integer ruleId, Integer expectedTargetId, boolean acknowledgeUpgradeImpact) {
         var sourceId = rules.findSourceId(ruleId).orElseThrow(() -> new EntityNotFoundException("Upgrade rule was not found"));
         var source = image(sourceId);
         // Match assignment's lock order before re-reading the path being removed.
@@ -122,6 +150,13 @@ public class FirmwareRuleService {
         }
         if (!Objects.equals(current.getTo().getId(), expectedTargetId)) {
             throw new FirmwareRuleConflictException("Upgrade rule changed. Close and reopen the dialog before deleting it.");
+        }
+        if (!acknowledgeUpgradeImpact) {
+            long count = rsus.countByFirmwareVersionId(sourceId);
+            if (count > 0) {
+                throw new FirmwareRuleImpactException(count + " RSU(s) use " + current.getFrom().getVersion()
+                        + "; deleting this rule will leave them without a configured upgrade path.");
+            }
         }
         rules.delete(current);
     }
@@ -158,5 +193,9 @@ public class FirmwareRuleService {
 
     public static class FirmwareRuleConflictException extends RuntimeException {
         public FirmwareRuleConflictException(String message) { super(message); }
+    }
+
+    public static class FirmwareRuleImpactException extends FirmwareRuleConflictException {
+        public FirmwareRuleImpactException(String message) { super(message); }
     }
 }
