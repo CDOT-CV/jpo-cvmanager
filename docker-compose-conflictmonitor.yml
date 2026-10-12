@@ -42,14 +42,14 @@ services:
       streams-config-batch-size: ${CM_STREAMS_CONFIG_BATCH_SIZE:-16384}
       streams-config-topology-optimization: ${CM_STREAMS_CONFIG_TOPOLOGY_OPTIMIZATION:-all}
     healthcheck:
-      test: ['CMD', 'java', '-version']
+      test: ["CMD", "java", "-version"]
       interval: 10s
       timeout: 10s
       retries: 20
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -123,15 +123,15 @@ services:
       - ${DOCKER_SHARED_VOLUME:-./resources/ode}:/jpo-ode
       - ${DOCKER_SHARED_VOLUME:-./resources/ode}/uploads:/home/uploads
     healthcheck:
-      test: ['CMD', 'wget', '--spider', 'http://localhost:8080']
+      test: ["CMD", "wget", "--spider", "http://localhost:8080"]
       interval: 5s
       timeout: 30s
       retries: 5
       start_period: 10s
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   adm:
     profiles:
@@ -142,7 +142,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -159,8 +159,8 @@ services:
       - ${DOCKER_SHARED_VOLUME:-./resources/ode}:/asn1_codec_share
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   aem:
     profiles:
@@ -171,7 +171,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -188,8 +188,8 @@ services:
       - ${DOCKER_SHARED_VOLUME:-./resources/ode}:/asn1_codec_share
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
 
   geojsonconverter:
     profiles:
@@ -200,7 +200,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 2G
     environment:
       DOCKER_HOST_IP: ${DOCKER_HOST_IP:-host.docker.internal}
@@ -260,14 +260,14 @@ services:
       DEDUPLICATOR_ROCKSDB_N_MEMTABLES: ${ROCKSDB_N_MEMTABLES:-2}
       DEDUPLICATOR_ROCKSDB_MEMTABLE_SIZE: ${ROCKSDB_MEMTABLE_SIZE:-16777216}
     healthcheck:
-      test: ['CMD', 'java', '-version']
+      test: ["CMD", "java", "-version"]
       interval: 10s
       timeout: 10s
       retries: 20
     logging:
       options:
-        max-size: '10m'
-        max-file: '5'
+        max-size: "10m"
+        max-file: "5"
     deploy:
       resources:
         limits:

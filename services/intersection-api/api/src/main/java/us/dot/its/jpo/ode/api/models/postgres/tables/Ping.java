@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.time.Instant;
 
@@ -24,6 +25,7 @@ public class Ping {
 
     @NotNull
     @Column(name = "result", nullable = false, columnDefinition = "bit(1)")
+    @ColumnTransformer(read = "result::integer::boolean", write = "(?::integer)::bit(1)")
     private Boolean result;
 
     @NotNull

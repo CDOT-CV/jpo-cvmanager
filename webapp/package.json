@@ -1,6 +1,6 @@
 {
   "name": "cv-manager",
-  "version": "1.2.0-SNAPSHOT",
+  "version": "3.0.0-SNAPSHOT",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.9.0",

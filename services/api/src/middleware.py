@@ -52,7 +52,6 @@ def get_user_role(token) -> UserInfo | None:
 
 
 organization_required = {
-    "/rsu-online-status": True,
     "/rsucounts": True,
     "/rsu-msgfwd-query": True,
     "/rsu-command": True,
@@ -63,8 +62,6 @@ organization_required = {
     "/admin-org": False,
     "/admin-org-tim-deposit": False,
     "/admin-org-snmp-monitoring": False,
-    "/rsu-config-geo-query": True,
-    "/rsu-geo-query": True,
 }
 
 # Tag endpoints with the feature they require. The tagged endpoints will automatically be disabled if the feature is disabled
@@ -73,7 +70,6 @@ organization_required = {
 # Dictionary: Method specific feature required (e.g. {"GET": "rsu", "POST": "intersection"})
 feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/": None,
-    "/rsu-online-status": FEATURE_KEYS_LITERAL.RSU,
     "/rsucounts": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-msgfwd-query": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-command": FEATURE_KEYS_LITERAL.RSU,
@@ -85,8 +81,6 @@ feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/admin-org": None,
     "/admin-org-tim-deposit": None,
     "/admin-org-snmp-monitoring": None,
-    "/rsu-config-geo-query": FEATURE_KEYS_LITERAL.RSU,
-    "/rsu-geo-query": FEATURE_KEYS_LITERAL.RSU,
 }
 
 

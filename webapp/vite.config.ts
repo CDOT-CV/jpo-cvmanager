@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
           'worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker': resolve(__dirname, '__mocks__/worker-loader.js'),
         },
         coverage: {
-          reporter: ['text', 'json', 'html'],
+          reporter: ['text', 'json', 'html', 'lcov'],
         },
       },
     })
