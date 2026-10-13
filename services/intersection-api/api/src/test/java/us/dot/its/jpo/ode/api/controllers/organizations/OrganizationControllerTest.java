@@ -5,13 +5,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,9 +48,9 @@ class OrganizationControllerTest {
         String organization = "TestOrg";
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
-                InetAddress.getByName("192.168.1.100"),
-                InetAddress.getByName("192.168.1.101"),
-                InetAddress.getByName("192.168.1.102"));
+                RsuManagementService.toIpv4Address("192.168.1.100"),
+                RsuManagementService.toIpv4Address("192.168.1.101"),
+                RsuManagementService.toIpv4Address("192.168.1.102"));
 
         when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization))
                 .thenReturn(mockIpAddresses);
@@ -92,7 +92,7 @@ class OrganizationControllerTest {
         String organization = "SingleRsuOrg";
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
-                InetAddress.getByName("192.168.1.100"));
+                RsuManagementService.toIpv4Address("192.168.1.100"));
 
         when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization))
                 .thenReturn(mockIpAddresses);
@@ -114,11 +114,11 @@ class OrganizationControllerTest {
         String organization = "LargeOrg";
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
-                InetAddress.getByName("192.168.1.1"),
-                InetAddress.getByName("192.168.1.2"),
-                InetAddress.getByName("192.168.1.3"),
-                InetAddress.getByName("192.168.1.4"),
-                InetAddress.getByName("192.168.1.5"));
+                RsuManagementService.toIpv4Address("192.168.1.1"),
+                RsuManagementService.toIpv4Address("192.168.1.2"),
+                RsuManagementService.toIpv4Address("192.168.1.3"),
+                RsuManagementService.toIpv4Address("192.168.1.4"),
+                RsuManagementService.toIpv4Address("192.168.1.5"));
 
         when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization))
                 .thenReturn(mockIpAddresses);
@@ -139,9 +139,9 @@ class OrganizationControllerTest {
         String organization = "TestOrg";
 
         List<InetAddress> mockIpAddresses = Arrays.asList(
-                InetAddress.getByName("10.0.0.1"),
-                InetAddress.getByName("172.16.0.1"),
-                InetAddress.getByName("192.168.0.1"));
+                RsuManagementService.toIpv4Address("10.0.0.1"),
+                RsuManagementService.toIpv4Address("172.16.0.1"),
+                RsuManagementService.toIpv4Address("192.168.0.1"));
 
         when(rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization))
                 .thenReturn(mockIpAddresses);
@@ -162,7 +162,7 @@ class OrganizationControllerTest {
     void testGetRsuOrganizationAssignments_Success() throws UnknownHostException {
         // Arrange
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         List<String> mockOrganizations = Arrays.asList("Org1", "Org2", "Org3");
 
@@ -186,7 +186,7 @@ class OrganizationControllerTest {
     void testGetRsuOrganizationAssignments_SingleOrganization() throws UnknownHostException {
         // Arrange
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         List<String> mockOrganizations = Arrays.asList("OnlyOrg");
 
@@ -208,7 +208,7 @@ class OrganizationControllerTest {
     void testGetRsuOrganizationAssignments_NoOrganizations() throws UnknownHostException {
         // Arrange
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         when(rsuRepository.findAllOrganizationNamesByIpv4Address(inetAddress))
                 .thenReturn(Arrays.asList());
@@ -229,13 +229,12 @@ class OrganizationControllerTest {
         String invalidIp = "invalid-ip-address";
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                        IllegalArgumentException.class,
                 () -> organizationController.getRsuOrganizationAssignments(invalidIp));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Invalid RSU IP address"));
-        assertTrue(exception.getReason().contains(invalidIp));
+        assertTrue(exception.getMessage().contains("Invalid IP address, should be like #.#.#.#, but was "));
+        assertTrue(exception.getMessage().contains(invalidIp));
 
         verify(rsuRepository, never()).findAllOrganizationNamesByIpv4Address(any());
     }
@@ -246,51 +245,35 @@ class OrganizationControllerTest {
         String malformedIp = "999.999.999.999";
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> organizationController.getRsuOrganizationAssignments(malformedIp));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Invalid RSU IP address"));
+        assertTrue(exception.getMessage().contains("Invalid IP address: "));
+        assertTrue(exception.getMessage().contains(malformedIp));
 
         verify(rsuRepository, never()).findAllOrganizationNamesByIpv4Address(any());
     }
 
     @Test
-    void testGetRsuOrganizationAssignments_IpWithHostname() {
+    void testGetRsuOrganizationAssignments_NonIpHostname() {
         // Arrange
         String hostnameIp = "localhost";
 
-        // Act & Assert - This should work as InetAddress.getByName() can resolve
-        // hostnames
-        assertDoesNotThrow(() -> {
-            organizationController.getRsuOrganizationAssignments(hostnameIp);
-        });
+        // Act & Assert - This should work as RsuManagementService.toIpv4Address() can
+        // resolve hostnames
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> organizationController.getRsuOrganizationAssignments(hostnameIp));
+
+        assertTrue(exception.getMessage().contains("Invalid IP address, should be like #.#.#.#, but was "));
+        assertTrue(exception.getMessage().contains(hostnameIp));
+
+        verify(rsuRepository, never()).findAllOrganizationNamesByIpv4Address(any());
     }
 
     @Test
-    void testGetRsuOrganizationAssignments_IPv6Address() throws UnknownHostException {
-        // Arrange
-        String ipv6Address = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
-        InetAddress inetAddress = InetAddress.getByName(ipv6Address);
-
-        List<String> mockOrganizations = Arrays.asList("Org1");
-
-        when(rsuRepository.findAllOrganizationNamesByIpv4Address(inetAddress))
-                .thenReturn(mockOrganizations);
-
-        // Act
-        List<String> result = organizationController.getRsuOrganizationAssignments(ipv6Address);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-
-        verify(rsuRepository).findAllOrganizationNamesByIpv4Address(inetAddress);
-    }
-
-    @Test
-    void testGetRsuOrganizationAssignments_DifferentIpRanges() throws UnknownHostException {
+    void testGetRsuOrganizationAssignments_DifferentIpRanges() {
         // Arrange
         String[] testIps = {
                 "10.0.0.1",
@@ -300,7 +283,7 @@ class OrganizationControllerTest {
         };
 
         for (String ip : testIps) {
-            InetAddress inetAddress = InetAddress.getByName(ip);
+            InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
             when(rsuRepository.findAllOrganizationNamesByIpv4Address(inetAddress))
                     .thenReturn(Arrays.asList("TestOrg"));
 
@@ -320,7 +303,7 @@ class OrganizationControllerTest {
     void testGetRsuOrganizationAssignments_RepositoryThrowsException() throws UnknownHostException {
         // Arrange
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         when(rsuRepository.findAllOrganizationNamesByIpv4Address(inetAddress))
                 .thenThrow(new RuntimeException("Database connection failed"));
