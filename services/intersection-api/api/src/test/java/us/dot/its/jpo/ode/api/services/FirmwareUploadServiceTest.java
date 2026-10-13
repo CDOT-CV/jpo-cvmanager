@@ -33,6 +33,7 @@ import jakarta.persistence.EntityNotFoundException;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.FirmwareUploadUrlRequest;
@@ -48,6 +49,7 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 
 class FirmwareUploadServiceTest {
@@ -58,6 +60,8 @@ class FirmwareUploadServiceTest {
     private final ObjectStorageService objectStorageService = mock(ObjectStorageService.class);
     private final ObjectStorageServiceRegistry objectStorageServices = mock(ObjectStorageServiceRegistry.class);
     private final ObjectStorageProperties properties = new ObjectStorageProperties();
+    private final us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository images =
+            mock(us.dot.its.jpo.ode.api.repositories.FirmwareImageRepository.class);
 
     private FirmwareUploadService service;
     private FirmwareUploadUrlRequest request;
@@ -67,7 +71,10 @@ class FirmwareUploadServiceTest {
     void setUp() {
         properties.setMaxUploadSize(DataSize.ofMegabytes(100));
         service = new FirmwareUploadService(rsuModelRepository, firmwareUploadRepository,
-                objectStorageServices, properties, Mappers.getMapper(FirmwareUploadMapper.class));
+                objectStorageServices, properties, Mappers.getMapper(FirmwareUploadMapper.class), images,
+                new FirmwareRegistrationService(firmwareUploadRepository, images, Mappers.getMapper(FirmwareUploadMapper.class)));
+        when(firmwareUploadRepository.findByIdForUpdate(any())).thenAnswer(invocation ->
+                firmwareUploadRepository.findById(invocation.getArgument(0)));
 
         request = new FirmwareUploadUrlRequest();
         request.setVendorName("Commsignia");
@@ -81,6 +88,10 @@ class FirmwareUploadServiceTest {
 
         model = new RsuModel();
         model.setId(7);
+        Manufacturer manufacturer = new Manufacturer();
+        manufacturer.setName("Commsignia");
+        manufacturer.setFirmwareFileExtension(".tar.sig");
+        model.setManufacturer(manufacturer);
         when(rsuModelRepository.findByNameAndManufacturerName("ITS-RS4-M", "Commsignia"))
                 .thenReturn(Optional.of(model));
         when(objectStorageService.providerName()).thenReturn("gcp");
@@ -97,7 +108,7 @@ class FirmwareUploadServiceTest {
         request.setChecksum(" ImIEBA== ");
         SignedUploadUrl signedUrl = new SignedUploadUrl("https://storage.googleapis.com/signed", "PUT",
                 new ObjectStorageLocation("gcp", "firmware-bucket",
-                        "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
+                        "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
                 EXPIRES_AT, Map.of("x-goog-hash", "crc32c=ImIEBA=="));
         when(objectStorageService.createSignedUploadUrl(any(ObjectUploadRequest.class))).thenReturn(signedUrl);
 
@@ -106,7 +117,7 @@ class FirmwareUploadServiceTest {
         ArgumentCaptor<ObjectUploadRequest> requestCaptor = ArgumentCaptor.forClass(ObjectUploadRequest.class);
         verify(objectStorageService).createSignedUploadUrl(requestCaptor.capture());
         assertThat(requestCaptor.getValue().objectName()).isEqualTo(
-                "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig");
+                "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig");
         assertThat(requestCaptor.getValue().checksum()).isEqualTo(new ObjectChecksum("CRC32C", "ImIEBA=="));
 
         ArgumentCaptor<FirmwareUpload> uploadCaptor = ArgumentCaptor.forClass(FirmwareUpload.class);
@@ -115,7 +126,7 @@ class FirmwareUploadServiceTest {
         assertThat(upload.getId()).isEqualTo(result.uploadId());
         assertThat(upload.getModel()).isSameAs(model);
         assertThat(upload.getVersion()).isEqualTo("y20.97.0");
-        assertThat(upload.getFileName()).isEqualTo("rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig");
+        assertThat(upload.getFileName()).isEqualTo("y20.97.0.tar.sig");
         assertThat(upload.getContentType()).isEqualTo("application/octet-stream");
         assertThat(upload.getObjectName()).isEqualTo(signedUrl.location().objectName());
         assertThat(upload.getCreatedAt()).isNotNull();
@@ -134,7 +145,7 @@ class FirmwareUploadServiceTest {
         assertThat(upload.getExpiresAt()).isEqualTo(EXPIRES_AT);
         assertThat(result.uploadUrl()).isEqualTo(signedUrl.uploadUrl());
         verify(objectStorageService).objectExists(
-                "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig");
+                "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig");
     }
 
     @Test
@@ -153,7 +164,7 @@ class FirmwareUploadServiceTest {
     void reportsConflictWhenConcurrentRequestClaimsSameDestination() {
         SignedUploadUrl signedUrl = new SignedUploadUrl("https://storage.googleapis.com/signed", "PUT",
                 new ObjectStorageLocation("gcp", "firmware-bucket",
-                        "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
+                        "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
                 EXPIRES_AT, Map.of("x-goog-hash", "crc32c=ImIEBA=="));
         when(objectStorageService.createSignedUploadUrl(any(ObjectUploadRequest.class))).thenReturn(signedUrl);
         when(firmwareUploadRepository.save(any())).thenThrow(new DataIntegrityViolationException(
@@ -175,6 +186,37 @@ class FirmwareUploadServiceTest {
                 .hasMessageContaining("ITS-RS4-M")
                 .hasMessageContaining("Unknown");
         verify(objectStorageService, never()).createSignedUploadUrl(any());
+    }
+
+    @Test
+    void rejectsFileWithoutManufacturerExtension() {
+        request.setFileName("firmware.tar");
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(".tar.sig")
+                .hasMessageContaining("Commsignia");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+    }
+
+    @Test
+    void rejectsManufacturerWithoutFirmwareUploadConfiguration() {
+        model.getManufacturer().setFirmwareFileExtension(null);
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadService.FirmwareUploadConfigurationException.class)
+                .hasMessageContaining("Commsignia");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+    }
+
+    @Test
+    void rejectsRegisteredVersionEvenWithDifferentFilename() {
+        when(images.existsByModelIdAndVersion(7, "y20.97.0")).thenReturn(true);
+        request.setFileName("different.bin");
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareVersionAlreadyExistsException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     @Test
@@ -346,7 +388,7 @@ class FirmwareUploadServiceTest {
     }
 
     static Stream<ObjectStorageLocation> invalidSignedLocations() {
-        String name = "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig";
+        String name = "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig";
         return Stream.of(null,
                 new ObjectStorageLocation("aws", "bucket", name),
                 new ObjectStorageLocation("gcp", null, name),
@@ -416,8 +458,27 @@ class FirmwareUploadServiceTest {
     private void stubSignedUrl() {
         when(objectStorageService.createSignedUploadUrl(any())).thenReturn(new SignedUploadUrl(
                 "https://example.com/signed", "PUT", new ObjectStorageLocation("gcp", "bucket",
-                        "Commsignia/ITS-RS4-M/y20.97.0/rs4-generic-ro-secureboot-y20.97.0-b377993.tar.sig"),
+                        "Commsignia/ITS-RS4-M/y20.97.0/y20.97.0.tar.sig"),
                 EXPIRES_AT, Map.of()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { ".tar.", ".tar..sig", ".tar/sig", "tar.sig" })
+    void rejectsMalformedManufacturerExtensions(String extension) {
+        model.getManufacturer().setFirmwareFileExtension(extension);
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsLongMalformedManufacturerExtensionWithoutRegexStackOverflow() {
+        model.getManufacturer().setFirmwareFileExtension(".tar".repeat(10000) + ".");
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(FirmwareUploadConfigurationException.class);
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
     }
 
     private FirmwareUpload pendingUpload() {
