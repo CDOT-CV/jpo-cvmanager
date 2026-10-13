@@ -52,7 +52,7 @@ This section describes the steps required to add this custom user provider to an
      | Add to access token | true |
      | Add to userinfo | false |
    - ![Keycloak admin console add custom token mapper](./screenshots/custom-protocol-mapper.png)
-7. If you deleted keycloak local users, re-set their passwords manually
+7. If you deleted keycloak local users, re-set existing user passwords manually
    - If you have email sending configured, send them a "Update Password" reset action under the user's credentials
    - Or, manually set new temporary passwords and manually send them to your users
 8. Complete
