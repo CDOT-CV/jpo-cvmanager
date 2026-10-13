@@ -74,7 +74,7 @@ def snapshot(target, root):
 def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_id="", conclusion="success"):
     run_url = f"https://github.com/{repository}/actions/runs/{run_id}"
     lines = ["## CVE scan report", "", f"Commit `{head_sha[:12]}` · [Workflow and full reports]({run_url})",
-             "", f"CI outcome: **{cell(conclusion)}**. CVE findings are report-only."]
+             "", f"CI outcome: **{cell(conclusion)}**. Fixable HIGH/CRITICAL findings not suppressed in `.trivyignore.yaml` fail CI."]
     unavailable = "No retained successful scan of the exact base commit is available."
     try:
         head_context = context(head, head_sha)

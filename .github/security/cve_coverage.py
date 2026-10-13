@@ -44,7 +44,8 @@ def validate_report(target, folder):
 
 
 def coverage(items, root, trusted):
-    lines = ["## CVE scan coverage", "", "Findings are report-only; execution and coverage errors fail CI.",
+    lines = ["## CVE scan coverage", "", "Fixable HIGH/CRITICAL findings not suppressed in `.trivyignore.yaml` fail the scan job; "
+             "execution and coverage errors also fail CI.",
              "", "| Target | Status | Findings / reason |", "| --- | --- | --- |"]
     failed = False
     for target in items:

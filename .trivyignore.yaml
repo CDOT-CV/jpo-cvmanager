@@ -1,0 +1,4 @@
+# Trivy vulnerability suppressions for the CVE scan gate. See docs/cve-scanning.md.
+# Every entry needs an id, a purls (or paths) scope, a statement giving the reason,
+# owner and tracking issue, and an expired_at no more than 180 days out.
+vulnerabilities: []

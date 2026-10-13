@@ -1,4 +1,4 @@
-"""Check coverage gaps and report-only findings, not upstream tool behavior."""
+"""Check coverage gaps independently of findings, not upstream tool behavior."""
 
 import json
 from pathlib import Path
