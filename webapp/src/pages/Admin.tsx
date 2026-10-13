@@ -1,26 +1,17 @@
-import { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { selectIsAdminOrAbove, selectOrganizationName } from '../generalSlices/userSlice'
+import { useSelector } from 'react-redux'
+import { selectIsAdminOrAbove } from '../generalSlices/userSlice'
 import '../features/adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../store'
 import AdminOrganizationTab from '../features/adminOrganizationTab/AdminOrganizationTab'
 import AdminRsuTab from '../features/adminRsuTab/AdminRsuTab'
 import AdminUserTab from '../features/adminUserTab/AdminUserTab'
 import { NotFound } from './404'
-import { getUserNotifications } from '../features/adminNotificationTab/adminNotificationTabSlice'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
 import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersectionTab'
+import AdminFirmwareTab from '../features/adminFirmwareTab/AdminFirmwareTab'
 
 function Admin() {
-  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
-  const organization = useSelector(selectOrganizationName)
   const isAdmin = useSelector(selectIsAdminOrAbove)
-
-  useEffect(() => {
-    dispatch(getUserNotifications())
-  }, [dispatch, organization])
 
   return (
     <>
@@ -52,6 +43,11 @@ function Admin() {
                 title: 'Intersections',
                 child: <AdminIntersectionTab />,
                 tag: 'intersection',
+              },
+              {
+                path: 'firmware',
+                title: 'Firmware',
+                child: <AdminFirmwareTab />,
               },
               {
                 path: 'users',

@@ -28,10 +28,6 @@ Expected headers for all endpoints:
 
 Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a basic select all query from a table named "RsuData" that is located in a database specified by the environments variables. Returns single JSON object.
 
-### <b>/rsu-online-status</b> <b>(GET)</b>
-
-Returns the online status of every RSU and the last time each RSU has been documented to be online in a single JSON object.
-
 ### <b>/rsucounts</b> <b>(GET)</b>
 
 Returns the message counts for a single, selected RSU from a BigQuery table. It performs a basic select query on a table specified by the environments variable. Returns single JSON object.
@@ -211,8 +207,6 @@ HTTP URL Arguments:
 - PG_PG_DB_PASS: The database user's password that will be used to authenticate the cloud function.
 - MONGO_PROCESSED_BSM_COLLECTION_NAME: The database name for processed BSM messages output from the [Geojson Converter](https://github.com/usdot-jpo-ode/geojson-converter).
 - MONGO_PROCESSED_PSM_COLLECTION_NAME: The database name for processed PSM messages output from the [Geojson Converter](https://github.com/usdot-jpo-ode/geojson-converter).
-- MONGO_SSM_COLLECTION_NAME: The database name for SSM visualization data.
-- MONGO_SRM_COLLECTION_NAME: The database name for SRM visualization data.
 - MONGO_DB_URI: URI for the MongoDB connection.
 - MONGO_DB_NAME: Database name for RSU counts.
 - KEYCLOAK_ENDPOINT: Keycloak base URL to send requests to. Reference the sample.env for the URL formatting.

@@ -24,20 +24,6 @@ export type RsuInfo = {
   properties: RsuProperties
 }
 
-export type RsuOnlineStatus = 'online' | 'offline' | 'unstable'
-
-export type RsuOnlineStatusRespMultiple = {
-  [ip: string]: {
-    current_status: RsuOnlineStatus
-    last_online: string | undefined
-  }
-}
-export type RsuOnlineStatusRespSingle = {
-  ip: string
-  current_status: RsuOnlineStatus
-  last_online: string | undefined
-}
-
 export type MessageType = 'SPAT' | 'MAP' | 'BSM' | 'SRM' | 'SSM' | 'TIM' | 'PSM'
 
 export type RsuCounts = {
@@ -60,18 +46,6 @@ export type RsuMapInfo = {
   date: string
 }
 export type RsuMapInfoIpList = string[]
-
-// No response used, this method does not appear to be used
-export type SsmSrmData = Array<{
-  time: string
-  ip: string
-  requestId: string
-  role: string
-  lat: number
-  long: number
-  type: string
-  status: string
-}>
 
 export type IssScmsStatus = {
   [ip: string]: {

@@ -100,8 +100,10 @@ public class AdminIntersectionService {
     }
 
     /**
-     * Returns the organizations and RSU IPs the current user may assign to an intersection.
-     * Superusers receive all orgs and RSUs; non-superusers receive only those within their
+     * Returns the organizations and RSU IPs the current user may assign to an
+     * intersection.
+     * Superusers receive all orgs and RSUs; non-superusers receive only those
+     * within their
      * OPERATOR-qualified organizations.
      *
      * @return allowed organizations and RSU IP addresses
@@ -117,17 +119,21 @@ public class AdminIntersectionService {
             return new AllowedSelections(allOrgNames, allRsuIps);
         }
         var token = permissionService.getCvManagerAuthToken();
-        List<String> operatorOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
+        List<Organization> operatorOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
+        List<String> operatorOrgNames = operatorOrgs.stream()
+                .map(Organization::getName)
+                .collect(Collectors.toList());
         List<String> rsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
                 .map(inetMapper::mapInetAddressToString)
                 .collect(Collectors.toList());
-        return new AllowedSelections(operatorOrgs, rsuIps);
+        return new AllowedSelections(operatorOrgNames, rsuIps);
     }
 
     /**
      * Creates a new intersection with organization and RSU associations.
      * The controller has already enforced all authorization before this is called.
-     * All writes are wrapped in a single transaction; a failure at any step rolls back entirely.
+     * All writes are wrapped in a single transaction; a failure at any step rolls
+     * back entirely.
      * Validates that all referenced organizations and RSUs exist before writing.
      *
      * @param create the create request body
@@ -186,10 +192,13 @@ public class AdminIntersectionService {
     }
 
     /**
-     * Saves the associations between a given list of organizations and an intersection.
+     * Saves the associations between a given list of organizations and an
+     * intersection.
      *
-     * @param orgs the list of organizations to be associated with the intersection
-     * @param savedIntersection the intersection with which the organizations will be associated
+     * @param orgs              the list of organizations to be associated with the
+     *                          intersection
+     * @param savedIntersection the intersection with which the organizations will
+     *                          be associated
      */
     private void saveOrgAssociations(List<Organization> orgs, Intersection savedIntersection) {
         List<IntersectionOrganization> orgAssocs = orgs.stream()
@@ -251,12 +260,12 @@ public class AdminIntersectionService {
 
     private IntersectionListResponse getIntersectionListResponse(List<Intersection> intersections) {
         List<IntersectionDto> dtos = intersections.stream()
-          .map(intersectionMapper::toDto)
-          .collect(Collectors.toList());
+                .map(intersectionMapper::toDto)
+                .collect(Collectors.toList());
 
         List<String> intersectionNumbers = intersections.stream()
-          .map(Intersection::getIntersectionNumber)
-          .collect(Collectors.toList());
+                .map(Intersection::getIntersectionNumber)
+                .collect(Collectors.toList());
 
         Map<Integer, List<String>> rsusByIntersection = loadRsuIpsByIntersection(intersectionNumbers);
         log.debug("RSU IP mapping resolved for {}/{} intersections.", rsusByIntersection.size(),

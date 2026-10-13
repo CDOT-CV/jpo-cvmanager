@@ -45,7 +45,7 @@ describe('AuthApi', () => {
         family_name: 'User',
         cvmanager_data: {
           super_user: '1',
-          organizations: [{ org: 'Test Org', role: 'admin' }],
+          organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' }],
           user_created_timestamp: 1746773527283,
         },
         email: 'test@gmail.com',
@@ -159,8 +159,8 @@ describe('AuthApi', () => {
         cvmanager_data: {
           super_user: '1',
           organizations: [
-            { org: 'Test Org', role: 'admin' },
-            { org: 'Test Org 2', role: 'user' },
+            { org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' },
+            { org_id: 2, org_name: 'Test Org 2', org_email: 'email2', role: 'user' },
           ],
           user_created_timestamp: 1746773527283,
         },
@@ -176,8 +176,8 @@ describe('AuthApi', () => {
         name: 'Test User',
         super_user: true,
         organizations: [
-          { organization: 'Test Org', role: 'ADMIN' },
-          { organization: 'Test Org 2', role: 'USER' },
+          { organization: 1, name: 'Test Org', email: 'email', role: 'ADMIN' },
+          { organization: 2, name: 'Test Org 2', email: 'email2', role: 'USER' },
         ],
       })
     })
@@ -205,7 +205,7 @@ describe('AuthApi', () => {
         family_name: 'User',
         cvmanager_data: {
           super_user: '0',
-          organizations: [{ org: 'Test Org', role: 'user' }],
+          organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'user' }],
           user_created_timestamp: 1746773527283,
         },
         email: 'user@gmail.com',
@@ -275,7 +275,7 @@ describe('AuthApi', () => {
       family_name: 'User',
       cvmanager_data: {
         super_user: '1',
-        organizations: [{ org: 'Test Org', role: 'admin' }],
+        organizations: [{ org_id: 1, org_name: 'Test Org', org_email: 'email', role: 'admin' }],
         user_created_timestamp: 1746773527283,
       },
       email: 'test@gmail.com',
@@ -305,7 +305,7 @@ describe('AuthApi', () => {
           last_name: 'User',
           name: 'Test User',
           super_user: true,
-          organizations: [{ organization: 'Test Org', role: 'ADMIN' }],
+          organizations: [{ organization: 1, name: 'Test Org', email: 'email', role: 'ADMIN' }],
         },
         expires_at: 1770396901000,
       })
@@ -361,9 +361,9 @@ describe('AuthApi', () => {
         cvmanager_data: {
           super_user: '0',
           organizations: [
-            { org: 'Org 1', role: 'admin' },
-            { org: 'Org 2', role: 'user' },
-            { org: 'Org 3', role: 'operator' },
+            { org_id: 1, org_name: 'Org 1', org_email: 'email1', role: 'admin' },
+            { org_id: 2, org_name: 'Org 2', org_email: 'email2', role: 'user' },
+            { org_id: 3, org_name: 'Org 3', org_email: 'email3', role: 'operator' },
           ],
           user_created_timestamp: 1746773527283,
         },
@@ -375,9 +375,9 @@ describe('AuthApi', () => {
       const result = await AuthApi.logIn(mockToken)
 
       expect(result.data.organizations).toEqual([
-        { organization: 'Org 1', role: 'ADMIN' },
-        { organization: 'Org 2', role: 'USER' },
-        { organization: 'Org 3', role: 'OPERATOR' },
+        { organization: 1, name: 'Org 1', email: 'email1', role: 'ADMIN' },
+        { organization: 2, name: 'Org 2', email: 'email2', role: 'USER' },
+        { organization: 3, name: 'Org 3', email: 'email3', role: 'OPERATOR' },
       ])
       expect(result.data.super_user).toBe(false)
     })

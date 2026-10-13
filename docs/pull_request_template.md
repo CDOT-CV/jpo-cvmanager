@@ -32,3 +32,4 @@
 - [ ] My changes require updates and/or additions to the unit tests:
   - [ ] I have modified/added tests to cover my changes.
 - [ ] All existing tests pass.
+- [ ] I have assessed whether these changes require a version update for the API and Webapp.

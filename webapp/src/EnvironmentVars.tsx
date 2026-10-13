@@ -12,6 +12,18 @@ class EnvironmentVars {
     return messageTypes
   }
 
+  static getMessageTypes() {
+    const defaultTypes = ['BSM', 'MAP', 'SPAT', 'TIM', 'SRM', 'SSM']
+    const COUNT_MESSAGE_TYPES = process.env.VITE_COUNT_MESSAGE_TYPES
+    if (!COUNT_MESSAGE_TYPES) {
+      return defaultTypes
+    }
+    const types = COUNT_MESSAGE_TYPES.split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+    return types.length > 0 ? types : defaultTypes
+  }
+
   static getMapboxInitViewState() {
     const MAPBOX_INIT_LATITUDE = Number(process.env.VITE_MAPBOX_INIT_LATITUDE)
     const MAPBOX_INIT_LONGITUDE = Number(process.env.VITE_MAPBOX_INIT_LONGITUDE)
@@ -32,32 +44,34 @@ class EnvironmentVars {
   static KEYCLOAK_HOST_URL = process.env.VITE_KEYCLOAK_URL
   static KEYCLOAK_REALM = process.env.VITE_KEYCLOAK_REALM
   static KEYCLOAK_CLIENT_ID = process.env.VITE_KEYCLOAK_CLIENT_ID
-  static DOT_NAME = process.env.VITE_DOT_NAME
+  /** Read at use-time so vitest `vi.stubEnv` applies (CI has no `.env.local`). */
+  static get DOT_NAME() {
+    return process.env.VITE_DOT_NAME
+  }
   static ENABLE_RSU_FEATURES = process.env.VITE_ENABLE_RSU_FEATURES !== 'false'
   static ENABLE_INTERSECTION_FEATURES = process.env.VITE_ENABLE_INTERSECTION_FEATURES !== 'false'
   static ENABLE_WZDX_FEATURES = process.env.VITE_ENABLE_WZDX_FEATURES !== 'false'
   static ENABLE_HAAS_FEATURES = process.env.VITE_ENABLE_HAAS_FEATURES !== 'false'
+  static ENABLE_RSU_STATUS_MONITOR_FEATURES = process.env.VITE_ENABLE_RSU_STATUS_MONITOR_FEATURES !== 'false'
   static WEBAPP_THEME_LIGHT = process.env.VITE_WEBAPP_THEME_LIGHT
   static WEBAPP_THEME_DARK = process.env.VITE_WEBAPP_THEME_DARK
+  static MAX_QUERY_DURATION_DAYS = Number(process.env.VITE_MAX_QUERY_DURATION_DAYS) || 90
 
   static cvmanagerBaseEndpoint = `${this.getBaseApiUrl()}`
   static rsuInfoPath = '/devices/rsus/info'
-  static rsuOnlineEndpoint = `${this.getBaseApiUrl()}/rsu-online-status`
+  static rsuGeoQueryPath = '/devices/rsus/geo-query'
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
   static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
   static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`
   static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
-  static rsuGeoQueryEndpoint = `${this.getBaseApiUrl()}/rsu-config-geo-query`
   static rsuMsgFwdQueryEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-query`
   static rsuMsgFwdFetchEndpoint = `${this.getBaseApiUrl()}/rsu-msgfwd-fetch`
   static geoMsgDataEndpoint = `${this.getBaseApiUrl()}/rsu-geo-msg-data`
-  static ssmSrmEndpoint = `${this.getBaseApiUrl()}/rsu-ssm-srm-data`
-  static adminNotification = `${this.getBaseApiUrl()}/admin-notification`
-  static adminAddNotification = `${this.getBaseApiUrl()}/admin-new-notification`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`
   static adminOrg = `${this.getBaseApiUrl()}/admin-org`
   static adminOrgTimDeposit = `${this.getBaseApiUrl()}/admin-org-tim-deposit`
   static adminOrgSnmpMonitoring = `${this.getBaseApiUrl()}/admin-org-snmp-monitoring`
+  static readonly timeSyncEndpoint = `${this.CVIZ_API_SERVER_URL}/timesync/utc-millis`
 }
 
 export default EnvironmentVars

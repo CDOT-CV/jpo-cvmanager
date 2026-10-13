@@ -15,14 +15,17 @@ import { alpha, Tooltip, useTheme, Button, Typography, Box } from '@mui/material
 import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
 
 interface AdminTableProps {
-  actions: Action<any>[]
+  actions: (Action<any> | ((row: any) => Action<any>))[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
+  defaultPageSize?: number
   title: string
   editable?: any
   selection?: boolean
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
+  search?: boolean
+  thirdSortClick?: boolean
   // Server-side pagination props
   handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
@@ -69,6 +72,39 @@ const getActionIcon = (title: string) => {
     default:
       return null
   }
+}
+
+export const buildAdminTableQueryParams = (
+  query,
+  columns,
+  organization: string | undefined,
+  orderByDefault: string,
+  orderDirectionDefault: string = 'asc'
+) => {
+  // Extract order information from orderByCollection
+  let orderBy = orderByDefault
+  let orderDirection = orderDirectionDefault
+  if (query.orderByCollection && query.orderByCollection.length > 0) {
+    const firstOrder = query.orderByCollection[0]
+    if (firstOrder.orderBy !== undefined) {
+      if (typeof firstOrder.orderBy.field === 'string') {
+        orderBy = firstOrder.orderBy.field
+      } else if (typeof firstOrder.orderBy === 'number') {
+        orderBy = columns[firstOrder.orderBy].field
+      }
+    }
+    orderDirection = firstOrder.orderDirection || 'asc'
+  }
+
+  // Build query params including organization
+  const params = {
+    page: query.page,
+    size: query.pageSize,
+    sort: `${orderBy},${orderDirection}`,
+    search: query.search || '',
+    organization: organization || '', // Add organization parameter
+  }
+  return params
 }
 
 const AdminTable = (props: AdminTableProps) => {
@@ -128,10 +164,11 @@ const AdminTable = (props: AdminTableProps) => {
           headerStyle: {
             backgroundColor: theme.palette.background.paper,
           },
-          pageSize: 25,
+          pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
-          search: true, // Enable search UI; search term is passed to handleQueryChange for server-side filtering
+          search: props.search ?? true,
+          thirdSortClick: props.thirdSortClick ?? true,
           debounceInterval: 500,
         }}
         components={{
@@ -158,6 +195,12 @@ const AdminTable = (props: AdminTableProps) => {
           Action: (actionProps: any) => {
             const { action } = actionProps
             const iconProps = action?.iconProps
+
+            // Allow admin pages to place controls such as filters alongside the
+            // standard table actions without duplicating the shared toolbar
+            if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
+              return iconProps.render()
+            }
 
             if (iconProps?.itemType === 'displayIcon') {
               return (

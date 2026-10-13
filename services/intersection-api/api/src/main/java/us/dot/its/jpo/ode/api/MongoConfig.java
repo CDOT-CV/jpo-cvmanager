@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 
+import us.dot.its.jpo.ode.api.converters.DoubleToDurationConverter;
 import us.dot.its.jpo.ode.api.converters.StringToZonedDateTimeConverter;
 import us.dot.its.jpo.ode.api.converters.ZonedDateTimeToStringConverter;
 
@@ -26,25 +27,25 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
 
     private List<Converter<?, ?>> converters = new ArrayList<Converter<?, ?>>();
 
-    @Value("${spring.data.mongodb.database}")
+    @Value("${spring.mongodb.database}")
     private String db;
 
-    @Value("${spring.data.mongodb.host}")
+    @Value("${spring.mongodb.host}")
     private String host;
 
-    @Value("${spring.data.mongodb.port}")
+    @Value("${spring.mongodb.port}")
     private String port;
 
-    @Value("${spring.data.mongodb.username}")
+    @Value("${spring.mongodb.username}")
     private String username;
 
-    @Value("${spring.data.mongodb.password}")
+    @Value("${spring.mongodb.password}")
     private String password;
 
-    @Value("${spring.data.mongodb.authenticationDatabase}")
+    @Value("${spring.mongodb.authentication-database}")
     private String authenticationDatabase;
 
-    @Value("${spring.data.mongodb.uri}")
+    @Value("${spring.mongodb.uri}")
     private String overrideURI;
 
     @Override
@@ -64,7 +65,6 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
                     + authenticationDatabase;
         }
 
-        
         logger.info("MongoDB Connection String: {}", uri);
         builder.applyConnectionString(new ConnectionString(uri));
     }
@@ -73,6 +73,7 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     public MongoCustomConversions customConversions() {
         converters.add(new StringToZonedDateTimeConverter());
         converters.add(new ZonedDateTimeToStringConverter());
+        converters.add(new DoubleToDurationConverter());
         return new MongoCustomConversions(converters);
     }
 }

@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 
 import java.util.List;
@@ -18,9 +19,5 @@ public interface RsuCredentialRepository extends JpaRepository<RsuCredential, In
 
     boolean existsByNickname(String nickname);
 
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-            "FROM RsuCredential r " +
-            "JOIN r.ownerOrganization ro " +
-            "WHERE r.nickname = :nickname AND ro.name IN :organizations")
-    boolean existsByNicknameAndOrganizations(String nickname, List<String> qualifiedOrgList);
+    boolean existsByNicknameAndOwnerOrganizationIn(String nickname, List<Organization> organizations);
 }

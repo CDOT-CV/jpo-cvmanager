@@ -19,7 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -77,13 +77,14 @@ public class ConfigController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER"),
             @ApiResponse(responseCode = "404", description = "Configuration setting not found"),
     })
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public @ResponseBody <T> ResponseEntity<DefaultConfig<?>> default_config(@RequestBody DefaultConfig<T> config) {
         try {
             String resourceURL = String.format(defaultConfigTemplate, props.getCmServerURL(), config.getKey());
 
             // Request does not require authentication, ConflictMonitor API is only
             // accessible internally
-            @SuppressWarnings("rawtypes")
             ResponseEntity<DefaultConfig> response = restTemplate.getForEntity(resourceURL, DefaultConfig.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
@@ -120,6 +121,8 @@ public class ConfigController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER, or OPERATOR role with access to the intersection requested"),
             @ApiResponse(responseCode = "404", description = "Configuration setting not found to modify/override"),
     })
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public @ResponseBody <T> ResponseEntity<IntersectionConfig<T>> intersection_config(
             @RequestBody IntersectionConfig<T> config) {
         if (!permissionService.hasIntersection(config.getIntersectionID(), "OPERATOR")) {
@@ -129,7 +132,6 @@ public class ConfigController {
         try {
             String resourceURL = String.format(intersectionConfigTemplate, props.getCmServerURL(),
                     config.getIntersectionID(), config.getKey());
-            @SuppressWarnings("rawtypes")
             ResponseEntity<IntersectionConfig> response = restTemplate.getForEntity(resourceURL,
                     IntersectionConfig.class);
 
@@ -200,7 +202,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "Retrieve All Default Config Parameters", description = "Retrieve all default configuration parameters")
-    @RequestMapping(value = "/default/all", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/default/all", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -223,7 +225,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "Retrieve All Overridden Intersection Config Parameters", description = "Retrieve all overridden intersection configuration parameters")
-    @RequestMapping(value = "/intersection/all", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection/all", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),
@@ -264,7 +266,7 @@ public class ConfigController {
     }
 
     @Operation(summary = "Retrieve All Unique Intersection Config Parameters", description = "Retrieve all intersection configuration parameters, showing defaults where no override exists, otherwise showing the overridden parameter")
-    @RequestMapping(value = "/intersection/unique", method = RequestMethod.GET, produces = "application/json")
+    @GetMapping(value = "/intersection/unique", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasIntersection(#intersectionID, 'USER') and @PermissionService.hasRole('USER'))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success"),

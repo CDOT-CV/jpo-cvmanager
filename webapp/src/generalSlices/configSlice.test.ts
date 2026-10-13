@@ -77,7 +77,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -88,7 +88,7 @@ describe('async thunks', () => {
       const action = getCachedSnmpFwdConfigsFromDatabase(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
+      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'Org 1', '', { rsu_ip })
       expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
     })
 
@@ -147,7 +147,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -158,7 +158,7 @@ describe('async thunks', () => {
       const action = getRsuMsgConfigsFromRsu(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getRsuMsgConfigsFromRsu).toHaveBeenCalledWith('token', 'name', '', { rsu_ip })
+      expect(RsuApi.getRsuMsgConfigsFromRsu).toHaveBeenCalledWith('token', 'Org 1', '', { rsu_ip })
       expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
     })
 
@@ -168,7 +168,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -188,7 +188,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -210,7 +210,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -232,7 +232,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -307,7 +307,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
         config: {
@@ -327,7 +327,7 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(RsuApi.postRsuData).toHaveBeenCalledWith(
         'token',
-        'name',
+        'Org 1',
         {
           command: 'rsufwdsnmpset',
           rsu_ip: arg,
@@ -382,7 +382,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -398,7 +398,7 @@ describe('async thunks', () => {
       let resp = await action(dispatch, getState, undefined)
       expect(RsuApi.postRsuData).toHaveBeenCalledWith(
         'token',
-        'name',
+        'Org 1',
         {
           command: 'rsufwdsnmpset-del',
           rsu_ip: arg.ipList,
@@ -452,7 +452,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -465,7 +465,7 @@ describe('async thunks', () => {
       const resp = await action(dispatch, getState, undefined)
       expect(RsuApi.postRsuData).toHaveBeenCalledWith(
         'token',
-        'name',
+        'Org 1',
         {
           command: 'reboot',
           rsu_ip: arg,
@@ -511,7 +511,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -547,7 +547,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -617,7 +617,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -644,7 +644,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -673,7 +673,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { organization: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -711,7 +711,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -738,7 +738,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -765,7 +765,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -860,7 +860,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -888,7 +888,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })
@@ -916,7 +916,7 @@ describe('async thunks', () => {
         user: {
           value: {
             authLoginData: { token: 'token' },
-            organization: { name: 'name' },
+            organization: { name: 'Org 1' },
           },
         },
       })

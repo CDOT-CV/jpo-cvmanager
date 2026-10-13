@@ -32,7 +32,7 @@ const makeStore = () =>
             token: 'mock-token',
             expires_at: 0,
           },
-          organization: { organization: 'OrgA', role: 'ADMIN' },
+          organization: { organization: 1, name: 'OrgA', role: 'ADMIN' },
           loginFailure: false,
           loginMessage: '',
           routeNotFound: false,
@@ -149,7 +149,7 @@ describe('userApiSlice', () => {
     const req = (global.fetch as jest.Mock).mock.calls[0][0] as Request
     expect(req.url).toBe('http://localhost:8080/users/u@x.com')
     expect(req.method).toBe('PATCH')
-    expect(await req.clone().json()).toEqual({ origin_ip: 'u@x.com', first_name: 'Updated' })
+    expect(await req.clone().json()).toEqual({ email: 'u@x.com', first_name: 'Updated' })
   })
 
   test('deleteUser', async () => {

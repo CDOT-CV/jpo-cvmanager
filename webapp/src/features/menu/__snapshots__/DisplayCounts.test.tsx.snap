@@ -239,7 +239,12 @@ exports[`should take a snapshot 1`] = `
           <div
             style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
           >
-            Count
+            Input
+          </div>
+          <div
+            style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
+          >
+            Processed
           </div>
         </div>
         <div
@@ -249,13 +254,24 @@ exports[`should take a snapshot 1`] = `
             class="row"
           >
             <div
-              style="grid-column: 1 / span 3; text-align: center;"
+              style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
             >
-              <p
-                class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-              >
-                No data found for the selected range
-              </p>
+              10.0.0.11
+            </div>
+            <div
+              style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
+            >
+              I25
+            </div>
+            <div
+              style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
+            >
+              100
+            </div>
+            <div
+              style="border-bottom: 1px solid rgba(0, 0, 0, 0.87);"
+            >
+              95
             </div>
           </div>
         </div>

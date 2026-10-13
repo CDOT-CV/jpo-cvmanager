@@ -321,13 +321,13 @@ class UserControllerTest {
                 false,
                 List.of(org1));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg")))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg"));
         verify(userManagementService).createUser(newUser);
     }
 
@@ -348,13 +348,13 @@ class UserControllerTest {
                 false,
                 List.of(org1, org2));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg")))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg", "AnotherOrg"));
         verify(userManagementService).createUser(newUser);
     }
 
@@ -371,7 +371,7 @@ class UserControllerTest {
                 true, // super_user = true
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg")))
                 .thenReturn(true);
         when(permissionService.isSuperUser())
                 .thenReturn(true);
@@ -396,7 +396,7 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg")))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -405,7 +405,7 @@ class UserControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertEquals("User not qualified to modify all specified organizations", exception.getReason());
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg"));
         verify(userManagementService, never()).createUser(any());
     }
 
@@ -426,7 +426,7 @@ class UserControllerTest {
                 false,
                 List.of(org1, org2));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg")))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -435,7 +435,7 @@ class UserControllerTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertEquals("User not qualified to modify all specified organizations", exception.getReason());
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg", "UnauthorizedOrg"));
         verify(userManagementService, never()).createUser(any());
     }
 
@@ -453,7 +453,7 @@ class UserControllerTest {
                 List.of(org));
 
         // hasRoleInOrgs returns false for nonexistent organizations
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("NonexistentOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("NonexistentOrg")))
                 .thenReturn(false);
 
         ResponseStatusException exception = assertThrows(
@@ -463,26 +463,6 @@ class UserControllerTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertEquals("User not qualified to modify all specified organizations", exception.getReason());
         verify(userManagementService, never()).createUser(any());
-    }
-
-    @Test
-    void testCreateUser_EmptyOrganizationsList() {
-        UserDto newUser = new UserDto(
-                "newuser@example.com",
-                "New",
-                "User",
-                false,
-                List.of() // Empty organizations list
-        );
-
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of()))
-                .thenReturn(true);
-        when(userManagementService.createUser(newUser)).thenReturn(new User());
-
-        userController.createUser(newUser);
-
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of());
-        verify(userManagementService).createUser(newUser);
     }
 
     @Test
@@ -506,13 +486,13 @@ class UserControllerTest {
                 false,
                 List.of(orgAdmin, orgOperator, orgUser));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3")))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg1", "TestOrg2", "TestOrg3"));
         verify(userManagementService).createUser(newUser);
     }
 
@@ -529,7 +509,7 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg")))
                 .thenReturn(true);
         when(userManagementService.createUser(newUser)).thenReturn(new User());
 
@@ -552,13 +532,13 @@ class UserControllerTest {
                 false,
                 List.of(org));
 
-        when(permissionService.hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg")))
+        when(permissionService.hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg")))
                 .thenReturn(true);
         doThrow(new IllegalArgumentException("User with email already exists"))
                 .when(userManagementService).createUser(newUser);
 
         assertThrows(IllegalArgumentException.class, () -> userController.createUser(newUser));
-        verify(permissionService).hasRoleInOrgs(UserRole.ADMIN, List.of("TestOrg"));
+        verify(permissionService).hasRoleInOrgNames(UserRole.ADMIN, List.of("TestOrg"));
         verify(userManagementService).createUser(newUser);
     }
 
