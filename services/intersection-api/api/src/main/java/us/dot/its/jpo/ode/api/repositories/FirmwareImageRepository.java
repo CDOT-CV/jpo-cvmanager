@@ -6,10 +6,21 @@ import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 
 public interface FirmwareImageRepository extends JpaRepository<FirmwareImage, Integer> {
+    // Lock in ID order so concurrent editors serialize even when inserting new rules.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select image from FirmwareImage image where image.model.id = :modelId order by image.id")
+    List<FirmwareImage> findModelForUpdate(@Param("modelId") Integer modelId);
+
+    @Query("select image from FirmwareImage image join fetch image.model model join fetch model.manufacturer "
+            + "left join fetch image.verifiedUpload where image.model.id = :modelId order by image.version")
+    List<FirmwareImage> findModelImages(@Param("modelId") Integer modelId);
+
     @Query("""
             select image from FirmwareImage image
             join fetch image.model model join fetch model.manufacturer

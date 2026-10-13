@@ -39,10 +39,9 @@ INSERT INTO public.firmware_images(
     'missing-file-demo')
   ON CONFLICT (model, version) DO NOTHING;
 
--- Three upgrade rules across the three firmware images. UNIQUE (from_id, to_id)
--- means a third meaningful rule is only possible because firmware_image 3 exists.
+-- A source has one destination, and both versions belong to the same model.
 INSERT INTO public.firmware_upgrade_rules(from_id, to_id)
-  VALUES (1, 2), (2, 3), (1, 3)
+  VALUES (1, 2)
   ON CONFLICT DO NOTHING;
 
 INSERT INTO public.organizations(name)

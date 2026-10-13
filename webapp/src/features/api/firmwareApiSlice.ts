@@ -3,6 +3,8 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import {
   FirmwareObjectPage,
+  FirmwareRule,
+  FirmwareRuleOptions,
   FirmwareUploadOptions,
   FirmwareUploadUrl,
   FirmwareUploadUrlRequest,
@@ -25,6 +27,28 @@ export const firmwareApiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({
+    listFirmwareRules: builder.query<FirmwareRule[], void>({
+      query: () => 'upgrade-rules',
+    }),
+    getFirmwareRuleOptions: builder.query<FirmwareRuleOptions, number>({
+      query: (id) => `images/${id}/upgrade-rules`,
+    }),
+    assignFirmwareRules: builder.mutation<void, {
+      destinationId: number
+      sources: { source_id: number; expected_target_id: number | null }[]
+      acknowledgeUpgradeImpact?: boolean
+    }>({
+      query: ({ destinationId, sources, acknowledgeUpgradeImpact }) => ({
+        url: `images/${destinationId}/upgrade-rules`, method: 'PUT',
+        body: { sources, ...(acknowledgeUpgradeImpact && { acknowledge_upgrade_impact: true }) },
+      }),
+    }),
+    deleteFirmwareRule: builder.mutation<void, { ruleId: number; expectedTargetId: number; acknowledgeUpgradeImpact?: boolean }>({
+      query: ({ ruleId, expectedTargetId, acknowledgeUpgradeImpact }) => ({
+        url: `upgrade-rules/${ruleId}`, method: 'DELETE',
+        params: { expected_target_id: expectedTargetId, ...(acknowledgeUpgradeImpact && { acknowledge_upgrade_impact: true }) },
+      }),
+    }),
     getFirmwareUploadOptions: builder.query<FirmwareUploadOptions, void>({
       query: () => 'upload-options',
     }),
@@ -58,6 +82,10 @@ export const firmwareApiSlice = createApi({
 })
 
 export const {
+  useListFirmwareRulesQuery,
+  useGetFirmwareRuleOptionsQuery,
+  useAssignFirmwareRulesMutation,
+  useDeleteFirmwareRuleMutation,
   useGetFirmwareUploadOptionsQuery,
   useLazyListFirmwareObjectsQuery,
   useCreateFirmwareUploadUrlMutation,
