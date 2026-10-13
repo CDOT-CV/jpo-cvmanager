@@ -26,11 +26,12 @@ CREATE TABLE public.firmware_images (
   install_package character varying(128) NOT NULL,
   model integer NOT NULL,
   name character varying(128) NOT NULL,
+  verified_upload_id uuid,
   version character varying(128) NOT NULL,
-  CONSTRAINT firmware_images_install_package UNIQUE (install_package),
-  CONSTRAINT firmware_images_name UNIQUE (name),
+  CONSTRAINT firmware_images_model_version_unique UNIQUE (model, version),
   CONSTRAINT firmware_images_pkey PRIMARY KEY (firmware_id),
-  CONSTRAINT firmware_images_version UNIQUE (version),
+  CONSTRAINT firmware_images_verified_upload_id_fkey FOREIGN KEY (verified_upload_id) REFERENCES firmware_uploads(upload_id),
+  CONSTRAINT firmware_images_verified_upload_id_key UNIQUE (verified_upload_id),
   CONSTRAINT fk_model FOREIGN KEY (model) REFERENCES rsu_models(rsu_model_id)
 );
 
@@ -40,8 +41,36 @@ CREATE TABLE public.firmware_upgrade_rules (
   to_id integer NOT NULL,
   CONSTRAINT firmware_upgrade_rules_from_to_unique UNIQUE (from_id, to_id),
   CONSTRAINT firmware_upgrade_rules_pkey PRIMARY KEY (firmware_upgrade_rule_id),
+  CONSTRAINT firmware_upgrade_rules_source_unique UNIQUE (from_id),
   CONSTRAINT fk_from_id FOREIGN KEY (from_id) REFERENCES firmware_images(firmware_id),
   CONSTRAINT fk_to_id FOREIGN KEY (to_id) REFERENCES firmware_images(firmware_id)
+);
+
+CREATE TABLE public.firmware_uploads (
+  checksum_algorithm character varying(32) NOT NULL,
+  content_type character varying(255) NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  created_by character varying(255) NOT NULL,
+  expected_checksum character varying(128) NOT NULL,
+  expected_size bigint NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  failure_reason character varying(255),
+  file_name character varying(128) NOT NULL,
+  finished_at timestamp with time zone,
+  model integer NOT NULL,
+  object_name text NOT NULL,
+  observed_checksum character varying(128),
+  provider_object_version text,
+  status character varying(16) NOT NULL,
+  storage_container character varying(255) NOT NULL,
+  storage_provider character varying(32) NOT NULL,
+  upload_id uuid NOT NULL,
+  verified_at timestamp with time zone,
+  version character varying(128) NOT NULL,
+  CONSTRAINT firmware_uploads_expected_size_positive CHECK ((expected_size > 0)),
+  CONSTRAINT firmware_uploads_model_fkey FOREIGN KEY (model) REFERENCES rsu_models(rsu_model_id),
+  CONSTRAINT firmware_uploads_pkey PRIMARY KEY (upload_id),
+  CONSTRAINT firmware_uploads_status_valid CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'VERIFIED'::character varying, 'FAILED'::character varying, 'EXPIRED'::character varying])::text[])))
 );
 
 CREATE TABLE public.flyway_schema_history (
@@ -88,8 +117,10 @@ CREATE TABLE public.iss_keys (
 );
 
 CREATE TABLE public.manufacturers (
+  firmware_file_extension character varying(32),
   manufacturer_id integer DEFAULT nextval('manufacturers_manufacturer_id_seq'::regclass) NOT NULL,
   name character varying(128) NOT NULL,
+  CONSTRAINT manufacturers_firmware_file_extension_valid CHECK (((firmware_file_extension IS NULL) OR ((firmware_file_extension)::text ~ '^\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*$'::text))),
   CONSTRAINT manufacturers_name UNIQUE (name),
   CONSTRAINT manufacturers_pkey PRIMARY KEY (manufacturer_id)
 );
