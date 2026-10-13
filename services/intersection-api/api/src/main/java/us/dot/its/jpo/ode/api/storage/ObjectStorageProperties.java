@@ -13,6 +13,6 @@ import lombok.Data;
 @ConfigurationProperties(prefix = "object-storage")
 public class ObjectStorageProperties {
     private String provider;
-    private Duration signedUrlExpiration = Duration.ofMinutes(15);
+    private Duration signedUrlExpiration = Duration.ofMinutes(5);
     private DataSize maxUploadSize = DataSize.ofGigabytes(1);
 }

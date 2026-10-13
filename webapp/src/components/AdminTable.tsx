@@ -15,7 +15,7 @@ import { alpha, Tooltip, useTheme, Button, Typography, Box } from '@mui/material
 import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
 
 interface AdminTableProps {
-  actions: Action<any>[]
+  actions: (Action<any> | ((row: any) => Action<any>))[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
   defaultPageSize?: number
@@ -25,6 +25,7 @@ interface AdminTableProps {
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
   search?: boolean
+  thirdSortClick?: boolean
   // Server-side pagination props
   handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
@@ -167,6 +168,7 @@ const AdminTable = (props: AdminTableProps) => {
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
           search: props.search ?? true,
+          thirdSortClick: props.thirdSortClick ?? true,
           debounceInterval: 500,
         }}
         components={{

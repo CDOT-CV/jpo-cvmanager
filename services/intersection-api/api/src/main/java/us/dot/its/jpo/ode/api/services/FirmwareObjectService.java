@@ -1,15 +1,18 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -54,7 +57,8 @@ public class FirmwareObjectService {
                 ? null
                 : validateManufacturer(manufacturer) + "/";
         String searchTerm = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
-        StorageObjectPage page = readListing(prefix, searchTerm);
+        Listing listing = readListing(prefix, searchTerm);
+        StorageObjectPage page = listing.page();
         var objects = page.objects();
         if (objects.isEmpty()) {
             return new FirmwareObjectPage(page.provider(), List.of(), 0);
@@ -68,7 +72,7 @@ public class FirmwareObjectService {
                 : images.findByVerifiedUploadIdIn(records.stream().map(FirmwareUpload::getId).toList()).stream()
                         .collect(Collectors.toMap(image -> image.getVerifiedUpload().getId(), FirmwareImage::getId));
         var items = objects.stream()
-                .map(object -> toItem(page.provider(), object, byName.get(object.objectName()), imageIds))
+                .map(object -> toItem(page.provider(), object, byName.get(object.objectName()), imageIds, listing))
                 .sorted(itemComparator(sort)).toList();
 
         int fromIndex = (int) Math.min((long) pageNumber * pageSize, items.size());
@@ -76,19 +80,23 @@ public class FirmwareObjectService {
         return new FirmwareObjectPage(page.provider(), items.subList(fromIndex, toIndex), items.size());
     }
 
-    private StorageObjectPage readListing(String prefix, String searchTerm) {
+    private record Listing(StorageObjectPage page, Set<String> missingNames, Map<String, Integer> legacyImageIds) {}
+
+    private Listing readListing(String prefix, String searchTerm) {
         var storageService = storage.getActiveService();
+        var listedObjects = new ArrayList<StorageObject>();
         var objects = new ArrayList<StorageObject>();
         var visitedTokens = new HashSet<String>();
+        var legacyImageIds = new HashMap<String, Integer>();
+        var missingNames = new HashSet<String>();
         String pageToken = null;
         StorageObjectPage page;
 
         // Search every provider page so sorting and pagination apply to the complete
-        // filtered result, including untracked files.
+        // filtered result, including untracked and missing files.
         do {
             page = storageService.listObjects(new ObjectListRequest(prefix, PROVIDER_PAGE_SIZE, pageToken));
-            page.objects().stream().filter(object -> isMatchingObject(object.objectName(), searchTerm))
-                    .forEach(objects::add);
+            listedObjects.addAll(page.objects());
 
             pageToken = page.nextPageToken();
             if (pageToken != null && !pageToken.isBlank() && !visitedTokens.add(pageToken)) {
@@ -96,7 +104,44 @@ public class FirmwareObjectService {
             }
         } while (pageToken != null && !pageToken.isBlank());
 
-        return new StorageObjectPage(page.provider(), page.container(), objects, null);
+        // Only a complete, successful storage listing establishes absence. Database
+        // records remain discoverable after a lost deletion response or failed commit.
+        var missing = missingCandidates(page, legacyImageIds);
+
+        for (var object : listedObjects) {
+            String name = object.objectName();
+            missing.remove(name);
+            if (isMatchingObject(name, searchTerm)) objects.add(object);
+        }
+
+        // Include missing records in the same searched and manufacturer-filtered result.
+        for (var object : missing.values()) {
+            String name = object.objectName();
+            if (isMatchingObject(name, searchTerm) && (prefix == null || name.startsWith(prefix))) {
+                objects.add(object);
+                missingNames.add(name);
+            }
+        }
+        return new Listing(new StorageObjectPage(page.provider(), page.container(), objects, null),
+                missingNames, legacyImageIds);
+    }
+
+    private Map<String, StorageObject> missingCandidates(StorageObjectPage page, Map<String, Integer> legacyImageIds) {
+        var missing = new TreeMap<String, StorageObject>();
+        Instant now = Instant.now();
+        for (var upload : uploads.findListingCandidates(page.provider(), page.container())) {
+            if (!upload.getExpiresAt().isAfter(now) || upload.getStatus() == FirmwareUploadStatus.VERIFIED) {
+                missing.put(upload.getObjectName(), new StorageObject(upload.getObjectName(),
+                        upload.getExpectedSize(), null, null, null));
+            }
+        }
+        for (var image : images.findLegacyImagesWithModelAndManufacturer()) {
+            String name = String.join("/", image.getModel().getManufacturer().getName(),
+                    image.getModel().getName(), image.getVersion(), image.getInstallPackage());
+            legacyImageIds.put(name, image.getId());
+            missing.putIfAbsent(name, new StorageObject(name, 0L, null, null, null));
+        }
+        return missing;
     }
 
     private boolean isMatchingObject(String name, String searchTerm) {
@@ -105,7 +150,8 @@ public class FirmwareObjectService {
     }
 
     private FirmwareObjectPage.Item toItem(String provider, StorageObject object, FirmwareUpload upload,
-            Map<UUID, Integer> imageIds) {
+            Map<UUID, Integer> imageIds, Listing listing) {
+        boolean absent = listing.missingNames().contains(object.objectName());
         // Parse conventional paths into columns, retaining the full path for actions.
         String id = Base64.getUrlEncoder().withoutPadding().encodeToString(
                 (provider + "\n" + object.objectName()).getBytes(StandardCharsets.UTF_8));
@@ -115,9 +161,10 @@ public class FirmwareObjectService {
         String version = path.length == 4 ? path[2] : null;
         String fileName = path.length == 4 ? path[3] : object.objectName();
         return new FirmwareObjectPage.Item(id, object.objectName(), manufacturerName, modelName,
-                version, fileName, object.contentLength(), object.updatedAt(), object.providerObjectVersion(),
-                upload == null ? null : upload.getId(), upload == null ? null : imageIds.get(upload.getId()),
-                upload == null ? null : upload.getStatus().name(), verificationState(object, upload));
+                version, fileName, absent && upload == null ? null : Long.valueOf(object.contentLength()),
+                object.updatedAt(), object.providerObjectVersion(), upload == null ? null : upload.getId(),
+                upload == null ? listing.legacyImageIds().get(object.objectName()) : imageIds.get(upload.getId()),
+                upload == null ? null : upload.getStatus().name(), absent ? "MISSING" : verificationState(object, upload));
     }
 
     private String verificationState(StorageObject object, FirmwareUpload upload) {
@@ -146,7 +193,8 @@ public class FirmwareObjectService {
             case "manufacturer" -> Comparator.comparing(FirmwareObjectPage.Item::manufacturer, text);
             case "model" -> Comparator.comparing(FirmwareObjectPage.Item::model, text);
             case "version" -> Comparator.comparing(FirmwareObjectPage.Item::version, text);
-            case "content_length" -> Comparator.comparingLong(FirmwareObjectPage.Item::contentLength);
+            case "content_length" -> Comparator.comparing(FirmwareObjectPage.Item::contentLength,
+                    Comparator.nullsLast(Comparator.naturalOrder()));
             case "updated_at" -> Comparator.comparing(FirmwareObjectPage.Item::updatedAt,
                     Comparator.nullsLast(Comparator.naturalOrder()));
             case "verification_status" -> Comparator.comparing(FirmwareObjectPage.Item::verificationStatus, text);

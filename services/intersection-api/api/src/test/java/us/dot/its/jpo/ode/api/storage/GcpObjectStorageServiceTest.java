@@ -11,6 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.net.URL;
 import java.time.Duration;
@@ -38,6 +40,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.HttpMethod;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 
 import us.dot.its.jpo.ode.api.models.storage.SignedUploadUrl;
 import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
@@ -55,6 +58,46 @@ class GcpObjectStorageServiceTest {
 
     private GcpObjectStorageService service;
     private ObjectUploadRequest request;
+
+    @Test
+    void deletesOnlyTheListedLiveGeneration() {
+        var location = service.getLocation("vendor/model/v1/file.bin");
+        service.deleteObject(location, "17");
+        verify(storage).delete(BlobId.of("firmware-bucket", "vendor/model/v1/file.bin"),
+                Storage.BlobSourceOption.generationMatch(17L));
+    }
+
+    @Test
+    void treatsMissingObjectsAsAlreadyDeleted() {
+        var location = service.getLocation("file.bin");
+        when(storage.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class)))
+                .thenReturn(false).thenThrow(new StorageException(404, "missing"));
+        service.deleteObject(location, "17");
+        service.deleteObject(location, "17");
+    }
+
+    @Test
+    void reportsReplacedObjectsAndStorageFailuresWithoutUnconditionalRetry() {
+        var location = service.getLocation("file.bin");
+        when(storage.delete(any(BlobId.class), any(Storage.BlobSourceOption[].class)))
+                .thenThrow(new StorageException(412, "changed"))
+                .thenThrow(new StorageException(403, "forbidden"));
+        assertThatThrownBy(() -> service.deleteObject(location, "17"))
+                .isInstanceOf(ObjectStorageConflictException.class);
+        assertThatThrownBy(() -> service.deleteObject(location, "17"))
+                .isInstanceOf(ObjectStorageUnavailableException.class);
+        verify(storage, times(2)).delete(BlobId.of("firmware-bucket", "file.bin"),
+                Storage.BlobSourceOption.generationMatch(17L));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"0", "-1", "not-a-generation"})
+    void refusesDeletionWithoutAValidGeneration(String generation) {
+        assertThatThrownBy(() -> service.deleteObject(service.getLocation("file.bin"), generation))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(storage);
+    }
 
     @BeforeEach
     void setUp() throws Exception {
