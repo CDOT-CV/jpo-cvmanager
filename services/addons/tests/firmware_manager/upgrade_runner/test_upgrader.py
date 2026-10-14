@@ -112,6 +112,7 @@ def test_download_blob_docker(mock_Path, mock_download_docker_blob):
     mock_download_docker_blob.assert_called_with(
         "test-manufacturer/test-model/1.0.0/firmware_package.tar",
         "/home/8.8.8.8/firmware_package.tar",
+        "",
     )
 
 

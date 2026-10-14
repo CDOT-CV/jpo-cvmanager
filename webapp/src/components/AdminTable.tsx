@@ -15,7 +15,7 @@ import { alpha, Tooltip, useTheme, Button, Typography, Box } from '@mui/material
 import { AddCircleOutline, DeleteOutline, ModeEditOutline, Refresh } from '@mui/icons-material'
 
 interface AdminTableProps {
-  actions: Action<any>[]
+  actions: (Action<any> | ((row: any) => Action<any>))[]
   columns: Column<any>[]
   data?: any[] // Optional for client-side pagination
   defaultPageSize?: number
@@ -24,6 +24,8 @@ interface AdminTableProps {
   selection?: boolean
   tableLayout?: 'auto' | 'fixed'
   pageSizeOptions?: any
+  search?: boolean
+  thirdSortClick?: boolean
   // Server-side pagination props
   handleQueryChange?: (query: Query<any>) => Promise<QueryResult<any>>
   isLoading?: boolean
@@ -165,7 +167,8 @@ const AdminTable = (props: AdminTableProps) => {
           pageSize: props.defaultPageSize ?? 25,
           pageSizeOptions: props.pageSizeOptions === undefined ? [5, 25, 50, 100] : props.pageSizeOptions,
           paging: true,
-          search: true, // Enable search UI; search term is passed to handleQueryChange for server-side filtering
+          search: props.search ?? true,
+          thirdSortClick: props.thirdSortClick ?? true,
           debounceInterval: 500,
         }}
         components={{
@@ -192,6 +195,12 @@ const AdminTable = (props: AdminTableProps) => {
           Action: (actionProps: any) => {
             const { action } = actionProps
             const iconProps = action?.iconProps
+
+            // Allow admin pages to place controls such as filters alongside the
+            // standard table actions without duplicating the shared toolbar
+            if (iconProps?.itemType === 'custom' && typeof iconProps?.render === 'function') {
+              return iconProps.render()
+            }
 
             if (iconProps?.itemType === 'displayIcon') {
               return (
