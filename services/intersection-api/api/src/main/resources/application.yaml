@@ -117,6 +117,10 @@ maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
 deployment:
   environment: ${DEPLOYMENT_ENVIRONMENT:UNKNOWN}
 
+cvmanager:
+  # IANA timezone used to format RSU message forwarding timestamps (matches the Python API's TIMEZONE)
+  timezone: ${TIMEZONE:America/Denver}
+
 object-storage:
   provider: ${OBJECT_STORAGE_PROVIDER:gcp}
   signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:5m}

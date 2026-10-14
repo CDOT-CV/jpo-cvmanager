@@ -87,6 +87,8 @@ services:
       PROMETHEUS_URL: ${PROMETHEUS_URL:-http://prometheus:9090}
       PROMETHEUS_AGGREGATION_STEP_SECONDS: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:-120}
 
+      TIMEZONE: ${TIMEZONE:-}
+
     volumes:
       - type: bind
         # The checked-in file contains no credentials. It allows the API to run when

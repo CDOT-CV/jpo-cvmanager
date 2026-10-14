@@ -2,29 +2,29 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuMsgFwdConfigDto;
-import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuMsgFwdConfigsDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpMsgfwdConfig;
+import us.dot.its.jpo.ode.api.models.rsu.MsgFwdConfigDto;
+import us.dot.its.jpo.ode.api.models.rsu.MsgFwdConfigsResponse;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class RsuMsgFwdQueryService {
-
-    private static final ZoneId DENVER_ZONE = ZoneId.of("America/Denver");
+    static final String DEFAULT_TIMEZONE = "America/Denver";
 
     private static final String DSRC_TYPE = "rsuDsrcFwd";
     private static final String RECEIVED_TYPE = "rsuReceivedMsg";
@@ -33,13 +33,26 @@ public class RsuMsgFwdQueryService {
     private static final String XMIT_TABLE = "rsuXmitMsgFwdingTable";
 
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
+    private final ZoneId zoneId;
 
     /**
-     * Returns the SNMP message-forwarding configurations stored in the
-     * database for the given RSU, grouped the same way as the Python
+     * @param timezone IANA timezone used to format configuration timestamps. Matches the Python
+     *                 API's TIMEZONE environment variable, which also falls back to America/Denver
+     *                 when unset or blank.
+     */
+    public RsuMsgFwdQueryService(SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository,
+            @Value("${cvmanager.timezone:" + DEFAULT_TIMEZONE + "}") String timezone) {
+        this.snmpMsgfwdConfigRepository = snmpMsgfwdConfigRepository;
+        this.zoneId = ZoneId.of(timezone == null || timezone.isBlank() ? DEFAULT_TIMEZONE : timezone);
+    }
+
+    /**
+     * Returns the SNMP message-forwarding configurations stored in the database for the given
+     * RSU within the given organization, grouped the same way as the Python
      * rsu_message_forward_helpers.format_snmp_msgfwd_configs function.
      */
-    public RsuMsgFwdConfigsDto getMsgFwdConfigs(String rsuIp, String organization) {
+    @Transactional(readOnly = true)
+    public MsgFwdConfigsResponse getMsgFwdConfigs(String rsuIp, String organization) {
         InetAddress ipv4Address;
         try {
             ipv4Address = InetAddress.getByName(rsuIp);
@@ -53,7 +66,7 @@ public class RsuMsgFwdQueryService {
         Map<String, Object> rsuFwdSnmpwalk = new HashMap<>();
         for (SnmpMsgfwdConfig config : configs) {
             String msgfwdType = config.getMsgfwdType().getName();
-            RsuMsgFwdConfigDto configDto = toConfigDto(config);
+            MsgFwdConfigDto configDto = toConfigDto(config);
             String snmpIndex = String.valueOf(config.getId().getSnmpIndex());
 
             if (msgfwdType.equalsIgnoreCase(DSRC_TYPE)) {
@@ -68,35 +81,40 @@ public class RsuMsgFwdQueryService {
             }
         }
 
+        // Make sure both RX and TX objects are available if the RSU has NTCIP 1218 configurations
         if (rsuFwdSnmpwalk.containsKey(RECEIVED_TABLE) && !rsuFwdSnmpwalk.containsKey(XMIT_TABLE)) {
-            rsuFwdSnmpwalk.put(XMIT_TABLE, new HashMap<String, RsuMsgFwdConfigDto>());
+            rsuFwdSnmpwalk.put(XMIT_TABLE, new HashMap<String, MsgFwdConfigDto>());
         } else if (rsuFwdSnmpwalk.containsKey(XMIT_TABLE) && !rsuFwdSnmpwalk.containsKey(RECEIVED_TABLE)) {
-            rsuFwdSnmpwalk.put(RECEIVED_TABLE, new HashMap<String, RsuMsgFwdConfigDto>());
+            rsuFwdSnmpwalk.put(RECEIVED_TABLE, new HashMap<String, MsgFwdConfigDto>());
         }
 
-        return new RsuMsgFwdConfigsDto(rsuFwdSnmpwalk);
+        return new MsgFwdConfigsResponse(rsuFwdSnmpwalk);
     }
 
     @SuppressWarnings("unchecked")
-    private void putInTable(Map<String, Object> rsuFwdSnmpwalk, String tableName, String snmpIndex,
-            RsuMsgFwdConfigDto configDto) {
-        Map<String, RsuMsgFwdConfigDto> table = (Map<String, RsuMsgFwdConfigDto>) rsuFwdSnmpwalk
-                .computeIfAbsent(tableName, key -> new HashMap<String, RsuMsgFwdConfigDto>());
+    private static void putInTable(Map<String, Object> rsuFwdSnmpwalk, String tableName, String snmpIndex,
+            MsgFwdConfigDto configDto) {
+        Map<String, MsgFwdConfigDto> table = (Map<String, MsgFwdConfigDto>) rsuFwdSnmpwalk
+                .computeIfAbsent(tableName, key -> new HashMap<String, MsgFwdConfigDto>());
         table.put(snmpIndex, configDto);
     }
 
-    private RsuMsgFwdConfigDto toConfigDto(SnmpMsgfwdConfig config) {
-        return new RsuMsgFwdConfigDto(
+    private MsgFwdConfigDto toConfigDto(SnmpMsgfwdConfig config) {
+        return new MsgFwdConfigDto(
                 config.getMessageType().toUpperCase(),
                 config.getDestIpv4().getHostAddress(),
                 config.getDestPort(),
-                DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(config.getStartDatetime().atZone(DENVER_ZONE)),
-                DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(config.getEndDatetime().atZone(DENVER_ZONE)),
+                formatTimestamp(config.getStartDatetime()),
+                formatTimestamp(config.getEndDatetime()),
                 toEnabledDisabled(config.getActive()),
                 toEnabledDisabled(config.getSecurity()));
     }
 
-    private String toEnabledDisabled(boolean value) {
+    private String formatTimestamp(Instant timestamp) {
+        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timestamp.atZone(zoneId));
+    }
+
+    private static String toEnabledDisabled(boolean value) {
         return value ? "Enabled" : "Disabled";
     }
 }
