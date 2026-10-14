@@ -9,8 +9,15 @@ import {
   selectMsgFwdConfigType,
 
   // Actions
-  getCachedSnmpFwdConfigsFromDatabase, getRsuMsgConfigsFromRsu,
+  getRsuMsgConfigsFromRsu,
+  resetMsgFwdState,
 } from '../generalSlices/configSlice'
+import { selectOrganizationName } from '../generalSlices/userSlice'
+import {
+  RSU_MSG_FWD_QUERY_TAG,
+  rsuMsgFwdQueryApiSlice,
+  useGetRsuMsgFwdConfigsQuery,
+} from '../features/api/rsuMsgFwdQueryApiSlice'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import './css/SnmpwalkMenu.css'
 import {
@@ -25,8 +32,18 @@ import toast from 'react-hot-toast'
 const SnmpwalkMenu = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
 
-  const msgFwdConfig = useSelector(selectMsgFwdConfig)
+  const liveMsgFwdConfig = useSelector(selectMsgFwdConfig)
   const msgFwdConfigType = useSelector(selectMsgFwdConfigType)
+  const organization = useSelector(selectOrganizationName)
+  const rsuIp = useSelector(selectRsuIpv4)
+
+  const { data: cachedMsgFwdConfig = {}, refetch: refetchCachedMsgFwdConfig } = useGetRsuMsgFwdConfigsQuery(
+    { organization, rsuIp },
+    // Always re-read the database when the menu opens, as the previous thunk did
+    { skip: !organization || !rsuIp, refetchOnMountOrArgChange: true }
+  )
+  // Live configs come from the RSU via the Python /rsu-msgfwd-fetch endpoint; cached configs come from the database
+  const msgFwdConfig = msgFwdConfigType === 'rsu' ? liveMsgFwdConfig : cachedMsgFwdConfig
 
   const isConfigEmpty = React.useMemo(() => {
     if (!msgFwdConfig) return true
@@ -40,12 +57,15 @@ const SnmpwalkMenu = () => {
     return Object.keys(msgFwdConfig).length === 0
   }, [msgFwdConfig])
 
-  const rsuIp = useSelector(selectRsuIpv4)
-
   useEffect(() => {
-    // Refresh Data
-    dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+    // Show cached data for the newly selected RSU
+    dispatch(resetMsgFwdState())
   }, [rsuIp, dispatch])
+
+  const refreshCachedMsgFwdConfig = () => {
+    dispatch(resetMsgFwdState())
+    if (organization && rsuIp) refetchCachedMsgFwdConfig()
+  }
 
   const handleDelete = (countsMsgType: string, ip: string) => {
     const buttons = [
@@ -60,6 +80,7 @@ const SnmpwalkMenu = () => {
             })
           ).then((data: any) => {
             if (data.payload.changeSuccess) {
+              dispatch(rsuMsgFwdQueryApiSlice.util.invalidateTags([{ type: RSU_MSG_FWD_QUERY_TAG, id: rsuIp }]))
               toast.success('Successfully deleted SNMP forwarding')
             } else {
               toast.error('Failed to delete SNMP forwarding: ' + data.payload.errorState)
@@ -139,7 +160,7 @@ const SnmpwalkMenu = () => {
               dispatch(getRsuMsgConfigsFromRsu(rsuIp)).then((data: any) => {
                 if (getRsuMsgConfigsFromRsu.rejected.match(data)) {
                   toast.error('Failed to fetch RSU message forwarding configuration, loading cached data')
-                  dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+                  refreshCachedMsgFwdConfig()
                 } else if (getRsuMsgConfigsFromRsu.fulfilled.match(data)) {
                   toast.success('Successfully fetched RSU message forwarding configuration')
                 }

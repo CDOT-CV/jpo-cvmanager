@@ -46,19 +46,6 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getCachedRsuMsgFwdConfigsFromDatabase = async (
-    token: string,
-    org: string,
-    url_ext = '',
-    query_params: Record<string, string> = {}
-  ): Promise<RsuMsgFwdConfigs> =>
-    apiHelper._getData({
-      url: EnvironmentVars.rsuMsgFwdQueryEndpoint + url_ext,
-      token,
-      query_params,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
   getRsuMsgConfigsFromRsu = async (
     token: string,
     org: string,

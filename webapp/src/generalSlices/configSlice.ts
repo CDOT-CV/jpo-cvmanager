@@ -29,30 +29,6 @@ const initialState = {
   msgFwdConfigType: 'database' as 'database' | 'rsu',
 }
 
-export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
-  { msgFwdConfig: RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs; errorState: string },
-  string,
-  { state: RootState }
->('config/refreshSnmpFwdConfig', async (rsu_ip: string, { getState }) => {
-  const currentState = getState() as RootState
-  const token = selectToken(currentState)
-  const organization = selectOrganizationName(currentState)
-
-  const response = await RsuApi.getCachedRsuMsgFwdConfigsFromDatabase(token, organization, '', { rsu_ip })
-  if (!response) {
-    return {
-      msgFwdConfig: {},
-      errorState:
-        'Failed to retrieve RSU message forwarding configuration from database for RSU IP ${rsu_ip}: received empty or no response',
-    }
-  }
-
-  return {
-    msgFwdConfig: response.RsuFwdSnmpwalk,
-    errorState: '',
-  }
-})
-
 export const getRsuMsgConfigsFromRsu = createAsyncThunk<
   { msgFwdConfig: RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs; errorState: string },
   string,
@@ -327,6 +303,15 @@ export const configSlice = createSlice({
     value: initialState,
   },
   reducers: {
+    resetMsgFwdState: (state) => {
+      state.value.msgFwdConfig = {} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs
+      state.value.msgFwdConfigType = 'database'
+      state.value.errorState = ''
+      state.value.destIp = ''
+      state.value.snmpMsgType = 'bsm'
+      state.value.changeSuccess = false
+      state.value.rebootChangeSuccess = false
+    },
     setDestIp: (state, action) => {
       state.value.destIp = action.payload
     },
@@ -356,24 +341,6 @@ export const configSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getCachedSnmpFwdConfigsFromDatabase.pending, (state) => {
-        state.loading = true
-        state.value.msgFwdConfig = {} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs
-        state.value.errorState = ''
-        state.value.destIp = ''
-        state.value.snmpMsgType = 'bsm'
-        state.value.changeSuccess = false
-        state.value.rebootChangeSuccess = false
-      })
-      .addCase(getCachedSnmpFwdConfigsFromDatabase.fulfilled, (state, action) => {
-        state.loading = false
-        state.value.msgFwdConfig = action.payload.msgFwdConfig ?? ({} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs)
-        state.value.errorState = action.payload.errorState
-        state.value.msgFwdConfigType = 'database'
-      })
-      .addCase(getCachedSnmpFwdConfigsFromDatabase.rejected, (state) => {
-        state.loading = false
-      })
       .addCase(getRsuMsgConfigsFromRsu.pending, (state) => {
         state.loading = true
         state.value.msgFwdConfig = {} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs
@@ -501,6 +468,7 @@ export const selectConfigList = (state: RootState) => state.config.value.configL
 export const selectMsgFwdConfigType = (state: RootState) => state.config.value.msgFwdConfigType
 
 export const {
+  resetMsgFwdState,
   setDestIp,
   setMsgType,
   setIncludeSecurityHeader,

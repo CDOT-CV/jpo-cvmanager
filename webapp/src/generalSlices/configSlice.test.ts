@@ -1,5 +1,4 @@
 import reducer, {
-  getCachedSnmpFwdConfigsFromDatabase,
   getRsuMsgConfigsFromRsu,
   submitSnmpSet,
   deleteSnmpSet,
@@ -8,6 +7,7 @@ import reducer, {
   startFirmwareUpgrade,
 
   // reducers
+  resetMsgFwdState,
   setDestIp,
   setMsgType,
   toggleConfigPointSelect,
@@ -68,76 +68,6 @@ describe('async thunks', () => {
 
   afterAll(() => {
     jest.unmock('../apis/rsu-api')
-  })
-
-  describe('refreshSnmpFwdConfig', () => {
-    it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
-        user: {
-          value: {
-            authLoginData: { token: 'token' },
-            organization: { name: 'Org 1' },
-          },
-        },
-      })
-      RsuApi.getCachedRsuMsgFwdConfigsFromDatabase = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
-
-      const rsu_ip = '1.2.3.4'
-
-      const action = getCachedSnmpFwdConfigsFromDatabase(rsu_ip)
-
-      const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'Org 1', '', { rsu_ip })
-      expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
-    })
-
-    it('Updates the state correctly pending', async () => {
-      const loading = true
-      const msgFwdConfig = {}
-      const rebootChangeSuccess = false
-      const changeSuccess = false
-      const errorState = ''
-      const destIp = ''
-      const snmpMsgType = 'bsm'
-      const state = reducer(initialState, {
-        type: 'config/refreshSnmpFwdConfig/pending',
-      })
-      expect(state).toEqual({
-        loading,
-        value: {
-          ...initialState.value,
-          msgFwdConfig,
-          errorState,
-          rebootChangeSuccess,
-          changeSuccess,
-          destIp,
-          snmpMsgType,
-        },
-      })
-    })
-
-    it('Updates the state correctly fulfilled', async () => {
-      const loading = false
-      const msgFwdConfig = 'test'
-      const errorState = 'error'
-      const state = reducer(initialState, {
-        type: 'config/refreshSnmpFwdConfig/fulfilled',
-        payload: { msgFwdConfig, errorState },
-      })
-      expect(state).toEqual({
-        loading,
-        value: { ...initialState.value, msgFwdConfig, errorState, msgFwdConfigType: 'database' },
-      })
-    })
-
-    it('Updates the state correctly rejected', async () => {
-      const loading = false
-      const state = reducer(initialState, {
-        type: 'config/refreshSnmpFwdConfig/rejected',
-      })
-      expect(state).toEqual({ loading, value: { ...initialState.value } })
-    })
   })
 
   describe('getRsuMsgFwdFetch', () => {
@@ -1011,6 +941,36 @@ describe('reducers', () => {
     })
     expect(state.value.firmwareUpgradeErr).toBe(true)
     expect(state.value.firmwareUpgradeMsg).toBe(errorMsg)
+  })
+
+  it('resetMsgFwdState reducer clears message forwarding state and returns to the database source', async () => {
+    const dirtyState = {
+      ...initialState,
+      value: {
+        ...initialState.value,
+        msgFwdConfig: { 1: { 'Message Type': 'BSM' } },
+        msgFwdConfigType: 'rsu',
+        errorState: 'error',
+        destIp: '10.0.0.1',
+        snmpMsgType: 'map',
+        changeSuccess: true,
+        rebootChangeSuccess: true,
+      },
+    } as RootState['config']
+
+    expect(reducer(dirtyState, resetMsgFwdState())).toEqual({
+      ...dirtyState,
+      value: {
+        ...dirtyState.value,
+        msgFwdConfig: {},
+        msgFwdConfigType: 'database',
+        errorState: '',
+        destIp: '',
+        snmpMsgType: 'bsm',
+        changeSuccess: false,
+        rebootChangeSuccess: false,
+      },
+    })
   })
 
   it('setDestIp reducer updates state correctly', async () => {
