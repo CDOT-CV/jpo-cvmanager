@@ -1,6 +1,7 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Response;
 
@@ -20,9 +21,6 @@ import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
-import us.dot.its.jpo.ode.api.models.UserRole;
-import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
@@ -38,7 +36,6 @@ public class UserManagementService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
-    private final OrganizationRepository organizationRepository;
     private final UserMapper userMapper;
     private final UserPatchMapper userPatchMapper;
     private final KeycloakAdminConfig keycloakAdminConfig;
@@ -48,28 +45,23 @@ public class UserManagementService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email)));
     }
 
-    public Page<UserDto> getUsers(String orgName, String search, Pageable pageable) {
-        Page<User> users = userRepository.findAllByOrganization(orgName, search, pageable);
+    public Page<UserDto> getUsers(Organization organization, String search, Pageable pageable) {
+        Page<User> users = userRepository.findAllByOrganization(organization, search, pageable);
         return users.map(userMapper::toDto);
     }
 
-    public ModifyUserAllowedSelections getAllowedSelections(CvManagerAuthToken authToken) {
+    public ModifyUserAllowedSelections getAllowedSelections(List<Organization> qualifiedOrgs) {
         ModifyUserAllowedSelections allowed = new ModifyUserAllowedSelections();
 
         allowed.setRoles(roleRepository.findAllRoleNames());
 
-        if (authToken.isSuperUser()) {
-            allowed.setOrganizations(organizationRepository.findAll().stream().map(Organization::getName).toList());
-        } else {
-            allowed.setOrganizations(
-                    authToken.getQualifiedOrgList(UserRole.ADMIN).stream().map(Organization::getName).toList());
-        }
+        allowed.setOrganizations(qualifiedOrgs.stream().map(Organization::getId).toList());
 
         return allowed;
     }
 
     @Transactional
-    public User createUser(UserDto userDto) {
+    public User createUser(UserDto userDto, List<Organization> qualifiedOrgs) {
         UserRepresentation kcUser = new UserRepresentation();
         kcUser.setUsername(userDto.getEmail());
         kcUser.setEmail(userDto.getEmail());
@@ -101,37 +93,33 @@ public class UserManagementService {
         }
         User createdUser = userDto.isSuperUser() ? userRepository.save(user) : user;
 
-        var toCreate = userDto.getOrganizations().stream()
-                .map(userOrgDto -> createUserOrgRelationship(userOrgDto, createdUser))
-                .toList();
+        // trust that the controller's pre-authorization check ensures all orgs are
+        // qualified and exist
+        List<UserOrganization> toCreate = userDto.getOrganizations().stream().map(userOrgDto -> {
+            Organization organization = qualifiedOrgs.stream()
+                    .filter(org -> org.getId() == userOrgDto.getOrganization())
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                            "Organization not found or user not authorized for: " + userOrgDto.getOrganization()));
+            return createUserOrgRelationship(userOrgDto, createdUser, organization);
+        }).collect(Collectors.toList());
         userOrganizationRepository.saveAll(toCreate);
 
         return createdUser;
     }
 
-    public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user) {
-        Organization organization = organizationRepository.findByName(userOrgDto.getOrganization())
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Organization not found: " + userOrgDto.getOrganization()));
-
+    public UserOrganization createUserOrgRelationship(UserOrganizationDto userOrgDto, User user, Organization org) {
         Role role = roleRepository.findByNameIgnoreCase(userOrgDto.getRole())
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + userOrgDto.getRole()));
 
         UserOrganization userOrg = new UserOrganization();
-        userOrg.setOrganization(organization);
+        userOrg.setOrganization(org);
         userOrg.setUser(user);
         userOrg.setRole(role);
         return userOrg;
     }
 
     @Transactional
-    public UserDto modifyUser(String email, UserPatch userPatch, CvManagerAuthToken authToken) {
-        List<Organization> authorizedOrgs;
-        if (authToken.isSuperUser()) {
-            authorizedOrgs = organizationRepository.findAll();
-        } else {
-            authorizedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
-        }
+    public UserDto modifyUser(String email, UserPatch userPatch, List<Organization> qualifiedOrgs) {
 
         // 1. Find existing User by email
         User existingUser = userRepository.findByEmail(email)
@@ -141,7 +129,7 @@ public class UserManagementService {
         userPatchMapper.updateUserFromPatch(userPatch, existingUser);
 
         // 3. Handle organization additions/removals
-        handleOrganizationChanges(existingUser, userPatch, authorizedOrgs);
+        handleOrganizationChanges(existingUser, userPatch, qualifiedOrgs);
 
         // 4. Save updated entity (JPA handles UPDATE SQL)
         User savedUser = userRepository.save(existingUser);
@@ -178,16 +166,16 @@ public class UserManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<UserOrganizationDto> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add User to organization(s): "
-                        + String.join(", ", unqualifiedAdds.stream()
-                                .map(UserOrganizationDto::getOrganization).toList()));
+                        + unqualifiedAdds.stream().map(UserOrganizationDto::getOrganization).map(String::valueOf)
+                                .collect(Collectors.joining(", ")));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToAdd()) {
                 Organization organization = authorizedOrgs.stream()
-                        .filter(o -> o.getName().equals(org.getOrganization()))
+                        .filter(o -> o.getId().equals(org.getOrganization()))
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "Organization not found or user not authorized for: " + org.getOrganization()));
@@ -207,34 +195,46 @@ public class UserManagementService {
 
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
-            List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
+            List<Integer> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
-                        + String.join(", ", unqualifiedRemoves));
+                        + unqualifiedRemoves.stream().map(String::valueOf).collect(Collectors.joining(", ")));
             }
-            for (String org : patch.getOrganizationsToRemove()) {
+            for (Integer orgId : patch.getOrganizationsToRemove()) {
+                Organization orgEntity = authorizedOrgs.stream()
+                        .filter(o -> o.getId().equals(orgId))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + orgId));
                 // Find and delete the specific association
-                userOrganizationRepository.findByUserAndOrganization_Name(
+                userOrganizationRepository.findByUserAndOrganization(
                         user,
-                        org).ifPresent(userOrganizationRepository::delete);
+                        orgEntity).ifPresent(userOrganizationRepository::delete);
             }
         }
 
         if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
             List<UserOrganizationDto> unqualifiedModifications = patch.getOrganizationsToModify().stream()
-                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedModifications.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to modify User in organization(s): "
-                        + String.join(", ", unqualifiedModifications.stream()
-                                .map(UserOrganizationDto::getOrganization).toList()));
+                        + unqualifiedModifications.stream()
+                                .map(UserOrganizationDto::getOrganization)
+                                .map(String::valueOf)
+                                .collect(Collectors.joining(", ")));
             }
             for (UserOrganizationDto org : patch.getOrganizationsToModify()) {
-                userOrganizationRepository.findByUserAndOrganization_Name(
+                Organization orgEntity = authorizedOrgs.stream()
+                        .filter(o -> o.getId().equals(org.getOrganization()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Organization not found or user not authorized for: " + org.getOrganization()));
+                userOrganizationRepository.findByUserAndOrganization(
                         user,
-                        org.getOrganization()).ifPresentOrElse(userOrg -> {
+                        orgEntity).ifPresentOrElse(userOrg -> {
                             Role role = roleRepository.findByNameIgnoreCase(org.getRole())
                                     .orElseThrow(
                                             () -> new IllegalArgumentException(
@@ -242,10 +242,10 @@ public class UserManagementService {
                             userOrg.setRole(role);
                             userOrganizationRepository.save(userOrg);
                         },
-                        () -> new IllegalArgumentException(
-                                "User is not associated with organization: " + org.getOrganization()));
+                                () -> new IllegalArgumentException(
+                                        "User is not associated with organization: " + org.getOrganization()));
             }
-                            
+
         }
     }
 

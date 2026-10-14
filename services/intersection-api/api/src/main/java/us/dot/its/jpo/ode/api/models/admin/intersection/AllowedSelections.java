@@ -19,9 +19,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AllowedSelections {
-    @Schema(description = "Organization names available for assignment")
+    @Schema(description = "Organization IDs available for assignment")
     @JsonProperty("organizations")
-    private List<String> organizations;
+    private List<Integer> organizations;
 
     @Schema(description = "RSU IP addresses available for assignment")
     @JsonProperty("rsus")
