@@ -19,7 +19,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 
 @Repository
-public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID> {
+public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, UUID>, UploadLifecycleRepository {
     @Query(value = """
             select distinct on (object_name) * from firmware_uploads
             where storage_provider = :provider and storage_container = :container
@@ -51,6 +51,7 @@ public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, 
     @Query("select upload from FirmwareUpload upload where upload.id = :id")
     Optional<FirmwareUpload> findByIdForUpdate(@Param("id") UUID id);
 
+    @Override
     @Modifying
     @Transactional
     @Query("""
@@ -68,6 +69,7 @@ public interface FirmwareUploadRepository extends JpaRepository<FirmwareUpload, 
             @Param("finishedAt") Instant finishedAt,
             @Param("failureReason") String failureReason);
 
+    @Override
     @Modifying
     @Transactional
     @Query("""

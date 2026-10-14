@@ -10,11 +10,12 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
-import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.repositories.UploadLifecycleRepository;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadCleanupProperties;
 
 /**
- * Expires abandoned upload intents and removes old unsuccessful upload history.
+ * Expires abandoned upload intents and removes old unsuccessful upload history
+ * from every firmware upload table.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,7 +26,7 @@ public class FirmwareUploadCleanupTask {
     private static final List<FirmwareUploadStatus> PURGEABLE_STATUSES = List.of(
             FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED);
 
-    private final FirmwareUploadRepository firmwareUploadRepository;
+    private final List<UploadLifecycleRepository> uploadRepositories;
     private final FirmwareUploadCleanupProperties properties;
 
     @Scheduled(fixedDelayString = "${firmware-upload.cleanup.interval:1h}")
@@ -39,18 +40,21 @@ public class FirmwareUploadCleanupTask {
         // Keep a grace period after URL expiration for uploads that began shortly
         // before the signed URL expired and still need their completion call
         Instant expirationCutoff = now.minus(properties.getExpirationGrace());
-        int expired = firmwareUploadRepository.expirePendingUploads(
-                FirmwareUploadStatus.PENDING,
-                FirmwareUploadStatus.EXPIRED,
-                expirationCutoff,
-                now,
-                EXPIRATION_REASON);
-
         // Retain unsuccessful rows temporarily for diagnosis, then purge them.
         // VERIFIED upload records are deliberately excluded from this operation
         Instant retentionCutoff = now.minus(properties.getRetention());
-        int deleted = firmwareUploadRepository.deleteFinishedUploadsBefore(
-                PURGEABLE_STATUSES, retentionCutoff);
+
+        int expired = 0;
+        int deleted = 0;
+        for (UploadLifecycleRepository repository : uploadRepositories) {
+            expired += repository.expirePendingUploads(
+                    FirmwareUploadStatus.PENDING,
+                    FirmwareUploadStatus.EXPIRED,
+                    expirationCutoff,
+                    now,
+                    EXPIRATION_REASON);
+            deleted += repository.deleteFinishedUploadsBefore(PURGEABLE_STATUSES, retentionCutoff);
+        }
 
         if (expired > 0 || deleted > 0) {
             log.info("Firmware upload cleanup expired {} pending rows and deleted {} retained finished rows",
