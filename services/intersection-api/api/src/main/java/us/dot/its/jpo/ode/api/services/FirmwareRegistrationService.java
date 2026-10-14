@@ -57,10 +57,7 @@ public class FirmwareRegistrationService {
         // Completion is idempotent. An upload not yet verified needs its observed storage
         // metadata checked and its verification state updated
         if (upload.getStatus() != FirmwareUploadStatus.VERIFIED) {
-            if (metadata == null || metadata.contentLength() != upload.getExpectedSize()
-                    || metadata.checksum() == null
-                    || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
-                    || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
+            if (!FirmwareUploadSupport.matches(upload, metadata)) {
                 throw new FirmwareUploadVerificationException("Firmware metadata does not match the upload intent");
             }
             upload.setStatus(FirmwareUploadStatus.VERIFIED);

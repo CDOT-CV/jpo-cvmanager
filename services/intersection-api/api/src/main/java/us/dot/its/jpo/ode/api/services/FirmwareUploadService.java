@@ -1,5 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.isConstraintViolation;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesChecksum;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesSize;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.normalizeCreatedBy;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validatePathSegment;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validateSignedLocation;
+
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -7,9 +14,7 @@ import java.util.UUID;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.mappers.FirmwareUploadMapper;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
@@ -36,7 +41,10 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 @Service
 @RequiredArgsConstructor
 public class FirmwareUploadService {
-    private static final String ACTIVE_DESTINATION_INDEX = "uq_firmware_uploads_active_destination";
+    private static final String[] ACTIVE_DESTINATION_CONSTRAINTS = {
+            "uq_firmware_uploads_active_destination",
+            "uq_firmware_uploads_active_model_version",
+            "firmware_images_model_version_unique"};
     private static final String DESTINATION_EXISTS_MESSAGE =
             "Firmware already exists for this manufacturer, model, and version";
 
@@ -131,16 +139,12 @@ public class FirmwareUploadService {
                                 + "requesting verification."));
 
         // Verification requires both the expected byte size and the exact checksum
-        // Comparing the algorithm prevents equal looking values from different hash
-        // formats from being treated as equivalent
-        if (metadata.contentLength() != upload.getExpectedSize()) {
+        if (!matchesSize(upload, metadata)) {
             markFailed(upload, "SIZE_MISMATCH");
             throw new FirmwareUploadVerificationException(
                     "Uploaded object size does not match content_length");
         }
-        if (metadata.checksum() == null
-                || !upload.getChecksumAlgorithm().equalsIgnoreCase(metadata.checksum().algorithm())
-                || !upload.getExpectedChecksum().equals(metadata.checksum().value())) {
+        if (!matchesChecksum(upload, metadata)) {
             markFailed(upload, "CHECKSUM_MISMATCH");
             throw new FirmwareUploadVerificationException(
                     "Uploaded object checksum does not match the expected checksum");
@@ -173,17 +177,7 @@ public class FirmwareUploadService {
     }
 
     private boolean isActiveDestinationConflict(Throwable exception) {
-        Throwable cause = exception;
-        while (cause != null) {
-            String message = cause.getMessage();
-            if (message != null && (message.toLowerCase(Locale.ROOT).contains(ACTIVE_DESTINATION_INDEX)
-                    || message.contains("uq_firmware_uploads_active_model_version")
-                    || message.contains("firmware_images_model_version_unique"))) {
-                return true;
-            }
-            cause = cause.getCause();
-        }
-        return false;
+        return isConstraintViolation(exception, ACTIVE_DESTINATION_CONSTRAINTS);
     }
 
     private String buildStoredFileName(FirmwareUploadUrlRequest request, RsuModel model) {
@@ -215,35 +209,6 @@ public class FirmwareUploadService {
                 validatePathSegment(request.getModelName(), "model_name"),
                 validatePathSegment(request.getVersion(), "version"),
                 storedFileName);
-    }
-
-    private String validatePathSegment(String value, String fieldName) {
-        String segment = value == null ? "" : value.trim();
-        if (segment.isEmpty() || ".".equals(segment) || "..".equals(segment)
-                || segment.indexOf('/') >= 0 || segment.indexOf('\\') >= 0
-                || segment.chars().anyMatch(Character::isISOControl)) {
-            throw new IllegalArgumentException(fieldName + " must be a valid object path segment");
-        }
-        return segment;
-    }
-
-    private void validateSignedLocation(
-            ObjectStorageService service, ObjectStorageLocation location, String requestedObjectName) {
-        if (location == null
-                || !service.providerName().equalsIgnoreCase(location.provider())
-                || location.container() == null || location.container().isBlank()
-                || !requestedObjectName.equals(location.objectName())) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Object storage returned an invalid upload location");
-        }
-    }
-
-    private String normalizeCreatedBy(String createdBy) {
-        if (createdBy == null || createdBy.isBlank()) {
-            return "unknown";
-        }
-        String normalized = createdBy.trim();
-        return normalized.length() <= 255 ? normalized : normalized.substring(0, 255);
     }
 
     public static class FirmwareUploadConfigurationException extends RuntimeException {

@@ -21,7 +21,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "firmware_uploads")
-public class FirmwareUpload {
+public class FirmwareUpload implements VerifiableUpload {
     @Id
     @Column(name = "upload_id", nullable = false)
     private UUID id;

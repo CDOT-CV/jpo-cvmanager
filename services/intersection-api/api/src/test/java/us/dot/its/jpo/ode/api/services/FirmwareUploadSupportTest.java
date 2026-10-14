@@ -1,0 +1,139 @@
+package us.dot.its.jpo.ode.api.services;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.models.storage.ObjectChecksum;
+import us.dot.its.jpo.ode.api.models.storage.ObjectStorageLocation;
+import us.dot.its.jpo.ode.api.models.storage.StorageObject;
+import us.dot.its.jpo.ode.api.models.storage.StoredObjectMetadata;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
+
+class FirmwareUploadSupportTest {
+    private static final Instant NOW = Instant.parse("2026-09-03T20:00:00Z");
+
+    private FirmwareUpload upload;
+
+    @BeforeEach
+    void setUp() {
+        upload = new FirmwareUpload();
+        upload.setExpectedSize(1024L);
+        upload.setChecksumAlgorithm("CRC32C");
+        upload.setExpectedChecksum("ImIEBA==");
+        upload.setObservedChecksum("ImIEBA==");
+        upload.setProviderObjectVersion("17");
+        upload.setStatus(FirmwareUploadStatus.VERIFIED);
+        upload.setExpiresAt(NOW.minusSeconds(1));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = { " ", ".", "..", "dir/file", "dir\\file", "file\u0001name" })
+    void rejectsUnsafePathSegments(String segment) {
+        assertThatThrownBy(() -> FirmwareUploadSupport.validatePathSegment(segment, "file_name"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("file_name must be a valid object path segment");
+    }
+
+    @Test
+    void trimsValidPathSegments() {
+        assertThat(FirmwareUploadSupport.validatePathSegment(" y20.48.2 ", "version")).isEqualTo("y20.48.2");
+    }
+
+    @Test
+    void normalizesCreator() {
+        assertThat(FirmwareUploadSupport.normalizeCreatedBy(null)).isEqualTo("unknown");
+        assertThat(FirmwareUploadSupport.normalizeCreatedBy("  ")).isEqualTo("unknown");
+        assertThat(FirmwareUploadSupport.normalizeCreatedBy(" admin ")).isEqualTo("admin");
+        assertThat(FirmwareUploadSupport.normalizeCreatedBy("a".repeat(300))).hasSize(255);
+    }
+
+    @Test
+    void validatesSignedLocationAgainstTheRequestedDestination() {
+        ObjectStorageService service = mock(ObjectStorageService.class);
+        when(service.providerName()).thenReturn("gcp");
+
+        FirmwareUploadSupport.validateSignedLocation(service,
+                new ObjectStorageLocation("GCP", "bucket", "ota/file"), "ota/file");
+        assertThatThrownBy(() -> FirmwareUploadSupport.validateSignedLocation(service,
+                new ObjectStorageLocation("gcp", "bucket", "other"), "ota/file"))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_GATEWAY);
+    }
+
+    @Test
+    void findsConstraintNamesAnywhereInTheCauseChain() {
+        var nested = new RuntimeException("wrapper", new RuntimeException(
+                "duplicate key value violates unique constraint \"UQ_OBU_FIRMWARE_UPLOADS_ACTIVE_FILE_NAME\""));
+
+        assertThat(FirmwareUploadSupport.isConstraintViolation(nested,
+                "uq_obu_firmware_uploads_active_destination", "uq_obu_firmware_uploads_active_file_name")).isTrue();
+        assertThat(FirmwareUploadSupport.isConstraintViolation(nested, "other_constraint")).isFalse();
+        assertThat(FirmwareUploadSupport.isConstraintViolation(new RuntimeException(), "other_constraint"))
+                .isFalse();
+    }
+
+    @Test
+    void matchesStoredMetadataBySizeChecksumAndAlgorithm() {
+        var checksum = new ObjectChecksum("crc32c", "ImIEBA==");
+
+        assertThat(FirmwareUploadSupport.matches(upload, new StoredObjectMetadata(1024, checksum, "17"))).isTrue();
+        assertThat(FirmwareUploadSupport.matches(upload, null)).isFalse();
+        assertThat(FirmwareUploadSupport.matchesSize(upload, new StoredObjectMetadata(1023, checksum, "17")))
+                .isFalse();
+        assertThat(FirmwareUploadSupport.matchesChecksum(upload, new StoredObjectMetadata(1024, null, "17")))
+                .isFalse();
+        assertThat(FirmwareUploadSupport.matchesChecksum(upload,
+                new StoredObjectMetadata(1024, new ObjectChecksum("MD5", "ImIEBA=="), "17"))).isFalse();
+        assertThat(FirmwareUploadSupport.matchesChecksum(upload,
+                new StoredObjectMetadata(1024, new ObjectChecksum("CRC32C", "other"), "17"))).isFalse();
+    }
+
+    @Test
+    void matchesOnlyTheListedObjectVersionThatWasVerified() {
+        var checksum = new ObjectChecksum("CRC32C", "ImIEBA==");
+
+        assertThat(FirmwareUploadSupport.matchesListedObject(upload,
+                new StorageObject("ota/file", 1024, NOW, "17", checksum))).isTrue();
+        assertThat(FirmwareUploadSupport.matchesListedObject(upload,
+                new StorageObject("ota/file", 1024, NOW, "18", checksum))).isFalse();
+        assertThat(FirmwareUploadSupport.matchesListedObject(upload,
+                new StorageObject("ota/file", 1024, NOW, "17", null))).isFalse();
+
+        upload.setStatus(FirmwareUploadStatus.PENDING);
+        assertThat(FirmwareUploadSupport.matchesListedObject(upload,
+                new StorageObject("ota/file", 1024, NOW, "17", checksum))).isFalse();
+    }
+
+    @Test
+    void reportsTheLatestLiveUploadUrl() {
+        var expired = new FirmwareUpload();
+        expired.setExpiresAt(NOW.minusSeconds(60));
+        var soon = new FirmwareUpload();
+        soon.setExpiresAt(NOW.plusSeconds(30));
+        var later = new FirmwareUpload();
+        later.setExpiresAt(NOW.plusSeconds(150));
+
+        assertThat(FirmwareUploadSupport.liveUploadUrlMessage(List.of(expired), NOW)).isEmpty();
+        assertThat(FirmwareUploadSupport.liveUploadUrlMessage(List.of(expired, soon), NOW))
+                .contains("An upload URL for this firmware is still valid. Try again in 1 minute.");
+        assertThat(FirmwareUploadSupport.liveUploadUrlMessage(List.of(soon, later), NOW))
+                .contains("An upload URL for this firmware is still valid. Try again in 3 minutes.");
+    }
+}

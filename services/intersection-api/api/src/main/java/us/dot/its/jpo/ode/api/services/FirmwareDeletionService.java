@@ -1,8 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Locale;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,7 +14,7 @@ import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
-import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUpload;
+import us.dot.its.jpo.ode.api.storage.ObjectIds;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 
 @Service
@@ -43,23 +41,14 @@ public class FirmwareDeletionService {
     }
 
     private void deleteRecordsAndObject(String objectId, String providerObjectVersion) {
-        String[] identity;
-        try {
-            identity = new String(Base64.getUrlDecoder().decode(objectId), StandardCharsets.UTF_8).split("\n", 2);
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid firmware object ID");
-        }
-        if (identity.length != 2 || identity[1].isBlank() || identity[1].endsWith("/")
-                || identity[1].chars().anyMatch(Character::isISOControl)) {
-            throw new IllegalArgumentException("Invalid firmware object ID");
-        }
-        String objectName = identity[1];
+        var identity = ObjectIds.decode(objectId);
+        String objectName = identity.objectName();
         if (objectName.split("/", 2)[0].toLowerCase(Locale.ROOT).equals("ota")) {
             throw new IllegalArgumentException("OBU firmware cannot be deleted through the RSU firmware API");
         }
 
         var service = storage.getActiveService();
-        if (!service.providerName().equals(identity[0])) {
+        if (!service.providerName().equals(identity.provider())) {
             throw new FirmwareDeletionConflictException("The storage provider changed. Refresh the firmware table.");
         }
         var location = service.getLocation(objectName);
@@ -67,18 +56,9 @@ public class FirmwareDeletionService {
         // Lock uploads before images, matching completion's lock order. An issued
         // upload URL remains usable even after verification or failure.
         var records = uploads.findDestinationForUpdate(location.provider(), location.container(), objectName);
-        Instant now = Instant.now();
-        var latestActiveExpiration = records.stream()
-                .map(FirmwareUpload::getExpiresAt)
-                .filter(expiration -> expiration.isAfter(now))
-                .max(Instant::compareTo);
-        if (latestActiveExpiration.isPresent()) {
-            long remainingMillis = latestActiveExpiration.get().toEpochMilli() - now.toEpochMilli();
-            long remainingMinutes = Math.max(1, Math.ceilDiv(remainingMillis, 60_000L));
-            String minuteLabel = remainingMinutes == 1 ? "minute" : "minutes";
-            throw new FirmwareDeletionConflictException(
-                    "An upload URL for this firmware is still valid. Try again in "
-                            + remainingMinutes + " " + minuteLabel + ".");
+        var liveUploadUrl = FirmwareUploadSupport.liveUploadUrlMessage(records, Instant.now());
+        if (liveUploadUrl.isPresent()) {
+            throw new FirmwareDeletionConflictException(liveUploadUrl.get());
         }
         var registeredImages = images.findDestinationForUpdate(location.provider(), location.container(), objectName);
         var imageIds = registeredImages.stream().map(FirmwareImage::getId).toList();
