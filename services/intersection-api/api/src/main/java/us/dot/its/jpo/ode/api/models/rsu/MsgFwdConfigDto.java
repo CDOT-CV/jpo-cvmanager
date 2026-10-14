@@ -5,11 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * A single SNMP message-forwarding configuration entry.
- * Field names and value formats mirror the entry shape produced by the Python
- * rsu_message_forward_helpers.format_snmp_msgfwd_configs function.
- */
 @Getter
 @AllArgsConstructor
 @Schema(description = "A single SNMP message forwarding configuration for an RSU")

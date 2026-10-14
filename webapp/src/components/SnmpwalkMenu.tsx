@@ -39,10 +39,9 @@ const SnmpwalkMenu = () => {
 
   const { data: cachedMsgFwdConfig = {}, refetch: refetchCachedMsgFwdConfig } = useGetRsuMsgFwdConfigsQuery(
     { organization, rsuIp },
-    // Always re-read the database when the menu opens, as the previous thunk did
     { skip: !organization || !rsuIp, refetchOnMountOrArgChange: true }
   )
-  // Live configs come from the RSU via the Python /rsu-msgfwd-fetch endpoint; cached configs come from the database
+
   const msgFwdConfig = msgFwdConfigType === 'rsu' ? liveMsgFwdConfig : cachedMsgFwdConfig
 
   const isConfigEmpty = React.useMemo(() => {

@@ -9,8 +9,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * Response wrapper for the RSU message-forwarding configuration query.
- * <p>The shape matches the original Python {@code /rsu-msgfwd-query} response and the live
- * {@code /rsu-msgfwd-fetch} response, since the webapp renders both with the same component.
  * The map's values are either:</p>
  * <ul>
  *   <li>a {@link MsgFwdConfigDto} keyed by snmp_index (rsuDsrcFwd configurations), or</li>

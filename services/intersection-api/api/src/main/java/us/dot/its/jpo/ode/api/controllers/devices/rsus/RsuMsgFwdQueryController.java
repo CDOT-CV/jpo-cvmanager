@@ -37,8 +37,6 @@ public class RsuMsgFwdQueryController {
                     description = "Organization header is missing, or the user lacks the USER role in the organization or access to the RSU")
     })
     @GetMapping(produces = "application/json")
-    // The Organization header is optional at the binding level so that a missing header is
-    // rejected with 403, matching the original Python endpoint's organization_required check.
     @PreAuthorize("#organization != null && (@PermissionService.isSuperUser() || "
             + "(@PermissionService.hasRsu(#rsuIp, 'USER') and @PermissionService.hasRole('USER')))")
     public MsgFwdConfigsResponse getMsgFwdConfigs(

@@ -35,22 +35,12 @@ public class RsuMsgFwdQueryService {
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final ZoneId zoneId;
 
-    /**
-     * @param timezone IANA timezone used to format configuration timestamps. Matches the Python
-     *                 API's TIMEZONE environment variable, which also falls back to America/Denver
-     *                 when unset or blank.
-     */
     public RsuMsgFwdQueryService(SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository,
             @Value("${cvmanager.timezone:" + DEFAULT_TIMEZONE + "}") String timezone) {
         this.snmpMsgfwdConfigRepository = snmpMsgfwdConfigRepository;
         this.zoneId = ZoneId.of(timezone == null || timezone.isBlank() ? DEFAULT_TIMEZONE : timezone);
     }
 
-    /**
-     * Returns the SNMP message-forwarding configurations stored in the database for the given
-     * RSU within the given organization, grouped the same way as the Python
-     * rsu_message_forward_helpers.format_snmp_msgfwd_configs function.
-     */
     @Transactional(readOnly = true)
     public MsgFwdConfigsResponse getMsgFwdConfigs(String rsuIp, String organization) {
         InetAddress ipv4Address;
