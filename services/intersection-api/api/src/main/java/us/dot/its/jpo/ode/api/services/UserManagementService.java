@@ -102,13 +102,6 @@ public class UserManagementService {
                             "Organization not found or user not authorized for: " + userOrgDto.getOrganization()));
             return createUserOrgRelationship(userOrgDto, createdUser, organization);
         }).collect(Collectors.toList());
-        for (UserOrganizationDto userOrgDto : userDto.getOrganizations()) {
-            Organization organization = qualifiedOrgs.stream()
-                    .filter(org -> org.getId() == userOrgDto.getOrganization())
-                    .findFirst().orElseThrow(() -> new IllegalArgumentException(
-                            "Organization not found or user not authorized for: " + userOrgDto.getOrganization()));
-            toCreate.add(createUserOrgRelationship(userOrgDto, createdUser, organization));
-        }
         userOrganizationRepository.saveAll(toCreate);
 
         return createdUser;
