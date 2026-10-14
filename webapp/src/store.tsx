@@ -28,6 +28,7 @@ import { subscriptionManagementApiSlice } from './features/api/subscriptionManag
 import { rsuApiSlice } from './features/api/rsuApiSlice'
 import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
 import { rsuMsgFwdQueryApiSlice } from './features/api/rsuMsgFwdQueryApiSlice'
+import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
@@ -70,6 +71,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
       [rsuOnlineStatusApiSlice.reducerPath]: rsuOnlineStatusApiSlice.reducer,
       [rsuMsgFwdQueryApiSlice.reducerPath]: rsuMsgFwdQueryApiSlice.reducer,
+      [geoMsgApiSlice.reducerPath]: geoMsgApiSlice.reducer,
       [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
@@ -93,6 +95,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(rsuApiSlice.middleware)
         .concat(rsuOnlineStatusApiSlice.middleware)
         .concat(rsuMsgFwdQueryApiSlice.middleware)
+        .concat(geoMsgApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)

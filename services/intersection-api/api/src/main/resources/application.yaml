@@ -60,7 +60,7 @@ spring:
   mongodb:
     database: ${CM_DATABASE_NAME:CV}
     host: ${DB_HOST_IP:mongo}
-    port: 27017
+    port: ${DB_HOST_PORT:27017}
     username: ${MONGO_READ_WRITE_USER:ode}
     password: ${MONGO_READ_WRITE_PASS:replace_me}
     authentication-database: ${CM_MONGO_AUTH_DB:admin}
@@ -109,6 +109,13 @@ enable:
   report: ${INTERSECTION_API_ENABLE_REPORTS:true}
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
+
+# Processed RSU message query settings. Standalone defaults match the historical Python API.
+geo-query:
+  enabled: ${ENABLE_RSU_FEATURES:true}
+  bsm-collection: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:ProcessedBsm}
+  psm-collection: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:ProcessedPsm}
+  max-records: ${MAX_GEO_QUERY_RECORDS:}
 
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
