@@ -188,6 +188,21 @@ class FirmwareUploadServiceTest {
         verify(objectStorageService, never()).createSignedUploadUrl(any());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "ota", "OTA" })
+    void rejectsVendorReservedForObuFirmware(String vendor) {
+        // A manufacturer named "ota" would write into the OBU firmware hierarchy
+        when(rsuModelRepository.findByNameAndManufacturerName("ITS-RS4-M", vendor))
+                .thenReturn(Optional.of(model));
+        request.setVendorName(vendor);
+
+        assertThatThrownBy(() -> service.createFirmwareSignedUploadUrl(request, "admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("vendor_name is reserved for OBU firmware");
+        verify(objectStorageService, never()).createSignedUploadUrl(any());
+        verify(firmwareUploadRepository, never()).save(any());
+    }
+
     @Test
     void rejectsFileWithoutManufacturerExtension() {
         request.setFileName("firmware.tar");

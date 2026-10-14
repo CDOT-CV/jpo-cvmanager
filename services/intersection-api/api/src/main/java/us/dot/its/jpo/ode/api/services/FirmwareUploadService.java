@@ -41,6 +41,8 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 @Service
 @RequiredArgsConstructor
 public class FirmwareUploadService {
+    // Object names beneath this root are reserved for OBU firmware
+    static final String RESERVED_OBU_ROOT = "ota";
     private static final String[] ACTIVE_DESTINATION_CONSTRAINTS = {
             "uq_firmware_uploads_active_destination",
             "uq_firmware_uploads_active_model_version",
@@ -204,8 +206,12 @@ public class FirmwareUploadService {
     }
 
     private String buildObjectName(FirmwareUploadUrlRequest request, String storedFileName) {
+        String vendor = validatePathSegment(request.getVendorName(), "vendor_name");
+        if (RESERVED_OBU_ROOT.equals(vendor.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("vendor_name is reserved for OBU firmware");
+        }
         return String.join("/",
-                validatePathSegment(request.getVendorName(), "vendor_name"),
+                vendor,
                 validatePathSegment(request.getModelName(), "model_name"),
                 validatePathSegment(request.getVersion(), "version"),
                 storedFileName);
