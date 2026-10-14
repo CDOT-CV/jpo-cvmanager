@@ -124,6 +124,23 @@ def test_init_connection_engine_target_tcp():
     pgquery.init_socket_connection_engine.assert_not_called()
 
 
+# test that a host without a port uses the default PostgreSQL port
+@patch("common.common_environment.PG_DB_USER", "user")
+@patch("common.common_environment.PG_DB_PASS", "pass")
+@patch("common.common_environment.PG_DB_NAME", "my_database")
+@patch("common.common_environment.PG_DB_HOST", "my_hostname")
+@patch("common.common_environment.INSTANCE_CONNECTION_NAME", None)
+def test_init_connection_engine_target_tcp_default_port():
+    pgquery.init_tcp_connection_engine = MagicMock(return_value="my_engine1")
+
+    engine_pool = pgquery.init_connection_engine()
+
+    assert engine_pool == "my_engine1"
+    pgquery.init_tcp_connection_engine.assert_called_once_with(
+        "user", "pass", "my_database", "my_hostname", 5432
+    )
+
+
 # test initializing socket connection engine based on environment variables
 @patch(
     "common.pgquery.db_config",

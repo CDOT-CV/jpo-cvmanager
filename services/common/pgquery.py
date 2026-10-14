@@ -72,9 +72,9 @@ def init_connection_engine():
     else:
         logging.debug("Using tcp connection")
         db_host = common_environment.PG_DB_HOST
-        # Extract host and port from db_host
-        host_args = db_host.split(":")
-        db_hostname, db_port = host_args[0], int(host_args[1])
+        # Extract host and port from db_host, defaulting to the standard PostgreSQL port
+        db_hostname, _, port = db_host.partition(":")
+        db_port = int(port) if port else 5432
         return init_tcp_connection_engine(
             db_user, db_pass, db_name, db_hostname, db_port
         )
