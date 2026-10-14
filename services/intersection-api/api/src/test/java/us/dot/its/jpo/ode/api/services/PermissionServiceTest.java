@@ -17,7 +17,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
@@ -329,7 +328,7 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
@@ -346,14 +345,14 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
         verify(rsuRepository)
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"),
-                        List.of(testOrg));
+                        RsuManagementService.toIpv4Address("192.168.1.1"),
+                                List.of(testOrg));
     }
 
     @Test
@@ -364,7 +363,7 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
@@ -389,7 +388,8 @@ class PermissionServiceTest {
         setupRequestWithHeaders(tokenString, "TestOrg");
 
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
-        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
@@ -403,11 +403,13 @@ class PermissionServiceTest {
         setupRequestWithHeaders(tokenString, "TestOrg");
 
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
-        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(false);
 
         assertFalse(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
-        verify(rsuRepository).existsByIpv4AddressAndCredentialOwnerOrganizationIn(InetAddress.getByName("192.168.1.1"),
+        verify(rsuRepository).existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                        RsuManagementService.toIpv4Address("192.168.1.1"),
                 List.of(testOrg));
     }
 
@@ -417,7 +419,8 @@ class PermissionServiceTest {
         when(authToken.isSuperUser()).thenReturn(false);
 
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
-        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
@@ -442,7 +445,8 @@ class PermissionServiceTest {
 
         setupRequestWithHeaders(tokenString, "TestOrg");
 
-        List<InetAddress> ips = List.of(InetAddress.getByName("192.168.1.1"), InetAddress.getByName("192.168.1.2"));
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+                RsuManagementService.toIpv4Address("192.168.1.2"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
 
@@ -458,11 +462,11 @@ class PermissionServiceTest {
 
         setupRequestWithHeaders(tokenString, "TestOrg");
 
-        List<InetAddress> requestedIps = List.of(InetAddress.getByName("192.168.1.1"),
-                InetAddress.getByName("192.168.1.2"));
+        List<InetAddress> requestedIps = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+                RsuManagementService.toIpv4Address("192.168.1.2"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), requestedIps))
-                .thenReturn(List.of(InetAddress.getByName("192.168.1.1")));
+                .thenReturn(List.of(RsuManagementService.toIpv4Address("192.168.1.1")));
 
         List<String> unauthorized = permissionService.findUnauthorizedRsus(
                 List.of("192.168.1.1", "192.168.1.2"), "OPERATOR");
@@ -475,7 +479,7 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        List<InetAddress> ips = List.of(InetAddress.getByName("192.168.1.1"));
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
 
@@ -513,7 +517,7 @@ class PermissionServiceTest {
 
     @Test
     void testFindUnauthorizedRsus_InvalidIp_ThrowsBadRequest() {
-        assertThrows(ResponseStatusException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> permissionService.findUnauthorizedRsus(List.of("not-a-valid-ip"), "OPERATOR"));
     }
 
