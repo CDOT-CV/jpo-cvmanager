@@ -388,7 +388,7 @@ public class RsuManagementService {
     }
 
     public static InetAddress toIpv4Address(String ip) {
-        if (!ip.matches(IPV4_PATTERN)) {
+        if (ip == null || !ip.matches(IPV4_PATTERN)) {
             throw new IllegalArgumentException("Invalid IP address, should be like #.#.#.#, but was " + ip);
         }
         try {
