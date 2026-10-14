@@ -117,6 +117,10 @@ geo-query:
   psm-collection: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:ProcessedPsm}
   max-records: ${MAX_GEO_QUERY_RECORDS:}
 
+# IANA timezone used when formatting timestamps in API responses
+cvmanager:
+  timezone: ${TIMEZONE:America/Denver}
+
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'

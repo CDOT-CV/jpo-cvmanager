@@ -103,6 +103,10 @@ mongoTimeoutMs: 5000
 cors: '*'
 maximumResponseSize: 10000
 
+# IANA timezone used when formatting timestamps in API responses
+cvmanager:
+  timezone: America/Denver
+
 bucket4j:
   enabled: false
   filters:

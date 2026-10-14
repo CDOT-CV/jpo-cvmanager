@@ -422,7 +422,7 @@ Note that it is recommended to work with the Python API from a [virtual environm
 - API_LOGGING_LEVEL: The level of which the CV Manager API will log. (DEBUG, INFO, WARNING, ERROR)
 - WZDX_ENDPOINT: WZDX datafeed endpoint.
 - WZDX_API_KEY: API key for the WZDX datafeed.
-- TIMEZONE: Timezone to be used for the API.
+- TIMEZONE: Timezone used by the CV Manager API and the Java Intersection API when formatting timestamps. Defaults to America/Denver.
 - GOOGLE_APPLICATION_CREDENTIALS: Path to the GCP service account credentials file. Attached as a volume to the CV manager API service.
 
 <b>PostgreSQL Variables</b>
