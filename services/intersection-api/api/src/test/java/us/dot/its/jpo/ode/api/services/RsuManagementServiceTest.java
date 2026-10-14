@@ -45,6 +45,7 @@ import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 import java.net.InetAddress;
+import java.net.Inet6Address;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Arrays;
@@ -188,6 +189,32 @@ class RsuManagementServiceTest {
         assertTrue(exception.getMessage()
                 .equals("Invalid IP address, should be like #.#.#.#, but was " + invalidIpAddress));
         verify(rsuRepository, never()).findByIpv4Address(any());
+    }
+
+    @Test
+    void testToIpv4Address_NullIpAddress() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> RsuManagementService.toIpv4Address(null));
+
+        assertEquals("Invalid IP address, should be like #.#.#.#, but was null", exception.getMessage());
+    }
+
+    @Test
+    void testToIpv4Address_AddressLengthIsNotFour() throws UnknownHostException {
+        String ipAddress = "192.168.1.100";
+        InetAddress nonIpv4Address = Inet6Address.getByAddress(null, new byte[16], -1);
+
+        try (MockedStatic<InetAddress> inetAddressMock = mockStatic(InetAddress.class)) {
+            inetAddressMock.when(() -> InetAddress.getByName(ipAddress)).thenReturn(nonIpv4Address);
+
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> RsuManagementService.toIpv4Address(ipAddress));
+
+            assertEquals("IP address must be IPv4, must have 4 valid octets but was " + ipAddress,
+                    exception.getMessage());
+        }
     }
 
     // ==================== GET ALL RSU INFO TESTS ====================
