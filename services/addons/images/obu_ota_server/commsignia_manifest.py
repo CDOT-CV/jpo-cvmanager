@@ -4,20 +4,24 @@ import re
 from typing import List
 import copy
 
+# The manifest page size that Commsignia OBUs have historically received. Larger
+# catalogs grow the page so every firmware fits in a single response.
+MIN_PAGE_SIZE = 32
+
 document = {
     "content": [],
     "pageable": {
         "sort": {"empty": False, "unsorted": False, "sorted": True},
         "offset": 0,
         "pageNumber": 0,
-        "pageSize": 32,
+        "pageSize": MIN_PAGE_SIZE,
         "paged": True,
         "unpaged": False,
     },
     "last": True,
     "totalPages": 1,
     "totalElements": 0,
-    "size": 32,
+    "size": MIN_PAGE_SIZE,
     "number": 0,
     "sort": {"empty": False, "unsorted": False, "sorted": True},
     "numberOfElements": 0,
@@ -26,9 +30,15 @@ document = {
 }
 
 
+# Anchored and restricted to a single path component so a matching name can be
+# used safely as a file name
 magic_regex = re.compile(
-    "(?P<variant>(?P<type>ob4|rs4)-generic(?:-.*)?)-(?:(?P<writable>rw)|ro)(?P<secure>-secureboot)?-(?P<release>.*).tar.sig"
+    r"^(?P<variant>(?P<type>ob4|rs4)-generic(?:-[A-Za-z0-9._-]+)?)-(?:(?P<writable>rw)|ro)(?P<secure>-secureboot)?-(?P<release>[A-Za-z0-9][A-Za-z0-9._-]*)\.tar\.sig$"
 )
+
+
+def is_valid_firmware_name(file_name: str) -> bool:
+    return magic_regex.fullmatch(file_name) is not None
 
 
 def add_contents(server: str, firmware_list: List) -> dict:
@@ -37,7 +47,7 @@ def add_contents(server: str, firmware_list: List) -> dict:
     for firmware in firmware_list:
 
         fname = firmware.split("/")[-1]
-        info = magic_regex.match(fname)
+        info = magic_regex.fullmatch(fname)
         if not info:
             continue
 
@@ -51,7 +61,7 @@ def add_contents(server: str, firmware_list: List) -> dict:
         content["writableSystemPartition"] = bool(info["writable"])
         content["secure"] = bool(info["secure"])
         content["uploadedAt"] = datetime.datetime.fromtimestamp(
-            os.path.getmtime(firmware)
+            os.path.getmtime(firmware), tz=datetime.timezone.utc
         ).strftime("%Y-%m-%dT%H:%M:%SZ")
         content["size"] = os.stat(firmware).st_size
         content["links"] = [
@@ -62,9 +72,12 @@ def add_contents(server: str, firmware_list: List) -> dict:
             }
         ]
         manifest["content"].append(content)
-        manifest["totalElements"] += 1
-        manifest["numberOfElements"] += 1
 
-        if manifest["size"] <= manifest["totalElements"]:
-            raise AttributeError("Maximum number of firmwares is:", manifest["size"])
+    count = len(manifest["content"])
+    page_size = max(MIN_PAGE_SIZE, count)
+    manifest["totalElements"] = count
+    manifest["numberOfElements"] = count
+    manifest["size"] = page_size
+    manifest["pageable"]["pageSize"] = page_size
+    manifest["empty"] = count == 0
     return manifest
