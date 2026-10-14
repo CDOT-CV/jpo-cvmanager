@@ -9,5 +9,5 @@ public record ProcessedGeoMessageRequest(
         List<List<Double>> geometry,
         String start,
         String end,
-        @JsonProperty("msg_type") String msgType) {
+        @JsonProperty("msg_type") GeoMessageType msgType) {
 }

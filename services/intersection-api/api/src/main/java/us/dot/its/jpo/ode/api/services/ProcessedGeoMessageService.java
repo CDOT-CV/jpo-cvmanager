@@ -33,6 +33,7 @@ import com.mongodb.MongoSocketException;
 import com.mongodb.MongoTimeoutException;
 
 import us.dot.its.jpo.ode.api.accessors.geo.ProcessedGeoMessageRepository;
+import us.dot.its.jpo.ode.api.models.geo.GeoMessageType;
 import us.dot.its.jpo.ode.api.models.geo.ProcessedGeoMessageRequest;
 
 /** Implements the legacy CV Manager polygon-query selection and response behavior. */
@@ -73,7 +74,7 @@ public class ProcessedGeoMessageService {
             return List.of();
         }
 
-        String collection = validated.messageType().equals("BSM") ? bsmCollection : psmCollection;
+        String collection = validated.messageType() == GeoMessageType.BSM ? bsmCollection : psmCollection;
         String start = QUERY_TIMESTAMP_FORMAT.format(validated.start().truncatedTo(ChronoUnit.SECONDS));
         String end = QUERY_TIMESTAMP_FORMAT.format(validated.end().truncatedTo(ChronoUnit.SECONDS));
         long startedAt = System.nanoTime();
@@ -133,11 +134,11 @@ public class ProcessedGeoMessageService {
 
     private static ValidatedRequest validate(ProcessedGeoMessageRequest request) {
         if (request == null) {
-            throw badRequest("A request body is required.");
+            throw new IllegalArgumentException("A request body is required.");
         }
-        String messageType = request.msgType() == null ? "" : request.msgType().trim().toUpperCase();
-        if (!messageType.equals("BSM") && !messageType.equals("PSM")) {
-            throw badRequest("msg_type must be BSM or PSM.");
+        GeoMessageType messageType = request.msgType();
+        if (messageType == null) {
+            throw new IllegalArgumentException("msg_type must be BSM or PSM.");
         }
 
         List<List<Double>> geometry = validateGeometry(request.geometry());
@@ -148,13 +149,13 @@ public class ProcessedGeoMessageService {
 
     private static List<List<Double>> validateGeometry(List<List<Double>> geometry) {
         if (geometry == null || geometry.size() < 4) {
-            throw badRequest("geometry must be a closed polygon ring containing at least four coordinates.");
+            throw new IllegalArgumentException("geometry must be a closed polygon ring containing at least four coordinates.");
         }
 
         List<List<Double>> validated = new ArrayList<>(geometry.size());
         for (List<Double> coordinate : geometry) {
             if (coordinate == null || coordinate.size() != 2) {
-                throw badRequest("Each geometry coordinate must contain longitude and latitude.");
+                throw new IllegalArgumentException("Each geometry coordinate must contain longitude and latitude.");
             }
             Double longitude = coordinate.get(0);
             Double latitude = coordinate.get(1);
@@ -162,7 +163,7 @@ public class ProcessedGeoMessageService {
                     || !Double.isFinite(longitude) || !Double.isFinite(latitude)
                     || longitude < -180 || longitude > 180
                     || latitude < -90 || latitude > 90) {
-                throw badRequest("geometry coordinates must be finite longitude/latitude values in range.");
+                throw new IllegalArgumentException("geometry coordinates must be finite longitude/latitude values in range.");
             }
             validated.add(List.of(longitude, latitude));
         }
@@ -170,11 +171,11 @@ public class ProcessedGeoMessageService {
         List<Double> first = validated.getFirst();
         List<Double> last = validated.getLast();
         if (!first.equals(last)) {
-            throw badRequest("geometry must be a closed polygon ring.");
+            throw new IllegalArgumentException("geometry must be a closed polygon ring.");
         }
         long distinctVertices = validated.subList(0, validated.size() - 1).stream().distinct().count();
         if (distinctVertices < 3) {
-            throw badRequest("geometry must contain at least three distinct polygon vertices.");
+            throw new IllegalArgumentException("geometry must contain at least three distinct polygon vertices.");
         }
         return List.copyOf(validated);
     }
@@ -195,7 +196,7 @@ public class ProcessedGeoMessageService {
 
     private static Instant parseRequestTimestamp(String value, String field) {
         if (value == null || value.isBlank()) {
-            throw badRequest(field + " is required and must be an ISO-8601 timestamp.");
+            throw new IllegalArgumentException(field + " is required and must be an ISO-8601 timestamp.");
         }
         String timestamp = value.trim();
         try {
@@ -204,7 +205,7 @@ public class ProcessedGeoMessageService {
             try {
                 return LocalDateTime.parse(timestamp).toInstant(ZoneOffset.UTC);
             } catch (DateTimeParseException localError) {
-                throw badRequest(field + " must be an ISO-8601 timestamp.");
+                throw new IllegalArgumentException(field + " must be an ISO-8601 timestamp.");
             }
         }
     }
@@ -289,10 +290,6 @@ public class ProcessedGeoMessageService {
         return timestamp;
     }
 
-    private static ResponseStatusException badRequest(String reason) {
-        return new ResponseStatusException(HttpStatus.BAD_REQUEST, reason);
-    }
-
     private static String requireCollectionName(String collection, String messageType) {
         if (collection == null || collection.isBlank()) {
             throw new IllegalArgumentException("geo-query collection name for " + messageType + " must not be blank");
@@ -315,6 +312,6 @@ public class ProcessedGeoMessageService {
         }
     }
 
-    private record ValidatedRequest(String messageType, List<List<Double>> geometry, Instant start, Instant end) {
+    private record ValidatedRequest(GeoMessageType messageType, List<List<Double>> geometry, Instant start, Instant end) {
     }
 }

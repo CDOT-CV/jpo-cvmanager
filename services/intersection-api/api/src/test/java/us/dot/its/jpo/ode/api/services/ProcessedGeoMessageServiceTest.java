@@ -32,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoTimeoutException;
 import us.dot.its.jpo.ode.api.accessors.geo.ProcessedGeoMessageRepository;
+import us.dot.its.jpo.ode.api.models.geo.GeoMessageType;
 import us.dot.its.jpo.ode.api.models.geo.ProcessedGeoMessageRequest;
 
 class ProcessedGeoMessageServiceTest {
@@ -91,7 +92,7 @@ class ProcessedGeoMessageServiceTest {
                 POLYGON,
                 "2024-01-01T01:00:00.999+01:00",
                 "2024-01-01T00:01:00.999",
-                "BSM");
+                GeoMessageType.BSM);
 
         assertTrue(service.query(request).isEmpty());
 
@@ -109,7 +110,7 @@ class ProcessedGeoMessageServiceTest {
                 POLYGON,
                 "2024-01-01T01:00:00+0100",
                 "2024-01-01T00:01:00+0000",
-                "BSM");
+                GeoMessageType.BSM);
 
         assertTrue(service.query(request).isEmpty());
 
@@ -314,12 +315,12 @@ class ProcessedGeoMessageServiceTest {
         ProcessedGeoMessageService service = service(repository, "10");
         ProcessedGeoMessageRequest valid = request("BSM");
 
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                valid.geometry(), valid.start(), valid.end(), "TIM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                valid.geometry().subList(0, valid.geometry().size() - 1), valid.start(), valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                valid.geometry(), "invalid", valid.end(), "BSM")));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), valid.start(), valid.end(), GeoMessageType.fromValue("TIM"))));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry().subList(0, valid.geometry().size() - 1), valid.start(), valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), "invalid", valid.end(), GeoMessageType.BSM)));
         verify(repository, never()).find(anyString(), anyList(), anyString(), anyString());
     }
 
@@ -329,13 +330,13 @@ class ProcessedGeoMessageServiceTest {
         ProcessedGeoMessageService service = service(repository, "10");
         ProcessedGeoMessageRequest valid = request("BSM");
 
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(null));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                null, valid.start(), valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                valid.geometry(), " ", valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                valid.geometry(), valid.start(), null, "BSM")));
+        assertThrows(IllegalArgumentException.class, () -> service.query(null));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                null, valid.start(), valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), " ", valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                valid.geometry(), valid.start(), null, GeoMessageType.BSM)));
 
         verify(repository, never()).find(anyString(), anyList(), anyString(), anyString());
     }
@@ -363,14 +364,14 @@ class ProcessedGeoMessageServiceTest {
         List<List<Double>> wrongPairSize = new ArrayList<>(valid.geometry());
         wrongPairSize.set(0, List.of(-1d, -1d, 0d));
 
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                outOfRange, valid.start(), valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                nonfinite, valid.start(), valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                nullCoordinate, valid.start(), valid.end(), "BSM")));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                wrongPairSize, valid.start(), valid.end(), "BSM")));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                outOfRange, valid.start(), valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                nonfinite, valid.start(), valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                nullCoordinate, valid.start(), valid.end(), GeoMessageType.BSM)));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                wrongPairSize, valid.start(), valid.end(), GeoMessageType.BSM)));
 
         verify(repository, never()).find(anyString(), anyList(), anyString(), anyString());
     }
@@ -476,8 +477,8 @@ class ProcessedGeoMessageServiceTest {
         List<List<Double>> degenerate = List.of(
                 List.of(0d, 0d), List.of(0d, 0d), List.of(0d, 0d), List.of(0d, 0d));
 
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.query(new ProcessedGeoMessageRequest(
-                degenerate, "2024-01-01T00:00:00Z", "2024-01-01T00:01:00Z", "BSM")));
+        assertThrows(IllegalArgumentException.class, () -> service.query(new ProcessedGeoMessageRequest(
+                degenerate, "2024-01-01T00:00:00Z", "2024-01-01T00:01:00Z", GeoMessageType.BSM)));
 
         verify(repository, never()).find(anyString(), anyList(), anyString(), anyString());
     }
@@ -509,7 +510,7 @@ class ProcessedGeoMessageServiceTest {
 
     private static ProcessedGeoMessageRequest request(String messageType) {
         return new ProcessedGeoMessageRequest(POLYGON,
-                "2024-01-01T00:00:00Z", "2024-01-01T00:01:00Z", messageType);
+                "2024-01-01T00:00:00Z", "2024-01-01T00:01:00Z", GeoMessageType.fromValue(messageType));
     }
 
     private static List<String> ids(List<Map<String, Object>> features) {

@@ -23,6 +23,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import us.dot.its.jpo.ode.api.accessors.geo.ProcessedGeoMessageRepository;
+import us.dot.its.jpo.ode.api.models.geo.GeoMessageType;
 import us.dot.its.jpo.ode.api.models.geo.ProcessedGeoMessageRequest;
 import us.dot.its.jpo.ode.api.services.ProcessedGeoMessageService;
 
@@ -82,7 +83,7 @@ class ProcessedGeoMessageMongoIntegrationTest {
                 POLYGON,
                 "2024-01-01T00:00:00Z",
                 "2024-01-01T00:00:10Z",
-                "bSm"));
+                GeoMessageType.fromValue("bSm")));
 
         assertEquals(2, result.size());
         assertEquals("first", marker(result.get(0)));
@@ -122,7 +123,7 @@ class ProcessedGeoMessageMongoIntegrationTest {
                 POLYGON,
                 "2024-01-01T00:00:00Z",
                 "2024-01-01T00:00:01Z",
-                "PSM"));
+                GeoMessageType.PSM));
 
         assertEquals(1, result.size());
         assertEquals("PSM", ((Map<?, ?>) result.getFirst().get("properties")).get("messageType"));
