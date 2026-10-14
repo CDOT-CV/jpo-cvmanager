@@ -18,10 +18,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.repositories.ObuFirmwareUploadRepository;
+import us.dot.its.jpo.ode.api.repositories.UploadLifecycleRepository;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadCleanupProperties;
 
 class FirmwareUploadCleanupTaskTest {
     private final FirmwareUploadRepository repository = mock(FirmwareUploadRepository.class);
+    private final ObuFirmwareUploadRepository obuRepository = mock(ObuFirmwareUploadRepository.class);
     private final FirmwareUploadCleanupProperties properties = new FirmwareUploadCleanupProperties();
     private final Instant now = Instant.parse("2026-09-03T20:00:00Z");
 
@@ -31,32 +34,36 @@ class FirmwareUploadCleanupTaskTest {
     void setUp() {
         properties.setExpirationGrace(Duration.ofHours(1));
         properties.setRetention(Duration.ofDays(30));
-        task = new FirmwareUploadCleanupTask(repository, properties);
+        task = new FirmwareUploadCleanupTask(List.of(repository, obuRepository), properties);
     }
 
     @Test
-    void expiresStalePendingRowsAndPurgesOldTerminalRows() {
-        when(repository.expirePendingUploads(
-                FirmwareUploadStatus.PENDING,
-                FirmwareUploadStatus.EXPIRED,
-                now.minus(Duration.ofHours(1)),
-                now,
-                FirmwareUploadCleanupTask.EXPIRATION_REASON)).thenReturn(3);
-        when(repository.deleteFinishedUploadsBefore(
-                List.of(FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED),
-                now.minus(Duration.ofDays(30)))).thenReturn(2);
+    void expiresStalePendingRowsAndPurgesOldTerminalRowsInEveryUploadTable() {
+        for (UploadLifecycleRepository uploads : List.of(repository, obuRepository)) {
+            when(uploads.expirePendingUploads(
+                    FirmwareUploadStatus.PENDING,
+                    FirmwareUploadStatus.EXPIRED,
+                    now.minus(Duration.ofHours(1)),
+                    now,
+                    FirmwareUploadCleanupTask.EXPIRATION_REASON)).thenReturn(3);
+            when(uploads.deleteFinishedUploadsBefore(
+                    List.of(FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED),
+                    now.minus(Duration.ofDays(30)))).thenReturn(2);
+        }
 
         task.cleanUpFirmwareUploads(now);
 
-        verify(repository).expirePendingUploads(
-                FirmwareUploadStatus.PENDING,
-                FirmwareUploadStatus.EXPIRED,
-                now.minus(Duration.ofHours(1)),
-                now,
-                FirmwareUploadCleanupTask.EXPIRATION_REASON);
-        verify(repository).deleteFinishedUploadsBefore(
-                List.of(FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED),
-                now.minus(Duration.ofDays(30)));
+        for (UploadLifecycleRepository uploads : List.of(repository, obuRepository)) {
+            verify(uploads).expirePendingUploads(
+                    FirmwareUploadStatus.PENDING,
+                    FirmwareUploadStatus.EXPIRED,
+                    now.minus(Duration.ofHours(1)),
+                    now,
+                    FirmwareUploadCleanupTask.EXPIRATION_REASON);
+            verify(uploads).deleteFinishedUploadsBefore(
+                    List.of(FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED),
+                    now.minus(Duration.ofDays(30)));
+        }
     }
 
     @Test
@@ -66,7 +73,7 @@ class FirmwareUploadCleanupTaskTest {
         assertThatThrownBy(() -> task.cleanUpFirmwareUploads(now))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("retention");
-        verifyNoInteractions(repository);
+        verifyNoInteractions(repository, obuRepository);
     }
 
     static Stream<Duration> invalidGracePeriods() {
@@ -79,7 +86,7 @@ class FirmwareUploadCleanupTaskTest {
         properties.setExpirationGrace(grace);
         assertThatThrownBy(() -> task.cleanUpFirmwareUploads(now))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("expiration grace");
-        verifyNoInteractions(repository);
+        verifyNoInteractions(repository, obuRepository);
     }
 
     static Stream<Duration> invalidRetentions() {
@@ -92,7 +99,7 @@ class FirmwareUploadCleanupTaskTest {
         properties.setRetention(retention);
         assertThatThrownBy(() -> task.cleanUpFirmwareUploads(now))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("retention");
-        verifyNoInteractions(repository);
+        verifyNoInteractions(repository, obuRepository);
     }
 
     @Test
