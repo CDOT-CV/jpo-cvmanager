@@ -5,11 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * A single SNMP message-forwarding configuration entry.
- * Mirrors the entry shape produced by the Python
- * rsu_message_forward_helpers.format_snmp_msgfwd_configs function.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

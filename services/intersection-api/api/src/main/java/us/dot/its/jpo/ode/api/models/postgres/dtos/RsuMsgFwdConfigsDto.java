@@ -8,10 +8,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * Response DTO for the RSU message-forwarding configuration query.
- * Mirrors the Python `/rsu-msgfwd-query` response: the map's values are
- * either an {@link RsuMsgFwdConfigDto} keyed by snmp_index (DSRC type),
- * or a nested {@code Map<String, RsuMsgFwdConfigDto>} under
- * "rsuReceivedMsgTable"/"rsuXmitMsgFwdingTable".
  */
 @Data
 @NoArgsConstructor

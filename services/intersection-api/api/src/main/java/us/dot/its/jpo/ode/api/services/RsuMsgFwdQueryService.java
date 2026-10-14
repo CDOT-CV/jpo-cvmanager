@@ -34,11 +34,6 @@ public class RsuMsgFwdQueryService {
 
     private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
 
-    /**
-     * Returns the SNMP message-forwarding configurations stored in the
-     * database for the given RSU, grouped the same way as the Python
-     * rsu_message_forward_helpers.format_snmp_msgfwd_configs function.
-     */
     public RsuMsgFwdConfigsDto getMsgFwdConfigs(String rsuIp, String organization) {
         InetAddress ipv4Address;
         try {

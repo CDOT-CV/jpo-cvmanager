@@ -8,7 +8,6 @@ from middleware import Middleware
 from healthcheck import HealthCheck
 from rsu_querycounts import RsuQueryCounts
 from rsu_querymsgfwd import RsuQueryMsgFwd
-from rsu_online_status import RsuOnlineStatus
 from rsu_commands import RsuCommandRequest
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
 from wzdx_feed import WzdxFeed
