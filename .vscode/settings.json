@@ -99,7 +99,6 @@
     "pytz",
     "querycounts",
     "querydb",
-    "querymsgfwd",
     "rawtypes",
     "reduxjs",
     "Rssi",
