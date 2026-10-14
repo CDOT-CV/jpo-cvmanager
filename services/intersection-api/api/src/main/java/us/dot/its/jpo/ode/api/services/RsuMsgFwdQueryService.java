@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,9 +51,9 @@ public class RsuMsgFwdQueryService {
         List<SnmpMsgfwdConfig> configs = snmpMsgfwdConfigRepository
                 .findByRsuIpv4AddressAndOrganizationName(ipv4Address, organization);
 
-        Map<String, MsgFwdConfigDto> dsrcConfigs = new HashMap<>();
-        Map<String, MsgFwdConfigDto> receivedConfigs = new HashMap<>();
-        Map<String, MsgFwdConfigDto> xmitConfigs = new HashMap<>();
+        Map<String, MsgFwdConfigDto> dsrcConfigs = new LinkedHashMap<>();
+        Map<String, MsgFwdConfigDto> receivedConfigs = new LinkedHashMap<>();
+        Map<String, MsgFwdConfigDto> xmitConfigs = new LinkedHashMap<>();
         for (SnmpMsgfwdConfig config : configs) {
             String msgfwdType = config.getMsgfwdType().getName();
             String snmpIndex = String.valueOf(config.getId().getSnmpIndex());
@@ -70,7 +70,7 @@ public class RsuMsgFwdQueryService {
             }
         }
 
-        Map<String, Object> rsuFwdSnmpwalk = new HashMap<>(dsrcConfigs);
+        Map<String, Object> rsuFwdSnmpwalk = new LinkedHashMap<>(dsrcConfigs);
         // Make sure both RX and TX tables are present if the RSU has any NTCIP-1218 configurations
         if (!receivedConfigs.isEmpty() || !xmitConfigs.isEmpty()) {
             rsuFwdSnmpwalk.put(RECEIVED_TABLE, receivedConfigs);

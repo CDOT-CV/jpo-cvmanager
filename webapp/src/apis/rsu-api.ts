@@ -52,11 +52,12 @@ class RsuApi {
     url_ext = '',
     query_params: Record<string, string> = {}
   ): Promise<RsuMsgFwdConfigs> =>
-    apiHelper._getData({
-      url: EnvironmentVars.rsuMsgFwdQueryEndpoint + url_ext,
+    authApiHelper.invokeApi({
+      path: `${EnvironmentVars.rsuMsgFwdQueryPath}${url_ext}`,
+      queryParams: query_params,
       token,
-      query_params,
-      additional_headers: { Organization: org },
+      headers: { Organization: org },
+      toastOnFailure: false,
       tag: 'rsu',
     })
   getRsuMsgConfigsFromRsu = async (

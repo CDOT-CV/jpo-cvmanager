@@ -64,6 +64,24 @@ it('Test getRsuInfo With Params', async () => {
   })
 })
 
+it('Test getCachedRsuMsgFwdConfigsFromDatabase', async () => {
+  const expectedResponse = { RsuFwdSnmpwalk: {} }
+  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
+  const actualResponse = await RsuApi.getCachedRsuMsgFwdConfigsFromDatabase('testToken', 'testOrg', '', {
+    rsu_ip: '1.2.3.4',
+  })
+  expect(actualResponse).toEqual(expectedResponse)
+
+  expect(fetchMock.mock.calls[0][0]).toBe(
+    `${combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL!, EnvironmentVars.rsuMsgFwdQueryPath)}?rsu_ip=1.2.3.4`
+  )
+  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
+    Authorization: 'Bearer testToken',
+    Organization: 'testOrg',
+  })
+})
+
 it('Test getRsuCounts', async () => {
   const expectedResponse = { data: 'Test JSON' }
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
