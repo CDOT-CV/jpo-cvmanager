@@ -88,8 +88,7 @@ public class RsuManagementService {
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
         allowed.setRsuModels(rsuRepository.findAllRsuModels().stream()
-                .map(v -> String.format("%s %s", v.getManufacturer(),
-                        v.getModel()))
+                .map(v -> v.getManufacturer() + " " + v.getModel())
                 .toList());
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
@@ -123,10 +122,9 @@ public class RsuManagementService {
         rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
         rsuOptionRepository.save(rsuOption);
 
-        var toCreate = new ArrayList<RsuOrganization>();
-        for (String orgName : orgsToAdd) {
-            toCreate.add(createRsuOrgRelationship(orgName, rsu));
-        }
+        var toCreate = orgsToAdd.stream()
+                .map(orgName -> createRsuOrgRelationship(orgName, rsu))
+                .toList();
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
@@ -280,7 +278,7 @@ public class RsuManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
@@ -304,7 +302,7 @@ public class RsuManagementService {
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<String> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedRemovals.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "

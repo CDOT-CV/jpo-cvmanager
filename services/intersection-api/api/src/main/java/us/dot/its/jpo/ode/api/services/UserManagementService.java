@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.core.Response;
@@ -93,19 +92,18 @@ public class UserManagementService {
             }
         }
 
-        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException(
+        User user = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException(
                 "User was created in Keycloak but not found in database with email: " + userDto.getEmail()));
 
         // Add super user
-        if (userDto.getSuperUser()) {
-            createdUser.setSuperUser(true);
-            createdUser = userRepository.save(createdUser);
+        if (userDto.isSuperUser()) {
+            user.setSuperUser(true);
         }
+        User createdUser = userDto.isSuperUser() ? userRepository.save(user) : user;
 
-        var toCreate = new ArrayList<UserOrganization>();
-        for (UserOrganizationDto userOrgDto : userDto.getOrganizations()) {
-            toCreate.add(createUserOrgRelationship(userOrgDto, createdUser));
-        }
+        var toCreate = userDto.getOrganizations().stream()
+                .map(userOrgDto -> createUserOrgRelationship(userOrgDto, createdUser))
+                .toList();
         userOrganizationRepository.saveAll(toCreate);
 
         return createdUser;
@@ -180,7 +178,7 @@ public class UserManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<UserOrganizationDto> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add User to organization(s): "
@@ -210,7 +208,7 @@ public class UserManagementService {
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<String> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
@@ -226,7 +224,7 @@ public class UserManagementService {
 
         if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
             List<UserOrganizationDto> unqualifiedModifications = patch.getOrganizationsToModify().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedModifications.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to modify User in organization(s): "
@@ -272,7 +270,7 @@ public class UserManagementService {
         if (existingUsers.size() != emails.size()) {
             // Find which emails don't exist
             List<String> existingEmails = existingUsers.stream()
-                    .map(user -> user.getEmail())
+                    .map(User::getEmail)
                     .toList();
             List<String> missingEmails = emails.stream()
                     .filter(email -> !existingEmails.contains(email))
