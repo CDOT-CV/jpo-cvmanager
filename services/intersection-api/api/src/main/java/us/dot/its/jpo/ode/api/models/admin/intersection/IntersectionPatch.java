@@ -52,14 +52,24 @@ public class IntersectionPatch {
     @JsonProperty("origin_ip")
     private String originIp;
 
-    @Schema(description = "Organizations associations for this intersection (missing will be removed)", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Organizations to add to this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
-    @JsonProperty("organizations")
-    private List<Integer> organizations;
+    @JsonProperty("organizations_to_add")
+    private List<Integer> organizationsToAdd;
 
-    @Schema(description = "RSU IP addresses to associate with this intersection (missing will be removed)", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Organizations to disassociate from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull
-    @JsonProperty("rsus")
+    @JsonProperty("organizations_to_remove")
+    private List<Integer> organizationsToRemove;
+
+    @Schema(description = "RSU IP addresses to associate with this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull
+    @JsonProperty("rsus_to_add")
+    private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", message = "must be a valid IPv4 address") String> rsusToAdd;
+
+    @Schema(description = "RSU IP addresses to disassociate from this intersection", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull
+    @JsonProperty("rsus_to_remove")
     private List<@Pattern(regexp = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-            message = "must be a valid IPv4 address") String> rsus;
+            message = "must be a valid IPv4 address") String> rsusToRemove;
 }

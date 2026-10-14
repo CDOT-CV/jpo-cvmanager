@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
@@ -19,6 +20,7 @@ import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
@@ -520,7 +522,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(Arrays.asList(1, 2));
+        patch.setOrganizationsToAdd(Arrays.asList(1, 2));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -534,11 +536,7 @@ class RsuManagementServiceTest {
 
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
-        ArgumentCaptor<List<RsuOrganization>> captor = ArgumentCaptor.forClass(List.class);
-        verify(rsuOrganizationRepository, times(1)).saveAll(captor.capture());
-        List<RsuOrganization> savedList = captor.getValue();
-        assertEquals(2, savedList.size(), "Expected saveAll to be called with a list of size 2");
-        verify(rsuOrganizationRepository, never()).deleteAll(anyList());
+        verify(rsuOrganizationRepository, times(2)).save(any(RsuOrganization.class));
     }
 
     @Test
@@ -547,7 +545,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(Arrays.asList(1));
+        patch.setOrganizationsToAdd(Arrays.asList(1));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -573,7 +571,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(Arrays.asList(9));
+        patch.setOrganizationsToAdd(Arrays.asList(9));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -583,12 +581,12 @@ class RsuManagementServiceTest {
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(
+                        AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs));
 
         assertTrue(
-                exception.getMessage().contains("Organization not found or user not authorized for: 9"));
+                exception.getMessage().contains("User does not have permission to add RSU to organization(s): 9"));
         verify(rsuOrganizationRepository, never()).saveAll(anyList());
         verify(rsuOrganizationRepository, never()).deleteAll(anyList());
     }
@@ -599,10 +597,11 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(List.of());
+        patch.setOrganizationsToRemove(List.of(1, 2));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         RsuOrganization rsuOrg1 = new RsuOrganization();
         rsuOrg1.setRsu(existingRsu);
@@ -612,23 +611,20 @@ class RsuManagementServiceTest {
         rsuOrg2.setRsu(existingRsu);
         rsuOrg2.setOrganization(testOrg2);
 
-        existingRsu.setRsuOrganizations(Set.of(rsuOrg1, rsuOrg2));
-
         List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2, testOrg3);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(inetAddress, testOrg))
+                .thenReturn(Optional.of(rsuOrg1));
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(inetAddress, testOrg2))
+                .thenReturn(Optional.of(rsuOrg2));
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
-        verify(rsuOrganizationRepository, never()).saveAll(anyList());
-        ArgumentCaptor<List<RsuOrganization>> deleteCaptor = ArgumentCaptor.forClass(List.class);
-        verify(rsuOrganizationRepository).deleteAll(deleteCaptor.capture());
-        List<RsuOrganization> deletedList = deleteCaptor.getValue();
-        assertEquals(2, deletedList.size());
-        assertTrue(deletedList.contains(rsuOrg1));
-        assertTrue(deletedList.contains(rsuOrg2));
+        verify(rsuOrganizationRepository).delete(rsuOrg1);
+        verify(rsuOrganizationRepository).delete(rsuOrg2);
     }
 
     @Test
@@ -637,7 +633,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(Arrays.asList(1));
+        patch.setOrganizationsToRemove(List.of(1));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -646,12 +642,40 @@ class RsuManagementServiceTest {
         List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(inetAddress, testOrg))
+                .thenReturn(Optional.empty());
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
 
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
-        verify(rsuOrganizationRepository, never()).deleteAll(anyList());
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_RemoveOrganizations_Unauthorized() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(Arrays.asList(3));
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        List<Organization> authorizedOrgs = Arrays.asList(testOrg, testOrg2);
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs));
+
+        assertTrue(
+                exception.getMessage()
+                        .contains("User does not have permission to remove RSU from organization(s): 3"));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
     @Test
@@ -660,7 +684,8 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(List.of(testOrg.getId()));
+        patch.setOrganizationsToAdd(Arrays.asList(1));
+        patch.setOrganizationsToRemove(Arrays.asList(2));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -676,14 +701,13 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
         when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+        when(rsuOrganizationRepository.findByRsuIpv4AddressAndOrganization(inetAddress, testOrg2))
+                .thenReturn(Optional.of(rsuOrgToRemove));
 
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
 
-        ArgumentCaptor<List<RsuOrganization>> captor = ArgumentCaptor.forClass(List.class);
-        verify(rsuOrganizationRepository, times(1)).saveAll(captor.capture());
-        List<RsuOrganization> savedList = captor.getValue();
-        assertEquals(1, savedList.size(), "Expected saveAll to be called with a list of size 1");
-        verify(rsuOrganizationRepository).deleteAll(List.of(rsuOrgToRemove));
+        verify(rsuOrganizationRepository).save(any(RsuOrganization.class));
+        verify(rsuOrganizationRepository).delete(rsuOrgToRemove);
     }
 
     @Test
@@ -692,7 +716,7 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(List.of(1, 8, 9));
+        patch.setOrganizationsToAdd(Arrays.asList(1, 8, 9));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
@@ -702,7 +726,7 @@ class RsuManagementServiceTest {
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
                 () -> rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs));
         assertTrue(ex.getMessage().contains("8"));
 
@@ -716,33 +740,22 @@ class RsuManagementServiceTest {
         InetAddress inetAddress = InetAddress.getByName(rsuIp);
 
         RsuPatch patch = new RsuPatch();
-        patch.setOrganizations(List.of());
+        patch.setOrganizationsToRemove(Arrays.asList(1, 2));
 
         Rsu existingRsu = new Rsu();
         existingRsu.setIpv4Address(inetAddress);
-        existingRsu.setRsuOrganizations(Set.of(new RsuOrganization() {
-            {
-                setRsu(existingRsu);
-                setOrganization(testOrg);
-            }
-        },
-                new RsuOrganization() {
-                    {
-                        setRsu(existingRsu);
-                        setOrganization(testOrg2);
-                    }
-                }));
+        existingRsu.setRsuOrganizations(new HashSet<>());
 
         List<Organization> authorizedOrgs = Arrays.asList(testOrg);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
-        rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs));
 
-        ArgumentCaptor<List<RsuOrganization>> captor = ArgumentCaptor.forClass(List.class);
-        verify(rsuOrganizationRepository, times(1)).deleteAll(captor.capture());
-        List<RsuOrganization> deletedList = captor.getValue();
-        assertEquals(1, deletedList.size(), "Expected delete to be called with a list of size 1");
+        assertTrue(exception.getMessage().contains("2"));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 
     @Test
@@ -764,6 +777,48 @@ class RsuManagementServiceTest {
         rsuManagementService.modifyRsu(rsuIp, patch, List.of());
 
         verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+        verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_EmptyAddList() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToAdd(List.of());
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, List.of());
+
+        verify(rsuOrganizationRepository, never()).save(any(RsuOrganization.class));
+    }
+
+    @Test
+    void testHandleOrganizationChanges_EmptyRemoveList() throws UnknownHostException {
+        String rsuIp = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+
+        RsuPatch patch = new RsuPatch();
+        patch.setOrganizationsToRemove(List.of());
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setRsuOrganizations(new HashSet<>());
+
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.save(existingRsu)).thenReturn(existingRsu);
+        when(rsuMapper.toDto(existingRsu)).thenReturn(null);
+
+        rsuManagementService.modifyRsu(rsuIp, patch, List.of());
+
         verify(rsuOrganizationRepository, never()).delete(any(RsuOrganization.class));
     }
 

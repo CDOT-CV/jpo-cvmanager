@@ -50,8 +50,11 @@ public class RsuPatch {
     @JsonProperty("snmp_version_group")
     String snmpVersionGroup;
 
-    @JsonProperty("organizations")
-    List<Integer> organizations;
+    @JsonProperty("organizations_to_add")
+    List<Integer> organizationsToAdd;
+
+    @JsonProperty("organizations_to_remove")
+    List<Integer> organizationsToRemove;
 
     @JsonProperty("tim_deposit")
     Boolean timDeposit;

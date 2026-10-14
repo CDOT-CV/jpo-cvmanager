@@ -26,6 +26,12 @@ public class UserPatch {
     @JsonProperty("super_user")
     Boolean superUser;
 
-    @JsonProperty("organizations")
-    List<UserOrganizationDto> organizations;
+    @JsonProperty("organizations_to_add")
+    List<UserOrganizationDto> organizationsToAdd;
+
+    @JsonProperty("organizations_to_remove")
+    List<Integer> organizationsToRemove;
+
+    @JsonProperty("organizations_to_modify")
+    List<UserOrganizationDto> organizationsToModify;
 }

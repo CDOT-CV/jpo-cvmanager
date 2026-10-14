@@ -16,22 +16,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
 import us.dot.its.jpo.ode.api.models.CountType;
 import us.dot.its.jpo.ode.api.models.MessageCount;
 import us.dot.its.jpo.ode.api.models.PrometheusResponse;
 import us.dot.its.jpo.ode.api.models.PrometheusResponse.PrometheusResult;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PrometheusService;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class CountsRepositoryImpl implements CountsRepository {
 
     private final PrometheusService prometheusService;
     private final RsuRepository rsuRepository;
+    private final OrganizationRepository organizationRepository;
     private final ObjectMapper jsonMapper = DateJsonMapper.getInstance()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -41,10 +46,6 @@ public class CountsRepositoryImpl implements CountsRepository {
     private static final String METRIC_LABEL_TOPIC = "topic";
     private static final String METRIC_LABEL_RSU_IP = "rsu_ip";
 
-    public CountsRepositoryImpl(PrometheusService prometheusService, RsuRepository rsuRepository) {
-        this.prometheusService = prometheusService;
-        this.rsuRepository = rsuRepository;
-    }
 
     @Override
     public List<MessageCount> getRsuMessageCounts(String rsuIp, List<String> messages, Long startTime, Long endTime) {
@@ -228,8 +229,10 @@ public class CountsRepositoryImpl implements CountsRepository {
     }
 
     Map<String, String> getOrganizationRsuIps(String organization) {
+        Organization org = organizationRepository.findByName(organization)
+                .orElseThrow(() -> new IllegalArgumentException("Organization not found: " + organization));
         Map<String, String> rsuIpToRoadMap = new HashMap<>();
-        List<Rsu> rsus = rsuRepository.findAllByOrganization(organization, null, Pageable.unpaged()).getContent();
+        List<Rsu> rsus = rsuRepository.findAllByOrganization(org, null, Pageable.unpaged()).getContent();
         for (Rsu rsu : rsus) {
             if (rsu.getIpv4Address() != null) {
                 String road = rsu.getPrimaryRoute() != null ? rsu.getPrimaryRoute() : "Unknown";
