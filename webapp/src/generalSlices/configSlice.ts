@@ -38,7 +38,7 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  const response = await RsuApi.getCachedRsuMsgFwdConfigsFromDatabase(token, organization, '', { rsu_ip })
+  const response = await RsuApi.getCachedRsuMsgFwdConfigsFromDatabase(token, organization, `/${rsu_ip}`)
   if (!response) {
     return {
       msgFwdConfig: {},

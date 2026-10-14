@@ -88,7 +88,7 @@ describe('async thunks', () => {
       const action = getCachedSnmpFwdConfigsFromDatabase(rsu_ip)
 
       const resp = await action(dispatch, getState, undefined)
-      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'Org 1', '', { rsu_ip })
+      expect(RsuApi.getCachedRsuMsgFwdConfigsFromDatabase).toHaveBeenCalledWith('token', 'Org 1', `/${rsu_ip}`)
       expect(resp.payload).toEqual({ msgFwdConfig: 'test', errorState: '' })
     })
 

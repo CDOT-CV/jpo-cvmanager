@@ -56,7 +56,7 @@ class RsuMsgFwdQueryControllerTest {
         when(permissionService.isSuperUser()).thenReturn(true);
         when(rsuMsgFwdQueryService.getMsgFwdConfigs("10.0.0.80", "TestOrg")).thenReturn(buildResponse());
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "10.0.0.80").header("Organization", "TestOrg"))
+        mockMvc.perform(get(ENDPOINT + "/10.0.0.80").header("Organization", "TestOrg"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.RsuFwdSnmpwalk.1['Message Type']").value("BSM"))
                 .andExpect(jsonPath("$.RsuFwdSnmpwalk.1.IP").value("10.0.0.80"))
@@ -74,7 +74,7 @@ class RsuMsgFwdQueryControllerTest {
         when(permissionService.hasRsu("10.0.0.80", "USER")).thenReturn(true);
         when(rsuMsgFwdQueryService.getMsgFwdConfigs("10.0.0.80", "TestOrg")).thenReturn(buildResponse());
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "10.0.0.80").header("Organization", "TestOrg"))
+        mockMvc.perform(get(ENDPOINT + "/10.0.0.80").header("Organization", "TestOrg"))
                 .andExpect(status().isOk());
     }
 
@@ -84,7 +84,7 @@ class RsuMsgFwdQueryControllerTest {
         when(permissionService.hasRoleInOrg("OtherOrg", "USER")).thenReturn(false);
         when(permissionService.hasRsu("10.0.0.80", "USER")).thenReturn(true);
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "10.0.0.80").header("Organization", "OtherOrg"))
+        mockMvc.perform(get(ENDPOINT + "/10.0.0.80").header("Organization", "OtherOrg"))
                 .andExpect(status().isForbidden());
 
         verify(rsuMsgFwdQueryService, never()).getMsgFwdConfigs(anyString(), anyString());
@@ -96,7 +96,7 @@ class RsuMsgFwdQueryControllerTest {
         when(permissionService.hasRoleInOrg("TestOrg", "USER")).thenReturn(true);
         when(permissionService.hasRsu("10.0.0.80", "USER")).thenReturn(false);
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "10.0.0.80").header("Organization", "TestOrg"))
+        mockMvc.perform(get(ENDPOINT + "/10.0.0.80").header("Organization", "TestOrg"))
                 .andExpect(status().isForbidden());
 
         verify(rsuMsgFwdQueryService, never()).getMsgFwdConfigs(anyString(), anyString());
@@ -108,15 +108,7 @@ class RsuMsgFwdQueryControllerTest {
         when(rsuMsgFwdQueryService.getMsgFwdConfigs("not-an-ip", "TestOrg"))
                 .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "IP address must be IPv4"));
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "not-an-ip").header("Organization", "TestOrg"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void getMsgFwdConfigs_missingRsuIpParam_returnsBadRequest() throws Exception {
-        when(permissionService.isSuperUser()).thenReturn(true);
-
-        mockMvc.perform(get(ENDPOINT).header("Organization", "TestOrg"))
+        mockMvc.perform(get(ENDPOINT + "/not-an-ip").header("Organization", "TestOrg"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -124,7 +116,7 @@ class RsuMsgFwdQueryControllerTest {
     void getMsgFwdConfigs_missingOrganizationHeader_returnsBadRequest() throws Exception {
         when(permissionService.isSuperUser()).thenReturn(true);
 
-        mockMvc.perform(get(ENDPOINT).param("rsu_ip", "10.0.0.80"))
+        mockMvc.perform(get(ENDPOINT + "/10.0.0.80"))
                 .andExpect(status().isBadRequest());
     }
 }
