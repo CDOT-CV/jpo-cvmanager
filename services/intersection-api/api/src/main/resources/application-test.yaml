@@ -80,6 +80,8 @@ spring:
     properties:
       mail:
         smtp:
+          ssl:
+            checkserveridentity: ${INTERSECTION_SMTP_CHECK_SERVER_IDENTITY:false}
           auth: false
           starttls:
             enable: true

@@ -186,6 +186,38 @@ it('Test postGeoMsgData With Params', async () => {
   })
 })
 
+it('Test postRsuGeo', async () => {
+  const body = {
+    geometry: [
+      [-105.1, 39.7],
+      [-105.2, 39.6],
+      [-105.0, 39.6],
+      [-105.1, 39.7],
+    ],
+    vendor: 'Select Vendor',
+  }
+  const ips = ['10.11.81.12']
+  fetchMock.mockResponseOnce(JSON.stringify(ips))
+
+  const actualResponse = await RsuApi.postRsuGeo('testToken', 'testOrg', body)
+
+  expect(actualResponse).toEqual({
+    body: ips,
+    message: '',
+    status: 200,
+  })
+  expect(fetchMock.mock.calls[0][0]).toBe(
+    combineUrlPaths(EnvironmentVars.CVIZ_API_SERVER_URL!, EnvironmentVars.rsuGeoQueryPath)
+  )
+  expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
+    Authorization: 'Bearer testToken',
+    'Content-Type': 'application/json',
+    Organization: 'testOrg',
+  })
+  expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual(body)
+})
+
 it('Test postRsuData', async () => {
   const body = {
     data: 'Test JSON',

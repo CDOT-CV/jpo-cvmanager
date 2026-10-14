@@ -8,7 +8,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "firmware_upgrade_rules")
+@Table(name = "firmware_upgrade_rules", uniqueConstraints = {
+        @UniqueConstraint(name = "firmware_upgrade_rules_source_unique", columnNames = "from_id"),
+        @UniqueConstraint(name = "firmware_upgrade_rules_from_to_unique", columnNames = {"from_id", "to_id"})})
 public class FirmwareUpgradeRule {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "firmware_upgrade_rules_id_gen")

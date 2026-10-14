@@ -221,7 +221,7 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList.map((val: number) => val.toString())} />
+                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList} />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>
@@ -238,7 +238,7 @@ const ConfigureRSU = () => {
                 <ConfigMenu>
                   <RsuFirmwareMenu
                     type="multi_rsu"
-                    rsuIpList={selectedConfigList.map((val: number) => val.toString())}
+                    rsuIpList={selectedConfigList}
                   />
                 </ConfigMenu>
               </AccordionDetails>
