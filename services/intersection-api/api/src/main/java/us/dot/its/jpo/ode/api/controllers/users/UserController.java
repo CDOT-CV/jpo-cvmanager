@@ -118,7 +118,7 @@ public class UserController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     public void createUser(@Validated @RequestBody UserDto body) {
-        if (!permissionService.isSuperUser() && body.getSuperUser()) {
+        if (!permissionService.isSuperUser() && body.isSuperUser()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Non-super user not qualified to create super user");
         }

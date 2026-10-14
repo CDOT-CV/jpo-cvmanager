@@ -122,7 +122,7 @@ public class OrganizationManagementService {
             userOrganizationRepository.deleteByUserEmailsAndOrganization(
                     patch.getUsersToRemove(), org);
             List<String> orphanedUsers = patch.getUsersToRemove().stream()
-                    .filter(ip -> userOrganizationRepository.hasSingleOrganization(ip))
+                    .filter(userOrganizationRepository::hasSingleOrganization)
                     .toList();
             if (!orphanedUsers.isEmpty()) {
                 String orphanedEmails = String.join(", ", orphanedUsers);
@@ -139,7 +139,7 @@ public class OrganizationManagementService {
         if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
             List<InetAddress> orphanedRsus = addresses.stream()
-                    .filter(ip -> rsuOrganizationRepository.hasSingleOrganization(ip))
+                    .filter(rsuOrganizationRepository::hasSingleOrganization)
                     .toList();
             if (!orphanedRsus.isEmpty()) {
                 String orphanedIps = orphanedRsus.stream()
@@ -237,7 +237,7 @@ public class OrganizationManagementService {
         List<RsuOption> optionsToSave = new ArrayList<>();
         for (Rsu rsu : rsus) {
             RsuOption option = existingOptions.getOrDefault(rsu.getId(), null);
-            Boolean modified = false;
+            boolean modified = false;
             if (option == null) {
                 option = new RsuOption();
                 option.setRsu(rsu);

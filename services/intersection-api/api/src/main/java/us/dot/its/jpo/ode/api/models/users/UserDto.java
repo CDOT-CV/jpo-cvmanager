@@ -35,7 +35,7 @@ public class UserDto implements Serializable {
 
     @JsonProperty("super_user")
     @NotNull
-    private Boolean superUser;
+    private boolean superUser;
 
     @JsonProperty("organizations")
     @Size(min = 1)

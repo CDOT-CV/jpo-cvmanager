@@ -85,8 +85,7 @@ public class RsuManagementService {
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
         allowed.setRsuModels(rsuRepository.findAllRsuModels().stream()
-                .map(v -> String.format("%s %s", v.getManufacturer(),
-                        v.getModel()))
+                .map(v -> v.getManufacturer() + " " + v.getModel())
                 .toList());
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
@@ -273,7 +272,7 @@ public class RsuManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<Integer> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(orgId -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(orgId)))
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
@@ -297,7 +296,7 @@ public class RsuManagementService {
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<Integer> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
-                    .filter(orgId -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(orgId)))
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedRemovals.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "

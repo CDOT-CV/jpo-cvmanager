@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -85,18 +84,24 @@ public class UserManagementService {
             }
         }
 
-        User createdUser = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException(
+        User user = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException(
                 "User was created in Keycloak but not found in database with email: " + userDto.getEmail()));
 
         // Add super user
-        if (userDto.getSuperUser()) {
-            createdUser.setSuperUser(true);
-            createdUser = userRepository.save(createdUser);
+        if (userDto.isSuperUser()) {
+            user.setSuperUser(true);
         }
+        User createdUser = userDto.isSuperUser() ? userRepository.save(user) : user;
 
         // trust that the controller's pre-authorization check ensures all orgs are
         // qualified and exist
-        var toCreate = new ArrayList<UserOrganization>();
+        List<UserOrganization> toCreate = userDto.getOrganizations().stream().map(userOrgDto -> {
+            Organization organization = qualifiedOrgs.stream()
+                    .filter(org -> org.getId() == userOrgDto.getOrganization())
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                            "Organization not found or user not authorized for: " + userOrgDto.getOrganization()));
+            return createUserOrgRelationship(userOrgDto, createdUser, organization);
+        }).collect(Collectors.toList());
         for (UserOrganizationDto userOrgDto : userDto.getOrganizations()) {
             Organization organization = qualifiedOrgs.stream()
                     .filter(org -> org.getId() == userOrgDto.getOrganization())
@@ -168,7 +173,7 @@ public class UserManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<UserOrganizationDto> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add User to organization(s): "
@@ -198,7 +203,7 @@ public class UserManagementService {
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<Integer> unqualifiedRemoves = patch.getOrganizationsToRemove().stream()
-                    .filter(orgId -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(orgId)))
+                    .filter(orgId -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(orgId)))
                     .toList();
             if (!unqualifiedRemoves.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove User from organization(s): "
@@ -219,7 +224,7 @@ public class UserManagementService {
 
         if (patch.getOrganizationsToModify() != null && !patch.getOrganizationsToModify().isEmpty()) {
             List<UserOrganizationDto> unqualifiedModifications = patch.getOrganizationsToModify().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getId().equals(org.getOrganization())))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getId().equals(org.getOrganization())))
                     .toList();
             if (!unqualifiedModifications.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to modify User in organization(s): "
@@ -272,7 +277,7 @@ public class UserManagementService {
         if (existingUsers.size() != emails.size()) {
             // Find which emails don't exist
             List<String> existingEmails = existingUsers.stream()
-                    .map(user -> user.getEmail())
+                    .map(User::getEmail)
                     .toList();
             List<String> missingEmails = emails.stream()
                     .filter(email -> !existingEmails.contains(email))
