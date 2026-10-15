@@ -220,8 +220,6 @@ HTTP URL Arguments:
 - CSM_EMAIL_APP_PASSWORD: Password for the SMTP server.
 - CSM_TARGET_SMTP_SERVER_ADDRESS: Destination SMTP server address.
 - CSM_TARGET_SMTP_SERVER_PORT: Destination SMTP server port.
-- WZDX_ENDPOINT: WZDX datafeed enpoint.
-- WZDX_API_KEY: API key for the WZDX datafeed.
 - TIMEZONE: Timezone to be used for the API.
 
 1. Configure the Cloud Run deployment connections settings
