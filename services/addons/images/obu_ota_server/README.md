@@ -64,7 +64,7 @@ The following environmental variables must be set:
 
 <b>PG_DB_HOST:</b> PostgreSQL hostname, optionally followed by `:port`. Defaults to port 5432 when no port is provided.
 
-<b>FORWARDED_ALLOW_IPS:</b> Comma-separated proxy addresses trusted to provide the `X-Forwarded-For` header, so the OBU address is logged instead of the proxy address. Docker Compose sets this from `OBU_OTA_FORWARDED_ALLOW_IPS` and defaults to `*`.
+<b>FORWARDED_ALLOW_IPS:</b> Comma-separated proxy addresses trusted to provide the `X-Forwarded-For` header, so the OBU address is logged instead of the proxy address. Docker Compose sets this from `OBU_OTA_FORWARDED_ALLOW_IPS` and defaults to `*`, which is safe because Compose publishes the backend port (8085) on localhost only. Remote clients must connect through NGINX on port 80 or 443.
 
 <b>MAX_COUNT:</b> Max number of succesfull firmware upgrades to keep in the database per device SN.
 

@@ -9,8 +9,10 @@ services:
       dockerfile: Dockerfile.obu_ota_server
     image: obu_ota_server:latest
     restart: unless-stopped
+    # Published on localhost only. Remote clients connect through NGINX, which reaches
+    # the backend over the compose network.
     ports:
-      - 8085:8085
+      - 127.0.0.1:8085:8085
     environment:
       SERVER_HOST: ${OBU_OTA_SERVER_HOST:-}
       LOGGING_LEVEL: ${OBU_OTA_LOGGING_LEVEL:-}
@@ -20,7 +22,9 @@ services:
       GCP_PROJECT: ${OBU_OTA_GCP_PROJECT:-}
       GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/gcp/application-default-credentials.json
 
-      # Proxies allowed to set X-Forwarded-For; the NGINX container address is not fixed
+      # Proxies allowed to set X-Forwarded-For. "*" is used because the NGINX container
+      # address is not fixed; it is safe because only NGINX and local processes can
+      # reach the backend port.
       FORWARDED_ALLOW_IPS: ${OBU_OTA_FORWARDED_ALLOW_IPS:-*}
 
       OTA_USERNAME: ${OTA_USERNAME:-admin}
