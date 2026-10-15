@@ -1,9 +1,8 @@
 package us.dot.its.jpo.ode.api.services;
 
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.isConstraintViolation;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesChecksum;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesSize;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.normalizeCreatedBy;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.readMatchingObject;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validatePathSegment;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validateSignedLocation;
 
@@ -33,7 +32,6 @@ import us.dot.its.jpo.ode.api.repositories.ManufacturerRepository;
 import us.dot.its.jpo.ode.api.repositories.ObuFirmwareImageRepository;
 import us.dot.its.jpo.ode.api.repositories.ObuFirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.ObuFirmwareRegistrationService.Registration;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
@@ -137,26 +135,8 @@ public class ObuFirmwareUploadService {
             return toVerification(register(uploadId, null));
         }
 
-        // Route completion through the provider recorded when the URL was issued
-        ObjectStorageService objectStorageService = objectStorageServices.getService(upload.getStorageProvider());
-        ObjectStorageLocation location = new ObjectStorageLocation(
-                upload.getStorageProvider(), upload.getStorageContainer(), upload.getObjectName());
-        StoredObjectMetadata metadata = objectStorageService
-                .getObjectMetadata(location, upload.getChecksumAlgorithm())
-                .orElseThrow(() -> new FirmwareUploadVerificationException(
-                        "Cannot verify this upload because the expected firmware file was not found in storage. "
-                                + "Ensure the file upload using the signed URL completed successfully before "
-                                + "requesting verification."));
-
-        if (!matchesSize(upload, metadata)) {
-            registration.markFailed(uploadId, "SIZE_MISMATCH");
-            throw new FirmwareUploadVerificationException("Uploaded object size does not match content_length");
-        }
-        if (!matchesChecksum(upload, metadata)) {
-            registration.markFailed(uploadId, "CHECKSUM_MISMATCH");
-            throw new FirmwareUploadVerificationException(
-                    "Uploaded object checksum does not match the expected checksum");
-        }
+        StoredObjectMetadata metadata = readMatchingObject(objectStorageServices, upload,
+                reason -> registration.markFailed(uploadId, reason));
         return toVerification(register(uploadId, metadata));
     }
 
