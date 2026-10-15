@@ -35,12 +35,12 @@ import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.ManufacturerOptio
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadOptions;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadUrlRequest;
 import us.dot.its.jpo.ode.api.models.storage.ObuFirmwareModels.UploadVerification;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.ObuFirmwareUploadOptionsService;
 import us.dot.its.jpo.ode.api.services.ObuFirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "firmware-upload.cleanup.enabled=false")
@@ -141,7 +141,7 @@ class AdminObuFirmwareControllerTest {
                 .thenThrow(new IllegalArgumentException("file_name must follow the Commsignia convention"))
                 .thenThrow(new EntityNotFoundException("Manufacturer 'Commsignia' was not found"))
                 .thenThrow(new FirmwareVersionAlreadyExistsException("already exists"))
-                .thenThrow(new FirmwareUploadConfigurationException("not supported"));
+                .thenThrow(new ObjectStorageUnavailableException("Object storage provider is not configured"));
 
         for (var expected : List.of(status().isBadRequest(), status().isNotFound(), status().isConflict(),
                 status().isServiceUnavailable())) {
