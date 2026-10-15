@@ -10,16 +10,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import us.dot.its.jpo.geojsonconverter.DateJsonMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import us.dot.its.jpo.ode.api.services.WzdxService;
 
 @Slf4j
@@ -35,6 +33,7 @@ import us.dot.its.jpo.ode.api.services.WzdxService;
 public class WzdxFeedController {
 
     private final WzdxService wzdxService;
+    private final JsonMapper jsonMapper;
 
     @Operation(summary = "WZDx Feed", description = "Retrieves the WZDx work-zone data feed from the configured upstream provider.")
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -43,14 +42,23 @@ public class WzdxFeedController {
             @ApiResponse(responseCode = "200", description = "WZDx feed retrieved successfully"),
             @ApiResponse(responseCode = "502", description = "Failed to retrieve the upstream WZDx feed")
     })
-    public ResponseEntity<JsonNode> getWzdxFeed() {
+    public ResponseEntity<String> getWzdxFeed() {
         log.debug("WzdxFeed GET requested");
         String feed = wzdxService.callWzdxApi();
+        if (feed == null || feed.isBlank()) {
+            log.error("Upstream WZDx feed returned an empty body");
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Upstream WZDx feed returned an empty body");
+        }
+
+        // Validate the upstream body is JSON, then pass it through unchanged. Returning a parsed
+        // Jackson 2 JsonNode here is serialized as a bean by Spring Boot 4's Jackson 3 converter.
         try {
-            return ResponseEntity.ok(DateJsonMapper.getInstance().readTree(feed));
-        } catch (JsonProcessingException e) {
+            jsonMapper.readTree(feed);
+        } catch (JacksonException e) {
             log.error("Upstream WZDx feed was not valid JSON", e);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Upstream WZDx feed was not valid JSON", e);
         }
+
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(feed);
     }
 }

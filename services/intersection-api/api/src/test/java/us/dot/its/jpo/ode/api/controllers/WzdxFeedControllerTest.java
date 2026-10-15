@@ -60,4 +60,24 @@ class WzdxFeedControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(FEED));
     }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET /wzdx-feed returns 502 when the upstream feed is not valid JSON")
+    void invalidUpstreamJson_returns502() throws Exception {
+        when(wzdxService.callWzdxApi()).thenReturn("<html>Service Unavailable</html>");
+
+        mockMvc.perform(get("/wzdx-feed"))
+                .andExpect(status().isBadGateway());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET /wzdx-feed returns 502 when the upstream feed body is empty")
+    void emptyUpstreamBody_returns502() throws Exception {
+        when(wzdxService.callWzdxApi()).thenReturn(null);
+
+        mockMvc.perform(get("/wzdx-feed"))
+                .andExpect(status().isBadGateway());
+    }
 }
