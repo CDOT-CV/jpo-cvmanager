@@ -37,8 +37,9 @@ try (var transport = new Snmp4jClient(Snmp4jOptions.defaults())) {
 }
 ```
 
-In a server, share one transport and RSU client across requests and close the
-transport on application shutdown, rather than opening one for each request.
+In a server, share the transport and close it on application shutdown. For direct
+procedure calls, share the RSU client as well. Executor-managed procedures instead
+use scoped clients through the forwarding task helpers described below.
 Authentication, selected-organization authorization, credential lookup, periodic
 scheduling, durable jobs, and PostgreSQL reconciliation belong to the consuming
 application. The library contains no request security context. Preflight the
@@ -123,6 +124,38 @@ Date encoding uses configured device-zone local time with minute precision;
 Java normalizes leap-day plus ten years. The RSU helper uses local lock stripes
 around discovery/allocation/write/verification. Cross-instance and external-device
 writers require application coordination. No exactly-once guarantee is made.
+
+## Forwarding task helpers
+
+For executor-managed forwarding, share a `Ntcip1218ForwardingTasks` instance. It
+builds the standard change/verification/snapshot steps so consumers do not need
+to repeat their names, result casts or verification rules:
+
+```java
+var forwardingTasks = new Ntcip1218ForwardingTasks(clock, deviceZone);
+var task = forwardingTasks.create(device,
+    new ForwardingRequest(MessageType.MAP, "10.235.1.3", true),
+    new Ntcip1218ForwardingTasks.SnapshotAction("sync-database",
+        rows -> saveSnapshot(rows)));
+var result = executor.submit(task, taskOptions).await();
+Boolean changed = Ntcip1218ForwardingTasks.changed(result);
+```
+
+`delete(device, messageType, destination, afterRead)` uses the same flow.
+The snapshot action is optional; overloads without it still read both forwarding
+tables. Application work runs only after a complete snapshot and remains within
+the task's per-device slot. A follow-up failure preserves the already verified
+write outcome. `changed(result)` is true after a confirmed change, false after a
+delete no-op, and null when the procedure did not finish. Task recipes retain no
+mutable execution state and can be submitted more than once; repeated creates
+still allocate additional rows.
+
+The helper owns no sessions or transport. It creates procedure wrappers using
+each step's scoped client, preserving deadlines, accounting and credential
+isolation. Those wrappers open no sockets or threads. No procedure instances are
+pooled or cached, and the shared helper introduces no cross-device lock. Share
+the actual transport/executor as described below. Snapshot actions must cooperate
+with cancellation and keep their own retained state thread-safe.
 
 ## Generic task execution
 
