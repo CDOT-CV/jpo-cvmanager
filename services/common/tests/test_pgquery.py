@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+import time
 from unittest.mock import MagicMock, patch, Mock
 from common import pgquery
 import sqlalchemy
@@ -270,3 +272,26 @@ def test_query_and_return_list(mock_query_db):
 
     mock_query_db.assert_called_with(expected_query)
     assert actual_result == expected_data
+
+
+# test that concurrent first queries create a single engine
+@patch("common.pgquery.db", new=None)
+def test_query_db_creates_one_engine_for_concurrent_callers(monkeypatch):
+    connection = MagicMock()
+    connection.execute.return_value.fetchall.return_value = "my_result"
+    engine = MagicMock()
+    engine.connect.return_value.__enter__.return_value = connection
+
+    def slow_init():
+        # Hold the first initialization open so other threads arrive while it runs
+        time.sleep(0.1)
+        return engine
+
+    init_connection_engine = MagicMock(side_effect=slow_init)
+    monkeypatch.setattr(pgquery, "init_connection_engine", init_connection_engine)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(lambda _: pgquery.query_db("SELECT 1"), range(5)))
+
+    assert results == ["my_result"] * 5
+    init_connection_engine.assert_called_once()
