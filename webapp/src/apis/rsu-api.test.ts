@@ -7,7 +7,6 @@ beforeEach(() => {
   fetchMock.doMock()
   EnvironmentVars.rsuCountsEndpoint = 'VITE_ENV/rsucounts'
   EnvironmentVars.rsuCommandEndpoint = 'VITE_ENV/rsu-command'
-  // EnvironmentVars.geoMsgDataEndpoint = 'VITE_ENV/rsu-geo-data'
   EnvironmentVars.adminAddOrg = 'VITE_ENV/admin-new-org'
   EnvironmentVars.adminOrg = 'VITE_ENV/admin-org'
 })
@@ -115,49 +114,6 @@ it('Test getRsuCommand With Params', async () => {
   expect(fetchMock.mock.calls[0][1].method).toBe('GET')
   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
 })
-
-// it('Test postGeoMsgData', async () => {
-//   const body = {
-//     data: 'Test JSON',
-//   } as any
-//   fetchMock.mockResponseOnce(JSON.stringify(body))
-//   const actualResponse = await RsuApi.postGeoMsgData('testToken', body)
-//   expect(actualResponse).toEqual({
-//     body: body,
-//     message: undefined,
-//     status: 200,
-//   })
-//
-//   // expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.geoMsgDataEndpoint)
-//   expect(fetchMock.mock.calls[0][1].method).toBe('POST')
-//   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
-//     Authorization: 'testToken',
-//     'Content-Type': 'application/json',
-//   })
-// })
-
-// it('Test postGeoMsgData With Params', async () => {
-//   // Set url_ext
-//   const url_ext = 'url_ext'
-//   const body = {
-//     data: 'Test JSON',
-//   } as any
-//
-//   fetchMock.mockResponseOnce(JSON.stringify(body))
-//   const actualResponse = await RsuApi.postGeoMsgData('testToken', body, url_ext)
-//   expect(actualResponse).toEqual({
-//     body: body,
-//     message: undefined,
-//     status: 200,
-//   })
-//
-//   expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.geoMsgDataEndpoint + url_ext)
-//   expect(fetchMock.mock.calls[0][1].method).toBe('POST')
-//   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
-//     Authorization: 'testToken',
-//     'Content-Type': 'application/json',
-//   })
-// })
 
 it('Test postRsuGeo', async () => {
   const body = {
