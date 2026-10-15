@@ -1,8 +1,10 @@
 import pytest
 import unittest.mock as mock
 from addons.images.obu_ota_server.commsignia_manifest import (
+    FirmwareName,
     add_contents,
     is_valid_firmware_name,
+    parse_firmware_name,
 )
 
 
@@ -100,7 +102,50 @@ def test_add_contents_more_than_default_page_size():
         ("ob4-generic-ro-secureboot-y20/b228647.tar.sig", False),
         ("ob4-generic-ro-.tar.sig", False),
         ("ob5-generic-ro-y20.48.2-b228647.tar.sig", False),
+        ("ob4-generic--ro-y20.48.2.tar.sig", False),
+        ("ob4-generic-ro-" + "1" * 106 + ".tar.sig", False),
+        ("ob4-generic-ro-" + "1" * 105 + ".tar.sig", True),
     ],
 )
 def test_is_valid_firmware_name(file_name, expected):
     assert is_valid_firmware_name(file_name) is expected
+
+
+@pytest.mark.parametrize(
+    "file_name,expected",
+    [
+        (
+            "ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig",
+            FirmwareName("ob4-generic", "OBU", False, True, "y20.48.2-b228647"),
+        ),
+        (
+            "rs4-generic-rw-y20.48.2-b228647.tar.sig",
+            FirmwareName("rs4-generic", "RSU", True, False, "y20.48.2-b228647"),
+        ),
+        (
+            "ob4-generic-custom_variant-ro-y20.48.2.tar.sig",
+            FirmwareName("ob4-generic-custom_variant", "OBU", False, False, "y20.48.2"),
+        ),
+        # The last rw/ro marker that leaves a valid release wins, as with a greedy variant
+        (
+            "ob4-generic-ro-rw-y20.48.2.tar.sig",
+            FirmwareName("ob4-generic-ro", "OBU", True, False, "y20.48.2"),
+        ),
+        (
+            "ob4-generic-ro-y20-ro-.tar.sig",
+            FirmwareName("ob4-generic", "OBU", False, False, "y20-ro-"),
+        ),
+        # secureboot without a following release is the release itself
+        (
+            "ob4-generic-ro-secureboot-.tar.sig",
+            FirmwareName("ob4-generic", "OBU", False, False, "secureboot-"),
+        ),
+    ],
+)
+def test_parse_firmware_name(file_name, expected):
+    assert parse_firmware_name(file_name) == expected
+
+
+def test_parse_firmware_name_rejects_long_names_quickly():
+    # Names with many markers are rejected by the length limit before parsing
+    assert parse_firmware_name("ob4-generic" + "-ro" * 10000 + ".tar.sig") is None
