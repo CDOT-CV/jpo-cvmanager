@@ -137,6 +137,22 @@ mvn clean verify
 
 Then open the following file in a browser: [index.html](./target/site/jacoco/index.html)
 
+## Health Checks
+
+The API uses Spring Boot Actuator. These endpoints are unauthenticated and honor the `BASE_ROUTE_PREFIX` context path:
+
+| Endpoint                         | Purpose                                                  |
+| -------------------------------- | -------------------------------------------------------- |
+| `/actuator/health`               | Overall status, aggregated from all health indicators.   |
+| `/actuator/health/liveness`      | Whether the application is running.                      |
+| `/actuator/health/readiness`     | Whether the application is ready to accept traffic.      |
+
+Only the `health` endpoint is exposed and details are hidden (see `management` in `application.yaml`). The Docker Compose service runs a healthcheck against the readiness endpoint using `curl`.
+
+```sh
+curl http://localhost:8089/actuator/health
+```
+
 ## Swagger API
 
 The Intersection API utilizes swagger for viewing and testing api endpoints. The Swagger endpoint can be accessed here:

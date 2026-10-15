@@ -110,6 +110,12 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8089$${BASE_ROUTE_PREFIX%/}/actuator/health/readiness || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     depends_on:
       cvmanager_keycloak:
         condition: service_healthy
