@@ -1,0 +1,50 @@
+version: 2
+
+# Security updates only. Enable dependency graph, alerts, and security updates
+# in repository settings; do not specify target-branch for security updates.
+registries:
+  # Dependabot has no Actions runner context; use the canonical upstream package
+  # source for dependency updates in both the upstream repository and forks.
+  github-usdot-maven:
+    type: maven-repository
+    url: https://maven.pkg.github.com/usdot-jpo-ode/*
+    username: usdot-jpo-ode
+    password: ${{ secrets.MAVEN_GITHUB_TOKEN }}
+
+updates:
+  - package-ecosystem: npm
+    directory: /webapp
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: pip
+    directories:
+      - /services
+      - /services/api
+      - /services/addons/images/count_metric
+      - /services/addons/images/firmware_manager
+      - /services/addons/images/iss_health_check
+      - /services/addons/images/obu_ota_server
+      - /services/addons/images/rsu_status_check
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: maven
+    directories:
+      - /resources/keycloak/custom-user-provider
+      - /services/rsu-info-bridge
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: maven
+    directories:
+      - /services/intersection-api/api
+      - /services/rsu-status-monitor/rsu-status-monitor
+    registries:
+      - github-usdot-maven
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
