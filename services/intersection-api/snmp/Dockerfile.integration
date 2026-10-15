@@ -1,0 +1,9 @@
+# Build with services as the context; all credentials in this image are disposable fixtures.
+FROM maven:3.9.6-eclipse-temurin-22-jammy
+RUN apt-get update && apt-get install -y --no-install-recommends snmp snmpd \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY intersection-api/snmp/pom.xml ./intersection-api/snmp/pom.xml
+COPY intersection-api/snmp/src ./intersection-api/snmp/src
+COPY resources/mibs ./resources/mibs
+ENTRYPOINT ["sh", "/workspace/intersection-api/snmp/src/test/resources/agent/run-integration.sh"]
