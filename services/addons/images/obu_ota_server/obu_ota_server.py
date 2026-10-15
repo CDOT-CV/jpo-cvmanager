@@ -101,8 +101,8 @@ def get_firmware(firmware_id: str, local_file_path: str) -> bool:
                     firmware_id, local_file_path, commsignia_file_ext
                 )
         return True
-    except Exception as e:
-        logging.error(f"get_firmware: Error getting firmware: {e}")
+    except Exception:
+        logging.exception("get_firmware: Error getting firmware")
         raise HTTPException(status_code=500, detail="Error getting firmware")
 
 
@@ -169,8 +169,8 @@ def removed_old_logs(serialnum: str):
             "ORDER BY request_datetime DESC, request_id DESC OFFSET :max_count)",
             {"obu_sn": serialnum, "max_count": obu_ota_server_environment.MAX_COUNT},
         )
-    except Exception as e:
-        logging.error(f"removed_old_logs: Error removing old entries: {e}")
+    except Exception:
+        logging.exception("removed_old_logs: Error removing old entries")
 
 
 def write_request_log(
@@ -231,8 +231,8 @@ async def log_request(
             error_status,
             error_message,
         )
-    except Exception as e:
-        logging.error(f"log_request: Error logging request: {e}")
+    except Exception:
+        logging.exception("log_request: Error logging request")
 
 
 def schedule_log_request(*args):
@@ -242,7 +242,17 @@ def schedule_log_request(*args):
 
 
 @app.get(
-    "/firmwares/commsignia/{firmware_id}", dependencies=[Depends(authenticate_user)]
+    "/firmwares/commsignia/{firmware_id}",
+    dependencies=[Depends(authenticate_user)],
+    response_class=Response,
+    responses={
+        200: {"description": "The complete firmware file"},
+        206: {"description": "The requested byte range of the firmware file"},
+        400: {"description": "Invalid Range header"},
+        404: {"description": "Firmware not found"},
+        416: {"description": "Requested range starts beyond the end of the file"},
+        500: {"description": "Firmware could not be read"},
+    },
 )
 async def get_fw(request: Request, firmware_id: str):
     try:
@@ -286,11 +296,18 @@ async def get_fw(request: Request, firmware_id: str):
             media_type="application/octet-stream",
             headers=headers,
         )
+    except HTTPException as e:
+        # Expected client errors such as unknown firmware or invalid ranges
+        schedule_log_request(
+            commsignia_manufacturer_name, request, firmware_id, 1, str(e)
+        )
+        logging.warning(
+            f"get_fw: Responded with {e.status_code} for firmware_id: {firmware_id}"
+        )
+        raise
     except Exception as e:
         schedule_log_request(
             commsignia_manufacturer_name, request, firmware_id, 1, str(e)
         )
-        logging.error(
-            f"get_fw: Error responding with firmware with error: {e} for firmware_id: {firmware_id}"
-        )
+        logging.exception(f"get_fw: Error responding with firmware_id: {firmware_id}")
         raise
