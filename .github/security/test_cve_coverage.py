@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import re
 import tempfile
 import unittest
 
@@ -32,6 +33,13 @@ class CoverageTests(unittest.TestCase):
         for tracked in ([], ["Dockerfile", "services/Dockerfile.new"]):
             with self.subTest(tracked=tracked), self.assertRaisesRegex(ValueError, "coverage mismatch"):
                 coverage.matrix(items, tracked, False)
+
+    def test_suppressions_match_every_version_of_a_package(self):
+        # A version or qualifier (e.g. distro=debian-12.5) would stop matching after a base image refresh.
+        ignore = Path(__file__).resolve().parents[2] / ".trivyignore.yaml"
+        purls = re.findall(r"pkg:[^\s\"',\]]+", ignore.read_text(encoding="utf-8"))
+        self.assertTrue(purls)
+        self.assertEqual([purl for purl in purls if re.search(r"[@?#]", purl)], [])
 
     def test_inventory_rejects_duplicate_ids(self):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
