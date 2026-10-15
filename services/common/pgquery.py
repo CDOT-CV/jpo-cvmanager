@@ -1,5 +1,6 @@
 import sqlalchemy
 import logging
+import threading
 from common import common_environment
 
 db_config = {
@@ -18,6 +19,8 @@ db_config = {
 }
 
 db = None
+# Guards lazy engine creation so concurrent first queries share one pool
+_db_lock = threading.Lock()
 
 
 def init_tcp_connection_engine(db_user, db_pass, db_name, db_hostname, db_port):
@@ -80,6 +83,15 @@ def init_connection_engine():
         )
 
 
+def _get_engine():
+    global db
+    if db is None:
+        with _db_lock:
+            if db is None:
+                db = init_connection_engine()
+    return db
+
+
 def query_db(query_string, params=None):
     """
     Execute a parameterized query against the database.
@@ -93,12 +105,10 @@ def query_db(query_string, params=None):
     Returns:
         list: The result of the query as a list of rows.
     """
-    global db
-    if db is None:
-        db = init_connection_engine()
+    engine = _get_engine()
 
     logging.info("DB connection starting...")
-    with db.connect() as conn:
+    with engine.connect() as conn:
         logging.debug("Executing query...")
         data = conn.execute(sqlalchemy.text(query_string), params).fetchall()
         return data
@@ -117,12 +127,10 @@ def write_db(query_string, params=None):
     Returns:
         None
     """
-    global db
-    if db is None:
-        db = init_connection_engine()
+    engine = _get_engine()
 
     logging.info("DB connection starting...")
-    with db.connect() as conn:
+    with engine.connect() as conn:
         logging.debug("Executing insert query...")
         conn.execute(sqlalchemy.text(query_string), params)
         conn.commit()
