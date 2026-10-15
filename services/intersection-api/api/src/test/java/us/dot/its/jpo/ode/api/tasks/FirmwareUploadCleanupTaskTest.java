@@ -39,7 +39,7 @@ class FirmwareUploadCleanupTaskTest {
 
     @Test
     void expiresStalePendingRowsAndPurgesOldTerminalRowsInEveryUploadTable() {
-        for (UploadLifecycleRepository uploads : List.of(repository, obuRepository)) {
+        for (UploadLifecycleRepository<?> uploads : List.<UploadLifecycleRepository<?>>of(repository, obuRepository)) {
             when(uploads.expirePendingUploads(
                     FirmwareUploadStatus.PENDING,
                     FirmwareUploadStatus.EXPIRED,
@@ -53,7 +53,7 @@ class FirmwareUploadCleanupTaskTest {
 
         task.cleanUpFirmwareUploads(now);
 
-        for (UploadLifecycleRepository uploads : List.of(repository, obuRepository)) {
+        for (UploadLifecycleRepository<?> uploads : List.<UploadLifecycleRepository<?>>of(repository, obuRepository)) {
             verify(uploads).expirePendingUploads(
                     FirmwareUploadStatus.PENDING,
                     FirmwareUploadStatus.EXPIRED,

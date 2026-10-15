@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareDeviceType;
+import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareFileMetadata;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareUpload;
 
@@ -64,9 +65,8 @@ class ObuFirmwareImageRepositoryTest {
 
         var found = repository.findByManufacturerIdAndFileName(manufacturer.getId(), image.getFileName())
                 .orElseThrow();
-        assertThat(found.getDeviceType()).isEqualTo(ObuFirmwareDeviceType.OBU);
-        assertThat(found.getReleaseVersion()).isEqualTo("y20.48.2-b228647");
-        assertThat(found.getSecureBoot()).isTrue();
+        assertThat(found.getMetadata()).isEqualTo(new ObuFirmwareFileMetadata(
+                ObuFirmwareDeviceType.OBU, "y20.48.2-b228647", "ob4-generic", false, true));
         assertThat(found.getPublished()).isTrue();
         assertThat(found.isLocal()).isFalse();
         assertThat(repository.existsByManufacturerIdAndFileName(manufacturer.getId(), image.getFileName())).isTrue();
@@ -106,11 +106,7 @@ class ObuFirmwareImageRepositoryTest {
         var image = new ObuFirmwareImage();
         image.setManufacturer(manufacturer);
         image.setFileName(fileName);
-        image.setDeviceType(ObuFirmwareDeviceType.OBU);
-        image.setReleaseVersion("y20.48.2-b228647");
-        image.setVariant("ob4-generic");
-        image.setWritableSystemPartition(false);
-        image.setSecureBoot(true);
+        image.setMetadata(metadata());
         image.setStorageProvider(provider);
         image.setStorageContainer(ObuFirmwareImage.LOCAL_STORAGE_PROVIDER.equals(provider) ? "local" : "bucket");
         image.setObjectName("ota/OBU Image Repository Vendor/y20.48.2-b228647/" + fileName);
@@ -124,13 +120,16 @@ class ObuFirmwareImageRepositoryTest {
         return image;
     }
 
+    private static ObuFirmwareFileMetadata metadata() {
+        return new ObuFirmwareFileMetadata(ObuFirmwareDeviceType.OBU, "y20.48.2-b228647", "ob4-generic", false, true);
+    }
+
     private ObuFirmwareUpload saveUpload(String fileName) {
         var upload = new ObuFirmwareUpload();
         upload.setId(UUID.randomUUID());
         upload.setManufacturer(manufacturer);
         upload.setFileName(fileName);
-        upload.setDeviceType(ObuFirmwareDeviceType.OBU);
-        upload.setReleaseVersion("y20.48.2-b228647");
+        upload.setMetadata(metadata());
         upload.setContentType("application/octet-stream");
         upload.setStorageProvider("gcp");
         upload.setStorageContainer("bucket");
