@@ -10,7 +10,6 @@ from rsu_querycounts import RsuQueryCounts
 from rsu_querymsgfwd import RsuQueryMsgFwd
 from rsu_commands import RsuCommandRequest
 from rsu_snmp_fwd_fetch import RsuSnmpFwdFetch
-from rsu_geo_msg_query import RsuGeoData
 from admin_new_org import AdminNewOrg
 from admin_org import AdminOrg, AdminOrgTimDeposit, AdminOrgSnmpMonitoring
 import smtp_error_handler
@@ -48,7 +47,6 @@ if api_environment.ENABLE_RSU_FEATURES:
     api.add_resource(RsuQueryMsgFwd, "/rsu-msgfwd-query")
     api.add_resource(RsuSnmpFwdFetch, "/rsu-msgfwd-fetch")
     api.add_resource(RsuCommandRequest, "/rsu-command")
-    api.add_resource(RsuGeoData, "/rsu-geo-msg-data")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=api_environment.APPLICATION_PORT)
