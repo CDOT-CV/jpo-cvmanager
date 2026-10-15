@@ -91,7 +91,7 @@ public class ObuFirmwareImage {
 
     @NotNull
     @Column(name = "registered_at", nullable = false)
-    private Instant registeredAt;
+    private Instant registeredAt = Instant.now();
 
     @NotNull
     @Column(name = "published", nullable = false)

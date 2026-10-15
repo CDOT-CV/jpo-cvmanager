@@ -77,6 +77,17 @@ class ObuFirmwareImageRepositoryTest {
     }
 
     @Test
+    void recordsRegistrationTimeWithoutAnExplicitValue() {
+        Instant before = Instant.now();
+
+        var image = repository.saveAndFlush(image("registered.tar.sig", ObuFirmwareImage.LOCAL_STORAGE_PROVIDER));
+        entityManager.clear();
+
+        var registeredAt = repository.findById(image.getId()).orElseThrow().getRegisteredAt();
+        assertThat(registeredAt).isNotNull().isBetween(before.minusSeconds(1), Instant.now().plusSeconds(1));
+    }
+
+    @Test
     void listsImagesWithTheirManufacturer() {
         repository.saveAndFlush(image("ob4-generic-rw-y20.49.0-b230000.tar.sig", ObuFirmwareImage.LOCAL_STORAGE_PROVIDER));
         entityManager.clear();
@@ -116,7 +127,6 @@ class ObuFirmwareImageRepositoryTest {
             image.setChecksum("ImIEBA==");
             image.setProviderObjectVersion("17");
         }
-        image.setRegisteredAt(NOW);
         return image;
     }
 
