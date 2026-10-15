@@ -8,4 +8,6 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 COPY addons/images/obu_ota_server/*.py .
 COPY common/*.py ./common/
 
-CMD ["uvicorn", "obu_ota_server:app", "--host", "0.0.0.0", "--port", "8085"]
+# --proxy-headers trusts X-Forwarded-For from the hosts in FORWARDED_ALLOW_IPS so the
+# real OBU address is logged instead of the NGINX proxy address
+CMD ["uvicorn", "obu_ota_server:app", "--host", "0.0.0.0", "--port", "8085", "--proxy-headers"]

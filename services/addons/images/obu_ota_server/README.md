@@ -24,15 +24,21 @@ Available REST endpoints:
   - Used as a health check path for K8 deployment. This path is not secured with basic authentication
 - /firmwares/commsignia [ **GET** ]
   - Secured with basic authentication.
-  - Firmware file name must comply with the following regex naming filter:
-    `(?P<variant>(?P<type>ob4|rs4)-generic(?:-.*)?)-(?:(?P<writable>rw)|ro)(?P<secure>-secureboot)?-(?P<release>.*).tar.sig`
+  - Firmware file names must follow `<variant>-<rw|ro>[-secureboot]-<release>.tar.sig` and be at most 128 characters, using only letters, digits, `.`, `_`, and `-`:
+    - `variant` is `ob4-generic` (OBU) or `rs4-generic` (RSU), optionally followed by `-<suffix>`.
+    - `rw` or `ro` sets `writableSystemPartition`, and `-secureboot` sets `secure`.
+    - `release` must start with a letter or digit. When a name contains more than one `rw`/`ro` marker, the last one that leaves a valid release is used.
+    - For example, `ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig`.
+  - All matching firmware files are returned in a single page. The page `size` is 32, or the number of firmware files when there are more than 32.
   - Will either query GCS or the specified local path for a latest list of firmware files. Generates a manifest that includes details about each firmware file along with a `href` field that the OBU uses to generate the download request. Here is a sample response:
     `{"content":[{"id":"","name":"ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig","variant":"ob4-generic","releaseVersion":"y20.48.2-b228647","type":"OBU","writableSystemPartition":false,"secure":true,"uploadedAt":"2024-05-29T22:12:33Z","size":135055616,"links":[{"rel":"local-file","href":"localhost/firmwares/commsignia/ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig","type":"application/octet-stream"}]}],"pageable":{"sort":{"empty":false,"unsorted":false,"sorted":true},"offset":0,"pageNumber":0,"pageSize":32,"paged":true,"unpaged":false},"last":true,"totalPages":1,"totalElements":1,"size":32,"number":0,"sort":{"empty":false,"unsorted":false,"sorted":true},"numberOfElements":1,"first":true,"empty":false}`
 - /firmwares/commsignia/{firmware_id} [ **GET** ]
   - Secured with basic authentication.
   - Used as an endpoint for the OBU to download a firmware file from.
-  - Supports a range header to allow for partial downloads of files.
-    - NOTE: Commsignia currently doesn't send these range headers so as of now this functionality has not be tested.
+  - `firmware_id` must match the firmware naming filter above; any other value returns `404` without accessing storage.
+  - Supports a single `Range: bytes=<start>-[<end>]` header for partial downloads. The end offset is inclusive, partial responses return `206 Partial Content` with a `Content-Range` header, and a start offset beyond the end of the file returns `416 Range Not Satisfiable`. Requests without a range header return the full file with `200 OK`.
+    - NOTE: Commsignia currently doesn't send these range headers.
+  - Every download attempt is recorded in the `obu_ota_requests` PostgreSQL table using the OBU's `serialnum` and `version` query parameters. Only the newest `MAX_COUNT` successful requests are kept per serial number. The manufacturer is looked up by name, so a `Commsignia` row must exist in the `manufacturers` table for requests to be logged. Recorded requests can be viewed through the Intersection API `GET /admin/obu-ota-requests` endpoint.
 
 ## Requirements <a name = "requirements"></a>
 
@@ -56,7 +62,9 @@ The following environmental variables must be set:
 
 <b>PG_DB_NAME:</b> PostgreSQL database name.
 
-<b>PG_DB_HOST:</b> PostgreSQL hostname, make sure to include port number.
+<b>PG_DB_HOST:</b> PostgreSQL hostname, optionally followed by `:port`. Defaults to port 5432 when no port is provided.
+
+<b>FORWARDED_ALLOW_IPS:</b> Comma-separated proxy addresses trusted to provide the `X-Forwarded-For` header, so the OBU address is logged instead of the proxy address. Docker Compose sets this from `OBU_OTA_FORWARDED_ALLOW_IPS` and defaults to `*`, which is safe because Compose publishes the backend port (8085) on localhost only. Remote clients must connect through NGINX on port 80 or 443.
 
 <b>MAX_COUNT:</b> Max number of succesfull firmware upgrades to keep in the database per device SN.
 
@@ -68,7 +76,7 @@ The following environmental variables must be set:
 
 <b>GCP_PROJECT:</b> GCP project for the firmware cloud storage bucket.
 
-<b>GOOGLE_APPLICATION_CREDENTIALS:</b> Service account location. Recommended to attach as a volume.
+<b>GOOGLE_APPLICATION_CREDENTIALS:</b> Service account location. Recommended to attach as a volume. Docker Compose always sets this to the file mounted from `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`, so that variable must point to a real service account key when `BLOB_STORAGE_PROVIDER` is `GCP`. The default mounted sample file contains no key, and metadata server or gcloud credentials are not used under Docker Compose.
 
 ### Local Required variables <a name = "local-requirements"></a>
 

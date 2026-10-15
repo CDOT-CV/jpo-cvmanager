@@ -9,19 +9,28 @@ services:
       dockerfile: Dockerfile.obu_ota_server
     image: obu_ota_server:latest
     restart: unless-stopped
+    # Published on localhost only. Remote clients connect through NGINX, which reaches
+    # the backend over the compose network.
     ports:
-      - 8085:8085
+      - 127.0.0.1:8085:8085
     environment:
       SERVER_HOST: ${OBU_OTA_SERVER_HOST:-}
       LOGGING_LEVEL: ${OBU_OTA_LOGGING_LEVEL:-}
       BLOB_STORAGE_PROVIDER: ${BLOB_STORAGE_PROVIDER:-DOCKER}
       BLOB_STORAGE_BUCKET: ${OBU_OTA_BLOB_STORAGE_BUCKET:-}
       BLOB_STORAGE_PATH: ${OBU_OTA_BLOB_STORAGE_PATH:-}
+      GCP_PROJECT: ${OBU_OTA_GCP_PROJECT:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/gcp/application-default-credentials.json
+
+      # Proxies allowed to set X-Forwarded-For. "*" is used because the NGINX container
+      # address is not fixed; it is safe because only NGINX and local processes can
+      # reach the backend port.
+      FORWARDED_ALLOW_IPS: ${OBU_OTA_FORWARDED_ALLOW_IPS:-*}
 
       OTA_USERNAME: ${OTA_USERNAME:-admin}
       OTA_PASSWORD: ${OTA_PASSWORD:-admin}
 
-      PG_DB_HOST: ${PG_DB_HOST:-cvmanager_postgres}
+      PG_DB_HOST: ${PG_DB_HOST:-cvmanager_postgres:5432}
       PG_DB_USER: ${PG_DB_USER:-postgres}
       PG_DB_PASS: ${PG_DB_PASS:-postgres}
       PG_DB_NAME: ${PG_DB_NAME:-postgres}
@@ -30,6 +39,12 @@ services:
       NGINX_ENCRYPTION: ${NGINX_ENCRYPTION:-plain}
     volumes:
       - ./resources/ota/firmwares:/firmwares
+      - type: bind
+        # The checked-in file contains no credentials. Configure a real host path to
+        # serve firmware from GCS
+        source: ${GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH:-./resources/google/sample_gcp_service_account.json}
+        target: /var/run/secrets/gcp/application-default-credentials.json
+        read_only: true
     logging:
       options:
         max-size: '10m'
