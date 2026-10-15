@@ -24,6 +24,7 @@ import us.dot.its.jpo.ode.api.repositories.ObuOtaRequestRepository;
 public class ObuOtaRequestService {
     public static final String STATUS_SUCCESS = "success";
     public static final String STATUS_ERROR = "error";
+    private static final String REQUEST_DATETIME = "requestDatetime";
 
     private final ObuOtaRequestRepository repository;
 
@@ -72,10 +73,10 @@ public class ObuOtaRequestService {
                 predicates.add(builder.equal(root.get("errorStatus"), errorStatus));
             }
             if (start != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("requestDatetime"), start));
+                predicates.add(builder.greaterThanOrEqualTo(root.get(REQUEST_DATETIME), start));
             }
             if (end != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("requestDatetime"), end));
+                predicates.add(builder.lessThanOrEqualTo(root.get(REQUEST_DATETIME), end));
             }
             return builder.and(predicates.toArray(Predicate[]::new));
         };
@@ -102,7 +103,7 @@ public class ObuOtaRequestService {
         }
 
         String property = switch (field) {
-            case "request_datetime" -> "requestDatetime";
+            case "request_datetime" -> REQUEST_DATETIME;
             case "obu_sn" -> "obuSn";
             case "requested_firmware_version" -> "requestedFirmwareVersion";
             case "obu_firmware_version" -> "obuFirmwareVersion";
