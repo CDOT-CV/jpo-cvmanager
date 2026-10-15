@@ -1,5 +1,8 @@
+import asyncio
 import pytest
 import tempfile
+import threading
+import time
 import os
 from httpx import ASGITransport, AsyncClient, BasicAuth
 from fastapi import HTTPException, Request
@@ -135,6 +138,43 @@ def test_get_firmware_gcs_failure(mock_download_gcp_blob, mock_os_path_exists):
     )
 
     assert result is False
+
+
+@patch("obu_ota_server_environment.BLOB_STORAGE_PROVIDER", "GCP")
+@pytest.mark.asyncio
+async def test_get_firmware_serializes_concurrent_gcs_downloads():
+    calls = []
+    active = 0
+    max_active = 0
+    counter_lock = threading.Lock()
+
+    def slow_download(firmware_id, local_file_path, file_extension):
+        nonlocal active, max_active
+        with counter_lock:
+            active += 1
+            max_active = max(max_active, active)
+            calls.append(firmware_id)
+        # Simulate a download that is still writing when another request arrives
+        time.sleep(0.2)
+        with open(local_file_path, "wb") as firmware:
+            firmware.write(FIRMWARE_CONTENT)
+        with counter_lock:
+            active -= 1
+        return True
+
+    with tempfile.TemporaryDirectory() as directory:
+        local_file_path = os.path.join(directory, FIRMWARE_NAME)
+        with patch("common.gcs_utils.download_gcp_blob", side_effect=slow_download):
+            results = await asyncio.gather(
+                asyncio.to_thread(get_firmware, FIRMWARE_NAME, local_file_path),
+                asyncio.to_thread(get_firmware, FIRMWARE_NAME, local_file_path),
+            )
+
+        # The second request waits for the first download, then finds the complete file
+        assert results == [True, True]
+        assert max_active == 1
+        assert calls == [FIRMWARE_NAME]
+        assert os.path.getsize(local_file_path) == len(FIRMWARE_CONTENT)
 
 
 def test_parse_range_header_valid():

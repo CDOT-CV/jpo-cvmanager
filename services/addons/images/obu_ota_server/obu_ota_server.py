@@ -8,6 +8,7 @@ import ipaddress
 import os
 import aiofiles
 import logging
+import threading
 from datetime import datetime, timezone
 import asyncio
 import obu_ota_server_environment
@@ -27,6 +28,10 @@ manufacturer_ids: dict[str, int] = {}
 
 # Holds references to fire-and-forget logging tasks so they are not garbage collected
 background_tasks: set[asyncio.Task] = set()
+
+# Serializes firmware storage access. GCS downloads write directly to the firmware
+# directory, so a concurrent request could otherwise serve a partially written file.
+storage_lock = threading.Lock()
 
 
 def authenticate_user(credentials: HTTPBasicCredentials = Depends(security)) -> str:
@@ -56,11 +61,12 @@ def get_firmware_list() -> list:
     blob_storage_provider = obu_ota_server_environment.BLOB_STORAGE_PROVIDER
     files = []
     file_extension = commsignia_file_ext
-    if blob_storage_provider.upper() == "DOCKER":
-        files = glob.glob(f"{FIRMWARE_DIR}/*{file_extension}")
-    elif blob_storage_provider.upper() == "GCP":
-        blob_storage_path = obu_ota_server_environment.BLOB_STORAGE_PATH
-        files = gcs_utils.list_gcs_blobs(blob_storage_path, file_extension)
+    with storage_lock:
+        if blob_storage_provider.upper() == "DOCKER":
+            files = glob.glob(f"{FIRMWARE_DIR}/*{file_extension}")
+        elif blob_storage_provider.upper() == "GCP":
+            blob_storage_path = obu_ota_server_environment.BLOB_STORAGE_PATH
+            files = gcs_utils.list_gcs_blobs(blob_storage_path, file_extension)
     return files
 
 
@@ -89,18 +95,19 @@ async def get_manifest(request: Request) -> dict[str, Any]:
 def get_firmware(firmware_id: str, local_file_path: str) -> bool:
     try:
         blob_storage_provider = obu_ota_server_environment.BLOB_STORAGE_PROVIDER
-        # checks if firmware exists locally
-        if not os.path.exists(local_file_path):
-            # If configured to only use local storage, return False as firmware does not exist
-            if blob_storage_provider.upper() == "DOCKER":
-                return False
-            # If configured to use GCP storage, download the firmware from GCP
-            elif blob_storage_provider.upper() == "GCP":
-                # Download blob will attempt to download the firmware and return True if successful
-                return gcs_utils.download_gcp_blob(
-                    firmware_id, local_file_path, commsignia_file_ext
-                )
-        return True
+        with storage_lock:
+            # checks if firmware exists locally
+            if not os.path.exists(local_file_path):
+                # If configured to only use local storage, return False as firmware does not exist
+                if blob_storage_provider.upper() == "DOCKER":
+                    return False
+                # If configured to use GCP storage, download the firmware from GCP
+                elif blob_storage_provider.upper() == "GCP":
+                    # Download blob will attempt to download the firmware and return True if successful
+                    return gcs_utils.download_gcp_blob(
+                        firmware_id, local_file_path, commsignia_file_ext
+                    )
+            return True
     except Exception:
         logging.exception("get_firmware: Error getting firmware")
         raise HTTPException(status_code=500, detail="Error getting firmware")
