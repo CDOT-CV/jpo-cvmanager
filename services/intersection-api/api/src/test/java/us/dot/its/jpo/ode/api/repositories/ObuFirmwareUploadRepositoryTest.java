@@ -22,6 +22,7 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareDeviceType;
+import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareFileMetadata;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ObuFirmwareUpload;
 
 @SpringBootTest(properties = "firmware-upload.cleanup.enabled=false")
@@ -154,11 +155,8 @@ class ObuFirmwareUploadRepositoryTest {
         upload.setId(UUID.randomUUID());
         upload.setManufacturer(manufacturer);
         upload.setFileName(fileName);
-        upload.setDeviceType(ObuFirmwareDeviceType.OBU);
-        upload.setReleaseVersion("y20.48.2");
-        upload.setVariant("ob4-generic");
-        upload.setWritableSystemPartition(false);
-        upload.setSecureBoot(true);
+        upload.setMetadata(new ObuFirmwareFileMetadata(
+                ObuFirmwareDeviceType.OBU, "y20.48.2", "ob4-generic", false, true));
         upload.setContentType("application/octet-stream");
         upload.setStorageProvider("gcp");
         upload.setStorageContainer("bucket");

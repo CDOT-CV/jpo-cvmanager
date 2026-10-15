@@ -26,7 +26,7 @@ public class FirmwareUploadCleanupTask {
     private static final List<FirmwareUploadStatus> PURGEABLE_STATUSES = List.of(
             FirmwareUploadStatus.FAILED, FirmwareUploadStatus.EXPIRED);
 
-    private final List<UploadLifecycleRepository> uploadRepositories;
+    private final List<UploadLifecycleRepository<?>> uploadRepositories;
     private final FirmwareUploadCleanupProperties properties;
 
     @Scheduled(fixedDelayString = "${firmware-upload.cleanup.interval:1h}")
@@ -46,7 +46,7 @@ public class FirmwareUploadCleanupTask {
 
         int expired = 0;
         int deleted = 0;
-        for (UploadLifecycleRepository repository : uploadRepositories) {
+        for (UploadLifecycleRepository<?> repository : uploadRepositories) {
             expired += repository.expirePendingUploads(
                     FirmwareUploadStatus.PENDING,
                     FirmwareUploadStatus.EXPIRED,
