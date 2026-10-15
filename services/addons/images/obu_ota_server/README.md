@@ -76,7 +76,7 @@ The following environmental variables must be set:
 
 <b>GCP_PROJECT:</b> GCP project for the firmware cloud storage bucket.
 
-<b>GOOGLE_APPLICATION_CREDENTIALS:</b> Service account location. Recommended to attach as a volume.
+<b>GOOGLE_APPLICATION_CREDENTIALS:</b> Service account location. Recommended to attach as a volume. Docker Compose always sets this to the file mounted from `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`, so that variable must point to a real service account key when `BLOB_STORAGE_PROVIDER` is `GCP`. The default mounted sample file contains no key, and metadata server or gcloud credentials are not used under Docker Compose.
 
 ### Local Required variables <a name = "local-requirements"></a>
 
