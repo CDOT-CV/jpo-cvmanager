@@ -4,8 +4,7 @@ import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,6 +15,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -51,25 +51,10 @@ public class ObuFirmwareImage {
     @Column(name = "file_name", nullable = false, length = 128)
     private String fileName;
 
+    @Valid
     @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "device_type", nullable = false, length = 16)
-    private ObuFirmwareDeviceType deviceType;
-
-    @Size(max = 128)
-    @NotNull
-    @Column(name = "release_version", nullable = false, length = 128)
-    private String releaseVersion;
-
-    @Size(max = 128)
-    @Column(name = "variant", length = 128)
-    private String variant;
-
-    @Column(name = "writable_system_partition")
-    private Boolean writableSystemPartition;
-
-    @Column(name = "secure_boot")
-    private Boolean secureBoot;
+    @Embedded
+    private ObuFirmwareFileMetadata metadata;
 
     @Size(max = 32)
     @NotNull
