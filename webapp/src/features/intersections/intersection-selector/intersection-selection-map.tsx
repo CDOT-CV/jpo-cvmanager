@@ -109,7 +109,7 @@ const IntersectionMap = () => {
   const viewBounds = getBoundsForIntersections(selectedIntersection, intersections)
   useEffect(() => {
     zoomToBounds(mapRef, viewBounds)
-  }, [])
+  }, [viewBounds])
 
   const intersectionPointData = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
     () => ({

@@ -77,7 +77,7 @@ const SubscriptionForm = ({
     })
     setSubscriptions(initial)
     setPrevSubscriptions(initial)
-  }, [initialSubscriptions])
+  }, [initialSubscriptions, isModified])
 
   const handleFrequencyToggle = (
     categoryId: string,
@@ -106,7 +106,7 @@ const SubscriptionForm = ({
       setTimeout(() => {
         setSuccess(false)
       }, 3000)
-    } catch (err) {
+    } catch (_) {
       setError('Failed to save subscription preferences. Please try again.')
     } finally {
       setSaving(false)

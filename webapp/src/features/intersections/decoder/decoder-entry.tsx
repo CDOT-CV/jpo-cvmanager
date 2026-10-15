@@ -27,7 +27,7 @@ export const DecoderEntry = (props: DecoderDataEntry & DecoderEntryProps) => {
   useEffect(() => {
     setLocalText(text)
     setPreviouslySubmittedText('')
-  }, [id])
+  }, [id, text])
 
   const getIntersectionId = (decodedResponse: DecoderApiResponseGeneric | undefined) => {
     if (!decodedResponse) {

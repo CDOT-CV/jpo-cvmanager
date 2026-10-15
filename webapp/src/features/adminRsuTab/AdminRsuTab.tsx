@@ -236,7 +236,7 @@ const AdminRsuTab = () => {
         setIsRefreshing(false)
       }
     },
-    [trigger, organization, markTableRenderedData]
+    [columns, trigger, organization, currentQueryRef, markTableRenderedData]
   )
 
   const onEdit = (row: AdminEditRsuFormType) => {

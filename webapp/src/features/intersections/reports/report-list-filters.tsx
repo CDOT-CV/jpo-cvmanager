@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
@@ -28,10 +28,6 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     setCurrentFilters(filters)
   }, [filters])
 
-  useEffect(() => {
-    updateFiltersValid()
-  }, [currentFilters])
-
   const startDateChange = (date: Date | null) => {
     setCurrentFilters({ ...currentFilters, startDate: date })
   }
@@ -40,7 +36,7 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     setCurrentFilters({ ...currentFilters, endDate: date })
   }
 
-  const updateFiltersValid = () => {
+  const updateFiltersValid = useCallback(() => {
     let filtersValidLocal = true
     const reasons: string[] = []
     if (currentFilters.startDate === null || currentFilters.endDate === null) {
@@ -55,7 +51,11 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     if (filtersValidLocal) {
       onChange?.(currentFilters)
     }
-  }
+  }, [currentFilters, onChange])
+
+  useEffect(() => {
+    updateFiltersValid()
+  }, [currentFilters, updateFiltersValid])
 
   return (
     <Box

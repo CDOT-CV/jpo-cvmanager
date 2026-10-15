@@ -46,7 +46,6 @@ import {
   selectFilteredSurroundingNotifications,
   selectLiveDataActive,
   selectLiveDataRestart,
-  selectLoadInitialDataTimeoutId,
   selectMapData,
   selectMapSignalGroups,
   selectPlaybackModeActive,
@@ -57,7 +56,6 @@ import {
   selectSliderValueDeciseconds,
   selectSpatSignalGroups,
   selectTimeWindowSeconds,
-  setLoadInitialDataTimeoutId,
   setMapProps,
   setMapRef,
   updateQueryParams,
@@ -151,13 +149,13 @@ const IntersectionMap = (props: MAP_PROPS) => {
   const sliderValueDeciseconds = useSelector(selectSliderValueDeciseconds)
   const renderTimeInterval = useSelector(selectRenderTimeInterval)
   const showPopupOnHover = useSelector(selectShowPopupOnHover)
-  const loadInitialDataTimeoutId = useSelector(selectLoadInitialDataTimeoutId)
   const liveDataActive = useSelector(selectLiveDataActive)
   const playbackModeActive = useSelector(selectPlaybackModeActive)
   const liveDataRestart = useSelector(selectLiveDataRestart)
   const decoderModeEnabled = useSelector(selectDecoderModeEnabled)
 
   const mapRef = React.useRef<MapRef>(null)
+  const loadInitialDataTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
   const [viewState, setViewState] = useState({
     latitude: 39.587905,
     longitude: -105.0907089,
@@ -212,7 +210,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
         )
       }
     }
-  }, [props.intersectionId])
+  }, [props.intersectionId, queryParams.intersectionId, liveDataActive, authToken, dispatch])
 
   useEffect(() => {
     dispatch(
@@ -222,18 +220,19 @@ const IntersectionMap = (props: MAP_PROPS) => {
         resetTimeWindow: true,
       })
     )
-  }, [props.sourceData])
+  }, [props.sourceData, props.sourceDataType, props.intersectionId, decoderModeEnabled, dispatch])
 
   useEffect(() => {
-    if (liveDataActive) {
-      return
-    }
-    if (loadInitialDataTimeoutId) {
-      clearTimeout(loadInitialDataTimeoutId)
+    if (liveDataActive) return
+
+    if (loadInitialDataTimeoutRef.current) {
+      clearTimeout(loadInitialDataTimeoutRef.current)
     }
     const timeoutId = setTimeout(() => dispatch(addInitialDataAbortPromise(dispatch(pullInitialData()))), 500)
-    dispatch(setLoadInitialDataTimeoutId(timeoutId))
-  }, [queryParams])
+    loadInitialDataTimeoutRef.current = timeoutId
+
+    return () => clearTimeout(timeoutId)
+  }, [queryParams, liveDataActive, dispatch])
 
   useEffect(() => {
     dispatch(updateRenderedMapState())
@@ -243,7 +242,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     if (!liveDataActive) {
       dispatch(updateRenderTimeInterval())
     }
-  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds])
+  }, [sliderValueDeciseconds, queryParams, timeWindowSeconds, liveDataActive, dispatch])
 
   useEffect(() => {
     if (liveDataActive) {
@@ -267,7 +266,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       if (bsmTrailLength < 15) setBsmTrailLength(20)
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataActive])
+  }, [liveDataActive, authToken, props.intersectionId, bsmTrailLength, dispatch])
 
   useEffect(() => {
     if (liveDataRestart != -1 && liveDataRestart < 5 && liveDataActive) {
@@ -283,7 +282,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     } else {
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataRestart])
+  }, [liveDataRestart, liveDataActive, authToken, props.intersectionId, dispatch])
 
   useEffect(() => {
     if (mapRef.current) dispatch(setMapRef(mapRef))

@@ -216,7 +216,7 @@ function ControlPanel() {
     if (getNumber(timeWindowSecondsLocal) != null && getNumber(timeWindowSecondsLocal) !== timeWindowSeconds) {
       dispatch(setTimeWindowSeconds(getNumber(timeWindowSecondsLocal)))
     }
-  }, [timeWindowSecondsLocal])
+  }, [timeWindowSecondsLocal, timeWindowSeconds, dispatch])
 
   const timelineTicks = [120, 240, 360, 480, 600, 720, 840, 960, 1080, 1200, 1320]
 

@@ -58,7 +58,7 @@ const AdminAddUser = () => {
     if (selectedOrganizations.length === 0 && !isLoadingData) {
       setSelectedOrganizations([{ organization: '', role: 'USER' }])
     }
-  }, [isLoadingData])
+  }, [isLoadingData, selectedOrganizations?.length])
 
   const handleClose = () => {
     setOpen(false)
