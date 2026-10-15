@@ -80,10 +80,10 @@ The current version and release history of the JPO CV Manager: [Release Notes](d
 
 ## Architecture Decision Records
 
-Significant technical decisions are recorded as [Architecture Decision Records (ADRs)](https://adr.github.io/) in [`docs/adr/`](docs/adr/). Each ADR captures the context, the decision made, the alternatives considered, and the consequences, providing a durable record of *why* the system is built the way it is.
+Significant technical decisions are recorded as [Architecture Decision Records (ADRs)](https://adr.github.io/) in [`docs/adr/`](docs/adr/). Each ADR captures the context, the decision made, the alternatives considered, and the consequences, providing a durable record of _why_ the system is built the way it is.
 
-| ADR | Title | Status |
-|-----|-------|--------|
+| ADR                                                     | Title                                    | Status   |
+| ------------------------------------------------------- | ---------------------------------------- | -------- |
 | [ADR-0001](docs/adr/0001-flyway-database-migrations.md) | Flyway for Automated Database Migrations | Accepted |
 
 When introducing a significant architectural change (a new tool, a change in deployment strategy, a cross-cutting convention), add an ADR to `docs/adr/` following the existing format and update the table above.
@@ -282,7 +282,6 @@ The following steps are intended to help get a new user up and running the JPO C
     1. Make sure at least the DOCKER_HOST_IP, MAVEN_GITHUB_TOKEN, and MAPBOX_TOKEN are set for this.
     2. For other services or different configuration, please make a copy of the sample-full.env. Some of these variables, delineated by sections, pertain to the [jpo-conflictmonitor](https://github.com/usdot-jpo-ode/jpo-conflictmonitor), [jpo-geojsonconverter](https://github.com/usdot-jpo-ode/jpo-geojsonconverter), and [jpo-ode](https://github.com/usdot-jpo-ode/jpo-ode). Please see the documentation provided for these projects when setting these variables.
 4.  The CV Manager has four core components that need to be built and run: the API, the PostgreSQL database, Keycloak, and the webapp. Ensure that both of the following profiles are specified in the COMPOSE_PROFILES variable of your .env file:
-
     - basic: brings up the API, PostgreSQL, and Keycloak
     - webapp: brings up the CV-Manager webapp component
     - intersection: Optional, brings up the Intersection API and enables visualization/management of connected intersections
