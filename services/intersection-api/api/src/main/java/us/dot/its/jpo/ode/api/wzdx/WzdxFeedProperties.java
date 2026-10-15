@@ -6,9 +6,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+// Getters/setters only: binding needs nothing else, and a generated toString would expose the API key
+@Getter
+@Setter
 @Validated
 @Component
 @ConfigurationProperties(prefix = "wzdx-feed")

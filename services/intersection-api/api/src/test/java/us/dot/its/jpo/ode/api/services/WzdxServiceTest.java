@@ -66,4 +66,19 @@ class WzdxServiceTest {
                 () -> wzdxService.callWzdxApi());
         assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatusCode());
     }
+
+    @Test
+    void callWzdxApi_propagatesUpstreamErrorStatusWhenNotThrownByRestTemplate() {
+        // A RestTemplate configured with a non-throwing error handler returns error responses
+        // instead of raising; the service must still surface the upstream status
+        when(properties.getBaseUrl()).thenReturn("https://data.cotrip.org");
+        when(properties.getApiKey()).thenReturn("test-api-key");
+
+        when(restTemplate.getForEntity(any(URI.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>("Service Unavailable", HttpStatus.SERVICE_UNAVAILABLE));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> wzdxService.callWzdxApi());
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatusCode());
+    }
 }

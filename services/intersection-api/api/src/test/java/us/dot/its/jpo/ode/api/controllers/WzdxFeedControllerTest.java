@@ -73,9 +73,19 @@ class WzdxFeedControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("GET /wzdx-feed returns 502 when the upstream feed body is empty")
-    void emptyUpstreamBody_returns502() throws Exception {
+    @DisplayName("GET /wzdx-feed returns 502 when the upstream feed body is missing")
+    void missingUpstreamBody_returns502() throws Exception {
         when(wzdxService.callWzdxApi()).thenReturn(null);
+
+        mockMvc.perform(get("/wzdx-feed"))
+                .andExpect(status().isBadGateway());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET /wzdx-feed returns 502 when the upstream feed body is blank")
+    void blankUpstreamBody_returns502() throws Exception {
+        when(wzdxService.callWzdxApi()).thenReturn("   ");
 
         mockMvc.perform(get("/wzdx-feed"))
                 .andExpect(status().isBadGateway());
