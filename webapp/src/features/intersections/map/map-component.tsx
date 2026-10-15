@@ -177,7 +177,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     dispatch(setMapProps(props))
-  }, [props])
+  }, [props, dispatch])
 
   // Increment selectSliderValueDeciseconds by 1 every second when playbackModeActive is true
   useEffect(() => {
@@ -193,7 +193,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       }
     }
     return () => {}
-  }, [playbackModeActive])
+  }, [playbackModeActive, dispatch])
 
   useEffect(() => {
     if (props.intersectionId != queryParams.intersectionId) {
@@ -237,7 +237,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     dispatch(updateRenderedMapState())
-  }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups])
+  }, [bsmData, mapSignalGroups, renderTimeInterval, spatSignalGroups, dispatch])
 
   useEffect(() => {
     if (!liveDataActive) {
@@ -287,7 +287,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
 
   useEffect(() => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
-  }, [mapRef])
+  }, [mapRef, dispatch])
 
   const activeSrmFeatureCollection = useMemo(() => {
     const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
@@ -304,7 +304,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
       type: 'FeatureCollection' as const,
       features: srmFeatures,
     }
-  }, [activeSrmData, activeSsmData])
+  }, [activeSrmData, activeSsmData, dispatch])
 
   const [connectingLanesFeatureCollection, connectingLanesOnlyWithSsmSrmFeatureCollection] = useMemo(() => {
     let connections: ConnectingLanesFeatureCollectionWithSignalState = EMPTY_FEATURE_COLLECTION

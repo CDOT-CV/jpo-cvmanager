@@ -41,7 +41,7 @@ const DecoderEntryDialog = () => {
 
   useEffect(() => {
     dispatch(updateAllDataOnMap())
-  }, [selectedMapMessage])
+  }, [selectedMapMessage, dispatch])
 
   return (
     <>
