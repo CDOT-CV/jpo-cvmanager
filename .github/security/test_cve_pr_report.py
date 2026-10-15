@@ -28,7 +28,7 @@ class PrReportTests(unittest.TestCase):
         (root / "cve-context.json").write_text(json.dumps({"schema_version": 1, "head_sha": sha, "base_sha": "base",
             "targets": targets, "trivy_version": version, "scan_policy": {"ignore_unfixed": False}}), encoding="utf-8")
 
-    def write_report(self, root, vulnerabilities, target="webapp", state="completed", eosl=False):
+    def write_report(self, root, vulnerabilities, target="webapp", state="completed", eosl=False, gate=()):
         folder = root / target
         folder.mkdir(exist_ok=True)
         for name in REQUIRED:
@@ -36,6 +36,11 @@ class PrReportTests(unittest.TestCase):
         (folder / "results.json").write_text(json.dumps({"Results": [{"Type": "npm", "Packages": [{"Name": "fixture"}],
             "Vulnerabilities": vulnerabilities}], "Metadata": {"OS": {"EOSL": eosl}}}), encoding="utf-8")
         (folder / "status.json").write_text(json.dumps({"status": state}), encoding="utf-8")
+        if gate is None:
+            (folder / "gate.json").unlink(missing_ok=True)
+        else:
+            (folder / "gate.json").write_text(json.dumps({"Results": [{"Type": "npm",
+                "Vulnerabilities": list(gate)}]}), encoding="utf-8")
         (folder / "trivy-version.txt").write_text("Version: 0.75.0\nUpdatedAt: 2026-10-08\n", encoding="utf-8")
 
     def render(self, baseline="100"):
@@ -62,6 +67,33 @@ class PrReportTests(unittest.TestCase):
         self.assertIn("| webapp | completed | 2 |", text)
         self.assertIn("CVE-2026-5678", text)
 
+    def test_existing_blocker_is_reported_without_an_addition(self):
+        # An expired suppression or newly published fix blocks CI without a new advisory.
+        self.write_report(self.head, [self.vulnerability], gate=[self.vulnerability])
+        text = self.render()
+        self.assertIn("Additional findings: 0", text)
+        self.assertIn("Blocking findings: 1", text)
+        self.assertIn("| CRITICAL | webapp | CVE-2026-1234 | fixture | 1 | 3 |", text)
+        self.assertIn("| webapp | completed | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |", text)
+
+    def test_blockers_are_reported_without_a_baseline(self):
+        self.write_report(self.head, [self.vulnerability], gate=[self.vulnerability])
+        text = self.render(baseline="")
+        self.assertIn("comparison unavailable", text)
+        self.assertIn("Blocking findings: 1", text)
+
+    def test_unfixed_or_lower_severity_gate_entries_do_not_block(self):
+        unfixed = {**self.vulnerability, "FixedVersion": ""}
+        medium = {**self.vulnerability, "VulnerabilityID": "CVE-2026-9999", "Severity": "MEDIUM"}
+        self.write_report(self.head, [self.vulnerability], gate=[unfixed, medium])
+        self.assertIn("Blocking findings: 0", self.render())
+
+    def test_missing_gate_results_are_unknown_not_zero(self):
+        self.write_report(self.head, [self.vulnerability], gate=None)
+        text = self.render()
+        self.assertIn("Gate results are unavailable for webapp", text)
+        self.assertIn("| webapp | completed | 1 | 0 | 0 | 0 | 0 | unknown |", text)
+
     def test_wrong_commit_and_scanner_version_cannot_be_compared(self):
         for sha, version in (("wrong", "v0.75.0"), ("base", "v0.76.0")):
             with self.subTest(sha=sha, version=version):
@@ -84,7 +116,7 @@ class PrReportTests(unittest.TestCase):
         text = self.render()
         self.assertIn("1/2 comparable targets", text)
         self.assertIn("Comparison is incomplete", text)
-        self.assertIn("| second | completed | 1 | 0 | 0 | 0 | 0 | — | — |", text)
+        self.assertIn("| second | completed | 1 | 0 | 0 | 0 | 0 | 0 | — | — |", text)
 
     def test_missing_or_invalid_reports_are_coverage_failures(self):
         for value in (None, "not json"):

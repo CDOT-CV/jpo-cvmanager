@@ -11,6 +11,20 @@ from cve_coverage import INVENTORY, validate_report
 
 
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
+GATED = ("CRITICAL", "HIGH")
+
+
+def gate(folder):
+    """Return the findings that fail CI, mirroring the scan job's threshold, or None if unavailable."""
+    path = folder / "gate.json"
+    if not path.is_file():
+        return None
+    blocking = []
+    for result in json.loads(path.read_text(encoding="utf-8")).get("Results") or []:
+        for vulnerability in result.get("Vulnerabilities") or []:
+            if vulnerability.get("FixedVersion") and vulnerability.get("Severity") in GATED:
+                blocking.append(vulnerability)
+    return blocking
 
 
 def cell(value):
@@ -66,7 +80,7 @@ def snapshot(target, root):
         if not isinstance(operating_system, dict):
             raise ValueError("Invalid OS metadata")
         return {"status": "completed", "counts": counts, "findings": findings, "fixed": fixed,
-                "os": operating_system, "database_dates": database_dates}
+                "os": operating_system, "database_dates": database_dates, "blocking": gate(folder)}
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         return {"status": "failed", "reason": str(error)}
 
@@ -98,14 +112,20 @@ def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_
             unavailable = f"Exact-base reports are unavailable or incompatible: {cell(error)}."
     base_targets = {target["id"]: target for target in base_context["targets"]} if base_context else {}
     totals, statuses, fixed = Counter(), Counter(), Counter()
-    rows, additions, removals, eosl, gaps = [], [], [], [], []
+    rows, additions, removals, eosl, gaps, blockers, ungated = [], [], [], [], [], [], []
     compared, database_changed = 0, False
     for target in targets:
         name = target["id"]
         current = snapshot(target, head)
         statuses[current["status"]] += 1
-        new_count = resolved_count = "—"
+        new_count = resolved_count = blocking_count = "—"
         if current["status"] == "completed":
+            if current["blocking"] is None:
+                ungated.append(name)
+                blocking_count = "unknown"
+            else:
+                blockers.extend((name, vulnerability) for vulnerability in current["blocking"])
+                blocking_count = len(current["blocking"])
             totals.update(current["counts"])
             fixed.update(current["fixed"])
             if current["os"].get("EOSL"):
@@ -123,12 +143,32 @@ def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_
                     database_changed = True
             elif base_context:
                 gaps.append(name)
-            values = [current["counts"][severity] for severity in SEVERITIES]
+            values = [current["counts"][severity] for severity in SEVERITIES] + [blocking_count]
             status = "completed (EOL OS)" if name in eosl else "completed"
         else:
-            values, status = ["—"] * len(SEVERITIES), current["status"]
+            values, status = ["—"] * (len(SEVERITIES) + 1), current["status"]
             gaps.append(name)
         rows.append("| " + " | ".join(map(cell, [name, status, *values, new_count, resolved_count])) + " |")
+    # Blockers come from gate.json, not the base comparison: an expired suppression or a newly
+    # published fix can fail CI for a finding that already exists in the base scan.
+    lines += ["", f"**Blocking findings: {len(blockers)}** fixable HIGH/CRITICAL instances not suppressed "
+              "in `.trivyignore.yaml`" + (f" across {len(set(name for name, _ in blockers))} targets." if blockers else ".")]
+    if ungated:
+        lines.append("Gate results are unavailable for " + ", ".join(map(cell, ungated)) +
+                     "; blocking findings there are unknown, not zero.")
+    if blockers:
+        blockers.sort(key=lambda item: (GATED.index(item[1]["Severity"]), item[0],
+                                        str(item[1].get("VulnerabilityID")), str(item[1].get("PkgName"))))
+        lines += ["", "<details open>", f"<summary>Blocking findings: showing {min(25, len(blockers))} of {len(blockers)}</summary>",
+                  "", "| Severity | Target | Advisory | Package | Installed version | Fixed version |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        for name, vulnerability in blockers[:25]:
+            values = [vulnerability["Severity"], name, vulnerability.get("VulnerabilityID", ""),
+                      vulnerability.get("PkgName", ""), vulnerability.get("InstalledVersion") or "Not reported",
+                      vulnerability["FixedVersion"]]
+            lines.append("| " + " | ".join(map(cell, values)) + " |")
+        lines += ["", "Fix by upgrading to the fixed version, or add a reviewed, expiring entry to `.trivyignore.yaml`.",
+                  "", "</details>"]
     if base_context and compared:
         lines += ["", f"**Additional findings: {len(additions)} · Resolved findings: {len(removals)}** "
                   f"across {compared}/{len(targets)} comparable targets, versus base `{base_sha[:12]}`.",
@@ -144,9 +184,10 @@ def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_
         lines += ["", f"**Additional CVEs: comparison unavailable.** {unavailable if not base_context else 'No targets have comparable completed reports.'}"]
     lines += ["", f"Coverage: **{statuses['completed']} completed, {statuses['skipped']} skipped, "
               f"{statuses['failed']} failed**.", "",
-              "| Service / scan target | Status | Critical | High | Medium | Low | Unknown | Added | Resolved |",
-              "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |", *rows,
-              "| **Total finding instances** | | " + " | ".join(str(totals[s]) for s in SEVERITIES) + " | | |", "",
+              "| Service / scan target | Status | Critical | High | Medium | Low | Unknown | Blocking | Added | Resolved |",
+              "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |", *rows,
+              "| **Total finding instances** | | " + " | ".join(str(totals[s]) for s in SEVERITIES) +
+              f" | {len(blockers)} | | |", "",
               "Severity counts are finding instances and can repeat across packages/images. Added/resolved counts "
               "deduplicate each (ecosystem, package, advisory) within a target; version changes alone are not new findings. "
               "Advisories can have CVE or other identifiers.", "",
