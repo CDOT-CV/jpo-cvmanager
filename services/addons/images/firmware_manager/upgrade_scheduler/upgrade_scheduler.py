@@ -367,7 +367,7 @@ def log_max_retries_reached_incident_for_rsu_to_postgres(
     target_firmware_version: int,
 ):
     pgquery.write_db(
-        f"insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) values ((select rsu_id from rsus where ipv4_address='{rsu_ip}'), now(), (select firmware_id from firmware_images where name='{target_firmware_version}'))"
+        f"insert into max_retry_limit_reached_instances (rsu_id, reached_at, target_firmware_version) select r.rsu_id, now(), fi.firmware_id from rsus r join firmware_images fi on fi.model = r.model where r.ipv4_address='{rsu_ip}' and fi.version='{target_firmware_version}'"
     )
 
 

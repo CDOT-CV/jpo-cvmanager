@@ -60,7 +60,7 @@ spring:
   mongodb:
     database: ${CM_DATABASE_NAME:CV}
     host: ${DB_HOST_IP:mongo}
-    port: 27017
+    port: ${DB_HOST_PORT:27017}
     username: ${MONGO_READ_WRITE_USER:ode}
     password: ${MONGO_READ_WRITE_PASS:replace_me}
     authentication-database: ${CM_MONGO_AUTH_DB:admin}
@@ -111,12 +111,37 @@ enable:
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
   wzdx-feed: ${ENABLE_WZDX_FEATURES:true}
 
+# Processed RSU message query settings. Standalone defaults match the historical Python API.
+geo-query:
+  enabled: ${ENABLE_RSU_FEATURES:true}
+  bsm-collection: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:ProcessedBsm}
+  psm-collection: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:ProcessedPsm}
+  max-records: ${MAX_GEO_QUERY_RECORDS:}
+
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
 deployment:
   environment: ${DEPLOYMENT_ENVIRONMENT:UNKNOWN}
+
+object-storage:
+  provider: ${OBJECT_STORAGE_PROVIDER:gcp}
+  signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:5m}
+  max-upload-size: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:1GB}
+  gcp:
+    bucket-name: ${OBJECT_STORAGE_GCP_BUCKET_NAME:}
+    # Required for keyless signing when ADC does not expose a private key (for
+    # example, GKE Workload Identity or local gcloud user ADC). This is an
+    # identifier, not a credential or secret
+    signing-service-account: ${OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT:}
+
+firmware-upload:
+  cleanup:
+    enabled: ${FIRMWARE_UPLOAD_CLEANUP_ENABLED:true}
+    interval: ${FIRMWARE_UPLOAD_CLEANUP_INTERVAL:1h}
+    expiration-grace: ${FIRMWARE_UPLOAD_EXPIRATION_GRACE:1h}
+    retention: ${FIRMWARE_UPLOAD_RETENTION:30d}
 
 spring.main.allow-circular-references: true
 spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect

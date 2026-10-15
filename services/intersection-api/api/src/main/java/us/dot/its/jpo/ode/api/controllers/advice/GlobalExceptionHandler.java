@@ -32,10 +32,18 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import us.dot.its.jpo.ode.api.models.emails.EmailApiResponse;
 import us.dot.its.jpo.ode.api.models.emails.EmailResponseException;
+import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
+import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleConflictException;
+import us.dot.its.jpo.ode.api.services.FirmwareRuleService.FirmwareRuleImpactException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadVerificationException;
+import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageUnavailableException;
+import us.dot.its.jpo.ode.api.storage.ObjectStorageConflictException;
 
 /**
  * Global exception handler for REST API endpoints.
@@ -48,6 +56,16 @@ import us.dot.its.jpo.ode.api.services.UserManagementService;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(FirmwareRuleConflictException.class)
+    public ProblemDetail handleFirmwareRuleConflict(FirmwareRuleConflictException ex) {
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        if (ex instanceof FirmwareRuleImpactException) {
+            problem.setProperty("code", "UPGRADE_IMPACT_ACKNOWLEDGMENT_REQUIRED");
+        }
+        return problem;
+    }
+
     // Pattern to extract constraint name from PostgreSQL error messages
     private static final Pattern CONSTRAINT_PATTERN = Pattern.compile("constraint \\[([^\\]]+)\\]");
 
@@ -97,6 +115,41 @@ public class GlobalExceptionHandler {
         String message = e.getMessage();
         log.warn(message);
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, message);
+    }
+
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler()
+    public ProblemDetail handleObjectStorageUnavailableException(ObjectStorageUnavailableException ex) {
+        log.warn("Object storage unavailable: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareUploadConfigurationException(FirmwareUploadConfigurationException ex) {
+        log.warn("Firmware upload configuration unavailable: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareVersionAlreadyExistsException(FirmwareVersionAlreadyExistsException ex) {
+        log.warn("Firmware file already exists: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler()
+    public ProblemDetail handleFirmwareUploadVerificationException(FirmwareUploadVerificationException ex) {
+        log.warn("Firmware upload verification failed: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class})
+    public ProblemDetail handleFirmwareDeletionConflict(RuntimeException ex) {
+        log.warn("Firmware deletion conflict: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -256,7 +309,7 @@ public class GlobalExceptionHandler {
         String originalMessage = ex.getMessage();
         log.warn("Data integrity violation: {}", originalMessage);
 
-        String userFriendlyMessage = buildUserFriendlyMessage(originalMessage, ex);
+        String userFriendlyMessage = buildUserFriendlyMessage(originalMessage);
 
         // Use HTTP 409 Conflict for constraint violations (more appropriate than 400
         // Bad Request)
@@ -323,7 +376,7 @@ public class GlobalExceptionHandler {
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
-    private String buildUserFriendlyMessage(String message, DataIntegrityViolationException ex) {
+    private String buildUserFriendlyMessage(String message) {
         if (message == null) {
             return "A database constraint was violated. Please check your input and try again.";
         }
