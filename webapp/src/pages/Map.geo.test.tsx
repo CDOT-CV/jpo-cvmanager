@@ -6,7 +6,6 @@ import fetchMock from 'jest-fetch-mock'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MapPage from './Map'
 import EnvironmentVars from '../EnvironmentVars'
-import RsuApi from '../apis/rsu-api'
 import { setupStore } from '../store'
 import { testTheme } from '../styles'
 import { setGeoMsgDataResult, setGeoMsgFilterOffset, setGeoMsgFilterStep, updateGeoMsgDate, updateGeoMsgPoints, toggleGeoMsgPointSelect } from '../generalSlices/rsuSlice'
@@ -60,7 +59,6 @@ describe('Map geo-message query', () => {
   beforeEach(() => {
     fetchMock.resetMocks()
     fetchMock.doMock()
-    vi.spyOn(RsuApi, 'getWzdxData').mockResolvedValue({ features: [] } as any)
     EnvironmentVars.ENABLE_RSU_FEATURES = true
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,

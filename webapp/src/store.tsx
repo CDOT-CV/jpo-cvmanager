@@ -1,7 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import rsuReducer from './generalSlices/rsuSlice'
 import userReducer from './generalSlices/userSlice'
-import wzdxReducer from './generalSlices/wzdxSlice'
 import configReducer from './generalSlices/configSlice'
 import intersectionReducer from './generalSlices/intersectionSlice'
 import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
@@ -31,6 +30,7 @@ import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { wzdxFeedApi } from './features/api/wzdxFeedApi'
 import { firmwareApiSlice } from './features/api/firmwareApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
@@ -41,7 +41,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
     reducer: {
       rsu: rsuReducer,
       user: userReducer,
-      wzdx: wzdxReducer,
       config: configReducer,
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
@@ -74,6 +73,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
       [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
+      [wzdxFeedApi.reducerPath]: wzdxFeedApi.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -96,7 +96,9 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
-        .concat(firmwareApiSlice.middleware),
+        .concat(firmwareApiSlice.middleware)
+        .concat(adminIntersectionApiSlice.middleware)
+        .concat(wzdxFeedApi.middleware),
     devTools: true,
   })
 }

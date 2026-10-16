@@ -7,7 +7,6 @@ beforeEach(() => {
   fetchMock.doMock()
   EnvironmentVars.rsuCountsEndpoint = 'VITE_ENV/rsucounts'
   EnvironmentVars.rsuCommandEndpoint = 'VITE_ENV/rsu-command'
-  EnvironmentVars.wzdxEndpoint = 'VITE_ENV/wzdx-feed'
   EnvironmentVars.adminAddOrg = 'VITE_ENV/admin-new-org'
   EnvironmentVars.adminOrg = 'VITE_ENV/admin-org'
 })
@@ -116,32 +115,6 @@ it('Test getRsuCommand With Params', async () => {
   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
 })
 
-it('Test getWzdxData', async () => {
-  const expectedResponse = { data: 'Test JSON' }
-  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
-  const actualResponse = await RsuApi.getWzdxData('testToken')
-  expect(actualResponse).toEqual(expectedResponse)
-
-  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.wzdxEndpoint)
-  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
-  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken' })
-})
-
-it('Test getWzdxData With Params', async () => {
-  // Set url_ext and query_params
-  const url_ext = 'url_ext'
-  const query_params = { query_param: 'test' }
-
-  const expectedResponse = { data: 'Test JSON' }
-  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
-  const actualResponse = await RsuApi.getWzdxData('testToken', url_ext, query_params)
-  expect(actualResponse).toEqual(expectedResponse)
-
-  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.wzdxEndpoint + url_ext + '?query_param=test')
-  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
-  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken' })
-})
-
 it('Test postRsuGeo', async () => {
   const body = {
     geometry: [
@@ -173,6 +146,7 @@ it('Test postRsuGeo', async () => {
   })
   expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual(body)
 })
+
 it('Test postRsuData', async () => {
   const body = {
     data: 'Test JSON',
