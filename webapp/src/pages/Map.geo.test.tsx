@@ -59,7 +59,6 @@ describe('Map geo-message query', () => {
   beforeEach(() => {
     fetchMock.resetMocks()
     fetchMock.doMock()
-    // vi.spyOn(RsuApi, 'getWzdxData').mockResolvedValue({ features: [] } as any)
     EnvironmentVars.ENABLE_RSU_FEATURES = true
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
