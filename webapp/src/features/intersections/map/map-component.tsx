@@ -28,6 +28,7 @@ import {
 import {
   MAP_PROPS,
   addInitialDataAbortPromise,
+  centerMapOnPoint,
   cleanUpLiveStreaming,
   generateQueryParams,
   incrementSliderValue,
@@ -210,7 +211,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
         )
       }
     }
-  }, [props.intersectionId, queryParams.intersectionId, liveDataActive, authToken, dispatch])
+    // Only trigger on intersection ID change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.intersectionId, dispatch])
 
   useEffect(() => {
     dispatch(
@@ -220,7 +223,10 @@ const IntersectionMap = (props: MAP_PROPS) => {
         resetTimeWindow: true,
       })
     )
-  }, [props.sourceData, props.sourceDataType, props.intersectionId, decoderModeEnabled, dispatch])
+    // Sets initial query params based on source data
+    // Do not trigger on Intersection ID change, useEffect above handles that separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.sourceData, props.sourceDataType, decoderModeEnabled, dispatch])
 
   useEffect(() => {
     if (liveDataActive) return
@@ -266,7 +272,9 @@ const IntersectionMap = (props: MAP_PROPS) => {
       if (bsmTrailLength < 15) setBsmTrailLength(20)
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataActive, authToken, props.intersectionId, bsmTrailLength, dispatch])
+    // Only trigger on liveDataActive change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDataActive, dispatch])
 
   useEffect(() => {
     if (liveDataRestart != -1 && liveDataRestart < 5 && liveDataActive) {
@@ -282,11 +290,20 @@ const IntersectionMap = (props: MAP_PROPS) => {
     } else {
       dispatch(cleanUpLiveStreaming())
     }
-  }, [liveDataRestart, liveDataActive, authToken, props.intersectionId, dispatch])
+    // Only trigger on liveDataRestart change, not on other prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveDataRestart, dispatch])
 
   useEffect(() => {
     if (mapRef.current) dispatch(setMapRef(mapRef))
   }, [mapRef, dispatch])
+
+  useEffect(() => {
+    const refPoint = mapData?.properties.refPoint
+    if (!refPoint) return
+
+    dispatch(centerMapOnPoint({ latitude: refPoint.latitude, longitude: refPoint.longitude }))
+  }, [mapData, dispatch])
 
   const activeSrmFeatureCollection = useMemo(() => {
     const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
