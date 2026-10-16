@@ -71,10 +71,10 @@ const Page = () => {
     setTimeout(() => listReports(filters.startDate, filters.endDate, intersectionId), 300)
   }, [filters, intersectionId, listReports])
 
-  const handleChangeFilters = (newFilters) => {
+  const handleChangeFilters = useCallback((newFilters) => {
     setFilters(newFilters)
     setPage(0)
-  }
+  }, [])
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage)

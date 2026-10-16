@@ -118,10 +118,6 @@ export const NotificationsTable = (props: { simple: boolean }) => {
     setAcceptedNotifications([])
   }, [dbIntersectionId, updateNotifications])
 
-  useEffect(() => {
-    updateDescription()
-  }, [currentTab, updateDescription])
-
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
     setCurrentTab(value)
@@ -153,6 +149,10 @@ export const NotificationsTable = (props: { simple: boolean }) => {
       }
     }
   }, [currentTab])
+
+  useEffect(() => {
+    updateDescription()
+  }, [currentTab, updateDescription])
 
   // Usually query is done on backend with indexing solutions
   const filteredNotifications = applyFilters(notifications, filter)
