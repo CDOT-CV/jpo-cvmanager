@@ -177,7 +177,6 @@ const initialState = {
   mapSpatTimes: { mapTime: 0, spatTime: 0 },
   showPopupOnHover: false,
   importedMessageData: undefined as IMPORTED_MAP_MESSAGE_DATA | undefined,
-  loadInitialDataTimeoutId: undefined as NodeJS.Timeout | undefined,
   wsClient: undefined as Client | undefined,
   wsSessionId: undefined as number | undefined,
   liveDataActive: false,
@@ -1525,9 +1524,6 @@ export const intersectionMapSlice = createSlice({
         state.value.liveSpatLatestLatencyMs = undefined
       }
     },
-    setLoadInitialDataTimeoutId: (state, action: PayloadAction<NodeJS.Timeout>) => {
-      state.value.loadInitialDataTimeoutId = action.payload
-    },
     setShowPopupOnHover: (state, action: PayloadAction<boolean>) => {
       state.value.showPopupOnHover = action.payload
     },
@@ -1848,7 +1844,6 @@ export const selectRenderTimeInterval = (state: RootState) => state.intersection
 export const selectMapSpatTimes = (state: RootState) => state.intersectionMap.value.mapSpatTimes
 export const selectShowPopupOnHover = (state: RootState) => state.intersectionMap.value.showPopupOnHover
 export const selectImportedMessageData = (state: RootState) => state.intersectionMap.value.importedMessageData
-export const selectLoadInitialDataTimeoutId = (state: RootState) => state.intersectionMap.value.loadInitialDataTimeoutId
 export const selectWsClient = (state: RootState) => state.intersectionMap.value.wsClient
 export const selectWsSessionId = (state: RootState) => state.intersectionMap.value.wsSessionId
 export const selectLiveDataActive = (state: RootState) => state.intersectionMap.value.liveDataActive
@@ -1897,7 +1892,6 @@ export const {
   incrementSliderValue,
   updateRenderTimeInterval,
   cleanUpLiveStreaming,
-  setLoadInitialDataTimeoutId,
   setShowPopupOnHover,
   setLiveDataActive,
   setBsmTrailLength,
