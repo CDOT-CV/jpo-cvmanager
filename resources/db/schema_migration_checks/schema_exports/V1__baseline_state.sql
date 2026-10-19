@@ -41,20 +41,6 @@ CREATE TABLE public.firmware_upgrade_rules (
   CONSTRAINT fk_to_id FOREIGN KEY (to_id) REFERENCES firmware_images(firmware_id)
 );
 
-CREATE TABLE public.flyway_schema_history (
-  checksum integer,
-  description character varying(200) NOT NULL,
-  execution_time integer NOT NULL,
-  installed_by character varying(100) NOT NULL,
-  installed_on timestamp without time zone DEFAULT now() NOT NULL,
-  installed_rank integer NOT NULL,
-  script character varying(1000) NOT NULL,
-  success boolean NOT NULL,
-  type character varying(20) NOT NULL,
-  version character varying(50),
-  CONSTRAINT flyway_schema_history_pk PRIMARY KEY (installed_rank)
-);
-
 CREATE TABLE public.intersection_organization (
   intersection_id integer NOT NULL,
   intersection_organization_id integer DEFAULT nextval('intersection_organization_intersection_organization_id_seq'::regclass) NOT NULL,
