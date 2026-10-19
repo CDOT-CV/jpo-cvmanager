@@ -238,3 +238,17 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## Local SNMP library dependency
+
+The API consumes the repository's standalone [JPO SNMP library](../snmp/README.md).
+From the repository root, build both modules together with:
+
+```sh
+mvn -s services/intersection-api/api/settings.xml -f services/intersection-api/pom.xml -pl api -am verify
+```
+
+For IDE runs or an API-only Maven build, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
+The API Docker build installs this library automatically. SNMP4J is the library's
+production backend; Net-SNMP executables and runtime MIB files are not required.
+No command endpoints are migrated by adding the dependency.
