@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compare two SQL schema export files containing CREATE TABLE statements.
+Compare two SQL schema export files containing CREATE TABLE and CREATE INDEX statements.
 
 Input 1: intended state
 Input 2: actual state
@@ -8,7 +8,7 @@ Input 2: actual state
 Output order:
 1. Tables missing in actual
 2. Tables unexpected in actual
-3. For shared tables, property/constraint mismatches with both values
+3. For shared tables, property/constraint/index mismatches with both values
 """
 
 from __future__ import annotations
@@ -18,11 +18,13 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+
 @dataclass
 class TableDef:
     name: str
     properties: dict[str, str] = field(default_factory=dict)
     constraints: dict[str, str] = field(default_factory=dict)
+    indexes: dict[str, str] = field(default_factory=dict)
 
 
 def normalize_ws(value: str) -> str:
@@ -127,6 +129,29 @@ def extract_create_table_blocks(sql_text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def extract_create_index_statements(sql_text: str) -> list[str]:
+    """Return standalone CREATE INDEX statements, including their semicolons."""
+    pattern = re.compile(
+        r"\bCREATE\s+(?:UNIQUE\s+)?INDEX\b.*?;", re.IGNORECASE | re.DOTALL
+    )
+    return [match.group(0) for match in pattern.finditer(sql_text)]
+
+
+def parse_index(item: str) -> tuple[str, str, str] | None:
+    identifier = r'("(?:[^"]|"")*"|[\w$]+)(?:\.(?:"(?:[^"]|"")*"|[\w$]+))*'
+    match = re.match(
+        rf"^CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?(?P<index>{identifier})\s+ON\s+(?:ONLY\s+)?(?P<table>{identifier})(?=\s|\()",
+        item,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+
+    index_name = normalize_identifier(match.group("index"))
+    table_name = normalize_identifier(match.group("table"))
+    return table_name, index_name, normalize_ws(item)
+
+
 def split_top_level_items(body: str) -> list[str]:
     """Split table body by top-level commas."""
     items: list[str] = []
@@ -208,6 +233,13 @@ def parse_schema(path: Path) -> dict[str, TableDef]:
 
         tables[table_name] = table
 
+    for statement in extract_create_index_statements(text):
+        index = parse_index(statement)
+        if index:
+            table_name, index_name, definition = index
+            if table_name in tables:
+                tables[table_name].indexes[index_name] = definition
+
     return tables
 
 
@@ -271,6 +303,19 @@ def compare_tables(intended: dict[str, TableDef], actual: dict[str, TableDef]) -
                 table_lines.append(f"  Constraint: {key}")
                 table_lines.append(f"    intended: {i_val if i_val is not None else '<MISSING>'}")
                 table_lines.append(f"    actual:   {a_val if a_val is not None else '<MISSING>'}")
+
+        index_keys = sorted(set(t_int.indexes) | set(t_act.indexes))
+        for key in index_keys:
+            i_val = t_int.indexes.get(key)
+            a_val = t_act.indexes.get(key)
+            if i_val != a_val:
+                table_lines.append(f"  Index: {key}")
+                table_lines.append(
+                    f"    intended: {i_val if i_val is not None else '<MISSING>'}"
+                )
+                table_lines.append(
+                    f"    actual:   {a_val if a_val is not None else '<MISSING>'}"
+                )
 
         if table_lines:
             shared_mismatch_found = True

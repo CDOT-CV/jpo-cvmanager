@@ -49,6 +49,7 @@ CREATE TABLE public.intersection_organization (
   CONSTRAINT fk_organization_id FOREIGN KEY (organization_id) REFERENCES organizations(organization_id),
   CONSTRAINT intersection_organization_pkey PRIMARY KEY (intersection_organization_id)
 );
+CREATE INDEX idx_intersection_organization ON public.intersection_organization USING btree (organization_id, intersection_id);
 
 CREATE TABLE public.intersections (
   bbox geography(Polygon,4326),
@@ -60,6 +61,8 @@ CREATE TABLE public.intersections (
   CONSTRAINT intersection_intersection_number UNIQUE (intersection_number),
   CONSTRAINT intersection_pkey PRIMARY KEY (intersection_id)
 );
+CREATE INDEX idx_intersection_id ON public.intersections USING btree (intersection_id);
+CREATE INDEX idx_intersections_intersection_number ON public.intersections USING btree (intersection_number);
 
 CREATE TABLE public.iss_keys (
   common_name character varying(128) NOT NULL,
@@ -105,6 +108,7 @@ CREATE TABLE public.organizations (
   CONSTRAINT organizations_name UNIQUE (name),
   CONSTRAINT organizations_pkey PRIMARY KEY (organization_id)
 );
+CREATE INDEX idx_organizations_name ON public.organizations USING btree (name);
 
 CREATE TABLE public.ping (
   ping_id integer DEFAULT nextval('ping_ping_id_seq'::regclass) NOT NULL,
@@ -178,6 +182,7 @@ CREATE TABLE public.rsu_organization (
   CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id) REFERENCES rsus(rsu_id),
   CONSTRAINT rsu_organization_pkey PRIMARY KEY (rsu_organization_id)
 );
+CREATE INDEX idx_rsu_organization ON public.rsu_organization USING btree (organization_id, rsu_id);
 
 CREATE TABLE public.rsus (
   credential_id integer NOT NULL,
@@ -205,6 +210,8 @@ CREATE TABLE public.rsus (
   CONSTRAINT rsu_pkey PRIMARY KEY (rsu_id),
   CONSTRAINT rsu_serial_number UNIQUE (serial_number)
 );
+CREATE INDEX idx_rsus_ipv4_address ON public.rsus USING btree (ipv4_address);
+CREATE INDEX idx_rsus_ipv4_rsu_id ON public.rsus USING btree (ipv4_address, rsu_id);
 
 CREATE TABLE public.scms_health (
   expiration timestamp without time zone,
@@ -215,6 +222,7 @@ CREATE TABLE public.scms_health (
   CONSTRAINT fk_rsu_id FOREIGN KEY (rsu_id) REFERENCES rsus(rsu_id),
   CONSTRAINT scms_health_pkey PRIMARY KEY (scms_health_id)
 );
+CREATE INDEX idx_scms_health_timestamp ON public.scms_health USING btree ("timestamp");
 
 CREATE TABLE public.snmp_credentials (
   encrypt_password character varying(128),
@@ -295,6 +303,7 @@ CREATE TABLE public.user_organization (
   CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(user_id),
   CONSTRAINT user_organization_pkey PRIMARY KEY (user_organization_id)
 );
+CREATE INDEX idx_user_organization ON public.user_organization USING btree (user_id, organization_id);
 
 CREATE TABLE public.users (
   created_timestamp bigint NOT NULL,
@@ -307,4 +316,6 @@ CREATE TABLE public.users (
   CONSTRAINT users_email UNIQUE (email),
   CONSTRAINT users_pkey PRIMARY KEY (user_id)
 );
+CREATE INDEX idx_users_email ON public.users USING btree (email);
+CREATE INDEX idx_users_user_id ON public.users USING btree (user_id);
 

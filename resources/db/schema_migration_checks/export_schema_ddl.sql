@@ -21,9 +21,25 @@ SELECT
         ORDER BY lower(con.conname))
         FROM pg_constraint con
         WHERE con.conrelid = c.oid 
-          AND con.contype IN ('p', 'f', 'u', 'c')
+                    AND con.contype IN ('p', 'f', 'u', 'c', 'x')
     ), '') ||
-    E'\n);' AS create_table_ddl
+        E'\n);' ||
+        COALESCE((
+                SELECT E'\n' || string_agg(
+                        pg_catalog.pg_get_indexdef(index_metadata.indexrelid) || ';',
+                        E'\n'
+                        ORDER BY index_class.relname
+                )
+                FROM pg_catalog.pg_index index_metadata
+                JOIN pg_catalog.pg_class index_class
+                    ON index_class.oid = index_metadata.indexrelid
+                WHERE index_metadata.indrelid = c.oid
+                    AND NOT EXISTS (
+                            SELECT 1
+                            FROM pg_catalog.pg_constraint index_constraint
+                            WHERE index_constraint.conindid = index_metadata.indexrelid
+                    )
+        ), '') AS create_table_ddl
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 JOIN pg_attribute a ON a.attrelid = c.oid
