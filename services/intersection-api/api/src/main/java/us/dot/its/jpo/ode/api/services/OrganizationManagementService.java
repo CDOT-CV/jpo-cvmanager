@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import us.dot.its.jpo.ode.api.mappers.OrganizationMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
@@ -35,13 +34,13 @@ import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -119,8 +118,6 @@ public class OrganizationManagementService {
 
         // Step 6: Remove users
         if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
-            userOrganizationRepository.deleteByUserEmailsAndOrganization(
-                    patch.getUsersToRemove(), org);
             List<String> orphanedUsers = patch.getUsersToRemove().stream()
                     .filter(userOrganizationRepository::hasSingleOrganization)
                     .toList();
@@ -129,7 +126,8 @@ public class OrganizationManagementService {
                 throw new OrganizationHasDependentsException(
                         "Cannot remove user(s) that are only associated with this organization: " + orphanedEmails);
             }
-            log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
+            userOrganizationRepository.deleteByUserEmailsAndOrganization(
+                    patch.getUsersToRemove(), org);
         }
 
         // Step 7: Add RSU associations

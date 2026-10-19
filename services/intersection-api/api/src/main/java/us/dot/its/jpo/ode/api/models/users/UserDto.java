@@ -34,7 +34,6 @@ public class UserDto implements Serializable {
     private String lastName;
 
     @JsonProperty("super_user")
-    @NotNull
     private boolean superUser;
 
     @JsonProperty("organizations")
