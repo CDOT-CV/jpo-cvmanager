@@ -17,18 +17,59 @@ import argparse
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Tuple
-
 
 @dataclass
 class TableDef:
     name: str
-    properties: Dict[str, str] = field(default_factory=dict)
-    constraints: Dict[str, str] = field(default_factory=dict)
+    properties: dict[str, str] = field(default_factory=dict)
+    constraints: dict[str, str] = field(default_factory=dict)
 
 
 def normalize_ws(value: str) -> str:
-    return " ".join(value.strip().split())
+    """Collapse formatting whitespace outside quoted SQL text.
+
+    Whitespace inside single-, double-, and backtick-quoted text is preserved.
+
+    Examples:
+        >>> normalize_ws("  col   INTEGER NOT NULL  ")
+        'col INTEGER NOT NULL'
+        >>> normalize_ws("DEFAULT 'a  b'   NOT NULL")
+        "DEFAULT 'a  b' NOT NULL"
+        >>> normalize_ws('`col  name`   TEXT')
+        '`col  name` TEXT'
+    """
+    normalized: list[str] = []
+    quote: str | None = None
+    pending_space = False
+    i = 0
+
+    while i < len(value):
+        char = value[i]
+
+        if quote:
+            normalized.append(char)
+            if char == "\\" and i + 1 < len(value):
+                i += 1
+                normalized.append(value[i])
+            elif char == quote:
+                if i + 1 < len(value) and value[i + 1] == quote:
+                    i += 1
+                    normalized.append(value[i])
+                else:
+                    quote = None
+        elif char.isspace():
+            pending_space = True
+        else:
+            if pending_space and normalized:
+                normalized.append(" ")
+            pending_space = False
+            normalized.append(char)
+            if char in ("'", '"', "`"):
+                quote = char
+
+        i += 1
+
+    return "".join(normalized)
 
 
 def normalize_identifier(value: str) -> str:
@@ -39,12 +80,12 @@ def normalize_identifier(value: str) -> str:
     return value.lower()
 
 
-def extract_create_table_blocks(sql_text: str) -> List[Tuple[str, str]]:
+def extract_create_table_blocks(sql_text: str) -> list[tuple[str, str]]:
     """
     Return list of (table_name, table_body) for CREATE TABLE ... (...);
     Uses parser-like scanning to handle multiline content reliably.
     """
-    blocks: List[Tuple[str, str]] = []
+    blocks: list[tuple[str, str]] = []
     pattern = re.compile(r"CREATE\s+TABLE\s+([\w\.\"`]+)\s*\(", re.IGNORECASE)
 
     for match in pattern.finditer(sql_text):
@@ -86,10 +127,10 @@ def extract_create_table_blocks(sql_text: str) -> List[Tuple[str, str]]:
     return blocks
 
 
-def split_top_level_items(body: str) -> List[str]:
+def split_top_level_items(body: str) -> list[str]:
     """Split table body by top-level commas."""
-    items: List[str] = []
-    buf: List[str] = []
+    items: list[str] = []
+    buf: list[str] = []
     depth = 0
     in_single = False
     in_double = False
@@ -126,7 +167,7 @@ def split_top_level_items(body: str) -> List[str]:
     return items
 
 
-def parse_property(item: str) -> Tuple[str, str] | None:
+def parse_property(item: str) -> tuple[str, str] | None:
     # Handles quoted column names like "timestamp"
     m = re.match(r'^("(?:[^"]|"")*"|\S+)\s+(.+)$', item, flags=re.DOTALL)
     if not m:
@@ -136,7 +177,7 @@ def parse_property(item: str) -> Tuple[str, str] | None:
     return prop_name, prop_value
 
 
-def parse_constraint(item: str) -> Tuple[str, str] | None:
+def parse_constraint(item: str) -> tuple[str, str] | None:
     m = re.match(r'^CONSTRAINT\s+("(?:[^"]|"")*"|\S+)\s+(.+)$', item, flags=re.IGNORECASE | re.DOTALL)
     if not m:
         return None
@@ -145,9 +186,9 @@ def parse_constraint(item: str) -> Tuple[str, str] | None:
     return constraint_name, constraint_value
 
 
-def parse_schema(path: Path) -> Dict[str, TableDef]:
+def parse_schema(path: Path) -> dict[str, TableDef]:
     text = path.read_text(encoding="utf-8")
-    tables: Dict[str, TableDef] = {}
+    tables: dict[str, TableDef] = {}
 
     for raw_table_name, body in extract_create_table_blocks(text):
         table_name = normalize_identifier(raw_table_name)
@@ -170,8 +211,8 @@ def parse_schema(path: Path) -> Dict[str, TableDef]:
     return tables
 
 
-def compare_tables(intended: Dict[str, TableDef], actual: Dict[str, TableDef]) -> str:
-    lines: List[str] = []
+def compare_tables(intended: dict[str, TableDef], actual: dict[str, TableDef]) -> str:
+    lines: list[str] = []
 
     intended_tables = set(intended.keys())
     actual_tables = set(actual.keys())
@@ -211,7 +252,7 @@ def compare_tables(intended: Dict[str, TableDef], actual: Dict[str, TableDef]) -
         t_int = intended[table_name]
         t_act = actual[table_name]
 
-        table_lines: List[str] = []
+        table_lines: list[str] = []
 
         prop_keys = sorted(set(t_int.properties) | set(t_act.properties))
         for key in prop_keys:
