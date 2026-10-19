@@ -52,6 +52,7 @@ import us.dot.its.jpo.ode.api.services.firmware.FirmwareRuleService.FirmwareRule
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareUploadVerificationException;
 import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadService.FirmwareVersionAlreadyExistsException;
+import us.dot.its.jpo.ode.api.services.firmware.ObuFirmwareConflictException;
 import us.dot.its.jpo.ode.api.services.RsuCredentialManagementService;
 import us.dot.its.jpo.ode.api.services.RsuUpgradeService;
 import us.dot.its.jpo.ode.api.services.SnmpCredentialManagementService;
@@ -227,9 +228,10 @@ public class GlobalExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class})
+    @ExceptionHandler({FirmwareDeletionConflictException.class, ObjectStorageConflictException.class,
+            ObuFirmwareConflictException.class})
     public ProblemDetail handleFirmwareDeletionConflict(RuntimeException ex) {
-        log.warn("Firmware deletion conflict: {}", ex.getMessage());
+        log.warn("Firmware conflict: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
