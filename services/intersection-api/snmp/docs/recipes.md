@@ -39,3 +39,17 @@ public SnmpTask status(SnmpTarget target, List<SnmpOid> measurementOids) {
 - A failed call stops later steps, even if the action catches its exception.
 - SET is never retried automatically. Report uncertain outcomes and check the device before retrying.
 - Local work must be bounded and respond to interruption. Cancellation cannot undo a write or database commit.
+
+## Forwarding example
+
+`Ntcip1218ForwardingTasks.create` and `delete` run one step:
+`configure-forwarding` locates/allocates a row, changes it, and verifies readback.
+
+The explicit `createWithSnapshot` and `deleteWithSnapshot` methods add:
+
+1. `read-current-forwarding`: read both complete tables.
+2. Optional `SnapshotAction`: pass the snapshot to application code.
+
+Use `changed(result)` to read the outcome. A later snapshot or callback failure
+preserves the verified device change. `SnapshotAction` is specific to forwarding;
+other recipes should use callbacks suited to their own data.

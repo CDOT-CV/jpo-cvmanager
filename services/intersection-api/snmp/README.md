@@ -4,45 +4,103 @@ Java SNMP library for Connected Vehicle devices.
 
 - Requires Java 22; uses SNMP4J internally.
   - JDK 22 was chosen for compatibility with the Intersection API. This library can move to JDK 25 when the Intersection API does.
-- Supports generic SNMPv3 operations with numeric OIDs and IPv4 targets.
-- No Spring or database dependency.
+- Supports generic SNMPv3 operations and NTCIP 1218 RSU helpers.
+- No Spring or database dependency. RSU 4.1 is not supported.
 - Maven: `usdot.jpo.ode:jpo-snmp:1.0.0-SNAPSHOT`.
 
-## Read device values
+## Choose an operation
+
+| Need                          | Use                             |
+| ----------------------------- | ------------------------------- |
+| Read known OIDs together      | `SnmpClient.get(target, oids)`  |
+| Read a table                  | `SnmpClient.walk(target, root)` |
+| Queue and track device work   | `SnmpTaskExecutor`              |
+| Add/delete message forwarding | `Ntcip1218ForwardingTasks`      |
+
+A **recipe** builds a `SnmpTask`: named steps for one device. The executor runs it.
+
+## Targets and credentials
+
+- `Ntcip1218Device(address, credentials)` uses port 161; pass a port for a custom endpoint.
+- Generic calls use `SnmpTarget`. `device.target()` returns the underlying target.
+- Construction does no I/O. `Ntcip1218Device.preflight` validates inventory profiles before a batch runs.
+- Each target supplies its credentials. No username is assumed.
+- SNMPv3 defaults to SHA/AES-128. SHA-256/SHA-512 and DES are also supported.
+- An empty privacy password falls back to the authentication password.
+- Addresses are literal IPv4; OIDs are numeric. Missing values stay explicit SNMP exception values.
+
+Sessions are cached by the full credential profile, including both passwords and
+algorithms. Identical profiles share a transport; different profiles have separate
+security state. Each peer keeps its own engine state. No global USM is replaced.
+
+- Only idle sessions can be evicted or rotated. Full caches return `BUSY` when no idle session is available.
+- `close()` releases sockets, pending requests and timers.
+- Public types do not expose SNMP4J types or credentials in their string representations.
+
+## Configure Message Forwarding
+
+Supports BSM, SPAT, MAP, SSM, SRM and TIM. The example below uses MAP;
+change `MessageType` to select another message type and its port/table.
 
 Load credentials and check permissions in your application first.
 
 ```java
 var credentials = new SnmpCredentials(username, authenticationPassword, privacyPassword);
-var target = new SnmpTarget("192.0.2.10", credentials);
-var uptime = new SnmpStep<>("uptime", SnmpStep.Kind.READ,
-    ctx -> ctx.client().get(ctx.target(), List.of(new SnmpOid("1.3.6.1.2.1.1.3.0"))));
+var device = new Ntcip1218Device("192.0.2.10", credentials);
+var forwardingTasks = new Ntcip1218ForwardingTasks(Clock.systemUTC());
 
 try (var client = new Snmp4jClient();
      var executor = new SnmpTaskExecutor(client, SnmpExecutorOptions.defaults())) {
-    var task = new SnmpTask("device-status", target, List.of(uptime));
+    var task = forwardingTasks.create(device,
+        new ForwardingRequest(MessageType.MAP, "198.51.100.3", true));
     var result = executor.submit(task, SnmpTaskOptions.defaults()).await();
-    if (result.status() == SnmpTaskResult.Status.SUCCEEDED) {
-        var values = result.value(uptime);
-    }
     System.out.println(result.summary());
 }
 ```
 
-- Group known OIDs in one GET. Use `walk(target, root)` for tables.
-- Check missing SNMP values before using measurements.
-- Submit tasks for all devices before waiting, so different devices can run concurrently.
-- Reuse the client and executor in a server. Close the executor before the client.
-- Imports come from `client`, `execution`, and `snmp4j` under `us.dot.its.jpo.snmp`, plus `java.util`.
+- Uses UDP and the standard MAP port. `true` includes IEEE 1609.2 security headers.
+- Verifies only the changed row after the write. Schedules always use UTC.
+- Use `createWithSnapshot` or `deleteWithSnapshot` to also read both forwarding tables.
+  Pass a `SnapshotAction` when the application needs to save that snapshot.
+- Each create adds a row. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
+- Deleting a missing entry succeeds without a change.
 
-## Targets and credentials
+**Reuse** the client, executor and recipe factory. Close the executor
+before the client on shutdown.
 
-- `SnmpTarget(address, credentials)` uses port 161; pass a port for a custom endpoint.
-- Each target supplies its credentials. No username is assumed.
-- SNMPv3 defaults to SHA/AES-128; SHA-256/SHA-512 and DES are also supported.
-- An empty privacy password falls back to the authentication password.
-- Sessions use the full credential profile. Different passwords never share security state.
-- Idle sessions can be evicted; active sessions keep their state. Full caches may return `BUSY`.
+Imports come from `us.dot.its.jpo.snmp` packages `client`, `execution`, `snmp4j`
+and `rsu.ntcip1218`, plus `java.time` and `java.util`.
+
+## Read status values
+
+Use a generic `SnmpTarget(address, credentials)` and group known measurement OIDs
+in one GET:
+
+```java
+var measurements = new SnmpStep<>("measurements", SnmpStep.Kind.READ,
+    ctx -> ctx.client().get(ctx.target(), measurementOids));
+var task = new SnmpTask("device-status", target, List.of(measurements));
+var result = executor.submit(task, taskOptions).await();
+var values = result.value(measurements);
+```
+
+- Submit work for all devices before waiting, so different devices can run concurrently.
+- Missing values remain explicit SNMP exception values; check them before using measurements.
+- Your application owns polling schedules, permissions and storage.
+
+## Results
+
+- `result.summary()`: short message and each step's status.
+- `result.status()`, `result.writeState()` and typed `result.value(step)`: use these for application logic.
+- Verified device procedures return `SnmpWriteResult<T>`; a plain SET acknowledges receipt only.
+- `Ntcip1218ForwardingTasks.changed(result)`: `true` for a verified change,
+  `false` for a delete no-op, `null` if the procedure did not finish.
+- A later database failure does not erase a verified device change.
+- SET is never retried automatically. Check device state before retrying an uncertain write.
+
+- Tasks for one IP/port run one at a time within an executor. Other devices can run in parallel.
+- Separate executors or application replicas need their own coordination for writes.
+- Walks use GETNEXT by default. Optional GETBULK can reduce round trips; benchmark it on your devices.
 
 ## Default limits
 
@@ -59,27 +117,30 @@ try (var client = new Snmp4jClient();
 | Queue / execution timeout | 5 minutes / 60 seconds | `SnmpTaskOptions` |
 | Recorded calls per task | 1,024 | Five-argument `SnmpTaskOptions` constructor |
 
-- Executor concurrency must fit `client.concurrencyLimit()`.
-- Tasks for one IP/port run one at a time within an executor. Separate executors need their own write coordination.
-- Walks use GETNEXT by default. Set `maxBulkRepetitions` to 1-64 for GETBULK; benchmark it on your devices.
-- Your application owns polling schedules, permissions, storage and result retention.
+Applications can override these defaults. Executor concurrency must fit
+`client.concurrencyLimit()`, the smaller of the adapter's operation and session
+limits. Sharing that client with direct calls can still produce `BUSY` results.
 
 ## Summary and logs
 
-- `result.summary()` includes task ID, target, status, message, timings and each step's name/status.
-- Use typed status fields and `result.value(step)` for application logic.
-- Verified procedures return `SnmpWriteResult<T>`. A plain SET acknowledges receipt only.
-- SET is never retried automatically. Check device state before retrying an uncertain write.
-- `cancel()` requests interruption. `await(Duration)` limits only the caller's wait.
+`result.summary()` includes task ID, target, status, message, current/failed step,
+`elapsedMs`, and each declared step's name/status. It excludes command payloads.
 
-Logs use the application's SLF4J provider and exclude credentials and SNMP values.
+```text
+INFO SNMP create-message-forwarding.BSM.RECEIVE - SUCCEEDED: Change verified. [task=<id> target=udp:192.0.2.10:161 elapsed=900ms] [queue=100ms run=800ms requests=12 steps=configure-forwarding=200ms,read-current-forwarding=550ms,sync-database=50ms]
+```
 
+- `elapsed` includes queue wait, all SNMP work and callbacks. Step timings cover only steps that started.
+- `requests` counts adapter submissions, not every network packet.
+- SLF4J logs use the application's provider. The library ships no production logging configuration.
 - DEBUG: reads, offline timeouts, queue rejection/expiry and cancellation.
-- INFO: successful writes. WARN: uncertain writes, incomplete verification and unexpected failures.
-- TRACE: request/response events and engine recovery.
-- Task logs separate queue/run time and step timings. Request counts exclude internal discovery packets and retransmissions.
+- INFO: successful writes. WARN: uncertain writes, incomplete/failed verification and unexpected failures.
+- TRACE: request/response events, selected rows and engine recovery. Nested calls share correlation IDs without repeating outcome warnings.
+- Credentials, SNMP values and raw exceptions are excluded from library logs. Logs cannot prove device state after a lost reply.
 
-See [adding recipes](docs/recipes.md) for device procedures.
+For the Intersection API, set `logging.level.us.dot.its.jpo.snmp` to `DEBUG` or `TRACE`.
+
+See [adding recipes](docs/recipes.md) for new device procedures.
 
 ## Build and test
 
@@ -91,10 +152,5 @@ mvn -f services/intersection-api/snmp/pom.xml clean verify
 
 - Use `install` for a separate local application build.
 - Tests use local SNMPv3 agents; no physical device is required.
+- Docker interoperability tests use a Net-SNMP agent.
 - CI includes SonarCloud analysis and coverage.
-- Run independent Net-SNMP interoperability tests with:
-
-```powershell
-docker build -f services/intersection-api/snmp/Dockerfile.integration -t jpo-snmp-integration services
-docker run --rm jpo-snmp-integration
-```
