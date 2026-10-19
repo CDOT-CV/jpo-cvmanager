@@ -59,7 +59,9 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
         var dispatcher = new MessageDispatcherImpl();
         dispatcher.addMessageProcessingModel(new MPv3(engine.getValue(), new DefaultPDUFactory(), protocols,
                 new SecurityModels().addSecurityModel(usm), counters));
-        transport = new DefaultUdpTransportMapping(new UdpAddress("127.0.0.1/" + port), true);
+        // Each simulated device needs an exclusive endpoint. On Linux, SO_REUSEADDR can let
+        // ephemeral ports collide and route an earlier agent's requests to a different agent.
+        transport = new DefaultUdpTransportMapping(new UdpAddress("127.0.0.1/" + port), false);
         snmp = new Snmp(dispatcher, transport);
         snmp.setLocalEngine(engine.getValue(), boots, 0);
         snmp.addCommandResponder(this);

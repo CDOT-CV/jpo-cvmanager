@@ -2,6 +2,7 @@ package us.dot.its.jpo.snmp.snmp4j;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -391,11 +392,13 @@ class SnmpTaskExecutorTest {
 
     @Test void repeatedFleetBatchesBoundWorkIsolateTimeoutsAndRecoverReturningDevices() throws Exception {
         var agents = new ArrayList<LoopbackAgent>();
+        var endpoints = new HashSet<String>();
         try (var client = client(); var executor = executor(client, 8, 1024)) {
             for (int i = 0; i < 100; i++) {
                 var credentials = new SnmpCredentials("operator-" + i % 4, "fixture-auth-" + i % 8, "fixture-privacy-" + i % 8);
                 var agent = new LoopbackAgent(credentials, 0, 1, String.format("8000000001%08x", i));
                 agent.integer(OID.value(), i); agents.add(agent);
+                assertTrue(endpoints.add(agent.target().agent()), "Test agents share endpoint " + agent.target().agent());
                 // This test measures repeated fleet polls, not simultaneous cold engine/key setup.
                 // Verify each device/profile before taking selected peers offline. Discovery and
                 // credential isolation also have dedicated tests with their own request budgets.
@@ -407,12 +410,24 @@ class SnmpTaskExecutorTest {
                 // Leave room for CI scheduling and rediscovery of returning peers. Tight deadline
                 // behavior is tested separately using delayed/held responses, not a fleet benchmark.
                 for (var agent : agents) handles.add(executor.submit(task(agent.target(), read("measure")), policy(500, 0, false, 2000, 0)));
-                int success = 0, timeouts = 0;
-                for (var handle : handles) {
-                    var outcome = result(handle);
-                    if (outcome.status() == SnmpTaskResult.Status.SUCCEEDED) success++;
-                    else if (outcome.status() == SnmpTaskResult.Status.TIMED_OUT) timeouts++;
-                    else fail("Unexpected fleet outcome: " + outcome.status());
+                int success = 0;
+                int timeouts = 0;
+                for (int i = 0; i < handles.size(); i++) {
+                    var outcome = result(handles.get(i));
+                    boolean offline = cycle == 0 && i % 5 == 0;
+                    String details = "cycle=" + cycle + " device=" + i + " " + outcome.summary()
+                            + " queue=" + outcome.queueWait() + " run=" + outcome.executionTime();
+                    assertEquals(offline ? SnmpTaskResult.Status.TIMED_OUT : SnmpTaskResult.Status.SUCCEEDED,
+                            outcome.status(), details);
+                    assertEquals(1, outcome.submissions(), details);
+                    if (offline) {
+                        timeouts++;
+                        assertEquals(SnmpStepResult.Status.READ_TIMED_OUT, outcome.steps().getFirst().status(), details);
+                    } else {
+                        success++;
+                        assertEquals(new SnmpValue.IntegerValue(i),
+                                outcome.steps().getFirst().commands().getFirst().response().getFirst().value(), details);
+                    }
                 }
                 assertEquals(cycle == 0 ? 80 : 100, success); assertEquals(cycle == 0 ? 20 : 0, timeouts);
                 agents.forEach(agent -> agent.dropReads = false);

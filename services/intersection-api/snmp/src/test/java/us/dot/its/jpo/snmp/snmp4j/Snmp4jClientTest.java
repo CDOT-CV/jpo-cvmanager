@@ -339,6 +339,16 @@ class Snmp4jClientTest {
         }
     }
 
+    @Test void loopbackAgentsRequireExclusivePorts() throws Exception {
+        try (var first = new LoopbackAgent(CREDS)) {
+            assertThrows(java.net.BindException.class, () -> {
+                try (var duplicate = new LoopbackAgent(CREDS, first.port(), 1, "800000000506070809")) {
+                    fail("A second test agent bound an occupied endpoint: " + duplicate.target().agent());
+                }
+            });
+        }
+    }
+
     @Test void sessionCapacityAndTargetRotationAreBounded() throws Exception {
         var other = new SnmpCredentials("fixture-user", "other-auth-pass", "other-privacy-pass");
         try (var first = new LoopbackAgent(CREDS); var second = new LoopbackAgent(other);
