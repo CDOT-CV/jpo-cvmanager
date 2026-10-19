@@ -4,12 +4,15 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import us.dot.its.jpo.snmp.client.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -52,7 +55,9 @@ class Ntcip1218ClientTest {
     }
 
     @Test void matchesPythonGoldenSequencesForAllMessagesAndSecuritySettings() throws Exception {
-        var client = client(new MemoryAgent());
+        // Keep the historical Python fixture unchanged; its calendar fields were 05:34.
+        var goldenClock = Clock.fixed(Instant.parse("2024-01-30T05:34:00Z"), ZoneOffset.UTC);
+        var client = new Ntcip1218Client(new MemoryAgent(), goldenClock, ZoneOffset.UTC);
         try (var input = getClass().getResourceAsStream("/ntcip-golden.tsv")) {
             assertNotNull(input);
             for (String line : new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).lines().toList()) {
@@ -67,6 +72,23 @@ class Ntcip1218ClientTest {
                 }).toList();
                 assertEquals(List.of(fields[2].split(",")), serialized, line);
             }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"UTC", "+09:00", "-07:00", "America/Denver"})
+    void forwardingSchedulesUseUtcRegardlessOfDeviceOrClockZone(String zoneName) {
+        var zone = ZoneId.of(zoneName);
+        var clock = Clock.fixed(Instant.parse("2024-03-10T23:58:49.700Z"), zone);
+        var client = new Ntcip1218Client(new MemoryAgent(), clock, zone);
+        for (var message : MessageType.values()) {
+            var table = message.table();
+            var bindings = client.createBindings(new ForwardingRequest(message, "198.51.100.20", true), 1);
+            var start = bindings.stream().filter(b -> b.oid().equals(table.cell(table.startColumn(), 1))).findFirst().orElseThrow();
+            var stop = bindings.stream().filter(b -> b.oid().equals(table.cell(table.stopColumn(), 1))).findFirst().orElseThrow();
+            // Literal eight-byte UTC values also catch next-day shifts in positive zones.
+            assertEquals(new SnmpValue.Octets("07e8030a173a0000"), start.value(), message.name());
+            assertEquals(new SnmpValue.Octets("07f2030a173a0000"), stop.value(), message.name());
         }
     }
 

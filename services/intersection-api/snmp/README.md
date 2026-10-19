@@ -43,8 +43,9 @@ try (var client = new Snmp4jClient();
 
 This configures UDP forwarding to the standard MAP port, verifies the changed
 row, then reads both forwarding tables. The final `true` includes IEEE 1609.2
-security headers in forwarded messages. Use the device's timezone when it differs
-from UTC; this controls the forwarding schedule written to the RSU.
+security headers in forwarded messages. Forwarding start and stop timestamps
+always use UTC, as required by NTCIP 1218. The constructor's timezone argument
+is retained for compatibility and does not change these timestamps.
 
 Delete uses `recipes.delete(device, MessageType.MAP, "10.235.1.3")`. No matching
 entry is a successful no-op. Repeating a create allocates another entry; it is

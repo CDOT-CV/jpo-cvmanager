@@ -27,6 +27,7 @@ public final class Ntcip1218ForwardingTasks {
     private final Clock clock;
     private final ZoneId deviceZone;
 
+    /** The zone argument is retained for compatibility; forwarding schedules always use UTC. */
     public Ntcip1218ForwardingTasks(Clock clock, ZoneId deviceZone) {
         this.clock = Objects.requireNonNull(clock);
         this.deviceZone = Objects.requireNonNull(deviceZone);

@@ -95,7 +95,7 @@ only when every requested column returns `noSuchInstance`. Allocation and the
 subsequent complete snapshot use bounded walks, optionally with bulk enabled. Allocation retains max+1
 with the 127 compatibility cap. Delete removes the
 highest matching message/destination row; no match returns false without SET.
-Date encoding uses configured device-zone local time with minute precision;
+Date encoding uses UTC calendar fields with minute precision, as required by both forwarding MIBs;
 Java normalizes leap-day plus ten years. The RSU helper uses local lock stripes
 around discovery/allocation/write/verification. Cross-instance and external-device
 writers require application coordination. No exactly-once guarantee is made.
@@ -107,7 +107,8 @@ builds the standard change/verification/snapshot steps so consumers do not need
 to repeat their names, result casts or verification rules:
 
 ```java
-var forwardingTasks = new Ntcip1218ForwardingTasks(clock, deviceZone);
+// NTCIP 1218 forwarding schedules always use UTC, regardless of device timezone.
+var forwardingTasks = new Ntcip1218ForwardingTasks(clock, java.time.ZoneOffset.UTC);
 var task = forwardingTasks.create(device,
     new ForwardingRequest(MessageType.MAP, "10.235.1.3", true),
     new Ntcip1218ForwardingTasks.SnapshotAction("sync-database",

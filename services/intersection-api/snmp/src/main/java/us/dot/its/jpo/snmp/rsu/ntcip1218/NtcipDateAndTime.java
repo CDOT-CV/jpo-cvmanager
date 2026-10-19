@@ -6,7 +6,7 @@ import us.dot.its.jpo.snmp.client.SnmpValue;
 
 public final class NtcipDateAndTime {
     private NtcipDateAndTime() {}
-    /** Eight-byte local time without offset, as used by the existing forwarding implementation. */
+    /** Eight-byte DateAndTime without an offset; forwarding callers must supply UTC calendar fields. */
     public static SnmpValue.Octets encode(LocalDateTime time) {
         if (time.getYear() < 1 || time.getYear() > 65535) throw new IllegalArgumentException("Date year out of range");
         return SnmpValue.Octets.bytes(ByteBuffer.allocate(8).putShort((short) time.getYear())

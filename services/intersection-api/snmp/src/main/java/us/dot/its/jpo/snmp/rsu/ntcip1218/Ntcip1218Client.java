@@ -3,6 +3,7 @@ package us.dot.its.jpo.snmp.rsu.ntcip1218;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,11 +26,11 @@ public final class Ntcip1218Client {
     private static final String ROOT = "1.3.6.1.4.1.1206.4.2.18.";
     private final SnmpClient client;
     private final Clock clock;
-    private final ZoneId deviceZone;
     private final ReentrantLock[] locks = new ReentrantLock[256];
+    /** The zone argument is retained for compatibility; NTCIP forwarding dates always use UTC. */
     public Ntcip1218Client(SnmpClient client, Clock clock, ZoneId deviceZone) {
         this.client = Objects.requireNonNull(client); this.clock = Objects.requireNonNull(clock);
-        this.deviceZone = Objects.requireNonNull(deviceZone);
+        Objects.requireNonNull(deviceZone);
         for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock(true);
     }
 
@@ -161,8 +162,9 @@ public final class Ntcip1218Client {
         if (table == ForwardingTable.RECEIVE) {
             values.put(6, new SnmpValue.IntegerValue(-100)); values.put(7, new SnmpValue.IntegerValue(1));
         }
-        // Existing Python encoding sets seconds/deciseconds to zero. Preserve minute precision explicitly.
-        LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), deviceZone).truncatedTo(ChronoUnit.MINUTES);
+        // Both forwarding MIBs require eight-octet UTC dates, with no offset field.
+        // Preserve the existing minute precision, independently of device and clock zones.
+        LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
         values.put(table.startColumn(), NtcipDateAndTime.encode(now));
         values.put(table.stopColumn(), NtcipDateAndTime.encode(now.plusYears(10)));
         if (table == ForwardingTable.RECEIVE) values.put(table.statusColumn(), new SnmpValue.IntegerValue(4));
