@@ -23,7 +23,7 @@ class Ntcip1218ForwardingTasksTest {
 
     private Snmp4jClient client() {
         return new Snmp4jClient(new Snmp4jOptions(Duration.ofMillis(500), 0, Duration.ofSeconds(5),
-                Duration.ofSeconds(1), 2, 4, 100, 100, 8192));
+                Duration.ofSeconds(1), 2, 4, 100, 100, 8192, 16));
     }
     private SnmpTaskExecutor executor(Snmp4jClient client) {
         return new SnmpTaskExecutor(client, new SnmpExecutorOptions(2, 10, Duration.ofSeconds(1)));
@@ -41,6 +41,9 @@ class Ntcip1218ForwardingTasksTest {
             var device = new Ntcip1218Device(agent.target());
             var snapshots = new ConcurrentLinkedQueue<List<ForwardingRow>>();
             var task = tasks.create(device, request, new SnapshotAction("save-snapshot", snapshots::add));
+            assertEquals("create-message-forwarding.MAP.TRANSMIT", task.name());
+            assertEquals("delete-message-forwarding.BSM.RECEIVE",
+                    tasks.delete(device, MessageType.BSM, request.destination()).name());
             var first = run(executor, task);
             var second = run(executor, task);
             assertNotEquals(first.taskId(), second.taskId());
@@ -53,7 +56,7 @@ class Ntcip1218ForwardingTasksTest {
             assertTrue(firstSnapshot.getFirst().includeSecurity());
             assertThrows(UnsupportedOperationException.class, firstSnapshot::clear);
             assertEquals(2, snapshots.remove().size());
-            assertEquals(List.of("WALK", "SET", "WALK"), first.steps().getFirst().commands().stream()
+            assertEquals(List.of("WALK", "SET", "GET"), first.steps().getFirst().commands().stream()
                     .map(SnmpCommandResult::operation).toList());
             assertEquals(List.of("configure-forwarding", "confirm-result", "read-current-forwarding", "save-snapshot"),
                     first.steps().stream().map(SnmpStepResult::name).toList());

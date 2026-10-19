@@ -63,6 +63,29 @@ public final class Ntcip1218Client {
         }
     }
 
+    /** Verify every column of one row without walking unrelated configurations again. */
+    private Optional<ForwardingRow> readRow(Ntcip1218Device device, ForwardingTable table, int index) {
+        var oids = java.util.stream.IntStream.rangeClosed(2, table.lastColumn())
+                .mapToObj(column -> table.cell(column, index)).toList();
+        var bindings = client.get(device.target(), oids);
+        if (bindings.size() != oids.size()) throw new SnmpException(INVALID_OUTPUT, false);
+        var columns = new LinkedHashMap<Integer, SnmpValue>();
+        int missing = 0;
+        for (int i = 0; i < bindings.size(); i++) {
+            var binding = bindings.get(i);
+            if (!binding.oid().equals(oids.get(i))) throw new SnmpException(INVALID_OUTPUT, false);
+            if (binding.value() instanceof SnmpValue.ExceptionValue exception
+                    && exception.kind() == SnmpValue.ExceptionValue.Kind.NO_SUCH_INSTANCE) missing++;
+            columns.put(i + 2, binding.value());
+        }
+        if (missing == bindings.size()) return Optional.empty();
+        try {
+            return Optional.of(new ForwardingRow(table, index, columns));
+        } catch (IllegalArgumentException failure) {
+            throw new SnmpException(INVALID_OUTPUT, false);
+        }
+    }
+
     /** Allocates max+1 up to 127 for compatibility; does not replay a timed-out create. */
     public ForwardingRow addForwarding(Ntcip1218Device device, ForwardingRequest request) {
         Objects.requireNonNull(request);
@@ -82,7 +105,7 @@ public final class Ntcip1218Client {
             trace.stepSucceeded();
             try {
                 trace.step("verify_row");
-                ForwardingRow row = readTable(device, table).stream().filter(r -> r.index() == index).findFirst()
+                ForwardingRow row = readRow(device, table, index)
                         .orElseThrow(() -> new SnmpException(VERIFICATION, true));
                 for (SnmpBinding binding : expected) {
                     String[] parts = binding.oid().value().split("\\.");
@@ -120,7 +143,7 @@ public final class Ntcip1218Client {
             trace.stepSucceeded();
             try {
                 trace.step("verify_absence");
-                if (readTable(device, table).stream().anyMatch(r -> r.index() == index)) throw new SnmpException(VERIFICATION, true);
+                if (readRow(device, table, index).isPresent()) throw new SnmpException(VERIFICATION, true);
                 trace.stepSucceeded();
             } catch (SnmpException failure) {
                 throw failure.withWriteOutcomeUnknown(true);

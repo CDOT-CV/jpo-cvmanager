@@ -5,7 +5,11 @@ import java.util.List;
 import java.util.function.Function;
 import us.dot.its.jpo.snmp.client.*;
 
-/** Thread-confined execution access. Use this client for every call, including NTCIP convenience procedures. */
+/**
+ * Thread-confined access and call history. Use this client even inside device procedures.
+ * This wrapper records one logical call; the adapter's scoped client also checks each
+ * underlying submission, because a single WALK may send several requests.
+ */
 public final class SnmpTaskContext {
     private final SnmpTaskExecutor.Control control;
     private final SnmpClient transport;

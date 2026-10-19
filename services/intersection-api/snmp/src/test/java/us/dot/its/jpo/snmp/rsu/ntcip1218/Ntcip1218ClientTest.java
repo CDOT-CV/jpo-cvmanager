@@ -82,6 +82,44 @@ class Ntcip1218ClientTest {
         assertEquals(3, agent.writes.size());
     }
 
+    @Test void targetedReadbackValidatesCompleteRowWithoutASecondWalk() {
+        var walks = new java.util.concurrent.atomic.AtomicInteger();
+        var gets = new java.util.concurrent.atomic.AtomicInteger();
+        var agent = new MemoryAgent() {
+            @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) {
+                walks.incrementAndGet();
+                return super.walk(target, root);
+            }
+            @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
+                gets.incrementAndGet();
+                assertEquals(11, oids.size());
+                return super.get(target, oids);
+            }
+        };
+        var client = client(agent);
+        client.addForwarding(DEVICE, new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
+        assertEquals(1, walks.get()); assertEquals(1, gets.get());
+        assertTrue(client.deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20"));
+        assertEquals(2, walks.get()); assertEquals(2, gets.get());
+    }
+
+    @Test void partialMissingRowAfterDeleteDoesNotConfirmAbsence() {
+        var agent = new MemoryAgent() {
+            @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
+                var result = new ArrayList<>(super.get(target, oids));
+                if (writes.size() > 1) result.set(0, new SnmpBinding(oids.getFirst(), new SnmpValue.Octets("20")));
+                return result;
+            }
+        };
+        var client = client(agent);
+        client.addForwarding(DEVICE, new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
+        var failure = assertThrows(SnmpException.class,
+                () -> client.deleteForwarding(DEVICE, MessageType.BSM, "198.51.100.20"));
+        assertEquals(SnmpException.Kind.INVALID_OUTPUT, failure.kind());
+        assertTrue(failure.writeOutcomeUnknown());
+        assertEquals(2, agent.writes.size());
+    }
+
     @Test void incompleteReadPreventsWriteAndLostResponseNeverReplays() {
         var agent = new MemoryAgent(); var client = client(agent);
         var request = new ForwardingRequest(MessageType.BSM, "198.51.100.20", false);

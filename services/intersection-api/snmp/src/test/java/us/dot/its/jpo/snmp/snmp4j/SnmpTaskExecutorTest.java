@@ -19,7 +19,7 @@ class SnmpTaskExecutorTest {
     private static final SnmpCredentials CREDS = new SnmpCredentials("fixture-user", "fixture-auth-pass", "fixture-privacy-pass");
     private static final SnmpOid OID = new SnmpOid("1.3.6.1.4.1.1206.4.2.18.12.1.0");
     private static Snmp4jClient client() {
-        return new Snmp4jClient(new Snmp4jOptions(Duration.ofMillis(500), 1, Duration.ofSeconds(5), Duration.ofMillis(50), 8, 8, 200, 100, 4096));
+        return new Snmp4jClient(new Snmp4jOptions(Duration.ofMillis(500), 1, Duration.ofSeconds(5), Duration.ofMillis(50), 8, 8, 200, 100, 4096, 16));
     }
     private static SnmpTaskOptions policy(int timeoutMs, int retries, boolean rediscovery, int budgetMs, int maxRequests) {
         return new SnmpTaskOptions(Duration.ofSeconds(5), Duration.ofMillis(budgetMs),
@@ -34,6 +34,33 @@ class SnmpTaskExecutorTest {
     }
     private static SnmpTask task(SnmpTarget target, SnmpStep... steps) { return new SnmpTask("fixture-task", target, List.of(steps)); }
     private static SnmpTaskResult result(SnmpTaskHandle handle) throws Exception { return handle.await(Duration.ofSeconds(10)); }
+
+    @Test void hundredPollTasksKeepHealthyReadsIndependentOfOfflineTimeouts() throws Exception {
+        try (var healthy = new LoopbackAgent(CREDS); var offline = new LoopbackAgent(CREDS);
+                var client = client(); var executor = executor(client, 8, 128)) {
+            var second = new SnmpOid("1.3.6.1.4.1.1206.4.2.18.12.2.0");
+            for (var agent : List.of(healthy, offline)) {
+                agent.integer(OID.value(), 1); agent.integer(second.value(), 2);
+                client.get(agent.target(), List.of(OID, second)); // Discover before measuring offline polls.
+            }
+            offline.dropReads = true;
+            var handles = new java.util.ArrayList<SnmpTaskHandle>();
+            for (int i = 0; i < 100; i++) {
+                var target = i % 5 == 0 ? offline.target() : healthy.target();
+                handles.add(executor.submit(task(target, new SnmpStep("status", READ,
+                        ctx -> ctx.client().get(ctx.target(), List.of(OID, second)))), policy(80, 0, false, 1000, 1)));
+            }
+            for (int i = 0; i < handles.size(); i++) {
+                var outcome = result(handles.get(i));
+                assertEquals(i % 5 == 0 ? SnmpTaskResult.Status.TIMED_OUT : SnmpTaskResult.Status.SUCCEEDED, outcome.status());
+                assertEquals(1, outcome.submissions());
+                assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, outcome.writeState());
+                if (i % 5 != 0) assertEquals(2, outcome.steps().getFirst().commands().getFirst().response().size());
+            }
+            assertEquals(0, client.diagnostics().pendingRequests());
+            assertEquals(0, healthy.writes.get() + offline.writes.get());
+        }
+    }
 
     @Test void preservesValuesAcknowledgementVerificationAndImmutableSnapshots() throws Exception {
         try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 2, 10)) {
@@ -175,7 +202,8 @@ class SnmpTaskExecutorTest {
             var recovery = result(executor.submit(task(agent.target(), read("read")), policy(80, 0, true, 2000, 0)));
             assertEquals(2, recovery.submissions());
             agent.dropReads = false;
-            for (int i = 1; i < 6; i++) agent.integer("1.3.6.1.4.1.1206.4.2.18.12.2." + i, i);
+            // Require more than two bulk pages so the third submission hits the task budget.
+            for (int i = 1; i < 40; i++) agent.integer("1.3.6.1.4.1.1206.4.2.18.12.2." + i, i);
             var limited = result(executor.submit(task(agent.target(), new SnmpStep("walk", READ, ctx -> ctx.client().walk(ctx.target(), new SnmpOid("1.3.6.1.4.1.1206.4.2.18.12"))), write("never", 5)), policy(300, 0, false, 2000, 2)));
             assertEquals(SnmpException.Kind.REQUEST_LIMIT, limited.failure().kind()); assertEquals(2, limited.submissions());
             assertTrue(limited.steps().getFirst().commands().getFirst().response().isEmpty());
@@ -272,7 +300,7 @@ class SnmpTaskExecutorTest {
                 return ntcip.addForwarding(new Ntcip1218Device(ctx.target()), new ForwardingRequest(MessageType.BSM, "198.51.100.20", true));
             }))));
             assertEquals(SnmpTaskResult.Status.SUCCEEDED, outcome.status());
-            assertEquals(List.of("WALK", "SET", "WALK"), outcome.steps().getFirst().commands().stream().map(SnmpCommandResult::operation).toList());
+            assertEquals(List.of("WALK", "SET", "GET"), outcome.steps().getFirst().commands().stream().map(SnmpCommandResult::operation).toList());
             assertEquals(1, ((ForwardingRow) outcome.steps().getFirst().value()).index());
         }
     }
@@ -283,11 +311,18 @@ class SnmpTaskExecutorTest {
             for (int i = 0; i < 100; i++) {
                 var credentials = new SnmpCredentials("operator-" + i % 4, "fixture-auth-" + i % 8, "fixture-privacy-" + i % 8);
                 var agent = new LoopbackAgent(credentials, 0, 1, String.format("8000000001%08x", i));
-                agent.integer(OID.value(), i); agent.dropReads = i % 5 == 0; agents.add(agent);
+                agent.integer(OID.value(), i); agents.add(agent);
+                // This test measures repeated fleet polls, not simultaneous cold engine/key setup.
+                // Verify each device/profile before taking selected peers offline. Discovery and
+                // credential isolation also have dedicated tests with their own request budgets.
+                assertEquals(new SnmpValue.IntegerValue(i), client.get(agent.target(), List.of(OID)).getFirst().value());
+                agent.dropReads = i % 5 == 0;
             }
             for (int cycle = 0; cycle < 3; cycle++) {
                 var handles = new ArrayList<SnmpTaskHandle>();
-                for (var agent : agents) handles.add(executor.submit(task(agent.target(), read("measure")), policy(100, 0, false, 2000, 0)));
+                // Leave room for CI scheduling and rediscovery of returning peers. Tight deadline
+                // behavior is tested separately using delayed/held responses, not a fleet benchmark.
+                for (var agent : agents) handles.add(executor.submit(task(agent.target(), read("measure")), policy(500, 0, false, 2000, 0)));
                 int success = 0, timeouts = 0;
                 for (var handle : handles) {
                     var outcome = result(handle);

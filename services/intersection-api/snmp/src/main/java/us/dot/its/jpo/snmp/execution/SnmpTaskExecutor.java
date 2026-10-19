@@ -92,6 +92,8 @@ public final class SnmpTaskExecutor implements AutoCloseable {
 
     private void pump() {
         if (closed) return;
+        // Skip a busy endpoint instead of occupying a worker while waiting for its lock.
+        // The oldest eligible task wins; unrelated devices can still make progress.
         for (int i = 0; i < queue.size();) {
             var next = queue.get(i);
             if (System.nanoTime() - next.queuedNanos >= next.options.queueTimeout().toNanos()) {
@@ -125,20 +127,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             var context = new SnmpTaskContext(control, client);
             try {
                 for (int i = 0; i < control.task.steps().size(); i++) {
-                    control.remainingNanos();
-                    var definition = control.task.steps().get(i);
-                    var step = control.startStep(i);
-                    trace.step(step.name);
-                    try {
-                        Object value = definition.action().execute(context);
-                        if (definition.kind() == SnmpStep.Kind.VERIFY && !Boolean.TRUE.equals(value)) throw new SnmpException(VERIFICATION, false);
-                        control.stepSucceeded(step, value);
-                        trace.stepSucceeded();
-                    } catch (Throwable failure) {
-                        var safe = safeFailure(failure, control);
-                        control.stepFailed(step, safe);
-                        throw safe;
-                    }
+                    executeStep(control, i, context, trace);
                 }
                 control.remainingNanos();
                 control.finish(SUCCEEDED, null);
@@ -177,6 +166,22 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
     }
 
+    private void executeStep(Control control, int index, SnmpTaskContext context, OperationLog trace) {
+        var definition = control.task.steps().get(index);
+        var step = control.startStep(index); // Checks the shared budget before any action starts.
+        trace.step(step.name);
+        try {
+            Object value = definition.action().execute(context);
+            if (definition.kind() == SnmpStep.Kind.VERIFY && !Boolean.TRUE.equals(value)) throw new SnmpException(VERIFICATION, false);
+            control.stepSucceeded(step, value);
+            trace.stepSucceeded();
+        } catch (Throwable failure) {
+            var safe = safeFailure(failure, control);
+            control.stepFailed(step, safe);
+            throw safe;
+        }
+    }
+
     private void logResult(Control control) {
         var result = control.snapshot();
         var level = org.slf4j.event.Level.DEBUG;
@@ -190,7 +195,17 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                     || incompleteWrite || !routineFailure) level = org.slf4j.event.Level.WARN;
             else if (result.status() == SUCCEEDED && result.steps().stream().anyMatch(step -> step.kind() == SnmpStep.Kind.WRITE)) level = org.slf4j.event.Level.INFO;
         }
-        log.atLevel(level).log("SNMP {} - {}", control.task.name(), result.summary());
+        log.atLevel(level).log("SNMP {} - {} [queue={}ms run={}ms requests={} steps={}]",
+                control.task.name(), result.summary(), result.queueWait().toMillis(), result.executionTime().toMillis(),
+                result.submissions(), stepTimings(result));
+    }
+
+    private static String stepTimings(SnmpTaskResult result) {
+        var now = Instant.now();
+        return result.steps().stream().filter(step -> step.startedAt() != null)
+                .map(step -> step.name() + "=" + Math.max(0, Duration.between(step.startedAt(),
+                        step.finishedAt() == null ? now : step.finishedAt()).toMillis()) + "ms")
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     private static SnmpException safeFailure(Throwable failure, Control control) {
@@ -323,10 +338,6 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                 var failure = current.failure;
                 throw new SnmpException(failure.kind(), failure.writeOutcomeUnknown(), failure.agentErrorStatus(), failure.agentErrorIndex());
             }
-            for (var command : current.commands) if (command.failure != null) {
-                var failure = command.failure;
-                throw new SnmpException(failure.kind(), failure.writeOutcomeUnknown(), failure.agentErrorStatus(), failure.agentErrorIndex());
-            }
         }
         synchronized void beforeRequest(MutableCommand command, boolean write) {
             remainingNanos();
@@ -339,6 +350,9 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
         synchronized void commandFailed(MutableCommand command, SnmpException exception) {
             command.failure = SnmpFailure.from(exception); command.finishedAt = Instant.now();
+            // Keep the first failed call sticky even if an action catches its exception.
+            // Later admission/success checks need not rescan the growing command history.
+            if (current.failure == null) current.failure = command.failure;
             command.status = exception.writeOutcomeUnknown() ? SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN
                     : command.submissions == 0 ? SnmpCommandResult.Status.NOT_DISPATCHED
                     : exception.kind() == TIMEOUT ? SnmpCommandResult.Status.READ_TIMED_OUT
@@ -346,6 +360,8 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                     : exception.kind() == AGENT_REJECTED ? SnmpCommandResult.Status.REJECTED : SnmpCommandResult.Status.FAILED;
         }
         synchronized void finish(SnmpTaskResult.Status result, SnmpFailure failure) {
+            // Stop requests do not finish callbacks. Only the worker acknowledges completion;
+            // releasing the device slot sooner would allow overlapping work on that device.
             if (status != QUEUED && status != RUNNING) return;
             if (stop != null && status == RUNNING) result = stop == TIMEOUT ? TIMED_OUT : SnmpTaskResult.Status.CANCELLED;
             if (failure == null && stop != null) failure = new SnmpFailure(stop, false, null, null);
@@ -367,18 +383,22 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             boolean verificationFailed = false;
             for (int i = 0; i < steps.size(); i++) {
                 var step = steps.get(i);
-                for (var command : step.commands()) if (command.operation().equals("SET") && command.submissions() > 0) {
-                    if (command.status() == SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN || command.status() == SnmpCommandResult.Status.RUNNING)
-                        return SnmpTaskResult.WriteState.UNKNOWN;
-                    if (command.status() == SnmpCommandResult.Status.SUCCEEDED) { acknowledged = true; lastWrite = i; }
-                    if (command.status() == SnmpCommandResult.Status.REJECTED) rejected = true;
+                for (var command : step.commands()) {
+                    if (!command.operation().equals("SET") || command.submissions() == 0) continue;
+                    switch (command.status()) {
+                        case WRITE_OUTCOME_UNKNOWN, RUNNING -> { return SnmpTaskResult.WriteState.UNKNOWN; }
+                        case SUCCEEDED -> { acknowledged = true; lastWrite = i; }
+                        case REJECTED -> rejected = true;
+                        default -> { /* No additional write evidence. */ }
+                    }
                 }
                 if (step.kind() == SnmpStep.Kind.VERIFY && step.status() == SnmpStepResult.Status.SUCCEEDED) lastVerification = i;
-                if (step.status() == SnmpStepResult.Status.VERIFICATION_FAILED) verificationFailed = true;
+                verificationFailed |= step.status() == SnmpStepResult.Status.VERIFICATION_FAILED;
             }
-            if (acknowledged) return verificationFailed ? SnmpTaskResult.WriteState.VERIFICATION_FAILED
-                    : lastVerification > lastWrite ? SnmpTaskResult.WriteState.VERIFIED : SnmpTaskResult.WriteState.ACKNOWLEDGED_UNVERIFIED;
-            return rejected ? SnmpTaskResult.WriteState.REJECTED : SnmpTaskResult.WriteState.NOT_SUBMITTED;
+            if (!acknowledged) return rejected ? SnmpTaskResult.WriteState.REJECTED : SnmpTaskResult.WriteState.NOT_SUBMITTED;
+            if (verificationFailed) return SnmpTaskResult.WriteState.VERIFICATION_FAILED;
+            // A successful verification before a later write cannot confirm that later write.
+            return lastVerification > lastWrite ? SnmpTaskResult.WriteState.VERIFIED : SnmpTaskResult.WriteState.ACKNOWLEDGED_UNVERIFIED;
         }
     }
 

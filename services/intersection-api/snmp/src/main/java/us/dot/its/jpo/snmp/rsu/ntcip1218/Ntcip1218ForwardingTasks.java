@@ -19,6 +19,7 @@ import us.dot.its.jpo.snmp.execution.SnmpTaskResult;
  *
  * Owns no transport, queue or task state. Every SNMP operation uses the executor's scoped client,
  * preserving request policies, deadlines and command history when tasks run concurrently.
+ * Other features compose their own SnmpTask recipes; this class is not an executor extension point.
  */
 public final class Ntcip1218ForwardingTasks {
     private static final String CONFIGURE = "configure-forwarding";
@@ -38,7 +39,7 @@ public final class Ntcip1218ForwardingTasks {
     /** Allocates a new row; the optional action runs only after a complete two-table snapshot. */
     public SnmpTask create(Ntcip1218Device device, ForwardingRequest request, SnapshotAction afterRead) {
         Objects.requireNonNull(request);
-        return task("create-message-forwarding", device, client -> {
+        return task("create-message-forwarding", device, request.messageType(), client -> {
             client.addForwarding(device, request);
             return true;
         }, afterRead);
@@ -52,7 +53,7 @@ public final class Ntcip1218ForwardingTasks {
     public SnmpTask delete(Ntcip1218Device device, MessageType message, String destination, SnapshotAction afterRead) {
         Objects.requireNonNull(message);
         SnmpTarget.validateIpv4(destination);
-        return task("delete-message-forwarding", device,
+        return task("delete-message-forwarding", device, message,
                 client -> client.deleteForwarding(device, message, destination), afterRead);
     }
 
@@ -63,7 +64,7 @@ public final class Ntcip1218ForwardingTasks {
                 .map(step -> step.valueAs(Boolean.class)).findFirst().orElse(null);
     }
 
-    private SnmpTask task(String name, Ntcip1218Device device,
+    private SnmpTask task(String name, Ntcip1218Device device, MessageType message,
             Function<Ntcip1218Client, Boolean> change, SnapshotAction afterRead) {
         Objects.requireNonNull(device);
         var steps = new ArrayList<SnmpStep>();
@@ -80,7 +81,8 @@ public final class Ntcip1218ForwardingTasks {
                 return true;
             }));
         }
-        return new SnmpTask(name, device.target(), steps);
+        // Keep CV context in the recipe's name; the generic executor need not know RSU MIBs.
+        return new SnmpTask(name + "." + message.name() + "." + message.table().name(), device.target(), steps);
     }
 
     private Ntcip1218Client client(SnmpTaskContext context) {

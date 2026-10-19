@@ -23,6 +23,7 @@ import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingTable;
 final class LoopbackAgent implements AutoCloseable, CommandResponder {
     final ConcurrentSkipListMap<OID, Variable> values = new ConcurrentSkipListMap<>();
     final AtomicInteger reads = new AtomicInteger(), writes = new AtomicInteger();
+    final AtomicInteger bulkReads = new AtomicInteger();
     final AtomicInteger active = new AtomicInteger(), maximum = new AtomicInteger();
     private final ConcurrentLinkedQueue<Runnable> held = new ConcurrentLinkedQueue<>();
     private final java.util.concurrent.ScheduledExecutorService delayed = Executors.newSingleThreadScheduledExecutor();
@@ -31,6 +32,8 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
     final SnmpCredentials credentials;
     volatile boolean dropReads, dropWrites, hold, rejectWrites;
     volatile long delayMillis;
+    volatile int maximumBulkRepetitions = 64;
+    volatile int bulkResponseLimit = 64;
     volatile Consumer<PDU> alterResponse = ignored -> {};
 
     LoopbackAgent(SnmpCredentials credentials) throws IOException { this(credentials, 0, 1, "800000000102030405"); }
@@ -81,7 +84,21 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
         boolean write = request.getType() == PDU.SET;
         if (write) writes.incrementAndGet(); else reads.incrementAndGet();
         int count = active.incrementAndGet(); maximum.accumulateAndGet(count, Math::max);
-        if (write && rejectWrites) {
+        if (request.getType() == PDU.GETBULK) {
+            bulkReads.incrementAndGet();
+            if (request.getMaxRepetitions() > maximumBulkRepetitions) {
+                response.setErrorStatus(PDU.tooBig);
+            } else {
+                OID cursor = request.get(0).getOid();
+                for (int i = 0; i < Math.min(request.getMaxRepetitions(), bulkResponseLimit); i++) {
+                    var next = values.higherEntry(cursor);
+                    response.add(next == null ? new VariableBinding(cursor, Null.endOfMibView)
+                            : new VariableBinding(new OID(next.getKey()), (Variable) next.getValue().clone()));
+                    if (next == null) break;
+                    cursor = next.getKey();
+                }
+            }
+        } else if (write && rejectWrites) {
             response.addAll(request.toArray());
             response.setErrorStatus(PDU.notWritable);
             response.setErrorIndex(1);

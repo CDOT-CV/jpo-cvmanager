@@ -28,7 +28,7 @@ class Snmp4jClientTest {
     private static final SnmpOid SECOND = new SnmpOid(ROOT + "12.2.0");
     private static final SnmpCredentials CREDS = new SnmpCredentials("fixture-user", "fixture-auth-pass", "fixture-privacy-pass");
     private static Snmp4jOptions options(int concurrency, int sessions, int targets) {
-        return new Snmp4jOptions(Duration.ofMillis(300), 0, Duration.ofSeconds(3), Duration.ofSeconds(1), concurrency, sessions, targets, 100, 4096);
+        return new Snmp4jOptions(Duration.ofMillis(300), 0, Duration.ofSeconds(3), Duration.ofSeconds(1), concurrency, sessions, targets, 100, 4096, 16);
     }
     private static Snmp4jClient client() { return new Snmp4jClient(options(8, 8, 100)); }
 
@@ -162,20 +162,83 @@ class Snmp4jClientTest {
     }
 
     @Test void walkDeadlineAndLimitsNeverReturnPartialSuccess() throws Exception {
-        var settings = new Snmp4jOptions(Duration.ofSeconds(1), 0, Duration.ofMillis(200), Duration.ofMillis(50), 2, 2, 100, 100, 4096);
+        var settings = new Snmp4jOptions(Duration.ofSeconds(1), 0, Duration.ofMillis(200), Duration.ofMillis(50), 2, 2, 100, 100, 4096, 16);
         try (var agent = new LoopbackAgent(CREDS); var client = new Snmp4jClient(settings)) {
             for (int i = 1; i <= 10; i++) agent.integer(ROOT + "12." + i, i);
+            agent.bulkResponseLimit = 1; // Short bulk pages still share one whole-walk deadline.
             client.get(agent.target(), List.of(new SnmpOid(ROOT + "12.1")));
             agent.delayMillis = 70;
             assertEquals(SnmpException.Kind.TIMEOUT, assertThrows(SnmpException.class, () -> client.walk(agent.target(), new SnmpOid(ROOT + "12"))).kind());
             assertEquals(0, client.diagnostics().pendingRequests());
         }
-        settings = new Snmp4jOptions(Duration.ofSeconds(1), 0, Duration.ofSeconds(3), Duration.ofMillis(50), 2, 2, 100, 2, 1024);
+        settings = new Snmp4jOptions(Duration.ofSeconds(1), 0, Duration.ofSeconds(3), Duration.ofMillis(50), 2, 2, 100, 2, 1024, 16);
         try (var agent = new LoopbackAgent(CREDS); var client = new Snmp4jClient(settings)) {
             for (int i = 1; i <= 3; i++) agent.integer(ROOT + "12." + i, i);
             assertEquals(SnmpException.Kind.OUTPUT_LIMIT, assertThrows(SnmpException.class, () -> client.walk(agent.target(), new SnmpOid(ROOT + "12"))).kind());
             agent.alterResponse = pdu -> pdu.get(0).setOid(new OID(ROOT + "12"));
             assertEquals(SnmpException.Kind.INVALID_OUTPUT, assertThrows(SnmpException.class, () -> client.walk(agent.target(), new SnmpOid(ROOT + "12"))).kind());
+        }
+    }
+
+    @Test void bulkWalkBatchesValuesAndAcceptsShortPages() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client()) {
+            for (int i = 1; i <= 33; i++) agent.integer(ROOT + "12." + i, i);
+            var root = new SnmpOid(ROOT + "12");
+            var rows = client.walk(agent.target(), root);
+            assertEquals(33, rows.size());
+            assertEquals(3, agent.bulkReads.get());
+            agent.bulkResponseLimit = 3;
+            assertEquals(rows, client.walk(agent.target(), root));
+            assertEquals(15, agent.bulkReads.get());
+            assertEquals(0, client.diagnostics().pendingRequests());
+        }
+    }
+
+    @Test void bulkSizeRejectionsShrinkPagesAndCanFallBackToGetNext() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client()) {
+            for (int i = 1; i <= 11; i++) agent.integer(ROOT + "12." + i, i);
+            agent.maximumBulkRepetitions = 2;
+            var expected = client.walk(agent.target(), new SnmpOid(ROOT + "12"));
+            assertEquals(11, expected.size());
+            assertEquals(9, agent.bulkReads.get()); // 16/8/4 rejected, then six pages of two.
+            agent.maximumBulkRepetitions = 0;
+            int before = agent.bulkReads.get();
+            assertEquals(expected, client.walk(agent.target(), new SnmpOid(ROOT + "12")));
+            assertEquals(5, agent.bulkReads.get() - before);
+        }
+    }
+
+    @Test void malformedBulkPagesNeverReturnPartialSuccessOrTriggerFallback() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client()) {
+            agent.integer(ROOT + "12.1", 1); agent.integer(ROOT + "12.2", 2);
+            List<java.util.function.Consumer<PDU>> corruptions = List.of(
+                    pdu -> { var id = pdu.getRequestID(); pdu.clear(); pdu.setRequestID(id); },
+                    pdu -> pdu.get(1).setOid(pdu.get(0).getOid()),
+                    pdu -> { while (pdu.size() <= 16) pdu.add((org.snmp4j.smi.VariableBinding) pdu.get(0).clone()); },
+                    pdu -> pdu.get(0).setVariable(org.snmp4j.smi.Null.endOfMibView),
+                    pdu -> pdu.get(0).setVariable(org.snmp4j.smi.Null.noSuchInstance));
+            for (var corruption : corruptions) {
+                agent.alterResponse = corruption;
+                int before = agent.bulkReads.get();
+                assertEquals(SnmpException.Kind.INVALID_OUTPUT, assertThrows(SnmpException.class,
+                        () -> client.walk(agent.target(), new SnmpOid(ROOT + "12"))).kind());
+                assertEquals(1, agent.bulkReads.get() - before);
+                assertEquals(0, client.diagnostics().pendingRequests());
+            }
+        }
+    }
+
+    @Test void bulkWalkingCanBeExplicitlyDisabled() throws Exception {
+        assertEquals(0, Snmp4jOptions.defaults().maxBulkRepetitions());
+        assertThrows(IllegalArgumentException.class, () -> new Snmp4jOptions(Duration.ofMillis(300),
+                0, Duration.ofSeconds(3), Duration.ofSeconds(1), 2, 2, 100, 100, 4096, 65));
+        var settings = new Snmp4jOptions(Duration.ofMillis(300), 0, Duration.ofSeconds(3),
+                Duration.ofSeconds(1), 2, 2, 100, 100, 4096, 0);
+        try (var agent = new LoopbackAgent(CREDS); var client = new Snmp4jClient(settings)) {
+            agent.integer(ROOT + "12.1", 1); agent.integer(ROOT + "12.2", 2);
+            assertEquals(2, client.walk(agent.target(), new SnmpOid(ROOT + "12")).size());
+            assertEquals(0, agent.bulkReads.get());
+            assertEquals(3, agent.reads.get());
         }
     }
 

@@ -105,7 +105,7 @@ class SnmpLoggingTest {
         try (var capture = new Capture()) {
             var reads = new java.util.concurrent.atomic.AtomicInteger();
             SnmpClient transport = new SnmpClient() {
-                @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
+                @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) { throw new IllegalStateException("sensitive-diagnostic"); }
                 @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
                 @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) {
                     if (reads.incrementAndGet() > 1) throw new IllegalStateException("sensitive-diagnostic");
@@ -184,6 +184,11 @@ class SnmpLoggingTest {
             assertFalse(result.toString().contains("sensitive-"));
             assertFalse(result.steps().getFirst().toString().contains("sensitive-"));
             assertFalse(result.steps().getFirst().commands().getFirst().toString().contains("sensitive-"));
+            var summaryLine = capture.messages().stream().filter(line -> line.startsWith("SNMP configure - ")).findFirst().orElseThrow();
+            assertTrue(summaryLine.contains("queue=" + result.queueWait().toMillis() + "ms"));
+            assertTrue(summaryLine.contains("run=" + result.executionTime().toMillis() + "ms"));
+            assertTrue(summaryLine.contains("requests=" + result.submissions()));
+            assertTrue(summaryLine.contains("steps=change="));
             capture.assertRedacted();
         }
     }

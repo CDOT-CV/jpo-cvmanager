@@ -90,42 +90,70 @@ public final class Snmp4jClient implements SnmpClient {
     private List<SnmpBinding> walk(SnmpTarget target, SnmpOid subtree, SnmpCallContext context) {
         Objects.requireNonNull(subtree);
         return operation(target, "WALK", context, (session, deadline, trace) -> {
-            List<SnmpBinding> bindings = new ArrayList<>();
-            SnmpOid cursor = subtree;
-            long bytes = 0;
+            var walk = new WalkState(subtree);
             while (true) {
-                var binding = exchange(session, target, request(PDU.GETNEXT, List.of(cursor)), deadline, trace, context).getFirst();
-                if (binding.value() instanceof SnmpValue.ExceptionValue exception) {
-                    if (exception.kind() == SnmpValue.ExceptionValue.Kind.END_OF_MIB_VIEW) return List.copyOf(bindings);
-                    throw new SnmpException(INVALID_OUTPUT, false);
+                List<SnmpBinding> batch;
+                try {
+                    batch = exchange(session, target, walk.nextRequest(), deadline, trace, context);
+                } catch (SnmpException failure) {
+                    if (!walk.reducePageSize(failure)) throw failure;
+                    continue;
                 }
-                if (!binding.oid().isWithin(subtree)) return List.copyOf(bindings);
+                if (walk.accept(batch)) return List.copyOf(walk.bindings);
+            }
+        });
+    }
+
+    /** One walk's progress and limits; never shared across calls or device sessions. */
+    private final class WalkState {
+        private final SnmpOid subtree;
+        private final List<SnmpBinding> bindings = new ArrayList<>();
+        private SnmpOid cursor;
+        private long bytes;
+        private int repetitions = options.maxBulkRepetitions();
+
+        private WalkState(SnmpOid subtree) { this.subtree = subtree; cursor = subtree; }
+
+        private ScopedPDU nextRequest() {
+            var next = request(repetitions == 0 ? PDU.GETNEXT : PDU.GETBULK, List.of(cursor));
+            if (repetitions > 0) {
+                next.setNonRepeaters(0);
+                next.setMaxRepetitions(repetitions);
+            }
+            return next;
+        }
+
+        private boolean reducePageSize(SnmpException failure) {
+            // Only an explicit size rejection permits another page attempt. The cursor and
+            // shared deadline stay unchanged; timeouts and malformed replies are never hidden.
+            if (repetitions == 0 || failure.kind() != AGENT_REJECTED
+                    || failure.agentErrorStatus().orElse(-1) != PDU.tooBig) return false;
+            repetitions = repetitions == 1 ? 0 : repetitions / 2;
+            return true;
+        }
+
+        private boolean accept(List<SnmpBinding> batch) {
+            for (var binding : batch) {
+                if (walkEnded(binding, subtree)) return true;
                 bytes += binding.oid().value().length() + (binding.value() instanceof SnmpValue.Octets octets ? octets.hex().length() / 2 : 32);
                 if (bindings.size() >= options.maxWalkBindings() || bytes > options.maxWalkBytes()) throw new SnmpException(OUTPUT_LIMIT, false);
                 bindings.add(binding);
                 cursor = binding.oid();
             }
-        });
+            return false;
+        }
+    }
+
+    private static boolean walkEnded(SnmpBinding binding, SnmpOid subtree) {
+        if (!(binding.value() instanceof SnmpValue.ExceptionValue exception)) return !binding.oid().isWithin(subtree);
+        if (exception.kind() != SnmpValue.ExceptionValue.Kind.END_OF_MIB_VIEW) throw new SnmpException(INVALID_OUTPUT, false);
+        return true;
     }
 
     private List<SnmpBinding> exchange(ManagedSession session, SnmpTarget target, ScopedPDU request, long deadline, OperationLog trace, SnmpCallContext context) {
         var address = new UdpAddress(target.address() + "/" + target.port());
         var recovery = session.recovery(address);
-        if (request.getType() != PDU.SET && recovery.staleGeneration.get() >= recovery.generation) {
-            try {
-                if (!recovery.lock.tryLock(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS)) throw new SnmpException(TIMEOUT, false);
-                try {
-                    if (recovery.staleGeneration.get() >= recovery.generation) {
-                        session.forgetPeer(address);
-                        recovery.generation++;
-                        trace.event("read_discovery_cache_invalidated");
-                    }
-                } finally { recovery.lock.unlock(); }
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw stopped(context, CANCELLED, false);
-            }
-        }
+        if (request.getType() != PDU.SET) invalidateStalePeer(session, address, recovery, deadline, trace, context);
         boolean knownPeer = session.knowsPeer(address);
         long generation = recovery.generation;
         try {
@@ -141,23 +169,42 @@ public final class Snmp4jClient implements SnmpClient {
             // A replaced agent can leave cached authoritative/context engine IDs stale. Retry only reads,
             // once, within the original operation deadline, with fresh endpoint discovery.
             checkDeadline(deadline, false);
-            try {
-                if (!recovery.lock.tryLock(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS)) throw new SnmpException(TIMEOUT, false);
-                try {
-                    if (recovery.generation == generation) {
-                        trace.event("read_rediscovery_started");
-                        session.forgetPeer(address);
-                        recovery.generation++;
-                    } else trace.event("read_rediscovery_joined");
-                    var fresh = (ScopedPDU) request.clone();
-                    fresh.setRequestID(new org.snmp4j.smi.Integer32(0));
-                    fresh.setContextEngineID(new org.snmp4j.smi.OctetString());
-                    return exchangeOnce(session, target, fresh, deadline, trace, context);
-                } finally { recovery.lock.unlock(); }
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw stopped(context, CANCELLED, false);
+            return withRecoveryLock(recovery, deadline, context, () -> {
+                if (recovery.generation == generation) {
+                    trace.event("read_rediscovery_started");
+                    session.forgetPeer(address);
+                    recovery.generation++;
+                } else trace.event("read_rediscovery_joined");
+                var fresh = (ScopedPDU) request.clone();
+                fresh.setRequestID(new org.snmp4j.smi.Integer32(0));
+                fresh.setContextEngineID(new org.snmp4j.smi.OctetString());
+                return exchangeOnce(session, target, fresh, deadline, trace, context);
+            });
+        }
+    }
+
+    private static void invalidateStalePeer(ManagedSession session, UdpAddress address,
+            ManagedSession.PeerRecovery recovery, long deadline, OperationLog trace, SnmpCallContext context) {
+        if (recovery.staleGeneration.get() < recovery.generation) return;
+        withRecoveryLock(recovery, deadline, context, () -> {
+            if (recovery.staleGeneration.get() >= recovery.generation) {
+                session.forgetPeer(address);
+                recovery.generation++;
+                trace.event("read_discovery_cache_invalidated");
             }
+            return null;
+        });
+    }
+
+    private static <T> T withRecoveryLock(ManagedSession.PeerRecovery recovery, long deadline,
+            SnmpCallContext context, java.util.function.Supplier<T> action) {
+        try {
+            if (!recovery.lock.tryLock(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS)) throw new SnmpException(TIMEOUT, false);
+            try { return action.get(); }
+            finally { recovery.lock.unlock(); }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw stopped(context, CANCELLED, false);
         }
     }
 
@@ -181,7 +228,7 @@ public final class Snmp4jClient implements SnmpClient {
             if (event.getError() != null) throw new SnmpException(EXECUTION, write);
             if (event.getResponse() == null) throw stopped(context, TIMEOUT, write);
             if (!destination.getAddress().equals(event.getPeerAddress())) throw new SnmpException(INVALID_OUTPUT, write);
-            var result = validate(request, event.getResponse());
+            var result = Snmp4jResponseValidator.validate(request, event.getResponse());
             trace.event("request_response_validated");
             return result;
         } catch (InterruptedException failure) {
@@ -205,38 +252,6 @@ public final class Snmp4jClient implements SnmpClient {
             catch (SnmpException failure) { return failure.withWriteOutcomeUnknown(write || failure.writeOutcomeUnknown()); }
         }
         return new SnmpException(fallback, write);
-    }
-
-    private static List<SnmpBinding> validate(ScopedPDU request, PDU response) {
-        boolean write = request.getType() == PDU.SET;
-        if (response.getType() == PDU.REPORT) throw new SnmpException(AUTHENTICATION, false);
-        if (!(response instanceof ScopedPDU scoped) || response.getType() != PDU.RESPONSE
-                || !Objects.equals(request.getRequestID(), response.getRequestID())
-                || !request.getContextName().equals(scoped.getContextName())) throw new SnmpException(INVALID_OUTPUT, write);
-        if (response.getErrorStatus() != PDU.noError) {
-            int status = response.getErrorStatus();
-            boolean uncertain = write && (status == PDU.undoFailed || status == PDU.commitFailed || status == PDU.genErr);
-            throw new SnmpException(AGENT_REJECTED, uncertain, status, response.getErrorIndex());
-        }
-        if (response.size() != request.size()) throw new SnmpException(INVALID_OUTPUT, write);
-        List<SnmpBinding> values = new ArrayList<>();
-        try {
-            for (int i = 0; i < response.size(); i++) {
-                var actual = response.get(i);
-                var oid = new SnmpOid(actual.getOid().toString());
-                var value = Snmp4jCodec.decode(actual.getVariable());
-                var expected = request.get(i).getOid();
-                if (request.getType() == PDU.GETNEXT) {
-                    if (!(value instanceof SnmpValue.ExceptionValue) && actual.getOid().compareTo(expected) <= 0) throw new SnmpException(INVALID_OUTPUT, write);
-                } else if (!actual.getOid().equals(expected)) throw new SnmpException(INVALID_OUTPUT, write);
-                values.add(new SnmpBinding(oid, value));
-            }
-            return List.copyOf(values);
-        } catch (SnmpException failure) {
-            throw failure.withWriteOutcomeUnknown(write);
-        } catch (IllegalArgumentException failure) {
-            throw new SnmpException(INVALID_OUTPUT, write);
-        }
     }
 
     private static ScopedPDU request(int type, List<SnmpOid> oids) {
