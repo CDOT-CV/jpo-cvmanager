@@ -1,9 +1,12 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
+import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
+import { ForwardingMessageType, MessageForwardingResponse, MessageForwardingResult } from '../models/RsuMessageForwarding'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
 import {
+  ApiMsgRespWithCodes,
   RsuCommandPostBody,
   RsuDsrcFwdConfigs,
   RsuRxTxMsgFwdConfigs,
@@ -33,23 +36,19 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
   { msgFwdConfig: RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs; errorState: string },
   string,
   { state: RootState }
->('config/refreshSnmpFwdConfig', async (rsu_ip: string, { getState }) => {
+>('config/refreshSnmpFwdConfig', async (rsu_ip: string, { getState, rejectWithValue }) => {
   const currentState = getState() as RootState
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  const response = await RsuApi.getCachedRsuMsgFwdConfigsFromDatabase(token, organization, '', { rsu_ip })
-  if (!response) {
-    return {
-      msgFwdConfig: {},
-      errorState:
-        'Failed to retrieve RSU message forwarding configuration from database for RSU IP ${rsu_ip}: received empty or no response',
+  try {
+    const response = await RsuMessageForwardingApi.cached(token, organization, rsu_ip)
+    if (!response || response.status !== 200) {
+      return rejectWithValue(response?.message || 'Failed to retrieve cached RSU message forwarding configuration')
     }
-  }
-
-  return {
-    msgFwdConfig: response.RsuFwdSnmpwalk,
-    errorState: '',
+    return { msgFwdConfig: response.body.RsuFwdSnmpwalk, errorState: '' }
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Failed to retrieve cached RSU message forwarding configuration')
   }
 })
 
@@ -63,12 +62,12 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
   const organization = selectOrganizationName(currentState)
 
   try {
-    const response = await RsuApi.getRsuMsgConfigsFromRsu(token, organization, '', { rsu_ip })
-    if (!response) {
-      return rejectWithValue('Failed to fetch RSU message forwarding configuration')
+    const response = await RsuMessageForwardingApi.live(token, organization, rsu_ip)
+    if (!response || response.status !== 200) {
+      return rejectWithValue(response?.message || 'Failed to fetch RSU message forwarding configuration')
     }
     return {
-      msgFwdConfig: response.RsuFwdSnmpwalk,
+      msgFwdConfig: response.body.RsuFwdSnmpwalk,
       errorState: '',
     }
   } catch (e) {
@@ -82,65 +81,92 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
   }
 })
 
+// The API limits each batch to 100 targets. Send larger UI selections in sequence,
+// without replaying any request, and inspect every expected device result even after HTTP 200.
+async function executeForwardingRequests(
+  ips: string[],
+  operation: 'create' | 'delete',
+  send: (batch: string[]) => Promise<ApiMsgRespWithCodes<MessageForwardingResponse> | null>
+) {
+  const selected = [...new Set(ips)]
+  if (selected.length === 0) return { changeSuccess: false, errorState: 'No RSUs selected' }
+  const failures: string[] = []
+  for (let offset = 0; offset < selected.length; offset += 100) {
+    const batch = selected.slice(offset, offset + 100)
+    let response: ApiMsgRespWithCodes<MessageForwardingResponse> | null
+    try {
+      response = await send(batch)
+    } catch {
+      response = null
+    }
+    for (const ip of batch) {
+      if (!response || response.status !== 200) {
+        failures.push(`${ip}: ${response?.message || 'Request did not complete; check RSU state before retrying.'}`)
+        continue
+      }
+      const result = response.body?.[ip]
+      const confirmed = result?.writeState === 'VERIFIED' && result.changed === true
+      const noOp = operation === 'delete' && result?.writeState === 'NOT_SUBMITTED' && result.changed === false
+      if (result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp)) continue
+      failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
+    }
+  }
+  return {
+    changeSuccess: failures.length === 0,
+    errorState: failures.length === 0 ? '' : `${selected.length - failures.length} of ${selected.length} RSUs completed successfully. ${failures.join('; ')}`,
+  }
+}
+
+function forwardingFailureMessage(result: MessageForwardingResult | undefined): string {
+  if (!result) return 'No result returned; check RSU state before retrying.'
+  if (result.writeState === 'UNKNOWN') return 'Write not confirmed; check RSU state before retrying.'
+  if (result.writeState === 'VERIFIED' && result.databaseSync !== 'UPDATED') {
+    return result.databaseSync === 'FAILED'
+      ? 'Forwarding change verified, but the database update failed. Check RSU state before retrying.'
+      : 'Forwarding change verified, but the database was not synchronized. Check RSU state before retrying.'
+  }
+  return result.execution?.message || 'Forwarding change could not be confirmed; check RSU state before retrying.'
+}
+
+function forwardingMessageType(value: string): ForwardingMessageType {
+  const normalized = value.toUpperCase()
+  if (!['BSM', 'SPAT', 'MAP', 'SSM', 'SRM', 'TIM'].includes(normalized)) {
+    throw new Error(`Unsupported forwarding message type: ${value}`)
+  }
+  return normalized as ForwardingMessageType
+}
+
 export const submitSnmpSet = createAsyncThunk('config/submitSnmpSet', async (ipList: string[], { getState }) => {
   const currentState = getState() as RootState
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
-  const destIp = selectDestIp(currentState)
-  const snmpMsgType = selectSnmpMsgType(currentState)
-  const securityHeader = selectIncludeSecurityHeader(currentState) ? 1 : 0
-
-  const body: RsuCommandPostBody = {
-    command: 'rsufwdsnmpset',
-    rsu_ip: ipList,
-    args: {
-      dest_ip: destIp,
-      msg_type: snmpMsgType,
-      security: securityHeader,
-    },
-  }
-
-  const response = await RsuApi.postRsuData(token, organization, body, '')
-  if (!response) {
-    return { changeSuccess: false, errorState: 'Failed to submit SNMP configuration' }
-  }
-
-  return response.status === 200
-    ? { changeSuccess: true, errorState: '' }
-    : { changeSuccess: false, errorState: response.body?.RsuFwdSnmpset }
+  const messageType = forwardingMessageType(selectSnmpMsgType(currentState))
+  const destination = selectDestIp(currentState)
+  const includeSecurity = selectIncludeSecurityHeader(currentState)
+  return executeForwardingRequests(ipList, 'create', (batch) =>
+    RsuMessageForwardingApi.create(token, organization, {
+      rsu_ips: batch,
+      message_type: messageType,
+      destination_ip: destination,
+      include_security: includeSecurity,
+    })
+  )
 })
 
 export const deleteSnmpSet = createAsyncThunk(
   'config/deleteSnmpSet',
-  async (
-    data: {
-      ipList: string[]
-      destIp: string
-      snmpMsgType: string
-    },
-    { getState }
-  ) => {
+  async (data: { ipList: string[]; destIp: string; snmpMsgType: string }, { getState }) => {
     const currentState = getState() as RootState
     const token = selectToken(currentState)
     const organization = selectOrganizationName(currentState)
-
-    const body: RsuCommandPostBody = {
-      command: 'rsufwdsnmpset-del',
-      rsu_ip: data?.ipList,
-      args: {
-        dest_ip: data?.destIp,
-        msg_type: data?.snmpMsgType,
-      },
-    }
-
-    const response = await RsuApi.postRsuData(token, organization, body, '')
-    if (!response) {
-      return { changeSuccess: false, errorState: 'Failed to delete SNMP configuration' }
-    }
-
-    return response.status === 200
-      ? { changeSuccess: true, errorState: '' }
-      : { changeSuccess: false, errorState: response.body?.RsuFwdSnmpset }
+    const messageType = forwardingMessageType(data.snmpMsgType)
+    return executeForwardingRequests(data.ipList, 'delete', (batch) =>
+      RsuMessageForwardingApi.delete(token, organization, {
+        rsu_ips: batch,
+        message_type: messageType,
+        destination_ip: data.destIp,
+      })
+    )
   }
 )
 
@@ -371,8 +397,10 @@ export const configSlice = createSlice({
         state.value.errorState = action.payload.errorState
         state.value.msgFwdConfigType = 'database'
       })
-      .addCase(getCachedSnmpFwdConfigsFromDatabase.rejected, (state) => {
+      .addCase(getCachedSnmpFwdConfigsFromDatabase.rejected, (state, action) => {
         state.loading = false
+        state.value.errorState = (action.payload as string | undefined) || 'Failed to retrieve cached RSU message forwarding configuration'
+        state.value.msgFwdConfigType = 'database'
       })
       .addCase(getRsuMsgConfigsFromRsu.pending, (state) => {
         state.loading = true
@@ -396,21 +424,33 @@ export const configSlice = createSlice({
       })
       .addCase(submitSnmpSet.pending, (state) => {
         state.loading = true
+        state.value.changeSuccess = false
+        state.value.errorState = ''
       })
-      .addCase(submitSnmpSet.fulfilled, (state) => {
+      .addCase(submitSnmpSet.fulfilled, (state, action) => {
         state.loading = false
+        state.value.changeSuccess = action.payload.changeSuccess
+        state.value.errorState = action.payload.errorState
       })
-      .addCase(submitSnmpSet.rejected, (state) => {
+      .addCase(submitSnmpSet.rejected, (state, action) => {
         state.loading = false
+        state.value.changeSuccess = false
+        state.value.errorState = action.error.message || 'Failed to add SNMP configuration'
       })
       .addCase(deleteSnmpSet.pending, (state) => {
         state.loading = true
+        state.value.changeSuccess = false
+        state.value.errorState = ''
       })
-      .addCase(deleteSnmpSet.fulfilled, (state) => {
+      .addCase(deleteSnmpSet.fulfilled, (state, action) => {
         state.loading = false
+        state.value.changeSuccess = action.payload.changeSuccess
+        state.value.errorState = action.payload.errorState
       })
-      .addCase(deleteSnmpSet.rejected, (state) => {
+      .addCase(deleteSnmpSet.rejected, (state, action) => {
         state.loading = false
+        state.value.changeSuccess = false
+        state.value.errorState = action.error.message || 'Failed to delete SNMP configuration'
       })
       .addCase(rebootRsu.pending, (state) => {
         state.loading = true

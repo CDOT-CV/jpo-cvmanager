@@ -108,11 +108,12 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
           size="medium"
           startIcon={<ControlPointOutlined />}
           onClick={() =>
-            dispatch(submitSnmpSet(rsuIpList)).then((data: any) => {
-              if (data.payload.changeSuccess) {
+            dispatch(submitSnmpSet(rsuIpList)).then((data) => {
+              if (submitSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
                 toast.success('Forwarding Changes Applied Successfully')
               } else {
-                toast.error('Failed to add forwarding: ' + data.errorState)
+                const message = submitSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+                toast.error('Failed to add forwarding: ' + (message || 'Request did not complete'))
               }
             })
           }
@@ -140,7 +141,14 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
                   snmpMsgType: snmpMsgType,
                   destIp: destIp,
                 })
-              )
+              ).then((data) => {
+                if (deleteSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
+                  toast.success('Successfully deleted SNMP forwarding')
+                } else {
+                  const message = deleteSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+                  toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
+                }
+              })
             }
           >
             Delete Forwarding

@@ -55,7 +55,7 @@ export type IssScmsStatus = {
 }
 
 export type RsuCommandPostBody = {
-  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'reboot' | 'upgrade-rsu' | 'upgrade-check'
+  command: 'rsufwdsnmpwalk' | 'reboot' | 'upgrade-rsu' | 'upgrade-check'
   rsu_ip: string[]
   args: object
 }
@@ -96,6 +96,7 @@ export type RsuMsgFwdConfigSingle = {
   Port: number
   'Start DateTime': string
   'End DateTime': string
+  'Full WSMP'?: string
   'Config Active': string
 }
 

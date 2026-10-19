@@ -199,3 +199,32 @@ This will print a summary of the code coverage across the application. If you wo
 ### Slice Tests
 
 For many of the slice unit tests (for example [adminEditOrganizationSlice.test.js](./src/features/adminEditOrganization/adminEditOrganizationSlice.test.js#80)), the dispatch method is checked for the number of expected calls. When an async thunk is tested, the dispatch method is called twice by the async thunk, even when it is not explicitly called within the thunk. Therefore, when the number of dispatch calls are being tested, this is written as n + 2, where n is the expected manual calls and 2 is the number of default calls.
+
+
+## RSU message forwarding
+
+The existing Add Forwarding and Delete Forwarding controls use the Intersection
+API's `POST` and `DELETE /devices/rsus/message-forwarding` endpoints through
+`VITE_CVIZ_API_SERVER_URL`. Deploy the API forwarding endpoints with this webapp
+change. Commands support NTCIP 1218 devices and send the current bearer token and
+selected `Organization` header. The initial PostgreSQL view uses
+`GET /devices/rsus/message-forwarding/{rsuIp}`; the manual refresh uses
+`GET /devices/rsus/message-forwarding/{rsuIp}/live`. Both allow USER viewing access
+with ownership of the selected RSU. A failed live read falls back to the cached
+route. The existing Source label distinguishes Cached (Database) from Live (RSU).
+Cached RSU 4.1 rows remain viewable; live device reads require NTCIP 1218. Viewing
+live values does not overwrite the cached snapshot. Reboot remains on its
+existing Python API route.
+
+Selections larger than 100 RSUs are sent in sequential batches of at most 100,
+with duplicate addresses removed. Each batch receives its own server-side
+validation and authorization. Existing destination, message-type and security
+controls are unchanged; the request uses uppercase message types and a Boolean
+`include_security` field.
+
+The UI checks every requested RSU result, rather than treating HTTP 200 as proof
+that the entire selection succeeded. Verified changes with updated database
+snapshots, and confirmed delete no-ops, retain the existing success messages.
+Partial failures identify affected RSUs. Lost replies, incomplete results and
+failed database synchronization show errors with guidance to check device state
+before retrying; requests are never automatically replayed.
