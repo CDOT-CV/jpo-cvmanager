@@ -342,3 +342,16 @@ requests per serial number.
 - `RSU_REBOOT_CONCURRENCY` sets the command limit (default: `4`, range: 1?32).
 - `RSU_REBOOT_TIMEOUT` limits SSH setup and command execution (default: `60s`, range: 1?120 seconds). It does not wait for the RSU to restart.
 - Unknown or changed SSH host keys are accepted. No `known_hosts` file is required; SSH server identity is not verified.
+## Local SNMP library dependency
+
+The API consumes the repository's standalone [JPO SNMP library](../snmp/README.md).
+From the repository root, build both modules together with:
+
+```sh
+mvn -s services/intersection-api/api/settings.xml -f services/intersection-api/pom.xml -pl api -am verify
+```
+
+For IDE runs or an API-only Maven build, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
+The API Docker build installs this library automatically. SNMP4J is the library's
+production backend; Net-SNMP executables and runtime MIB files are not required.
+No command endpoints are migrated by adding the dependency.
