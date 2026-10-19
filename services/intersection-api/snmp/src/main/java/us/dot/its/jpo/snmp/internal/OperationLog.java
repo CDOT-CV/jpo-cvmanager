@@ -12,7 +12,9 @@ public final class OperationLog implements AutoCloseable {
     private static final ThreadLocal<OperationLog> CURRENT = new ThreadLocal<>();
     private final OperationLog previous;
     private final Logger logger;
-    private final String id, target, operation;
+    private final String id;
+    private final String target;
+    private final String operation;
     private final boolean write;
     private final long started = System.nanoTime();
     private int submissions;

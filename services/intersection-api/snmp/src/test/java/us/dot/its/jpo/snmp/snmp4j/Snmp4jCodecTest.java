@@ -9,6 +9,12 @@ import us.dot.its.jpo.snmp.client.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class Snmp4jCodecTest {
+    @Test void longNumericOidsFailValidationWithoutOverflowingTheStack() {
+        assertThrows(IllegalArgumentException.class, () -> new SnmpOid("1" + ".1".repeat(10000)));
+        assertThrows(IllegalArgumentException.class, () -> new SnmpOid("1" + ".1".repeat(10000) + ".bad"));
+        assertEquals("1.3.6.1", new SnmpOid(".1.03.006.1").value());
+    }
+
     @Test void roundTripsTypedWritableValues() {
         for (SnmpValue value : List.of(new SnmpValue.IntegerValue(-1), new SnmpValue.Octets("00FF0A"),
                 new SnmpValue.OidValue(new SnmpOid("1.3.6.1")), new SnmpValue.IpAddress("192.0.2.1"),

@@ -13,23 +13,7 @@ import us.dot.its.jpo.snmp.client.*;
 public final class SnmpTaskContext {
     private final SnmpTaskExecutor.Control control;
     private final SnmpClient transport;
-    private final SnmpClient client = new SnmpClient() {
-        @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
-            var copy = List.copyOf(oids);
-            return call(target, "GET", copy, List.of(), wire -> wire.get(target, copy));
-        }
-        @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) {
-            var copy = List.copyOf(oids);
-            return call(target, "GETNEXT", copy, List.of(), wire -> wire.getNext(target, copy));
-        }
-        @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid subtree) {
-            return call(target, "WALK", List.of(subtree), List.of(), wire -> wire.walk(target, subtree));
-        }
-        @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) {
-            var copy = List.copyOf(bindings);
-            return call(target, "SET", copy.stream().map(SnmpBinding::oid).toList(), copy, wire -> wire.set(target, copy));
-        }
-    };
+    private final SnmpClient client = new TrackedClient();
 
     SnmpTaskContext(SnmpTaskExecutor.Control control, SnmpClient transport) { this.control = control; this.transport = transport; }
     public SnmpClient client() { control.requireWorker(); return client; }
@@ -50,28 +34,49 @@ public final class SnmpTaskContext {
         }
     }
 
-    private List<SnmpBinding> call(SnmpTarget target, String operation, List<SnmpOid> oids, List<SnmpBinding> bindings,
-            Function<SnmpClient, List<SnmpBinding>> action) {
-        control.requireWorker();
-        if (!control.task.target().equals(target)) throw new IllegalArgumentException("Task calls must use its supplied target and credentials");
-        var command = control.startCommand(operation, oids, bindings);
-        SnmpCallContext scope = new SnmpCallContext() {
-            @Override public SnmpRequestPolicy policy() { return control.options.requestPolicy(); }
-            @Override public long remainingNanos() { return control.remainingNanos(); }
-            @Override public void beforeRequest(boolean write) { control.beforeRequest(command, write); }
-        };
-        try {
-            control.remainingNanos();
-            var result = List.copyOf(action.apply(transport.scoped(scope)));
-            control.commandSucceeded(command, result);
-            return result;
-        } catch (SnmpException failure) {
-            control.commandFailed(command, failure);
-            throw failure;
-        } catch (Throwable failure) {
-            var safe = new SnmpException(SnmpException.Kind.EXECUTION, operation.equals("SET") && command.submissions > 0);
-            control.commandFailed(command, safe);
-            throw safe;
+    private final class TrackedClient implements SnmpClient {
+        @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
+            var copy = List.copyOf(oids);
+            return call(target, "GET", copy, List.of(), wire -> wire.get(target, copy));
+        }
+        @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) {
+            var copy = List.copyOf(oids);
+            return call(target, "GETNEXT", copy, List.of(), wire -> wire.getNext(target, copy));
+        }
+        @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid subtree) {
+            return call(target, "WALK", List.of(subtree), List.of(), wire -> wire.walk(target, subtree));
+        }
+        @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) {
+            var copy = List.copyOf(bindings);
+            return call(target, "SET", copy.stream().map(SnmpBinding::oid).toList(), copy, wire -> wire.set(target, copy));
+        }
+
+        private List<SnmpBinding> call(SnmpTarget target, String operation, List<SnmpOid> oids, List<SnmpBinding> bindings,
+                Function<SnmpClient, List<SnmpBinding>> action) {
+            control.requireWorker();
+            if (!control.task.target().equals(target)) throw new IllegalArgumentException("Task calls must use its supplied target and credentials");
+            var command = control.startCommand(operation, oids, bindings);
+            SnmpCallContext scope = new SnmpCallContext() {
+                @Override public SnmpRequestPolicy policy() { return control.options.requestPolicy(); }
+                @Override public long remainingNanos() { return control.remainingNanos(); }
+                @Override public void beforeRequest(boolean write) { control.beforeRequest(command, write); }
+            };
+            try {
+                control.remainingNanos();
+                var result = List.copyOf(action.apply(transport.scoped(scope)));
+                control.commandSucceeded(command, result);
+                return result;
+            } catch (SnmpException failure) {
+                control.commandFailed(command, failure);
+                throw failure;
+            } catch (Exception failure) {
+                var safe = new SnmpException(SnmpException.Kind.EXECUTION, operation.equals("SET") && command.submissions > 0);
+                control.commandFailed(command, safe);
+                throw safe;
+            } finally {
+                // Preserve uncertain-write evidence if an Error escapes the transport.
+                control.failUnfinishedCommand(command);
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ public record SnmpOid(String value) implements Comparable<SnmpOid> {
     public SnmpOid {
         Objects.requireNonNull(value, "OID");
         if (value.startsWith(".")) value = value.substring(1);
-        if (!value.matches("[0-2](\\.[0-9]+)+")) throw new IllegalArgumentException("Invalid numeric OID");
+        if (!value.matches("[0-2](\\.\\d++)++")) throw new IllegalArgumentException("Invalid numeric OID");
         long[] parts = Arrays.stream(value.split("\\.")).mapToLong(Long::parseLong).toArray();
         if (parts.length > 128 || (parts[0] < 2 && parts[1] > 39)
                 || Arrays.stream(parts).anyMatch(n -> n > 0xffffffffL)) {

@@ -1,6 +1,5 @@
 package us.dot.its.jpo.snmp.snmp4j;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.snmp4j.PDU;
@@ -23,14 +22,13 @@ final class Snmp4jResponseValidator {
         if (bulk ? response.size() < 1 || response.size() > request.getMaxRepetitions()
                 : response.size() != request.size()) throw new SnmpException(INVALID_OUTPUT, write);
         try {
-            var bindings = new ArrayList<SnmpBinding>();
-            for (var binding : response.getVariableBindings()) {
-                bindings.add(new SnmpBinding(new SnmpOid(binding.getOid().toString()),
-                        Snmp4jCodec.decode(binding.getVariable())));
-            }
+            var bindings = response.getVariableBindings().stream()
+                    .map(binding -> new SnmpBinding(new SnmpOid(binding.getOid().toString()),
+                            Snmp4jCodec.decode(binding.getVariable())))
+                    .toList();
             if (bulk) validateBulkOrder(request.get(0).getOid(), bindings);
             else validateRequestedOids(request, bindings);
-            return List.copyOf(bindings);
+            return bindings;
         } catch (SnmpException failure) {
             throw failure.withWriteOutcomeUnknown(write);
         } catch (IllegalArgumentException failure) {

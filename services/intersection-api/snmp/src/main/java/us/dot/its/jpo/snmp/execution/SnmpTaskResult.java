@@ -32,34 +32,57 @@ public record SnmpTaskResult(String taskId, String name, String endpoint, Status
 
     private String message(SnmpStepResult<?> relevant) {
         if (status == Status.QUEUED) return "Waiting to run.";
-        if (status == Status.RUNNING) {
-            if (deadlineExceeded) return "Deadline reached; waiting for running work to stop.";
-            if (cancellationRequested) return "Cancellation requested; waiting for running work to stop.";
-            return "Running.";
-        }
-        if (writeState == WriteState.UNKNOWN) return "Write not confirmed; check device before retrying.";
-        if (writeState == WriteState.VERIFICATION_FAILED) return "Readback did not match the requested change.";
-        if (writeState == WriteState.VERIFIED && status != Status.SUCCEEDED) {
-            return status == Status.CANCELLED ? "Change verified; task cancelled."
-                    : status == Status.TIMED_OUT ? "Change verified; a later step timed out." : "Change verified; a later step failed.";
-        }
-        if (writeState == WriteState.ACKNOWLEDGED_UNVERIFIED) {
-            if (status == Status.SUCCEEDED) return "Change acknowledged; verification not confirmed.";
-            boolean verifying = relevant != null && relevant.kind() == SnmpStep.Kind.VERIFY;
-            if (verifying && failure != null && failure.kind() == SnmpException.Kind.TIMEOUT) return "Change acknowledged; verification timed out.";
-            if (verifying) return "Change acknowledged; verification incomplete.";
-            if (relevant != null && relevant.commands().stream().anyMatch(command -> command.status() == SnmpCommandResult.Status.READ_TIMED_OUT))
-                return "Change acknowledged; a later read timed out.";
-            return status == Status.CANCELLED ? "Change acknowledged; task cancelled." : "Change acknowledged; task did not finish.";
-        }
+        if (status == Status.RUNNING) return runningMessage();
+        return switch (writeState) {
+            case UNKNOWN -> "Write not confirmed; check device before retrying.";
+            case VERIFICATION_FAILED -> "Readback did not match the requested change.";
+            case VERIFIED -> verifiedMessage();
+            case ACKNOWLEDGED_UNVERIFIED -> acknowledgedMessage(relevant);
+            default -> terminalMessage();
+        };
+    }
+
+    private String runningMessage() {
+        if (deadlineExceeded) return "Deadline reached; waiting for running work to stop.";
+        if (cancellationRequested) return "Cancellation requested; waiting for running work to stop.";
+        return "Running.";
+    }
+
+    private String verifiedMessage() {
         return switch (status) {
-            case SUCCEEDED -> writeState == WriteState.VERIFIED ? "Change verified." : "Completed.";
-            case TIMED_OUT -> deadlineExceeded ? "Task deadline reached." : submissions == 0 ? "Task timed out." : "Device did not respond.";
+            case SUCCEEDED -> "Change verified.";
+            case CANCELLED -> "Change verified; task cancelled.";
+            case TIMED_OUT -> "Change verified; a later step timed out.";
+            default -> "Change verified; a later step failed.";
+        };
+    }
+
+    private String acknowledgedMessage(SnmpStepResult<?> relevant) {
+        if (status == Status.SUCCEEDED) return "Change acknowledged; verification not confirmed.";
+        if (relevant != null && relevant.kind() == SnmpStep.Kind.VERIFY) {
+            if (failure != null && failure.kind() == SnmpException.Kind.TIMEOUT)
+                return "Change acknowledged; verification timed out.";
+            return "Change acknowledged; verification incomplete.";
+        }
+        if (relevant != null && relevant.commands().stream().anyMatch(command -> command.status() == SnmpCommandResult.Status.READ_TIMED_OUT))
+            return "Change acknowledged; a later read timed out.";
+        return status == Status.CANCELLED ? "Change acknowledged; task cancelled." : "Change acknowledged; task did not finish.";
+    }
+
+    private String terminalMessage() {
+        return switch (status) {
+            case SUCCEEDED -> "Completed.";
+            case TIMED_OUT -> timeoutMessage();
             case CANCELLED -> "Cancelled.";
             case QUEUE_EXPIRED -> "Expired while waiting; device was not contacted.";
             case REJECTED -> "Not accepted; executor unavailable.";
             default -> failure == null ? "Task failed." : SnmpMessages.failure(failure.kind());
         };
+    }
+
+    private String timeoutMessage() {
+        if (deadlineExceeded) return "Task deadline reached.";
+        return submissions == 0 ? "Task timed out." : "Device did not respond.";
     }
 
     @Override public String toString() { return summary().toString(); }

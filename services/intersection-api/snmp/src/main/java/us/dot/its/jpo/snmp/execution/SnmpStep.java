@@ -5,7 +5,12 @@ import java.util.Objects;
 /** A typed step. Return immutable data; WRITE may return SnmpWriteResult after verifying its own procedure. */
 public record SnmpStep<T>(String name, Kind kind, Action<T> action) {
     public enum Kind { READ, WRITE, VERIFY, LOCAL }
-    @FunctionalInterface public interface Action<T> { T execute(SnmpTaskContext context) throws Exception; }
+    @FunctionalInterface public interface Action<T> {
+        // Application callbacks may use checked exceptions from storage or other device procedures.
+        // The executor translates them into safe task failures; callers need not wrap each one.
+        @SuppressWarnings("java:S112")
+        T execute(SnmpTaskContext context) throws Exception;
+    }
     public SnmpStep {
         if (name == null || !name.matches("[A-Za-z0-9_.-]{1,80}")) throw new IllegalArgumentException("Invalid step name");
         Objects.requireNonNull(kind); Objects.requireNonNull(action);

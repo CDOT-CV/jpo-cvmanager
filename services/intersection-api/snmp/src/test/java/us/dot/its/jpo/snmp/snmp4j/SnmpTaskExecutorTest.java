@@ -237,7 +237,7 @@ class SnmpTaskExecutorTest {
             var options = new SnmpTaskOptions(Duration.ofSeconds(2), Duration.ofSeconds(2), SnmpRequestPolicy.defaults(), 0, 2);
             var outcome = result(executor.submit(task(agent.target(), new SnmpStep<>("loop", READ, ctx -> {
                 ctx.client().get(ctx.target(), List.of(OID)); ctx.client().get(ctx.target(), List.of(OID));
-                try { ctx.client().get(ctx.target(), List.of(OID)); } catch (SnmpException ignored) {}
+                try { ctx.client().get(ctx.target(), List.of(OID)); } catch (SnmpException ignored) { /* Verify that the executor retains a caught command-history failure. */ }
                 return "must-not-be-success";
             })), options));
             assertEquals(SnmpTaskResult.Status.FAILED, outcome.status());
@@ -280,7 +280,7 @@ class SnmpTaskExecutorTest {
                 var executor = new SnmpTaskExecutor(client, new SnmpExecutorOptions(1, 10, Duration.ofMillis(20)))) {
             var active = executor.submit(task(agent.target(), new SnmpStep<>("local", LOCAL, ctx -> {
                 entered.countDown();
-                while (release.getCount() != 0) { try { release.await(); } catch (InterruptedException ignored) {} }
+                while (release.getCount() != 0) { try { release.await(); } catch (InterruptedException ignored) { /* Simulate a callback that ignores cancellation until explicitly released. */ } }
                 return "completed-local-work";
             })), policy(100, 0, false, 80, 0));
             try {
@@ -294,6 +294,60 @@ class SnmpTaskExecutorTest {
             assertEquals(SnmpTaskResult.Status.TIMED_OUT, result(active).status());
             assertEquals("completed-local-work", active.snapshot().steps().getFirst().value());
         } finally { release.countDown(); }
+    }
+
+    @Test void checkedCallbackFailuresAreReportedWithoutExposingTheirMessages() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 1, 10)) {
+            var failed = result(executor.submit(task(agent.target(), new SnmpStep<>("local", LOCAL, ctx -> {
+                throw new java.io.IOException("sensitive-application-details");
+            }), read("never"))));
+            assertEquals(SnmpTaskResult.Status.FAILED, failed.status());
+            assertEquals(SnmpException.Kind.EXECUTION, failed.failure().kind());
+            assertEquals(SnmpStepResult.Status.FAILED, failed.steps().getFirst().status());
+            assertEquals(SnmpStepResult.Status.NOT_STARTED, failed.steps().get(1).status());
+            assertFalse(failed.toString().contains("sensitive-application-details"));
+            var interrupted = result(executor.submit(task(agent.target(), new SnmpStep<>("interrupt", LOCAL, ctx -> {
+                throw new InterruptedException("sensitive-application-details");
+            }))));
+            assertEquals(SnmpTaskResult.Status.CANCELLED, interrupted.status());
+            assertEquals(SnmpException.Kind.CANCELLED, interrupted.failure().kind());
+            assertEquals(SnmpStepResult.Status.CANCELLED, interrupted.steps().getFirst().status());
+            assertEquals(0, agent.reads.get());
+        }
+    }
+
+    @Test void errorsPropagateButReleaseTheEndpointAndPreserveUncertainWrites() throws Exception {
+        var error = new LinkageError("fixture-error");
+        var escaped = new AtomicReference<Throwable>();
+        var transport = new SnmpClient() {
+            private SnmpCallContext scope;
+            @Override public SnmpClient scoped(SnmpCallContext context) { scope = context; return this; }
+            @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
+            @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
+            @Override public List<SnmpBinding> walk(SnmpTarget target, SnmpOid root) { throw new UnsupportedOperationException(); }
+            @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) {
+                scope.beforeRequest(true);
+                throw error;
+            }
+        };
+        var target = new SnmpTarget("192.0.2.10", CREDS);
+        try (var executor = executor(transport, 1, 10)) {
+            var failure = result(executor.submit(task(target, new SnmpStep<>("write", WRITE, ctx -> {
+                Thread.currentThread().setUncaughtExceptionHandler((thread, thrown) -> escaped.set(thrown));
+                return ctx.client().set(ctx.target(), List.of(new SnmpBinding(OID, new SnmpValue.IntegerValue(1))));
+            }), read("never"))));
+            Snmp4jClientTest.await(() -> escaped.get() != null);
+            assertSame(error, escaped.get());
+            assertEquals(SnmpTaskResult.Status.FAILED, failure.status());
+            assertEquals(SnmpTaskResult.WriteState.UNKNOWN, failure.writeState());
+            assertEquals(SnmpStepResult.Status.WRITE_OUTCOME_UNKNOWN, failure.steps().getFirst().status());
+            assertEquals(SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN, failure.steps().getFirst().commands().getFirst().status());
+            assertEquals(SnmpStepResult.Status.NOT_STARTED, failure.steps().get(1).status());
+            assertEquals(1, failure.submissions());
+            var next = result(executor.submit(task(target, new SnmpStep<>("next", LOCAL, ctx -> true))));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, next.status());
+            assertEquals(0, executor.diagnostics().activeTargets());
+        }
     }
 
     @Test void typedStepsRejectForeignReferencesAndUnavailableResults() throws Exception {

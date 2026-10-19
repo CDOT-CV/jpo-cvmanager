@@ -356,8 +356,12 @@ class Snmp4jClientTest {
     }
 
     static void await(BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
-        while (!condition.getAsBoolean() && System.nanoTime() < deadline) Thread.sleep(5);
-        assertTrue(condition.getAsBoolean(), "Condition not reached within three seconds");
+        var reached = new CountDownLatch(1);
+        try (var poller = Executors.newSingleThreadScheduledExecutor()) {
+            poller.scheduleWithFixedDelay(() -> {
+                if (condition.getAsBoolean()) reached.countDown();
+            }, 0, 5, TimeUnit.MILLISECONDS);
+            assertTrue(reached.await(3, TimeUnit.SECONDS), "Condition not reached within three seconds");
+        }
     }
 }

@@ -11,7 +11,7 @@ public record SnmpTarget(String address, int port, SnmpCredentials credentials) 
     }
     public SnmpTarget(String address, SnmpCredentials credentials) { this(address, 161, credentials); }
     public static void validateIpv4(String address) {
-        if (address == null || !address.matches("(0|[1-9][0-9]{0,2})(\\.(0|[1-9][0-9]{0,2})){3}")) {
+        if (address == null || !address.matches("(0|[1-9]\\d{0,2})(\\.(0|[1-9]\\d{0,2})){3}")) {
             throw new IllegalArgumentException("Expected literal IPv4 address");
         }
         for (String octet : address.split("\\.")) {

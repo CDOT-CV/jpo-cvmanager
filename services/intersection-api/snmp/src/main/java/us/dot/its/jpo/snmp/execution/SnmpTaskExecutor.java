@@ -41,7 +41,13 @@ public final class SnmpTaskExecutor implements AutoCloseable {
     private final Map<String, Control> running = new HashMap<>();
     private final Set<String> activeTargets = new HashSet<>();
     private boolean closed;
-    private long completed, rejected, expired, succeeded, failed, timedOut, cancelled;
+    private long completed;
+    private long rejected;
+    private long expired;
+    private long succeeded;
+    private long failed;
+    private long timedOut;
+    private long cancelled;
 
     public SnmpTaskExecutor(SnmpClient client, SnmpExecutorOptions options) {
         this.client = Objects.requireNonNull(client);
@@ -94,25 +100,20 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         if (closed) return;
         // Skip a busy endpoint instead of occupying a worker while waiting for its lock.
         // The oldest eligible task wins; unrelated devices can still make progress.
-        for (int i = 0; i < queue.size();) {
-            var next = queue.get(i);
+        var pending = queue.iterator();
+        while (pending.hasNext()) {
+            var next = pending.next();
             if (System.nanoTime() - next.queuedNanos >= next.options.queueTimeout().toNanos()) {
-                queue.remove(i); next.timer.cancel(false); expired++; next.finish(QUEUE_EXPIRED, null);
+                pending.remove(); next.timer.cancel(false); expired++; next.finish(QUEUE_EXPIRED, null);
                 logResult(next);
             } else if (running.size() < options.maxConcurrentTasks() && !activeTargets.contains(next.endpoint)) {
-                queue.remove(i); start(next);
-            } else i++;
+                pending.remove(); start(next);
+            }
         }
     }
 
     private void start(Control control) {
-        synchronized (control) {
-            if (control.timer != null) control.timer.cancel(false);
-            control.status = RUNNING;
-            control.startedAt = Instant.now();
-            control.startedNanos = System.nanoTime();
-            control.deadline = control.startedNanos + control.options.executionTimeout().toNanos();
-        }
+        control.start();
         activeTargets.add(control.endpoint);
         running.put(control.id, control);
         control.timer = timers.schedule(() -> {
@@ -122,44 +123,58 @@ public final class SnmpTaskExecutor implements AutoCloseable {
     }
 
     private void execute(Control control) {
-        synchronized (control) { control.worker = Thread.currentThread(); }
+        control.workerStarted();
         try (var trace = new OperationLog(log, control.task.target(), "TASK_" + control.task.name(), false, control.id)) {
             var context = new SnmpTaskContext(control, client);
-            try {
-                for (int i = 0; i < control.task.steps().size(); i++) {
-                    executeStep(control, control.startStep(i), context, trace);
-                }
-                control.remainingNanos();
-                control.finish(SUCCEEDED, null);
-            } catch (SnmpException failure) {
-                control.finish(failure.kind() == TIMEOUT ? TIMED_OUT : failure.kind() == CANCELLED ? SnmpTaskResult.Status.CANCELLED : FAILED, SnmpFailure.from(failure));
+            for (var step : control.steps) {
+                control.startStep(step);
+                executeStep(control, step, context, trace);
             }
-        } catch (Throwable failure) {
+            control.remainingNanos();
+            control.finish(SUCCEEDED, null);
+        } catch (Exception failure) {
             var safe = safeFailure(failure, control);
-            control.finish(FAILED, SnmpFailure.from(safe));
+            control.finish(failureStatus(safe), SnmpFailure.from(safe));
         } finally {
-            control.timer.cancel(false);
-            var result = control.snapshot();
-            try {
-                logResult(control);
-            } finally {
-                try {
-                    synchronized (this) {
-                        running.remove(control.id);
-                        activeTargets.remove(control.endpoint);
-                        completed++;
-                        switch (result.status()) {
-                            case SUCCEEDED -> succeeded++;
-                            case TIMED_OUT -> timedOut++;
-                            case CANCELLED -> cancelled++;
-                            default -> failed++;
-                        }
-                        pump();
-                    }
-                } finally {
-                    control.done.countDown();
+            // Errors must propagate, but never leave a handle waiting or an endpoint occupied.
+            control.finish(FAILED, SnmpFailure.from(new SnmpException(EXECUTION, false)));
+            complete(control);
+        }
+    }
+
+    private static SnmpTaskResult.Status failureStatus(SnmpException failure) {
+        return switch (failure.kind()) {
+            case TIMEOUT -> TIMED_OUT;
+            case CANCELLED -> SnmpTaskResult.Status.CANCELLED;
+            default -> FAILED;
+        };
+    }
+
+    private void complete(Control control) {
+        control.timer.cancel(false);
+        try {
+            logResult(control);
+        } finally {
+            release(control);
+        }
+    }
+
+    private void release(Control control) {
+        try {
+            synchronized (this) {
+                running.remove(control.id);
+                activeTargets.remove(control.endpoint);
+                completed++;
+                switch (control.snapshot().status()) {
+                    case SUCCEEDED -> succeeded++;
+                    case TIMED_OUT -> timedOut++;
+                    case CANCELLED -> cancelled++;
+                    default -> failed++;
                 }
+                pump();
             }
+        } finally {
+            control.done.countDown();
         }
     }
 
@@ -171,10 +186,12 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             if (definition.kind() == SnmpStep.Kind.VERIFY && !Boolean.TRUE.equals(value)) throw new SnmpException(VERIFICATION, false);
             control.stepSucceeded(step, value);
 
-        } catch (Throwable failure) {
+        } catch (Exception failure) {
             var safe = safeFailure(failure, control);
             control.stepFailed(step, safe);
             throw safe;
+        } finally {
+            control.failUnfinishedStep(step);
         }
     }
 
@@ -204,11 +221,11 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                 .collect(java.util.stream.Collectors.joining(","));
     }
 
-    private static SnmpException safeFailure(Throwable failure, Control control) {
+    private static SnmpException safeFailure(Exception failure, Control control) {
         if (failure instanceof SnmpException known) return known;
         if (failure instanceof InterruptedException) {
             Thread.currentThread().interrupt();
-            synchronized (control) { return new SnmpException(control.stop == TIMEOUT ? TIMEOUT : CANCELLED, false); }
+            return control.interruptedFailure();
         }
         return new SnmpException(EXECUTION, false);
     }
@@ -266,9 +283,13 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         final List<MutableStep<?>> steps;
         SnmpTaskResult.Status status = QUEUED;
         SnmpException.Kind stop;
-        Instant startedAt, finishedAt;
-        long startedNanos, finishedNanos, deadline;
-        int submissions, commandSequence;
+        Instant startedAt;
+        Instant finishedAt;
+        long startedNanos;
+        long finishedNanos;
+        long deadline;
+        int submissions;
+        int commandSequence;
         MutableStep<?> current;
         Thread worker;
         ScheduledFuture<?> timer;
@@ -277,6 +298,17 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             this.task = task; this.options = options; endpoint = task.target().agent();
             steps = new ArrayList<>();
             for (var definition : task.steps()) steps.add(new MutableStep<>(definition));
+        }
+        synchronized void start() {
+            if (timer != null) timer.cancel(false);
+            status = RUNNING;
+            startedAt = Instant.now();
+            startedNanos = System.nanoTime();
+            deadline = startedNanos + options.executionTimeout().toNanos();
+        }
+        synchronized void workerStarted() { worker = Thread.currentThread(); }
+        synchronized SnmpException interruptedFailure() {
+            return new SnmpException(stop == TIMEOUT ? TIMEOUT : CANCELLED, false);
         }
         synchronized void requireWorker() {
             if (Thread.currentThread() != worker || status != RUNNING) throw new IllegalStateException("Task context is only valid on its running worker");
@@ -294,10 +326,12 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             if (worker != null) worker.interrupt();
             return true;
         }
-        synchronized MutableStep<?> startStep(int index) {
+        synchronized void startStep(MutableStep<?> step) {
             remainingNanos();
-            current = steps.get(index); current.status = SnmpStepResult.Status.RUNNING; current.startedAt = Instant.now();
-            return current;
+            current = step; current.status = SnmpStepResult.Status.RUNNING; current.startedAt = Instant.now();
+        }
+        synchronized void failUnfinishedStep(MutableStep<?> step) {
+            if (step.status == SnmpStepResult.Status.RUNNING) stepFailed(step, new SnmpException(EXECUTION, false));
         }
         synchronized <T> void stepSucceeded(MutableStep<T> step, T value) {
             failIfCommandFailed();
@@ -306,15 +340,21 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
         synchronized void stepFailed(MutableStep<?> step, SnmpException exception) {
             step.failure = SnmpFailure.from(exception); step.finishedAt = Instant.now();
-            boolean unconfirmedWrite = step.commands.stream().anyMatch(command -> command.status == SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN);
-            boolean readTimeout = step.commands.stream().anyMatch(command -> command.status == SnmpCommandResult.Status.READ_TIMED_OUT);
-            step.status = unconfirmedWrite ? SnmpStepResult.Status.WRITE_OUTCOME_UNKNOWN
-                    : exception.kind() == VERIFICATION ? SnmpStepResult.Status.VERIFICATION_FAILED
-                    : readTimeout ? SnmpStepResult.Status.READ_TIMED_OUT
-                    : exception.writeOutcomeUnknown() ? SnmpStepResult.Status.WRITE_OUTCOME_UNKNOWN
-                    : exception.kind() == TIMEOUT ? SnmpStepResult.Status.TIMED_OUT
-                    : exception.kind() == CANCELLED ? SnmpStepResult.Status.CANCELLED
-                    : exception.kind() == AGENT_REJECTED ? SnmpStepResult.Status.REJECTED : SnmpStepResult.Status.FAILED;
+            step.status = stepFailureStatus(step, exception);
+        }
+        private static SnmpStepResult.Status stepFailureStatus(MutableStep<?> step, SnmpException exception) {
+            if (step.commands.stream().anyMatch(command -> command.status == SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN))
+                return SnmpStepResult.Status.WRITE_OUTCOME_UNKNOWN;
+            if (exception.kind() == VERIFICATION) return SnmpStepResult.Status.VERIFICATION_FAILED;
+            if (step.commands.stream().anyMatch(command -> command.status == SnmpCommandResult.Status.READ_TIMED_OUT))
+                return SnmpStepResult.Status.READ_TIMED_OUT;
+            if (exception.writeOutcomeUnknown()) return SnmpStepResult.Status.WRITE_OUTCOME_UNKNOWN;
+            return switch (exception.kind()) {
+                case TIMEOUT -> SnmpStepResult.Status.TIMED_OUT;
+                case CANCELLED -> SnmpStepResult.Status.CANCELLED;
+                case AGENT_REJECTED -> SnmpStepResult.Status.REJECTED;
+                default -> SnmpStepResult.Status.FAILED;
+            };
         }
         synchronized MutableCommand startCommand(String operation, List<SnmpOid> oids, List<SnmpBinding> bindings) {
             requireWorker();
@@ -332,8 +372,8 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         private void failIfCommandFailed() {
             if (current == null) return;
             if (current.failure != null) {
-                var failure = current.failure;
-                throw new SnmpException(failure.kind(), failure.writeOutcomeUnknown(), failure.agentErrorStatus(), failure.agentErrorIndex());
+                var commandFailure = current.failure;
+                throw new SnmpException(commandFailure.kind(), commandFailure.writeOutcomeUnknown(), commandFailure.agentErrorStatus(), commandFailure.agentErrorIndex());
             }
         }
         synchronized void beforeRequest(MutableCommand command, boolean write) {
@@ -350,11 +390,23 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             // Keep the first failed call sticky even if an action catches its exception.
             // Later admission/success checks need not rescan the growing command history.
             if (current.failure == null) current.failure = command.failure;
-            command.status = exception.writeOutcomeUnknown() ? SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN
-                    : command.submissions == 0 ? SnmpCommandResult.Status.NOT_DISPATCHED
-                    : exception.kind() == TIMEOUT ? SnmpCommandResult.Status.READ_TIMED_OUT
-                    : exception.kind() == CANCELLED ? SnmpCommandResult.Status.CANCELLED
-                    : exception.kind() == AGENT_REJECTED ? SnmpCommandResult.Status.REJECTED : SnmpCommandResult.Status.FAILED;
+            command.status = commandFailureStatus(command, exception);
+        }
+        private static SnmpCommandResult.Status commandFailureStatus(MutableCommand command, SnmpException exception) {
+            if (exception.writeOutcomeUnknown()) return SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN;
+            if (command.submissions == 0) return SnmpCommandResult.Status.NOT_DISPATCHED;
+            return switch (exception.kind()) {
+                case TIMEOUT -> SnmpCommandResult.Status.READ_TIMED_OUT;
+                case CANCELLED -> SnmpCommandResult.Status.CANCELLED;
+                case AGENT_REJECTED -> SnmpCommandResult.Status.REJECTED;
+                default -> SnmpCommandResult.Status.FAILED;
+            };
+        }
+        synchronized void failUnfinishedCommand(MutableCommand command) {
+            if (command.status == SnmpCommandResult.Status.RUNNING) {
+                boolean uncertain = command.operation.equals("SET") && command.submissions > 0;
+                commandFailed(command, new SnmpException(EXECUTION, uncertain));
+            }
         }
         synchronized void finish(SnmpTaskResult.Status result, SnmpFailure failure) {
             // Stop requests do not finish callbacks. Only the worker acknowledges completion;
@@ -368,56 +420,72 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
         synchronized SnmpTaskResult snapshot() {
             long now = finishedAt == null ? System.nanoTime() : finishedNanos;
-            List<SnmpStepResult<?>> results = new ArrayList<>();
-            for (var step : steps) results.add(step.snapshot());
+            var results = steps.stream().<SnmpStepResult<?>>map(MutableStep::snapshot).toList();
             return new SnmpTaskResult(id, task.name(), endpoint, status, writeState(results), submittedAt, startedAt, finishedAt,
                     Duration.ofNanos(Math.max(0, (startedAt == null ? now : startedNanos) - queuedNanos)),
                     Duration.ofNanos(startedAt == null ? 0 : Math.max(0, now - startedNanos)),
                     stop == CANCELLED, stop == TIMEOUT, submissions, results, failure);
         }
         private static SnmpTaskResult.WriteState writeState(List<SnmpStepResult<?>> steps) {
-            boolean rejected = false, acknowledged = false;
-            int lastWrite = -1, lastVerification = -1;
+            if (steps.stream().flatMap(step -> step.commands().stream()).anyMatch(Control::uncertainWrite))
+                return SnmpTaskResult.WriteState.UNKNOWN;
+            boolean rejectedWrite = false;
+            boolean acknowledged = false;
             boolean verificationFailed = false;
+            int lastWrite = -1;
+            int lastVerification = -1;
             for (int i = 0; i < steps.size(); i++) {
                 var step = steps.get(i);
-                for (var command : step.commands()) {
-                    if (!command.operation().equals("SET") || command.submissions() == 0) continue;
-                    switch (command.status()) {
-                        case WRITE_OUTCOME_UNKNOWN, RUNNING -> { return SnmpTaskResult.WriteState.UNKNOWN; }
-                        case SUCCEEDED -> { acknowledged = true; lastWrite = i; }
-                        case REJECTED -> rejected = true;
-                        default -> { /* No additional write evidence. */ }
-                    }
+                if (hasWrite(step, SnmpCommandResult.Status.SUCCEEDED)) {
+                    acknowledged = true;
+                    lastWrite = i;
                 }
-                if (step.status() == SnmpStepResult.Status.SUCCEEDED
-                        && (step.kind() == SnmpStep.Kind.VERIFY || step.kind() == SnmpStep.Kind.WRITE
-                        && lastWrite == i && step.value() instanceof SnmpWriteResult<?>)) lastVerification = i;
+                rejectedWrite |= hasWrite(step, SnmpCommandResult.Status.REJECTED);
+                if (verifiesWrite(step, lastWrite == i)) lastVerification = i;
                 verificationFailed |= step.status() == SnmpStepResult.Status.VERIFICATION_FAILED;
             }
-            if (!acknowledged) return rejected ? SnmpTaskResult.WriteState.REJECTED : SnmpTaskResult.WriteState.NOT_SUBMITTED;
+            if (!acknowledged) return rejectedWrite ? SnmpTaskResult.WriteState.REJECTED : SnmpTaskResult.WriteState.NOT_SUBMITTED;
             if (verificationFailed) return SnmpTaskResult.WriteState.VERIFICATION_FAILED;
             // A successful verification before a later write cannot confirm that later write.
             return lastVerification >= lastWrite ? SnmpTaskResult.WriteState.VERIFIED : SnmpTaskResult.WriteState.ACKNOWLEDGED_UNVERIFIED;
+        }
+        private static boolean uncertainWrite(SnmpCommandResult command) {
+            return command.operation().equals("SET") && command.submissions() > 0
+                    && (command.status() == SnmpCommandResult.Status.WRITE_OUTCOME_UNKNOWN || command.status() == SnmpCommandResult.Status.RUNNING);
+        }
+        private static boolean hasWrite(SnmpStepResult<?> step, SnmpCommandResult.Status status) {
+            return step.commands().stream().anyMatch(command -> command.operation().equals("SET")
+                    && command.submissions() > 0 && command.status() == status);
+        }
+        private static boolean verifiesWrite(SnmpStepResult<?> step, boolean wroteInStep) {
+            return step.status() == SnmpStepResult.Status.SUCCEEDED
+                    && (step.kind() == SnmpStep.Kind.VERIFY || step.kind() == SnmpStep.Kind.WRITE
+                    && wroteInStep && step.value() instanceof SnmpWriteResult<?>);
         }
     }
 
     static final class MutableStep<T> {
         final SnmpStep<T> definition;
         SnmpStepResult.Status status = SnmpStepResult.Status.NOT_STARTED;
-        Instant startedAt, finishedAt;
-        T value; SnmpFailure failure;
+        Instant startedAt;
+        Instant finishedAt;
+        T value;
+        SnmpFailure failure;
         final List<MutableCommand> commands = new ArrayList<>();
         MutableStep(SnmpStep<T> definition) { this.definition = definition; }
         SnmpStepResult<T> snapshot() { return new SnmpStepResult<>(definition, status, startedAt, finishedAt, value, commands.stream().map(MutableCommand::snapshot).toList(), failure); }
     }
     static final class MutableCommand {
-        final int sequence; final String operation;
-        final List<SnmpOid> oids; final List<SnmpBinding> bindings;
+        final int sequence;
+        final String operation;
+        final List<SnmpOid> oids;
+        final List<SnmpBinding> bindings;
         final Instant startedAt = Instant.now();
-        Instant finishedAt; int submissions;
+        Instant finishedAt;
+        int submissions;
         SnmpCommandResult.Status status = SnmpCommandResult.Status.RUNNING;
-        List<SnmpBinding> response = List.of(); SnmpFailure failure;
+        List<SnmpBinding> response = List.of();
+        SnmpFailure failure;
         MutableCommand(int sequence, String operation, List<SnmpOid> oids, List<SnmpBinding> bindings) {
             this.sequence = sequence; this.operation = operation; this.oids = oids; this.bindings = bindings;
         }
