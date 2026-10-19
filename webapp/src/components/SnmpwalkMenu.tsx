@@ -44,7 +44,7 @@ const SnmpwalkMenu = () => {
 
   useEffect(() => {
     // Refresh Data
-    dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+    if (rsuIp) dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
   }, [rsuIp, dispatch])
 
   const handleDelete = (countsMsgType: string, ip: string) => {
@@ -58,11 +58,12 @@ const SnmpwalkMenu = () => {
               snmpMsgType: countsMsgType,
               destIp: ip,
             })
-          ).then((data: any) => {
-            if (data.payload.changeSuccess) {
+          ).then((data) => {
+            if (deleteSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
               toast.success('Successfully deleted SNMP forwarding')
             } else {
-              toast.error('Failed to delete SNMP forwarding: ' + data.payload.errorState)
+              const message = deleteSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+              toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
             }
           })
         },
