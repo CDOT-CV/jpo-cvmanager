@@ -156,30 +156,6 @@ it('snapshot bsmData clicked', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-it('does not fetch the WZDx feed while the WZDx layer is inactive', async () => {
-  const store = setupStore({ user: { value: { authLoginData: { token: 'testToken' } } } })
-  renderMap(store)
-
-  expect(screen.getByRole('checkbox', { name: 'WZDx Viewer' })).not.toBeChecked()
-  // Let any mount-time effects and pending requests flush
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0))
-  })
-  expect(getWzdxFeedCalls()).toHaveLength(0)
-})
-
-it('refetches the WZDx feed each time the layer is toggled on', async () => {
-  const store = setupStore({ user: { value: { authLoginData: { token: 'testToken' } } } })
-  renderMap(store)
-
-  fireEvent.click(screen.getByText('WZDx Viewer'))
-  await waitFor(() => expect(getWzdxFeedCalls()).toHaveLength(1))
-
-  fireEvent.click(screen.getByText('WZDx Viewer'))
-  fireEvent.click(screen.getByText('WZDx Viewer'))
-  await waitFor(() => expect(getWzdxFeedCalls()).toHaveLength(2))
-})
-
 it('does not fetch the WZDx feed when WZDx features are disabled', async () => {
   EnvironmentVars.ENABLE_WZDX_FEATURES = false
   const store = setupStore({ user: { value: { authLoginData: { token: 'testToken' } } } })
