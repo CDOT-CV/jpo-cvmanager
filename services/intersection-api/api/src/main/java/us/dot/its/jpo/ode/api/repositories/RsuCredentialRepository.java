@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 
-import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 
