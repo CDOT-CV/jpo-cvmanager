@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -240,8 +241,8 @@ class UserManagementServiceTest {
 
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> userManagementService.modifyUser("nonexistent@example.com", patch, List.of(testOrganization)));
+        assertThrows(EntityNotFoundException.class,
+                        () -> userManagementService.modifyUser("nonexistent@example.com", patch, List.of(testOrganization)));
 
         verify(userRepository).findByEmail("nonexistent@example.com");
         verify(userRepository, never()).save(any());
@@ -253,9 +254,8 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization(1);
         orgToAdd.setRole("admin");
-        patch.setOrganizations(List.of(orgToAdd));
+        patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of());
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(testRole));
         when(userRepository.save(testUser)).thenReturn(testUser);
@@ -265,7 +265,7 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         verify(roleRepository).findByNameIgnoreCase("admin");
-        verify(userOrganizationRepository).saveAll(anyList());
+        verify(userOrganizationRepository).save(any(UserOrganization.class));
     }
 
     @Test
@@ -274,17 +274,16 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization(9);
         orgToAdd.setRole("admin");
-        patch.setOrganizations(List.of(orgToAdd));
+        patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of());
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
                 () -> userManagementService.modifyUser("test@example.com", patch, List.of(testOrganization)));
 
-        assertEquals("Organization not found or user not authorized for: 9",
-                        exception.getMessage());
-        verify(userOrganizationRepository, never()).saveAll(any());
+        assertEquals("User does not have permission to add User to organization(s): 9",
+                exception.getMessage());
+        verify(userOrganizationRepository, never()).save(any());
     }
 
     @Test
@@ -293,9 +292,8 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToAdd = new UserOrganizationDto();
         orgToAdd.setOrganization(1);
         orgToAdd.setRole("nonexistent_role");
-        patch.setOrganizations(List.of(orgToAdd));
+        patch.setOrganizationsToAdd(List.of(orgToAdd));
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of());
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(roleRepository.findByNameIgnoreCase("nonexistent_role")).thenReturn(Optional.empty());
 
@@ -309,12 +307,13 @@ class UserManagementServiceTest {
     @Test
     void testModifyUser_ModifyOrganization_Success() {
         UserPatch patch = new UserPatch();
-        UserOrganizationDto orgToAdd = new UserOrganizationDto();
-        orgToAdd.setOrganization(1);
-        orgToAdd.setRole("admin");
-        patch.setOrganizations(List.of(orgToAdd));
+        UserOrganizationDto orgToModify = new UserOrganizationDto();
+        orgToModify.setOrganization(1);
+        orgToModify.setRole("admin");
+        patch.setOrganizationsToModify(List.of(orgToModify));
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of(new UserOrganization() {
+        when(userOrganizationRepository.findByUserAndOrganization(testUser, testOrganization))
+                .thenReturn(Optional.of(new UserOrganization() {
             {
                 setUser(testUser);
                 setOrganization(testOrganization);
@@ -335,20 +334,21 @@ class UserManagementServiceTest {
 
         assertNotNull(result);
         verify(roleRepository).findByNameIgnoreCase("admin");
-        verify(userOrganizationRepository).saveAll(anyList());
+        verify(userOrganizationRepository).save(any());
     }
 
     @Test
     void testModifyUser_RemoveOrganization_Success() {
         UserPatch patch = new UserPatch();
-        patch.setOrganizations(List.of());
+        patch.setOrganizationsToRemove(List.of(1));
 
         UserOrganization userOrg = new UserOrganization();
         userOrg.setUser(testUser);
         userOrg.setOrganization(testOrganization);
         userOrg.setRole(testRole);
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of(userOrg));
+        when(userOrganizationRepository.findByUserAndOrganization(testUser, testOrganization))
+                .thenReturn(Optional.of(userOrg));
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(userRepository.save(testUser)).thenReturn(testUser);
         when(userMapper.toDto(testUser)).thenReturn(testUserDto);
@@ -356,7 +356,7 @@ class UserManagementServiceTest {
         UserDto result = userManagementService.modifyUser("test@example.com", patch, List.of(testOrganization));
 
         assertNotNull(result);
-        verify(userOrganizationRepository).deleteAll(List.of(userOrg));
+        verify(userOrganizationRepository).delete(userOrg);
     }
 
     @Test
@@ -368,9 +368,11 @@ class UserManagementServiceTest {
         UserOrganizationDto orgToModify = new UserOrganizationDto();
         orgToModify.setOrganization(1);
         orgToModify.setRole("admin");
-        patch.setOrganizations(List.of(orgToAdd, orgToModify));
+        patch.setOrganizationsToAdd(List.of(orgToAdd));
+        patch.setOrganizationsToModify(List.of(orgToModify));
+        patch.setOrganizationsToRemove(List.of(2));
 
-        when(userOrganizationRepository.findAllByEmail("test@example.com")).thenReturn(List.of(new UserOrganization() {
+        UserOrganization userOrgToModify = new UserOrganization() {
             {
                 setUser(testUser);
                 setOrganization(testOrganization);
@@ -381,19 +383,16 @@ class UserManagementServiceTest {
                     }
                 });
             }
-        },
-                new UserOrganization() {
-                    {
-                        setUser(testUser);
-                        setOrganization(testOrganization2);
-                        setRole(new Role() {
-                            {
-                                setId(2);
-                                setName("operator");
-                            }
-                        });
-                    }
-                }));
+        };
+        UserOrganization userOrgToRemove = new UserOrganization();
+        userOrgToRemove.setUser(testUser);
+        userOrgToRemove.setOrganization(testOrganization2);
+        userOrgToRemove.setRole(testRole);
+
+        doReturn(Optional.of(userOrgToModify)).when(userOrganizationRepository)
+                .findByUserAndOrganization(testUser, testOrganization);
+        doReturn(Optional.of(userOrgToRemove)).when(userOrganizationRepository)
+                .findByUserAndOrganization(testUser, testOrganization2);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(roleRepository.findByNameIgnoreCase("admin")).thenReturn(Optional.of(new Role() {
             {
@@ -405,11 +404,11 @@ class UserManagementServiceTest {
         userManagementService.modifyUser("test@example.com", patch,
                 List.of(testOrganization, testOrganization2, testOrganization3));
 
-        ArgumentCaptor<List<UserOrganization>> captor = ArgumentCaptor.forClass(List.class);
-        verify(userOrganizationRepository, times(1)).saveAll(captor.capture());
-        List<UserOrganization> savedList = captor.getValue();
-        assertEquals(2, savedList.size(), "Expected saveAll to be called with a list of size 2");
-        verify(userOrganizationRepository, times(1)).deleteAll(anyList());
+        ArgumentCaptor<UserOrganization> captor = ArgumentCaptor.forClass(UserOrganization.class);
+        verify(userOrganizationRepository, times(2)).save(captor.capture());
+        assertEquals(3, captor.getAllValues().get(0).getOrganization().getId());
+        assertEquals(1, captor.getAllValues().get(1).getOrganization().getId());
+        verify(userOrganizationRepository).delete(userOrgToRemove);
     }
 
     // ==================== deleteUserByEmail Tests ====================

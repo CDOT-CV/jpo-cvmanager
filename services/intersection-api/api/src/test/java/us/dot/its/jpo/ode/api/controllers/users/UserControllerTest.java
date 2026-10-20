@@ -396,7 +396,7 @@ class UserControllerTest {
 
         userController.createUser(newUser);
 
-        assertTrue(newUser.getSuperUser());
+        assertTrue(newUser.isSuperUser());
         verify(userManagementService).createUser(newUser, List.of(sampleOrganization));
     }
 
@@ -523,7 +523,7 @@ class UserControllerTest {
     void testModifyUser_WithOrganizationChanges() {
         String email = "test@example.com";
         UserPatch userPatch = new UserPatch();
-        userPatch.setOrganizations(List.of());
+        userPatch.setOrganizationsToModify(List.of());
 
         when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));

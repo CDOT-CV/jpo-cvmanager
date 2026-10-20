@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -30,17 +30,12 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.RefPt;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
-import us.dot.its.jpo.ode.api.models.postgres.tables.RsuIntersection;
-import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 
-import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 
@@ -108,12 +103,6 @@ class AdminIntersectionControllerTest {
     private AdminIntersectionService adminIntersectionService;
 
     @MockitoBean
-    IntersectionOrganizationRepository intersectionOrganizationRepository;
-
-    @MockitoBean
-    RsuIntersectionRepository rsuIntersectionRepository;
-
-    @MockitoBean
     IntersectionRepository intersectionRepository;
 
     @MockitoBean
@@ -149,7 +138,7 @@ class AdminIntersectionControllerTest {
 
         AllowedSelections allowedSelections = new AllowedSelections(
                 List.of(1, 2),
-                        List.of("10.0.0.1", "10.0.0.2"));
+                List.of("10.0.0.1", "10.0.0.2"));
 
         sampleListResponse = new IntersectionListResponse(List.of(sampleDto));
         sampleSingleResponse = new IntersectionSingleResponse(sampleDto, allowedSelections);
@@ -157,16 +146,16 @@ class AdminIntersectionControllerTest {
         validPatch = new IntersectionPatch(
                 12109, 12109, refPt,
                 null, "Main St & 1st Ave", null,
-                List.of(), List.of());
+                List.of(), List.of(), List.of(), List.of());
 
         validCreate = new IntersectionCreate(
                 12109, refPt,
                 List.of(1), List.of(),
-                        null, "Main St & 1st Ave", null);
+                null, "Main St & 1st Ave", null);
 
         sampleAllowedSelections = new AllowedSelections(
                 List.of(1, 2),
-                        List.of("10.0.0.1", "10.0.0.2"));
+                List.of("10.0.0.1", "10.0.0.2"));
 
         sampleOrganization = new Organization();
         sampleOrganization.setId(1);
@@ -222,7 +211,7 @@ class AdminIntersectionControllerTest {
                     .andExpect(jsonPath("$.intersection_data").isArray())
                     .andExpect(jsonPath("$.intersection_data[0].intersection_id").value(12109))
                     .andExpect(jsonPath("$.intersection_data[0].intersection_name").value("Main St & 1st Ave"))
-                    .andExpect(jsonPath("$.intersection_data[0].organizations[0]").value("1"));
+                    .andExpect(jsonPath("$.intersection_data[0].organizations[0]").value(1));
         }
 
         @Test
@@ -262,8 +251,7 @@ class AdminIntersectionControllerTest {
         @DisplayName("returns 200 with empty list when no intersections are found for the organization")
         void noAccessibleIntersections_returns200WithEmptyList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
-            when(adminIntersectionService.getAllIntersections(eq(sampleOrganization)))
+            when(adminIntersectionService.getAllIntersections(any()))
                     .thenReturn(new IntersectionListResponse(List.of()));
 
             mockMvc.perform(get("/admin/intersections")
@@ -393,16 +381,16 @@ class AdminIntersectionControllerTest {
             IntersectionPatch patchWithUnqualifiedOrg = new IntersectionPatch(
                     12109, 12109, new RefPt(39.7392, -104.9903),
                     null, null, null,
-                    List.of(9), List.of());
+                    List.of(3), List.of(), List.of(), List.of());
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of(3)))).thenReturn(false);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of()))).thenReturn(false);
+            when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
-            when(intersectionOrganizationRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of());
-            when(rsuIntersectionRepository.findAllByIntersection_IntersectionNumber("12109")).thenReturn(List.of());
 
             mockMvc.perform(patch("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -419,20 +407,16 @@ class AdminIntersectionControllerTest {
             IntersectionPatch patchWithUnqualifiedOrgRemove = new IntersectionPatch(
                     12109, 12109, new RefPt(39.7392, -104.9903),
                     null, null, null,
-                    List.of(), List.of());
+                    List.of(), List.of(3), List.of(), List.of());
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of(3)))).thenReturn(false);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of()))).thenReturn(true);
+            when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of());
-            when(intersectionOrganizationRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of(new IntersectionOrganization() {
-                        {
-                            setOrganization(sampleOrganization);
-                        }
-                    }));
-            when(rsuIntersectionRepository.findAllByIntersection_IntersectionNumber("12109")).thenReturn(List.of());
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
 
             mockMvc.perform(patch("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -449,17 +433,17 @@ class AdminIntersectionControllerTest {
             IntersectionPatch patchWithUnqualifiedRsu = new IntersectionPatch(
                     12109, 12109, new RefPt(39.7392, -104.9903),
                     null, null, null,
-                    List.of(), List.of("192.168.1.99"));
+                    List.of(), List.of(), List.of("192.168.1.99"), List.of());
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of()))).thenReturn(true);
+            when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
+            when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
             when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
-            when(intersectionOrganizationRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of());
-            when(rsuIntersectionRepository.findAllByIntersection_IntersectionNumber("12109")).thenReturn(List.of());
 
             mockMvc.perform(patch("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -476,27 +460,15 @@ class AdminIntersectionControllerTest {
             IntersectionPatch patchWithUnqualifiedRsuRemove = new IntersectionPatch(
                     12109, 12109, new RefPt(39.7392, -104.9903),
                     null, null, null,
-                    List.of(), List.of());
+                    List.of(), List.of(), List.of(), List.of("192.168.1.99"));
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.hasIntersection(eq(12109), eq("OPERATOR"))).thenReturn(true);
-            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of()))).thenReturn(true);
+            when(permissionService.hasRoleInOrgIds(eq("OPERATOR"), eq(List.of()))).thenReturn(true);
             when(permissionService.hasRsus(eq(List.of()), eq("OPERATOR"))).thenReturn(true);
             when(permissionService.hasRsus(eq(List.of("192.168.1.99")), eq("OPERATOR"))).thenReturn(false);
-            when(intersectionOrganizationRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of());
-            when(rsuIntersectionRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of(new RsuIntersection() {
-                        {
-                            setRsu(new us.dot.its.jpo.ode.api.models.postgres.tables.Rsu() {
-                                {
-                                    setIpv4Address(InetAddress.getByName("192.168.1.99"));
-                                }
-                            });
-                        }
-                    }));
 
             mockMvc.perform(patch("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -513,12 +485,9 @@ class AdminIntersectionControllerTest {
             IntersectionPatch patchWithAnyOrg = new IntersectionPatch(
                     12109, 12109, new RefPt(39.7392, -104.9903),
                     null, null, null,
-                    List.of(9), List.of());
+                    List.of(3), List.of(), List.of(), List.of());
 
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(intersectionOrganizationRepository.findAllByIntersection_IntersectionNumber("12109"))
-                    .thenReturn(List.of());
-            when(rsuIntersectionRepository.findAllByIntersection_IntersectionNumber("12109")).thenReturn(List.of());
 
             mockMvc.perform(patch("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -614,6 +583,8 @@ class AdminIntersectionControllerTest {
         @WithMockUser
         @DisplayName("returns 404 when service throws ResponseStatusException with NOT_FOUND")
         void serviceThrowsNotFound_returns404() throws Exception {
+            when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
+            when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
             when(permissionService.isSuperUser()).thenReturn(true);
             doThrow(new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "Intersection not found: 12109")).when(adminIntersectionService)
@@ -728,7 +699,7 @@ class AdminIntersectionControllerTest {
             mockMvc.perform(get("/admin/intersections/allowed-selections"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.organizations").isArray())
-                    .andExpect(jsonPath("$.organizations[0]").value("1"))
+                    .andExpect(jsonPath("$.organizations[0]").value(1))
                     .andExpect(jsonPath("$.rsus").isArray())
                     .andExpect(jsonPath("$.rsus[0]").value("10.0.0.1"));
         }
@@ -822,7 +793,6 @@ class AdminIntersectionControllerTest {
         @DisplayName("returns 200 with empty list when no intersections are outside the organization")
         void emptyResult_returns200WithEmptyList() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(true);
-            when(permissionService.getOrganizationById(1)).thenReturn(sampleOrganization);
             when(adminIntersectionService.getIntersectionsNotInOrganization(any()))
                     .thenReturn(new IntersectionListResponse(List.of()));
 
@@ -883,6 +853,7 @@ class AdminIntersectionControllerTest {
         void noOperatorRole_returns403() throws Exception {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(false);
+            when(permissionService.hasRsus(List.of(), "OPERATOR")).thenReturn(false);
 
             mockMvc.perform(post("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -917,8 +888,8 @@ class AdminIntersectionControllerTest {
         void unqualifiedOrg_returns403() throws Exception {
             IntersectionCreate createWithUnqualifiedOrg = new IntersectionCreate(
                     12109, new RefPt(39.7392, -104.9903),
-                    List.of(9), List.of(),
-                            null, null, null);
+                    List.of(3), List.of(),
+                    null, null, null);
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
@@ -940,7 +911,7 @@ class AdminIntersectionControllerTest {
             IntersectionCreate createWithUnqualifiedRsu = new IntersectionCreate(
                     12109, new RefPt(39.7392, -104.9903),
                     List.of(1), List.of("192.168.1.99"),
-                            null, null, null);
+                    null, null, null);
 
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
@@ -980,8 +951,8 @@ class AdminIntersectionControllerTest {
             String body = """
                     {
                       "ref_pt": {"latitude": 39.7392, "longitude": -104.9903},
-                      "organizations": ["1"],
-                              "rsus": []
+                      "organizations": [1],
+                      "rsus": []
                     }
                     """;
 
@@ -997,8 +968,8 @@ class AdminIntersectionControllerTest {
             String body = """
                     {
                       "intersection_id": 12109,
-                      "organizations": ["1"],
-                              "rsus": []
+                      "organizations": [1],
+                      "rsus": []
                     }
                     """;
 
@@ -1015,8 +986,8 @@ class AdminIntersectionControllerTest {
                     {
                       "intersection_id": 12109,
                       "ref_pt": {"longitude": -104.9903},
-                      "organizations": ["1"],
-                              "rsus": []
+                      "organizations": [1],
+                      "rsus": []
                     }
                     """;
 
@@ -1051,8 +1022,8 @@ class AdminIntersectionControllerTest {
                     {
                       "intersection_id": 12109,
                       "ref_pt": {"latitude": 39.7392, "longitude": -104.9903},
-                      "organizations": ["1"],
-                              "rsus": ["not-an-ip"]
+                      "organizations": [1],
+                      "rsus": ["not-an-ip"]
                     }
                     """;
 
@@ -1066,14 +1037,14 @@ class AdminIntersectionControllerTest {
         @WithMockUser
         @DisplayName("valid request with empty rsus list returns 200")
         void emptyRsusList_returns200() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
+            when(permissionService.isSuperUser()).thenReturn(true);
 
             IntersectionCreate createNoRsus = new IntersectionCreate(
                     12109, new RefPt(39.7392, -104.9903),
-                    List.of(sampleOrganization.getId()), List.of(),
-                    null, null, null);
+                    List.of(1), List.of(),
+                            null, null, null);
 
             mockMvc.perform(post("/admin/intersections")
                     .contentType(MediaType.APPLICATION_JSON)

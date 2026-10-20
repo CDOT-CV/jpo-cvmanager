@@ -2,10 +2,6 @@ import { useEffect, useMemo } from 'react'
 import './App.css'
 import { useSelector, useDispatch } from 'react-redux'
 import {
-  // Actions
-  getRsuData,
-} from './generalSlices/rsuSlice'
-import {
   keycloakLogin,
   selectAuthLoginData,
   selectOrganizationName,
@@ -60,7 +56,6 @@ const App = () => {
   }, [dispatch])
 
   useEffect(() => {
-    dispatch(getRsuData())
     dispatch(getIntersections(organizationName))
   }, [authLoginData, organizationName, dispatch])
 
@@ -78,7 +73,7 @@ const App = () => {
               path="/*"
               element={
                 <ReactKeycloakProvider
-                  initOptions={{ onLoad: 'login-required' }}
+                  initOptions={{ onLoad: 'login-required', checkLoginIframe: false }}
                   authClient={keycloak}
                   onTokens={({ token }: { token: string }) => {
                     // Logic to prevent multiple login triggers

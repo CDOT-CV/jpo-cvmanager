@@ -5,8 +5,6 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
-  error:
-    include-stacktrace: never
 
 ### keycloak configuration
 keycloak:
@@ -32,6 +30,14 @@ schema.rtcm: classpath:schemas/rtcm.schema.json
 # Amount of time to wait to try and increase batching
 kafka.linger_ms: 50
 
+# Prometheus Configuration (message counts)
+# aggregation.step.seconds is the minimum increase() lookbehind for short time ranges.
+prometheus:
+  url: ${PROMETHEUS_URL:http://prometheus:9090}
+  aggregation:
+    step:
+      seconds: ${PROMETHEUS_AGGREGATION_STEP_SECONDS:120}
+
 kafka.topics:
   autoCreateTopics: false
   numPartitions: 1
@@ -51,15 +57,15 @@ conflict:
 
 # MongoDB Configuration
 spring:
+  mongodb:
+    database: ${CM_DATABASE_NAME:CV}
+    host: ${DB_HOST_IP:mongo}
+    port: ${DB_HOST_PORT:27017}
+    username: ${MONGO_READ_WRITE_USER:ode}
+    password: ${MONGO_READ_WRITE_PASS:replace_me}
+    authentication-database: ${CM_MONGO_AUTH_DB:admin}
+    uri: ${CM_MONGO_URI:null}
   data:
-    mongodb:
-      database: ${CM_DATABASE_NAME:CV}
-      host: ${DB_HOST_IP:mongo}
-      port: 27017
-      username: ${MONGO_READ_WRITE_USER:ode}
-      password: ${MONGO_READ_WRITE_PASS:replace_me}
-      authenticationDatabase: ${CM_MONGO_AUTH_DB:admin}
-      uri: ${CM_MONGO_URI:null}
     rest:
       detection-strategy: annotated
   # Postgres Configuration
@@ -80,6 +86,7 @@ spring:
         smtp:
           ssl:
             trust: ${INTERSECTION_SMTP_SERVER_HOST:localhost}
+            checkserveridentity: ${INTERSECTION_SMTP_CHECK_SERVER_IDENTITY:false}
           auth: ${INTERSECTION_SMTP_AUTH:false}
           starttls:
             enable: ${INTERSECTION_SMTP_STARTTLS:false}
@@ -87,9 +94,14 @@ spring:
   cache:
     jcache:
       provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
-    cache-names: email-rate-limit
+    cache-names:
+      - email-rate-limit
+      - timesync-rate-limit
     caffeine:
       spec: maximumSize=100000,expireAfterWrite=1h
+  web:
+    error:
+      include-stacktrace: never
 
 enable:
   api: ${INTERSECTION_API_ENABLE_API:true}
@@ -98,10 +110,37 @@ enable:
   haas: ${INTERSECTION_API_ENABLE_HAAS:true}
   asn1-decoder: ${INTERSECTION_API_ENABLE_ASN1_DECODER:true}
 
+# Processed RSU message query settings. Standalone defaults match the historical Python API.
+geo-query:
+  enabled: ${ENABLE_RSU_FEATURES:true}
+  bsm-collection: ${MONGO_PROCESSED_BSM_COLLECTION_NAME:ProcessedBsm}
+  psm-collection: ${MONGO_PROCESSED_PSM_COLLECTION_NAME:ProcessedPsm}
+  max-records: ${MAX_GEO_QUERY_RECORDS:}
+
 cmServerURL: ${CM_SERVER_URL:http://conflictmonitor:8082}
 mongoTimeoutMs: ${CM_MONGO_TIMEOUT_MS:5000}
 cors: '*'
 maximumResponseSize: ${CM_MAXIMUM_RESPONSE_SIZE:10000}
+deployment:
+  environment: ${DEPLOYMENT_ENVIRONMENT:UNKNOWN}
+
+object-storage:
+  provider: ${OBJECT_STORAGE_PROVIDER:gcp}
+  signed-url-expiration: ${OBJECT_STORAGE_SIGNED_URL_EXPIRATION:5m}
+  max-upload-size: ${OBJECT_STORAGE_MAX_UPLOAD_SIZE:1GB}
+  gcp:
+    bucket-name: ${OBJECT_STORAGE_GCP_BUCKET_NAME:}
+    # Required for keyless signing when ADC does not expose a private key (for
+    # example, GKE Workload Identity or local gcloud user ADC). This is an
+    # identifier, not a credential or secret
+    signing-service-account: ${OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT:}
+
+firmware-upload:
+  cleanup:
+    enabled: ${FIRMWARE_UPLOAD_CLEANUP_ENABLED:true}
+    interval: ${FIRMWARE_UPLOAD_CLEANUP_INTERVAL:1h}
+    expiration-grace: ${FIRMWARE_UPLOAD_EXPIRATION_GRACE:1h}
+    retention: ${FIRMWARE_UPLOAD_RETENTION:30d}
 
 spring.main.allow-circular-references: true
 spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -142,5 +181,19 @@ bucket4j:
         - cache-key: "'email_global'"
           bandwidths:
             - capacity: ${EMAIL_RATE_LIMIT_PER_INSTANCE:120}
+              time: 1
+              unit: hours
+    - cache-name: timesync-rate-limit
+      url: /timesync/.*
+      strategy: all
+      rate-limits:
+        - cache-key: "@jwtSubjectExtractor.extractSubject(getHeader('Authorization')) != null ? @jwtSubjectExtractor.extractSubject(getHeader('Authorization')) : getRemoteAddr()"
+          bandwidths:
+            - capacity: ${TIMESYNC_RATE_LIMIT_PER_USER:360}
+              time: 1
+              unit: hours
+        - cache-key: "'timesync_global'"
+          bandwidths:
+            - capacity: ${TIMESYNC_RATE_LIMIT_PER_INSTANCE:18000}
               time: 1
               unit: hours

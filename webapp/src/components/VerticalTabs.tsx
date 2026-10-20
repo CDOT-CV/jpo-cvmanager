@@ -13,6 +13,7 @@ import {
   NotificationsNoneOutlined,
   TrafficOutlined,
   TuneOutlined,
+  SystemUpdateAltOutlined,
   WorkspacesOutlined,
 } from '@mui/icons-material'
 
@@ -48,12 +49,13 @@ interface VerticalTabItem {
 interface VerticalTabProps {
   notFoundRoute: React.ReactNode
   defaultTabIndex?: number
+  parentRoute?: string
   tabs: VerticalTabItem[]
   height?: string
 }
 
 function VerticalTabs(props: VerticalTabProps) {
-  const { notFoundRoute, defaultTabIndex, tabs } = props
+  const { notFoundRoute, defaultTabIndex, tabs, parentRoute } = props
   const theme = useTheme()
   const location = useLocation()
   const filteredTabs = tabs.filter((tab) => evaluateFeatureFlags(tab.tag))
@@ -69,6 +71,8 @@ function VerticalTabs(props: VerticalTabProps) {
         return <GroupOutlined />
       case 'Organizations':
         return <WorkspacesOutlined />
+      case 'Firmware':
+        return <SystemUpdateAltOutlined />
       case 'Dashboard':
         return <HomeOutlined />
       case 'Notifications':
@@ -94,7 +98,11 @@ function VerticalTabs(props: VerticalTabProps) {
    * @returns {string} The key of the selected tab or the default tab key if no match is found.
    */
   const getSelectedTab = () => {
-    const pathParts = location.pathname.split('/')
+    let baseRoute = location.pathname
+    if (parentRoute && baseRoute.includes(parentRoute)) {
+      baseRoute = baseRoute.substring(baseRoute.indexOf(parentRoute) + parentRoute.length)
+    }
+    const pathParts = baseRoute.split('/')
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i]
       if (filteredTabs.some((tab) => tab.path === part)) {

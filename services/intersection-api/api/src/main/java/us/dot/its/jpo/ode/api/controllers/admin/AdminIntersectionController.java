@@ -162,8 +162,6 @@ public class AdminIntersectionController {
     @PostMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRsus(#create.getRsus(), 'OPERATOR'))")
     public void createIntersection(@RequestBody @Validated IntersectionCreate create) {
-        log.info("POST /admin/intersections. intersectionId={}", create.getIntersectionId());
-
         CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
         List<Organization> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
 
@@ -221,8 +219,10 @@ public class AdminIntersectionController {
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
             "@PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR') && " +
-            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizations) && " +
-            "@PermissionService.hasRsus(#patch.rsus, 'OPERATOR'))")
+            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToAdd) && " +
+            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToRemove) && " +
+            "@PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && " +
+            "@PermissionService.hasRsus(#patch.rsusToRemove, 'OPERATOR'))")
     public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
         CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
         List<Organization> qualifiedOrgs = token != null

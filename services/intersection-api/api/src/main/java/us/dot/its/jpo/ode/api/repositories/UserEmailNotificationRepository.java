@@ -12,6 +12,9 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 import java.net.InetAddress;
 import java.util.List;
 
+/**
+ * Frequency filter strings must match {@link us.dot.its.jpo.ode.api.models.emails.EmailFrequency#toQueryValue()}.
+ */
 @Repository
 public interface UserEmailNotificationRepository extends JpaRepository<UserEmailNotification, Integer> {
 

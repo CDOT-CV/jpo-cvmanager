@@ -1,30 +1,30 @@
-import AdminAddOrganization from '../adminAddOrganization/AdminAddOrganization'
-import AdminOrganizationTabRsu from '../adminOrganizationTabRsu/AdminOrganizationTabRsu'
-import AdminOrganizationTabIntersection from '../adminOrganizationTabIntersection/AdminOrganizationTabIntersection'
-import AdminOrganizationTabUser from '../adminOrganizationTabUser/AdminOrganizationTabUser'
-import AdminEditOrganization from '../adminEditOrganization/AdminEditOrganization'
-import AdminOrganizationDeleteMenu from '../../components/AdminOrganizationDeleteMenu'
 import Grid2 from '@mui/material/Grid2'
+import { useDispatch, useSelector } from 'react-redux'
 import { DropdownList } from 'react-widgets'
-import { useSelector, useDispatch } from 'react-redux'
+import AdminOrganizationDeleteMenu from '../../components/AdminOrganizationDeleteMenu'
+import AdminAddOrganization from '../adminAddOrganization/AdminAddOrganization'
+import AdminEditOrganization from '../adminEditOrganization/AdminEditOrganization'
+import AdminOrganizationTabIntersection from '../adminOrganizationTabIntersection/AdminOrganizationTabIntersection'
+import AdminOrganizationTabRsu from '../adminOrganizationTabRsu/AdminOrganizationTabRsu'
+import AdminOrganizationTabUser from '../adminOrganizationTabUser/AdminOrganizationTabUser'
 
-import '../adminRsuTab/Admin.css'
-import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { RootState } from '../../store'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { NotFound } from '../../pages/404'
-import toast from 'react-hot-toast'
-import {
-  changeOrganizationName,
-  selectOrganizationId,
-  selectOrganizationName,
-  setOrganizationList,
-} from '../../generalSlices/userSlice'
-import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
-import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
-import { alpha, Button, useTheme } from '@mui/material'
 import { AddCircleOutline, EditOutlined, Refresh } from '@mui/icons-material'
-import { useGetOrganizationsQuery, useDeleteOrganizationMutation } from '../api/organizationApiSlice'
+import { alpha, Button, useTheme } from '@mui/material'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import toast from 'react-hot-toast'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
+import {
+    changeOrganizationName,
+    deleteOrgAssociationByOrgName,
+    selectOrganizationId,
+    selectOrganizationName,
+} from '../../generalSlices/userSlice'
+import { NotFound } from '../../pages/404'
+import { RootState } from '../../store'
+import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
+import '../adminRsuTab/Admin.css'
+import { useDeleteOrganizationMutation, useGetOrganizationsQuery } from '../api/organizationApiSlice'
 
 const AdminOrganizationTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -48,7 +48,7 @@ const AdminOrganizationTab = () => {
     const loadingToast = toast.loading(`Deleting organization ${orgName}...`)
     try {
       await deleteOrganization(orgName).unwrap()
-      dispatch(setOrganizationList({ value: { name: orgName }, type: 'delete' }))
+      dispatch(deleteOrgAssociationByOrgName(orgName))
       const next = orgList.find((o) => o.name !== orgName) ?? orgList[0]
       if (next) {
         dispatch(changeOrganizationName(next.name))

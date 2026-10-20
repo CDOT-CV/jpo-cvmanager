@@ -74,9 +74,9 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
      */
     protected String getEmailFrom(Jwt jwt) {
         // Try standard "email" claim first
-        String email = jwt.getClaimAsString("email");
-        if (email != null && !email.isEmpty()) {
-            return email;
+        String emailClaim = jwt.getClaimAsString("email");
+        if (emailClaim != null && !emailClaim.isEmpty()) {
+            return emailClaim;
         }
 
         // Try "preferred_username" (often contains email in Keycloak)
@@ -135,7 +135,7 @@ public class CvManagerAuthToken extends JwtAuthenticationToken {
                 continue;
             }
             Organization organization = entry.getValue().getLeft();
-            if (organization != null && organization.getName().equalsIgnoreCase(orgName)) {
+            if (organization != null && organization.getName().equals(orgName)) {
                 return Optional.ofNullable(entry.getValue().getRight());
             }
         }

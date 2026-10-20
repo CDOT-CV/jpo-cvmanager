@@ -143,3 +143,98 @@ The Intersection API utilizes swagger for viewing and testing api endpoints. The
 http://localhost:8088/swagger-ui/index.html
 
 To facilitate easy development of front-end applications, the Intersection API is equipped with the capability to provide testData from each of its endpoints. To retrieve test data, set the url param testData to True when making the request.
+
+## Firmware Management
+
+Admins can access the firmware management menu from the webapp at **Admin → Firmware** to upload, browse, delete, and configure upgrade
+rules for RSU firmware. Google Cloud Storage (GCS) is the current implementation, however
+storage operations use an interface that can support additional providers.
+
+### Configuration
+
+Set an existing bucket and provide Google Application Default Credentials (ADC).
+Other settings have usable defaults. Without a bucket, the API starts normally
+but storage requests return `503`.
+
+| Environment variable                         | Default                                              | Usage                                                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `OBJECT_STORAGE_GCP_BUCKET_NAME`             | Empty                                                | Required for GCS; name of the existing firmware bucket.                                                                                   |
+| `GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH`   | `./resources/google/sample_gcp_service_account.json` | For local Docker Compose, set to a real service-account JSON file on the host. The default is a credential-free placeholder.              |
+| `GOOGLE_APPLICATION_CREDENTIALS`             | ADC lookup                                           | For a host-run API, path to a credential file if no other ADC source is available. Compose sets the mounted container path automatically. |
+| `OBJECT_STORAGE_GCP_SIGNING_SERVICE_ACCOUNT` | Empty                                                | Service-account email for keyless signing when ADC cannot sign directly. Not needed with a service-account key.                           |
+| `OBJECT_STORAGE_PROVIDER`                    | `gcp`                                                | Storage implementation.                                                                                                                   |
+| `OBJECT_STORAGE_SIGNED_URL_EXPIRATION`       | `5m`                                                 | Signed upload URL lifetime.                                                                                                               |
+| `OBJECT_STORAGE_MAX_UPLOAD_SIZE`             | `1GB`                                                | Maximum upload size.                                                                                                                      |
+| `FIRMWARE_UPLOAD_CLEANUP_ENABLED`            | `true`                                               | Enable upload-record cleanup.                                                                                                             |
+| `FIRMWARE_UPLOAD_CLEANUP_INTERVAL`           | `1h`                                                 | Delay between cleanup runs.                                                                                                               |
+| `FIRMWARE_UPLOAD_EXPIRATION_GRACE`           | `1h`                                                 | Grace after URL expiration before a pending upload is marked expired.                                                                     |
+| `FIRMWARE_UPLOAD_RETENTION`                  | `30d`                                                | How long failed and expired records are kept.                                                                                             |
+
+For local Compose, set these values in the root `.env`, then recreate the API container:
+
+```dotenv
+OBJECT_STORAGE_GCP_BUCKET_NAME=your-existing-bucket
+GOOGLE_APPLICATION_CREDENTIALS_HOST_PATH=C:/path/outside/the/repository/service-account.json
+```
+
+- Keep credentials outside the repository and container image.
+- Grant the service account identity the following permissions on the bucket:
+  - `storage.objects.create`
+  - `storage.objects.get`
+  - `storage.objects.list`
+  - `storage.objects.delete`
+- Configure bucket CORS for the webapp origin and direct uploads. For local testing,
+  save the following as `cors-local.json`:
+
+```json
+[
+  {
+    "origin": ["http://localhost:3000"],
+    "method": ["PUT"],
+    "responseHeader": ["Content-Type", "x-goog-content-length-range", "x-goog-hash", "x-goog-if-generation-match"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+Apply with: `gcloud storage buckets update gs://your-existing-bucket --cors-file=cors-local.json`
+
+This replaces the bucket's CORS configuration.
+
+### API integration
+
+Firmware endpoints require an authenticated admin or superuser. Routes are under
+`/admin/firmware`; Swagger documents the request and response schemas.
+
+1. Get manufacturer/model choices and required file extensions from `GET /upload-options`.
+2. Request `POST /signed-upload-url` with the selected device, version, filename,
+   size, content type, and checksum (GCS uses Base64-encoded CRC32C). Upload the
+   file directly to the returned URL using its method and required headers.
+3. Call `POST /uploads/{uploadId}/complete` to verify size/checksum and register
+   the firmware. Completion can be retried with the same upload ID.
+
+Listing, deletion, missing-file record cleanup, and upgrade-rule management are
+also available through this API and the Firmware tab.
+
+### Operational rules
+
+- Files are stored as `manufacturer/model/version/version.extension`. Configure
+  the required suffix in `manufacturers.firmware_file_extension`; the selected
+  file must match it. Only one active/verified upload is allowed per model/version,
+  and existing objects are never overwritten. The `ota/` directory is reserved
+  for OBU firmware and excluded from this feature.
+- New upgrade rules connect different versions of the same model and must target
+  a verified, unchanged cloud file. Each source can have only one destination.
+  Legacy rules remain usable, and legacy firmware can be a source. Resolve any
+  existing multiple-destination rules before upgrading the database. Editing rules
+  does not start an upgrade. Deleting or redirecting a rule whose source is installed
+  on RSUs requires confirmation; API clients retry the impact warning (`409`) with
+  `acknowledge_upgrade_impact=true` (assignment body or deletion query parameter).
+- Deletion removes the file and associated upload, image, and rule records.
+  Use the object ID and object version from the listing. Deletion is blocked
+  while a signed URL is valid or the firmware is referenced by an RSU's
+  current/target version or upgrade failure history.
+- To retry a failed upload, wait for its signed URL to expire, delete the entry,
+  and upload again. Use **Clean Up Records** for entries marked **Missing file**.
+  Automatic cleanup expires stale uploads and removes old failed/expired records;
+  it does not delete cloud files or verified firmware.

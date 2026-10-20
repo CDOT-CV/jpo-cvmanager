@@ -8,6 +8,7 @@ import { NotFound } from './404'
 import VerticalTabs from '../components/VerticalTabs'
 import { headerTabHeight } from '../styles/index'
 import AdminIntersectionTab from '../features/adminIntersectionTab/AdminIntersectionTab'
+import AdminFirmwareTab from '../features/adminFirmwareTab/AdminFirmwareTab'
 
 function Admin() {
   const isAdmin = useSelector(selectIsAdminOrAbove)
@@ -42,6 +43,11 @@ function Admin() {
                 title: 'Intersections',
                 child: <AdminIntersectionTab />,
                 tag: 'intersection',
+              },
+              {
+                path: 'firmware',
+                title: 'Firmware',
+                child: <AdminFirmwareTab />,
               },
               {
                 path: 'users',

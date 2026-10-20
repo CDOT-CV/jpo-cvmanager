@@ -11,6 +11,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,6 +56,12 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
             + "WHERE uo.organization = :organization "
             + "AND (SELECT COUNT(uo2) FROM UserOrganization uo2 WHERE uo2.user.id = uo.user.id) = 1")
     boolean existsOrphanUserInOrganization(@Param("organization") Organization organization);
+
+    @Query("SELECT CASE WHEN COUNT(ro) > 0 THEN true ELSE false END "
+            + "FROM UserOrganization ro "
+            + "WHERE ro.user.email = :email "
+            + "AND (SELECT COUNT(ro2) FROM UserOrganization ro2 WHERE ro2.user.id = ro.user.id) = 1")
+    boolean hasSingleOrganization(@Param("email") String email);
 
     @Modifying
     @Transactional

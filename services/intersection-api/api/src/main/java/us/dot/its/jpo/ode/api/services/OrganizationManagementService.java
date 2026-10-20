@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import us.dot.its.jpo.ode.api.mappers.OrganizationMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
@@ -35,9 +34,11 @@ import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
@@ -49,7 +50,9 @@ public class OrganizationManagementService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final UserOrganizationRepository userOrganizationRepository;
+    private final SnmpCredentialRepository snmpCredentialRepository;
     private final RoleRepository roleRepository;
+    private final RsuCredentialRepository rsuCredentialRepository;
     private final RsuRepository rsuRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuOptionRepository rsuOptionRepository;
@@ -108,16 +111,23 @@ public class OrganizationManagementService {
         }
 
         // Step 4: Add users
-        handleUsersToAdd(patch.getUsersToAdd(), org, authorizedOrgs, authToken.isSuperUser());
+        handleUsersToAdd(patch.getUsersToAdd(), org);
 
         // Step 5: Modify user roles
         handleUsersToModify(patch.getUsersToModify(), org);
 
         // Step 6: Remove users
         if (patch.getUsersToRemove() != null && !patch.getUsersToRemove().isEmpty()) {
+            List<String> orphanedUsers = patch.getUsersToRemove().stream()
+                    .filter(userOrganizationRepository::hasSingleOrganization)
+                    .toList();
+            if (!orphanedUsers.isEmpty()) {
+                String orphanedEmails = String.join(", ", orphanedUsers);
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove user(s) that are only associated with this organization: " + orphanedEmails);
+            }
             userOrganizationRepository.deleteByUserEmailsAndOrganization(
                     patch.getUsersToRemove(), org);
-            log.debug("Removed {} user(s) from org '{}'", patch.getUsersToRemove().size(), org.getName());
         }
 
         // Step 7: Add RSU associations
@@ -126,8 +136,17 @@ public class OrganizationManagementService {
         // Step 8: Remove RSU associations
         if (patch.getRsusToRemove() != null && !patch.getRsusToRemove().isEmpty()) {
             List<InetAddress> addresses = resolveIpAddresses(patch.getRsusToRemove());
+            List<InetAddress> orphanedRsus = addresses.stream()
+                    .filter(rsuOrganizationRepository::hasSingleOrganization)
+                    .toList();
+            if (!orphanedRsus.isEmpty()) {
+                String orphanedIps = orphanedRsus.stream()
+                        .map(InetAddress::getHostAddress)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove RSU(s) that are only associated with this organization: " + orphanedIps);
+            }
             rsuOrganizationRepository.deleteByRsuIpv4AddressesAndOrganization(addresses, org);
-            log.debug("Removed {} RSU(s) from org '{}'", addresses.size(), org.getName());
         }
 
         // Step 9: Add intersection associations
@@ -138,6 +157,17 @@ public class OrganizationManagementService {
             List<String> numberStrings = patch.getIntersectionsToRemove().stream()
                     .map(Object::toString)
                     .toList();
+            List<Integer> orphanedIntersections = patch.getIntersectionsToRemove().stream()
+                    .filter(num -> intersectionOrganizationRepository.hasSingleOrganization(String.valueOf(num)))
+                    .toList();
+            if (!orphanedIntersections.isEmpty()) {
+                String orphanedIntersectionNumbers = orphanedIntersections.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+                throw new OrganizationHasDependentsException(
+                        "Cannot remove intersection(s) that are only associated with this organization: "
+                                + orphanedIntersectionNumbers);
+            }
             intersectionOrganizationRepository.deleteByIntersectionNumbersAndOrganization(
                     numberStrings, org);
             log.debug("Removed {} intersection(s) from org '{}'", numberStrings.size(), org.getName());
@@ -151,7 +181,7 @@ public class OrganizationManagementService {
      * Refuses deletion if any RSU, intersection, or user would become orphaned
      * (i.e., associated with no organization after the delete).
      *
-     * @param orgId the ID of the organization to delete
+     * @param org the organization entity to delete
      * @throws ResponseStatusException            with 404 if the organization does
      *                                            not exist
      * @throws OrganizationHasDependentsException with 409 if orphaned RSUs,
@@ -178,6 +208,8 @@ public class OrganizationManagementService {
 
         userOrganizationRepository.deleteAllByOrganization(org);
         rsuOrganizationRepository.deleteAllByOrganization(org);
+        rsuCredentialRepository.removeByOwnerOrganization(org);
+        snmpCredentialRepository.removeByOwnerOrganization(org);
         intersectionOrganizationRepository.deleteAllByOrganization(org);
         organizationRepository.delete(org);
         log.debug("Organization '{}' deleted", org.getName());
@@ -203,7 +235,7 @@ public class OrganizationManagementService {
         List<RsuOption> optionsToSave = new ArrayList<>();
         for (Rsu rsu : rsus) {
             RsuOption option = existingOptions.getOrDefault(rsu.getId(), null);
-            Boolean modified = false;
+            boolean modified = false;
             if (option == null) {
                 option = new RsuOption();
                 option.setRsu(rsu);
@@ -226,8 +258,7 @@ public class OrganizationManagementService {
         log.debug("Bulk-applied RSU options to {} RSU(s) in org '{}'", optionsToSave.size(), organization.getName());
     }
 
-    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Organization organization,
-            List<Organization> authorizedOrgs, boolean isSuperUser) {
+    private void handleUsersToAdd(List<UserRoleAssignment> assignments, Organization organization) {
         if (assignments == null || assignments.isEmpty()) {
             return;
         }

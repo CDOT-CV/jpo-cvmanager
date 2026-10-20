@@ -1,9 +1,34 @@
 package us.dot.its.jpo.ode.api.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,22 +54,13 @@ import us.dot.its.jpo.ode.api.repositories.IntersectionOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-import org.mockito.InOrder;
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationManagementServiceTest {
@@ -58,11 +74,15 @@ class OrganizationManagementServiceTest {
     @Mock
     private RoleRepository roleRepository;
     @Mock
+    private RsuCredentialRepository rsuCredentialRepository;
+    @Mock
     private RsuRepository rsuRepository;
     @Mock
     private RsuOrganizationRepository rsuOrganizationRepository;
     @Mock
     private RsuOptionRepository rsuOptionRepository;
+    @Mock
+    private SnmpCredentialRepository snmpCredentialRepository;
     @Mock
     private IntersectionRepository intersectionRepository;
     @Mock
@@ -117,7 +137,7 @@ class OrganizationManagementServiceTest {
         when(authToken.isSuperUser()).thenReturn(true);
         when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
         when(organizationRepository.save(testOrg)).thenReturn(testOrg);
-        when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
+        lenient().when(organizationMapper.toDto(testOrg)).thenReturn(testOrgDto);
     }
 
     // =========================================================================
@@ -325,23 +345,19 @@ class OrganizationManagementServiceTest {
     }
 
     @Test
-    void testHandleUsersToAdd_NonSuperUser_NewOrgNameNotFound() {
-        // Rename scenario: caller is ADMIN of origName but not of the new name.
+    void testHandleUsersToAdd_NonSuperUser_NotAuthorized() {
         OrganizationPatch patch = minimalPatch();
         patch.setId(1);
-        patch.setName("TestOrgNew"); // renamed; caller is not ADMIN of the new name
         patch.setUsersToAdd(List.of(new UserRoleAssignment("user@test.com", "operator")));
 
         when(authToken.isSuperUser()).thenReturn(false);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(testOrg));
-        when(organizationRepository.findById(testOrg.getId())).thenReturn(Optional.of(testOrg));
-        when(organizationRepository.save(testOrg)).thenReturn(testOrg);
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.modifyOrganization(patch, authToken));
 
-        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        verify(userOrganizationRepository, never()).saveAll(any());
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(organizationRepository, never()).saveAll(any());
     }
 
     @Test
@@ -591,6 +607,23 @@ class OrganizationManagementServiceTest {
                 List.of("remove1@test.com", "remove2@test.com"), testOrg);
     }
 
+    @Test
+    void testUsersToRemove_OrphanedUser_ThrowsConflict() {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setUsersToRemove(List.of("orphan@test.com"));
+
+        when(userOrganizationRepository.hasSingleOrganization("orphan@test.com")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("orphan@test.com"));
+        verify(userOrganizationRepository, never()).deleteByUserEmailsAndOrganization(anyList(), eq(testOrg));
+        verify(userOrganizationRepository).hasSingleOrganization("orphan@test.com");
+    }
+
     // =========================================================================
     // handleRsusToAdd
     // =========================================================================
@@ -712,6 +745,24 @@ class OrganizationManagementServiceTest {
 
         verify(rsuOrganizationRepository).deleteByRsuIpv4AddressesAndOrganization(
                 List.of(ip1, ip2), testOrg);
+    }
+
+    @Test
+    void testRsusToRemove_OrphanedRsu_ThrowsConflict() throws UnknownHostException {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setRsusToRemove(List.of("10.0.1.9"));
+
+        InetAddress ip = InetAddress.getByName("10.0.1.9");
+        when(rsuOrganizationRepository.hasSingleOrganization(ip)).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("10.0.1.9"));
+        verify(rsuOrganizationRepository).hasSingleOrganization(ip);
+        verify(rsuOrganizationRepository, never()).deleteByRsuIpv4AddressesAndOrganization(any(), any());
     }
 
     @Test
@@ -849,6 +900,23 @@ class OrganizationManagementServiceTest {
                 List.of("1001", "1002"), testOrg);
     }
 
+    @Test
+    void testIntersectionsToRemove_OrphanedIntersection_ThrowsConflict() {
+        stubBaseFlow();
+        OrganizationPatch patch = minimalPatch();
+        patch.setIntersectionsToRemove(List.of(1001));
+
+        when(intersectionOrganizationRepository.hasSingleOrganization("1001")).thenReturn(true);
+
+        OrganizationManagementService.OrganizationHasDependentsException ex = assertThrows(
+                OrganizationManagementService.OrganizationHasDependentsException.class,
+                () -> service.modifyOrganization(patch, authToken));
+
+        assertTrue(ex.getMessage().contains("1001"));
+        verify(intersectionOrganizationRepository).hasSingleOrganization("1001");
+        verify(intersectionOrganizationRepository, never()).deleteByIntersectionNumbersAndOrganization(any(), any());
+    }
+
     // =========================================================================
     // deleteOrganization
     // =========================================================================
@@ -878,6 +946,8 @@ class OrganizationManagementServiceTest {
 
         assertTrue(ex.getMessage().contains("Intersection"));
         verify(userOrganizationRepository, never()).existsOrphanUserInOrganization(any());
+        verify(rsuCredentialRepository, never()).removeByOwnerOrganization(any());
+        verify(snmpCredentialRepository, never()).removeByOwnerOrganization(any());
         verify(organizationRepository, never()).delete(any());
     }
 
@@ -892,6 +962,8 @@ class OrganizationManagementServiceTest {
                 () -> service.deleteOrganization(testOrg));
 
         assertTrue(ex.getMessage().contains("user"));
+        verify(rsuCredentialRepository, never()).removeByOwnerOrganization(any());
+        verify(snmpCredentialRepository, never()).removeByOwnerOrganization(any());
         verify(organizationRepository, never()).delete(any());
     }
 
@@ -904,6 +976,8 @@ class OrganizationManagementServiceTest {
         service.deleteOrganization(testOrg);
 
         verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
+        verify(rsuCredentialRepository).removeByOwnerOrganization(testOrg);
+        verify(snmpCredentialRepository).removeByOwnerOrganization(testOrg);
         verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         verify(organizationRepository).delete(testOrg);
@@ -916,6 +990,8 @@ class OrganizationManagementServiceTest {
                 userOrganizationRepository,
                 rsuOrganizationRepository,
                 intersectionOrganizationRepository,
+                rsuCredentialRepository,
+                        snmpCredentialRepository,
                 organizationRepository);
 
         when(rsuOrganizationRepository.existsOrphanRsuInOrganization(testOrg)).thenReturn(false);
@@ -926,6 +1002,8 @@ class OrganizationManagementServiceTest {
 
         inOrder.verify(userOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(rsuOrganizationRepository).deleteAllByOrganization(testOrg);
+        inOrder.verify(rsuCredentialRepository).removeByOwnerOrganization(testOrg);
+        inOrder.verify(snmpCredentialRepository).removeByOwnerOrganization(testOrg);
         inOrder.verify(intersectionOrganizationRepository).deleteAllByOrganization(testOrg);
         inOrder.verify(organizationRepository).delete(testOrg);
     }

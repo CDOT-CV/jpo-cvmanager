@@ -3,6 +3,7 @@ package us.dot.its.jpo.ode.api.emails;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import com.postmarkapp.postmark.Postmark;
@@ -15,6 +16,7 @@ import us.dot.its.jpo.ode.api.models.emails.EmailBrokerType;
 
 @Slf4j
 @Component
+@Configuration
 @ConfigurationProperties(prefix = "email")
 @Data
 public class EmailProperties {

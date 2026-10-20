@@ -17,9 +17,10 @@
 --   Intersections: Org1 -> 1,2,3   Org2 -> 1,4,5   Org3 -> 1,6,7
 --   Users:         Org1 -> 1,2,3   Org2 -> 1,4,5   Org3 -> 1,6,7
 
-INSERT INTO public.manufacturers(name)
-  VALUES ('Commsignia'), ('Yunex'), ('Kapsch')
-  ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.manufacturers(name, firmware_file_extension)
+  VALUES ('Commsignia', '.tar.sig'), ('Yunex', '.tar'), ('Kapsch', NULL)
+  ON CONFLICT (name) DO UPDATE
+    SET firmware_file_extension = EXCLUDED.firmware_file_extension;
 
 INSERT INTO public.rsu_models(name, supported_radio, manufacturer)
   VALUES ('ITS-RS4-M', 'DSRC,C-V2X', 1), ('RSU2X US', 'DSRC,C-V2X', 2), ('RIS-9260', 'C-V2X', 3)
@@ -27,12 +28,20 @@ INSERT INTO public.rsu_models(name, supported_radio, manufacturer)
 
 INSERT INTO public.firmware_images(name, model, install_package, version)
   VALUES ('y20.0.0', 1, 'install_y20_0_0.tar', 'y20.0.0'), ('y20.1.0', 1, 'install_y20_1_0.tar', 'y20.1.0'), ('k1.0.0', 3, 'install_k1_0_0.tar', 'k1.0.0')
-  ON CONFLICT (name) DO NOTHING;
+  ON CONFLICT (model, version) DO NOTHING;
 
--- Three upgrade rules across the three firmware images. UNIQUE (from_id, to_id)
--- means a third meaningful rule is only possible because firmware_image 3 exists.
+-- Demonstrates a registered legacy firmware image whose expected cloud object
+-- is absent. The API derives its path in the active storage container at runtime.
+INSERT INTO public.firmware_images(
+    name, model, install_package, version)
+  VALUES (
+    'missing-file-demo', 1, 'missing-file-demo.tar.sig',
+    'missing-file-demo')
+  ON CONFLICT (model, version) DO NOTHING;
+
+-- A source has one destination, and both versions belong to the same model.
 INSERT INTO public.firmware_upgrade_rules(from_id, to_id)
-  VALUES (1, 2), (2, 3), (1, 3)
+  VALUES (1, 2)
   ON CONFLICT DO NOTHING;
 
 INSERT INTO public.organizations(name)
@@ -131,7 +140,7 @@ INSERT INTO public.email_type(email_type, required_role, description, supports_i
     ('Firmware Upgrade Failures',        2, 'Receive automated firmware upgrade failure emails', true,  false, false, false, false),
     ('Daily Message Counts',             3, 'Receive automated daily message count emails', false, false, true, false, false),
     ('Access Requests',                  1, 'Receive organization access requests from users', true,  false, false, false, false),
-    ('Intersection Notification Summary',3, 'Receive automated intersection notification summary emails', true,  true,  true,  true,  true),
+    ('Intersection Notification Summary',3, 'Receive automated intersection notification summary emails', false,  true,  true,  true,  true),
     ('Critical Error Messages',          2, 'Receive automated critical error message emails', true,  false, false, false, false)
   ON CONFLICT (email_type) DO UPDATE SET
     required_role      = EXCLUDED.required_role,
@@ -148,7 +157,7 @@ INSERT INTO public.user_email_notification(user_email_notification_id, user_id, 
     (2, 1, 2, true, false, false, false, false),
     (3, 1, 3, false, false, true, false, false),
     (4, 1, 4, true, false, false, false, false),
-    (5, 1, 5, true, true, true, true, true),
+    (5, 1, 5, false, true, true, true, true),
     (6, 1, 6, true, false, false, false, false)
   ON CONFLICT DO NOTHING;
 

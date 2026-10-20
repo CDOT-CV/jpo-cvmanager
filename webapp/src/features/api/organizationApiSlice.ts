@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
 import { AdminRsu } from '../../models/Rsu'
+import { RootState } from '../../store'
 
 // Tag type constants
 export const ORGANIZATION_API_RSU_LIST_TAG = 'RsuList' as const
@@ -22,7 +22,9 @@ export const organizationApiSlice = createApi({
       const currentState = getState() as RootState
       const token = selectToken(currentState)
 
-      headers.set('Authorization', `Bearer ${token}`)
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`)
+      }
 
       return headers
     },

@@ -15,6 +15,66 @@ All of the data flowing into and out of the intersection api is shown in the fol
 
 To view the endpoint configuration of the api, open the following HTML page in a browser: [docs/swagger-docs/docs.html](./docs/swagger-docs/docs.html)
 
+## Processed RSU Geospatial Messages
+
+`POST /rsu-geo-msg-data` queries processed BSM or PSM GeoJSON features by a polygon and inclusive time range. The Java Spring Boot Intersection API owns this route; the Python API no longer registers it. Requests use the existing Keycloak bearer-token security chain and require the `USER` role or super-user permission. An `Organization` header is optional and does not filter the returned data. The route also requires `enable.api=true` and returns HTTP 501 when `ENABLE_RSU_FEATURES=false`.
+
+Request coordinates are a closed polygon ring in `[longitude, latitude]` order. Timestamps accept ISO-8601 values; timezone-less values are interpreted as UTC. The response is a bare array of GeoJSON features. Only schema version 2 is returned. Duplicate records are reduced by message ID, 10-second epoch bucket, and coordinate buckets of 0.0001 degrees; the first Mongo cursor record for each key is retained. The configured cap applies before the retained records are sorted by their original timestamp strings. An empty result is `[]`.
+
+```json
+{
+  "geometry": [
+    [-122.5, 37.7],
+    [-122.3, 37.7],
+    [-122.3, 37.9],
+    [-122.5, 37.9],
+    [-122.5, 37.7]
+  ],
+  "start": "2024-01-01T00:00:00Z",
+  "end": "2024-01-01T01:00:00Z",
+  "msg_type": "BSM"
+}
+```
+
+The response removes Mongo `_id` and `recordGeneratedAt` fields and preserves the remaining stored GeoJSON properties. Query bounds are normalized to whole UTC seconds and compared inclusively; retained features are sorted using their stored timestamp strings, matching the prior service. Invalid requests return HTTP 400, unavailable MongoDB returns HTTP 503, and unexpected query failures return HTTP 500 through the API's Problem Details handling. The old Python route could wrap unsupported message types and connection failures in HTTP 200 responses; Java reports their actual error status. Authorization failures use the shared security-chain response.
+
+| Environment variable | Default | Purpose |
+|---|---|---|
+| `ENABLE_RSU_FEATURES` | `true` | Enables this route; disabled requests return 501 after authorization. |
+| `MONGO_PROCESSED_BSM_COLLECTION_NAME` | `ProcessedBsm` standalone; `processed_bsm` in Compose | Processed BSM collection. |
+| `MONGO_PROCESSED_PSM_COLLECTION_NAME` | `ProcessedPsm` standalone; `processed_psm` in Compose | Processed PSM collection. |
+| `MAX_GEO_QUERY_RECORDS` | `10000` | Maximum number of distinct schema-version-2 features retained before sorting. Blank values use 10000. |
+| `CM_DATABASE_NAME` | `CV` | Database used by the shared Intersection API Mongo client. |
+| `DB_HOST_IP`, `DB_HOST_PORT`, `MONGO_READ_WRITE_USER`, `MONGO_READ_WRITE_PASS`, `CM_MONGO_AUTH_DB` | Compose Mongo defaults | Shared Mongo connection settings used by all Java API repositories. |
+| `CM_MONGO_URI` | unset | Optional full connection-string override for the shared Java Mongo client. When moving from a custom Python `MONGO_DB_URI`, set its equivalent here. |
+
+The cap may be zero, which returns `[]`; a negative or nonnumeric cap prevents the API from starting. No second Mongo client is created for this route. Release the updated Intersection API and webapp together.
+
+For an authenticated smoke test, set `CVIZ_API_SERVER_URL` to the Java API base URL (including any configured route prefix) and `ACCESS_TOKEN` to a valid Keycloak bearer token, then run:
+
+```sh
+curl --fail-with-body --request POST "${CVIZ_API_SERVER_URL%/}/rsu-geo-msg-data" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"geometry":[[-122.5,37.7],[-122.3,37.7],[-122.3,37.9],[-122.5,37.9],[-122.5,37.7]],"start":"2024-01-01T00:00:00Z","end":"2024-01-01T01:00:00Z","msg_type":"BSM"}'
+```
+
+If the release needs rollback, restore the previous Intersection API, Python API, webapp, and Compose configuration together so the previous webapp continues to call the Python route.
+
+### Mock messages for local review
+
+The optional `mock_geo_message_generator` service seeds 12 BSM and 12 PSM schema-version-2 features around Denver. To enable it:
+
+1. Copy `sample-full.env` to `.env` if needed.
+2. Add `mock_geo_messages` to `COMPOSE_PROFILES`, alongside `intersection` and `mongo_full` and your existing profiles.
+3. Set `MOCK_GEO_MESSAGES_ENABLED=true` and `VIEWER_MSG_TYPES='BSM,PSM'`.
+4. Run `docker compose up -d --build`.
+5. Query BSM or PSM messages around Denver over the last 15 minutes.
+
+The service waits for `mongo-setup` to complete replica-set, user, and sample-data initialization before writing. It uses the Java API's `CM_DATABASE_NAME`, `CM_MONGO_URI`, and fallback Mongo connection settings, plus the configured processed-message collections. For a custom local database, keep `MONGO_DB_NAME` used by `mongo-setup` aligned with `CM_DATABASE_NAME`; `sample-full.env` already aliases them.
+
+Mock generation requires both the `mock_geo_messages` profile and `MOCK_GEO_MESSAGES_ENABLED=true`; it is disabled by default. The generator writes directly to MongoDB, bypassing Kafka. Stable IDs update the same records on reruns. To refresh timestamps, run `docker compose run --rm mock_geo_message_generator`. Check `docker compose logs mongo-setup mock_geo_message_generator` if seeding fails.
+
 ## Emails
 
 The intersection API exposes a set of `/emails/*` endpoints for triggering outbound notification emails. The following email types are supported:
@@ -22,7 +82,6 @@ The intersection API exposes a set of `/emails/*` endpoints for triggering outbo
 | Endpoint | Role Required | Description | Example |
 |---|---|---|---|
 | `POST /emails/support-requests` | Any authenticated user | User-submitted support request forwarded to the support team | [support_request_email_multiline_snapshot.html](api/src/test/resources/snapshots/emails/support_request_email_multiline_snapshot.html) |
-| `POST /emails/intersection-notifications` | `USER` or super user | Summary of active intersection notifications for configured recipients | [intersection_notification_summary_email_snapshot.html](api/src/test/resources/snapshots/emails/intersection_notification_summary_email_snapshot.html) |
 | `POST /emails/rsu-errors` | `USER` or super user | Summary of RSU errors detected by the conflict monitor | [rsu_error_summary_email_snapshot.html](api/src/test/resources/snapshots/emails/rsu_error_summary_email_snapshot.html) |
 | `POST /emails/api-errors` | `ROLE_SEND_CRITICAL_ERROR_MESSAGE_EMAILS` or super user | Critical API error notification with stack trace | [api_error_email_snapshot.html](api/src/test/resources/snapshots/emails/api_error_email_snapshot.html) |
 | `POST /emails/message-counts` | `ROLE_SEND_MESSAGE_COUNTS_EMAILS` or super user | Per-intersection message count summary | [message_count_snapshot.html](api/src/test/resources/snapshots/emails/message_count_snapshot.html) |
@@ -136,6 +195,45 @@ See the [api/README.md](api/README.md#running-locally) for instructions
 ### 2. Running Smtp4dev
 
 An Smtp4dev server can be used locally to test the Email capabilities of the conflict monitor API: [smtp4dev](https://github.com/rnwood/smtp4dev). Once running, this server can be connected to the api (and Keycloak).
+
+### 3. RSU message counts accuracy test (`PrometheusRsuCountsAccuracyIT`)
+
+[`PrometheusRsuCountsAccuracyIT`](api/src/test/java/us/dot/its/jpo/ode/api/services/PrometheusRsuCountsAccuracyIT.java) is a Testcontainers integration test. It loads synthetic ODE restart samples into Prometheus and checks that the production counts query stays within 2% of ground-truth increments across multiple `instance`/`host` lifetimes (including an overlapping scale-out instance).
+
+It compares three numbers for `topic.OdeBsmJson`:
+
+- **actual** — sum of per-scrape counter increments in [`OdeRestartMetricsFixture`](api/src/test/java/us/dot/its/jpo/ode/api/services/OdeRestartMetricsFixture.java)
+- **baseline** — frozen `sum_over_time(increase(...)[range:step])` query (the previous production shape)
+- **new** — current `sum by (topic) (increase(metric[range]))` query used by the Intersection API
+
+Prometheus `increase()` extrapolates about one scrape interval at series edges, so the new query can sit slightly above actual (around 0.3% on this fixture). VictoriaMetrics (production) does not extrapolate. Both queries must stay within 2% of actual.
+
+This class is named `*IT` and is **not** included in a plain `mvn test` run. Run it explicitly.
+
+#### Prerequisites
+
+- Java 22 (`JAVA_HOME`) and Maven (see [api/README.md](api/README.md#running-locally))
+- Docker engine running, with access to pull `prom/prometheus:v3.1.0`
+- On Docker Desktop for Windows, use **Linux** containers. The Prometheus image is Linux-only.
+- GitHub packages credentials in `~/.m2/settings.xml` (same as a normal test compile)
+
+If Docker is not available, Testcontainers skips the class (`@Testcontainers(disabledWithoutDocker = true)`).
+
+#### Run
+
+From `services/intersection-api/api`:
+
+```sh
+mvn test -Dtest=PrometheusRsuCountsAccuracyIT
+```
+
+PowerShell treats `=` as parsing, so quote the property:
+
+```powershell
+mvn test "-Dtest=PrometheusRsuCountsAccuracyIT"
+```
+
+A passing run prints a line like `RSU counts accuracy topic=topic.OdeBsmJson actual=... baseline=... new=...` and exits 0. First run can take a couple of minutes while Testcontainers pulls the Prometheus image and imports OpenMetrics into TSDB.
 
 ## Updating the Asn.1 FFM Decoder Binaries
 

@@ -1,9 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 import { selectToken } from '../../generalSlices/userSlice'
-import { getQueryString } from './intersectionApiSlice'
 import { PaginatedQueryParams, PaginatedResponse } from '../../models/pagination'
+import { RootState } from '../../store'
+import { getQueryString } from './intersectionConfigSlice'
 
 export interface GetUsersParams extends PaginatedQueryParams {
   organization: string
@@ -23,7 +23,9 @@ export const userApiSlice = createApi({
       const token = selectToken(currentState)
 
       headers.set('Accept', 'application/json')
-      headers.set('Authorization', `Bearer ${token}`)
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`)
+      }
 
       return headers
     },
@@ -87,7 +89,7 @@ export const userApiSlice = createApi({
       query: ({ email, patch }) => ({
         url: `/${email}`,
         method: 'PATCH',
-        body: { origin_ip: email, ...patch },
+        body: { email: email, ...patch },
       }),
       invalidatesTags: (result, error, { email }) => [
         { type: USER_API_USER_TAG, id: email },

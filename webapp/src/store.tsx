@@ -1,32 +1,36 @@
 import { configureStore } from '@reduxjs/toolkit'
-import rsuReducer from './generalSlices/rsuSlice'
-import userReducer from './generalSlices/userSlice'
-import wzdxReducer from './generalSlices/wzdxSlice'
-import configReducer from './generalSlices/configSlice'
-import intersectionReducer from './generalSlices/intersectionSlice'
-import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
+import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
-import menuReducer from './features/menu/menuSlice'
-import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
-import intersectionMapReducer from './features/intersections/map/map-slice'
-import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
-import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import { ADMIN_INTERSECTION_AVAILABLE_LIST_ID, ADMIN_INTERSECTION_LIST_ID, ADMIN_INTERSECTION_TAG, adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
 import { emailApiSlice } from './features/api/emailApiSlice'
-import { intersectionApiSlice } from './features/api/intersectionApiSlice'
+import { firmwareApiSlice } from './features/api/firmwareApiSlice'
+import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
+import { intersectionMapApiMiddleware } from './features/api/intersection-map-api-middleware'
+import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
+import { intersectionMapApiSlice } from './features/api/intersectionMapApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
-import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
-import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
-import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
 import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from './features/api/rsuApiSlice'
+import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
+import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
+import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
+import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
 import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from './features/api/userApiSlice'
-import { ADMIN_INTERSECTION_LIST_ID, adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
-import { ADMIN_INTERSECTION_AVAILABLE_LIST_ID, ADMIN_INTERSECTION_TAG } from './features/api/adminIntersectionApiSlice'
-import mapSliceReducer from './pages/mapSlice'
-import timeSyncReducer from './generalSlices/timeSyncSlice'
+import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
+import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
+import intersectionMapReducer from './features/intersections/map/map-slice'
+import menuReducer from './features/menu/menuSlice'
+import configReducer from './generalSlices/configSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
+import intersectionReducer from './generalSlices/intersectionSlice'
+import rsuReducer from './generalSlices/rsuSlice'
+import timeSyncReducer from './generalSlices/timeSyncSlice'
+import userReducer from './generalSlices/userSlice'
+import wzdxReducer from './generalSlices/wzdxSlice'
+import mapSliceReducer from './pages/mapSlice'
 
 export const setupStore = (preloadedState?: Partial<any>) => {
   return configureStore({
@@ -48,16 +52,20 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       asn1Decoder: asn1DecoderSlice,
       timeSync: timeSyncReducer,
       haas: haasSliceReducer,
+      [intersectionConfigSlice.reducerPath]: intersectionConfigSlice.reducer,
+      [intersectionMapApiSlice.reducerPath]: intersectionMapApiSlice.reducer,
       [emailApiSlice.reducerPath]: emailApiSlice.reducer,
-      [intersectionApiSlice.reducerPath]: intersectionApiSlice.reducer,
       [organizationApiSlice.reducerPath]: organizationApiSlice.reducer,
       [rsuCountsApiSlice.reducerPath]: rsuCountsApiSlice.reducer,
       [unsubscribeApiSlice.reducerPath]: unsubscribeApiSlice.reducer,
       [subscriptionManagementApiSlice.reducerPath]: subscriptionManagementApiSlice.reducer,
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
+      [rsuOnlineStatusApiSlice.reducerPath]: rsuOnlineStatusApiSlice.reducer,
+      [geoMsgApiSlice.reducerPath]: geoMsgApiSlice.reducer,
       [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
+      [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -66,16 +74,21 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         serializableCheck: false,
         immutableCheck: false,
       })
+        .concat(intersectionConfigSlice.middleware)
+        .concat(intersectionMapApiSlice.middleware)
+        .concat(intersectionMapApiMiddleware.middleware)
         .concat(emailApiSlice.middleware)
-        .concat(intersectionApiSlice.middleware)
         .concat(rsuCountsApiSlice.middleware)
         .concat(unsubscribeApiSlice.middleware)
         .concat(subscriptionManagementApiSlice.middleware)
         .concat(organizationApiSlice.middleware)
         .concat(rsuApiSlice.middleware)
+        .concat(rsuOnlineStatusApiSlice.middleware)
+        .concat(geoMsgApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
+        .concat(firmwareApiSlice.middleware)
         .concat((api) => (next) => (action) => {
           const result = next(action)
           // After any patchOrganization succeeds, invalidate adminIntersectionApiSlice

@@ -1,31 +1,34 @@
-import { useState, useEffect, useMemo } from 'react'
-import AdminTable from '../../components/AdminTable'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
-import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { DropdownList, Multiselect } from 'react-widgets'
+import Accordion from '@mui/material/Accordion'
+import AccordionDetails from '@mui/material/AccordionDetails'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import Typography from '@mui/material/Typography'
+import { useEffect, useMemo, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
+import { useDispatch, useSelector } from 'react-redux'
+import { DropdownList, Multiselect } from 'react-widgets'
 import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable from '../../components/AdminTable'
 import {
-  selectAuthLoginData,
-  selectEmail,
-  selectLoadingGlobal,
-  setOrganizationList,
+    addOrModifyOrgAssociationByOrgName,
+    deleteOrgAssociationByOrgId,
+    selectAuthLoginData,
+    selectEmail,
+    selectLoadingGlobal,
 } from '../../generalSlices/userSlice'
-import { useSelector, useDispatch } from 'react-redux'
 
-import '../adminRsuTab/Admin.css'
 import { Action, Column } from '@material-table/core'
 import toast from 'react-hot-toast'
+import '../adminRsuTab/Admin.css'
 
-import { useTheme } from '@mui/material'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
+import { useTheme } from '@mui/material'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { RootState } from '../../store'
 import {
-  useGetAllUsersNotInOrganizationQuery,
-  useLazyGetUserOrganizationsQuery,
-  usePatchOrganizationMutation,
+    useGetAllUsersNotInOrganizationQuery,
+    useLazyGetUserOrganizationsQuery,
+    usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
 import { useGetUserAllowedSelectionsQuery, useGetUsersQuery } from '../api/userApiSlice'
 
@@ -36,7 +39,7 @@ interface AdminOrganizationTabUserProps {
 
 const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const { selectedOrgId, selectedOrgName } = props
-  const dispatch = useDispatch()
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const theme = useTheme()
 
   const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
@@ -224,9 +227,8 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           users_to_remove: [row.email],
         }).unwrap()
         if (row.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: row.role }, type: 'delete' }))
+          dispatch(deleteOrgAssociationByOrgId(props.selectedOrgId))
         }
-        toast.success('User deleted successfully', { id: loadingToast })
       } else {
         toast.dismiss(loadingToast)
         alert(
@@ -266,13 +268,14 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         )
         return
       }
+
       await patchOrganization({
         id: selectedOrgId,
         users_to_remove: validEmails,
       }).unwrap()
       for (const user of rows) {
         if (user.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: user.role }, type: 'delete' }))
+          dispatch(deleteOrgAssociationByOrgId(props.selectedOrgId))
         }
       }
       toast.success('User(s) deleted successfully', { id: loadingToast })
@@ -300,7 +303,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       setSelectedUserList([])
       for (const user of userList) {
         if (user.email === authLoginData?.data?.email) {
-          dispatch(setOrganizationList({ value: { name: selectedOrgName, role: user.role }, type: 'add' }))
+          dispatch(addOrModifyOrgAssociationByOrgName({ name: selectedOrgName, role: user.role as UserRole }))
         }
       }
       toast.success('User(s) added successfully', { id: loadingToast })
@@ -327,13 +330,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       }).unwrap()
       for (const row of rows) {
         if (row.newData.email === userEmail) {
-          dispatch(
-            setOrganizationList({
-              value: { name: selectedOrgName, role: row.newData.role },
-              orgName: selectedOrgName,
-              type: 'update',
-            })
-          )
+          dispatch(addOrModifyOrgAssociationByOrgName({ name: selectedOrgName, role: row.newData.role as UserRole }))
         }
       }
       toast.success('User(s) updated successfully', { id: loadingToast })
