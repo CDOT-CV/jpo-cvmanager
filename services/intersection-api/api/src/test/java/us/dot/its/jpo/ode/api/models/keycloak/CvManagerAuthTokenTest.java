@@ -123,7 +123,7 @@ class CvManagerAuthTokenTest {
                     createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"),
                     createOrganizationMap(2, "AnotherOrg", "another@example.com", "operator"),
                     createOrganizationMap(3, "YetAnotherOrg", "yetanother@example.com", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
@@ -147,7 +147,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnEmailFromEmailClaim() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "user@example.com", null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -163,7 +163,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnEmailFromPreferredUsername() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -179,7 +179,7 @@ class CvManagerAuthTokenTest {
         void shouldPreferEmailClaimOverPreferredUsername() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "email@example.com", "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -195,7 +195,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnNullWhenNoEmailClaims() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, null, null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -211,7 +211,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnNullWhenEmailIsEmpty() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "preferred@example.com");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -227,7 +227,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnNullWhenBothEmailsAreEmpty() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, "", "");
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -251,7 +251,7 @@ class CvManagerAuthTokenTest {
         void shouldHandleEmailInVariousFormats(String testEmail) {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwtWithEmail(cvmanagerData, testEmail, null);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -274,7 +274,7 @@ class CvManagerAuthTokenTest {
             List<Map<String, Object>> orgs = List.of(
                     createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"),
                     createOrganizationMap(2, "WYDOT", "wydot@example.com", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(true, orgs);
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
                     .header("typ", "JWT")
@@ -301,7 +301,7 @@ class CvManagerAuthTokenTest {
         void shouldHandleTokenWithOnlyPreferredUsername() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "operator"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = Jwt.withTokenValue("mock-token")
                     .header("alg", "RS256")
                     .claim("sub", "user-123")
@@ -410,7 +410,7 @@ class CvManagerAuthTokenTest {
                     createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"),
                     createOrganizationMap(2, "WYDOT", "wydot@example.com", "operator"),
                     createOrganizationMap(3, "VDOT", "vdot@example.com", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
         }
@@ -458,7 +458,7 @@ class CvManagerAuthTokenTest {
                     createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"),
                     createOrganizationMap(2, "WYDOT", "wydot@example.com", "operator"),
                     createOrganizationMap(3, "VDOT", "vdot@example.com", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -477,7 +477,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnEmptySetWhenNoOrganizations() {
             // Arrange
             List<Map<String, Object>> orgs = List.of();
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -510,7 +510,7 @@ class CvManagerAuthTokenTest {
                     createOrganizationMap(2, "WYDOT", "email2", "operator"),
                     createOrganizationMap(3, "VDOT", "email3", "user"),
                     createOrganizationMap(4, "TXDOT", "email4", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", tokenOrgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, tokenOrgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
         }
@@ -556,7 +556,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnEmptyListWhenNoOrgsMeetRequirement() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "email1", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken tokenWithOnlyUser = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -580,7 +580,7 @@ class CvManagerAuthTokenTest {
                     createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"),
                     createOrganizationMap(2, "WYDOT", "wydot@example.com", "operator"),
                     createOrganizationMap(3, "VDOT", "vdot@example.com", "user"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
         }
@@ -625,7 +625,7 @@ class CvManagerAuthTokenTest {
         void shouldHandleEmptyOrganizationsList() {
             // Arrange
             List<Map<String, Object>> orgs = List.of();
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
@@ -641,7 +641,7 @@ class CvManagerAuthTokenTest {
         void shouldHandleSingleOrganization() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
