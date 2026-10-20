@@ -1,5 +1,21 @@
 package us.dot.its.jpo.ode.api.controllers.organizations;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,16 +27,6 @@ import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationControllerTest {
@@ -249,8 +255,8 @@ class OrganizationControllerTest {
                 IllegalArgumentException.class,
                 () -> organizationController.getRsuOrganizationAssignments(malformedIp));
 
-        assertTrue(exception.getMessage().contains("Invalid IP address: "));
-        assertTrue(exception.getMessage().contains(malformedIp));
+        assertTrue(
+                exception.getMessage().contains("Invalid IP address, should be like #.#.#.#, but was " + malformedIp));
 
         verify(rsuRepository, never()).findAllOrganizationNamesByIpv4Address(any());
     }
