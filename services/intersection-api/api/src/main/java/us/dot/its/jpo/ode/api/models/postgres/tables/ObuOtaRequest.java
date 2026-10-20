@@ -44,7 +44,7 @@ public class ObuOtaRequest {
     private String requestedFirmwareVersion;
 
     @NotNull
-    @Column(name = "error_status", nullable = false, columnDefinition = "bit(1)")
+    @Column(name = "error_status", nullable = false)
     private Boolean errorStatus;
 
     @Size(max = 128)

@@ -54,7 +54,7 @@ class CvManagerAuthTokenTest {
         return builder.build();
     }
 
-    private Map<String, Object> createCvManagerData(String superUser, List<Map<String, Object>> organizations) {
+    private Map<String, Object> createCvManagerData(Object superUser, List<Map<String, Object>> organizations) {
         Map<String, Object> cvmanagerData = new HashMap<>();
         cvmanagerData.put("super_user", superUser);
         cvmanagerData.put("organizations", organizations);
@@ -88,7 +88,7 @@ class CvManagerAuthTokenTest {
         void shouldCreateTokenWithSuperUserTrue() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(true, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
@@ -104,7 +104,7 @@ class CvManagerAuthTokenTest {
         void shouldCreateTokenWithSuperUserFalse() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("0", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             Collection<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
 
@@ -324,8 +324,30 @@ class CvManagerAuthTokenTest {
     class IsSuperUserTests {
 
         @Test
-        @DisplayName("Should return true when super_user is '1'")
-        void shouldReturnTrueWhenSuperUserIs1() {
+        @DisplayName("Should return true when super_user is boolean true")
+        void shouldReturnTrueWhenSuperUserIsBooleanTrue() {
+            List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
+            Map<String, Object> cvmanagerData = createCvManagerData(true, orgs);
+            Jwt jwt = createMockJwt(cvmanagerData);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            assertTrue(token.isSuperUser());
+        }
+
+        @Test
+        @DisplayName("Should return false when super_user is boolean false")
+        void shouldReturnFalseWhenSuperUserIsBooleanFalse() {
+            List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
+            Map<String, Object> cvmanagerData = createCvManagerData(false, orgs);
+            Jwt jwt = createMockJwt(cvmanagerData);
+            CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+            assertFalse(token.isSuperUser());
+        }
+
+        @Test
+        @DisplayName("Should return false when super_user is the pre-boolean string '1'")
+        void shouldReturnFalseWhenSuperUserIsString1() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
             Map<String, Object> cvmanagerData = createCvManagerData("1", orgs);
@@ -333,11 +355,11 @@ class CvManagerAuthTokenTest {
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
             // Act & Assert
-            assertTrue(token.isSuperUser());
+            assertFalse(token.isSuperUser());
         }
 
         @Test
-        @DisplayName("Should return false when super_user is '0'")
+        @DisplayName("Should return false when super_user is the pre-boolean string '0'")
         void shouldReturnFalseWhenSuperUserIs0() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
@@ -367,7 +389,7 @@ class CvManagerAuthTokenTest {
         void shouldReturnFalseWhenSuperUserIsOtherString() {
             // Arrange
             List<Map<String, Object>> orgs = List.of(createOrganizationMap(1, "CDOT", "cdot@example.com", "admin"));
-            Map<String, Object> cvmanagerData = createCvManagerData("true", orgs);
+            Map<String, Object> cvmanagerData = createCvManagerData("yes", orgs);
             Jwt jwt = createMockJwt(cvmanagerData);
             CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
 
