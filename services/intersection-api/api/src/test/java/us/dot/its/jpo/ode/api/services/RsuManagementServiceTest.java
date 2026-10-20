@@ -548,6 +548,30 @@ class RsuManagementServiceTest {
         assertTrue(exception.getMessage().contains("Invalid model format"));
     }
 
+    @Test
+    void testModifyRsu_IpChangedWithConflict() {
+        String rsuIp = "192.168.1.100";
+
+        RsuPatch patch = new RsuPatch();
+        patch.setIpv4Address("192.168.1.101");
+
+        Rsu existingRsu = new Rsu();
+        existingRsu.setRsuOrganizations(new HashSet<>());
+        existingRsu.setIpv4Address(RsuManagementService.toIpv4Address("192.168.1.100"));
+
+        Rsu conflictingRsu = new Rsu();
+        conflictingRsu.setRsuOrganizations(new HashSet<>());
+        conflictingRsu.setIpv4Address(RsuManagementService.toIpv4Address("192.168.1.101"));
+
+        when(rsuRepository.findByIpv4Address(any())).thenReturn(existingRsu, conflictingRsu);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu(rsuIp, patch, authToken));
+
+        assertTrue(exception.getMessage().contains("RSU with IP 192.168.1.101 already exists"));
+    }
+
     // ==================== HANDLE ORGANIZATION CHANGES TESTS ====================
 
     @Test
