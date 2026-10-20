@@ -23,8 +23,9 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/gcp/application-default-credentials.json
 
       # Proxies allowed to set X-Forwarded-For. "*" is used because the NGINX container
-      # address is not fixed; it is safe because only NGINX and local processes can
-      # reach the backend port.
+      # address is not fixed. It is safe because NGINX replaces any client-supplied
+      # X-Forwarded-For value with the connecting address, and the backend port is
+      # published on localhost only.
       FORWARDED_ALLOW_IPS: ${OBU_OTA_FORWARDED_ALLOW_IPS:-*}
 
       OTA_USERNAME: ${OTA_USERNAME:-admin}

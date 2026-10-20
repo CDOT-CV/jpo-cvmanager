@@ -9,5 +9,6 @@ COPY addons/images/obu_ota_server/*.py .
 COPY common/*.py ./common/
 
 # --proxy-headers trusts X-Forwarded-For from the hosts in FORWARDED_ALLOW_IPS so the
-# real OBU address is logged instead of the NGINX proxy address
+# real OBU address is logged instead of the NGINX proxy address. The proxy must replace
+# any client-supplied X-Forwarded-For value (see resources/ota/nginx)
 CMD ["uvicorn", "obu_ota_server:app", "--host", "0.0.0.0", "--port", "8085", "--proxy-headers"]
