@@ -320,10 +320,9 @@ function MapPage() {
   const menuSelection = useSelector(selectMenuSelection)
   const activeLayers = useSelector(selectActiveLayers)
 
-  // WZDx feed is only fetched while the layer is visible; toggling the layer on re-subscribes and refetches
+  // WZDx feed is only fetched when ENABLE_WZDX_FEATURE is true/enabled
   const { data: wzdxData } = useGetWzdxFeedQuery(undefined, {
-    skip: !EnvironmentVars.ENABLE_WZDX_FEATURES || !activeLayers.includes(WZDX_LINE_LAYER_ID),
-    refetchOnMountOrArgChange: true,
+    skip: !EnvironmentVars.ENABLE_WZDX_FEATURES
   })
   const wzdxFeatures = wzdxData?.features ?? EMPTY_WZDX_FEATURES
   const safeWzdxData = wzdxData?.features ? wzdxData : EMPTY_WZDX_DATA

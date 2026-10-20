@@ -97,7 +97,6 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
         .concat(firmwareApiSlice.middleware)
-        .concat(adminIntersectionApiSlice.middleware)
         .concat(wzdxFeedApi.middleware),
     devTools: true,
   })
