@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.net.Inet4Address;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,20 +21,7 @@ import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
-import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
-import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
-import us.dot.its.jpo.ode.api.repositories.PingRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
-import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -43,7 +29,20 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
+import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.PingRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @Service
 @Slf4j
@@ -66,7 +65,7 @@ public class RsuManagementService {
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
-    private static final String IPV4_PATTERN = "^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$";
+    private static final String IPV4_PATTERN = "^(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}$";
 
     public RsuInfoDto getRsuInfo(String ipv4Address) {
         Rsu rsu = rsuRepository.findByIpv4Address(toIpv4Address(ipv4Address));
@@ -391,14 +390,11 @@ public class RsuManagementService {
         if (ip == null || !ip.matches(IPV4_PATTERN)) {
             throw new IllegalArgumentException("Invalid IP address, should be like #.#.#.#, but was " + ip);
         }
-        try {
-            Inet4Address address = Inet4Address.getByName(ip);
-            if (address.getAddress().length != 4) {
-                throw new IllegalArgumentException("IP address must be IPv4, must have 4 valid octets but was " + ip);
-            }
-            return address;
-        } catch (UnknownHostException exception) {
-            throw new IllegalArgumentException("Invalid IP address: " + ip, exception);
+        // Throws IllegalArgumentException if the IP address is not a valid IPv4 literal
+        Inet4Address address = Inet4Address.ofLiteral(ip);
+        if (address.getAddress().length != 4) {
+            throw new IllegalArgumentException("IP address must be IPv4, must have 4 valid octets but was " + ip);
         }
+        return address;
     }
 }

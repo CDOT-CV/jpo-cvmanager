@@ -1,11 +1,30 @@
 package us.dot.its.jpo.ode.api.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -17,12 +36,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
+import us.dot.its.jpo.ode.api.models.SimplePosition;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.models.SimplePosition;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
@@ -36,27 +55,14 @@ import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RsuManagementServiceTest {
@@ -203,19 +209,13 @@ class RsuManagementServiceTest {
 
     @Test
     void testToIpv4Address_AddressLengthIsNotFour() throws UnknownHostException {
-        String ipAddress = "192.168.1.100";
-        Inet4Address nonIpv4Address = Inet6Address.getByAddress(null, new byte[16], -1);
+        String ipAddress = "192.168.1.100.1.2";
 
-        try (MockedStatic<Inet4Address> Inet4AddressMock = mockStatic(Inet4Address.class)) {
-            Inet4AddressMock.when(() -> Inet4Address.getByName(ipAddress)).thenReturn(nonIpv4Address);
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> RsuManagementService.toIpv4Address(ipAddress));
-
-            assertEquals("IP address must be IPv4, must have 4 valid octets but was " + ipAddress,
-                    exception.getMessage());
-        }
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> RsuManagementService.toIpv4Address(ipAddress));
+        assertEquals("Invalid IP address, should be like #.#.#.#, but was " + ipAddress,
+                exception.getMessage());
     }
 
     // ==================== GET ALL RSU INFO TESTS ====================
@@ -912,7 +912,7 @@ class RsuManagementServiceTest {
                 IllegalArgumentException.class,
                 () -> RsuManagementService.toIpv4Address("999.1.1.1"));
 
-        assertEquals("Invalid IP address: 999.1.1.1", exception.getMessage());
+        assertEquals("Invalid IP address, should be like #.#.#.#, but was 999.1.1.1", exception.getMessage());
     }
 
     private RsuRepository.RsuModelProjection createRsuModelProjection(String manufacturer, String model) {
