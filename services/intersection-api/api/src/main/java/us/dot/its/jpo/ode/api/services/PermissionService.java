@@ -1,5 +1,13 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -16,18 +24,10 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service("PermissionService")
@@ -112,7 +112,20 @@ public class PermissionService {
 
         // Verify that organization header matches qualified orgs, if specified
         String organization = getOrganizationFromHeader();
-        if (organization != null) {
+        Integer orgId = tryGetOrgIdFromString(organization);
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                // If an organization is specified in the header, ensure it's in the qualified
+                // orgs list
+                return false;
+            } else {
+                return qualifiedOrgCheck.test(List.of(matchingOrg));
+            }
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()
@@ -352,8 +365,19 @@ public class PermissionService {
         }
 
         String organization = getOrganizationFromHeader();
+        Integer orgId = tryGetOrgIdFromString(organization);
         List<Organization> orgsToCheck = qualifiedOrgs;
-        if (organization != null) {
+
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                return rsuIPs;
+            }
+            orgsToCheck = List.of(matchingOrg);
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()
