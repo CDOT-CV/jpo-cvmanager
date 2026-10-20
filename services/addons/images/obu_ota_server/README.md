@@ -64,7 +64,11 @@ The following environmental variables must be set:
 
 <b>PG_DB_HOST:</b> PostgreSQL hostname, optionally followed by `:port`. Defaults to port 5432 when no port is provided.
 
-<b>FORWARDED_ALLOW_IPS:</b> Comma-separated proxy addresses trusted to provide the `X-Forwarded-For` header, so the OBU address is logged instead of the proxy address. Docker Compose sets this from `OBU_OTA_FORWARDED_ALLOW_IPS` and defaults to `*`, which is safe because Compose publishes the backend port (8085) on localhost only. Remote clients must connect through NGINX on port 80 or 443.
+<b>FORWARDED_ALLOW_IPS:</b> Comma-separated proxy addresses trusted to provide the `X-Forwarded-For` header, so the OBU address is logged instead of the proxy address. Docker Compose sets this from `OBU_OTA_FORWARDED_ALLOW_IPS` and defaults to `*`. With `*`, the server records the first address in the header, so the proxy in front of it must not pass a client-supplied value through:
+
+- The bundled NGINX configurations (`resources/ota/nginx`) replace the header with `$remote_addr`, the address NGINX received the connection from, and Compose publishes the backend port (8085) on localhost only. Remote clients must connect through NGINX on port 80 or 443.
+- If another proxy or load balancer sits in front of NGINX, `$remote_addr` is that proxy's address. Configure the NGINX `realip` module with the upstream proxy's addresses (`set_real_ip_from <proxy address or CIDR>;`, `real_ip_header X-Forwarded-For;`, and `real_ip_recursive on;`) so `$remote_addr` becomes the client address.
+- Without NGINX, for example behind a Kubernetes ingress, never use `*`. Set `FORWARDED_ALLOW_IPS` to the ingress proxy addresses so the server uses the last address in the header that is not a trusted proxy, which a client cannot forge. When it is unset, only `127.0.0.1` is trusted and the proxy address is logged.
 
 <b>MAX_COUNT:</b> Max number of succesfull firmware upgrades to keep in the database per device SN.
 
