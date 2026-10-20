@@ -172,7 +172,7 @@ class IntersectionMapperTest {
         }
 
         @Test
-        @DisplayName("InetAddress originIp is serialized to dotted-decimal string")
+        @DisplayName("Inet4Address originIp is serialized to dotted-decimal string")
         void toDto_originIp_serializedToString() throws UnknownHostException {
             Intersection entity = new Intersection();
             entity.setIntersectionNumber("12109");

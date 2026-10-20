@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.net.UnknownHostException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,30 +22,30 @@ class INetMapperTest {
     }
 
     @Nested
-    @DisplayName("Tests for mapInetAddressToString mapper method")
-    class MapInetAddressToStringTests {
+    @DisplayName("Tests for mapInet4AddressToString mapper method")
+    class MapInet4AddressToStringTests {
         @Test
-        void testMapInetAddressToString_ValidIpv4() throws UnknownHostException {
-            InetAddress address = RsuManagementService.toIpv4Address("192.168.1.100");
+        void testMapInet4AddressToString_ValidIpv4() throws UnknownHostException {
+            Inet4Address address = RsuManagementService.toIpv4Address("192.168.1.100");
 
-            String result = iNetMapper.mapInetAddressToString(address);
+            String result = iNetMapper.mapInet4AddressToString(address);
 
             assertNotNull(result);
             assertEquals("192.168.1.100", result);
         }
 
         @Test
-        void testMapInetAddressToString_Null() {
-            String result = iNetMapper.mapInetAddressToString(null);
+        void testMapInet4AddressToString_Null() {
+            String result = iNetMapper.mapInet4AddressToString(null);
 
             assertNull(result);
         }
 
         @Test
-        void testMapInetAddressToString_Localhost() throws UnknownHostException {
-            InetAddress address = RsuManagementService.toIpv4Address("127.0.0.1");
+        void testMapInet4AddressToString_Localhost() throws UnknownHostException {
+            Inet4Address address = RsuManagementService.toIpv4Address("127.0.0.1");
 
-            String result = iNetMapper.mapInetAddressToString(address);
+            String result = iNetMapper.mapInet4AddressToString(address);
 
             assertNotNull(result);
             assertEquals("127.0.0.1", result);
@@ -53,28 +53,28 @@ class INetMapperTest {
     }
 
     @Nested
-    @DisplayName("Tests for mapStringToInetAddress mapper method")
-    class MapStringToInetAddressTests {
+    @DisplayName("Tests for mapStringToInet4Address mapper method")
+    class MapStringToInet4AddressTests {
         @Test
-        void testMapStringToInetAddress_ValidIpv4() {
-            InetAddress result = iNetMapper.mapStringToInetAddress("192.168.1.100");
+        void testMapStringToInet4Address_ValidIpv4() {
+            Inet4Address result = iNetMapper.mapStringToInet4Address("192.168.1.100");
 
             assertNotNull(result);
             assertEquals("192.168.1.100", result.getHostAddress());
         }
 
         @Test
-        void testMapStringToInetAddress_Null() {
-            InetAddress result = iNetMapper.mapStringToInetAddress(null);
+        void testMapStringToInet4Address_Null() {
+            Inet4Address result = iNetMapper.mapStringToInet4Address(null);
 
             assertNull(result);
         }
 
         @Test
-        void testMapStringToInetAddress_InvalidIp() {
+        void testMapStringToInet4Address_InvalidIp() {
             IllegalArgumentException exception = assertThrows(
                     IllegalArgumentException.class,
-                    () -> iNetMapper.mapStringToInetAddress("invalid-ip"));
+                    () -> iNetMapper.mapStringToInet4Address("invalid-ip"));
 
             assertTrue(exception.getMessage().contains("Invalid IP address, should be like #.#.#.#, but was "));
             assertTrue(exception.getMessage().contains("invalid-ip"));
@@ -82,14 +82,14 @@ class INetMapperTest {
     }
 
     @Nested
-    @DisplayName("Round-trip tests for InetAddress <-> String mapping")
+    @DisplayName("Round-trip tests for Inet4Address <-> String mapping")
     class RoundTripTests {
         @Test
         void testRoundTrip_ValidIpv4() {
             String originalIp = "192.168.1.100";
 
-            InetAddress inetAddress = iNetMapper.mapStringToInetAddress(originalIp);
-            String resultIp = iNetMapper.mapInetAddressToString(inetAddress);
+            Inet4Address Inet4Address = iNetMapper.mapStringToInet4Address(originalIp);
+            String resultIp = iNetMapper.mapInet4AddressToString(Inet4Address);
 
             assertNotNull(resultIp);
             assertEquals(originalIp, resultIp);

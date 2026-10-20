@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.List;
 
 /**
@@ -42,7 +42,7 @@ public interface UserEmailNotificationRepository extends JpaRepository<UserEmail
             "OR (:frequency = 'WEEKLY' AND uen.weekly = true) " +
             "OR (:frequency = 'MONTHLY' AND uen.monthly = true))")
     List<String> findUsersByNotificationTypeAndRsu(@Param("notificationType") String notificationType,
-            @Param("frequency") String frequency, @Param("rsuIp") InetAddress rsuIp);
+            @Param("frequency") String frequency, @Param("rsuIp") Inet4Address rsuIp);
 
     @Query("SELECT DISTINCT uen.user.email " +
             "FROM UserEmailNotification uen " +

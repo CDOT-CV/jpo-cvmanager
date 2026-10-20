@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -53,8 +53,8 @@ public class RsuOptionManagementService {
 
     // Finds RSU by IP address or throws NOT_FOUND/BAD_REQUEST
     private Rsu findRsuByIp(String rsuIp) {
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
-        Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
+        Rsu rsu = rsuRepository.findByIpv4Address(Inet4Address);
 
         if (rsu == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);

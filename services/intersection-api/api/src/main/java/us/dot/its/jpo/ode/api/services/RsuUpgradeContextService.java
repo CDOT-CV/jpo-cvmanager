@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
@@ -17,7 +17,7 @@ public class RsuUpgradeContextService {
     }
 
     public Rsu findRsuByIp(String rsuIp) {
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
-        return rsuRepository.findByIpv4Address(inetAddress);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
+        return rsuRepository.findByIpv4Address(Inet4Address);
     }
 }

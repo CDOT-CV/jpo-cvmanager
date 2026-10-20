@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,38 +29,38 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testHasCompleteRsuData_TrueWhenRsuExists() throws UnknownHostException {
         String rsuIp = "10.0.0.10";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(inetAddress);
+        rsu.setIpv4Address(Inet4Address);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(rsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(rsu);
 
         boolean result = rsuUpgradeContextService.hasCompleteRsuData(rsuIp);
 
         assertTrue(result);
-        verify(rsuRepository).findByIpv4Address(inetAddress);
+        verify(rsuRepository).findByIpv4Address(Inet4Address);
     }
 
     @Test
     void testHasCompleteRsuData_FalseWhenRsuMissing() throws UnknownHostException {
         String rsuIp = "10.0.0.10";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(null);
 
         boolean result = rsuUpgradeContextService.hasCompleteRsuData(rsuIp);
 
         assertFalse(result);
-        verify(rsuRepository).findByIpv4Address(inetAddress);
+        verify(rsuRepository).findByIpv4Address(Inet4Address);
     }
 
     @Test
     void testFindRsuByIp_ReturnsNullWhenMissing() throws UnknownHostException {
         String rsuIp = "10.0.0.11";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(null);
 
         Rsu result = rsuUpgradeContextService.findRsuByIp(rsuIp);
 
@@ -71,12 +71,12 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testFindRsuByIp_Success() throws UnknownHostException {
         String rsuIp = "10.0.0.12";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(inetAddress);
+        rsu.setIpv4Address(Inet4Address);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(rsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(rsu);
 
         Rsu result = rsuUpgradeContextService.findRsuByIp(rsuIp);
 

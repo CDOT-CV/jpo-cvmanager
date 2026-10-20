@@ -10,7 +10,7 @@ import org.mapstruct.MappingConstants;
 import us.dot.its.jpo.ode.api.models.SimplePosition;
 
 /**
- * MapStruct mapper for converting between InetAddress and String.
+ * MapStruct mapper for converting between Inet4Address and String.
  * This mapper is automatically used by other mappers when they need to convert
  * IP addresses.
  */

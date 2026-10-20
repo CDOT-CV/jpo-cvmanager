@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.models.postgres.projections;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.time.Instant;
 
 /**
@@ -12,7 +12,7 @@ public interface ScmsHealthRsuProjection {
     /**
      * @return The RSU IPv4 address (column: ipv4_address)
      */
-    InetAddress getIpv4Address();
+    Inet4Address getIpv4Address();
 
     /**
      * @return The health status (column: health).

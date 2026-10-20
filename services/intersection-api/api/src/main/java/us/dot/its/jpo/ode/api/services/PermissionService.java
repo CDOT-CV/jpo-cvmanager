@@ -19,7 +19,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -218,7 +218,7 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsu(String rsuIP, String role) {
-        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
+        Inet4Address ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
         return checkQualifiedOrgs(role,
                 qualifiedOrgs -> rsuRepository
                         .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
@@ -228,7 +228,7 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsus(List<String> rsuIP, String role) {
-        List<InetAddress> ipv4Addresses = new ArrayList<>();
+        List<Inet4Address> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIP) {
             ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
         }
@@ -239,7 +239,7 @@ public class PermissionService {
 
     // Allow Connection if the user's organization owns the specified RSU unit
     public boolean isRsuOwner(String rsuIP, String role) {
-        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
+        Inet4Address ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
 
         return checkQualifiedOrgs(role,
                 qualifiedOrgs -> rsuRepository
@@ -258,7 +258,7 @@ public class PermissionService {
      *         if the user is a super user or owns all of them
      */
     public List<String> findUnauthorizedRsus(List<String> rsuIPs, String role) {
-        List<InetAddress> ipv4Addresses = new ArrayList<>();
+        List<Inet4Address> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIPs) {
             ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
         }
@@ -286,10 +286,10 @@ public class PermissionService {
             orgsToCheck = List.of(matchingOrg);
         }
 
-        List<InetAddress> ownedAddresses = rsuRepository.findOwnedRsuIpsInOrganizations(orgsToCheck, ipv4Addresses);
+        List<Inet4Address> ownedAddresses = rsuRepository.findOwnedRsuIpsInOrganizations(orgsToCheck, ipv4Addresses);
         return ipv4Addresses.stream()
                 .filter(ip -> !ownedAddresses.contains(ip))
-                .map(InetAddress::getHostAddress)
+                .map(Inet4Address::getHostAddress)
                 .toList();
     }
 

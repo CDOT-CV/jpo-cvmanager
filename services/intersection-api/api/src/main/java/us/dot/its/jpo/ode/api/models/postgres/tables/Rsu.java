@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -32,7 +32,7 @@ public class Rsu {
 
     @NotNull
     @Column(name = "ipv4_address", nullable = false, unique = true)
-    private InetAddress ipv4Address;
+    private Inet4Address ipv4Address;
 
     @Size(max = 128)
     @NotNull

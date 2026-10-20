@@ -3,7 +3,7 @@ package us.dot.its.jpo.ode.api.controllers.organizations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,7 +56,7 @@ public class OrganizationController {
     public List<String> getRsuIpsByOrganization(
             @RequestHeader(name = "Organization", required = true) String organization) {
         return rsuOrganizationRepository.findAllRsuIpsByOrganizationName(organization).stream()
-                .map(InetAddress::getHostAddress)
+                .map(Inet4Address::getHostAddress)
                 .collect(Collectors.toList());
     }
 

@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.List;
 
 import org.locationtech.jts.geom.Point;
@@ -39,7 +39,7 @@ public class Intersection {
     private String intersectionName;
 
     @Column(name = "origin_ip")
-    private InetAddress originIp;
+    private Inet4Address originIp;
 
     @OneToMany(mappedBy = "intersection", fetch = FetchType.LAZY)
     private List<IntersectionOrganization> intersectionOrganizations;

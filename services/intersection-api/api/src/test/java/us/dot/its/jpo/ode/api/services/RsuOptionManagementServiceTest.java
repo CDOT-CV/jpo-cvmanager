@@ -15,7 +15,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Optional;
 
@@ -40,7 +40,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_BothFields() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -48,9 +48,9 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(1);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(1)).thenReturn(Optional.empty());
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -71,7 +71,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_TimDepositOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.101";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -79,9 +79,9 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(2);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(2)).thenReturn(Optional.empty());
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -102,7 +102,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_SnmpMonitoringOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.102";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setSnmpMonitoring(true);
@@ -110,9 +110,9 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(3);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(3)).thenReturn(Optional.empty());
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -135,7 +135,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_BothFields() throws UnknownHostException {
         String rsuIp = "192.168.1.103";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -143,7 +143,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(4);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(4);
@@ -151,7 +151,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true); // old value
         existingOption.setSnmpMonitoring(false); // old value
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(4)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -166,7 +166,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_TimDepositOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.104";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -174,7 +174,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(5);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(5);
@@ -182,7 +182,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true); // should be updated
         existingOption.setSnmpMonitoring(true); // should remain unchanged
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(5)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -197,7 +197,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_SnmpMonitoringOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.105";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setSnmpMonitoring(false);
@@ -205,7 +205,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(6);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(6);
@@ -213,7 +213,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true); // should remain unchanged
         existingOption.setSnmpMonitoring(true); // should be updated
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(6)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -228,7 +228,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_NoChanges() throws UnknownHostException {
         String rsuIp = "192.168.1.106";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -236,7 +236,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(7);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(7);
@@ -244,7 +244,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true); // same as patch
         existingOption.setSnmpMonitoring(false); // same as patch
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(7)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -292,12 +292,12 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_RsuNotFound_ThrowsNotFound() throws UnknownHostException {
         String rsuIp = "192.168.1.108";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(null);
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
             rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -314,7 +314,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_SetBothFieldsToFalse() throws UnknownHostException {
         String rsuIp = "192.168.1.109";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -322,7 +322,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(9);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(9);
@@ -330,7 +330,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true);
         existingOption.setSnmpMonitoring(true);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(9)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);
@@ -344,7 +344,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_ToggleValues() throws UnknownHostException {
         String rsuIp = "192.168.1.110";
-        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Inet4Address Inet4Address = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -352,7 +352,7 @@ class RsuOptionManagementServiceTest {
 
         Rsu existingRsu = new Rsu();
         existingRsu.setId(10);
-        existingRsu.setIpv4Address(inetAddress);
+        existingRsu.setIpv4Address(Inet4Address);
 
         RsuOption existingOption = new RsuOption();
         existingOption.setId(10);
@@ -360,7 +360,7 @@ class RsuOptionManagementServiceTest {
         existingOption.setTimDeposit(true);
         existingOption.setSnmpMonitoring(false);
 
-        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
+        when(rsuRepository.findByIpv4Address(Inet4Address)).thenReturn(existingRsu);
         when(rsuOptionRepository.findByRsuId(10)).thenReturn(Optional.of(existingOption));
 
         rsuOptionManagementService.modifyRsuOption(rsuIp, patch);

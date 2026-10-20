@@ -11,7 +11,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuIntersection;
 
-import java.net.InetAddress;
+import java.net.Inet4Address;
 import java.util.List;
 
 @Repository
@@ -23,7 +23,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     interface IntersectionRsuProjection {
         Integer getIntersectionNumber();
 
-        InetAddress getRsuIp();
+        Inet4Address getRsuIp();
     }
 
     /**
@@ -42,7 +42,7 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
      */
     @Query("SELECT ri.rsu.ipv4Address FROM RsuIntersection ri " +
             "WHERE ri.intersection.intersectionNumber = :intersectionNumber")
-    List<InetAddress> findRsuIpsByIntersectionNumber(
+    List<Inet4Address> findRsuIpsByIntersectionNumber(
             @Param("intersectionNumber") Integer intersectionNumber);
 
 
@@ -52,12 +52,12 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address = :ipv4Address")
-    void removeRsuIntersectionByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+    void removeRsuIntersectionByIpv4Address(@Param("ipv4Address") Inet4Address ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.rsu.ipv4Address IN :ipv4Addresses")
-    void removeMultipleRsuIntersectionsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+    void removeMultipleRsuIntersectionsByIpv4Address(@Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
 
     @Modifying
     @Transactional
@@ -67,5 +67,5 @@ public interface RsuIntersectionRepository extends JpaRepository<RsuIntersection
     @Transactional
     @Query("DELETE FROM RsuIntersection ri WHERE ri.intersection.intersectionNumber = :intersectionNumber AND ri.rsu.ipv4Address IN :ipv4Addresses")
     void deleteByIntersectionNumberAndRsuIpv4AddressIn(@Param("intersectionNumber") String intersectionNumber,
-            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
+            @Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
 }
