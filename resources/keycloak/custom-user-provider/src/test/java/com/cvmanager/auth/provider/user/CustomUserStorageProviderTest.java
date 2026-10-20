@@ -28,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 
 class CustomUserStorageProviderTest {
 
@@ -39,7 +40,7 @@ class CustomUserStorageProviderTest {
         when(resultSet.getString(Constants.FIRST_NAME_KEY)).thenReturn("first_name");
         when(resultSet.getString(Constants.LAST_NAME_KEY)).thenReturn("last_name");
         when(resultSet.getLong(Constants.CREATED_TIMESTAMP_KEY)).thenReturn(1730828047000L);
-        when(resultSet.getInt(Constants.SUPER_USER_KEY)).thenReturn(1);
+        when(resultSet.getBoolean(Constants.SUPER_USER_KEY)).thenReturn(true);
         when(resultSet.getString(Constants.ORGANIZATIONS_KEY)).thenReturn(
                 "[{\"org_id\": 1, \"org_name\": \"test org 1\", \"org_email\": \"email1\", \"role\": \"test role 1\"}, {\"org_id\": 2, \"org_name\": \"test org 2\", \"org_email\": \"email2\", \"role\": \"test role 2\"}]");
         when(resultSet.next()).thenReturn(true);
@@ -53,7 +54,7 @@ class CustomUserStorageProviderTest {
         assertThat(userAdapter.getFirstName(), is("first_name"));
         assertThat(userAdapter.getLastName(), is("last_name"));
         assertThat(userAdapter.getCreatedTimestamp(), is(1730828047000L));
-        assertThat(userAdapter.getSuperUser(), is(1));
+        assertThat(userAdapter.getSuperUser(), is(true));
         assertThat(userAdapter.getOrganizations().size(), is(2));
         assertThat(userAdapter.getOrganizations().get(0).getOrgId(), is(1));
         assertThat(userAdapter.getOrganizations().get(0).getOrgName(), is("test org 1"));
@@ -351,7 +352,7 @@ class CustomUserStorageProviderTest {
             when(resultSet.getString(Constants.FIRST_NAME_KEY)).thenReturn("");
             when(resultSet.getString(Constants.LAST_NAME_KEY)).thenReturn("");
             when(resultSet.getLong(Constants.CREATED_TIMESTAMP_KEY)).thenReturn(now);
-            when(resultSet.getInt(Constants.SUPER_USER_KEY)).thenReturn(0);
+            when(resultSet.getBoolean(Constants.SUPER_USER_KEY)).thenReturn(false);
             when(resultSet.next()).thenReturn(true);
             when(preparedStatement.executeQuery()).thenReturn(resultSet);
 
@@ -370,7 +371,7 @@ class CustomUserStorageProviderTest {
             assertThat(response.getFirstName(), is(""));
             assertThat(response.getLastName(), is(""));
             assertThat(response.getCreatedTimestamp(), is(now));
-            assertThat(response.getSuperUser(), is(0));
+            assertThat(response.getSuperUser(), is(false));
             assertThat(response.getOrganizations(), nullValue());
         }
     }
@@ -382,7 +383,7 @@ class CustomUserStorageProviderTest {
         KeycloakSession keycloakSession = mock(KeycloakSession.class);
         RealmModel realmModel = mock(RealmModel.class);
 
-        String expectedQuery = "update public.users set email = ?, first_name = ?, last_name = ?, created_timestamp = ?, super_user = ?::bit where keycloak_id = ?::UUID";
+        String expectedQuery = "update public.users set email = ?, first_name = ?, last_name = ?, created_timestamp = ?, super_user = ? where keycloak_id = ?::UUID";
 
         try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
                 .mockStatic(CustomUserStorageProvider.class)) {
@@ -395,7 +396,7 @@ class CustomUserStorageProviderTest {
             when(user.getEmail()).thenReturn("email");
             when(user.getFirstName()).thenReturn("first_name");
             when(user.getLastName()).thenReturn("last_name");
-            when(user.getSuperUser()).thenReturn(1);
+            when(user.getSuperUser()).thenReturn(true);
             when(user.getCreatedTimestamp()).thenReturn(now);
 
             PreparedStatement preparedStatement = mock(PreparedStatement.class);
@@ -408,7 +409,7 @@ class CustomUserStorageProviderTest {
             when(resultSet.getString(Constants.FIRST_NAME_KEY)).thenReturn(null);
             when(resultSet.getString(Constants.LAST_NAME_KEY)).thenReturn(null);
             when(resultSet.getLong(Constants.CREATED_TIMESTAMP_KEY)).thenReturn(now);
-            when(resultSet.getInt(Constants.SUPER_USER_KEY)).thenReturn(0);
+            when(resultSet.getBoolean(Constants.SUPER_USER_KEY)).thenReturn(false);
             when(resultSet.next()).thenReturn(true);
             when(preparedStatement.getGeneratedKeys()).thenReturn(resultSet);
 
@@ -419,7 +420,7 @@ class CustomUserStorageProviderTest {
             verify(preparedStatement).setString(2, "first_name");
             verify(preparedStatement).setString(3, "last_name");
             verify(preparedStatement).setLong(4, now);
-            verify(preparedStatement).setInt(5, 1);
+            verify(preparedStatement).setObject(5, true, Types.BOOLEAN);
             verify(preparedStatement).setString(6, "keycloak_id");
             verify(preparedStatement).executeUpdate();
             assertThat(response.getId(), is("keycloak_id"));
@@ -428,7 +429,7 @@ class CustomUserStorageProviderTest {
             assertThat(response.getFirstName(), nullValue());
             assertThat(response.getLastName(), nullValue());
             assertThat(response.getCreatedTimestamp(), is(now));
-            assertThat(response.getSuperUser(), is(0));
+            assertThat(response.getSuperUser(), is(false));
             assertThat(response.getOrganizations(), nullValue());
         }
     }
