@@ -1,9 +1,9 @@
 import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import AuthApi from '../apis/auth-api'
-import { UserManager, LocalStorageManager, SecureStorageManager } from '../managers'
-import { RootState } from '../store'
 import apiHelper from '../apis/api-helper'
+import AuthApi from '../apis/auth-api'
 import EnvironmentVars from '../EnvironmentVars'
+import { LocalStorageManager, SecureStorageManager, UserManager } from '../managers'
+import { RootState } from '../store'
 
 const authDataLocalStorage = LocalStorageManager.getAuthData()
 const authLoginData = UserManager.isLoginActive(authDataLocalStorage) ? authDataLocalStorage : null
@@ -114,6 +114,17 @@ export const userSlice = createSlice({
         state.value.authLoginData.data.organizations = [...updatedOrgList]
       }
     },
+    deleteOrgAssociationByOrgId: (state, action: PayloadAction<number>) => {
+      if (!state.value.authLoginData) {
+        return
+      }
+      const index = state.value.authLoginData.data.organizations.findIndex((org) => org.organization === action.payload)
+      if (index > -1) {
+        const updatedOrgList = state.value.authLoginData.data.organizations
+        updatedOrgList.splice(index, 1)
+        state.value.authLoginData.data.organizations = [...updatedOrgList]
+      }
+    },
     setLoading: (state, action) => {
       state.loading = action.payload
     },
@@ -173,6 +184,7 @@ export const {
   changeOrganization,
   changeOrganizationName,
   deleteOrgAssociationByOrgName,
+  deleteOrgAssociationByOrgId,
   setLoading,
   setLoginFailure,
   setRouteNotFound,
