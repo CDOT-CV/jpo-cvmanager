@@ -74,21 +74,30 @@ def parse_firmware_name(file_name: str) -> FirmwareName | None:
         return None
 
     for marker in range(len(tokens) - 2, 1, -1):
-        if tokens[marker] not in ACCESS_MODES:
-            continue
-        # A variant suffix after "-generic" must not be empty
-        if marker > 2 and not "-".join(tokens[2:marker]):
-            continue
+        parsed = _parse_at_marker(tokens, marker)
+        if parsed:
+            return parsed
+    return None
 
-        variant = "-".join(tokens[:marker])
-        writable = ACCESS_MODES[tokens[marker]]
-        if tokens[marker + 1] == SECURE_BOOT_MARKER:
-            release = "-".join(tokens[marker + 2 :])
-            if _is_release(release):
-                return FirmwareName(variant, DEVICE_TYPES[tokens[0]], writable, True, release)
-        release = "-".join(tokens[marker + 1 :])
+
+def _parse_at_marker(tokens: list[str], marker: int) -> FirmwareName | None:
+    """Parses name tokens assuming the rw/ro marker is at the given index."""
+    if tokens[marker] not in ACCESS_MODES:
+        return None
+    # A variant suffix after "-generic" must not be empty
+    if marker > 2 and not "-".join(tokens[2:marker]):
+        return None
+
+    variant = "-".join(tokens[:marker])
+    device_type = DEVICE_TYPES[tokens[0]]
+    writable = ACCESS_MODES[tokens[marker]]
+    if tokens[marker + 1] == SECURE_BOOT_MARKER:
+        release = "-".join(tokens[marker + 2 :])
         if _is_release(release):
-            return FirmwareName(variant, DEVICE_TYPES[tokens[0]], writable, False, release)
+            return FirmwareName(variant, device_type, writable, True, release)
+    release = "-".join(tokens[marker + 1 :])
+    if _is_release(release):
+        return FirmwareName(variant, device_type, writable, False, release)
     return None
 
 
