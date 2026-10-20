@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.models.postgres.projections;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Instant;
 
 /**
@@ -12,7 +12,7 @@ public interface RsuOnlineStatusProjection {
     /**
      * @return The RSU IPv4 address (column: ipv4_address)
      */
-    Inet4Address getIpv4Address();
+    InetAddress getIpv4Address();
 
     /**
      * @return The ping timestamp (column: timestamp).

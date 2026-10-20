@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Instant;
 
 @Getter
@@ -34,7 +34,7 @@ public class SnmpMsgfwdConfig {
 
     @NotNull
     @Column(name = "dest_ipv4", nullable = false)
-    private Inet4Address destIpv4;
+    private InetAddress destIpv4;
 
     @NotNull
     @Column(name = "dest_port", nullable = false)

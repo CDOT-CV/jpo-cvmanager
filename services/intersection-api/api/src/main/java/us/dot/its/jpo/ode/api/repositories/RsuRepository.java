@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.repositories;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
 import java.util.Collection;
@@ -31,11 +31,11 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
      * relationships
      */
     boolean existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-            Inet4Address ipv4Address, List<Organization> organizations);
+            InetAddress ipv4Address, List<Organization> organizations);
 
-    Rsu findByIpv4Address(Inet4Address ipv4Address);
+    Rsu findByIpv4Address(InetAddress ipv4Address);
 
-    List<Rsu> findByIpv4AddressIn(List<Inet4Address> ipv4Addresses);
+    List<Rsu> findByIpv4AddressIn(List<InetAddress> ipv4Addresses);
 
     @Query("SELECT rsu " +
             "FROM Rsu rsu " +
@@ -67,13 +67,13 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "JOIN ro.organization o " +
             "WHERE r.ipv4Address = :ipv4Address " +
             "ORDER BY o.name ASC")
-    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") Inet4Address ipv4Address);
+    List<String> findAllOrganizationNamesByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
             "JOIN r.rsuOrganizations ro " +
             "WHERE ro.organization in :organizations")
-    List<Inet4Address> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
+    List<InetAddress> findAllowedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations);
 
     /**
      * Returns every RSU in an organization together with every ping in the status
@@ -101,20 +101,20 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             "AND p.result = true " +
             "ORDER BY p.timestamp DESC " +
             "LIMIT 1")
-    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") Inet4Address ipv4Address);
+    Optional<Instant> findLatestSuccessfulPingTimestamp(@Param("ipv4Address") InetAddress ipv4Address);
 
     /**
      * Check if the RSU's credential is owned by any of the given organizations
      */
     boolean existsByIpv4AddressAndCredentialOwnerOrganizationIn(
-            Inet4Address ipv4Address, List<Organization> organizations);
+            InetAddress ipv4Address, List<Organization> organizations);
 
     @Query("SELECT r.ipv4Address " +
             "FROM Rsu r " +
             "JOIN r.credential rc " +
             "WHERE rc.ownerOrganization IN :organizations AND r.ipv4Address IN :ipv4Addresses")
-    List<Inet4Address> findOwnedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations,
-            @Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
+    List<InetAddress> findOwnedRsuIpsInOrganizations(@Param("organizations") List<Organization> organizations,
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching
@@ -175,12 +175,12 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
             @Param("vendor") String vendor);
 
     @Transactional
-    void removeRsuByIpv4Address(Inet4Address ipv4Address);
+    void removeRsuByIpv4Address(InetAddress ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM Rsu r WHERE r.ipv4Address IN :ipv4Addresses")
-    void removeByIpv4AddressIn(@Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
+    void removeByIpv4AddressIn(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     interface RsuModelProjection {
         String getManufacturer();

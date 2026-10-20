@@ -40,7 +40,7 @@ import org.apache.kafka.streams.processor.LogAndSkipOnInvalidTimestamp;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.springframework.boot.info.BuildProperties;
@@ -289,7 +289,7 @@ public class ConflictMonitorApiProperties {
 
         String hostname;
         try {
-            hostname = Inet4Address.getLocalHost().getHostName();
+            hostname = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             // Let's just use a random hostname
             hostname = UUID.randomUUID().toString();

@@ -1,6 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,7 +40,7 @@ public class RsuOnlineStatusService {
 
     @Transactional(readOnly = true)
     public LastOnlineDto getLastOnline(String ip) {
-        Inet4Address address = RsuManagementService.toIpv4Address(ip);
+        InetAddress address = RsuManagementService.toIpv4Address(ip);
         Instant lastOnline = rsuRepository.findLatestSuccessfulPingTimestamp(address)
                 .orElse(null);
         return new LastOnlineDto(address.getHostAddress(), lastOnline);

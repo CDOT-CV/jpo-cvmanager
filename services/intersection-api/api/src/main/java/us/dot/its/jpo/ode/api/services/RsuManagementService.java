@@ -1,11 +1,13 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -102,7 +104,7 @@ public class RsuManagementService {
         Rsu rsu = rsuMapper.toEntity(rsuInfoDto);
         updateRelationships(rsu, rsuInfoDto);
 
-        Inet4Address ipv4Address = rsu.getIpv4Address();
+        InetAddress ipv4Address = rsu.getIpv4Address();
         if (ipv4Address != null && rsuRepository.findByIpv4Address(ipv4Address) != null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -177,8 +179,8 @@ public class RsuManagementService {
         List<Organization> authorizedOrgs = userToken.getQualifiedOrgList(UserRole.ADMIN);
 
         // 1. Find existing RSU by original IP
-        Inet4Address Inet4Address = toIpv4Address(rsuIp);
-        Rsu existingRsu = rsuRepository.findByIpv4Address(Inet4Address);
+        InetAddress inetAddress = toIpv4Address(rsuIp);
+        Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
 
         if (existingRsu == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
@@ -186,7 +188,7 @@ public class RsuManagementService {
 
         // 2. If IP is being changed, check for conflicts
         if (rsuPatch.getIpv4Address() != null && !rsuPatch.getIpv4Address().equals(rsuIp)) {
-            Inet4Address newIp = toIpv4Address(rsuPatch.getIpv4Address());
+            InetAddress newIp = toIpv4Address(rsuPatch.getIpv4Address());
             Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
             if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -330,36 +332,36 @@ public class RsuManagementService {
 
     @Transactional
     public void deleteRsuByIpv4Address(String ipv4Address) {
-        Inet4Address Inet4Address = toIpv4Address(ipv4Address);
+        InetAddress inetAddress = toIpv4Address(ipv4Address);
 
         // Check if RSU exists
-        Rsu rsu = rsuRepository.findByIpv4Address(Inet4Address);
+        Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
         if (rsu == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + ipv4Address);
         }
 
         // Delete related entities first to maintain referential integrity
-        pingRepository.removePingByIpv4Address(Inet4Address);
-        rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(Inet4Address);
-        scmsHealthRepository.removeScmsHealthByIpv4Address(Inet4Address);
-        snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(Inet4Address);
-        rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(Inet4Address);
+        pingRepository.removePingByIpv4Address(inetAddress);
+        rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
+        scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
+        snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
+        rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(inetAddress);
         consecutiveFirmwareUpgradeFailureRepository
-                .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(Inet4Address);
-        maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(Inet4Address);
-        rsuOptionRepository.removeRsuOptionByIpv4Address(Inet4Address);
+                .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
+        maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
+        rsuOptionRepository.removeRsuOptionByIpv4Address(inetAddress);
 
         // Finally, delete the RSU itself
-        rsuRepository.removeRsuByIpv4Address(Inet4Address);
+        rsuRepository.removeRsuByIpv4Address(inetAddress);
     }
 
     @Transactional
     public void deleteMultipleRsusByIpv4Address(List<String> rsuIps) {
-        List<Inet4Address> Inet4Addresses = rsuIps.stream().map(RsuManagementService::toIpv4Address).toList();
+        List<InetAddress> inetAddresses = rsuIps.stream().map(RsuManagementService::toIpv4Address).toList();
 
         // Check if all RSUs exist
-        List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(Inet4Addresses);
-        if (existingRsus.size() != Inet4Addresses.size()) {
+        List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
+        if (existingRsus.size() != inetAddresses.size()) {
             // Find which IPs don't exist
             List<String> existingIps = existingRsus.stream()
                     .map(rsu -> rsu.getIpv4Address().getHostAddress())
@@ -373,20 +375,20 @@ public class RsuManagementService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No valid RSU IP addresses provided");
         }
 
-        pingRepository.removeMultiplePingsByIpv4Address(Inet4Addresses);
-        rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(Inet4Addresses);
-        scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(Inet4Addresses);
-        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(Inet4Addresses);
-        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(Inet4Addresses);
+        pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
+        rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
+        scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
+        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
+        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(inetAddresses);
         consecutiveFirmwareUpgradeFailureRepository
-                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(Inet4Addresses);
+                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
         maxRetryLimitReachedInstanceRepository
-                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(Inet4Addresses);
-        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(Inet4Addresses);
-        rsuRepository.removeByIpv4AddressIn(Inet4Addresses);
+                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
+        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
+        rsuRepository.removeByIpv4AddressIn(inetAddresses);
     }
 
-    public static Inet4Address toIpv4Address(String ip) {
+    public static InetAddress toIpv4Address(String ip) {
         if (ip == null || !ip.matches(IPV4_PATTERN)) {
             throw new IllegalArgumentException("Invalid IP address, should be like #.#.#.#, but was " + ip);
         }

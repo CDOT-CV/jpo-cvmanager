@@ -10,7 +10,7 @@ import jakarta.transaction.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstance;
 import us.dot.its.jpo.ode.api.models.postgres.tables.MaxRetryLimitReachedInstanceId;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Collection;
 
@@ -26,11 +26,11 @@ public interface MaxRetryLimitReachedInstanceRepository
     @Modifying
     @Transactional
     @Query("DELETE FROM MaxRetryLimitReachedInstance mr WHERE mr.rsu.ipv4Address = :ipv4Address")
-    void removeMaxRetryLimitReachedInstanceByIpv4Address(@Param("ipv4Address") Inet4Address ipv4Address);
+    void removeMaxRetryLimitReachedInstanceByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM MaxRetryLimitReachedInstance mr WHERE mr.rsu.ipv4Address IN :ipv4Addresses")
     void removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(
-            @Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
+            @Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 }

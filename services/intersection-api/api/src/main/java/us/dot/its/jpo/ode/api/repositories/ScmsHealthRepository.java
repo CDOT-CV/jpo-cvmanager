@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.ScmsHealth;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.List;
 
 @Repository
@@ -19,12 +19,12 @@ public interface ScmsHealthRepository extends JpaRepository<ScmsHealth, Integer>
     @Modifying
     @Transactional
     @Query("DELETE FROM ScmsHealth ro WHERE ro.rsu.ipv4Address = :ipv4Address")
-    void removeScmsHealthByIpv4Address(@Param("ipv4Address") Inet4Address ipv4Address);
+    void removeScmsHealthByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM ScmsHealth ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
-    void removeMultipleScmsHealthByIpv4Address(@Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
+    void removeMultipleScmsHealthByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 
     /**
      * Retrieves the latest SCMS health record for each RSU within a specific organization.

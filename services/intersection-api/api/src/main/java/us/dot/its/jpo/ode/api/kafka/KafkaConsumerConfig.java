@@ -22,7 +22,7 @@ import us.dot.its.jpo.geojsonconverter.serialization.deserializers.ProcessedBsmD
 import us.dot.its.jpo.geojsonconverter.serialization.deserializers.ProcessedMapDeserializer;
 import us.dot.its.jpo.ode.api.ConflictMonitorApiProperties;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,7 +106,7 @@ public class KafkaConsumerConfig {
         // if running more than one instance
         String groupIdSuffix;
         try {
-            groupIdSuffix = Inet4Address.getLocalHost().getHostName();
+            groupIdSuffix = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             log.warn("Unable to find host IP address, using random group id");
             groupIdSuffix = UUID.randomUUID().toString();

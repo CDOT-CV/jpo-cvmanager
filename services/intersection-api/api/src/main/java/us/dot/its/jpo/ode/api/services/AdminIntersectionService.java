@@ -28,7 +28,7 @@ import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,7 +90,7 @@ public class AdminIntersectionService {
 
         List<String> rsuIps = rsuIntersectionRepository.findRsuIpsByIntersectionNumber(intersectionId)
                 .stream()
-                .map(inetMapper::mapInet4AddressToString)
+                .map(inetMapper::mapInetAddressToString)
                 .collect(Collectors.toList());
         dto.setRsus(rsuIps);
 
@@ -114,7 +114,7 @@ public class AdminIntersectionService {
                     .map(Organization::getName)
                     .collect(Collectors.toList());
             List<String> allRsuIps = rsuRepository.findAll().stream()
-                    .map(rsu -> inetMapper.mapInet4AddressToString(rsu.getIpv4Address()))
+                    .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
                     .collect(Collectors.toList());
             return new AllowedSelections(allOrgNames, allRsuIps);
         }
@@ -124,7 +124,7 @@ public class AdminIntersectionService {
                 .map(Organization::getName)
                 .collect(Collectors.toList());
         List<String> rsuIps = rsuRepository.findAllowedRsuIpsInOrganizations(operatorOrgs).stream()
-                .map(inetMapper::mapInet4AddressToString)
+                .map(inetMapper::mapInetAddressToString)
                 .collect(Collectors.toList());
         return new AllowedSelections(operatorOrgNames, rsuIps);
     }
@@ -161,13 +161,13 @@ public class AdminIntersectionService {
 
         // Step 3: Create RSU associations (skip if empty)
         if (!create.getRsus().isEmpty()) {
-            List<Inet4Address> Inet4Addresses = create.getRsus().stream()
-                    .map(inetMapper::mapStringToInet4Address)
+            List<InetAddress> inetAddresses = create.getRsus().stream()
+                    .map(inetMapper::mapStringToInetAddress)
                     .collect(Collectors.toList());
-            List<Rsu> rsus = rsuRepository.findByIpv4AddressIn(Inet4Addresses);
+            List<Rsu> rsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
             if (rsus.size() != create.getRsus().size()) {
                 List<String> foundIps = rsus.stream()
-                        .map(rsu -> inetMapper.mapInet4AddressToString(rsu.getIpv4Address()))
+                        .map(rsu -> inetMapper.mapInetAddressToString(rsu.getIpv4Address()))
                         .toList();
                 List<String> missing = create.getRsus().stream()
                         .filter(ip -> !foundIps.contains(ip))
@@ -342,8 +342,8 @@ public class AdminIntersectionService {
         // Step 4: Add RSU associations
         if (!patch.getRsusToAdd().isEmpty()) {
             log.debug("Step 4: Adding {} RSU association(s): {}", patch.getRsusToAdd().size(), patch.getRsusToAdd());
-            List<Inet4Address> ipsToAdd = patch.getRsusToAdd().stream()
-                    .map(inetMapper::mapStringToInet4Address)
+            List<InetAddress> ipsToAdd = patch.getRsusToAdd().stream()
+                    .map(inetMapper::mapStringToInetAddress)
                     .collect(Collectors.toList());
             List<Rsu> rsus = rsuRepository.findByIpv4AddressIn(ipsToAdd);
             if (rsus.size() != patch.getRsusToAdd().size()) {
@@ -369,8 +369,8 @@ public class AdminIntersectionService {
         if (!patch.getRsusToRemove().isEmpty()) {
             log.debug("Step 5: Removing {} RSU association(s): {}", patch.getRsusToRemove().size(),
                     patch.getRsusToRemove());
-            List<Inet4Address> ipsToRemove = patch.getRsusToRemove().stream()
-                    .map(inetMapper::mapStringToInet4Address)
+            List<InetAddress> ipsToRemove = patch.getRsusToRemove().stream()
+                    .map(inetMapper::mapStringToInetAddress)
                     .collect(Collectors.toList());
             rsuIntersectionRepository.deleteByIntersectionNumberAndRsuIpv4AddressIn(
                     newNumber, ipsToRemove);
@@ -416,7 +416,7 @@ public class AdminIntersectionService {
         log.debug("Retrieved {} RSU-intersection projection record(s).", projections.size());
         Map<Integer, List<String>> result = new HashMap<>();
         for (RsuIntersectionRepository.IntersectionRsuProjection proj : projections) {
-            String ip = inetMapper.mapInet4AddressToString(proj.getRsuIp());
+            String ip = inetMapper.mapInetAddressToString(proj.getRsuIp());
             result.computeIfAbsent(proj.getIntersectionNumber(), _ -> new ArrayList<>()).add(ip);
         }
         return result;

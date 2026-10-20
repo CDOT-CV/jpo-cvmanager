@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -89,10 +89,10 @@ class RsuOnlineStatusServiceTest {
     }
 
     private static RsuOnlineStatusProjection ping(String ip, Instant timestamp, Boolean result) throws Exception {
-        Inet4Address address = RsuManagementService.toIpv4Address(ip);
+        InetAddress address = RsuManagementService.toIpv4Address(ip);
         return new RsuOnlineStatusProjection() {
             @Override
-            public Inet4Address getIpv4Address() {
+            public InetAddress getIpv4Address() {
                 return address;
             }
 

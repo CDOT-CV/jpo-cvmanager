@@ -2,7 +2,7 @@ package us.dot.its.jpo.ode.api.models.postgres.projections;
 
 import lombok.RequiredArgsConstructor;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Instant;
 
 /**
@@ -12,12 +12,12 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class ScmsHealthRsuProjectionImpl implements ScmsHealthRsuProjection {
 
-    private final Inet4Address ipv4Address;
+    private final InetAddress ipv4Address;
     private final Boolean health;
     private final Instant expiration;
 
     @Override
-    public Inet4Address getIpv4Address() {
+    public InetAddress getIpv4Address() {
         return ipv4Address;
     }
 

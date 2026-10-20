@@ -5,10 +5,10 @@ import org.mapstruct.MappingConstants;
 
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 
 /**
- * MapStruct mapper for converting between Inet4Address and String.
+ * MapStruct mapper for converting between InetAddress and String.
  * This mapper is automatically used by other mappers when they need to convert
  * IP addresses.
  */
@@ -16,21 +16,21 @@ import java.net.Inet4Address;
 public interface INetMapper {
 
     /**
-     * Converts Inet4Address to String representation (e.g., "192.168.1.1")
+     * Converts InetAddress to String representation (e.g., "192.168.1.1")
      */
-    default String mapInet4AddressToString(Inet4Address Inet4Address) {
-        if (Inet4Address == null) {
+    default String mapInetAddressToString(InetAddress inetAddress) {
+        if (inetAddress == null) {
             return null;
         }
-        return Inet4Address.getHostAddress();
+        return inetAddress.getHostAddress();
     }
 
     /**
-     * Converts String IP address to Inet4Address object
+     * Converts String IP address to InetAddress object
      * 
      * @throws IllegalArgumentException if the IP address is invalid
      */
-    default Inet4Address mapStringToInet4Address(String ipAddress) {
+    default InetAddress mapStringToInetAddress(String ipAddress) {
         if (ipAddress == null) {
             return null;
         }

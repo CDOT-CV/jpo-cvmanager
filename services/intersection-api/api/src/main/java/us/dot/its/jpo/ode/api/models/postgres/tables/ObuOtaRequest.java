@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.time.Instant;
 
 @Getter
@@ -31,7 +31,7 @@ public class ObuOtaRequest {
 
     @NotNull
     @Column(name = "origin_ip", nullable = false)
-    private Inet4Address originIp;
+    private InetAddress originIp;
 
     @Size(max = 128)
     @NotNull

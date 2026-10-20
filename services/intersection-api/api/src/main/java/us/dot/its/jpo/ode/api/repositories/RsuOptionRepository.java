@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,11 +20,11 @@ public interface RsuOptionRepository extends JpaRepository<RsuOption, Integer> {
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuOption ro WHERE ro.rsu.ipv4Address = :ipv4Address")
-    void removeRsuOptionByIpv4Address(@Param("ipv4Address") Inet4Address ipv4Address);
+    void removeRsuOptionByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM RsuOption ro WHERE ro.rsu.ipv4Address IN :ipv4Addresses")
-    void removeMultipleRsuOptionsByIpv4Address(@Param("ipv4Addresses") List<Inet4Address> ipv4Addresses);
+    void removeMultipleRsuOptionsByIpv4Address(@Param("ipv4Addresses") List<InetAddress> ipv4Addresses);
 }
 

@@ -24,7 +24,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
-import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Optional;
@@ -445,7 +445,7 @@ class PermissionServiceTest {
 
         setupRequestWithHeaders(tokenString, "TestOrg");
 
-        List<Inet4Address> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
                 RsuManagementService.toIpv4Address("192.168.1.2"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
@@ -462,7 +462,7 @@ class PermissionServiceTest {
 
         setupRequestWithHeaders(tokenString, "TestOrg");
 
-        List<Inet4Address> requestedIps = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+        List<InetAddress> requestedIps = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
                 RsuManagementService.toIpv4Address("192.168.1.2"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), requestedIps))
@@ -479,7 +479,7 @@ class PermissionServiceTest {
         doReturn(authToken).when(permissionService).getCvManagerAuthToken();
         when(authToken.isSuperUser()).thenReturn(false);
 
-        List<Inet4Address> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"));
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"));
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
 
