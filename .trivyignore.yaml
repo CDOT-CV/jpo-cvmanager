@@ -310,3 +310,8 @@ vulnerabilities:
     purls: ["pkg:maven/org.bouncycastle/bcprov-jdk18on"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-12
+  # CRITICAL; fixed in 2026.10.19; kafka-connect
+  - id: GHSA-6q48-6c7w-9gw2
+    purls: ["pkg:pypi/certifi"]
+    statement: "Published 2026-10-20, after the rollout baseline. certifi 2022.12.7 ships in the confluentinc/cp-kafka-connect:6.1.9 base image's Python 3.9 site-packages, not in our requirements. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-12
