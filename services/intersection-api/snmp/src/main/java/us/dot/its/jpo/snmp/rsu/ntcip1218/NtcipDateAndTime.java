@@ -13,6 +13,8 @@ public final class NtcipDateAndTime {
      * Encodes UTC calendar fields, truncating fractions to tenths of a second.
      * The wire value has no timezone offset; callers must convert to UTC before calling.
      *
+     * @param time calendar fields already converted to UTC
+     * @return immutable eight-byte DateAndTime value
      * @throws IllegalArgumentException if the year is outside 1-65535
      */
     public static SnmpValue.Octets encode(LocalDateTime time) {
@@ -27,6 +29,8 @@ public final class NtcipDateAndTime {
     /**
      * Decodes UTC calendar fields without applying the machine's timezone.
      *
+     * @param value eight-byte date without an offset field
+     * @return decoded UTC calendar fields
      * @throws IllegalArgumentException if the value is not eight octets or has invalid date/time fields
      */
     public static LocalDateTime decode(SnmpValue.Octets value) {

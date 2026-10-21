@@ -32,6 +32,11 @@ public final class Ntcip1218Client {
     private final Clock clock;
     private final ReentrantLock[] locks = new ReentrantLock[256];
 
+    /**
+     * Borrows a generic client; this helper does not close it or own its transports.
+     * @param client shared client for direct calls, or the current task's scoped client
+     * @param clock clock used for UTC forwarding schedules
+     */
     public Ntcip1218Client(SnmpClient client, Clock clock) {
         this.client = Objects.requireNonNull(client);
         this.clock = Objects.requireNonNull(clock);
@@ -40,7 +45,7 @@ public final class Ntcip1218Client {
 
     /**
      * Reads both tables and returns only a complete, validated snapshot.
-     *
+     * @return immutable rows in RECEIVE-then-TRANSMIT order, with ascending indices in each table
      * @throws SnmpException if a read fails or any row is incomplete or malformed
      */
     public List<ForwardingRow> readForwarding(Ntcip1218Device device) {
@@ -102,7 +107,7 @@ public final class Ntcip1218Client {
     /**
      * Adds one row using the message type's table and port, then verifies every written column.
      * Row allocation uses max+1 up to 127 to preserve the previous API's behavior.
-     *
+     * @return verified change and the created row; each call adds a row rather than updating one
      * @throws SnmpException if communication or verification fails; a successful SET followed by
      *         failed readback leaves the write outcome uncertain and must not be blindly replayed
      * @throws IllegalStateException if the next row exceeds the compatibility limit
@@ -145,7 +150,7 @@ public final class Ntcip1218Client {
     /**
      * Deletes the highest row matching PSID and destination, preserving the previous API's selection.
      * No match is a successful no-op. A matching row is verified absent after the SET.
-     *
+     * @return changed=true for verified deletion, or false when no matching row exists
      * @throws IllegalArgumentException if the destination is not a literal IPv4 address
      * @throws SnmpException if communication or verification fails; inspect write uncertainty
      *         before attempting another delete
@@ -182,8 +187,9 @@ public final class Ntcip1218Client {
     }
 
     /**
-     * Builds the SET payload without contacting the device. Dates use the clock's instant in UTC.
-     *
+     * Builds a createAndGo SET payload without contacting the device. Its UTC schedule starts
+     * at the current minute and stops ten years later.
+     * @return immutable bindings for one row; constructing these does not reserve the row index
      * @throws IllegalArgumentException if the row index is outside the MIB's 1-255 range
      */
     public List<SnmpBinding> createBindings(ForwardingRequest request, int index) {
@@ -233,8 +239,19 @@ public final class Ntcip1218Client {
         return new Location(lat == 900000001 ? Optional.empty() : Optional.of(lat / 10_000_000.0),
                 lon == 1800000001 ? Optional.empty() : Optional.of(lon / 10_000_000.0));
     }
-    /** Raw hours retain NTCIP sentinel values 254 (at least) and 255 (expired). */
+
+    /**
+     * Reads expiration hours keyed by certificate-table row index.
+     * Values remain raw: 0 means expiring that day, 254 means at least 254 hours, and 255 means expired.
+     * @return immutable row-index/hour map
+     */
     public Map<Integer, Integer> readCertificateExpirationHours(Ntcip1218Device device) { return hours(device, "8.10.1.4"); }
+
+    /**
+     * Reads the configured renewal lead time in hours before certificate expiration, keyed by row.
+     * Unlike expiration hours, these are plain values in 0-65535, not expiration sentinels.
+     * @return immutable row-index/lead-time map
+     */
     public Map<Integer, Integer> readCertificateRequestHours(Ntcip1218Device device) { return hours(device, "8.10.1.5"); }
 
     private Map<Integer, Integer> hours(Ntcip1218Device device, String suffix) {

@@ -12,12 +12,14 @@ import us.dot.its.jpo.snmp.execution.*;
 
 /**
  * Reusable factory for forwarding tasks; building a task performs no device I/O.
- * The default tasks verify only their change. Snapshot variants also read both tables and may
- * pass the validated snapshot to application code, such as a database update.
+ * Each procedure reads the affected table to find a row, then verifies the changed row.
+ * Snapshot variants also read both tables and may pass the validated snapshot to application code.
+ * A snapshot or callback failure can fail the task without erasing an already verified change.
  */
 public final class Ntcip1218ForwardingTasks {
     private final Clock clock;
 
+    /** Creates a reusable factory using the supplied clock for UTC forwarding schedules. */
     public Ntcip1218ForwardingTasks(Clock clock) { this.clock = Objects.requireNonNull(clock); }
 
     /** Adds one forwarding row and verifies it, without reading an unrelated table afterward. */
@@ -25,11 +27,16 @@ public final class Ntcip1218ForwardingTasks {
         return createTask(device, request, false, null);
     }
 
+    /** Builds a create task followed by a complete snapshot in its read-current-forwarding step. */
     public SnmpTask createWithSnapshot(Ntcip1218Device device, ForwardingRequest request) {
         return createTask(device, request, true, null);
     }
 
-    /** Runs the callback only after the procedure completes and both tables are read successfully. */
+    /**
+     * Builds a create task, snapshot read and local callback, all within the same task deadline.
+     * The callback runs only after successful verification and a complete snapshot.
+     * @param afterRead bounded application work on the validated snapshot
+     */
     public SnmpTask createWithSnapshot(Ntcip1218Device device, ForwardingRequest request, SnapshotAction afterRead) {
         return createTask(device, request, true, Objects.requireNonNull(afterRead));
     }
@@ -40,15 +47,28 @@ public final class Ntcip1218ForwardingTasks {
                 client -> client.addForwarding(device, request), snapshot, afterRead);
     }
 
-    /** Deletes one matching row, or reports a successful no-op when none exists. */
+    /**
+     * Deletes the highest matching row, or reports a successful no-op when none exists.
+     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     */
     public SnmpTask delete(Ntcip1218Device device, MessageType message, String destination) {
         return deleteTask(device, message, destination, false, null);
     }
 
+    /**
+     * Builds a delete/no-op task followed by a complete snapshot in its read-current-forwarding step.
+     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     */
     public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination) {
         return deleteTask(device, message, destination, true, null);
     }
 
+    /**
+     * Builds a delete/no-op task, snapshot read and local callback within the same task deadline.
+     * The callback is skipped if the procedure or snapshot fails.
+     * @param afterRead bounded application work on the validated snapshot
+     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     */
     public SnmpTask deleteWithSnapshot(Ntcip1218Device device, MessageType message, String destination, SnapshotAction afterRead) {
         return deleteTask(device, message, destination, true, Objects.requireNonNull(afterRead));
     }
@@ -60,7 +80,11 @@ public final class Ntcip1218ForwardingTasks {
                 client -> client.deleteForwarding(device, message, destination), snapshot, afterRead);
     }
 
-    /** True/false is verified procedure evidence; null means the procedure did not finish. */
+    /**
+     * Reads procedure evidence from a result produced by this factory. A later snapshot or callback
+     * failure does not erase this evidence.
+     * @return true for a verified change, false for a confirmed no-op, or null if the procedure did not finish
+     */
     public static Boolean changed(SnmpTaskResult result) {
         return result.steps().stream().filter(step -> step.kind() == SnmpStep.Kind.WRITE
                 && step.status() == SnmpStepResult.Status.SUCCEEDED && step.value() instanceof SnmpWriteResult<?>)
@@ -90,7 +114,13 @@ public final class Ntcip1218ForwardingTasks {
         return new SnmpTask(name + "." + message.name() + "." + message.table().name(), device.target(), steps);
     }
 
-    /** Application work on a complete immutable snapshot, within the device task's deadline. */
+    /**
+     * Application work on a complete immutable snapshot, within the device task's deadline.
+     * The callback runs on the task worker; keep it bounded and responsive to interruption.
+     *
+     * @param stepName unique task-step label, validated when the task is built
+     * @param action callback invoked while this task still holds its endpoint slot
+     */
     public record SnapshotAction(String stepName, Consumer<List<ForwardingRow>> action) {
         public SnapshotAction { Objects.requireNonNull(stepName); Objects.requireNonNull(action); }
     }
