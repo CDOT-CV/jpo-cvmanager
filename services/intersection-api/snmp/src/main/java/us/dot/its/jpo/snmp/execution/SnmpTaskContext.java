@@ -16,11 +16,42 @@ public final class SnmpTaskContext {
     private final SnmpClient client = new TrackedClient();
 
     SnmpTaskContext(SnmpTaskExecutor.Control control, SnmpClient transport) { this.control = control; this.transport = transport; }
+
+    /**
+     * Borrows the tracked client sharing this execution's target, deadline and call history.
+     * @return client for use only on the running task worker
+     * @throws IllegalStateException if accessed outside the running worker
+     */
     public SnmpClient client() { control.requireWorker(); return client; }
+
+    /**
+     * Returns the endpoint and credentials assigned to this task.
+     * @return task target
+     * @throws IllegalStateException if accessed outside the running worker
+     */
     public SnmpTarget target() { control.requireWorker(); return control.task.target(); }
+
+    /**
+     * Returns the shared budget after time spent in earlier steps.
+     * @return remaining execution time
+     * @throws us.dot.its.jpo.snmp.client.SnmpException if timed out or cancelled
+     */
     public Duration remainingTime() { return Duration.ofNanos(control.remainingNanos()); }
+
+    /**
+     * Checks cancellation/deadline before expensive local work or the next procedure step.
+     * @throws us.dot.its.jpo.snmp.client.SnmpException if timed out or cancelled
+     */
     public void checkActive() { control.remainingNanos(); }
-    /** Read a completed step using its typed reference, not a name or cast. */
+
+    /**
+     * Reads an earlier successful step using its exact typed reference.
+     * @param <T> step result type
+     * @param step original step definition
+     * @return successful action value, possibly null
+     * @throws IllegalArgumentException if the definition does not belong to this task
+     * @throws IllegalStateException if the step has not succeeded or this is not the running worker
+     */
     @SuppressWarnings("unchecked")
     public <T> T value(SnmpStep<T> step) {
         control.requireWorker();
@@ -34,6 +65,7 @@ public final class SnmpTaskContext {
         }
     }
 
+    /** Records logical calls and prevents helpers from bypassing the task's target and request policy. */
     private final class TrackedClient implements SnmpClient {
         @Override public List<SnmpBinding> get(SnmpTarget target, List<SnmpOid> oids) {
             var copy = List.copyOf(oids);

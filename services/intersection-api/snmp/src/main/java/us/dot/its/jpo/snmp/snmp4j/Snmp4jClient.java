@@ -28,7 +28,13 @@ import us.dot.its.jpo.snmp.client.*;
 import us.dot.its.jpo.snmp.internal.OperationLog;
 import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 
-/** Thread-safe, bounded SNMPv3 client. No global SNMP4J registries or application worker pools. */
+/**
+ * Reusable SNMPv3 adapter with bounded operations, credential-profile caches and table reads.
+ * Security state belongs to each session, not SNMP4J global registries.
+ * Share the client across callers and close it after any executor that borrows it.
+ * @see SnmpClient
+ * @see Snmp4jOptions
+ */
 public final class Snmp4jClient implements SnmpClient {
     private static final Logger log = LoggerFactory.getLogger(Snmp4jClient.class);
     private final Snmp4jOptions options;
@@ -38,7 +44,13 @@ public final class Snmp4jClient implements SnmpClient {
     private final LongAdder completed = new LongAdder();
     private final LongAdder failed = new LongAdder();
 
+    /** Creates a reusable client with the default request, cache and concurrency limits. */
     public Snmp4jClient() { this(Snmp4jOptions.defaults()); }
+
+    /**
+     * Creates a client using explicit limits; sessions and sockets are opened when first needed.
+     * @param options request and resource limits
+     */
     public Snmp4jClient(Snmp4jOptions options) {
         this.options = Objects.requireNonNull(options);
         permits = new Semaphore(options.maxConcurrentOperations(), true);
@@ -261,9 +273,12 @@ public final class Snmp4jClient implements SnmpClient {
         return request;
     }
 
+    /** One admission, session lease and shared deadline for the entire logical operation. */
     private <T> T operation(SnmpTarget target, String name, SnmpCallContext context, Operation<T> action) {
         Objects.requireNonNull(target);
-        long budget = context == null ? options.operationDeadline().toNanos() : Math.min(options.operationDeadline().toNanos(), context.remainingNanos());
+        // A task may have already spent time on earlier steps; a new call cannot reset its budget.
+        long budget = context == null ? options.operationDeadline().toNanos()
+                : Math.min(options.operationDeadline().toNanos(), context.remainingNanos());
         long deadline = System.nanoTime() + budget;
         boolean admitted = false;
         ManagedSession session = null;
@@ -302,10 +317,12 @@ public final class Snmp4jClient implements SnmpClient {
         }
     }
 
+    /** Uses the pool monitor only for cache ownership and leases; request waits happen outside it. */
     private synchronized ManagedSession acquire(SnmpTarget target) {
         if (closed) throw new SnmpException(CANCELLED, false);
         String key = credentialKey(target.credentials());
         ManagedSession session = sessions.get(key);
+
         if (session != null && !session.targets.contains(target.agent()) && session.targets.size() >= options.maxTargetsPerSession()) {
             // Rotate only an idle profile. No in-flight request may lose its security state.
             if (session.leases != 0) throw new SnmpException(BUSY, false);
@@ -327,6 +344,7 @@ public final class Snmp4jClient implements SnmpClient {
             }
             sessions.put(key, session);
         }
+
         session.targets.add(target.agent());
         session.leases++;
         return session;
@@ -334,12 +352,14 @@ public final class Snmp4jClient implements SnmpClient {
 
     private synchronized void release(ManagedSession session) { session.leases--; }
 
+    /** Identical full profiles may share a session; matching usernames alone are insufficient. */
     private static String credentialKey(SnmpCredentials credentials) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             for (String part : List.of(credentials.username(), credentials.authenticationPassword(), credentials.privacyPassword(),
                     credentials.authentication().name(), credentials.privacy().name())) {
                 byte[] bytes = part.getBytes(StandardCharsets.UTF_8);
+                // Length prefixes keep different field boundaries from producing the same input.
                 digest.update(ByteBuffer.allocate(4).putInt(bytes.length).array());
                 digest.update(bytes);
             }
@@ -358,13 +378,22 @@ public final class Snmp4jClient implements SnmpClient {
         if (Thread.currentThread().isInterrupted()) throw new SnmpException(CANCELLED, write);
     }
 
-    /** Counts real completed operations and outstanding wire requests, not async submissions. */
+    /**
+     * A point-in-time view of this client's resource use. Counts logical operations, not device tasks;
+     * application outcomes belong in task results. Pending requests exclude completed listeners.
+     */
     public record Diagnostics(long completedOperations, long failedOperations, int activeOperations, int cachedSessions, int pendingRequests) {}
+
+    /**
+     * Returns current operation, session and pending-request counts without contacting devices.
+     * @return resource-use snapshot
+     */
     public synchronized Diagnostics diagnostics() {
         return new Diagnostics(completed.sum(), failed.sum(), options.maxConcurrentOperations() - permits.availablePermits(),
                 sessions.size(), sessions.values().stream().mapToInt(ManagedSession::pendingCount).sum());
     }
 
+    /** Cancels pending requests and releases every cached session; safe to call repeatedly. */
     @Override public synchronized void close() {
         if (closed) return;
         closed = true;
@@ -379,5 +408,7 @@ public final class Snmp4jClient implements SnmpClient {
     private static void closeSession(ManagedSession session) {
         try { session.close(); } catch (IOException failure) { throw new SnmpException(EXECUTION, false); }
     }
+
+    /** One logical operation with a leased session and a shared deadline. */
     @FunctionalInterface private interface Operation<T> { T execute(ManagedSession session, long deadline, OperationLog trace); }
 }

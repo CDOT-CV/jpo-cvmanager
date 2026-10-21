@@ -32,6 +32,9 @@ final class ManagedSession implements AutoCloseable {
     ManagedSession(SnmpCredentials credentials, int maxTargets) throws IOException {
         username = new OctetString(credentials.username());
         if (username.length() > 32) throw new IllegalArgumentException("SNMPv3 username exceeds 32 bytes");
+
+        // Keep security registries private to this credential profile. Replacing SNMP4J's global
+        // registries would let unrelated requests change each other's authentication state.
         var protocols = new SecurityProtocols(SecurityProtocols.SecurityProtocolSet.none);
         protocols.addAuthenticationProtocol(new AuthSHA());
         protocols.addAuthenticationProtocol(new AuthHMAC192SHA256());
@@ -82,6 +85,7 @@ final class ManagedSession implements AutoCloseable {
         return target;
     }
 
+    /** Registers a request before sending so shutdown can find and cancel it, even during send. */
     Pending send(ScopedPDU request, UserTarget<UdpAddress> target) throws IOException {
         var operation = new Pending(request);
         pending.add(operation);
@@ -103,11 +107,13 @@ final class ManagedSession implements AutoCloseable {
 
     boolean knowsPeer(UdpAddress address) { return mpv3.getEngineID(address) != null; }
 
+    /** Serializes engine-cache refreshes for one endpoint, without blocking other devices. */
     static final class PeerRecovery {
         final java.util.concurrent.locks.ReentrantLock lock = new java.util.concurrent.locks.ReentrantLock();
         volatile long generation;
         final java.util.concurrent.atomic.AtomicLong staleGeneration = new java.util.concurrent.atomic.AtomicLong(-1);
     }
+
     PeerRecovery recovery(UdpAddress address) { return recovery.computeIfAbsent(address, ignored -> new PeerRecovery()); }
 
     void forgetPeer(UdpAddress address) {
@@ -116,9 +122,11 @@ final class ManagedSession implements AutoCloseable {
         snmp.removeCachedContextEngineId(address);
     }
 
+    /** Bridges SNMP4J callbacks to the waiting operation and owns its listener registration. */
     final class Pending implements ResponseListener {
         private final ScopedPDU request;
         final CompletableFuture<ResponseEvent<UdpAddress>> response = new CompletableFuture<>();
+
         Pending(ScopedPDU request) { this.request = request; }
 
         @Override public <A extends Address> void onResponse(ResponseEvent<A> event) {
@@ -134,6 +142,8 @@ final class ManagedSession implements AutoCloseable {
         }
 
         void cancel() {
+            // The future keeps its first result. Cancellation after a response, or a late response
+            // after cancellation, cannot replace the outcome already delivered to the caller.
             snmp.cancel(request, this);
             pending.remove(this);
             response.completeExceptionally(new SnmpException(SnmpException.Kind.CANCELLED, request.getType() == PDU.SET));

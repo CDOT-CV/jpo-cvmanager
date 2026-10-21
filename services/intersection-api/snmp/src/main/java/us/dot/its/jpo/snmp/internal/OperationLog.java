@@ -7,7 +7,11 @@ import org.slf4j.event.Level;
 import us.dot.its.jpo.snmp.client.SnmpException;
 import us.dot.its.jpo.snmp.client.SnmpTarget;
 
-/** Correlation and timing only; task results own execution history and write evidence. */
+/**
+ * Internal, thread-local logging scope for adapter calls and device procedures.
+ * Try-with-resources restores the enclosing scope. Applications configure SLF4J and consume
+ * task summaries; this helper does not store task history or establish device write state.
+ */
 public final class OperationLog implements AutoCloseable {
     private static final ThreadLocal<OperationLog> CURRENT = new ThreadLocal<>();
     private final OperationLog previous;
@@ -20,10 +24,12 @@ public final class OperationLog implements AutoCloseable {
     private int submissions;
     private boolean writeMayHaveOccurred;
 
+    /** Opens a scope with a new correlation ID, nested under the current scope when present. */
     public OperationLog(Logger logger, SnmpTarget target, String operation, boolean write) {
         this(logger, target, operation, write, UUID.randomUUID().toString());
     }
 
+    /** Opens a scope using an existing task ID for correlation. */
     public OperationLog(Logger logger, SnmpTarget target, String operation, boolean write, String id) {
         this.id = id; this.logger = logger; this.target = target.agent(); this.operation = operation; this.write = write;
         previous = CURRENT.get();
@@ -34,6 +40,7 @@ public final class OperationLog implements AutoCloseable {
     public void step(String name) { emit(Level.TRACE, "Starting step " + name + ".", ""); }
     public void rowSelected(int index) { emit(Level.TRACE, "Selected row " + index + ".", ""); }
 
+    /** Records an adapter send, without logging credential or binding values. */
     public void requestSubmitting(String type, int bindings, long timeoutMs, int retries) {
         submissions++;
         if (type.equals("SET")) writeStarting();
@@ -58,6 +65,7 @@ public final class OperationLog implements AutoCloseable {
     public void succeeded() { emit(terminalLevel(write ? Level.INFO : Level.DEBUG), "Completed.", ""); }
     public void writeStarting() { writeMayHaveOccurred = true; }
 
+    /** Emits safe failure details; nested outcomes use DEBUG to avoid duplicate warnings. */
     public void failed(SnmpException failure) {
         boolean routine = !failure.writeOutcomeUnknown() && switch (failure.kind()) {
             case TIMEOUT, BUSY, CANCELLED -> true;
@@ -68,6 +76,7 @@ public final class OperationLog implements AutoCloseable {
         emit(terminalLevel(routine ? Level.DEBUG : Level.WARN), describe(failure), agent);
     }
 
+    /** Reports a local failure conservatively if a write may already have been submitted. */
     public void failedLocally() {
         emit(terminalLevel(Level.WARN), writeMayHaveOccurred
                 ? "Write not confirmed; check device before retrying." : "Local execution failed.", "");
@@ -86,5 +95,6 @@ public final class OperationLog implements AutoCloseable {
     private Level terminalLevel(Level requested) { return previous != null ? Level.DEBUG : requested; }
     private String parent() { return previous == null ? "" : " parent=" + previous.id; }
 
+    /** Restores the previous thread-local scope. Does not close the SNMP client. */
     @Override public void close() { if (previous == null) CURRENT.remove(); else CURRENT.set(previous); }
 }

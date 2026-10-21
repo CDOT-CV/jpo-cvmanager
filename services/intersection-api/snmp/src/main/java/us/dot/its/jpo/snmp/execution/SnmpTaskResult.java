@@ -6,15 +6,61 @@ import java.util.List;
 import us.dot.its.jpo.snmp.client.SnmpException;
 import us.dot.its.jpo.snmp.internal.SnmpMessages;
 
-/** Progress snapshot; action values must be immutable. The handle retains results, not a global cache. */
+/**
+ * An execution snapshot with task state, write evidence and per-step history.
+ * Write evidence is independent of task success: a later persistence failure does not erase
+ * a verified device change. The handle retains results; there is no global completed-task cache.
+ *
+ * @param writeState accumulated SET and verification evidence
+ * @param startedAt null until admitted to a worker
+ * @param finishedAt null while queued or running
+ * @param queueWait time waiting for admission
+ * @param executionTime running time, including local callbacks
+ * @param cancellationRequested whether cancellation was recorded; work may still be RUNNING
+ * @param deadlineExceeded whether the shared execution deadline was reached
+ * @param submissions adapter sends, excluding internal discovery and protocol retries
+ * @param failure safe failure evidence, or null when none was recorded
+ */
 public record SnmpTaskResult(String taskId, String name, String endpoint, Status status, WriteState writeState,
         Instant submittedAt, Instant startedAt, Instant finishedAt, Duration queueWait, Duration executionTime,
         boolean cancellationRequested, boolean deadlineExceeded, int submissions, List<SnmpStepResult<?>> steps, SnmpFailure failure) {
+    /** Task lifecycle; TIMED_OUT, CANCELLED and capacity failures are returned as results. */
     public enum Status { QUEUED, RUNNING, SUCCEEDED, FAILED, TIMED_OUT, CANCELLED, QUEUE_EXPIRED, REJECTED }
-    public enum WriteState { NOT_SUBMITTED, REJECTED, ACKNOWLEDGED_UNVERIFIED, VERIFIED, VERIFICATION_FAILED, UNKNOWN }
+
+    /**
+     * Write evidence across all steps. VERIFIED can coexist with a later task failure;
+     * UNKNOWN requires a device check before replaying a write.
+     */
+    public enum WriteState {
+        /** No SET was submitted; this includes confirmed no-ops. */
+        NOT_SUBMITTED,
+        /** The agent rejected a write and no successful SET was recorded. */
+        REJECTED,
+        /** A SET response was received, but verification has not confirmed the change. */
+        ACKNOWLEDGED_UNVERIFIED,
+        /** A procedure or later verification confirmed the latest acknowledged write. */
+        VERIFIED,
+        /** A verification step reported a mismatch after an acknowledged write. */
+        VERIFICATION_FAILED,
+        /** A SET is pending or its outcome cannot be confirmed; reconcile before replaying it. */
+        UNKNOWN
+    }
     public SnmpTaskResult { steps = List.copyOf(steps); }
+
+    /**
+     * Reports whether task state has left QUEUED/RUNNING. Pending cancellation alone is not terminal.
+     * @return true for a finished or rejected task
+     */
     public boolean terminal() { return status != Status.QUEUED && status != Status.RUNNING; }
 
+    /**
+     * Returns an earlier successful step's typed value, even when the overall task failed later.
+     * @param <T> step result type
+     * @param step original step reference from the task definition
+     * @return successful action value, possibly null
+     * @throws IllegalArgumentException if the step belongs to a different definition
+     * @throws IllegalStateException if the step has not succeeded
+     */
     public <T> T value(SnmpStep<T> step) {
         var result = step.result(this);
         if (result.status() != SnmpStepResult.Status.SUCCEEDED) throw new IllegalStateException("Step has not succeeded");

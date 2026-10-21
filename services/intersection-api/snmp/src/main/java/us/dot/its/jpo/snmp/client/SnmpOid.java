@@ -3,8 +3,18 @@ package us.dot.its.jpo.snmp.client;
 import java.util.Arrays;
 import java.util.Objects;
 
-/** Numeric OIDs keep transport output independent of installed MIB display hints. */
+/**
+ * A normalized numeric OID, independent of installed MIB files or display hints.
+ * A leading dot and leading zeros in numeric components are normalized away.
+ *
+ * @param value numeric identifier with 2-128 components
+ */
 public record SnmpOid(String value) implements Comparable<SnmpOid> {
+    /**
+     * Validates ASN.1 root rules and unsigned 32-bit component limits.
+     * @throws IllegalArgumentException if the identifier is malformed or a component is out of range
+     * @throws NullPointerException if the value is null
+     */
     public SnmpOid {
         Objects.requireNonNull(value, "OID");
         if (value.startsWith(".")) value = value.substring(1);
@@ -17,11 +27,22 @@ public record SnmpOid(String value) implements Comparable<SnmpOid> {
         value = String.join(".", Arrays.stream(parts).mapToObj(Long::toString).toList());
     }
 
+    /**
+     * Returns a child OID without modifying this identifier.
+     * @param component nonnegative child component
+     * @return child identifier
+     * @throws IllegalArgumentException if the component or resulting OID is invalid
+     */
     public SnmpOid append(int component) {
         if (component < 0) throw new IllegalArgumentException("Negative OID component");
         return new SnmpOid(value + "." + component);
     }
 
+    /**
+     * Checks strict subtree membership; an OID is not within itself.
+     * @param root subtree root
+     * @return true if this OID is a descendant of the root
+     */
     public boolean isWithin(SnmpOid root) {
         return value.startsWith(root.value + ".");
     }

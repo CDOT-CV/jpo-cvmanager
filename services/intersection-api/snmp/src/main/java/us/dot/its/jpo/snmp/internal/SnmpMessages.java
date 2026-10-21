@@ -5,6 +5,12 @@ import us.dot.its.jpo.snmp.client.SnmpException;
 /** Stable, credential-free descriptions shared by compact results and logs. */
 public final class SnmpMessages {
     private SnmpMessages() {}
+
+    /**
+     * Returns credential-free presentation text. Applications should branch on the enum instead.
+     * @param kind failure category
+     * @return human-readable description
+     */
     public static String failure(SnmpException.Kind kind) {
         return switch (kind) {
             case TIMEOUT -> "Device did not respond.";

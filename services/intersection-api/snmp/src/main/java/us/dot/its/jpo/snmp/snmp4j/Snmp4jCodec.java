@@ -10,6 +10,11 @@ import us.dot.its.jpo.snmp.client.SnmpValue;
 final class Snmp4jCodec {
     private Snmp4jCodec() {}
 
+    /**
+     * Converts a writable library value to its wire representation.
+     *
+     * @throws IllegalArgumentException if the value is read-only or has no SET representation
+     */
     static Variable encode(SnmpValue value) {
         return switch (value) {
             case SnmpValue.IntegerValue v -> new Integer32(v.value());
@@ -25,6 +30,12 @@ final class Snmp4jCodec {
         };
     }
 
+    /**
+     * Converts a wire value without interpreting its MIB-specific meaning.
+     * Missing-object and end-of-table markers stay explicit instead of becoming null or zero.
+     *
+     * @throws SnmpException with INVALID_OUTPUT for unsupported or malformed wire values
+     */
     static SnmpValue decode(Variable value) {
         if (value == null) throw new SnmpException(SnmpException.Kind.INVALID_OUTPUT, false);
         try {
@@ -49,6 +60,7 @@ final class Snmp4jCodec {
         }
     }
 
+    // Decimal wire text preserves the upper half of Counter64's unsigned range.
     private static SnmpValue unsigned(SnmpValue.UnsignedValue.Kind kind, String value) {
         return new SnmpValue.UnsignedValue(kind, new BigInteger(value));
     }

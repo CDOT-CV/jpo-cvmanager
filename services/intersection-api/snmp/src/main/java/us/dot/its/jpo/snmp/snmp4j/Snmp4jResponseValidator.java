@@ -15,12 +15,17 @@ import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 final class Snmp4jResponseValidator {
     private Snmp4jResponseValidator() {}
 
+    /** Checks response identity, agent errors and OID order before exposing decoded values. */
     static List<SnmpBinding> validate(ScopedPDU request, PDU response) {
         boolean write = request.getType() == PDU.SET;
         validateEnvelope(request, response, write);
+
+        // Ordinary requests require one response binding per requested OID. A bulk page may be
+        // shorter than requested, but it cannot be empty or exceed its requested page size.
         boolean bulk = request.getType() == PDU.GETBULK;
         if (bulk ? response.size() < 1 || response.size() > request.getMaxRepetitions()
                 : response.size() != request.size()) throw new SnmpException(INVALID_OUTPUT, write);
+
         try {
             var bindings = response.getVariableBindings().stream()
                     .map(binding -> new SnmpBinding(new SnmpOid(binding.getOid().toString()),
