@@ -19,18 +19,30 @@ import us.dot.its.jpo.snmp.client.*;
 import us.dot.its.jpo.snmp.internal.OperationLog;
 import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 
-/** NTCIP procedures only. Share this instance; distributed/device-external writers require caller coordination. */
+/**
+ * NTCIP 1218 device procedures built on the generic SNMP client.
+ * Direct callers should share an instance for local write coordination. Task recipes use the
+ * executor's endpoint serialization; separate executors or external writers need caller coordination.
+ * Communication failures and malformed device data are reported as {@link SnmpException}.
+ */
 public final class Ntcip1218Client {
     private static final Logger log = LoggerFactory.getLogger(Ntcip1218Client.class);
     private static final String ROOT = "1.3.6.1.4.1.1206.4.2.18.";
     private final SnmpClient client;
     private final Clock clock;
     private final ReentrantLock[] locks = new ReentrantLock[256];
+
     public Ntcip1218Client(SnmpClient client, Clock clock) {
-        this.client = Objects.requireNonNull(client); this.clock = Objects.requireNonNull(clock);
+        this.client = Objects.requireNonNull(client);
+        this.clock = Objects.requireNonNull(clock);
         for (int i = 0; i < locks.length; i++) locks[i] = new ReentrantLock(true);
     }
 
+    /**
+     * Reads both tables and returns only a complete, validated snapshot.
+     *
+     * @throws SnmpException if a read fails or any row is incomplete or malformed
+     */
     public List<ForwardingRow> readForwarding(Ntcip1218Device device) {
         return exclusive(device, "FORWARDING_READ", false, trace -> {
             trace.step("read_receive_rows");
@@ -76,7 +88,10 @@ public final class Ntcip1218Client {
                     && exception.kind() == SnmpValue.ExceptionValue.Kind.NO_SUCH_INSTANCE) missing++;
             columns.put(i + 2, binding.value());
         }
+        // A deleted row must be absent in every requested column. Partial absence is malformed
+        // output, not proof that a delete succeeded.
         if (missing == bindings.size()) return Optional.empty();
+
         try {
             return Optional.of(new ForwardingRow(table, index, columns));
         } catch (IllegalArgumentException failure) {
@@ -84,7 +99,14 @@ public final class Ntcip1218Client {
         }
     }
 
-    /** Allocates max+1 up to 127 for compatibility; does not replay a timed-out create. */
+    /**
+     * Adds one row using the message type's table and port, then verifies every written column.
+     * Row allocation uses max+1 up to 127 to preserve the previous API's behavior.
+     *
+     * @throws SnmpException if communication or verification fails; a successful SET followed by
+     *         failed readback leaves the write outcome uncertain and must not be blindly replayed
+     * @throws IllegalStateException if the next row exceeds the compatibility limit
+     */
     public SnmpWriteResult<ForwardingRow> addForwarding(Ntcip1218Device device, ForwardingRequest request) {
         Objects.requireNonNull(request);
         return exclusive(device, "FORWARDING_ADD", true, trace -> {
@@ -108,6 +130,7 @@ public final class Ntcip1218Client {
                 for (SnmpBinding binding : expected) {
                     String[] parts = binding.oid().value().split("\\.");
                     int column = Integer.parseInt(parts[parts.length - 2]);
+                    // createAndGo is a SET instruction; an active row reads back as status 1.
                     SnmpValue value = column == table.statusColumn() ? new SnmpValue.IntegerValue(1) : binding.value();
                     if (!value.equals(row.columns().get(column))) throw new SnmpException(VERIFICATION, true);
                 }
@@ -119,9 +142,17 @@ public final class Ntcip1218Client {
         });
     }
 
-    /** No match is an explicit no-op; otherwise deletes the highest matching row, as before. */
+    /**
+     * Deletes the highest row matching PSID and destination, preserving the previous API's selection.
+     * No match is a successful no-op. A matching row is verified absent after the SET.
+     *
+     * @throws IllegalArgumentException if the destination is not a literal IPv4 address
+     * @throws SnmpException if communication or verification fails; inspect write uncertainty
+     *         before attempting another delete
+     */
     public SnmpWriteResult<Void> deleteForwarding(Ntcip1218Device device, MessageType message, String destination) {
-        Objects.requireNonNull(message); SnmpTarget.validateIpv4(destination);
+        Objects.requireNonNull(message);
+        SnmpTarget.validateIpv4(destination);
         return exclusive(device, "FORWARDING_DELETE", true, trace -> {
             ForwardingTable table = message.table();
             trace.step("find_matching_row");
@@ -150,15 +181,24 @@ public final class Ntcip1218Client {
         });
     }
 
-    /** Pure construction helper, also useful for preview and golden tests. */
+    /**
+     * Builds the SET payload without contacting the device. Dates use the clock's instant in UTC.
+     *
+     * @throws IllegalArgumentException if the row index is outside the MIB's 1-255 range
+     */
     public List<SnmpBinding> createBindings(ForwardingRequest request, int index) {
         var table = request.messageType().table();
         Map<Integer, SnmpValue> values = new LinkedHashMap<>();
-        values.put(2, request.messageType().psid()); values.put(3, SnmpValue.Octets.text(request.destination()));
-        values.put(4, new SnmpValue.IntegerValue(request.messageType().port())); values.put(5, new SnmpValue.IntegerValue(2));
+        values.put(2, request.messageType().psid());
+        values.put(3, SnmpValue.Octets.text(request.destination()));
+        values.put(4, new SnmpValue.IntegerValue(request.messageType().port()));
+        values.put(5, new SnmpValue.IntegerValue(2));
+
         if (table == ForwardingTable.RECEIVE) {
-            values.put(6, new SnmpValue.IntegerValue(-100)); values.put(7, new SnmpValue.IntegerValue(1));
+            values.put(6, new SnmpValue.IntegerValue(-100));
+            values.put(7, new SnmpValue.IntegerValue(1));
         }
+
         // Both forwarding MIBs require eight-octet UTC dates, with no offset field.
         // Preserve the existing minute precision, independently of device and clock zones.
         LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MINUTES);
@@ -168,16 +208,24 @@ public final class Ntcip1218Client {
         values.put(table.securityColumn(), new SnmpValue.IntegerValue(request.includeSecurity() ? 1 : 0));
         if (table == ForwardingTable.RECEIVE) values.put(12, new SnmpValue.IntegerValue(0));
         else values.put(table.statusColumn(), new SnmpValue.IntegerValue(4));
+
         return values.entrySet().stream().map(e -> new SnmpBinding(table.cell(e.getKey(), index), e.getValue())).toList();
     }
 
+    /** Returns the firmware version as text; a missing or non-octet value is a read failure. */
     public String readFirmwareVersion(Ntcip1218Device device) { return octets(read(device, "13.2.0")).text(); }
+
+    /** Returns the MIB's status value (1-5), rejecting missing or out-of-range values. */
     public int readStatus(Ntcip1218Device device) {
         int status = integer(read(device, "16.10.0"));
         if (status < 1 || status > 5) throw new SnmpException(INVALID_OUTPUT, false);
         return status;
     }
+
+    /** Coordinates in degrees; an empty value represents the MIB's unknown-coordinate sentinel. */
     public record Location(Optional<Double> latitude, Optional<Double> longitude) {}
+
+    /** Reads latitude and longitude together and preserves an unknown value for either coordinate. */
     public Location readLocation(Ntcip1218Device device) {
         var result = client.get(device.target(), List.of(new SnmpOid(ROOT + "6.6.0"), new SnmpOid(ROOT + "6.7.0")));
         int lat = integer(result.get(0).value()), lon = integer(result.get(1).value());
@@ -188,6 +236,7 @@ public final class Ntcip1218Client {
     /** Raw hours retain NTCIP sentinel values 254 (at least) and 255 (expired). */
     public Map<Integer, Integer> readCertificateExpirationHours(Ntcip1218Device device) { return hours(device, "8.10.1.4"); }
     public Map<Integer, Integer> readCertificateRequestHours(Ntcip1218Device device) { return hours(device, "8.10.1.5"); }
+
     private Map<Integer, Integer> hours(Ntcip1218Device device, String suffix) {
         SnmpOid root = new SnmpOid(ROOT + suffix);
         Map<Integer, Integer> result = new LinkedHashMap<>();
@@ -210,6 +259,8 @@ public final class Ntcip1218Client {
         if (value instanceof SnmpValue.Octets octets) return octets;
         throw new SnmpException(INVALID_OUTPUT, false);
     }
+    // Striped locks bound memory use for direct callers. A hash collision may serialize unrelated
+    // devices; it cannot let writes to the same endpoint overlap within this client instance.
     private <T> T exclusive(Ntcip1218Device device, String name, boolean write, Function<OperationLog, T> action) {
         var target = device.target();
         ReentrantLock lock = locks[Math.floorMod(Objects.hash(target.address(), target.port()), locks.length)];

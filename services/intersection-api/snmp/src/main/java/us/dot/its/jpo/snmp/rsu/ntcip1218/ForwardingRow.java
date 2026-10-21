@@ -5,12 +5,17 @@ import java.util.Map;
 import java.util.Objects;
 import us.dot.its.jpo.snmp.client.SnmpValue;
 
-/** Retains unknown PSIDs and all columns rather than dropping rows the application does not recognize. */
+/**
+ * A complete forwarding row with the MIB's column types and value ranges checked.
+ * Unknown PSIDs remain visible so an application can preserve configurations it did not create.
+ */
 public record ForwardingRow(ForwardingTable table, int index, Map<Integer, SnmpValue> columns) {
     public ForwardingRow {
         Objects.requireNonNull(table);
         columns = Map.copyOf(columns);
         table.cell(2, index);
+
+        // Reject incomplete snapshots before a caller can use them to replace stored device state.
         if (columns.size() != table.lastColumn() - 1) throw new IllegalArgumentException("Incomplete forwarding row");
         for (int column = 2; column <= table.lastColumn(); column++) {
             boolean octets = column == 2 || column == 3 || column == table.startColumn() || column == table.stopColumn();
@@ -18,6 +23,7 @@ public record ForwardingRow(ForwardingTable table, int index, Map<Integer, SnmpV
                 throw new IllegalArgumentException("Invalid forwarding column type");
             }
         }
+
         var psid = (SnmpValue.Octets) columns.get(2);
         if (psid.bytes().length < 1 || psid.bytes().length > 4) throw new IllegalArgumentException("Invalid PSID");
         int port = ((SnmpValue.IntegerValue) columns.get(4)).value();
@@ -28,9 +34,12 @@ public record ForwardingRow(ForwardingTable table, int index, Map<Integer, SnmpV
                 || security < 0 || security > 1 || ((SnmpValue.Octets) columns.get(3)).bytes().length > 64) {
             throw new IllegalArgumentException("Forwarding value out of range");
         }
+
+        if (table == ForwardingTable.RECEIVE) validateReceiveColumns(columns);
         NtcipDateAndTime.decode((SnmpValue.Octets) columns.get(table.startColumn()));
         NtcipDateAndTime.decode((SnmpValue.Octets) columns.get(table.stopColumn()));
     }
+
     public SnmpValue.Octets psid() { return (SnmpValue.Octets) columns.get(2); }
     public String destination() { return ((SnmpValue.Octets) columns.get(3)).text(); }
     public int port() { return integer(4); }
@@ -38,5 +47,16 @@ public record ForwardingRow(ForwardingTable table, int index, Map<Integer, SnmpV
     public boolean includeSecurity() { return integer(table.securityColumn()) == 1; }
     public LocalDateTime start() { return NtcipDateAndTime.decode((SnmpValue.Octets) columns.get(table.startColumn())); }
     public LocalDateTime stop() { return NtcipDateAndTime.decode((SnmpValue.Octets) columns.get(table.stopColumn())); }
+
+    // Transmit rows have a different layout and do not contain these receive-only filters.
+    private static void validateReceiveColumns(Map<Integer, SnmpValue> columns) {
+        int rssi = ((SnmpValue.IntegerValue) columns.get(6)).value();
+        int interval = ((SnmpValue.IntegerValue) columns.get(7)).value();
+        int authInterval = ((SnmpValue.IntegerValue) columns.get(12)).value();
+        if (rssi < -100 || rssi > -60 || interval < 0 || interval > 10 || authInterval < 0 || authInterval > 10) {
+            throw new IllegalArgumentException("Receive forwarding value out of range");
+        }
+    }
+
     private int integer(int column) { return ((SnmpValue.IntegerValue) columns.get(column)).value(); }
 }

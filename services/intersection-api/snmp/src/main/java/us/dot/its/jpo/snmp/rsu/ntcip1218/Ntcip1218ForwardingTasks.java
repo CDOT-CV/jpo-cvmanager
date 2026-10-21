@@ -10,12 +10,17 @@ import us.dot.its.jpo.snmp.client.SnmpTarget;
 import us.dot.its.jpo.snmp.client.SnmpWriteResult;
 import us.dot.its.jpo.snmp.execution.*;
 
-/** Builds verified forwarding tasks. Full-table snapshots are an explicit caller choice. */
+/**
+ * Reusable factory for forwarding tasks; building a task performs no device I/O.
+ * The default tasks verify only their change. Snapshot variants also read both tables and may
+ * pass the validated snapshot to application code, such as a database update.
+ */
 public final class Ntcip1218ForwardingTasks {
     private final Clock clock;
 
     public Ntcip1218ForwardingTasks(Clock clock) { this.clock = Objects.requireNonNull(clock); }
 
+    /** Adds one forwarding row and verifies it, without reading an unrelated table afterward. */
     public SnmpTask create(Ntcip1218Device device, ForwardingRequest request) {
         return createTask(device, request, false, null);
     }
@@ -24,6 +29,7 @@ public final class Ntcip1218ForwardingTasks {
         return createTask(device, request, true, null);
     }
 
+    /** Runs the callback only after the procedure completes and both tables are read successfully. */
     public SnmpTask createWithSnapshot(Ntcip1218Device device, ForwardingRequest request, SnapshotAction afterRead) {
         return createTask(device, request, true, Objects.requireNonNull(afterRead));
     }
@@ -34,6 +40,7 @@ public final class Ntcip1218ForwardingTasks {
                 client -> client.addForwarding(device, request), snapshot, afterRead);
     }
 
+    /** Deletes one matching row, or reports a successful no-op when none exists. */
     public SnmpTask delete(Ntcip1218Device device, MessageType message, String destination) {
         return deleteTask(device, message, destination, false, null);
     }
@@ -63,19 +70,23 @@ public final class Ntcip1218ForwardingTasks {
     private <T> SnmpTask task(String name, Ntcip1218Device device, MessageType message,
             Function<Ntcip1218Client, SnmpWriteResult<T>> change, boolean snapshot, SnapshotAction afterRead) {
         Objects.requireNonNull(device);
+        // Each execution uses its task-scoped client so helper calls share deadlines and tracking.
         var configure = new SnmpStep<>("configure-forwarding", SnmpStep.Kind.WRITE,
                 ctx -> change.apply(new Ntcip1218Client(ctx.client(), clock)));
         var steps = new ArrayList<SnmpStep<?>>();
         steps.add(configure);
+
         if (snapshot) {
             var read = new SnmpStep<>("read-current-forwarding", SnmpStep.Kind.READ,
                     ctx -> new Ntcip1218Client(ctx.client(), clock).readForwarding(device));
             steps.add(read);
+            // Keeping application work in this task holds the endpoint slot through persistence.
             if (afterRead != null) steps.add(new SnmpStep<>(afterRead.stepName(), SnmpStep.Kind.LOCAL, ctx -> {
                 afterRead.action().accept(ctx.value(read));
                 return null;
             }));
         }
+
         return new SnmpTask(name + "." + message.name() + "." + message.table().name(), device.target(), steps);
     }
 

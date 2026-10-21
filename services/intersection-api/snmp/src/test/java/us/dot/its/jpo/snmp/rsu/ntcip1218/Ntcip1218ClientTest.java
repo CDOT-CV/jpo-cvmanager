@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import us.dot.its.jpo.snmp.client.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -161,6 +162,60 @@ class Ntcip1218ClientTest {
         var failure = assertThrows(SnmpException.class, () -> client(agent).addForwarding(DEVICE,
                 new ForwardingRequest(MessageType.BSM, "198.51.100.20", false)));
         assertEquals(SnmpException.Kind.VERIFICATION, failure.kind()); assertTrue(failure.writeOutcomeUnknown());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "07e8001e0c223807", "07e80d1e0c223807", "07e801000c223807", "07e8021e0c223807",
+            "07e8011e18223807", "07e8011e0c3c3807", "07e8011e0c223d07", "07e8011e0c22380a"
+    })
+    void invalidDatesRemainTypedFailuresDuringReadAndPostWriteVerification(String hex) {
+        var invalidDate = new SnmpValue.Octets(hex);
+        for (var message : List.of(MessageType.BSM, MessageType.MAP)) {
+            var table = message.table();
+            var agent = new MemoryAgent() {
+                @Override public List<SnmpBinding> set(SnmpTarget target, List<SnmpBinding> bindings) {
+                    var response = super.set(target, bindings);
+                    data.put(table.cell(table.startColumn(), 1), invalidDate);
+                    return response;
+                }
+            };
+            var client = client(agent);
+            var verification = assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE,
+                    new ForwardingRequest(message, "198.51.100.20", false)));
+            assertEquals(SnmpException.Kind.INVALID_OUTPUT, verification.kind());
+            assertTrue(verification.writeOutcomeUnknown());
+            var read = assertThrows(SnmpException.class, () -> client.readForwarding(DEVICE));
+            assertEquals(SnmpException.Kind.INVALID_OUTPUT, read.kind());
+            assertFalse(read.writeOutcomeUnknown());
+            assertEquals(1, agent.writes.size());
+        }
+        assertThrows(IllegalArgumentException.class, () -> NtcipDateAndTime.decode(invalidDate));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "6, -101, false", "6, -100, true", "6, -60, true", "6, -59, false", "6, 500, false",
+            "7, -1, false", "7, 0, true", "7, 10, true", "7, 11, false", "7, 500, false",
+            "12, -1, false", "12, 0, true", "12, 10, true", "12, 11, false", "12, 500, false"
+    })
+    void receiveColumnRangesRejectMalformedRowsBeforeAnotherWrite(int column, int value, boolean valid) {
+        var agent = new MemoryAgent();
+        var client = client(agent);
+        var request = new ForwardingRequest(MessageType.BSM, "198.51.100.20", false);
+        client.addForwarding(DEVICE, request);
+        agent.data.put(ForwardingTable.RECEIVE.cell(column, 1), new SnmpValue.IntegerValue(value));
+        if (valid) {
+            assertEquals(new SnmpValue.IntegerValue(value), client.readForwarding(DEVICE).getFirst().columns().get(column));
+        } else {
+            var read = assertThrows(SnmpException.class, () -> client.readForwarding(DEVICE));
+            assertEquals(SnmpException.Kind.INVALID_OUTPUT, read.kind());
+            assertFalse(read.writeOutcomeUnknown());
+            var create = assertThrows(SnmpException.class, () -> client.addForwarding(DEVICE, request));
+            assertEquals(SnmpException.Kind.INVALID_OUTPUT, create.kind());
+            assertFalse(create.writeOutcomeUnknown());
+        }
+        assertEquals(1, agent.writes.size());
     }
 
     @Test void profilesAreValidatedBeforeBatchCanRun() {
