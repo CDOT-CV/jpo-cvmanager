@@ -1,12 +1,29 @@
-import React from 'react'
 import { createAction, createAsyncThunk, createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { RootState } from '../../../store'
-import { selectToken } from '../../../generalSlices/userSlice'
-import { IMessage, Client } from '@stomp/stompjs'
-import MessageMonitorApi from '../../../apis/intersections/mm-api'
-import EventsApi from '../../../apis/intersections/events-api'
-import NotificationApi from '../../../apis/intersections/notification-api'
+import { Client, IMessage } from '@stomp/stompjs'
+import React from 'react'
 import toast from 'react-hot-toast'
+import { MapRef } from 'react-map-gl'
+import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
+import EventsApi from '../../../apis/intersections/events-api'
+import MessageMonitorApi from '../../../apis/intersections/mm-api'
+import NotificationApi from '../../../apis/intersections/notification-api'
+import EnvironmentVars from '../../../EnvironmentVars'
+import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
+import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
+import { selectToken } from '../../../generalSlices/userSlice'
+import { RootState } from '../../../store'
+import {
+  fetchSrmWithinTimeWindow,
+  fetchSsmWithinTimeWindow,
+  filterSrms,
+  filterSsms,
+  getTimeWindowFromRenderInterval,
+} from '../../api/intersectionMapApiSlice'
+import { getTimestamp } from './map-component'
+import { setBsmCircleColor, setBsmLegendColors } from './map-layer-style-slice'
+import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
+import { downloadAllData } from './utilities/file-utilities'
+import { getTimeRangeDeciseconds } from './utilities/map-utils'
 import {
   addBsmTimestampsAndSortAscending,
   addMapTimestampsAndSortAscending,
@@ -18,24 +35,7 @@ import {
   parseMapSignalGroups,
   parseSpatSignalGroups,
 } from './utilities/message-utils'
-import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
-import { setBsmCircleColor, setBsmLegendColors } from './map-layer-style-slice'
-import { getTimeRangeDeciseconds } from './utilities/map-utils'
-import { MapRef } from 'react-map-gl'
-import { selectRsuMapData } from '../../../generalSlices/rsuSlice'
-import EnvironmentVars from '../../../EnvironmentVars'
-import { downloadAllData } from './utilities/file-utilities'
-import { getTimestamp } from './map-component'
-import { getAccurateTimeMillis, selectTimeOffsetMillis } from '../../../generalSlices/timeSyncSlice'
-import { combineUrlPaths } from '../../../apis/intersections/api-helper-cviz'
 import { ThunkAbortController } from './utilities/thunk-abort-contoller'
-import {
-  fetchSrmWithinTimeWindow,
-  fetchSsmWithinTimeWindow,
-  filterSrms,
-  filterSsms,
-  getTimeWindowFromRenderInterval,
-} from '../../api/intersectionMapApiSlice'
 
 export type MAP_LAYERS =
   | 'map-message'

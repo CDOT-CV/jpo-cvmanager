@@ -1,89 +1,88 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import Map, { Source, Layer, MapRef } from 'react-map-gl'
+import React, { useEffect, useMemo, useState } from 'react'
+import Map, { Layer, MapRef, Source } from 'react-map-gl'
 
-import { Container, Col } from 'reactstrap'
+import { Col, Container } from 'reactstrap'
 
-import { Paper, Box, Fab, useTheme } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import { Box, Fab, Paper, useTheme } from '@mui/material'
 
-import ControlPanel from './control-panel'
-import { SidePanel } from './map-info'
-import { CustomPopup } from './popup'
-import { selectToken } from '../../../generalSlices/userSlice'
-import {
-  selectBsmLayerStyle,
-  selectConnectingLanesHighlightLayerStyle,
-  selectConnectingLanesLabelsLayerStyle,
-  selectConnectingLanesLayerStyle,
-  selectConnectingLanesSsmStatusLayerStyle,
-  selectMapMessageHighlightLayerStyle,
-  selectMapMessageLabelsLayerStyle,
-  selectMapMessageLayerStyle,
-  selectMarkerLayerStyle,
-  selectSignalStateLayerStyle,
-  selectSrmLayerStyle,
-  setSrmCircleColor,
-  setSrmLegendColors,
-} from './map-layer-style-slice'
-import {
-  MAP_PROPS,
-  addInitialDataAbortPromise,
-  centerMapOnPoint,
-  cleanUpLiveStreaming,
-  generateQueryParams,
-  incrementSliderValue,
-  initializeLiveStreaming,
-  pullInitialData,
-  resetInitialDataAbortControllers,
-  selectActiveSrmData,
-  selectActiveSsmData,
-  selectAllInteractiveLayerIds,
-  selectBsmData,
-  selectConnectingLanes,
-  selectCurrentBsms,
-  selectCurrentSignalGroups,
-  selectDecoderModeEnabled,
-  selectFilteredSurroundingEvents,
-  selectFilteredSurroundingNotifications,
-  selectLiveDataActive,
-  selectLiveDataRestart,
-  selectMapData,
-  selectMapSignalGroups,
-  selectPlaybackModeActive,
-  selectQueryParams,
-  selectRenderTimeInterval,
-  selectShowPopupOnHover,
-  selectSignalStateData,
-  selectSliderValueDeciseconds,
-  selectSpatSignalGroups,
-  selectTimeWindowSeconds,
-  setMapProps,
-  setMapRef,
-  updateQueryParams,
-  updateRenderTimeInterval,
-  updateRenderedMapState,
-  MAP_LAYERS,
-  selectLayersVisible,
-} from './map-slice'
-import EnvironmentVars from '../../../EnvironmentVars'
-import {
-  addConnections,
-  createMarkerForNotification,
-  addSsmStatus,
-  addSsmSrmToConnections,
-  addSsmSrmToMapFeatures,
-} from './utilities/message-utils'
+import { Remove } from '@mui/icons-material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { useDispatch, useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
+import EnvironmentVars from '../../../EnvironmentVars'
+import { selectToken } from '../../../generalSlices/userSlice'
 import { RootState } from '../../../store'
-import { MapLegend } from './map-legend'
 import mbStyle from '../../../styles/intersectionMapStyle.json'
 import DecoderEntryDialog from '../decoder/decoder-entry-dialog'
-import { useLocation } from 'react-router-dom'
-import { Remove } from '@mui/icons-material'
-import VisualSettings from './visual-settings'
-import { useDispatch, useSelector } from 'react-redux'
+import ControlPanel from './control-panel'
 import LayerMenu from './layer-menu'
+import { SidePanel } from './map-info'
+import {
+    selectBsmLayerStyle,
+    selectConnectingLanesHighlightLayerStyle,
+    selectConnectingLanesLabelsLayerStyle,
+    selectConnectingLanesLayerStyle,
+    selectConnectingLanesSsmStatusLayerStyle,
+    selectMapMessageHighlightLayerStyle,
+    selectMapMessageLabelsLayerStyle,
+    selectMapMessageLayerStyle,
+    selectMarkerLayerStyle,
+    selectSignalStateLayerStyle,
+    selectSrmLayerStyle,
+    setSrmCircleColor,
+    setSrmLegendColors,
+} from './map-layer-style-slice'
+import { MapLegend } from './map-legend'
+import {
+    MAP_LAYERS,
+    MAP_PROPS,
+    addInitialDataAbortPromise,
+    cleanUpLiveStreaming,
+    generateQueryParams,
+    incrementSliderValue,
+    initializeLiveStreaming,
+    pullInitialData,
+    resetInitialDataAbortControllers,
+    selectActiveSrmData,
+    selectActiveSsmData,
+    selectAllInteractiveLayerIds,
+    selectBsmData,
+    selectConnectingLanes,
+    selectCurrentBsms,
+    selectCurrentSignalGroups,
+    selectDecoderModeEnabled,
+    selectFilteredSurroundingEvents,
+    selectFilteredSurroundingNotifications,
+    selectLayersVisible,
+    selectLiveDataActive,
+    selectLiveDataRestart,
+    selectMapData,
+    selectMapSignalGroups,
+    selectPlaybackModeActive,
+    selectQueryParams,
+    selectRenderTimeInterval,
+    selectShowPopupOnHover,
+    selectSignalStateData,
+    selectSliderValueDeciseconds,
+    selectSpatSignalGroups,
+    selectTimeWindowSeconds,
+    setMapProps,
+    setMapRef,
+    updateQueryParams,
+    updateRenderTimeInterval,
+    updateRenderedMapState,
+} from './map-slice'
+import { CustomPopup } from './popup'
 import { generateColorDictionary, generateMapboxStyleExpression } from './utilities/colors'
+import {
+    addConnections,
+    addSsmSrmToConnections,
+    addSsmSrmToMapFeatures,
+    addSsmStatus,
+    createMarkerForNotification,
+} from './utilities/message-utils'
+import VisualSettings from './visual-settings'
 
 /**
  *  Converts a date string or timestamp to a timestamp in milliseconds since epoch.
@@ -299,11 +298,20 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [mapRef, dispatch])
 
   useEffect(() => {
-    const refPoint = mapData?.properties.refPoint
-    if (!refPoint) return
+    if (props.sourceDataType === 'timestamp') {
+      const refPoint = mapData?.properties.refPoint
+      if (!refPoint || !mapRef.current) return
 
-    dispatch(centerMapOnPoint({ latitude: refPoint.latitude, longitude: refPoint.longitude }))
-  }, [mapData, dispatch])
+      mapRef.current.flyTo({
+        center: [refPoint.longitude, refPoint.latitude],
+        zoom: 19,
+        bearing: 0,
+        duration: 1000,
+      })
+    }
+    // Only trigger on mapData change when sourceDataType is 'timestamp'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapData])
 
   const activeSrmFeatureCollection = useMemo(() => {
     const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
