@@ -1,12 +1,22 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.config.SnmpProperties;
 import us.dot.its.jpo.ode.api.models.devices.management.CreateMessageForwardingRequest;
@@ -95,16 +105,37 @@ class RsuMessageForwardingServiceTest {
         }
     }
 
-    @Test void databaseFailureDoesNotLoseVerifiedDeviceOutcome() {
+    static Stream<Arguments> snapshotFailures() {
+        return Stream.of(
+                Arguments.of(new TransactionSystemException("private transaction detail",
+                        new SQLException("private SQL detail", "23505", 0)), "SQLException", "23505", "0"),
+                Arguments.of(new TransactionSystemException("private transaction detail",
+                        new SQLException("private SQL detail", "08006", 101, new IOException("private connection detail"))),
+                        "IOException", "08006", "101"),
+                Arguments.of(new IllegalStateException("private application detail"),
+                        "IllegalStateException", "unknown", "unknown"),
+                Arguments.of(new TransactionSystemException("private transaction detail",
+                        new SQLException("private SQL detail", "private\ninvalid state", 0)), "SQLException", "unknown", "0"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("snapshotFailures")
+    @ExtendWith(OutputCaptureExtension.class)
+    void databaseFailureIsLoggedWithoutPrivateDetailsAndPreservesVerifiedDeviceOutcome(
+            RuntimeException failure, String causeType, String sqlState, String errorCode, CapturedOutput output) {
         var client = new MemoryClient();
-        doThrow(new IllegalStateException("fixture database failure")).when(snapshots)
-                .replace(anyInt(), anyString(), anyList());
+        doThrow(failure).when(snapshots).replace(anyInt(), anyString(), anyList());
         try (var executor = executor(client)) {
             var result = service(executor).create(request()).get(device.target().address());
             assertEquals(SnmpTaskResult.Status.FAILED, result.execution().status());
             assertEquals(SnmpTaskResult.WriteState.VERIFIED, result.writeState());
             assertEquals(DatabaseSync.FAILED, result.databaseSync());
             assertEquals(true, result.changed());
+            var diagnostic = "RSU forwarding snapshot replacement failed [ip=192.0.2.10 rsuId=7 error="
+                    + failure.getClass().getSimpleName() + " cause=" + causeType + " sqlState=" + sqlState
+                    + " errorCode=" + errorCode + "]";
+            assertEquals(1, output.getAll().lines().filter(line -> line.contains(diagnostic)).count());
+            assertFalse(output.getAll().contains("private"));
         }
     }
 

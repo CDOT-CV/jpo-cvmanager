@@ -1,10 +1,13 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ import us.dot.its.jpo.ode.api.services.RsuMessageForwardingContextService.Device
  * failures.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "enable.api", havingValue = "true")
 public class RsuMessageForwardingService {
@@ -62,8 +66,9 @@ public class RsuMessageForwardingService {
      */
     public Map<String, MessageForwardingResult> delete(MessageForwardingRequest request) {
         validateRequest(request);
-        return execute(request, context -> forwardingTasks.deleteWithSnapshot(context.device(), request.getMessageType(),
-                request.getDestinationIp(), synchronizeDb(context)));
+        return execute(request,
+                context -> forwardingTasks.deleteWithSnapshot(context.device(), request.getMessageType(),
+                        request.getDestinationIp(), synchronizeDb(context)));
     }
 
     /**
@@ -107,8 +112,35 @@ public class RsuMessageForwardingService {
      * it is created.
      */
     private SnapshotAction synchronizeDb(DeviceContext context) {
-        return new SnapshotAction("sync-database", rows -> snapshotService.replace(context.rsuId(),
-                context.device().target().address(), rows));
+        return new SnapshotAction("sync-database", rows -> {
+            try {
+                snapshotService.replace(context.rsuId(), context.device().target().address(), rows);
+            } catch (RuntimeException failure) {
+                // Catch outside the transactional proxy to include begin/commit failures.
+                logSnapshotFailure(context, failure);
+                throw failure;
+            }
+        });
+    }
+
+    /**
+     * Logs exception types and SQL error codes without SQL values or exception
+     * messages.
+     */
+    private void logSnapshotFailure(DeviceContext context, RuntimeException failure) {
+        var causes = ExceptionUtils.getThrowableList(failure);
+        // A SQLException may wrap an I/O failure, so inspect the whole cause chain.
+        var sqlFailure = causes.stream().filter(SQLException.class::isInstance)
+                .map(SQLException.class::cast).findFirst().orElse(null);
+        var sqlState = sqlFailure == null ? null : sqlFailure.getSQLState();
+        // Only standard SQLState codes are safe to include as driver-provided text.
+        if (sqlState == null || !sqlState.matches("[0-9A-Z]{5}"))
+            sqlState = "unknown";
+        var errorCode = sqlFailure == null ? "unknown" : Integer.toString(sqlFailure.getErrorCode());
+        log.warn(
+                "RSU forwarding snapshot replacement failed [ip={} rsuId={} error={} cause={} sqlState={} errorCode={}]",
+                context.device().target().address(), context.rsuId(),
+                failure.getClass().getSimpleName(), causes.getLast().getClass().getSimpleName(), sqlState, errorCode);
     }
 
     private Map<String, MessageForwardingResult> awaitResults(Map<String, SnmpTaskHandle> handles) {
