@@ -106,7 +106,10 @@ const IntersectionMap = () => {
   const mapRef = useRef<MapRef>(null)
   const intersectionIconLoadingRef = useRef(false)
 
-  const viewBounds = getBoundsForIntersections(selectedIntersection, intersections)
+  const viewBounds = useMemo(
+    () => getBoundsForIntersections(selectedIntersection, intersections),
+    [selectedIntersection, intersections]
+  )
   useEffect(() => {
     zoomToBounds(mapRef, viewBounds)
   }, [viewBounds])
