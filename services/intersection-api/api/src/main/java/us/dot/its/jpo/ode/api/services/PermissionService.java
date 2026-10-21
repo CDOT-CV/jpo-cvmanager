@@ -79,7 +79,7 @@ public class PermissionService {
 
     public Organization getOrganizationById(Integer orgId) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
-        return authToken.getQualifiedOrgList(UserRole.ADMIN).stream()
+        return authToken.getQualifiedOrgList(UserRole.USER).stream()
                 .filter(org -> org.getId().equals(orgId))
                 .findFirst()
                 .orElseThrow(() -> new AccessDeniedException("User does not belong to the specified organization"));

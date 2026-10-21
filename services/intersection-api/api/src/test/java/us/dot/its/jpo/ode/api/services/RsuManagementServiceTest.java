@@ -1,9 +1,31 @@
 package us.dot.its.jpo.ode.api.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,15 +38,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
+import us.dot.its.jpo.ode.api.models.SimplePosition;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.models.SimplePosition;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
+import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
@@ -33,29 +55,16 @@ import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepositor
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RsuManagementServiceTest {
@@ -89,6 +98,9 @@ class RsuManagementServiceTest {
 
     @Mock
     private RsuRepository rsuRepository;
+
+    @Mock
+    private RsuHealthRepository rsuHealthRepository;
 
     @Mock
     private RsuOptionRepository rsuOptionRepository;
@@ -336,6 +348,89 @@ class RsuManagementServiceTest {
         assertTrue(result.getOrganizations().isEmpty());
     }
 
+    // ==================== CREATE RSU TESTS ====================
+
+    @Test
+    void testCreateRsu_SavesRsuAndRelationships() throws UnknownHostException {
+        String ipAddress = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(ipAddress);
+        RsuInfoDto rsuInfoDto = new RsuInfoDto(
+                ipAddress,
+                new SimplePosition(39.7392, -105.0844),
+                123.4,
+                "I-25",
+                "RSU123",
+                "SCMS123",
+                "Yunex RSU-2X",
+                "ssh-group",
+                "snmp-group",
+                "v3",
+                List.of(1, 2),
+                Boolean.TRUE,
+                Boolean.FALSE);
+
+        Rsu rsu = new Rsu();
+        rsu.setIpv4Address(inetAddress);
+        RsuModel model = new RsuModel();
+        RsuCredential sshCredential = new RsuCredential();
+        SnmpCredential snmpCredential = new SnmpCredential();
+        SnmpProtocol snmpProtocol = new SnmpProtocol();
+
+        when(rsuMapper.toEntity(rsuInfoDto)).thenReturn(rsu);
+        when(rsuModelRepository.findByNameAndManufacturerName("RSU-2X", "Yunex"))
+                .thenReturn(Optional.of(model));
+        when(rsuCredentialRepository.findByNickname("ssh-group")).thenReturn(Optional.of(sshCredential));
+        when(snmpCredentialRepository.findByNickname("snmp-group")).thenReturn(Optional.of(snmpCredential));
+        when(snmpProtocolRepository.findByNickname("v3")).thenReturn(Optional.of(snmpProtocol));
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
+        when(rsuRepository.save(rsu)).thenReturn(rsu);
+
+        Rsu result = rsuManagementService.createRsu(rsuInfoDto, List.of(testOrg, testOrg2));
+
+        assertEquals(rsu, result);
+        assertEquals(model, rsu.getModel());
+        assertEquals(sshCredential, rsu.getCredential());
+        assertEquals(snmpCredential, rsu.getSnmpCredential());
+        assertEquals(snmpProtocol, rsu.getSnmpProtocol());
+        verify(rsuRepository).save(rsu);
+        verify(rsuOptionRepository).save(any(RsuOption.class));
+        verify(rsuOrganizationRepository).saveAll(anyList());
+    }
+
+    // ==================== DELETE RSU TESTS ====================
+
+    @Test
+    void testDeleteRsuByIpv4Address_RemovesRelatedRecordsAndRsu() throws UnknownHostException {
+        String ipAddress = "192.168.1.100";
+        InetAddress inetAddress = InetAddress.getByName(ipAddress);
+        when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(new Rsu());
+
+        rsuManagementService.deleteRsuByIpv4Address(ipAddress);
+
+        verify(pingRepository).removePingByIpv4Address(inetAddress);
+        verify(rsuOrganizationRepository).removeRsuOrganizationByIpv4Address(inetAddress);
+        verify(scmsHealthRepository).removeScmsHealthByIpv4Address(inetAddress);
+        verify(rsuHealthRepository).removeRsuHealthByIpv4Address(inetAddress);
+        verify(rsuRepository).removeRsuByIpv4Address(inetAddress);
+    }
+
+    @Test
+    void testDeleteMultipleRsusByIpv4Address_RemovesRelatedRecordsAndRsus() throws UnknownHostException {
+        List<String> ipAddresses = List.of("192.168.1.100", "192.168.1.101");
+        List<InetAddress> inetAddresses = List.of(
+                InetAddress.getByName(ipAddresses.get(0)),
+                InetAddress.getByName(ipAddresses.get(1)));
+        when(rsuRepository.findByIpv4AddressIn(inetAddresses)).thenReturn(List.of(new Rsu(), new Rsu()));
+
+        rsuManagementService.deleteMultipleRsusByIpv4Address(ipAddresses);
+
+        verify(pingRepository).removeMultiplePingsByIpv4Address(inetAddresses);
+        verify(rsuOrganizationRepository).removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
+        verify(scmsHealthRepository).removeMultipleScmsHealthByIpv4Address(inetAddresses);
+        verify(rsuHealthRepository).removeMultipleRsuHealthByIpv4Address(inetAddresses);
+        verify(rsuRepository).removeByIpv4AddressIn(inetAddresses);
+    }
+
     // ==================== MODIFY RSU TESTS ====================
 
     @Test
@@ -561,8 +656,8 @@ class RsuManagementServiceTest {
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
 
         rsuManagementService.modifyRsu(rsuIp, patch, authorizedOrgs);
-        verify(rsuOrganizationRepository, never()).saveAll(anyList());
-        verify(rsuOrganizationRepository, never()).deleteAll(anyList());
+        verify(rsuOrganizationRepository, times(1)).save(any());
+        verify(rsuOrganizationRepository, never()).delete(any());
     }
 
     @Test

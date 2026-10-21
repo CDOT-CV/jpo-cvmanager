@@ -21,20 +21,7 @@ import us.dot.its.jpo.ode.api.mappers.RsuPatchMapper;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
-import us.dot.its.jpo.ode.api.repositories.ConsecutiveFirmwareUpgradeFailureRepository;
-import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepository;
-import us.dot.its.jpo.ode.api.repositories.PingRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
-import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpMsgfwdConfigRepository;
-import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
@@ -42,25 +29,30 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.repositories.PingRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuOrganizationRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
+import us.dot.its.jpo.ode.api.repositories.ScmsHealthRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.SnmpProtocolRepository;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RsuManagementService {
 
-    private final ConsecutiveFirmwareUpgradeFailureRepository consecutiveFirmwareUpgradeFailureRepository;
-    private final MaxRetryLimitReachedInstanceRepository maxRetryLimitReachedInstanceRepository;
     private final PingRepository pingRepository;
     private final RsuCredentialRepository rsuCredentialRepository;
-    private final RsuIntersectionRepository rsuIntersectionRepository;
     private final RsuOrganizationRepository rsuOrganizationRepository;
     private final RsuModelRepository rsuModelRepository;
     private final RsuRepository rsuRepository;
     private final RsuOptionRepository rsuOptionRepository;
     private final ScmsHealthRepository scmsHealthRepository;
     private final SnmpCredentialRepository snmpCredentialRepository;
-    private final SnmpMsgfwdConfigRepository snmpMsgfwdConfigRepository;
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
@@ -384,13 +376,7 @@ public class RsuManagementService {
         pingRepository.removeMultiplePingsByIpv4Address(inetAddresses);
         rsuOrganizationRepository.removeMultipleRsuOrganizationsByIpv4Address(inetAddresses);
         scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
-        snmpMsgfwdConfigRepository.removeMultipleSnmpMsgfwdConfigByIpv4Address(inetAddresses);
-        rsuIntersectionRepository.removeMultipleRsuIntersectionsByIpv4Address(inetAddresses);
-        consecutiveFirmwareUpgradeFailureRepository
-                .removeMultipleConsecutiveFirmwareUpgradeFailuresByIpv4Address(inetAddresses);
-        maxRetryLimitReachedInstanceRepository
-                .removeMultipleMaxRetryLimitReachedInstancesByIpv4Address(inetAddresses);
-        rsuOptionRepository.removeMultipleRsuOptionsByIpv4Address(inetAddresses);
+        rsuHealthRepository.removeMultipleRsuHealthByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
     }
 }
