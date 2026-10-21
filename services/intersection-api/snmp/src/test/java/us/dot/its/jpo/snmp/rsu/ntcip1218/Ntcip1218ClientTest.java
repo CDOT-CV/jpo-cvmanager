@@ -55,11 +55,11 @@ class Ntcip1218ClientTest {
         @Override public List<SnmpBinding> getNext(SnmpTarget target, List<SnmpOid> oids) { throw new UnsupportedOperationException(); }
     }
 
-    @Test void matchesPythonGoldenSequencesForAllMessagesAndSecuritySettings() throws Exception {
+    @Test void matchesExpectedForwardingBindingsForAllMessagesAndSecuritySettings() throws Exception {
         // Keep the historical Python fixture unchanged; its calendar fields were 05:34.
-        var goldenClock = Clock.fixed(Instant.parse("2024-01-30T05:34:00Z"), ZoneOffset.UTC);
-        var client = new Ntcip1218Client(new MemoryAgent(), goldenClock);
-        try (var input = getClass().getResourceAsStream("/ntcip-golden.tsv")) {
+        var fixtureClock = Clock.fixed(Instant.parse("2024-01-30T05:34:00Z"), ZoneOffset.UTC);
+        var client = new Ntcip1218Client(new MemoryAgent(), fixtureClock);
+        try (var input = getClass().getResourceAsStream("/ntcip-forwarding-expected.tsv")) {
             assertNotNull(input);
             for (String line : new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).lines().toList()) {
                 String[] fields = line.split("\t");
