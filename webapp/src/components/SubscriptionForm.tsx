@@ -77,7 +77,9 @@ const SubscriptionForm = ({
     })
     setSubscriptions(initial)
     setPrevSubscriptions(initial)
-  }, [initialSubscriptions, isModified])
+    // Only synchronize incoming data; clearing the dirty flag after saving must not reload stale props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSubscriptions])
 
   const handleFrequencyToggle = (
     categoryId: string,
