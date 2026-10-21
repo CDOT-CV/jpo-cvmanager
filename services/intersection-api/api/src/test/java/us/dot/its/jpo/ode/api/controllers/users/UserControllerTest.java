@@ -1,5 +1,22 @@
 package us.dot.its.jpo.ode.api.controllers.users;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +45,6 @@ import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -352,28 +362,28 @@ class UserControllerTest {
 
     @Test
     void testCreateUser_MultipleOrganizations() {
-        UserOrganizationDto org1 = new UserOrganizationDto();
-        org1.setOrganization(1);
-        org1.setRole("USER");
+        UserOrganizationDto userOrg1 = new UserOrganizationDto();
+        userOrg1.setOrganization(1);
+        userOrg1.setRole("USER");
 
-        UserOrganizationDto org2 = new UserOrganizationDto();
-        org2.setOrganization(2);
-        org2.setRole("OPERATOR");
+        UserOrganizationDto userOrg2 = new UserOrganizationDto();
+        userOrg2.setOrganization(2);
+        userOrg2.setRole("OPERATOR");
 
         UserDto newUser = new UserDto(
                 "newuser@example.com",
                 "New",
                 "User",
                 false,
-                List.of(org1, org2));
+                List.of(userOrg1, userOrg2));
 
         when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
-        when(userManagementService.createUser(newUser, List.of(sampleOrganization))).thenReturn(new User());
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization, org2));
+        when(userManagementService.createUser(newUser, List.of(sampleOrganization, org2))).thenReturn(new User());
 
         userController.createUser(newUser);
 
-        verify(userManagementService).createUser(newUser, List.of(sampleOrganization));
+        verify(userManagementService).createUser(newUser, List.of(sampleOrganization, org2));
     }
 
     @Test
