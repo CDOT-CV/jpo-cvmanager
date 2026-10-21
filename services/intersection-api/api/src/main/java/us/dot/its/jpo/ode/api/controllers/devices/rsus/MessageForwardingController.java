@@ -25,9 +25,14 @@ import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuMessageForwardingService;
 
 /**
- * Message forwarding reads and changes. USER access permits cached/live viewing; OPERATOR
- * access is required for creation/deletion. Ownership checks use the selected organization.
- * Batch change responses report per-device outcomes; HTTP 200 alone does not imply success.
+ * Forwarding reads require USER access and ownership; creation/deletion
+ * requires OPERATOR access and ownership. Shared PermissionService helpers
+ * apply the selected organization and currently define ownership through the
+ * RSU's SSH credential. Keeping that rule in the helpers lets a future RSU
+ * ownership model replace it without changing this controller.
+ * 
+ * Batch change responses report per-device outcomes; HTTP 200 alone does not
+ * imply success.
  */
 @RestController
 @RequiredArgsConstructor
