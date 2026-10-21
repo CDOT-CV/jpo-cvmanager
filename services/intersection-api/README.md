@@ -135,7 +135,7 @@ The cvmanager intersection-api is built off of the [conflictvisualizer api](http
 From `services/intersection-api`, build both modules together:
 
 ```sh
-mvn -s api/settings.xml verify
+mvn verify
 ```
 
 The root POM is an aggregator, not a shared parent. The SNMP library remains

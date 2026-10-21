@@ -245,7 +245,7 @@ The API consumes the repository's standalone [JPO SNMP library](../snmp/README.m
 From the repository root, build both modules together with:
 
 ```sh
-mvn -s services/intersection-api/api/settings.xml -f services/intersection-api/pom.xml -pl api -am verify
+mvn -f services/intersection-api/pom.xml -pl api -am verify
 ```
 
 For IDE runs or an API-only Maven build, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
@@ -291,8 +291,8 @@ Both read routes return the same row list:
 
 `table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates use
 `snmp.display-time-zone`, which defaults to the existing `TIMEZONE` environment
-setting or `America/Denver`. The webapp adapts these rows to its existing cards,
-including the security/active labels and RX/TX grouping.
+setting or `America/Denver`. The response includes security/active flags and
+RECEIVE/TRANSMIT table names for clients to display.
 
 `POST /devices/rsus/message-forwarding` creates an NTCIP 1218 UDP forwarding row
 on each requested RSU. Requires an authenticated SUPER_USER or OPERATOR with
@@ -371,10 +371,8 @@ the executor's scoped client for deadlines and tracking.
 Tasks are bounded and serialized per RSU within this API instance, including
 snapshot persistence. Multiple API replicas and external writers require separate
 coordination. Responses are synchronous and task histories are not durable jobs;
-configure upstream HTTP timeouts to cover queue plus execution budgets. The
-webapp uses these routes for forwarding creation/deletion, the default cached
-view, and the manual live refresh. The corresponding Python forwarding routes
-and commands have been removed.
+configure upstream HTTP timeouts to cover queue plus execution budgets. Webapp
+migration and removal of the Python forwarding routes belong to the next stacked PR.
 
 Optional Spring configuration (defaults shown):
 
