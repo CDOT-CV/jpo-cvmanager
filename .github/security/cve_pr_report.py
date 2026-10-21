@@ -7,11 +7,10 @@ import json
 from pathlib import Path
 import re
 
-from cve_coverage import INVENTORY, validate_report
+from cve_coverage import GATED, GATED_LABEL, INVENTORY, validate_report
 
 
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN")
-GATED = ("CRITICAL", "HIGH")
 
 
 def gate(folder):
@@ -88,7 +87,7 @@ def snapshot(target, root):
 def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_id="", conclusion="success"):
     run_url = f"https://github.com/{repository}/actions/runs/{run_id}"
     lines = ["## CVE scan report", "", f"Commit `{head_sha[:12]}` · [Workflow and full reports]({run_url})",
-             "", f"CI outcome: **{cell(conclusion)}**. Fixable HIGH/CRITICAL findings not suppressed in `.trivyignore.yaml` fail CI."]
+             "", f"CI outcome: **{cell(conclusion)}**. Fixable {GATED_LABEL} findings not suppressed in `.trivyignore.yaml` fail CI."]
     unavailable = "No retained successful scan of the exact base commit is available."
     try:
         head_context = context(head, head_sha)
@@ -151,7 +150,7 @@ def render(head, base, repository, pr, head_sha, base_sha, run_id, baseline_run_
         rows.append("| " + " | ".join(map(cell, [name, status, *values, new_count, resolved_count])) + " |")
     # Blockers come from gate.json, not the base comparison: an expired suppression or a newly
     # published fix can fail CI for a finding that already exists in the base scan.
-    lines += ["", f"**Blocking findings: {len(blockers)}** fixable HIGH/CRITICAL instances not suppressed "
+    lines += ["", f"**Blocking findings: {len(blockers)}** fixable {GATED_LABEL} instances not suppressed "
               "in `.trivyignore.yaml`" + (f" across {len(set(name for name, _ in blockers))} targets." if blockers else ".")]
     if ungated:
         lines.append("Gate results are unavailable for " + ", ".join(map(cell, ungated)) +

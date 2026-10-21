@@ -82,10 +82,10 @@ class PrReportTests(unittest.TestCase):
         self.assertIn("comparison unavailable", text)
         self.assertIn("Blocking findings: 1", text)
 
-    def test_unfixed_or_lower_severity_gate_entries_do_not_block(self):
+    def test_unfixed_or_ungated_severity_gate_entries_do_not_block(self):
         unfixed = {**self.vulnerability, "FixedVersion": ""}
-        medium = {**self.vulnerability, "VulnerabilityID": "CVE-2026-9999", "Severity": "MEDIUM"}
-        self.write_report(self.head, [self.vulnerability], gate=[unfixed, medium])
+        high = {**self.vulnerability, "VulnerabilityID": "CVE-2026-9999", "Severity": "HIGH"}
+        self.write_report(self.head, [self.vulnerability], gate=[unfixed, high])
         self.assertIn("Blocking findings: 0", self.render())
 
     def test_missing_gate_results_are_unknown_not_zero(self):

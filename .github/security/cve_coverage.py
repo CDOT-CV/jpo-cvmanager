@@ -10,6 +10,10 @@ import sys
 
 INVENTORY = Path(__file__).with_name("cve-targets.json")
 REQUIRED = ("results.json", "results.sarif", "results.txt", "sbom.cdx.json", "trivy-version.txt")
+# Severities that fail CI when fixable; keep in sync with GATE_SEVERITY in cve-scan.yml.
+# CRITICAL only for now; HIGH will be added later (see docs/cve-scanning.md).
+GATED = ("CRITICAL",)
+GATED_LABEL = "/".join(GATED)
 
 
 def matrix(items, tracked, trusted):
@@ -44,7 +48,7 @@ def validate_report(target, folder):
 
 
 def coverage(items, root, trusted):
-    lines = ["## CVE scan coverage", "", "Fixable HIGH/CRITICAL findings not suppressed in `.trivyignore.yaml` fail the scan job; "
+    lines = ["## CVE scan coverage", "", f"Fixable {GATED_LABEL} findings not suppressed in `.trivyignore.yaml` fail the scan job; "
              "execution and coverage errors also fail CI.",
              "", "| Target | Status | Findings / reason |", "| --- | --- | --- |"]
     failed = False
