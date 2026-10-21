@@ -256,6 +256,14 @@ The message-forwarding create/delete endpoints use this library.
 
 ## RSU message forwarding
 
+**RSU 4.1 support retirement**
+
+- RSU 4.1 message forwarding is intentionally not being migrated from the Python API.
+  This modernization decision standardizes live forwarding operations on NTCIP 1218.
+- Creating/deleting configurations and live refresh require NTCIP 1218.
+- Existing RSU 4.1/DSRC configurations remain viewable through cached PostgreSQL reads.
+  Cached visibility does not provide live RSU 4.1 support.
+
 All forwarding operations live in one controller:
 
 | Method | Path | Purpose | Minimum role |
