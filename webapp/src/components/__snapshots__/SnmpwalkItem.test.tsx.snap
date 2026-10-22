@@ -54,7 +54,9 @@ exports[`should take a snapshot 1`] = `
         </span>
         <span
           class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
-        />
+        >
+          0
+        </span>
       </p>
     </div>
     <div

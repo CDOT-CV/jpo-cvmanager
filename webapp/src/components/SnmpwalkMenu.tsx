@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import SnmpwalkItem from './SnmpwalkItem'
 import { useSelector, useDispatch, useStore } from 'react-redux'
 import { confirmAlert } from 'react-confirm-alert'
@@ -18,12 +18,13 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import './css/SnmpwalkMenu.css'
 import {
   // Actions
-  deleteSnmpSet,
+  deleteSnmpRow,
 } from '../generalSlices/configSlice'
 import { Button, Tooltip } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
+import { RsuDsrcFwdConfigs, RsuMsgFwdConfigSingle } from '../models/RsuApi'
 
 const SnmpwalkMenu = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -34,19 +35,13 @@ const SnmpwalkMenu = () => {
   const error = useSelector(selectErrorState)
   const loading = useSelector(selectLoading)
 
-  const isConfigEmpty = React.useMemo(() => {
-    if (!msgFwdConfig) return true
-    if (Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable')) {
-      const txEmpty =
-        !Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') ||
-        Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).length === 0
-      const rxEmpty =
-        !Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ||
-        Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).length === 0
-      return txEmpty && rxEmpty
-    }
-    return Object.keys(msgFwdConfig).length === 0
-  }, [msgFwdConfig])
+  // DSRC rows may coexist with RX/TX rows in the historical PostgreSQL snapshot.
+  const legacyRows = Object.fromEntries(
+    Object.entries(msgFwdConfig).filter(([key]) => /^\d+$/.test(key))
+  ) as RsuDsrcFwdConfigs
+  const receiveRows = msgFwdConfig.rsuReceivedMsgTable ?? {}
+  const transmitRows = msgFwdConfig.rsuXmitMsgFwdingTable ?? {}
+  const isConfigEmpty = [legacyRows, receiveRows, transmitRows].every((rows) => Object.keys(rows).length === 0)
 
   const rsuIp = useSelector(selectRsuIpv4)
   const writeUnavailable = useSelector((state: RootState) => forwardingUnavailableReason(state, [rsuIp], 'write'))
@@ -59,22 +54,30 @@ const SnmpwalkMenu = () => {
     if (rsuIp && !cachedUnavailable) dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
   }, [rsuIp, cachedUnavailable, dispatch])
 
-  const handleDelete = (countsMsgType: string, ip: string) => {
+  const handleDelete = (row: RsuMsgFwdConfigSingle) => {
+    if ((row.table !== 'RECEIVE' && row.table !== 'TRANSMIT') || !row.index) return
+    const table = row.table
     const buttons = [
       {
         label: 'Yes',
         onClick: () => {
           dispatch(
-            deleteSnmpSet({
-              ipList: [rsuIp],
-              snmpMsgType: countsMsgType,
-              destIp: ip,
+            deleteSnmpRow({
+              rsuIp,
+              table,
+              index: row.index,
+              destIp: row.IP,
+              port: row.Port,
             })
           ).then((data) => {
-            if (deleteSnmpSet.fulfilled.match(data) && data.payload.changeSuccess) {
+            if (deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess) {
               toast.success('Successfully deleted SNMP forwarding')
+              const current = store.getState()
+              if (selectRsuIpv4(current) === rsuIp && !forwardingUnavailableReason(current, [rsuIp], 'cached')) {
+                dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
+              }
             } else {
-              const message = deleteSnmpSet.fulfilled.match(data) ? data.payload.errorState : data.error.message
+              const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
               toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
             }
           })
@@ -87,7 +90,7 @@ const SnmpwalkMenu = () => {
     ]
     const alertOptions = Options(
       'Delete SNMP Configuration',
-      `Are you sure you want to delete SNMP forwarding for ${countsMsgType} messages to the IP: ${ip}? `,
+      `Are you sure you want to delete SNMP forwarding for ${row['Message Type']} messages to the IP: ${row.IP} (${table} row ${row.index})? `,
       buttons
     )
 
@@ -104,48 +107,30 @@ const SnmpwalkMenu = () => {
           <h5 className="museo-slab">No message forwarding configurations were found.</h5>
         )}
       </div>
-      <div>
-        {Object.hasOwn(msgFwdConfig, 'rsuXmitMsgFwdingTable') && Object.hasOwn(msgFwdConfig, 'rsuReceivedMsgTable') ? (
-          <div>
-            <h2 id="snmptxheader">TX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuXmitMsgFwdingTable ?? {}).map((index) => (
-              <div key={'msgFwd-' + index}>
+      {[
+        { title: 'TX Forward Table', rows: transmitRows, editable: !writeUnavailable },
+        { title: 'RX Forward Table', rows: receiveRows, editable: !writeUnavailable },
+        { title: 'Legacy RSU 4.1 Forward Table (cached, read only)', rows: legacyRows, editable: false },
+      ].map(
+        ({ title, rows, editable }) =>
+          Object.keys(rows).length > 0 && (
+            <div key={title}>
+              <h2>{title}</h2>
+              {Object.entries(rows as RsuDsrcFwdConfigs).map(([index, content]) => (
                 <SnmpwalkItem
-                  key={'snmptxitem-' + index}
-                  content={msgFwdConfig.rsuXmitMsgFwdingTable[index]}
-                  handleDelete={writeUnavailable ? undefined : handleDelete}
+                  key={index}
+                  content={content}
                   index={index}
+                  handleDelete={
+                    editable && (content.table === 'RECEIVE' || content.table === 'TRANSMIT') && content.index
+                      ? handleDelete
+                      : undefined
+                  }
                 />
-              </div>
-            ))}
-
-            <h2 id="snmprxheader">RX Forward Table</h2>
-            {Object.keys(msgFwdConfig.rsuReceivedMsgTable ?? {}).map((index) => (
-              <div key={index}>
-                <SnmpwalkItem
-                  key={'snmprxitem-' + index}
-                  content={msgFwdConfig.rsuReceivedMsgTable[index]}
-                  handleDelete={writeUnavailable ? undefined : handleDelete}
-                  index={index}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div>
-            {Object.keys(msgFwdConfig).map((index) => (
-              <div key={index}>
-                <SnmpwalkItem
-                  key={'snmpitem-' + index}
-                  content={msgFwdConfig[index]}
-                  handleDelete={writeUnavailable ? undefined : handleDelete}
-                  index={index}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )
+      )}
       {refreshUnavailable && <p>{refreshUnavailable}</p>}
       {!refreshUnavailable && (
         <div id="msgfwddiv">

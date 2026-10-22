@@ -1,9 +1,10 @@
 import { Box, Button, Typography, useTheme } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { RsuMsgFwdConfigSingle } from '../models/RsuApi'
 
 export type SnmpwalkRowProps = {
   title: string
-  value: string
+  value: string | number
 }
 
 export const SnmpWalkRow = (props: SnmpwalkRowProps) => {
@@ -23,8 +24,8 @@ export const SnmpWalkRow = (props: SnmpwalkRowProps) => {
 
 export type SnmpwalkItemProps = {
   index: string
-  content: any
-  handleDelete?: (countsMsgType: string, ip: string) => void
+  content: RsuMsgFwdConfigSingle
+  handleDelete?: (row: RsuMsgFwdConfigSingle) => void
 }
 
 const SnmpwalkItem = (props: SnmpwalkItemProps) => {
@@ -54,7 +55,7 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
       {props.handleDelete && (
         <Button
           sx={{ marginLeft: 20, marginTop: -4 }}
-          onClick={() => props.handleDelete(props.content['Message Type'], props.content['IP'])}
+          onClick={() => props.handleDelete(props.content)}
           startIcon={<DeleteIcon />}
         >
           Delete

@@ -9,6 +9,7 @@ import { testTheme } from '../styles'
 import { setupStore } from '../store'
 import { replaceChaoticIds } from '../utils/test-utils'
 import toast from 'react-hot-toast'
+import * as confirmation from 'react-confirm-alert'
 import EnvironmentVars from '../EnvironmentVars'
 import { combineUrlPaths } from '../apis/intersections/api-helper-cviz'
 
@@ -186,4 +187,111 @@ it('does not fall back to the old RSU after a late live-read failure', async () 
     live.mockRestore()
     cached.mockRestore()
   }
+})
+
+it.each([
+  ['RECEIVE', 'MAP'],
+  ['TRANSMIT', 'OTHER'],
+])('deletes displayed %s %s rows by table/index', async (table, messageType) => {
+  fetchMock.mockClear()
+  fetchMock.doMock()
+  const row = { table, index: 7, messageType, destinationIp: '198.51.100.3', destinationPort: 44920, active: true }
+  fetchMock.mockResponses([JSON.stringify([row]), { status: 200 }], ['[]', { status: 200 }])
+  const remove = jest.spyOn(RsuMessageForwardingApi, 'deleteRow').mockResolvedValue({
+    status: 200,
+    message: '',
+    body: {
+      '192.0.2.10': {
+        execution: {
+          taskId: 'task',
+          target: 'udp:192.0.2.10:161',
+          status: 'SUCCEEDED',
+          message: 'Change verified.',
+          step: null,
+          elapsedMs: 1,
+          steps: [],
+        },
+        writeState: 'VERIFIED',
+        changed: true,
+        databaseSync: 'UPDATED',
+      },
+    },
+  })
+  const confirm = jest.spyOn(confirmation, 'confirmAlert').mockImplementation((options) => {
+    options.buttons![0].onClick!()
+  })
+  const store = setupStore({
+    rsu: {
+      value: {
+        selectedRsu: {
+          properties: { ipv4_address: '192.0.2.10', snmp_protocol_code: '1218', owner_organization_id: 1 },
+        },
+      },
+    },
+    user: {
+      value: {
+        authLoginData: { token: 'fixture-token' },
+        organization: { name: 'Org', organization: 1, role: 'OPERATOR' },
+      },
+    },
+  })
+  try {
+    render(
+      <ThemeProvider theme={testTheme}>
+        <Provider store={store}>
+          <SnmpwalkMenu />
+        </Provider>
+      </ThemeProvider>
+    )
+    await screen.findByText('198.51.100.3')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() =>
+      expect(remove).toHaveBeenCalledWith('fixture-token', 'Org', '192.0.2.10', table, 7, {
+        destination_ip: '198.51.100.3',
+        destination_port: 44920,
+      })
+    )
+    await waitFor(() => expect(screen.queryByText('198.51.100.3')).not.toBeInTheDocument())
+  } finally {
+    remove.mockRestore()
+    confirm.mockRestore()
+  }
+})
+
+it('shows every mixed legacy and current cached row, keeping legacy rows read only', async () => {
+  fetchMock.mockClear()
+  fetchMock.doMock()
+  const common = { index: 1, messageType: 'MAP', destinationPort: 44920, active: true }
+  fetchMock.mockResponseOnce(
+    JSON.stringify([
+      { ...common, table: 'DSRC', destinationIp: '198.51.100.11' },
+      { ...common, table: 'TRANSMIT', destinationIp: '198.51.100.12' },
+    ])
+  )
+  const store = setupStore({
+    rsu: {
+      value: {
+        selectedRsu: {
+          properties: { ipv4_address: '192.0.2.10', snmp_protocol_code: '1218', owner_organization_id: 1 },
+        },
+      },
+    },
+    user: {
+      value: {
+        authLoginData: { token: 'fixture-token' },
+        organization: { name: 'Org', organization: 1, role: 'OPERATOR' },
+      },
+    },
+  })
+  render(
+    <ThemeProvider theme={testTheme}>
+      <Provider store={store}>
+        <SnmpwalkMenu />
+      </Provider>
+    </ThemeProvider>
+  )
+  await screen.findByText('198.51.100.11')
+  expect(screen.getByText('198.51.100.12')).toBeInTheDocument()
+  expect(screen.getByText('Legacy RSU 4.1 Forward Table (cached, read only)')).toBeInTheDocument()
+  expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1)
 })
