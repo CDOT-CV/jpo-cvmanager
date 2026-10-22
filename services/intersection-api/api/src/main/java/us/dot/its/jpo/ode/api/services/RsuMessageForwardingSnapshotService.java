@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
@@ -77,10 +76,6 @@ public class RsuMessageForwardingSnapshotService {
 
     private InetAddress address(String value) {
         SnmpTarget.validateIpv4(value);
-        try {
-            return InetAddress.getByName(value);
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IPv4 address");
-        }
+        return RsuManagementService.toIpv4Address(value);
     }
 }

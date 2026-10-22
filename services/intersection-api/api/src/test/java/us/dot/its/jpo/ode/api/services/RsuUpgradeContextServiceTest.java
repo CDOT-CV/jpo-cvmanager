@@ -14,8 +14,6 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 
@@ -31,7 +29,7 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testHasCompleteRsuData_TrueWhenRsuExists() throws UnknownHostException {
         String rsuIp = "10.0.0.10";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(inetAddress);
@@ -47,7 +45,7 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testHasCompleteRsuData_FalseWhenRsuMissing() throws UnknownHostException {
         String rsuIp = "10.0.0.10";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
@@ -60,7 +58,7 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testFindRsuByIp_ReturnsNullWhenMissing() throws UnknownHostException {
         String rsuIp = "10.0.0.11";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(null);
 
@@ -73,7 +71,7 @@ class RsuUpgradeContextServiceTest {
     @Test
     void testFindRsuByIp_Success() throws UnknownHostException {
         String rsuIp = "10.0.0.12";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         Rsu rsu = new Rsu();
         rsu.setIpv4Address(inetAddress);
@@ -87,11 +85,10 @@ class RsuUpgradeContextServiceTest {
 
     @Test
     void testFindRsuByIp_InvalidIpAddress() {
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        IllegalArgumentException exception = assertThrows(
+                        IllegalArgumentException.class,
                 () -> rsuUpgradeContextService.findRsuByIp("invalid-ip"));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Invalid RSU IP address"));
+        assertTrue(exception.getMessage().equals("Invalid IP address, should be like #.#.#.#, but was invalid-ip"));
     }
 }

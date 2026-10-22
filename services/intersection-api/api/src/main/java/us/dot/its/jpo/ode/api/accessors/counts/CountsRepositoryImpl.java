@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.accessors.counts;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +23,7 @@ import us.dot.its.jpo.ode.api.models.PrometheusResponse.PrometheusResult;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PrometheusService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @Slf4j
 @Component
@@ -216,13 +215,9 @@ public class CountsRepositoryImpl implements CountsRepository {
     }
 
     private String getRsuPrimaryRoute(String rsuIp) {
-        try {
-            Rsu rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp));
-            if (rsu != null && rsu.getPrimaryRoute() != null) {
-                return rsu.getPrimaryRoute();
-            }
-        } catch (UnknownHostException e) {
-            log.warn("Invalid RSU IP address {}: {}", rsuIp, e.getMessage());
+        Rsu rsu = rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
+        if (rsu != null && rsu.getPrimaryRoute() != null) {
+            return rsu.getPrimaryRoute();
         }
         return "Unknown";
     }

@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -109,10 +108,6 @@ public class RsuMessageForwardingReadService {
 
     private InetAddress address(String value) {
         validateAddress(value);
-        try {
-            return InetAddress.getByName(value);
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IPv4 address");
-        }
+        return RsuManagementService.toIpv4Address(value);
     }
 }

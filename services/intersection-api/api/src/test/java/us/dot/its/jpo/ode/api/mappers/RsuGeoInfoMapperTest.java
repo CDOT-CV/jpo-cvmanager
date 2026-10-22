@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +29,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @ExtendWith(SpringExtension.class)
 @Import({ RsuGeoInfoMapperImpl.class, INetMapperImpl.class })
@@ -54,7 +54,7 @@ public class RsuGeoInfoMapperTest {
         Rsu rsu = new Rsu();
         rsu.setId(42);
         rsu.setMilepost(12.5);
-        rsu.setIpv4Address(InetAddress.getByName("192.168.10.5"));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address("192.168.10.5"));
         rsu.setSerialNumber("SERIAL-001");
         rsu.setPrimaryRoute("I-25");
         rsu.setModel(model);
