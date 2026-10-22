@@ -238,3 +238,179 @@ also available through this API and the Firmware tab.
   and upload again. Use **Clean Up Records** for entries marked **Missing file**.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
+
+## Local SNMP library dependency
+
+The API consumes the repository's standalone [JPO SNMP library](../snmp/README.md).
+From the repository root, build both modules together with:
+
+```sh
+mvn -f services/intersection-api/pom.xml -pl api -am verify
+```
+
+For IDE runs or an API-only Maven build, first run `mvn -f services/intersection-api/snmp/pom.xml install`.
+The API Docker build installs this library automatically. SNMP4J is the library's
+production backend; Net-SNMP executables and runtime MIB files are not required.
+The message-forwarding create/delete endpoints use this library.
+
+
+## RSU message forwarding
+
+**RSU 4.1 support retirement**
+
+- RSU 4.1 message forwarding is intentionally not being migrated from the Python API.
+  This modernization decision standardizes live forwarding operations on NTCIP 1218.
+- Creating/deleting configurations and live refresh require NTCIP 1218.
+- New RSU protocol assignments require NTCIP 1218. Existing legacy assignments can
+  be retained when editing other RSU fields.
+- Existing RSU 4.1/DSRC configurations remain viewable through cached PostgreSQL reads.
+  Cached visibility does not provide live RSU 4.1 support.
+
+Creation uses fixed message-to-table and UDP-port presets. These keep the CV Manager
+pipeline consistent; callers cannot choose an arbitrary table for a new configuration.
+
+Deleting an existing row can use `DELETE /devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}`
+with `destination_ip` and `destination_port`. This also supports unknown PSIDs and
+message types stored in a different table than CV Manager uses (for example, MAP in
+the receive table). The destination is checked before deletion; stale rows
+must be refreshed rather than blindly retried. RSU 4.1 remains cached-view only.
+
+All forwarding operations live in one controller:
+
+| Method | Path | Purpose | Minimum role |
+| --- | --- | --- | --- |
+| GET | `/devices/rsus/message-forwarding/{rsuIp}` | Cached PostgreSQL view | USER |
+| GET | `/devices/rsus/message-forwarding/{rsuIp}/live` | Complete direct RSU read | USER |
+| POST | `/devices/rsus/message-forwarding` | Create forwarding rows | OPERATOR |
+| DELETE | `/devices/rsus/message-forwarding` | Delete forwarding rows using message presets | OPERATOR |
+| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR |
+
+Every route enforces RSU ownership using the existing selected-organization rules;
+super users retain their existing access. Cached reads require no SNMP credentials
+or connectivity and retain visibility of stored RSU 4.1/DSRC rows. Live reads
+require NTCIP 1218 and use the shared bounded executor and per-device serialization.
+They do not update PostgreSQL. An incomplete read returns an HTTP error (504 for
+timeouts), allowing the webapp to fall back to the cached view; an empty successful
+snapshot returns `[]`.
+
+Both read routes return the same row list:
+
+```json
+[{
+  "table": "TRANSMIT",
+  "index": 1,
+  "messageType": "MAP",
+  "destinationIp": "198.51.100.3",
+  "destinationPort": 44920,
+  "startDatetime": "2026-10-15T10:00:00-06:00",
+  "endDatetime": "2036-10-15T10:00:00-06:00",
+  "active": true,
+  "includeSecurity": true
+}]
+```
+
+`table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates use
+`snmp.display-time-zone`, which defaults to the existing `TIMEZONE` environment
+setting or `America/Denver`. The response includes security/active flags and
+RECEIVE/TRANSMIT table names for clients to display.
+
+`POST /devices/rsus/message-forwarding` creates an NTCIP 1218 UDP forwarding row
+on each requested RSU. Requires an authenticated SUPER_USER or OPERATOR with
+ownership of every requested RSU, using the existing `Organization` header rules.
+The entire batch is authorized and checked for supported profiles/credentials
+before any device commands are submitted. Missing devices return 404; invalid
+requests, unsupported profiles, or invalid credentials return 400; unauthorized
+batches return 403. Supply 1-100 unique literal IPv4 RSU addresses.
+
+```json
+{
+  "rsu_ips": ["192.0.2.10"],
+  "message_type": "MAP",
+  "destination_ip": "198.51.100.3",
+  "include_security": true
+}
+```
+
+`message_type` is one of `BSM`, `SPAT`, `MAP`, `SSM`, `SRM`, or `TIM`.
+The library selects the existing destination port mapping (MAP uses 44920).
+`include_security` is required for creation and controls inclusion of IEEE 1609.2
+security headers. Credentials and the NTCIP profile come from PostgreSQL, not the
+request. The RSU's SNMP management port is 161.
+
+`DELETE /devices/rsus/message-forwarding` accepts the same body without
+`include_security`. It removes the highest-index row matching message type and
+destination. No match is a successful no-op. Creation always allocates a new row;
+it is not an upsert.
+
+Both endpoints return HTTP 200 once the batch has been processed, with outcomes
+keyed by RSU IP. Inspect each result rather than interpreting 200 as fleet-wide
+success:
+
+```json
+{
+  "192.0.2.10": {
+    "execution": {
+      "taskId": "<task-id>",
+      "target": "udp:192.0.2.10:161",
+      "status": "SUCCEEDED",
+      "message": "Change verified.",
+      "step": null,
+      "elapsedMs": 250,
+      "steps": [
+        {"name": "configure-forwarding", "status": "SUCCEEDED"},
+        {"name": "read-current-forwarding", "status": "SUCCEEDED"},
+        {"name": "sync-database", "status": "SUCCEEDED"}
+      ]
+    },
+    "writeState": "VERIFIED",
+    "changed": true,
+    "databaseSync": "UPDATED"
+  }
+}
+```
+
+`changed` is true after a verified create/delete, false after a confirmed delete
+no-op, and null if the procedure did not finish. `writeState` preserves uncertain
+writes and verified changes independently of later failures. A lost SET response
+is never automatically replayed: inspect device state before retrying creation.
+
+After successful procedure verification, a complete read of both forwarding
+tables atomically replaces that RSU's PostgreSQL snapshot. Failed/incomplete reads
+leave the previous snapshot intact. Database failures roll back replacement and
+return `databaseSync: FAILED`, preserving any verified device-change evidence.
+`NOT_UPDATED` means the synchronization step was not reached; `IN_PROGRESS` can
+appear if the HTTP worker is interrupted during synchronization. Interrupted
+batches request cancellation and return their current snapshots, which can still
+show RUNNING until work actually stops.
+
+The API delegates the standard forwarding steps to the library's reusable
+`Ntcip1218ForwardingTasks` helper, supplying a named database snapshot callback.
+The helper has no shared execution state or transport resources; each step uses
+the executor's scoped client for deadlines and tracking.
+
+Tasks are bounded and serialized per RSU within this API instance, including
+snapshot persistence. Multiple API replicas and external writers require separate
+coordination. Responses are synchronous and task histories are not durable jobs;
+configure upstream HTTP timeouts to cover queue plus execution budgets. Webapp
+migration and removal of the Python forwarding routes belong to the next stacked PR.
+
+Optional Spring configuration (defaults shown):
+
+```yaml
+snmp:
+  max-concurrent-tasks: 24
+  max-queued-tasks: 128
+  queue-timeout: 30s
+  execution-timeout: 60s
+  request-timeout: 5s
+  read-retries: 1
+  max-bulk-repetitions: 0 # GETNEXT default; opt into 1–64 values per bulk response after device benchmarking
+  rediscover-on-timeout: true
+  display-time-zone: America/Denver
+```
+
+Forwarding schedules are always encoded and interpreted in UTC, as required by
+NTCIP 1218. `display-time-zone` controls their presentation only.
+Request retries and rediscovery are bounded by the shared execution
+budget; SET retries remain disabled. The API closes its shared executor and
+transport on shutdown. Scheduled fleet monitoring is not started by these beans.

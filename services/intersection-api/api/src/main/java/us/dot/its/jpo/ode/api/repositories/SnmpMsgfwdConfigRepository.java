@@ -16,6 +16,10 @@ import java.util.List;
 @Repository
 public interface SnmpMsgfwdConfigRepository extends JpaRepository<SnmpMsgfwdConfig, SnmpMsgfwdConfigId> {
 
+    @Query("SELECT c FROM SnmpMsgfwdConfig c JOIN FETCH c.msgfwdType WHERE c.rsu.ipv4Address = :ipv4Address "
+            + "ORDER BY c.msgfwdType.name, c.id.snmpIndex")
+    List<SnmpMsgfwdConfig> findForwardingByIpv4Address(@Param("ipv4Address") InetAddress ipv4Address);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM SnmpMsgfwdConfig ro WHERE ro.rsu.ipv4Address = :ipv4Address")
