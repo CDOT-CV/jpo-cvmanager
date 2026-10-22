@@ -1,28 +1,28 @@
-import { useState, useEffect, useMemo } from 'react'
-import AdminTable from '../../components/AdminTable'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { Button, Typography, useTheme } from '@mui/material'
 import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
 import AccordionDetails from '@mui/material/AccordionDetails'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import { useEffect, useMemo, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
-import { Options } from '../../components/AdminDeletionOptions'
-import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 import { useSelector } from 'react-redux'
+import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable from '../../components/AdminTable'
+import { selectLoadingGlobal } from '../../generalSlices/userSlice'
 
-import '../adminRsuTab/Admin.css'
 import { Action, Column } from '@material-table/core'
-import toast from 'react-hot-toast'
 import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
+import toast from 'react-hot-toast'
 import { Multiselect } from 'react-widgets/cjs'
-import '../css/multiselect.css'
+import { AdminRsu } from '../../models/Rsu'
+import '../adminRsuTab/Admin.css'
 import {
   useGetAllRsusNotInOrganizationQuery,
   useLazyGetRsuOrganizationsQuery,
   usePatchOrganizationMutation,
 } from '../api/organizationApiSlice'
-import { AdminRsu } from '../../models/Rsu'
 import { useGetAllRsusQuery } from '../api/rsuApiSlice'
+import '../css/multiselect.css'
 
 interface AdminOrganizationTabRsuProps {
   selectedOrgId: number
@@ -34,7 +34,7 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const theme = useTheme()
 
   const { data: availableRsuList } = useGetAllRsusNotInOrganizationQuery(selectedOrgId)
-  const { data: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgName })
+  const { data: rsuTableData } = useGetAllRsusQuery({ organization: selectedOrgId })
 
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getRsuOrganizations] = useLazyGetRsuOrganizationsQuery()

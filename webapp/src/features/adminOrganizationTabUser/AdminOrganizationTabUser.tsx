@@ -45,7 +45,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const { data: availableUserList } = useGetAllUsersNotInOrganizationQuery(selectedOrgId, {
     skip: !selectedOrgId,
   })
-  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgName })
+  const { data: userTableData } = useGetUsersQuery({ organization: selectedOrgId })
   const { data: allowedSelections } = useGetUserAllowedSelectionsQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
   const [getUserOrganizations] = useLazyGetUserOrganizationsQuery()

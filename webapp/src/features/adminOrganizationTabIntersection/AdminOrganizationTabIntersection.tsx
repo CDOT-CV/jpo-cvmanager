@@ -1,27 +1,27 @@
-import { useEffect, useState } from 'react'
-import AdminTable from '../../components/AdminTable'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
-import Typography from '@mui/material/Typography'
+import { Action, Column } from '@material-table/core'
+import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { useTheme } from '@mui/material'
+import Accordion from '@mui/material/Accordion'
+import AccordionDetails from '@mui/material/AccordionDetails'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import Typography from '@mui/material/Typography'
+import { useEffect, useState } from 'react'
 import { confirmAlert } from 'react-confirm-alert'
+import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
+import { Multiselect } from 'react-widgets/cjs'
 import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable from '../../components/AdminTable'
+import { selectLoadingGlobal } from '../../generalSlices/userSlice'
+import { AdminIntersection } from '../../models/Intersection'
 import {
   useGetIntersectionsNotInOrganizationQuery,
   useGetIntersectionsQuery,
   useLazyGetIntersectionQuery,
 } from '../api/adminIntersectionApiSlice'
 import { usePatchOrganizationMutation } from '../api/organizationApiSlice'
-import { selectLoadingGlobal } from '../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
-import { Action, Column } from '@material-table/core'
-import toast from 'react-hot-toast'
-import { useTheme } from '@mui/material'
-import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
-import { Multiselect } from 'react-widgets/cjs'
 import '../css/multiselect.css'
-import { AdminIntersection } from '../../models/Intersection'
 
 interface AdminOrganizationTabIntersectionProps {
   selectedOrgId: number
@@ -34,8 +34,8 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
   const [fetchIntersection] = useLazyGetIntersectionQuery()
   const [patchOrganization] = usePatchOrganizationMutation()
 
-  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgName)
-  const { data: intersectionTableData } = useGetIntersectionsQuery(selectedOrgName)
+  const { data: availableIntersectionsResponse } = useGetIntersectionsNotInOrganizationQuery(selectedOrgId)
+  const { data: intersectionTableData } = useGetIntersectionsQuery(selectedOrgId)
   const availableIntersectionList = availableIntersectionsResponse?.intersection_data ?? []
 
   const [selectedIntersectionList, setSelectedIntersectionList] = useState<AdminIntersection[]>([])

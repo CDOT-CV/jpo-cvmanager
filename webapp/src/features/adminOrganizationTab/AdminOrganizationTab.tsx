@@ -24,7 +24,18 @@ import { NotFound } from '../../pages/404'
 import { RootState } from '../../store'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 import '../adminRsuTab/Admin.css'
-import { useDeleteOrganizationMutation, useGetOrganizationsQuery } from '../api/organizationApiSlice'
+import {
+  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
+  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+  ORGANIZATION_API_ORG_TAG,
+  ORGANIZATION_API_RSU_LIST_TAG,
+  ORGANIZATION_API_RSU_TAG,
+  ORGANIZATION_API_USER_LIST_TAG,
+  ORGANIZATION_API_USER_TAG,
+  organizationApiSlice,
+  useDeleteOrganizationMutation,
+  useGetOrganizationsQuery,
+} from '../api/organizationApiSlice'
 
 const AdminOrganizationTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -41,7 +52,17 @@ const AdminOrganizationTab = () => {
   const selectedOrgName = useSelector(selectOrganizationName)
 
   const refresh = () => {
-    // TODO: Refresh org list and selected org data without a full page reload
+    dispatch(
+      organizationApiSlice.util.invalidateTags([
+        ORGANIZATION_API_ORG_TAG,
+        ORGANIZATION_API_RSU_LIST_TAG,
+        ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
+        ORGANIZATION_API_RSU_TAG,
+        ORGANIZATION_API_USER_LIST_TAG,
+        ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
+        ORGANIZATION_API_USER_TAG,
+      ])
+    )
   }
 
   const handleOrgDelete = async (orgName: string) => {

@@ -6,7 +6,7 @@ import { RootState } from '../../store'
 import { getQueryString } from './intersectionConfigSlice'
 
 export interface GetUsersParams extends PaginatedQueryParams {
-  organization: string
+  organization: number
 }
 
 // Tag type constants
@@ -42,7 +42,7 @@ export const userApiSlice = createApi({
             search: search,
           })}`,
           headers: {
-            Organization: organization,
+            Organization: organization?.toString(),
           },
         }
       },
