@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.InetAddress;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -35,6 +34,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.services.PrometheusService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @ExtendWith(MockitoExtension.class)
 public class CountsRepositoryImplTest {
@@ -61,7 +61,7 @@ public class CountsRepositoryImplTest {
 
     private Rsu mockRsu(String ip, String route) throws Exception {
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(ip));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address(ip));
         rsu.setPrimaryRoute(route);
         return rsu;
     }
@@ -91,7 +91,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
         List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
@@ -130,7 +130,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-70"));
 
         List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
@@ -176,7 +176,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
         List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
@@ -222,7 +222,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenReturn(mockPrometheusResponse);
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
         List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM", "MAP", "SPAT"), startTime,
@@ -359,7 +359,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenThrow(new RuntimeException("Prometheus error"));
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
         List<MessageCount> result = repository.getRsuMessageCounts(rsuIp, List.of("BSM"), startTime, endTime);
@@ -406,7 +406,7 @@ public class CountsRepositoryImplTest {
 
         when(prometheusService.getRsuMessageCounts(rsuIp, startTime.longValue(), endTime.longValue()))
                 .thenThrow(oom);
-        when(rsuRepository.findByIpv4Address(InetAddress.getByName(rsuIp)))
+        when(rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)))
                 .thenReturn(mockRsu(rsuIp, "I-25"));
 
         ResponseStatusException thrown = assertThrows(ResponseStatusException.class,

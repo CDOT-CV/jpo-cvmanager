@@ -89,7 +89,7 @@ class RsuOnlineStatusServiceTest {
     }
 
     private static RsuOnlineStatusProjection ping(String ip, Instant timestamp, Boolean result) throws Exception {
-        InetAddress address = InetAddress.getByName(ip);
+        InetAddress address = RsuManagementService.toIpv4Address(ip);
         return new RsuOnlineStatusProjection() {
             @Override
             public InetAddress getIpv4Address() {

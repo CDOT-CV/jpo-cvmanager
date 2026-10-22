@@ -1,7 +1,7 @@
 package us.dot.its.jpo.ode.api.services;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,14 +57,11 @@ public class RsuManagementService {
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
     private final RsuHealthRepository rsuHealthRepository;
+    private static final String IPV4_PATTERN = "^(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}$";
 
     public RsuInfoDto getRsuInfo(String ipv4Address) {
-        try {
-            Rsu rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(ipv4Address));
-            return rsu != null ? rsuMapper.toDto(rsu) : null;
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
-        }
+        Rsu rsu = rsuRepository.findByIpv4Address(toIpv4Address(ipv4Address));
+        return rsu != null ? rsuMapper.toDto(rsu) : null;
     }
 
     public Page<RsuInfoDto> getAllRsuInfo(Organization organization, String search, Pageable pageable) {
@@ -166,43 +163,38 @@ public class RsuManagementService {
 
     @Transactional
     public RsuInfoDto modifyRsu(String rsuIp, RsuPatch rsuPatch, List<Organization> qualifiedOrgs) {
-        try {
-            // 1. Find existing RSU by original IP
-            InetAddress inetAddress = InetAddress.getByName(rsuIp);
-            Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
+        // 1. Find existing RSU by original IP
+        InetAddress inetAddress = toIpv4Address(rsuIp);
+        Rsu existingRsu = rsuRepository.findByIpv4Address(inetAddress);
 
-            if (existingRsu == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
-            }
-
-            // 2. If IP is being changed, check for conflicts
-            if (rsuPatch.getIpv4Address() != null && !rsuPatch.getIpv4Address().equals(rsuIp)) {
-                InetAddress newIp = InetAddress.getByName(rsuPatch.getIpv4Address());
-                Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
-                if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "RSU with IP " + rsuPatch.getIpv4Address() + " already exists");
-                }
-            }
-
-            // 3. Update only non-null fields using MapStruct
-            rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
-
-            // 4. Update relationships that require database lookups
-            updateRelationships(existingRsu, rsuPatch);
-
-            // 5. Handle organization additions/removals
-            handleOrganizationChanges(existingRsu, rsuPatch, qualifiedOrgs);
-
-            // 6. Save updated entity (JPA handles UPDATE SQL)
-            Rsu savedRsu = rsuRepository.save(existingRsu);
-
-            // 7. Return DTO
-            return rsuMapper.toDto(savedRsu);
-
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
+        if (existingRsu == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
         }
+
+        // 2. If IP is being changed, check for conflicts
+        if (rsuPatch.getIpv4Address() != null && !rsuPatch.getIpv4Address().equals(rsuIp)) {
+            InetAddress newIp = toIpv4Address(rsuPatch.getIpv4Address());
+            Rsu conflictingRsu = rsuRepository.findByIpv4Address(newIp);
+            if (conflictingRsu != null && !conflictingRsu.getIpv4Address().equals(existingRsu.getIpv4Address())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "RSU with IP " + rsuPatch.getIpv4Address() + " already exists");
+            }
+        }
+
+        // 3. Update only non-null fields using MapStruct
+        rsuPatchMapper.updateRsuFromPatch(rsuPatch, existingRsu);
+
+        // 4. Update relationships that require database lookups
+        updateRelationships(existingRsu, rsuPatch);
+
+        // 5. Handle organization additions/removals
+        handleOrganizationChanges(existingRsu, rsuPatch, qualifiedOrgs);
+
+        // 6. Save updated entity (JPA handles UPDATE SQL)
+        Rsu savedRsu = rsuRepository.save(existingRsu);
+
+        // 7. Return DTO
+        return rsuMapper.toDto(savedRsu);
     }
 
     private void updateRelationships(Rsu rsu, RsuPatch patch) {
@@ -325,37 +317,27 @@ public class RsuManagementService {
 
     @Transactional
     public void deleteRsuByIpv4Address(String ipv4Address) {
-        try {
-            InetAddress inetAddress = InetAddress.getByName(ipv4Address);
+        InetAddress inetAddress = toIpv4Address(ipv4Address);
 
-            // Check if RSU exists
-            Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
-            if (rsu == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + ipv4Address);
-            }
-
-            // Delete related entities first to maintain referential integrity
-            pingRepository.removePingByIpv4Address(inetAddress);
-            rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
-            scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
-            rsuHealthRepository.removeRsuHealthByIpv4Address(inetAddress);
-
-            // Finally, delete the RSU itself
-            rsuRepository.removeRsuByIpv4Address(inetAddress);
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ipv4Address, e);
+        // Check if RSU exists
+        Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
+        if (rsu == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + ipv4Address);
         }
+
+        // Delete related entities first to maintain referential integrity
+        pingRepository.removePingByIpv4Address(inetAddress);
+        rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
+        scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
+        rsuHealthRepository.removeRsuHealthByIpv4Address(inetAddress);
+
+        // Finally, delete the RSU itself
+        rsuRepository.removeRsuByIpv4Address(inetAddress);
     }
 
     @Transactional
     public void deleteMultipleRsusByIpv4Address(List<String> rsuIps) {
-        List<InetAddress> inetAddresses = rsuIps.stream().map(ip -> {
-            try {
-                return InetAddress.getByName(ip);
-            } catch (UnknownHostException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + ip, e);
-            }
-        }).toList();
+        List<InetAddress> inetAddresses = rsuIps.stream().map(RsuManagementService::toIpv4Address).toList();
 
         // Check if all RSUs exist
         List<Rsu> existingRsus = rsuRepository.findByIpv4AddressIn(inetAddresses);
@@ -378,5 +360,17 @@ public class RsuManagementService {
         scmsHealthRepository.removeMultipleScmsHealthByIpv4Address(inetAddresses);
         rsuHealthRepository.removeMultipleRsuHealthByIpv4Address(inetAddresses);
         rsuRepository.removeByIpv4AddressIn(inetAddresses);
+    }
+
+    public static InetAddress toIpv4Address(String ip) {
+        if (ip == null || !ip.matches(IPV4_PATTERN)) {
+            throw new IllegalArgumentException("Invalid IP address, should be like #.#.#.#, but was " + ip);
+        }
+        // Throws IllegalArgumentException if the IP address is not a valid IPv4 literal
+        Inet4Address address = Inet4Address.ofLiteral(ip);
+        if (address.getAddress().length != 4) {
+            throw new IllegalArgumentException("IP address must be IPv4, must have 4 valid octets but was " + ip);
+        }
+        return address;
     }
 }

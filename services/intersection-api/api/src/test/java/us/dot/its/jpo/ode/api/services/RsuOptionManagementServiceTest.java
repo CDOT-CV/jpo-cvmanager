@@ -40,7 +40,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_BothFields() throws UnknownHostException {
         String rsuIp = "192.168.1.100";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -71,7 +71,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_TimDepositOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.101";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -102,7 +102,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_CreateNewRsuOption_SnmpMonitoringOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.102";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setSnmpMonitoring(true);
@@ -135,7 +135,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_BothFields() throws UnknownHostException {
         String rsuIp = "192.168.1.103";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -166,7 +166,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_TimDepositOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.104";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -197,7 +197,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_SnmpMonitoringOnly() throws UnknownHostException {
         String rsuIp = "192.168.1.105";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setSnmpMonitoring(false);
@@ -228,7 +228,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_UpdateExistingOption_NoChanges() throws UnknownHostException {
         String rsuIp = "192.168.1.106";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -280,12 +280,11 @@ class RsuOptionManagementServiceTest {
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
 
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             rsuOptionManagementService.modifyRsuOption(invalidIp, patch);
         });
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Invalid IP address"));
+        assertEquals("Invalid IP address, should be like #.#.#.#, but was " + invalidIp, exception.getMessage());
         verify(rsuOptionRepository, never()).findByRsuId(any());
         verify(rsuOptionRepository, never()).save(any());
     }
@@ -293,7 +292,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_RsuNotFound_ThrowsNotFound() throws UnknownHostException {
         String rsuIp = "192.168.1.108";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(true);
@@ -315,7 +314,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_SetBothFieldsToFalse() throws UnknownHostException {
         String rsuIp = "192.168.1.109";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
@@ -345,7 +344,7 @@ class RsuOptionManagementServiceTest {
     @Test
     void testModifyRsuOption_ToggleValues() throws UnknownHostException {
         String rsuIp = "192.168.1.110";
-        InetAddress inetAddress = InetAddress.getByName(rsuIp);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
 
         RsuPatch patch = new RsuPatch();
         patch.setTimDeposit(false);
