@@ -104,6 +104,7 @@ describe('async thunks', () => {
       const snmpMsgType = 'bsm'
       const state = reducer(initialState, {
         type: 'config/refreshSnmpFwdConfig/pending',
+        meta: { requestId: undefined },
       })
       expect(state).toEqual({
         loading,
@@ -125,6 +126,7 @@ describe('async thunks', () => {
       const errorState = 'error'
       const state = reducer(initialState, {
         type: 'config/refreshSnmpFwdConfig/fulfilled',
+        meta: { requestId: undefined },
         payload: { msgFwdConfig, errorState },
       })
       expect(state).toEqual({
@@ -137,8 +139,16 @@ describe('async thunks', () => {
       const loading = false
       const state = reducer(initialState, {
         type: 'config/refreshSnmpFwdConfig/rejected',
+        meta: { requestId: undefined },
       })
-      expect(state).toEqual({ loading, value: { ...initialState.value, errorState: 'Failed to retrieve cached RSU message forwarding configuration', msgFwdConfigType: 'database' } })
+      expect(state).toEqual({
+        loading,
+        value: {
+          ...initialState.value,
+          errorState: 'Failed to retrieve cached RSU message forwarding configuration',
+          msgFwdConfigType: 'database',
+        },
+      })
     })
   })
 
@@ -260,6 +270,7 @@ describe('async thunks', () => {
       const snmpMsgType = 'bsm'
       const state = reducer(initialState, {
         type: 'config/getRsuMsgFwdFetch/pending',
+        meta: { requestId: undefined },
       })
       expect(state).toEqual({
         loading,
@@ -281,6 +292,7 @@ describe('async thunks', () => {
       const errorState = 'error'
       const state = reducer(initialState, {
         type: 'config/getRsuMsgFwdFetch/fulfilled',
+        meta: { requestId: undefined },
         payload: { msgFwdConfig, errorState },
       })
       expect(state).toEqual({
@@ -293,6 +305,7 @@ describe('async thunks', () => {
       const loading = false
       const state = reducer(initialState, {
         type: 'config/getRsuMsgFwdFetch/rejected',
+        meta: { requestId: undefined },
         payload: 'error',
       })
       expect(state).toEqual({
@@ -305,16 +318,32 @@ describe('async thunks', () => {
   describe('message forwarding mutations', () => {
     const ips = ['192.0.2.10', '192.0.2.11']
     const result = (overrides: Partial<MessageForwardingResult> = {}): MessageForwardingResult => ({
-      execution: { taskId: 'task', target: 'udp:192.0.2.10:161', status: 'SUCCEEDED', message: 'Change verified.', step: null, elapsedMs: 10, steps: [] },
-      writeState: 'VERIFIED', changed: true, databaseSync: 'UPDATED', ...overrides,
+      execution: {
+        taskId: 'task',
+        target: 'udp:192.0.2.10:161',
+        status: 'SUCCEEDED',
+        message: 'Change verified.',
+        step: null,
+        elapsedMs: 10,
+        steps: [],
+      },
+      writeState: 'VERIFIED',
+      changed: true,
+      databaseSync: 'UPDATED',
+      ...overrides,
     })
-    const getState = (security = true) => jest.fn().mockReturnValue({
-      user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
-      config: { value: { destIp: '198.51.100.3', snmpMsgType: 'map', includeSecurityHeader: security } },
-    })
+    const getState = (security = true) =>
+      jest.fn().mockReturnValue({
+        user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
+        config: { value: { destIp: '198.51.100.3', snmpMsgType: 'map', includeSecurityHeader: security } },
+      })
     const run = (operation: 'create' | 'delete', selected = ips) =>
-      (operation === 'create' ? submitSnmpSet(selected) : deleteSnmpSet({ ipList: selected, destIp: '198.51.100.3', snmpMsgType: 'map' }))(
-        jest.fn(), getState(), undefined
+      (operation === 'create'
+        ? submitSnmpSet(selected)
+        : deleteSnmpSet({ ipList: selected, destIp: '198.51.100.3', snmpMsgType: 'map' }))(
+        jest.fn(),
+        getState(),
+        undefined
       )
 
     afterEach(() => jest.restoreAllMocks())
@@ -322,54 +351,90 @@ describe('async thunks', () => {
     describe.each(['create', 'delete'] as const)('%s', (operation) => {
       it('uses the Intersection API with the selected organization and normalized message type', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
-          status: 200, message: '', body: Object.fromEntries(ips.map((ip) => [ip, result()])),
+          status: 200,
+          message: '',
+          body: Object.fromEntries(ips.map((ip) => [ip, result()])),
         })
         const legacy = jest.spyOn(RsuApi, 'postRsuData')
         expect((await run(operation)).payload).toEqual({ changeSuccess: true, errorState: '' })
         expect(api).toHaveBeenCalledWith('token', 'Org 1', {
-          rsu_ips: ips, message_type: 'MAP', destination_ip: '198.51.100.3',
+          rsu_ips: ips,
+          message_type: 'MAP',
+          destination_ip: '198.51.100.3',
           ...(operation === 'create' ? { include_security: true } : {}),
         })
         expect(legacy).not.toHaveBeenCalled()
       })
 
       it('reports partial failures even when HTTP status is 200', async () => {
-        jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({ status: 200, message: '', body: {
-          [ips[0]]: result(),
-          [ips[1]]: result({ execution: { ...result().execution, status: 'TIMED_OUT', message: 'Device did not respond.' }, writeState: 'NOT_SUBMITTED', changed: null, databaseSync: 'NOT_UPDATED' }),
-        } })
+        jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
+          status: 200,
+          message: '',
+          body: {
+            [ips[0]]: result(),
+            [ips[1]]: result({
+              execution: { ...result().execution, status: 'TIMED_OUT', message: 'Device did not respond.' },
+              writeState: 'NOT_SUBMITTED',
+              changed: null,
+              databaseSync: 'NOT_UPDATED',
+            }),
+          },
+        })
         const outcome = await run(operation)
-        expect(outcome.payload).toEqual({ changeSuccess: false, errorState: expect.stringContaining('1 of 2 RSUs completed successfully') })
-        expect(outcome.payload).toEqual(expect.objectContaining({ errorState: expect.stringContaining(`${ips[1]}: Device did not respond.`) }))
+        expect(outcome.payload).toEqual({
+          changeSuccess: false,
+          errorState: expect.stringContaining('1 of 2 RSUs completed successfully'),
+        })
+        expect(outcome.payload).toEqual(
+          expect.objectContaining({ errorState: expect.stringContaining(`${ips[1]}: Device did not respond.`) })
+        )
       })
 
       it('warns about uncertain writes and database failures rather than claiming success', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation)
         for (const [failure, message] of [
-          [result({ writeState: 'UNKNOWN', changed: null, databaseSync: 'NOT_UPDATED' }), 'check RSU state before retrying'],
+          [
+            result({ writeState: 'UNKNOWN', changed: null, databaseSync: 'NOT_UPDATED' }),
+            'check RSU state before retrying',
+          ],
           [result({ databaseSync: 'FAILED' }), 'Forwarding change verified, but the database update failed'],
         ] as const) {
           api.mockResolvedValue({ status: 200, message: '', body: { [ips[0]]: failure } })
-          expect((await run(operation, [ips[0]])).payload).toEqual({ changeSuccess: false, errorState: expect.stringContaining(message) })
+          expect((await run(operation, [ips[0]])).payload).toEqual({
+            changeSuccess: false,
+            errorState: expect.stringContaining(message),
+          })
         }
       })
 
       it('does not treat absent results or transport errors as success', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation)
-        for (const response of [null, { status: 200, body: {}, message: '' }, { status: 403, body: null, message: 'Not permitted for this organization' }]) {
+        for (const response of [
+          null,
+          { status: 200, body: {}, message: '' },
+          { status: 403, body: null, message: 'Not permitted for this organization' },
+        ]) {
           api.mockResolvedValue(response)
           expect((await run(operation)).payload).toEqual({ changeSuccess: false, errorState: expect.any(String) })
         }
         api.mockRejectedValue(new Error('network disconnected'))
-        expect((await run(operation)).payload).toEqual({ changeSuccess: false, errorState: expect.stringContaining('check RSU state before retrying') })
+        expect((await run(operation)).payload).toEqual({
+          changeSuccess: false,
+          errorState: expect.stringContaining('check RSU state before retrying'),
+        })
       })
 
       it('supports selections larger than the endpoint limit without repeating targets', async () => {
         const api = jest.spyOn(RsuMessageForwardingApi, operation).mockImplementation(async (_token, _org, body) => ({
-          status: 200, message: '', body: Object.fromEntries(body.rsu_ips.map((ip) => [ip, result()])),
+          status: 200,
+          message: '',
+          body: Object.fromEntries(body.rsu_ips.map((ip) => [ip, result()])),
         }))
         const selected = Array.from({ length: 201 }, (_, index) => `192.0.2.${index + 1}`)
-        expect((await run(operation, [...selected, selected[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
+        expect((await run(operation, [...selected, selected[0]])).payload).toEqual({
+          changeSuccess: true,
+          errorState: '',
+        })
         expect(api.mock.calls.map((call) => call[2].rsu_ips.length)).toEqual([100, 100, 1])
         expect(api.mock.calls.flatMap((call) => call[2].rsu_ips)).toEqual(selected)
       })
@@ -382,9 +447,13 @@ describe('async thunks', () => {
     })
 
     it('treats a confirmed delete no-op as success', async () => {
-      jest.spyOn(RsuMessageForwardingApi, 'delete').mockResolvedValue({ status: 200, message: '', body: {
-        [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
-      } })
+      jest.spyOn(RsuMessageForwardingApi, 'delete').mockResolvedValue({
+        status: 200,
+        message: '',
+        body: {
+          [ips[0]]: result({ writeState: 'NOT_SUBMITTED', changed: false }),
+        },
+      })
       expect((await run('delete', [ips[0]])).payload).toEqual({ changeSuccess: true, errorState: '' })
     })
 
@@ -396,11 +465,17 @@ describe('async thunks', () => {
 
     describe.each(['submitSnmpSet', 'deleteSnmpSet'])('%s reducer', (name) => {
       it('clears stale outcomes while pending and stores the returned outcome', () => {
-        const pending = reducer({ ...initialState, value: { ...initialState.value, changeSuccess: true, errorState: 'old error' } }, { type: `config/${name}/pending` })
+        const pending = reducer(
+          { ...initialState, value: { ...initialState.value, changeSuccess: true, errorState: 'old error' } },
+          { type: `config/${name}/pending` }
+        )
         expect(pending.loading).toBe(true)
         expect(pending.value.changeSuccess).toBe(false)
         expect(pending.value.errorState).toBe('')
-        const state = reducer(pending, { type: `config/${name}/fulfilled`, payload: { changeSuccess: false, errorState: 'offline' } })
+        const state = reducer(pending, {
+          type: `config/${name}/fulfilled`,
+          payload: { changeSuccess: false, errorState: 'offline' },
+        })
         expect(state.loading).toBe(false)
         expect(state.value.changeSuccess).toBe(false)
         expect(state.value.errorState).toBe('offline')
@@ -1006,4 +1081,22 @@ describe('reducers', () => {
       value: { ...initialState.value, addConfigPoint: !addConfigPoint },
     })
   })
+})
+
+it('ignores late cached and live replies after another forwarding read starts', () => {
+  const first = reducer(undefined, getRsuMsgConfigsFromRsu.pending('old', '192.0.2.1'))
+  const current = reducer(first, getCachedSnmpFwdConfigsFromDatabase.pending('new', '192.0.2.2'))
+  const late = reducer(
+    current,
+    getRsuMsgConfigsFromRsu.fulfilled({ msgFwdConfig: { 1: {} } as any, errorState: '' }, 'old', '192.0.2.1')
+  )
+  expect(late).toEqual(current)
+  const failed = reducer(current, getRsuMsgConfigsFromRsu.rejected(new Error('offline'), 'old', '192.0.2.1'))
+  expect(failed).toEqual(current)
+  const done = reducer(
+    current,
+    getCachedSnmpFwdConfigsFromDatabase.fulfilled({ msgFwdConfig: {}, errorState: '' }, 'new', '192.0.2.2')
+  )
+  expect(done.loading).toBe(false)
+  expect(done.value.msgFwdConfigType).toBe('database')
 })

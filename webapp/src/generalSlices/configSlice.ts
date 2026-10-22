@@ -2,7 +2,11 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
-import { ForwardingMessageType, MessageForwardingResponse, MessageForwardingResult } from '../models/RsuMessageForwarding'
+import {
+  ForwardingMessageType,
+  MessageForwardingResponse,
+  MessageForwardingResult,
+} from '../models/RsuMessageForwarding'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
 import {
@@ -28,8 +32,10 @@ const initialState = {
   includeSecurityHeader: false,
   addConfigPoint: false,
   configCoordinates: [] as number[][],
-    configList: [] as string[],
+  configList: [] as string[],
   msgFwdConfigType: 'database' as 'database' | 'rsu',
+  // Shared by cache and live reads so late replies cannot replace a newer selection.
+  forwardingReadRequestId: undefined as string | undefined,
 }
 
 export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
@@ -48,7 +54,9 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
     }
     return { msgFwdConfig: response.body.RsuFwdSnmpwalk, errorState: '' }
   } catch (error) {
-    return rejectWithValue(error instanceof Error ? error.message : 'Failed to retrieve cached RSU message forwarding configuration')
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Failed to retrieve cached RSU message forwarding configuration'
+    )
   }
 })
 
@@ -107,13 +115,17 @@ async function executeForwardingRequests(
       const result = response.body?.[ip]
       const confirmed = result?.writeState === 'VERIFIED' && result.changed === true
       const noOp = operation === 'delete' && result?.writeState === 'NOT_SUBMITTED' && result.changed === false
-      if (result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp)) continue
+      if (result?.execution?.status === 'SUCCEEDED' && result.databaseSync === 'UPDATED' && (confirmed || noOp))
+        continue
       failures.push(`${ip}: ${forwardingFailureMessage(result)}`)
     }
   }
   return {
     changeSuccess: failures.length === 0,
-    errorState: failures.length === 0 ? '' : `${selected.length - failures.length} of ${selected.length} RSUs completed successfully. ${failures.join('; ')}`,
+    errorState:
+      failures.length === 0
+        ? ''
+        : `${selected.length - failures.length} of ${selected.length} RSUs completed successfully. ${failures.join('; ')}`,
   }
 }
 
@@ -382,7 +394,8 @@ export const configSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getCachedSnmpFwdConfigsFromDatabase.pending, (state) => {
+      .addCase(getCachedSnmpFwdConfigsFromDatabase.pending, (state, action) => {
+        state.value.forwardingReadRequestId = action.meta.requestId
         state.loading = true
         state.value.msgFwdConfig = {} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs
         state.value.errorState = ''
@@ -392,17 +405,21 @@ export const configSlice = createSlice({
         state.value.rebootChangeSuccess = false
       })
       .addCase(getCachedSnmpFwdConfigsFromDatabase.fulfilled, (state, action) => {
+        if (state.value.forwardingReadRequestId !== action.meta.requestId) return
         state.loading = false
         state.value.msgFwdConfig = action.payload.msgFwdConfig ?? ({} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs)
         state.value.errorState = action.payload.errorState
         state.value.msgFwdConfigType = 'database'
       })
       .addCase(getCachedSnmpFwdConfigsFromDatabase.rejected, (state, action) => {
+        if (state.value.forwardingReadRequestId !== action.meta.requestId) return
         state.loading = false
-        state.value.errorState = (action.payload as string | undefined) || 'Failed to retrieve cached RSU message forwarding configuration'
+        state.value.errorState =
+          (action.payload as string | undefined) || 'Failed to retrieve cached RSU message forwarding configuration'
         state.value.msgFwdConfigType = 'database'
       })
-      .addCase(getRsuMsgConfigsFromRsu.pending, (state) => {
+      .addCase(getRsuMsgConfigsFromRsu.pending, (state, action) => {
+        state.value.forwardingReadRequestId = action.meta.requestId
         state.loading = true
         state.value.msgFwdConfig = {} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs
         state.value.errorState = ''
@@ -412,12 +429,14 @@ export const configSlice = createSlice({
         state.value.rebootChangeSuccess = false
       })
       .addCase(getRsuMsgConfigsFromRsu.fulfilled, (state, action) => {
+        if (state.value.forwardingReadRequestId !== action.meta.requestId) return
         state.loading = false
         state.value.msgFwdConfig = action.payload.msgFwdConfig ?? ({} as RsuDsrcFwdConfigs | RsuRxTxMsgFwdConfigs)
         state.value.errorState = action.payload.errorState
         state.value.msgFwdConfigType = 'rsu'
       })
       .addCase(getRsuMsgConfigsFromRsu.rejected, (state, action) => {
+        if (state.value.forwardingReadRequestId !== action.meta.requestId) return
         state.loading = false
         state.value.errorState =
           (action.payload as string | undefined) || 'Failed to fetch RSU message forwarding configuration'
