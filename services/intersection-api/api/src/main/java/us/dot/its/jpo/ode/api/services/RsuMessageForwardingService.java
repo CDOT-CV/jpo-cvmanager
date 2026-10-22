@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.config.SnmpProperties;
 import us.dot.its.jpo.ode.api.models.devices.management.CreateMessageForwardingRequest;
+import us.dot.its.jpo.ode.api.models.devices.management.DeleteMessageForwardingRowRequest;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingTable;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult.DatabaseSync;
@@ -56,24 +58,25 @@ public class RsuMessageForwardingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "include_security is required");
         var forwarding = new ForwardingRequest(request.getMessageType(), request.getDestinationIp(),
                 request.getIncludeSecurity());
-        return execute(request,
+        return execute(request.getRsuIps(),
                 context -> forwardingTasks.createWithSnapshot(context.device(), forwarding, synchronizeDb(context)));
     }
 
     /**
-     * Deletes the highest matching row. A confirmed absence is a successful,
-     * unchanged result.
+     * Handles bulk deletion without caller-supplied row indexes. The message type
+     * selects the table; the highest row matching its PSID and destination is deleted
+     * on each RSU. A confirmed absence is a successful, unchanged result.
      */
     public Map<String, MessageForwardingResult> delete(MessageForwardingRequest request) {
         validateRequest(request);
-        return execute(request,
+        return execute(request.getRsuIps(),
                 context -> forwardingTasks.deleteWithSnapshot(context.device(), request.getMessageType(),
                         request.getDestinationIp(), synchronizeDb(context)));
     }
 
     /**
-     * Rejects DNS names, duplicate targets and invalid batches before ownership or
-     * inventory lookup.
+     * Validates IPv4 addresses, unique targets and batch limits before checking
+     * permissions or loading inventory.
      */
     public static void validateRequest(MessageForwardingRequest request) {
         try {
@@ -91,11 +94,39 @@ public class RsuMessageForwardingService {
     }
 
     /**
+     * Handles deletion of a displayed row, including configurations created outside
+     * CV Manager's message-type rules. The expected destination and port guard against
+     * deleting a different configuration if its row index has been reused.
+     */
+    public Map<String, MessageForwardingResult> deleteRow(String rsuIp, ForwardingTable table, int index,
+            DeleteMessageForwardingRowRequest request) {
+        validateRowRequest(rsuIp, table, index, request);
+        return execute(List.of(rsuIp), context -> forwardingTasks.deleteWithSnapshot(context.device(), table,
+                index, request.destinationIp(), request.destinationPort(), synchronizeDb(context)));
+    }
+
+    /** Validates IPv4 addresses and row details before checking permissions. */
+    public static void validateRowRequest(String rsuIp, ForwardingTable table, int index,
+            DeleteMessageForwardingRowRequest request) {
+        try {
+            SnmpTarget.validateIpv4(rsuIp);
+            SnmpTarget.validateIpv4(request.destinationIp());
+            if (table == null || request.destinationPort() == null
+                    || request.destinationPort() < 1024 || request.destinationPort() > 65535)
+                throw new IllegalArgumentException();
+            table.cell(table.statusColumn(), index);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Supply IPv4 addresses, a RECEIVE or TRANSMIT table, index 1-255, and destination port 1024-65535.");
+        }
+    }
+
+    /**
      * Resolves the whole batch before dispatching the library's forwarding recipes.
      */
-    private Map<String, MessageForwardingResult> execute(MessageForwardingRequest request,
+    private Map<String, MessageForwardingResult> execute(List<String> rsuIps,
             Function<DeviceContext, SnmpTask> taskFactory) {
-        var contexts = contextService.load(request.getRsuIps());
+        var contexts = contextService.load(rsuIps);
         var options = properties.taskOptions();
         var handles = new LinkedHashMap<String, SnmpTaskHandle>();
         for (var context : contexts) {

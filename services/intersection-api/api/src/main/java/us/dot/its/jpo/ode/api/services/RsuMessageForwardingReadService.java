@@ -98,7 +98,7 @@ public class RsuMessageForwardingReadService {
                 row.status() == 1, row.includeSecurity());
     }
 
-    /** Validate before the permission helper or repository can interpret the input as a DNS name. */
+    /** Validates the IPv4 address before checking permissions or loading inventory. */
     public static void validateAddress(String value) {
         try {
             SnmpTarget.validateIpv4(value);

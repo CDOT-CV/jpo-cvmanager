@@ -20,6 +20,7 @@ import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.config.SnmpProperties;
 import us.dot.its.jpo.ode.api.models.devices.management.CreateMessageForwardingRequest;
+import us.dot.its.jpo.ode.api.models.devices.management.DeleteMessageForwardingRowRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult.DatabaseSync;
 import us.dot.its.jpo.ode.api.services.RsuMessageForwardingContextService.DeviceContext;
 import us.dot.its.jpo.snmp.client.*;
@@ -76,6 +77,30 @@ class RsuMessageForwardingServiceTest {
             assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, noOp.writeState());
             assertEquals(2, client.writes.get());
             verify(snapshots, times(3)).replace(eq(7), eq(device.target().address()), anyList());
+        }
+    }
+
+    @Test void selectedRowDeleteDoesNotUseTheMessagePresetTable() {
+        var client = new MemoryClient();
+        var helper = new Ntcip1218Client(client, Clock.systemUTC());
+        for (var binding : helper.createBindings(new ForwardingRequest(MessageType.BSM, "198.51.100.3", false), 1)) {
+            client.data.put(binding.oid(), binding.value());
+        }
+        client.data.put(ForwardingTable.RECEIVE.cell(2, 1), MessageType.MAP.psid());
+        client.data.put(ForwardingTable.RECEIVE.cell(10, 1), new SnmpValue.IntegerValue(1));
+        try (var executor = executor(client)) {
+            var service = service(executor);
+            service.create(request());
+            var body = new DeleteMessageForwardingRowRequest("198.51.100.3", 46800);
+            var result = service.deleteRow(device.target().address(), ForwardingTable.RECEIVE, 1, body).get(device.target().address());
+            assertEquals(true, result.changed());
+            assertEquals(DatabaseSync.UPDATED, result.databaseSync());
+            assertFalse(client.data.containsKey(ForwardingTable.RECEIVE.cell(2, 1)));
+            assertEquals(MessageType.MAP.psid(), client.data.get(ForwardingTable.TRANSMIT.cell(2, 1)));
+            client.data.put(ForwardingTable.TRANSMIT.cell(2, 1), new SnmpValue.Octets("21"));
+            service.deleteRow(device.target().address(), ForwardingTable.TRANSMIT, 1,
+                    new DeleteMessageForwardingRowRequest("198.51.100.3", 44920));
+            assertTrue(client.data.isEmpty());
         }
     }
 
@@ -195,9 +220,13 @@ class RsuMessageForwardingServiceTest {
             writes.incrementAndGet();
             for (var binding : bindings) {
                 var table = binding.oid().isWithin(ForwardingTable.TRANSMIT.root()) ? ForwardingTable.TRANSMIT : ForwardingTable.RECEIVE;
-                if (binding.oid().equals(table.cell(table.statusColumn(), 1))) {
-                    if (binding.value().equals(new SnmpValue.IntegerValue(6))) data.clear();
-                    else data.put(binding.oid(), new SnmpValue.IntegerValue(1));
+                var oid = binding.oid().value();
+                int index = Integer.parseInt(oid.substring(oid.lastIndexOf('.') + 1));
+                if (binding.oid().equals(table.cell(table.statusColumn(), index))) {
+                    if (binding.value().equals(new SnmpValue.IntegerValue(6))) {
+                        // A destroy affects one row, so tests can detect wrong-table deletions.
+                        for (int column = 2; column <= table.lastColumn(); column++) data.remove(table.cell(column, index));
+                    } else data.put(binding.oid(), new SnmpValue.IntegerValue(1));
                 } else data.put(binding.oid(), binding.value());
             }
             if (loseWrite) throw new SnmpException(SnmpException.Kind.TIMEOUT, true);
