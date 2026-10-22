@@ -229,6 +229,68 @@ class PermissionServiceTest {
         assertFalse(permissionService.hasRoleInOrg("TestOrg", "USER"));
     }
 
+    // ==================== hasRoleInOrgIds Tests ====================
+
+    @Test
+    void testHasRoleInOrgIds_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+    }
+
+    @Test
+    void testHasRoleInOrgIds_NoQualifiedOrganizations() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(null, List.of());
+
+        assertFalse(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+        assertFalse(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+    }
+
+    @Test
+    void testHasRoleInOrgIds_QualifiedOrganizationsMatchRequestedIds() {
+        Organization organization = new Organization();
+        organization.setId(123);
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(organization));
+
+        assertTrue(permissionService.hasRoleInOrgIds(UserRole.USER, List.of(123)));
+        assertFalse(permissionService.hasRoleInOrgIds("USER", List.of(123, 456)));
+    }
+
+    // ==================== hasRoleInOrgNames Tests ====================
+
+    @Test
+    void testHasRoleInOrgNames_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+    }
+
+    @Test
+    void testHasRoleInOrgNames_NoQualifiedOrganizations() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(null, List.of());
+
+        assertFalse(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+        assertFalse(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+    }
+
+    @Test
+    void testHasRoleInOrgNames_QualifiedOrganizationsMatchRequestedNames() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
+
+        assertTrue(permissionService.hasRoleInOrgNames(UserRole.USER, List.of("TestOrg")));
+        assertFalse(permissionService.hasRoleInOrgNames("USER", List.of("TestOrg", "OtherOrg")));
+    }
+
     // ==================== hasIntersection Tests ====================
 
     @Test
