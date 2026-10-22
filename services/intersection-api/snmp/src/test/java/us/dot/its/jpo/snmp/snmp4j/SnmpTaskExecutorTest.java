@@ -134,11 +134,28 @@ class SnmpTaskExecutorTest {
         try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 2, 10)) {
             agent.integer(OID.value(), 1); client.get(agent.target(), List.of(OID)); agent.delayMillis = 100;
             var outcome = result(executor.submit(task(agent.target(), read("first"), read("second"), write("never", 5)), policy(500, 0, false, 175, 0)));
-            assertEquals(SnmpTaskResult.Status.TIMED_OUT, outcome.status()); assertTrue(outcome.deadlineExceeded());
+            assertEquals(SnmpTaskResult.Status.TIMED_OUT, outcome.status());
+            assertTrue(outcome.deadlineExceeded(), () -> "Execution: " + outcome.executionTime() + " steps: " + outcome.steps());
             assertEquals(SnmpStepResult.Status.SUCCEEDED, outcome.steps().getFirst().status());
             assertEquals(SnmpStepResult.Status.NOT_STARTED, outcome.steps().get(2).status());
             assertEquals(0, agent.writes.get());
             assertTrue(outcome.executionTime().compareTo(Duration.ofSeconds(1)) < 0);
+            assertEquals(0, client.diagnostics().pendingRequests());
+        }
+    }
+
+    @Test void readRetriesDoNotShortenTheConfiguredAttemptTimeout() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 2, 10)) {
+            agent.integer(OID.value(), 1);
+            client.get(agent.target(), List.of(OID));
+            int readsBefore = agent.reads.get();
+            // The response fits the configured attempt timeout. A shorter task budget must
+            // stop work at its deadline, not squeeze all retries into that budget.
+            agent.delayMillis = 900;
+            var outcome = result(executor.submit(task(agent.target(), read("read")), policy(2000, 3, false, 2000, 0)));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, outcome.status());
+            assertEquals(1, agent.reads.get() - readsBefore, "A response within the attempt timeout must not trigger a retry");
+            assertFalse(outcome.deadlineExceeded());
             assertEquals(0, client.diagnostics().pendingRequests());
         }
     }
@@ -203,6 +220,7 @@ class SnmpTaskExecutorTest {
             int before = agent.reads.get();
             var noRecovery = result(executor.submit(task(agent.target(), read("read")), policy(80, 1, false, 2000, 0)));
             assertEquals(2, agent.reads.get() - before); assertEquals(1, noRecovery.submissions());
+            assertFalse(noRecovery.deadlineExceeded(), "A request timeout must remain distinct from the task deadline");
             agent.dropReads = false; client.get(agent.target(), List.of(OID)); agent.dropReads = true;
             var recovery = result(executor.submit(task(agent.target(), read("read")), policy(80, 0, true, 2000, 0)));
             assertEquals(2, recovery.submissions());

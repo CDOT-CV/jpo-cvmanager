@@ -225,10 +225,9 @@ public final class Snmp4jClient implements SnmpClient {
         checkDeadline(deadline, false);
         var policy = context == null ? new SnmpRequestPolicy(options.requestTimeout(), options.readRetries(), true) : context.policy();
         int retries = write ? 0 : policy.readRetries();
-        long attemptBudget = Math.max(1, (deadline - System.nanoTime()) / (retries + 1));
-        // Round up: rounding down can report a timeout just before the shared deadline expires.
-        long timeout = Math.max(1, Math.min(policy.requestTimeout().toMillis(),
-                Math.ceilDiv(attemptBudget, TimeUnit.MILLISECONDS.toNanos(1))));
+        // Preserve the configured timeout per attempt. Compressing retries into the remaining
+        // budget can expire early on SNMP4J's timer; the monotonic future wait below bounds the operation.
+        long timeout = policy.requestTimeout().toMillis();
         var destination = session.target(target.address(), target.port(), timeout, retries);
         ManagedSession.Pending pending = null;
         if (context != null) context.beforeRequest(write);
