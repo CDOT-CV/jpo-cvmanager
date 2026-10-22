@@ -108,10 +108,7 @@ public class RsuController {
     public ModifyRsuAllowedSelections getAllowedSelections() {
         List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
                 .getQualifiedOrgList(UserRole.ADMIN);
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
-                .getAllowedSelections(qualifiedOrgs);
-
-        return allowedSelections;
+        return rsuManagementService.getAllowedSelections(qualifiedOrgs);
     }
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")

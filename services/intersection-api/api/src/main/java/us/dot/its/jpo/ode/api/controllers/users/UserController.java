@@ -38,6 +38,7 @@ import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
+import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
 import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.UserManagementService;
@@ -101,10 +102,7 @@ public class UserController {
     public ModifyUserAllowedSelections getAllowedSelections() {
         List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
                 .getQualifiedOrgList(UserRole.ADMIN);
-        ModifyUserAllowedSelections allowedSelections = userManagementService
-                .getAllowedSelections(qualifiedOrgs);
-
-        return allowedSelections;
+        return userManagementService.getAllowedSelections(qualifiedOrgs);
     }
 
     @Operation(summary = "Create User", description = "Create a new User")
@@ -128,7 +126,7 @@ public class UserController {
         List<Integer> unqualifiedOrgIds = body.getOrganizations().stream()
                 .filter(userOrgDto -> qualifiedOrgs.stream()
                         .noneMatch(org -> org.getId().equals(userOrgDto.getOrganization())))
-                .map(userOrgDto -> userOrgDto.getOrganization())
+                .map(UserOrganizationDto::getOrganization)
                 .collect(Collectors.toList());
 
         if (!unqualifiedOrgIds.isEmpty()) {
