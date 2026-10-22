@@ -1,6 +1,12 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.springframework.http.HttpStatus;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -8,7 +14,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,18 +21,10 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.repositories.IntersectionRepository;
-import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuRepository;
 import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service("PermissionService")
@@ -79,7 +76,7 @@ public class PermissionService {
 
     public Organization getOrganizationById(Integer orgId) {
         CvManagerAuthToken authToken = getCvManagerAuthToken();
-        return authToken.getQualifiedOrgList(UserRole.ADMIN).stream()
+        return authToken.getQualifiedOrgList(UserRole.USER).stream()
                 .filter(org -> org.getId().equals(orgId))
                 .findFirst()
                 .orElseThrow(() -> new AccessDeniedException("User does not belong to the specified organization"));
@@ -112,7 +109,20 @@ public class PermissionService {
 
         // Verify that organization header matches qualified orgs, if specified
         String organization = getOrganizationFromHeader();
-        if (organization != null) {
+        Integer orgId = tryGetOrgIdFromString(organization);
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                // If an organization is specified in the header, ensure it's in the qualified
+                // orgs list
+                return false;
+            } else {
+                return qualifiedOrgCheck.test(List.of(matchingOrg));
+            }
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()
@@ -277,13 +287,7 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsu(String rsuIP, String role) {
-        InetAddress ipv4Address;
-        try {
-            ipv4Address = InetAddress.getByName(rsuIP);
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
-        }
-
+        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
         return checkQualifiedOrgs(role,
                 qualifiedOrgs -> rsuRepository
                         .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
@@ -295,11 +299,7 @@ public class PermissionService {
     public boolean hasRsus(List<String> rsuIP, String role) {
         List<InetAddress> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIP) {
-            try {
-                ipv4Addresses.add(InetAddress.getByName(ip));
-            } catch (UnknownHostException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + ip, e);
-            }
+            ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
         }
 
         return checkQualifiedOrgs(role, qualifiedOrgs -> rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs)
@@ -308,12 +308,7 @@ public class PermissionService {
 
     // Allow Connection if the user's organization owns the specified RSU unit
     public boolean isRsuOwner(String rsuIP, String role) {
-        InetAddress ipv4Address;
-        try {
-            ipv4Address = InetAddress.getByName(rsuIP);
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
-        }
+        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
 
         return checkQualifiedOrgs(role,
                 qualifiedOrgs -> rsuRepository
@@ -334,11 +329,7 @@ public class PermissionService {
     public List<String> findUnauthorizedRsus(List<String> rsuIPs, String role) {
         List<InetAddress> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIPs) {
-            try {
-                ipv4Addresses.add(InetAddress.getByName(ip));
-            } catch (UnknownHostException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + ip, e);
-            }
+            ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
         }
 
         CvManagerAuthToken authToken = getCvManagerAuthToken();
@@ -352,8 +343,19 @@ public class PermissionService {
         }
 
         String organization = getOrganizationFromHeader();
+        Integer orgId = tryGetOrgIdFromString(organization);
         List<Organization> orgsToCheck = qualifiedOrgs;
-        if (organization != null) {
+
+        if (orgId != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getId().equals(orgId))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                return rsuIPs;
+            }
+            orgsToCheck = List.of(matchingOrg);
+        } else if (organization != null) {
             Organization matchingOrg = qualifiedOrgs.stream()
                     .filter(org -> org.getName().equals(organization))
                     .findFirst()

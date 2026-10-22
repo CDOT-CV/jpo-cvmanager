@@ -17,6 +17,10 @@ import lombok.RequiredArgsConstructor;
 import us.dot.its.jpo.ode.api.keycloak.config.KeycloakAdminConfig;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.mappers.UserPatchMapper;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
+import us.dot.its.jpo.ode.api.models.postgres.tables.User;
+import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.models.users.ModifyUserAllowedSelections;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
 import us.dot.its.jpo.ode.api.models.users.UserOrganizationDto;
@@ -24,10 +28,6 @@ import us.dot.its.jpo.ode.api.models.users.UserPatch;
 import us.dot.its.jpo.ode.api.repositories.RoleRepository;
 import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
-import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
-import us.dot.its.jpo.ode.api.models.postgres.tables.User;
-import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +61,9 @@ public class UserManagementService {
     }
 
     @Transactional
+    // Assumption: The controller has already verified that the user has the
+    // necessary permissions for the organizations specified in the UserDto.
+    // Also important note: Transactional does not revert the keycloak user creation
     public User createUser(UserDto userDto, List<Organization> qualifiedOrgs) {
         UserRepresentation kcUser = new UserRepresentation();
         kcUser.setUsername(userDto.getEmail());
@@ -97,7 +100,7 @@ public class UserManagementService {
         // qualified and exist
         List<UserOrganization> toCreate = userDto.getOrganizations().stream().map(userOrgDto -> {
             Organization organization = qualifiedOrgs.stream()
-                    .filter(org -> org.getId() == userOrgDto.getOrganization())
+                    .filter(org -> org.getId().equals(userOrgDto.getOrganization()))
                     .findFirst().orElseThrow(() -> new IllegalArgumentException(
                             "Organization not found or user not authorized for: " + userOrgDto.getOrganization()));
             return createUserOrgRelationship(userOrgDto, createdUser, organization);

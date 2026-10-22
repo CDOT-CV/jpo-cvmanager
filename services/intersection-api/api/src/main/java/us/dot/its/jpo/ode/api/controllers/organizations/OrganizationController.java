@@ -1,11 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.organizations;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,29 +8,29 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
-import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.mappers.OrganizationMapper;
 import us.dot.its.jpo.ode.api.mappers.RsuInfoMapper;
 import us.dot.its.jpo.ode.api.mappers.UserMapper;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.organization.OrganizationPatch;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
-import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.organizations.OrganizationDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.users.UserDto;
@@ -46,6 +41,7 @@ import us.dot.its.jpo.ode.api.repositories.UserOrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.services.OrganizationManagementService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @Slf4j
 @RestController
@@ -130,14 +126,9 @@ public class OrganizationController {
     })
     public List<OrganizationDto> getRsuOrganizationAssignments(
             @Parameter(description = "RSU IP address", example = "192.168.1.1", required = true) @PathVariable(name = "rsuIp") String rsuIp) {
-        try {
-            return rsuRepository.findAllOrganizationsByIpv4Address(InetAddress.getByName(rsuIp)).stream()
+        return rsuRepository.findAllOrganizationsByIpv4Address(RsuManagementService.toIpv4Address(rsuIp)).stream()
                     .map(organizationMapper::toDto)
                     .collect(Collectors.toList());
-        } catch (UnknownHostException e) {
-            log.error("Invalid RSU IP address: {}", rsuIp, e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIp, e);
-        }
     }
 
     @Operation(summary = "Get RSU IPs not in Organization", description = "Retrieves a list of IP addresses for all RSUs not belonging to the specified organization.")

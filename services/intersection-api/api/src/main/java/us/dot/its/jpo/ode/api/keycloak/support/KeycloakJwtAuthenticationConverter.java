@@ -1,8 +1,6 @@
 package us.dot.its.jpo.ode.api.keycloak.support;
 
-import lombok.RequiredArgsConstructor;
-import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
+import java.util.Collection;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -10,7 +8,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import java.util.Collection;
+import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 
 /**
  * Converts a JWT into a Spring authentication token (by extracting
@@ -20,7 +19,7 @@ import java.util.Collection;
 public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter;
-    private OrganizationRepository organizationRepository;
+    private final OrganizationRepository organizationRepository;
 
     public KeycloakJwtAuthenticationConverter(
             Converter<Jwt, Collection<GrantedAuthority>> grantedAuthoritiesConverter,

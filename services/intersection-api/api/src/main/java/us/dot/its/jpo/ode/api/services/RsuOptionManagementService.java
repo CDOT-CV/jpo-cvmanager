@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.services;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -54,19 +53,14 @@ public class RsuOptionManagementService {
 
     // Finds RSU by IP address or throws NOT_FOUND/BAD_REQUEST
     private Rsu findRsuByIp(String rsuIp) {
-        try {
-            InetAddress inetAddress = InetAddress.getByName(rsuIp);
-            Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(rsuIp);
+        Rsu rsu = rsuRepository.findByIpv4Address(inetAddress);
 
-            if (rsu == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
-            }
-
-            return rsu;
-        } catch (UnknownHostException e) {
-            log.error("Invalid IP address: {}", rsuIp);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid IP address: " + rsuIp, e);
+        if (rsu == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found with IP: " + rsuIp);
         }
+
+        return rsu;
     }
 
     // Gets existing RsuOption or creates a new one

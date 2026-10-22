@@ -1,5 +1,15 @@
 package us.dot.its.jpo.ode.api.mappers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,14 +23,7 @@ import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Intersection;
 import us.dot.its.jpo.ode.api.models.postgres.tables.IntersectionOrganization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @ExtendWith(SpringExtension.class)
 @Import({ IntersectionMapperImpl.class, GeometryMapperImpl.class, INetMapperImpl.class })
@@ -72,7 +75,7 @@ class IntersectionMapperTest {
             entity.setIntersectionName("Main St & 1st Ave");
             entity.setRefPt(testFixtures.createPoint(-104.9903, 39.7392));
             entity.setBbox(testFixtures.createBBox(39.73, -105.00, 39.74, -104.99));
-            entity.setOriginIp(InetAddress.getByName("192.168.1.1"));
+            entity.setOriginIp(RsuManagementService.toIpv4Address("192.168.1.1"));
             entity.setIntersectionOrganizations(List.of(orgEntry(1), orgEntry(2)));
 
             IntersectionDto result = mapper.toDto(entity);
@@ -176,7 +179,7 @@ class IntersectionMapperTest {
         void toDto_originIp_serializedToString() throws UnknownHostException {
             Intersection entity = new Intersection();
             entity.setIntersectionNumber("12109");
-            entity.setOriginIp(InetAddress.getByName("10.0.0.1"));
+            entity.setOriginIp(RsuManagementService.toIpv4Address("10.0.0.1"));
 
             IntersectionDto result = mapper.toDto(entity);
 

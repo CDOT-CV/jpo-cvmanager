@@ -1,17 +1,14 @@
 package us.dot.its.jpo.ode.api.controllers.devices;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +27,8 @@ import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
@@ -109,10 +108,7 @@ public class RsuController {
     public ModifyRsuAllowedSelections getAllowedSelections() {
         List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
                 .getQualifiedOrgList(UserRole.ADMIN);
-        ModifyRsuAllowedSelections allowedSelections = rsuManagementService
-                .getAllowedSelections(qualifiedOrgs);
-
-        return allowedSelections;
+        return rsuManagementService.getAllowedSelections(qualifiedOrgs);
     }
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")
@@ -132,7 +128,10 @@ public class RsuController {
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
     @PatchMapping(produces = "application/json", params = "rsu_ip")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and @PermissionService.hasRole('OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.isRsuOwner(#rsuIp, 'OPERATOR') and " +
+            "@PermissionService.hasRole('OPERATOR') and " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToAdd) and " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToRemove))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Success"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role with ownership of the RSU requested"),
