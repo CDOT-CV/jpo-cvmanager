@@ -199,6 +199,62 @@ class RsuManagementServiceTest {
     }
 
     @Test
+    void createRsuRejectsLegacyProtocol() {
+        var dto = new RsuInfoDto();
+        dto.setSnmpVersionGroup("RSU 4.1");
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        when(rsuMapper.toEntity(dto)).thenReturn(new Rsu());
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+
+        var failure = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.createRsu(dto, List.of()));
+
+        assertEquals(400, failure.getStatusCode().value());
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void modifyRsuRejectsSwitchToLegacyProtocol() throws Exception {
+        var rsu = new Rsu();
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        var patch = new RsuPatch();
+        patch.setSnmpVersionGroup("RSU 4.1");
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName("192.0.2.1"))).thenReturn(rsu);
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
+
+        var failure = assertThrows(ResponseStatusException.class,
+                () -> rsuManagementService.modifyRsu("192.0.2.1", patch, authToken));
+
+        assertEquals(400, failure.getStatusCode().value());
+        verify(rsuRepository, never()).save(any());
+    }
+
+    @Test
+    void modifyRsuRetainsExistingLegacyProtocol() throws Exception {
+        var rsu = new Rsu();
+        var legacy = new SnmpProtocol();
+        legacy.setProtocolCode("41");
+        legacy.setNickname("RSU 4.1");
+        rsu.setSnmpProtocol(legacy);
+        var patch = new RsuPatch();
+        patch.setSnmpVersionGroup("RSU 4.1");
+        when(rsuRepository.findByIpv4Address(InetAddress.getByName("192.0.2.1"))).thenReturn(rsu);
+        when(snmpProtocolRepository.findByNickname("RSU 4.1")).thenReturn(Optional.of(legacy));
+        when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
+        when(rsuRepository.save(rsu)).thenReturn(rsu);
+
+        rsuManagementService.modifyRsu("192.0.2.1", patch, authToken);
+
+        verify(rsuRepository).save(rsu);
+        assertEquals(legacy, rsu.getSnmpProtocol());
+    }
+
+    @Test
     void testToIpv4Address_NullIpAddress() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -306,13 +362,13 @@ class RsuManagementServiceTest {
 
         List<String> sshCredentials = Arrays.asList("ssh-group-1", "ssh-group-2");
         List<String> snmpCredentials = Arrays.asList("snmp-group-1", "snmp-group-2");
-        List<String> snmpVersions = Arrays.asList("v2c", "v3");
+        List<String> snmpVersions = List.of("NTCIP 1218");
 
         when(rsuRepository.findAllPrimaryRoutes()).thenReturn(primaryRoutes);
         when(rsuRepository.findAllRsuModels()).thenReturn(rsuModels);
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(sshCredentials);
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(snmpCredentials);
-        when(snmpProtocolRepository.findAllNicknames()).thenReturn(snmpVersions);
+        when(snmpProtocolRepository.findSupportedNicknames()).thenReturn(snmpVersions);
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(Arrays.asList(testOrg, testOrg2));
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
@@ -332,8 +388,7 @@ class RsuManagementServiceTest {
         assertEquals(2, result.getSnmpCredentialGroups().size());
         assertTrue(result.getSnmpCredentialGroups().contains("snmp-group-1"));
 
-        assertEquals(2, result.getSnmpVersionGroups().size());
-        assertTrue(result.getSnmpVersionGroups().contains("v2c"));
+        assertEquals(List.of("NTCIP 1218"), result.getSnmpVersionGroups());
 
         assertEquals(2, result.getOrganizations().size());
         assertTrue(result.getOrganizations().contains("Org1"));
@@ -343,7 +398,7 @@ class RsuManagementServiceTest {
         verify(rsuRepository).findAllRsuModels();
         verify(rsuCredentialRepository).findAllNicknames();
         verify(snmpCredentialRepository).findAllNicknames();
-        verify(snmpProtocolRepository).findAllNicknames();
+        verify(snmpProtocolRepository).findSupportedNicknames();
     }
 
     @Test
@@ -353,7 +408,7 @@ class RsuManagementServiceTest {
         when(rsuRepository.findAllRsuModels()).thenReturn(List.of());
         when(rsuCredentialRepository.findAllNicknames()).thenReturn(List.of());
         when(snmpCredentialRepository.findAllNicknames()).thenReturn(List.of());
-        when(snmpProtocolRepository.findAllNicknames()).thenReturn(List.of());
+        when(snmpProtocolRepository.findSupportedNicknames()).thenReturn(List.of());
         when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of());
 
         ModifyRsuAllowedSelections result = rsuManagementService.getAllowedSelections(authToken);
@@ -461,6 +516,7 @@ class RsuManagementServiceTest {
         RsuCredential sshCred = new RsuCredential();
         SnmpCredential snmpCred = new SnmpCredential();
         SnmpProtocol snmpProtocol = new SnmpProtocol();
+        snmpProtocol.setProtocolCode("1218");
 
         when(rsuRepository.findByIpv4Address(inetAddress)).thenReturn(existingRsu);
         when(rsuCredentialRepository.findByNickname("ssh-group-new")).thenReturn(Optional.of(sshCred));
