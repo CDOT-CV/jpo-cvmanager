@@ -1,19 +1,25 @@
 package us.dot.its.jpo.snmp.snmp4j;
 
 import java.time.Duration;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.snmp4j.PDU;
+import org.snmp4j.TransportStateReference;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Opaque;
+import org.snmp4j.smi.UdpAddress;
+import org.snmp4j.transport.DefaultUdpTransportMapping;
 import us.dot.its.jpo.snmp.client.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -336,6 +342,47 @@ class Snmp4jClientTest {
             assertTrue(finished.await(3, TimeUnit.SECONDS));
             assertEquals(SnmpException.Kind.CANCELLED, error.get().kind());
             assertEquals(0, client.diagnostics().pendingRequests());
+        }
+    }
+
+    @Test void failedSendRetiresItsSessionWithoutReplayingTheRequest() throws Exception {
+        var failSend = new AtomicBoolean();
+        var transports = new AtomicInteger();
+        var options = new Snmp4jOptions(Duration.ofSeconds(2), 0, Duration.ofSeconds(5),
+                Duration.ofSeconds(1), 3, 1, 10, 100, 4096);
+        try (var agent = new LoopbackAgent(CREDS); var client = new Snmp4jClient(options, () -> {
+            transports.incrementAndGet();
+            return new DefaultUdpTransportMapping() {
+                @Override public void sendMessage(UdpAddress address, byte[] message, TransportStateReference state,
+                        long timeoutMillis, int maxRetries) throws IOException {
+                    if (failSend.getAndSet(false)) throw new IOException("Injected UDP send failure");
+                    super.sendMessage(address, message, state, timeoutMillis, maxRetries);
+                }
+            };
+        }); var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            agent.integer(FIRST.value(), 1);
+            client.get(agent.target(), List.of(FIRST));
+            agent.hold = true;
+            var active = workers.submit(() -> client.get(agent.target(), List.of(FIRST)));
+            try {
+                await(() -> agent.active.get() == 1);
+                failSend.set(true);
+                var failed = assertThrows(SnmpException.class,
+                        () -> client.set(agent.target(), List.of(new SnmpBinding(FIRST, new SnmpValue.IntegerValue(2)))));
+                assertEquals(SnmpException.Kind.EXECUTION, failed.kind());
+                assertTrue(failed.writeOutcomeUnknown());
+                assertEquals(SnmpException.Kind.BUSY, assertThrows(SnmpException.class,
+                        () -> client.get(agent.target(), List.of(FIRST))).kind());
+                assertFalse(active.isDone(), "Retirement must not close a transport still leased by another call");
+            } finally {
+                agent.release();
+            }
+            active.get(3, TimeUnit.SECONDS);
+            assertEquals(0, agent.writes.get(), "The failed write must not be replayed");
+            assertEquals(0, client.diagnostics().pendingRequests());
+            assertEquals(new SnmpValue.IntegerValue(1), client.get(agent.target(), List.of(FIRST)).getFirst().value());
+            assertEquals(1, client.diagnostics().cachedSessions());
+            assertEquals(2, transports.get(), "A fresh transport must replace the failed profile");
         }
     }
 

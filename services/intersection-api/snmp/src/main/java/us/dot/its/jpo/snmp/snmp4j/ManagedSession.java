@@ -30,8 +30,12 @@ final class ManagedSession implements AutoCloseable {
     // Accessed only under the client pool monitor.
     int leases;
     private volatile boolean closed;
+    private volatile boolean broken;
 
-    ManagedSession(SnmpCredentials credentials, int maxTargets) throws IOException {
+    @FunctionalInterface
+    interface TransportFactory { DefaultUdpTransportMapping create() throws IOException; }
+
+    ManagedSession(SnmpCredentials credentials, int maxTargets, TransportFactory transportFactory) throws IOException {
         username = new OctetString(credentials.username());
         this.maxTargets = maxTargets;
         if (username.length() > 32) throw new IllegalArgumentException("SNMPv3 username exceeds 32 bytes");
@@ -55,7 +59,7 @@ final class ManagedSession implements AutoCloseable {
         mpv3.setMaxEngineIdCacheSize(maxTargets);
         var dispatcher = new MessageDispatcherImpl();
         dispatcher.addMessageProcessingModel(mpv3);
-        var transport = new DefaultUdpTransportMapping();
+        var transport = transportFactory.create();
         snmp = new Snmp(dispatcher, transport);
         try {
             snmp.listen();
@@ -101,12 +105,17 @@ final class ManagedSession implements AutoCloseable {
             if (closed) operation.cancel();
             return operation;
         } catch (IOException | RuntimeException failure) {
+            // A virtual-thread interrupt during UDP send can close the shared socket.
+            // Retire this profile after its outstanding leases drain; never replay this request.
+            if (failure instanceof IOException) broken = true;
             operation.cancel();
             throw failure;
         }
     }
 
     int pendingCount() { return pending.size(); }
+
+    boolean broken() { return broken; }
 
     /** Evicts only idle peers, preserving discovery and security state for active requests. */
     synchronized void retainPeer(UdpAddress address) {
