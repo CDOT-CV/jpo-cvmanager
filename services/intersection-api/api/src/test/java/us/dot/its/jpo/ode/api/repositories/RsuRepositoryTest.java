@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import jakarta.persistence.EntityManager;
+import org.hibernate.SessionFactory;
+import us.dot.its.jpo.ode.api.mappers.RsuGeoInfoMapper;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -63,6 +66,12 @@ class RsuRepositoryTest {
 
     @Autowired
     private SnmpProtocolRepository snmpProtocolRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private RsuGeoInfoMapper geoMapper;
 
     private final TestFixtures fixtures = new TestFixtures();
 
@@ -126,6 +135,33 @@ class RsuRepositoryTest {
         assertEquals(staleOnly.getIpv4Address(), results.get(4).getIpv4Address());
         assertNull(results.get(4).getTimestamp());
         assertNull(results.get(4).getResult());
+    }
+
+    @Test
+    void mapMetadataDoesNotFetchCredentialsSeparatelyForEachRsu() throws Exception {
+        var owner = organizationRepository.save(fixtures.createOrg(null, "MetadataOrg", "review@example.test"));
+        var graph = saveSharedGraph(owner);
+        for (int i = 1; i <= 3; i++) {
+            var credential = rsuCredentialRepository.save(fixtures.createRandomRsuCredential(owner));
+            saveRsu(new RsuGraph(graph.model, credential, graph.snmpCredential, graph.protocol), owner, "192.0.2." + i);
+        }
+        entityManager.flush();
+        entityManager.clear();
+        var statistics = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
+        boolean enabled = statistics.isStatisticsEnabled();
+        try {
+            statistics.setStatisticsEnabled(true);
+            statistics.clear();
+            var devices = rsuRepository.findAllRsusByOrganizationName("MetadataOrg");
+            long fetched = statistics.getPrepareStatementCount();
+            var mapped = devices.stream().map(geoMapper::toDto).toList();
+            assertEquals(3, mapped.size());
+            assertEquals(owner.getId(), mapped.getFirst().getProperties().getOwnerOrganizationId());
+            assertEquals(graph.protocol.getProtocolCode(), mapped.getFirst().getProperties().getSnmpProtocolCode());
+            assertEquals(fetched, statistics.getPrepareStatementCount(), "Mapping metadata must not issue per-device queries");
+        } finally {
+            statistics.setStatisticsEnabled(enabled);
+        }
     }
 
     @Test
