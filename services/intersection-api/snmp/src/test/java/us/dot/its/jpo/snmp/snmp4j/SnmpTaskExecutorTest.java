@@ -35,6 +35,24 @@ class SnmpTaskExecutorTest {
     private static SnmpTask task(SnmpTarget target, SnmpStep<?>... steps) { return new SnmpTask("fixture-task", target, List.of(steps)); }
     private static SnmpTaskResult result(SnmpTaskHandle handle) throws Exception { return handle.await(Duration.ofSeconds(10)); }
 
+    @Test void rebuiltTargetsUseEquivalentCredentialsWithoutPermittingDifferentProfiles() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client, 1, 10)) {
+            agent.integer(OID.value(), 1);
+            var credentials = new SnmpCredentials(CREDS.username(), CREDS.authenticationPassword(), CREDS.privacyPassword());
+            var rebuilt = new SnmpTarget(agent.target().address(), agent.port(), credentials);
+            var equivalent = new SnmpStep<>("read", READ, ctx -> ctx.client().get(rebuilt, List.of(OID)));
+            assertEquals(SnmpTaskResult.Status.SUCCEEDED, result(executor.submit(task(agent.target(), equivalent))).status());
+            assertEquals(CREDS.hashCode(), credentials.hashCode());
+
+            var different = new SnmpTarget(rebuilt.address(), rebuilt.port(),
+                    new SnmpCredentials(CREDS.username(), "different-auth-pass", CREDS.privacyPassword()));
+            int reads = agent.reads.get();
+            var denied = new SnmpStep<>("wrong-profile", READ, ctx -> ctx.client().get(different, List.of(OID)));
+            assertEquals(SnmpTaskResult.Status.FAILED, result(executor.submit(task(agent.target(), denied))).status());
+            assertEquals(reads, agent.reads.get(), "Different credentials must be rejected before contacting the device");
+        }
+    }
+
     @Test void hundredPollTasksKeepHealthyReadsIndependentOfOfflineTimeouts() throws Exception {
         try (var healthy = new LoopbackAgent(CREDS); var offline = new LoopbackAgent(CREDS);
                 var client = client(); var executor = executor(client, 8, 128)) {
