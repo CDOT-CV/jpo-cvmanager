@@ -112,6 +112,13 @@ class MinaSshRebootClientTest {
     }
 
     @Test
+    void refusedConnectionIsRecordedWithoutSendingOrRetryingACommand() throws Exception {
+        server.stop(true);
+        assertEquals(SshRebootClient.Outcome.CONNECT_FAILED, execute(password));
+        assertEquals(0, commands.get());
+    }
+
+    @Test
     void nonzeroExitIsDefiniteFailure() throws Exception {
         exitStatus = 1;
         assertEquals(SshRebootClient.Outcome.COMMAND_FAILED, execute(password));

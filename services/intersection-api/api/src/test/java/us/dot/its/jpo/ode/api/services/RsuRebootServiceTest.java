@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpStatus;
@@ -148,13 +150,45 @@ class RsuRebootServiceTest {
         assertNotNull(service.requestReboot(address));
     }
 
-    @Test
-    void missingCredentialsOrNewlinesRejectBeforeAdmission() {
-        credentials.setPassword("invalid\ninput");
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.requestReboot(address));
-        credentials.setPassword(null);
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "\t"})
+    void missingOrBlankUsernameRejectsBeforeAdmission(String username) {
+        credentials.setUsername(username);
         assertStatus(HttpStatus.BAD_REQUEST, () -> service.requestReboot(address));
         assertTrue(tasks.isEmpty());
+        verifyNoInteractions(client);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"invalid\ninput", "invalid\rinput"})
+    void missingOrMultilinePasswordRejectsBeforeAdmission(String password) {
+        credentials.setPassword(password);
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.requestReboot(address));
+        assertTrue(tasks.isEmpty());
+        verifyNoInteractions(client);
+    }
+
+    @Test
+    void missingCredentialsRejectBeforeAdmissionWithoutRetainingTheDevice() {
+        rsu.setCredential(null);
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.requestReboot(address));
+        assertTrue(tasks.isEmpty());
+        verifyNoInteractions(client);
+        rsu.setCredential(credentials);
+        assertNotNull(service.requestReboot(address));
+    }
+
+    @ParameterizedTest
+    @EnumSource(SshRebootClient.Outcome.class)
+    void eachCommandOutcomeReleasesAdmissionWithoutRetrying(SshRebootClient.Outcome outcome) {
+        when(client.reboot(any(), anyString(), anyString())).thenReturn(outcome);
+        service.requestReboot(address);
+        tasks.removeFirst().run();
+        verify(client, times(1)).reboot(address, credentials.getUsername(), credentials.getPassword());
+        assertTrue(tasks.isEmpty());
+        assertNotNull(service.requestReboot(address));
     }
 
     private static void assertStatus(HttpStatus status, Runnable action) {
