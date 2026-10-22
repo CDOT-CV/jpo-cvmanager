@@ -234,3 +234,8 @@ before retrying; requests are never automatically replayed.
 - Forwarding changes require an operator or administrator in the owning
   organization. Legacy RSUs show cached configurations without change or live
   refresh controls. Bulk changes require every selected RSU to be supported.
+
+- Creation and bulk deletion keep the message presets: for example, MAP uses TX.
+- Deleting a displayed row uses its actual table/index and checks its destination
+  and port first. This supports manually configured rows and unknown message types.
+- Legacy DSRC rows remain read only and are shown even alongside cached RX/TX rows.
