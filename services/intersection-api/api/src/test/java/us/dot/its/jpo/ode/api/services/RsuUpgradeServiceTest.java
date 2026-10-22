@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ class RsuUpgradeServiceTest {
         rule.setTo(targetImage);
 
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(rsuIp));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
         rsu.setFirmwareVersion(currentImage);
 
         when(rsuUpgradeContextService.findRsuByIp(rsuIp)).thenReturn(rsu);
@@ -159,7 +158,7 @@ class RsuUpgradeServiceTest {
         rule.setTo(targetImage);
 
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(rsuIp));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
         rsu.setFirmwareVersion(currentImage);
 
         when(rsuUpgradeContextService.findRsuByIp(rsuIp)).thenReturn(rsu);
@@ -194,7 +193,7 @@ class RsuUpgradeServiceTest {
         currentImage.setId(20);
 
         Rsu rsu = new Rsu();
-        rsu.setIpv4Address(InetAddress.getByName(rsuIp));
+        rsu.setIpv4Address(RsuManagementService.toIpv4Address(rsuIp));
         rsu.setFirmwareVersion(currentImage);
 
         when(rsuUpgradeContextService.findRsuByIp(rsuIp)).thenReturn(rsu);
