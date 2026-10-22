@@ -55,7 +55,7 @@ export type IssScmsStatus = {
 }
 
 export type RsuCommandPostBody = {
-  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'reboot' | 'upgrade-rsu' | 'upgrade-check'
+  command: 'rsufwdsnmpwalk' | 'rsufwdsnmpset' | 'rsufwdsnmpset-del' | 'upgrade-rsu' | 'upgrade-check'
   rsu_ip: string[]
   args: object
 }

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
+import RsuRebootApi from '../apis/intersections/rsu-reboot-api'
 import { selectToken, selectOrganizationName } from './userSlice'
 import { RootState } from '../store'
 import {
@@ -16,6 +17,7 @@ const initialState = {
   errorState: '',
   changeSuccess: false,
   rebootChangeSuccess: false,
+  rebootRequestedIp: undefined as string | undefined,
   firmwareUpgradeAvailable: false,
   firmwareUpgradeName: '',
   firmwareUpgradeMsg: '',
@@ -149,15 +151,11 @@ export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: str
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  const body: RsuCommandPostBody = {
-    command: 'reboot',
-    rsu_ip: ipList,
-    args: {},
-  }
+  if (ipList.length !== 1) throw new Error('Reboot requires exactly one RSU')
 
-  RsuApi.postRsuData(token, organization, body, '')
-
-  return
+  // Await admission only; SSH execution continues in the API after this request completes.
+  const response = await RsuRebootApi.reboot(token, organization, ipList[0])
+  return { ...response, rsuIp: ipList[0] }
 })
 
 export const checkFirmwareUpgrade = createAsyncThunk(
@@ -416,9 +414,11 @@ export const configSlice = createSlice({
         state.loading = true
         state.value.rebootChangeSuccess = false
       })
-      .addCase(rebootRsu.fulfilled, (state) => {
+      .addCase(rebootRsu.fulfilled, (state, action) => {
         state.loading = false
         state.value.rebootChangeSuccess = true
+        // Keep a late response from showing an acceptance notice for a different selected RSU.
+        state.value.rebootRequestedIp = action.payload.rsuIp
       })
       .addCase(rebootRsu.rejected, (state) => {
         state.loading = false
@@ -486,6 +486,7 @@ export const configSlice = createSlice({
 export const selectMsgFwdConfig = (state: RootState) => state.config.value.msgFwdConfig
 export const selectChangeSuccess = (state: RootState) => state.config.value.changeSuccess
 export const selectRebootChangeSuccess = (state: RootState) => state.config.value.rebootChangeSuccess
+export const selectRebootRequestedIp = (state: RootState) => state.config.value.rebootRequestedIp
 export const selectErrorState = (state: RootState) => state.config.value.errorState
 export const selectFirmwareUpgradeAvailable = (state: RootState) => state.config.value.firmwareUpgradeAvailable
 export const selectFirmwareUpgradeName = (state: RootState) => state.config.value.firmwareUpgradeName

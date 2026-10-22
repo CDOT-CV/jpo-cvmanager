@@ -82,6 +82,38 @@ it('should take a snapshot', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
+it.each(['Commsignia', 'COMMSIGNIA', 'Kapsch', 'Yunex', undefined])(
+  'shows the reboot option only for Commsignia (%s)',
+  (manufacturer) => {
+    mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
+    render(
+      <ThemeProvider theme={testTheme}>
+        <Provider
+          store={setupStore({
+            rsu: {
+              value: {
+                selectedRsu: {
+                  ...selectedRsu,
+                  properties: { ...selectedRsu.properties, manufacturer_name: manufacturer },
+                },
+              },
+            },
+          })}
+        >
+          <ConfigureRSU />
+        </Provider>
+      </ThemeProvider>
+    )
+
+    if (manufacturer?.toLowerCase() === 'commsignia') {
+      expect(screen.getByRole('button', { name: 'Reboot' })).toBeInTheDocument()
+    } else {
+      expect(screen.queryByRole('button', { name: 'Reboot' })).not.toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: 'Firmware' })).toBeInTheDocument()
+  }
+)
+
 it('shows counts for all configured message types, not just the selected type', () => {
   mockUseGetRsuCountsByIpQuery.mockReturnValue(mockQueryResult(successCountsQuery))
   render(
