@@ -1,6 +1,7 @@
 import { ApiMsgRespWithCodes, RsuDsrcFwdConfigs, RsuMsgFwdConfigs } from '../../models/RsuApi'
 import {
   CreateMessageForwardingRequest,
+  DeleteMessageForwardingRowRequest,
   MessageForwardingRequest,
   MessageForwardingResponse,
   MessageForwardingConfiguration,
@@ -15,6 +16,18 @@ class RsuMessageForwardingApi {
 
   delete(token: string, organization: string, body: MessageForwardingRequest) {
     return this.request<MessageForwardingResponse>(token, organization, 'DELETE', body)
+  }
+
+  deleteRow(
+    token: string,
+    organization: string,
+    rsuIp: string,
+    table: 'RECEIVE' | 'TRANSMIT',
+    index: number,
+    body: DeleteMessageForwardingRowRequest
+  ) {
+    const path = `/devices/rsus/message-forwarding/${encodeURIComponent(rsuIp)}/rows/${table}/${index}`
+    return this.request<MessageForwardingResponse>(token, organization, 'DELETE', body, path)
   }
 
   cached(token: string, organization: string, rsuIp: string) {
@@ -42,7 +55,7 @@ class RsuMessageForwardingApi {
     token: string,
     organization: string,
     method: 'GET' | 'POST' | 'DELETE',
-    body?: MessageForwardingRequest,
+    body?: MessageForwardingRequest | DeleteMessageForwardingRowRequest,
     path = '/devices/rsus/message-forwarding'
   ): Promise<ApiMsgRespWithCodes<T> | null> {
     const response = await authApiHelper.invokeApi({
@@ -55,9 +68,10 @@ class RsuMessageForwardingApi {
       tag: 'rsu',
       toastOnFailure: false,
       returnErrorBody: true,
-      failureMessage: method === 'GET'
-        ? 'Failed to fetch RSU message forwarding configuration'
-        : 'Forwarding request did not complete; check RSU state before retrying',
+      failureMessage:
+        method === 'GET'
+          ? 'Failed to fetch RSU message forwarding configuration'
+          : 'Forwarding request did not complete; check RSU state before retrying',
     })
     if (!response) return null
     if (response.__isErrorResponse) {
@@ -81,6 +95,8 @@ function formatConfigurations(rows: MessageForwardingConfiguration[]): RsuMsgFwd
   let hasNtcip = false
   for (const row of rows) {
     const entry = {
+      table: row.table,
+      index: row.index,
       'Message Type': row.messageType,
       IP: row.destinationIp,
       Port: row.destinationPort,
@@ -96,8 +112,7 @@ function formatConfigurations(rows: MessageForwardingConfiguration[]): RsuMsgFwd
     } else if (row.table === 'TRANSMIT') {
       transmit[row.index] = entry
       hasNtcip = true
-    }
-    else throw new Error('Unknown forwarding table in API response')
+    } else throw new Error('Unknown forwarding table in API response')
   }
   return hasNtcip ? { ...dsrc, rsuReceivedMsgTable: receive, rsuXmitMsgFwdingTable: transmit } : dsrc
 }

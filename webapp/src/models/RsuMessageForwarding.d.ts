@@ -9,6 +9,12 @@ export type MessageForwardingRequest = {
 /** include_security controls inclusion of IEEE 1609.2 security headers in forwarded messages. */
 export type CreateMessageForwardingRequest = MessageForwardingRequest & { include_security: boolean }
 
+/** Deletes a displayed row using its actual table/index, independently of create presets. */
+export type DeleteMessageForwardingRowRequest = {
+  destination_ip: string
+  destination_port: number
+}
+
 export type MessageForwardingResult = {
   execution: {
     taskId: string
@@ -25,7 +31,6 @@ export type MessageForwardingResult = {
 }
 
 export type MessageForwardingResponse = Record<string, MessageForwardingResult>
-
 
 export type MessageForwardingConfiguration = {
   table: 'RECEIVE' | 'TRANSMIT' | 'DSRC'

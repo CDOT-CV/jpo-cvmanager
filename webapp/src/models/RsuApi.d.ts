@@ -93,6 +93,8 @@ export type SnmpFwdWalkConfig = {
 }
 
 export type RsuMsgFwdConfigSingle = {
+  table?: 'RECEIVE' | 'TRANSMIT' | 'DSRC'
+  index?: number
   'Message Type': string
   IP: string
   Port: number

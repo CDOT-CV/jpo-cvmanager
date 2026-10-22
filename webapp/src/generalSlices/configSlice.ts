@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit'
 import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
@@ -178,6 +178,26 @@ export const deleteSnmpSet = createAsyncThunk(
         message_type: messageType,
         destination_ip: data.destIp,
       })
+    )
+  }
+)
+
+export const deleteSnmpRow = createAsyncThunk(
+  'config/deleteSnmpRow',
+  async (
+    data: { rsuIp: string; table: 'RECEIVE' | 'TRANSMIT'; index: number; destIp: string; port: number },
+    { getState }
+  ) => {
+    const state = getState() as RootState
+    return executeForwardingRequests([data.rsuIp], 'delete', () =>
+      RsuMessageForwardingApi.deleteRow(
+        selectToken(state),
+        selectOrganizationName(state),
+        data.rsuIp,
+        data.table,
+        data.index,
+        { destination_ip: data.destIp, destination_port: data.port }
+      )
     )
   }
 )
@@ -456,21 +476,6 @@ export const configSlice = createSlice({
         state.value.changeSuccess = false
         state.value.errorState = action.error.message || 'Failed to add SNMP configuration'
       })
-      .addCase(deleteSnmpSet.pending, (state) => {
-        state.loading = true
-        state.value.changeSuccess = false
-        state.value.errorState = ''
-      })
-      .addCase(deleteSnmpSet.fulfilled, (state, action) => {
-        state.loading = false
-        state.value.changeSuccess = action.payload.changeSuccess
-        state.value.errorState = action.payload.errorState
-      })
-      .addCase(deleteSnmpSet.rejected, (state, action) => {
-        state.loading = false
-        state.value.changeSuccess = false
-        state.value.errorState = action.error.message || 'Failed to delete SNMP configuration'
-      })
       .addCase(rebootRsu.pending, (state) => {
         state.loading = true
         state.value.rebootChangeSuccess = false
@@ -538,6 +543,21 @@ export const configSlice = createSlice({
       })
       .addCase(geoRsuQuery.rejected, (state) => {
         state.loading = false
+      })
+      .addMatcher(isAnyOf(deleteSnmpSet.pending, deleteSnmpRow.pending), (state) => {
+        state.loading = true
+        state.value.changeSuccess = false
+        state.value.errorState = ''
+      })
+      .addMatcher(isAnyOf(deleteSnmpSet.fulfilled, deleteSnmpRow.fulfilled), (state, action) => {
+        state.loading = false
+        state.value.changeSuccess = action.payload.changeSuccess
+        state.value.errorState = action.payload.errorState
+      })
+      .addMatcher(isAnyOf(deleteSnmpSet.rejected, deleteSnmpRow.rejected), (state, action) => {
+        state.loading = false
+        state.value.changeSuccess = false
+        state.value.errorState = action.error.message || 'Failed to delete SNMP configuration'
       })
   },
 })
