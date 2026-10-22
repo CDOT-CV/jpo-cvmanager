@@ -24,7 +24,7 @@ export const SnmpWalkRow = (props: SnmpwalkRowProps) => {
 export type SnmpwalkItemProps = {
   index: string
   content: any
-  handleDelete: (countsMsgType: string, ip: string) => void
+  handleDelete?: (countsMsgType: string, ip: string) => void
 }
 
 const SnmpwalkItem = (props: SnmpwalkItemProps) => {
@@ -51,13 +51,15 @@ const SnmpwalkItem = (props: SnmpwalkItemProps) => {
       <SnmpWalkRow title="Security:" value={props.content['Full WSMP']} />
       <SnmpWalkRow title="Active:" value={props.content['Config Active']} />
 
-      <Button
-        sx={{ marginLeft: 20, marginTop: -4 }}
-        onClick={() => props.handleDelete(props.content['Message Type'], props.content['IP'])}
-        startIcon={<DeleteIcon />}
-      >
-        Delete
-      </Button>
+      {props.handleDelete && (
+        <Button
+          sx={{ marginLeft: 20, marginTop: -4 }}
+          onClick={() => props.handleDelete(props.content['Message Type'], props.content['IP'])}
+          startIcon={<DeleteIcon />}
+        >
+          Delete
+        </Button>
+      )}
     </Box>
   )
 }

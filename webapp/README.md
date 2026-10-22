@@ -228,3 +228,9 @@ snapshots, and confirmed delete no-ops, retain the existing success messages.
 Partial failures identify affected RSUs. Lost replies, incomplete results and
 failed database synchronization show errors with guidance to check device state
 before retrying; requests are never automatically replayed.
+
+- New RSU protocol assignments are limited to NTCIP 1218. Existing retired
+  assignments remain visible and can be kept when editing other fields.
+- Forwarding changes require an operator or administrator in the owning
+  organization. Legacy RSUs show cached configurations without change or live
+  refresh controls. Bulk changes require every selected RSU to be supported.
