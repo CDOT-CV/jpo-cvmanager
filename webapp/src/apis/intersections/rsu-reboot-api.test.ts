@@ -1,6 +1,7 @@
 import RsuRebootApi from './rsu-reboot-api'
 import EnvironmentVars from '../../EnvironmentVars'
-import { combineUrlPaths } from './api-helper-cviz'
+import { authApiHelper, combineUrlPaths } from './api-helper-cviz'
+import toast from 'react-hot-toast'
 
 beforeEach(() => {
   fetchMock.mockClear()
@@ -26,4 +27,37 @@ it('preserves API rejection details', async () => {
 it('does not treat an unexpected successful response as acceptance', async () => {
   fetchMock.mockResponseOnce('{}')
   await expect(RsuRebootApi.reboot('fixture-token', 'Test Org', '192.0.2.10')).rejects.toThrow('not confirmed')
+})
+
+it.each([401, 403])('leaves HTTP %i reboot notifications to the menu', async (status) => {
+  const notification = jest.spyOn(toast, 'error')
+  try {
+    fetchMock.mockResponseOnce(JSON.stringify({ detail: 'Reboot access denied' }), { status })
+    await expect(RsuRebootApi.reboot('fixture-token', 'Test Org', '192.0.2.10')).rejects.toThrow('Reboot access denied')
+    expect(notification).not.toHaveBeenCalled()
+  } finally {
+    notification.mockRestore()
+  }
+})
+
+it('leaves reboot network failure notifications to the menu', async () => {
+  const notification = jest.spyOn(toast, 'error')
+  try {
+    fetchMock.mockRejectOnce(new Error('Network unavailable'))
+    await expect(RsuRebootApi.reboot('fixture-token', 'Test Org', '192.0.2.10')).rejects.toThrow('not confirmed')
+    expect(notification).not.toHaveBeenCalled()
+  } finally {
+    notification.mockRestore()
+  }
+})
+
+it.each([401, 403])('keeps default HTTP %i notifications for other API callers', async (status) => {
+  const notification = jest.spyOn(toast, 'error')
+  try {
+    fetchMock.mockResponseOnce('{}', { status })
+    await authApiHelper.invokeApi({ path: '/devices/rsus', tag: 'rsu' })
+    expect(notification).toHaveBeenCalledTimes(1)
+  } finally {
+    notification.mockRestore()
+  }
 })
