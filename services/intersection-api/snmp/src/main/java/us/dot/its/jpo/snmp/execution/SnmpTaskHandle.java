@@ -27,7 +27,7 @@ public final class SnmpTaskHandle {
 
     /**
      * Requests cancellation without discarding results or releasing a running endpoint early.
-     * @return true if a new cancellation request was accepted; false if already stopping or finished
+     * @return true if accepted; false if stopping, finished, or the final step has already completed
      */
     public boolean cancel() { return owner.cancel(control); }
 

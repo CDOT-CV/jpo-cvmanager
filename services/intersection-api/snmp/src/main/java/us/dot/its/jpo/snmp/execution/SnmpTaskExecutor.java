@@ -154,7 +154,6 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                 control.startStep(step);
                 executeStep(control, step, context, trace);
             }
-            control.remainingNanos();
             control.finish(SUCCEEDED, null);
         } catch (Exception failure) {
             var safe = safeFailure(failure, control);
@@ -326,6 +325,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         final List<MutableStep<?>> steps;
         SnmpTaskResult.Status status = QUEUED;
         SnmpException.Kind stop;
+        boolean stepsComplete;
         Instant startedAt;
         Instant finishedAt;
         long startedNanos;
@@ -372,7 +372,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
 
         synchronized boolean requestStop(SnmpException.Kind reason) {
-            if (status != QUEUED && status != RUNNING || stop != null) return false;
+            if (status != QUEUED && status != RUNNING || stop != null || stepsComplete) return false;
             stop = reason;
             if (worker != null) worker.interrupt();
             return true;
@@ -394,6 +394,9 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             step.value = value;
             step.status = SnmpStepResult.Status.SUCCEEDED;
             step.finishedAt = Instant.now();
+            // Seal successful completion under the same monitor used by stop requests.
+            // A stop already accepted while the callback ran still applies to that execution.
+            if (step == steps.getLast() && stop == null) stepsComplete = true;
         }
 
         synchronized void stepFailed(MutableStep<?> step, SnmpException exception) {
