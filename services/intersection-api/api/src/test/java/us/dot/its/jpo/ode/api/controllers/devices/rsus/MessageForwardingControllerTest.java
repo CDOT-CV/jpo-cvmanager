@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.services.RsuMessageForwardingService;
 import us.dot.its.jpo.ode.api.services.RsuMessageForwardingReadService;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult;
 import us.dot.its.jpo.snmp.execution.SnmpTaskResult;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingTable;
 import us.dot.its.jpo.snmp.execution.SnmpTaskSummary;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -68,6 +69,38 @@ class MessageForwardingControllerTest {
                 .content(BODY.replace(",\"include_security\":true", ""))).andExpect(status().isOk());
         verify(forwardingService).create(argThat(r -> r.getIncludeSecurity() && r.getDestinationIp().equals("198.51.100.3")));
         verify(forwardingService).delete(any());
+    }
+
+    @Test void selectedRowDeleteUsesActualTableAndRequiresOperatorOwnership() throws Exception {
+        var path = PATH + "/192.0.2.10/rows/RECEIVE/255";
+        var body = "{\"destination_ip\":\"198.51.100.3\",\"destination_port\":44920}";
+        when(forwardingService.deleteRow(anyString(), any(), anyInt(), any())).thenReturn(Map.of());
+        mvc.perform(delete(path).with(user("operator")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        verify(forwardingService).deleteRow(eq("192.0.2.10"),
+                eq(ForwardingTable.RECEIVE), eq(255),
+                argThat(r -> r.destinationPort() == 44920));
+        clearInvocations(forwardingService);
+        when(permissionService.findUnauthorizedRsus(anyList(), eq("OPERATOR"))).thenReturn(List.of("192.0.2.10"));
+        mvc.perform(delete(path).with(user("operator")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(false);
+        mvc.perform(delete(path).with(user("viewer")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(forwardingService);
+    }
+
+    @Test void selectedRowDeleteRejectsLegacyTablesAndInvalidTargetsBeforeSendingCommands() throws Exception {
+        var body = "{\"destination_ip\":\"198.51.100.3\",\"destination_port\":44920}";
+        for (var suffix : List.of("/192.0.2.10/rows/DSRC/1", "/192.0.2.10/rows/RECEIVE/0",
+                "/192.0.2.10/rows/TRANSMIT/256", "/192.0.2.10/rows/RECEIVE/abc", "/hostname/rows/RECEIVE/1")) {
+            mvc.perform(delete(PATH + suffix).with(user("operator")).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(delete(PATH + "/192.0.2.10/rows/RECEIVE/1").with(user("operator"))
+                .contentType(MediaType.APPLICATION_JSON).content(body.replace("44920", "80")))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(forwardingService);
     }
 
     @Test void anonymousCallerCannotSendCommands() throws Exception {

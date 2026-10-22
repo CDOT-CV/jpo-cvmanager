@@ -266,6 +266,15 @@ The message-forwarding create/delete endpoints use this library.
 - Existing RSU 4.1/DSRC configurations remain viewable through cached PostgreSQL reads.
   Cached visibility does not provide live RSU 4.1 support.
 
+Creation uses fixed message-to-table and UDP-port presets. These keep the CV Manager
+pipeline consistent; callers cannot choose an arbitrary table for a new configuration.
+
+Deleting an existing row can use `DELETE /devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}`
+with `destination_ip` and `destination_port`. This also supports unknown PSIDs and
+message types stored in a different table than CV Manager uses (for example, MAP in
+the receive table). The destination is checked before deletion; stale rows
+must be refreshed rather than blindly retried. RSU 4.1 remains cached-view only.
+
 All forwarding operations live in one controller:
 
 | Method | Path | Purpose | Minimum role |
@@ -273,7 +282,8 @@ All forwarding operations live in one controller:
 | GET | `/devices/rsus/message-forwarding/{rsuIp}` | Cached PostgreSQL view | USER |
 | GET | `/devices/rsus/message-forwarding/{rsuIp}/live` | Complete direct RSU read | USER |
 | POST | `/devices/rsus/message-forwarding` | Create forwarding rows | OPERATOR |
-| DELETE | `/devices/rsus/message-forwarding` | Delete forwarding rows | OPERATOR |
+| DELETE | `/devices/rsus/message-forwarding` | Delete forwarding rows using message presets | OPERATOR |
+| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR |
 
 Every route enforces RSU ownership using the existing selected-organization rules;
 super users retain their existing access. Cached reads require no SNMP credentials

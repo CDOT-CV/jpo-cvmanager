@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import us.dot.its.jpo.ode.api.models.devices.management.CreateMessageForwardingRequest;
+import us.dot.its.jpo.ode.api.models.devices.management.DeleteMessageForwardingRowRequest;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingTable;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingRequest;
 import us.dot.its.jpo.ode.api.models.devices.management.MessageForwardingResult;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -51,12 +53,41 @@ public class MessageForwardingController {
         return forwardingService.create(body);
     }
 
+    /**
+     * Used by bulk commands when callers know the message type and destination,
+     * but have not read the row indexes from each RSU. The API selects matching rows.
+     */
     @DeleteMapping(produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @Operation(summary = "Delete RSU message forwarding", description = "Deletes the highest matching message-type/destination row on each RSU. No matching row is a successful no-op.")
     public Map<String, MessageForwardingResult> delete(@Valid @RequestBody MessageForwardingRequest body) {
         authorize(body);
         return forwardingService.delete(body);
+    }
+
+    /**
+     * Used by the forwarding list to delete the displayed row by its table/index.
+     * Callers pass the returned identity rather than infer a table from the message type.
+     */
+    @DeleteMapping(path = "/{rsuIp}/rows/{table}/{index}", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @Operation(summary = "Delete a specific forwarding row", description = "Deletes the selected NTCIP 1218 table/index, including unknown PSIDs and message types stored in a different table than CV Manager uses. Checks the displayed destination and port before writing, then verifies absence and synchronizes the database. Creating configurations still uses the fixed message presets.")
+    public Map<String, MessageForwardingResult> deleteRow(@PathVariable String rsuIp,
+            @PathVariable String table, @PathVariable String index,
+            @Valid @RequestBody DeleteMessageForwardingRowRequest body) {
+        ForwardingTable selectedTable;
+        int selectedIndex;
+        try {
+            selectedTable = ForwardingTable.valueOf(table);
+            selectedIndex = Integer.parseInt(index);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expected a RECEIVE or TRANSMIT table and index 1-255");
+        }
+        RsuMessageForwardingService.validateRowRequest(rsuIp, selectedTable, selectedIndex, body);
+        if (!permissionService.findUnauthorizedRsus(List.of(rsuIp), "OPERATOR").isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Organization does not own the requested RSU");
+        }
+        return forwardingService.deleteRow(rsuIp, selectedTable, selectedIndex, body);
     }
 
     @GetMapping(path = "/{rsuIp}", produces = "application/json")
@@ -83,8 +114,7 @@ public class MessageForwardingController {
     }
 
     private void authorize(MessageForwardingRequest body) {
-        // Validate literals before the permission helper, which otherwise accepts DNS
-        // names.
+        // Validate IPv4 addresses before checking permissions.
         RsuMessageForwardingService.validateRequest(body);
         if (!permissionService.findUnauthorizedRsus(body.getRsuIps(), "OPERATOR").isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
