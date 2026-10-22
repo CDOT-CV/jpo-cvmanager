@@ -20,6 +20,7 @@ import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectio
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectionImpl;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthDto;
 import us.dot.its.jpo.ode.api.models.scms.ScmsHealthResponse;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 class ScmsHealthMapperTest {
 
@@ -29,7 +30,7 @@ class ScmsHealthMapperTest {
     @DisplayName("Maps projections to ScmsHealthResponse successfully")
     void testToResponse_Success() throws UnknownHostException {
         String ip = "10.0.0.1";
-        InetAddress inetAddress = InetAddress.getByName(ip);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, true, expiration);
@@ -53,7 +54,7 @@ class ScmsHealthMapperTest {
     @DisplayName("Maps projections with inactive health")
     void testToResponse_InactiveHealth_ReturnsDtoWithFalse() throws UnknownHostException {
         String ip = "10.0.0.1";
-        InetAddress inetAddress = InetAddress.getByName(ip);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, false, null);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
@@ -74,7 +75,7 @@ class ScmsHealthMapperTest {
     @DisplayName("Maps projections with no health")
     void testToResponse_NoHealth_ReturnsNullValue() throws UnknownHostException {
         String ip = "10.0.0.1";
-        InetAddress inetAddress = InetAddress.getByName(ip);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, null, null);
         List<ScmsHealthRsuProjection> projections = new ArrayList<>();
@@ -100,7 +101,7 @@ class ScmsHealthMapperTest {
     @DisplayName("Maps projections with null health")
     void testToDto_NullHealth() throws UnknownHostException {
         String ip = "10.0.0.1";
-        InetAddress inetAddress = InetAddress.getByName(ip);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, null, null);
 
@@ -124,7 +125,7 @@ class ScmsHealthMapperTest {
     @DisplayName("Maps projection to DTO successfully")
     void testToDto_Success() throws UnknownHostException {
         String ip = "10.0.0.1";
-        InetAddress inetAddress = InetAddress.getByName(ip);
+        InetAddress inetAddress = RsuManagementService.toIpv4Address(ip);
         Instant expiration = Instant.parse("2024-03-27T15:00:00Z");
 
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(inetAddress, true, expiration);
