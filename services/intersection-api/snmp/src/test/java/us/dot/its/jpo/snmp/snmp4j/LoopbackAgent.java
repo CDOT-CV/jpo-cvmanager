@@ -17,6 +17,7 @@ import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.snmp4j.util.DefaultPDUFactory;
 import us.dot.its.jpo.snmp.client.SnmpCredentials;
 import us.dot.its.jpo.snmp.client.SnmpTarget;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.ForwardingTable;
 
 /** Disposable real UDP/SNMPv3 agent. No registry singletons, Docker, or external devices. */
 final class LoopbackAgent implements AutoCloseable, CommandResponder {
@@ -117,6 +118,7 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
                     response.add(new VariableBinding(new OID(binding.getOid()), value == null ? Null.noSuchInstance : (Variable) value.clone()));
                 }
             }
+            if (write) applyRowStatus(request);
         }
         if (write ? dropWrites : dropReads) { active.decrementAndGet(); return; }
         alterResponse.accept(response);
@@ -132,6 +134,20 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
         if (hold) held.add(send);
         else if (delayMillis > 0) delayed.schedule(send, delayMillis, TimeUnit.MILLISECONDS);
         else send.run();
+    }
+
+    private void applyRowStatus(PDU request) {
+        for (ForwardingTable table : ForwardingTable.values()) {
+            for (VariableBinding binding : request.getVariableBindings()) {
+                String prefix = table.root().value() + ".1." + table.statusColumn() + ".";
+                if (!binding.getOid().toString().startsWith(prefix)) continue;
+                if (binding.getVariable().toInt() == 4) values.put(binding.getOid(), new Integer32(1));
+                if (binding.getVariable().toInt() == 6) {
+                    int index = binding.getOid().last();
+                    for (int column = 2; column <= table.lastColumn(); column++) values.remove(new OID(table.cell(column, index).value()));
+                }
+            }
+        }
     }
 
     void release() {

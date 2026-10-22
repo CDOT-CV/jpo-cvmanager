@@ -1,6 +1,9 @@
 package us.dot.its.jpo.snmp.snmp4j;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -15,6 +18,7 @@ import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Opaque;
 import us.dot.its.jpo.snmp.client.*;
+import us.dot.its.jpo.snmp.rsu.ntcip1218.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Timeout(30)
@@ -362,6 +366,20 @@ class Snmp4jClientTest {
             assertEquals(0, client.diagnostics().cachedSessions());
             assertEquals(SnmpException.Kind.CANCELLED, assertThrows(SnmpException.class,
                     () -> client.get(first.target(), List.of(FIRST))).kind());
+        }
+    }
+
+    @Test void realNtcipForwardingLifecyclePreservesGoldenProcedures() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var transport = client()) {
+            var ntcip = new Ntcip1218Client(transport, Clock.fixed(Instant.parse("2024-01-30T12:34:00Z"), ZoneOffset.UTC));
+            var device = new Ntcip1218Device(agent.target());
+            for (MessageType message : MessageType.values()) {
+                var row = ntcip.addForwarding(device, new ForwardingRequest(message, "198.51.100.20", true)).value();
+                assertEquals(message.psid(), row.psid()); assertTrue(row.includeSecurity());
+                assertTrue(ntcip.deleteForwarding(device, message, "198.51.100.20").changed());
+            }
+            assertTrue(ntcip.readForwarding(device).isEmpty());
+            assertEquals(12, agent.writes.get());
         }
     }
 
