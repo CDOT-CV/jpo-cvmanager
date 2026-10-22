@@ -91,7 +91,7 @@ public class RsuManagementService {
                 .toList());
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
-        allowed.setSnmpVersionGroups(snmpProtocolRepository.findAllNicknames());
+        allowed.setSnmpVersionGroups(snmpProtocolRepository.findSupportedNicknames());
 
         if (userToken.isSuperUser()) {
             allowed.setOrganizations(organizationRepository.findAll().stream().map(o -> o.getName()).toList());
@@ -172,6 +172,7 @@ public class RsuManagementService {
                     .findByNickname(rsuInfoDto.getSnmpVersionGroup())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "SNMP protocol not found: " + rsuInfoDto.getSnmpVersionGroup()));
+            validateProtocolAssignment(rsu, snmpProtocol);
             rsu.setSnmpProtocol(snmpProtocol);
         }
     }
@@ -250,6 +251,7 @@ public class RsuManagementService {
                     .findByNickname(patch.getSnmpVersionGroup())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "SNMP protocol not found: " + patch.getSnmpVersionGroup()));
+            validateProtocolAssignment(rsu, snmpProtocol);
             rsu.setSnmpProtocol(snmpProtocol);
         }
     }
@@ -319,6 +321,16 @@ public class RsuManagementService {
                         rsu.getIpv4Address(),
                         org.getName()).ifPresent(rsuOrganizationRepository::delete);
             }
+        }
+    }
+
+    /** Keeps existing legacy assignments readable without allowing new ones. */
+    private void validateProtocolAssignment(Rsu rsu, SnmpProtocol protocol) {
+        if (!"1218".equals(protocol.getProtocolCode())
+                && (rsu.getSnmpProtocol() == null
+                    || !protocol.getNickname().equals(rsu.getSnmpProtocol().getNickname()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "New SNMP protocol assignments require NTCIP 1218. Existing legacy assignments may be retained.");
         }
     }
 
