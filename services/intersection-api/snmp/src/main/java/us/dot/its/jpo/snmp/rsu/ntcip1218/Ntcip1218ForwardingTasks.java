@@ -81,6 +81,21 @@ public final class Ntcip1218ForwardingTasks {
     }
 
     /**
+     * Deletes a selected table/index regardless of message presets, then reads both tables and
+     * runs the snapshot callback. Destination and port guard against a stale displayed row.
+     * @throws IllegalArgumentException if the index, IPv4 destination or port is invalid
+     */
+    public SnmpTask deleteWithSnapshot(Ntcip1218Device device, ForwardingTable table, int index,
+            String destination, int port, SnapshotAction afterRead) {
+        Objects.requireNonNull(table).cell(table.statusColumn(), index);
+        SnmpTarget.validateIpv4(destination);
+        if (port < 1024 || port > 65535) throw new IllegalArgumentException("Invalid forwarding port");
+        return task("delete-message-forwarding-row", device, table.name() + "." + index,
+                client -> client.deleteForwarding(device, table, index, destination, port),
+                true, Objects.requireNonNull(afterRead));
+    }
+
+    /**
      * Reads procedure evidence from a result produced by this factory. A later snapshot or callback
      * failure does not erase this evidence.
      * @return true for a verified change, false for a confirmed no-op, or null if the procedure did not finish
@@ -92,6 +107,11 @@ public final class Ntcip1218ForwardingTasks {
     }
 
     private <T> SnmpTask task(String name, Ntcip1218Device device, MessageType message,
+            Function<Ntcip1218Client, SnmpWriteResult<T>> change, boolean snapshot, SnapshotAction afterRead) {
+        return task(name, device, message.name() + "." + message.table().name(), change, snapshot, afterRead);
+    }
+
+    private <T> SnmpTask task(String name, Ntcip1218Device device, String rowLabel,
             Function<Ntcip1218Client, SnmpWriteResult<T>> change, boolean snapshot, SnapshotAction afterRead) {
         Objects.requireNonNull(device);
         // Each execution uses its task-scoped client so helper calls share deadlines and tracking.
@@ -111,7 +131,7 @@ public final class Ntcip1218ForwardingTasks {
             }));
         }
 
-        return new SnmpTask(name + "." + message.name() + "." + message.table().name(), device.target(), steps);
+        return new SnmpTask(name + "." + rowLabel, device.target(), steps);
     }
 
     /**

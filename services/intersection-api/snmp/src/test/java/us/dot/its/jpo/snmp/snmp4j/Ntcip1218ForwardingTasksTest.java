@@ -7,6 +7,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.snmp4j.smi.OID;
+import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.Integer32;
+import us.dot.its.jpo.snmp.client.SnmpValue;
 import us.dot.its.jpo.snmp.client.SnmpCredentials;
 import us.dot.its.jpo.snmp.client.SnmpRequestPolicy;
 import us.dot.its.jpo.snmp.execution.*;
@@ -68,6 +72,54 @@ class Ntcip1218ForwardingTasksTest {
             assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, noOp.writeState());
             assertEquals(4, agent.writes.get());
             assertEquals(0, client.diagnostics().pendingRequests());
+        }
+    }
+
+    @Test void selectedRowDeletionUsesActualTableAndSupportsUnknownPsids() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
+            var device = new Ntcip1218Device(agent.target());
+            var helper = new Ntcip1218Client(client, Clock.systemUTC());
+            // A manual receive MAP at index 255 must not select the preset transmit MAP row.
+            var received = helper.createBindings(new ForwardingRequest(MessageType.BSM, request.destination(), false), 255);
+            for (var binding : received) agent.values.put(new OID(binding.oid().value()),
+                    binding.value() instanceof SnmpValue.Octets octets
+                            ? new OctetString(octets.bytes())
+                            : new Integer32(((SnmpValue.IntegerValue) binding.value()).value()));
+            agent.integer(ForwardingTable.RECEIVE.cell(10, 255).value(), 1);
+            agent.values.put(new OID(ForwardingTable.RECEIVE.cell(2, 255).value()),
+                    new OctetString(MessageType.MAP.psid().bytes()));
+            run(executor, tasks.create(device, request));
+            var snapshots = new ConcurrentLinkedQueue<List<ForwardingRow>>();
+            var deleted = run(executor, tasks.deleteWithSnapshot(device, ForwardingTable.RECEIVE, 255,
+                    request.destination(), 46800, new SnapshotAction("save", snapshots::add)));
+            assertEquals(true, Ntcip1218ForwardingTasks.changed(deleted));
+            assertEquals(ForwardingTable.TRANSMIT, snapshots.remove().getFirst().table());
+            agent.values.put(new OID(ForwardingTable.TRANSMIT.cell(2, 1).value()),
+                    new OctetString(new byte[] { 0x21 }));
+            var unknown = run(executor, tasks.deleteWithSnapshot(device, ForwardingTable.TRANSMIT, 1,
+                    request.destination(), 44920, new SnapshotAction("save", snapshots::add)));
+            assertEquals(true, Ntcip1218ForwardingTasks.changed(unknown));
+            assertTrue(snapshots.remove().isEmpty());
+            var absent = run(executor, tasks.deleteWithSnapshot(device, ForwardingTable.TRANSMIT, 1,
+                    request.destination(), 44920, new SnapshotAction("save", snapshots::add)));
+            assertEquals(false, Ntcip1218ForwardingTasks.changed(absent));
+        }
+    }
+
+    @Test void changedSelectedRowIsNotDeleted() throws Exception {
+        try (var agent = new LoopbackAgent(CREDS); var client = client(); var executor = executor(client)) {
+            var device = new Ntcip1218Device(agent.target());
+            run(executor, tasks.create(device, request));
+            for (var target : List.of("198.51.100.4", request.destination())) {
+                int port = target.equals(request.destination()) ? 44921 : 44920;
+                var result = run(executor, tasks.deleteWithSnapshot(device, ForwardingTable.TRANSMIT, 1,
+                        target, port, new SnapshotAction("save", rows -> fail("No snapshot after a mismatch"))));
+                assertEquals(SnmpTaskResult.Status.FAILED, result.status());
+                assertEquals(SnmpTaskResult.WriteState.NOT_SUBMITTED, result.writeState());
+            }
+            assertEquals(1, agent.writes.get());
+            assertThrows(IllegalArgumentException.class, () -> tasks.deleteWithSnapshot(device,
+                    ForwardingTable.RECEIVE, 256, request.destination(), 46800, new SnapshotAction("save", rows -> {})));
         }
     }
 

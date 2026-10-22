@@ -169,21 +169,52 @@ public final class Ntcip1218Client {
                 trace.event("no_matching_row");
                 return new SnmpWriteResult<>(false, null);
             }
-            int index = match.get().index();
-            trace.rowSelected(index);
-            trace.step("delete_row");
-            trace.writeStarting();
-            client.set(device.target(), List.of(new SnmpBinding(table.cell(table.statusColumn(), index), new SnmpValue.IntegerValue(6))));
-
-            try {
-                trace.step("verify_absence");
-                if (readRow(device, table, index).isPresent()) throw new SnmpException(VERIFICATION, true);
-
-            } catch (SnmpException failure) {
-                throw failure.withWriteOutcomeUnknown(true);
-            }
-            return new SnmpWriteResult<>(true, null);
+            return destroyRow(device, table, match.get().index(), trace);
         });
+    }
+
+    /**
+     * Deletes a specific existing row, including unknown PSIDs and non-preset table assignments.
+     * Destination and port must still match the displayed row; a mismatch fails before any SET.
+     * This check is not an atomic compare-and-set against independent external writers.
+     * @return verified deletion, or a successful no-op if the row is already absent
+     * @throws IllegalArgumentException if the index, IPv4 destination or port is invalid
+     * @throws SnmpException if the row changed, communication fails, or absence cannot be verified
+     */
+    public SnmpWriteResult<Void> deleteForwarding(Ntcip1218Device device, ForwardingTable table,
+            int index, String destination, int port) {
+        Objects.requireNonNull(table).cell(table.statusColumn(), index);
+        SnmpTarget.validateIpv4(destination);
+        if (port < 1024 || port > 65535) throw new IllegalArgumentException("Invalid forwarding port");
+        return exclusive(device, "FORWARDING_DELETE_ROW", true, trace -> {
+            trace.step("check_selected_row");
+            var row = readRow(device, table, index);
+            if (row.isEmpty()) {
+                trace.event("no_matching_row");
+                return new SnmpWriteResult<>(false, null);
+            }
+            if (!row.get().destination().equals(destination) || row.get().port() != port) {
+                throw new SnmpException(VERIFICATION, false);
+            }
+            return destroyRow(device, table, index, trace);
+        });
+    }
+
+    private SnmpWriteResult<Void> destroyRow(Ntcip1218Device device, ForwardingTable table,
+            int index, OperationLog trace) {
+        trace.rowSelected(index);
+        trace.step("delete_row");
+        trace.writeStarting();
+        client.set(device.target(), List.of(new SnmpBinding(table.cell(table.statusColumn(), index), new SnmpValue.IntegerValue(6))));
+
+        try {
+            trace.step("verify_absence");
+            if (readRow(device, table, index).isPresent()) throw new SnmpException(VERIFICATION, true);
+
+        } catch (SnmpException failure) {
+            throw failure.withWriteOutcomeUnknown(true);
+        }
+        return new SnmpWriteResult<>(true, null);
     }
 
     /**

@@ -12,17 +12,17 @@ Java SNMP library for Connected Vehicle devices.
 
 | Need                          | Use                             |
 | ----------------------------- | ------------------------------- |
-| Read known OIDs together      | `SnmpClient.get(target, oids)`  |
-| Read a table                  | `SnmpClient.walk(target, root)` |
-| Queue and track device work   | `SnmpTaskExecutor`              |
-| Add/delete message forwarding | `Ntcip1218ForwardingTasks`      |
+| Read known OIDs together      | [`SnmpClient.get(target, oids)`](src/main/java/us/dot/its/jpo/snmp/client/SnmpClient.java)  |
+| Read a table                  | [`SnmpClient.walk(target, root)`](src/main/java/us/dot/its/jpo/snmp/client/SnmpClient.java) |
+| Queue and track device work   | [`SnmpTaskExecutor`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTaskExecutor.java)              |
+| Add/delete message forwarding | [`Ntcip1218ForwardingTasks`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java)      |
 
-A **recipe** builds a `SnmpTask`: named steps for one device. The executor runs it.
+A **recipe** builds a [`SnmpTask`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTask.java): named steps for one device. The executor runs it.
 
 ## Targets and credentials
 
-- `Ntcip1218Device(address, credentials)` uses port 161; pass a port for a custom endpoint.
-- Generic calls use `SnmpTarget`. `device.target()` returns the underlying target.
+- [`Ntcip1218Device(address, credentials)`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218Device.java) uses port 161; pass a port for a custom endpoint.
+- Generic calls use [`SnmpTarget`](src/main/java/us/dot/its/jpo/snmp/client/SnmpTarget.java). `device.target()` returns the underlying target.
 - Construction does no I/O. `Ntcip1218Device.preflight` validates inventory profiles before a batch runs.
 - Each target supplies its credentials. No username is assumed.
 - SNMPv3 defaults to SHA/AES-128. SHA-256/SHA-512 and DES are also supported.
@@ -40,7 +40,7 @@ security state. Each peer keeps its own engine state. No global USM is replaced.
 ## Configure Message Forwarding
 
 Supports BSM, SPAT, MAP, SSM, SRM and TIM. The example below uses MAP;
-change `MessageType` to select another message type and its port/table.
+change [`MessageType`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/MessageType.java) to select another message type and its port/table.
 
 Load credentials and check permissions in your application first.
 
@@ -58,11 +58,13 @@ try (var client = new Snmp4jClient();
 }
 ```
 
-- Uses UDP and the standard MAP port. `true` includes IEEE 1609.2 security headers.
+- Uses UDP and the jpo-ode standard MAP port. `true` includes IEEE 1609.2 security headers.
 - Verifies only the changed row after the write. Schedules always use UTC.
 - Use `createWithSnapshot` or `deleteWithSnapshot` to also read both forwarding tables.
-  Pass a `SnapshotAction` when the application needs to save that snapshot.
+  Pass a [`SnapshotAction`](src/main/java/us/dot/its/jpo/snmp/rsu/ntcip1218/Ntcip1218ForwardingTasks.java) when the application needs to save that snapshot. This can be used for synchronizing the results with PostgreSQL.
 - Each create adds a row. Delete with `forwardingTasks.delete(device, MessageType.MAP, "198.51.100.3")`.
+- Use the table/index overload of `deleteWithSnapshot` to remove a manually configured row by its actual table/index,
+  checking the displayed destination and port.
 - Deleting a missing entry succeeds without a change.
 
 **Reuse** the client, executor and recipe factory. Close the executor
@@ -92,7 +94,7 @@ var values = result.value(measurements);
 
 - `result.summary()`: short message and each step's status.
 - `result.status()`, `result.writeState()` and typed `result.value(step)`: use these for application logic.
-- Verified device procedures return `SnmpWriteResult<T>`; a plain SET acknowledges receipt only.
+- Verified device procedures return [`SnmpWriteResult<T>`](src/main/java/us/dot/its/jpo/snmp/client/SnmpWriteResult.java); a plain SET acknowledges receipt only.
 - `Ntcip1218ForwardingTasks.changed(result)`: `true` for a verified change,
   `false` for a delete no-op, `null` if the procedure did not finish.
 - A later database failure does not erase a verified device change.
@@ -104,18 +106,18 @@ var values = result.value(measurements);
 
 ## Default limits
 
-| Setting | Default | Configured by |
-| --- | --- | --- |
-| Concurrent operations | 24 | `Snmp4jOptions` |
-| Cached credential profiles | 32 | `Snmp4jOptions` |
-| Peers per session | 1,024 | `Snmp4jOptions` |
-| Request timeout / read retries | 5 seconds / 1 | `SnmpRequestPolicy` or adapter defaults |
-| Whole-operation deadline | 60 seconds | `Snmp4jOptions` |
-| Adapter admission wait | 5 seconds | `Snmp4jOptions` |
-| Walk limits | 16,384 bindings / 4 MiB OID/value payload | `Snmp4jOptions` |
-| Running / queued tasks | 24 / 1,024 | `SnmpExecutorOptions` |
-| Queue / execution timeout | 5 minutes / 60 seconds | `SnmpTaskOptions` |
-| Recorded calls per task | 1,024 | Five-argument `SnmpTaskOptions` constructor |
+| Setting                        | Default                                   | Configured by                               |
+| ------------------------------ | ----------------------------------------- | ------------------------------------------- |
+| Concurrent operations          | 24                                        | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Cached credential profiles     | 32                                        | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Peers per session              | 1,024                                     | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Request timeout / read retries | 5 seconds / 1                             | [`SnmpRequestPolicy`](src/main/java/us/dot/its/jpo/snmp/client/SnmpRequestPolicy.java) or adapter defaults     |
+| Whole-operation deadline       | 60 seconds                                | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Adapter admission wait         | 5 seconds                                 | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Walk limits                    | 16,384 bindings / 4 MiB OID/value payload | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
+| Running / queued tasks         | 24 / 1,024                                | [`SnmpExecutorOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpExecutorOptions.java)                       |
+| Queue / execution timeout      | 5 minutes / 60 seconds                    | [`SnmpTaskOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTaskOptions.java)                           |
+| Recorded calls per task        | 1,024                                     | Five-argument [`SnmpTaskOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTaskOptions.java) constructor |
 
 Applications can override these defaults. Executor concurrency must fit
 `client.concurrencyLimit()`, the smaller of the adapter's operation and session
