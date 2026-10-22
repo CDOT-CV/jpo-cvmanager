@@ -132,6 +132,7 @@ it.each(['41', '1218'])('shows cached %s rows to a user without delete controls'
   await screen.findByText('198.51.100.3')
   expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   if (protocol === '41') {
+    expect(screen.getAllByText(/Message forwarding changes and live refresh require/)).toHaveLength(1)
     expect(screen.queryByRole('button', { name: 'Refresh Message Forwarding' })).not.toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   } else {
@@ -292,6 +293,6 @@ it('shows every mixed legacy and current cached row, keeping legacy rows read on
   )
   await screen.findByText('198.51.100.11')
   expect(screen.getByText('198.51.100.12')).toBeInTheDocument()
-  expect(screen.getByText('Legacy RSU 4.1 Forward Table (cached, read only)')).toBeInTheDocument()
+  expect(screen.getByText('RSU 4.1 Forward Table')).toBeInTheDocument()
   expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(1)
 })

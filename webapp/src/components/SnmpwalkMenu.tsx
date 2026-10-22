@@ -20,7 +20,7 @@ import {
   // Actions
   deleteSnmpRow,
 } from '../generalSlices/configSlice'
-import { Button, Tooltip } from '@mui/material'
+import { Button, Tooltip, Typography } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../store'
 import toast from 'react-hot-toast'
@@ -71,14 +71,14 @@ const SnmpwalkMenu = () => {
             })
           ).then((data) => {
             if (deleteSnmpRow.fulfilled.match(data) && data.payload.changeSuccess) {
-              toast.success('Successfully deleted SNMP forwarding')
+              toast.success('Successfully deleted message forwarding')
               const current = store.getState()
               if (selectRsuIpv4(current) === rsuIp && !forwardingUnavailableReason(current, [rsuIp], 'cached')) {
                 dispatch(getCachedSnmpFwdConfigsFromDatabase(rsuIp))
               }
             } else {
               const message = deleteSnmpRow.fulfilled.match(data) ? data.payload.errorState : data.error.message
-              toast.error('Failed to delete SNMP forwarding: ' + (message || 'Request did not complete'))
+              toast.error('Failed to delete message forwarding: ' + (message || 'Request did not complete'))
             }
           })
         },
@@ -89,8 +89,8 @@ const SnmpwalkMenu = () => {
       },
     ]
     const alertOptions = Options(
-      'Delete SNMP Configuration',
-      `Are you sure you want to delete SNMP forwarding for ${row['Message Type']} messages to the IP: ${row.IP} (${table} row ${row.index})? `,
+      'Delete Message Forwarding',
+      `Delete ${row['Message Type']} message forwarding to ${row.IP}?`,
       buttons
     )
 
@@ -101,7 +101,7 @@ const SnmpwalkMenu = () => {
 
   return (
     <div>
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+      <div style={{ textAlign: 'center' }}>
         {error && <p role="alert">{error}</p>}
         {isConfigEmpty && !error && !loading && (
           <h5 className="museo-slab">No message forwarding configurations were found.</h5>
@@ -110,12 +110,14 @@ const SnmpwalkMenu = () => {
       {[
         { title: 'TX Forward Table', rows: transmitRows, editable: !writeUnavailable },
         { title: 'RX Forward Table', rows: receiveRows, editable: !writeUnavailable },
-        { title: 'Legacy RSU 4.1 Forward Table (cached, read only)', rows: legacyRows, editable: false },
+        { title: 'RSU 4.1 Forward Table', rows: legacyRows, editable: false },
       ].map(
         ({ title, rows, editable }) =>
           Object.keys(rows).length > 0 && (
             <div key={title}>
-              <h2>{title}</h2>
+              <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 'bold', mt: 1, mb: 0.5 }}>
+                {title}
+              </Typography>
               {Object.entries(rows as RsuDsrcFwdConfigs).map(([index, content]) => (
                 <SnmpwalkItem
                   key={index}
@@ -131,7 +133,11 @@ const SnmpwalkMenu = () => {
             </div>
           )
       )}
-      {refreshUnavailable && <p>{refreshUnavailable}</p>}
+      {refreshUnavailable && (
+        <Typography sx={{ mt: 1.5, mb: 1, pl: 1, borderLeft: 3, borderColor: 'info.main' }}>
+          <strong style={{ fontWeight: 700 }}>{refreshUnavailable}</strong>
+        </Typography>
+      )}
       {!refreshUnavailable && (
         <div id="msgfwddiv">
           <Tooltip title="Refresh Message Forwarding">
@@ -157,7 +163,7 @@ const SnmpwalkMenu = () => {
               }}
               size="large"
               sx={{
-                marginTop: '20px',
+                marginTop: '8px',
               }}
               color="info"
               className="museo-slab capital-case"
@@ -167,8 +173,9 @@ const SnmpwalkMenu = () => {
           </Tooltip>
         </div>
       )}
-      <br />
-      <h3 className="museo-slab">Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}</h3>
+      <Typography variant="body2" sx={{ mt: 1 }}>
+        Source: {msgFwdConfigType === 'database' ? 'Cached (Database)' : 'Live (RSU)'}
+      </Typography>
     </div>
   )
 }

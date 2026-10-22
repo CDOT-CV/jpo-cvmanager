@@ -49,9 +49,9 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
   return (
     <div>
       <form id="snmpform">
-        <Grid2 container spacing={2}>
+        <Grid2 container spacing={1}>
           <Grid2 size={8}>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="dense">
               <TextField
                 label="Destination IPv4"
                 placeholder="Enter Destination IP"
@@ -72,7 +72,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
             </FormControl>
           </Grid2>
           <Grid2 size={4}>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="dense">
               <InputLabel htmlFor="msg-type-select">Message Type</InputLabel>
               <Select
                 label="Message Type"
