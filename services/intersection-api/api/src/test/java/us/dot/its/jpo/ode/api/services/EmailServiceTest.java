@@ -16,7 +16,6 @@ import us.dot.its.jpo.ode.api.models.emails.EmailSendResponse;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
-import us.dot.its.jpo.ode.api.models.emails.contents.IntersectionNotificationSummaryEmailContents;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Role;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
@@ -38,8 +37,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import us.dot.its.jpo.ode.api.repositories.EmailTypeRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
-
-import java.net.InetAddress;
 
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -242,7 +239,7 @@ class EmailServiceTest {
     @Test
     void testGetUsersForNotificationTypeByRsu() throws Throwable {
         when(userEmailNotificationRepository.findUsersByNotificationTypeAndRsu("Support Requests",
-                "IMMEDIATE", InetAddress.getByName("1.1.1.1")))
+                "IMMEDIATE", RsuManagementService.toIpv4Address("1.1.1.1")))
                 .thenReturn(List.of("user1@example.com", "user2@example.com"));
 
         List<EmailRecipient> recipients = emailService.getUsersForNotificationTypeByRsu(
@@ -307,6 +304,7 @@ class EmailServiceTest {
     @Test
     void testSendFirmwareUpgradeEmail() {
         FirmwareUpgradeFailureEmailContents data = new FirmwareUpgradeFailureEmailContents();
+        data.setRsuIp("192.168.1.100");
         EmailContent content = new EmailContent("subject", "body");
         List<EmailRecipient> recipients = List.of(new EmailRecipient("test@example.com", null));
         List<EmailSendResponse> responses = List.of(new EmailSendResponse(0, "OK"));
