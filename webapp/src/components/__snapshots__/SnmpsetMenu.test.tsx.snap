@@ -24,7 +24,7 @@ exports[`should take a snapshot 1`] = `
                 for="snmpinput"
                 id="snmpinput-label"
               >
-                Destination IP
+                Destination IPv4
               </label>
               <div
                 class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorInfo MuiInputBase-formControl css-mocked-MuiInputBase-root-MuiOutlinedInput-root"
@@ -44,7 +44,7 @@ exports[`should take a snapshot 1`] = `
                     class="css-mocked-MuiNotchedOutlined-root"
                   >
                     <span>
-                      Destination IP
+                      Destination IPv4
                     </span>
                   </legend>
                 </fieldset>

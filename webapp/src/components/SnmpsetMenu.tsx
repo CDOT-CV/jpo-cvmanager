@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   selectDestIp,
   selectSnmpMsgType,
+  selectIncludeSecurityHeader,
 
   // Actions
   submitSnmpSet,
@@ -43,6 +44,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
 
   const destIp = useSelector(selectDestIp)
   const snmpMsgType = useSelector(selectSnmpMsgType)
+  const includeSecurity = useSelector(selectIncludeSecurityHeader)
 
   return (
     <div>
@@ -51,7 +53,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
           <Grid2 size={8}>
             <FormControl fullWidth margin="normal">
               <TextField
-                label="Destination IP"
+                label="Destination IPv4"
                 placeholder="Enter Destination IP"
                 id="snmpinput"
                 color="info"
@@ -93,6 +95,7 @@ const SnmpsetMenu = (props: SnmpsetMenuProps) => {
         <FormControlLabel
           control={
             <Checkbox
+              checked={includeSecurity}
               onChange={(e) => {
                 dispatch(setIncludeSecurityHeader(e.target.checked))
               }}

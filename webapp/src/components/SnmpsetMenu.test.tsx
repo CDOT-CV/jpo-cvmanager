@@ -21,7 +21,6 @@ it('should take a snapshot', () => {
   expect(replaceChaoticIds(container)).toMatchSnapshot()
 })
 
-
 describe('forwarding actions', () => {
   afterEach(() => jest.restoreAllMocks())
 
@@ -42,37 +41,75 @@ describe('forwarding actions', () => {
   describe.each(['create', 'delete'] as const)('%s', (operation) => {
     it('preserves the controls and success notification, including a delete no-op', async () => {
       const api = jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
-        status: 200, message: '', body: Object.fromEntries(['192.0.2.10', '192.0.2.11'].map((ip) => [ip, {
-          execution: { taskId: 'task', target: `udp:${ip}:161`, status: 'SUCCEEDED', message: 'Completed.', step: null, elapsedMs: 1, steps: [] },
-          writeState: operation === 'create' ? 'VERIFIED' : 'NOT_SUBMITTED',
-          changed: operation === 'create', databaseSync: 'UPDATED',
-        }])),
+        status: 200,
+        message: '',
+        body: Object.fromEntries(
+          ['192.0.2.10', '192.0.2.11'].map((ip) => [
+            ip,
+            {
+              execution: {
+                taskId: 'task',
+                target: `udp:${ip}:161`,
+                status: 'SUCCEEDED',
+                message: 'Completed.',
+                step: null,
+                elapsedMs: 1,
+                steps: [],
+              },
+              writeState: operation === 'create' ? 'VERIFIED' : 'NOT_SUBMITTED',
+              changed: operation === 'create',
+              databaseSync: 'UPDATED',
+            },
+          ])
+        ),
       })
       const success = jest.spyOn(toast, 'success').mockReturnValue('fixture-toast')
       renderMenu()
-      expect(screen.getByLabelText('Destination IP')).toHaveValue('198.51.100.3')
+      expect(screen.getByLabelText('Destination IPv4')).toHaveValue('198.51.100.3')
       fireEvent.click(screen.getByLabelText('Security Header'))
-      fireEvent.click(screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' }))
-      await waitFor(() => expect(success).toHaveBeenCalledWith(
-        operation === 'create' ? 'Forwarding Changes Applied Successfully' : 'Successfully deleted SNMP forwarding'
-      ))
+      fireEvent.click(
+        screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' })
+      )
+      await waitFor(() =>
+        expect(success).toHaveBeenCalledWith(
+          operation === 'create' ? 'Forwarding Changes Applied Successfully' : 'Successfully deleted SNMP forwarding'
+        )
+      )
       expect(api.mock.calls[0][2]).toEqual({
-        rsu_ips: ['192.0.2.10', '192.0.2.11'], message_type: 'MAP', destination_ip: '198.51.100.3',
+        rsu_ips: ['192.0.2.10', '192.0.2.11'],
+        message_type: 'MAP',
+        destination_ip: '198.51.100.3',
         ...(operation === 'create' ? { include_security: true } : {}),
       })
     })
 
     it('shows the failed RSU instead of a success notification for a mixed result', async () => {
-      jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({ status: 200, message: '', body: {
-        '192.0.2.10': {
-          execution: { taskId: 'task', target: 'udp:192.0.2.10:161', status: 'SUCCEEDED', message: 'Change verified.', step: null, elapsedMs: 1, steps: [] },
-          writeState: 'VERIFIED', changed: true, databaseSync: 'UPDATED',
+      jest.spyOn(RsuMessageForwardingApi, operation).mockResolvedValue({
+        status: 200,
+        message: '',
+        body: {
+          '192.0.2.10': {
+            execution: {
+              taskId: 'task',
+              target: 'udp:192.0.2.10:161',
+              status: 'SUCCEEDED',
+              message: 'Change verified.',
+              step: null,
+              elapsedMs: 1,
+              steps: [],
+            },
+            writeState: 'VERIFIED',
+            changed: true,
+            databaseSync: 'UPDATED',
+          },
         },
-      } })
+      })
       const success = jest.spyOn(toast, 'success').mockReturnValue('fixture-toast')
       const error = jest.spyOn(toast, 'error').mockReturnValue('fixture-toast')
       renderMenu()
-      fireEvent.click(screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: operation === 'create' ? 'Add Forwarding' : 'Delete Forwarding' })
+      )
       await waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining('192.0.2.11')))
       expect(success).not.toHaveBeenCalled()
       expect(error).toHaveBeenCalledWith(expect.stringContaining('check RSU state before retrying'))
@@ -84,6 +121,8 @@ describe('forwarding actions', () => {
     const store = renderMenu()
     store.dispatch(setMsgType('Other'))
     fireEvent.click(screen.getByRole('button', { name: 'Add Forwarding' }))
-    await waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported forwarding message type')))
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('Unsupported forwarding message type'))
+    )
   })
 })
