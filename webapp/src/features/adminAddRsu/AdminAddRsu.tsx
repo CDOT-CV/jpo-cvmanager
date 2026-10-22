@@ -16,6 +16,7 @@ import {
   MenuItem,
   Select,
   TextField,
+  Typography,
   CircularProgress,
   Box,
 } from '@mui/material'
@@ -495,11 +496,12 @@ const AdminAddRsu = () => {
             <Grid2 size={6}>
               <Form.Group controlId="snmp_version_group">
                 <FormControl fullWidth margin="normal">
-                  <InputLabel htmlFor="snmp_version_group" required>
+                  <InputLabel id="snmp-protocol-label" htmlFor="snmp_version_group" required>
                     SNMP Protocol
                   </InputLabel>
                   <Select
                     id="snmp_version_group"
+                    labelId="snmp-protocol-label"
                     label="SNMP Protocol"
                     value={selectedSnmpVersion}
                     required
@@ -512,6 +514,7 @@ const AdminAddRsu = () => {
                       </MenuItem>
                     ))}
                   </Select>
+                  <Typography variant="caption">New RSUs require NTCIP 1218.</Typography>
                   {selectedSnmpVersion === 'Select SNMP Protocol (Required)' && submitAttempt && (
                     <ErrorMessageText role="alert">Must select a SNMP protocol</ErrorMessageText>
                   )}
