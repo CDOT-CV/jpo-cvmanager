@@ -310,7 +310,7 @@ public final class Snmp4jClient implements SnmpClient {
                 trace.failedLocally();
                 throw failure;
             } finally {
-                if (session != null) release(session);
+                if (session != null) release(session, target);
                 if (admitted) permits.release();
             }
         }
@@ -322,13 +322,6 @@ public final class Snmp4jClient implements SnmpClient {
         String key = credentialKey(target.credentials());
         ManagedSession session = sessions.get(key);
 
-        if (session != null && !session.targets.contains(target.agent()) && session.targets.size() >= options.maxTargetsPerSession()) {
-            // Rotate only an idle profile. No in-flight request may lose its security state.
-            if (session.leases != 0) throw new SnmpException(BUSY, false);
-            sessions.remove(key);
-            closeSession(session);
-            session = null;
-        }
         if (session == null) {
             if (sessions.size() >= options.maxSessions()) {
                 var idle = sessions.entrySet().stream().filter(entry -> entry.getValue().leases == 0).findFirst();
@@ -344,12 +337,15 @@ public final class Snmp4jClient implements SnmpClient {
             sessions.put(key, session);
         }
 
-        session.targets.add(target.agent());
+        session.retainPeer(new UdpAddress(target.address() + "/" + target.port()));
         session.leases++;
         return session;
     }
 
-    private synchronized void release(ManagedSession session) { session.leases--; }
+    private synchronized void release(ManagedSession session, SnmpTarget target) {
+        session.releasePeer(new UdpAddress(target.address() + "/" + target.port()));
+        session.leases--;
+    }
 
     /** Identical full profiles may share a session; matching usernames alone are insufficient. */
     private static String credentialKey(SnmpCredentials credentials) {

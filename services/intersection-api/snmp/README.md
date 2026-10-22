@@ -42,7 +42,7 @@ try (var client = new Snmp4jClient();
 - SNMPv3 defaults to SHA/AES-128; SHA-256/SHA-512 and DES are also supported.
 - An empty privacy password falls back to the authentication password.
 - Sessions use the full credential profile. Different passwords never share security state.
-- Idle sessions can be evicted; active sessions keep their state. Full caches may return `BUSY`.
+- Idle profiles and peers can be evicted; active requests keep their state. Full caches return `BUSY` only when no idle entry can make room.
 
 ## Default limits
 

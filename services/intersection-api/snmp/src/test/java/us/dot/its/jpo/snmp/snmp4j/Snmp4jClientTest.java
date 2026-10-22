@@ -339,6 +339,58 @@ class Snmp4jClientTest {
         }
     }
 
+    @Test void idlePeerEvictionPreservesTheSessionAndActiveRequests() throws Exception {
+        try (var first = new LoopbackAgent(CREDS); var second = new LoopbackAgent(CREDS, 0, 1, "800000000506070809");
+                var third = new LoopbackAgent(CREDS, 0, 1, "800000000607080901");
+                var client = new Snmp4jClient(new Snmp4jOptions(Duration.ofSeconds(2), 0, Duration.ofSeconds(5),
+                        Duration.ofSeconds(1), 3, 1, 2, 100, 4096)); var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (var agent : List.of(first, second, third)) agent.integer(FIRST.value(), 1);
+            client.get(first.target(), List.of(FIRST));
+            client.get(second.target(), List.of(FIRST));
+            int sessionPort = first.lastRequestPort;
+            first.hold = true;
+            var active = workers.submit(() -> client.get(first.target(), List.of(FIRST)));
+            try {
+                await(() -> first.active.get() == 1);
+                // The profile is busy, but its idle second peer can make room for the third.
+                assertEquals(new SnmpValue.IntegerValue(1), client.get(third.target(), List.of(FIRST)).getFirst().value());
+                assertEquals(sessionPort, third.lastRequestPort, "Peer eviction must reuse the profile's socket");
+                assertFalse(active.isDone());
+            } finally {
+                first.release();
+            }
+            active.get(3, TimeUnit.SECONDS);
+            // Repeated address churn must not reset the profile or break rediscovery of evicted peers.
+            for (var agent : List.of(second, third, first, second)) {
+                assertEquals(new SnmpValue.IntegerValue(1), client.get(agent.target(), List.of(FIRST)).getFirst().value());
+                assertEquals(sessionPort, agent.lastRequestPort);
+            }
+            assertEquals(0, client.diagnostics().pendingRequests());
+        }
+    }
+
+    @Test void peerCapacityRejectsOnlyWhenAllCachedPeersAreActive() throws Exception {
+        try (var first = new LoopbackAgent(CREDS); var second = new LoopbackAgent(CREDS);
+                var client = new Snmp4jClient(new Snmp4jOptions(Duration.ofSeconds(2), 0, Duration.ofSeconds(5),
+                        Duration.ofSeconds(1), 2, 1, 1, 100, 4096)); var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            first.integer(FIRST.value(), 1);
+            second.integer(FIRST.value(), 2);
+            client.get(first.target(), List.of(FIRST));
+            first.hold = true;
+            var active = workers.submit(() -> client.get(first.target(), List.of(FIRST)));
+            try {
+                await(() -> first.active.get() == 1);
+                assertEquals(SnmpException.Kind.BUSY, assertThrows(SnmpException.class,
+                        () -> client.get(second.target(), List.of(FIRST))).kind());
+                assertEquals(0, second.reads.get());
+            } finally {
+                first.release();
+            }
+            active.get(3, TimeUnit.SECONDS);
+            assertEquals(new SnmpValue.IntegerValue(2), client.get(second.target(), List.of(FIRST)).getFirst().value());
+        }
+    }
+
     @Test void loopbackAgentsRequireExclusivePorts() throws Exception {
         try (var first = new LoopbackAgent(CREDS)) {
             assertThrows(java.net.BindException.class, () -> {
@@ -349,7 +401,7 @@ class Snmp4jClientTest {
         }
     }
 
-    @Test void sessionCapacityAndTargetRotationAreBounded() throws Exception {
+    @Test void credentialProfilesAndPeerCachesRemainBounded() throws Exception {
         var other = new SnmpCredentials("fixture-user", "other-auth-pass", "other-privacy-pass");
         try (var first = new LoopbackAgent(CREDS); var second = new LoopbackAgent(other);
                 var third = new LoopbackAgent(CREDS); var client = new Snmp4jClient(options(2, 1, 1))) {

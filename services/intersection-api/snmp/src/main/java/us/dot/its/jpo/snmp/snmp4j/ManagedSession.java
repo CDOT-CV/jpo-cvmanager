@@ -1,7 +1,7 @@
 package us.dot.its.jpo.snmp.snmp4j;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,15 +22,18 @@ final class ManagedSession implements AutoCloseable {
     private final Snmp snmp;
     private final MPv3 mpv3;
     private final OctetString username;
+    private final USM usm;
+    private final int maxTargets;
     private final Set<Pending> pending = ConcurrentHashMap.newKeySet();
-    private final ConcurrentHashMap<UdpAddress, PeerRecovery> recovery = new ConcurrentHashMap<>();
+    // The session monitor protects peer leases and LRU order; pending responses do not need it.
+    private final LinkedHashMap<UdpAddress, PeerRecovery> peers = new LinkedHashMap<>(16, 0.75f, true);
     // Accessed only under the client pool monitor.
-    final Set<String> targets = new HashSet<>();
     int leases;
     private volatile boolean closed;
 
     ManagedSession(SnmpCredentials credentials, int maxTargets) throws IOException {
         username = new OctetString(credentials.username());
+        this.maxTargets = maxTargets;
         if (username.length() > 32) throw new IllegalArgumentException("SNMPv3 username exceeds 32 bytes");
 
         // Keep security registries private to this credential profile. Replacing SNMP4J's global
@@ -43,7 +46,7 @@ final class ManagedSession implements AutoCloseable {
         protocols.addPrivacyProtocol(new PrivDES());
         var engine = new OctetString(MPv3.createLocalEngineID());
         var counters = new CounterSupport();
-        var usm = new USM(protocols, engine, 0, counters);
+        usm = new USM(protocols, engine, 0, counters);
         usm.addUser(new UsmUser(username, authentication(credentials.authentication()),
                 new OctetString(credentials.authenticationPassword()), privacy(credentials.privacy()),
                 new OctetString(credentials.privacyPassword())));
@@ -105,16 +108,42 @@ final class ManagedSession implements AutoCloseable {
 
     int pendingCount() { return pending.size(); }
 
+    /** Evicts only idle peers, preserving discovery and security state for active requests. */
+    synchronized void retainPeer(UdpAddress address) {
+        var peer = peers.get(address);
+        if (peer == null) {
+            if (peers.size() >= maxTargets) {
+                var idle = peers.entrySet().stream().filter(entry -> entry.getValue().leases == 0).findFirst();
+                if (idle.isEmpty()) throw new SnmpException(SnmpException.Kind.BUSY, false);
+                var evicted = idle.get().getKey();
+                peers.remove(evicted);
+                var engine = mpv3.removeEngineID(evicted);
+                snmp.removeCachedContextEngineId(evicted);
+                // Devices may share an engine ID. Keep its keys/time while another cached peer uses it.
+                if (engine != null && peers.keySet().stream().noneMatch(key -> engine.equals(mpv3.getEngineID(key)))) {
+                    usm.removeAllUsers(username, engine);
+                    usm.removeEngineTime(engine);
+                }
+            }
+            peer = new PeerRecovery();
+            peers.put(address, peer);
+        }
+        peer.leases++;
+    }
+
+    synchronized void releasePeer(UdpAddress address) { peers.get(address).leases--; }
+
     boolean knowsPeer(UdpAddress address) { return mpv3.getEngineID(address) != null; }
 
     /** Serializes engine-cache refreshes for one endpoint, without blocking other devices. */
     static final class PeerRecovery {
+        int leases;
         final java.util.concurrent.locks.ReentrantLock lock = new java.util.concurrent.locks.ReentrantLock();
         volatile long generation;
         final java.util.concurrent.atomic.AtomicLong staleGeneration = new java.util.concurrent.atomic.AtomicLong(-1);
     }
 
-    PeerRecovery recovery(UdpAddress address) { return recovery.computeIfAbsent(address, ignored -> new PeerRecovery()); }
+    synchronized PeerRecovery recovery(UdpAddress address) { return peers.get(address); }
 
     void forgetPeer(UdpAddress address) {
         // Invalidate only this endpoint's discovery caches, never a shared USM or another peer's state.
