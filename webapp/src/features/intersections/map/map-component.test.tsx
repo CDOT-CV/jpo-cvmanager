@@ -1,10 +1,10 @@
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
 import { ThemeProvider } from '@mui/material'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
-import { testTheme } from '../../../styles'
+import { vi } from 'vitest'
 import { setupStore } from '../../../store'
+import { testTheme } from '../../../styles'
 import IntersectionMap, { getTimestamp } from './map-component'
 
 global.ResizeObserver = class {
