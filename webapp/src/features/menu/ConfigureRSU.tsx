@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Box, CircularProgress, useTheme, Paper, Grid2, IconButton, Divider } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Typography from '@mui/material/Typography'
-import { selectSelectedRsu, selectRsu } from '../../generalSlices/rsuSlice'
+import { selectSelectedRsu, selectRsu, forwardingUnavailableReason } from '../../generalSlices/rsuSlice'
 import { clearConfig, selectConfigList } from '../../generalSlices/configSlice'
 import { selectCountsEndDate, selectCountsStartDate } from './menuSlice'
 import '../../components/css/SnmpwalkMenu.css'
@@ -42,6 +42,9 @@ const ConfigureRSU = () => {
   const countsStartDate = useSelector(selectCountsStartDate)
   const countsEndDate = useSelector(selectCountsEndDate)
   const rsuIp = selectedRsu?.properties?.ipv4_address
+  const forwardingReason = useSelector((state: RootState) =>
+    forwardingUnavailableReason(state, rsuIp ? [rsuIp] : selectedConfigList, 'write')
+  )
   const messageTypes = useMemo(() => EnvironmentVars.getMessageTypes(), [])
   const maxDurationMs = EnvironmentVars.MAX_QUERY_DURATION_DAYS * 24 * 60 * 60 * 1000
   const queryDurationExceeded = countsEndDate.getTime() - countsStartDate.getTime() > maxDurationMs
@@ -62,7 +65,13 @@ const ConfigureRSU = () => {
   )
 
   return (
-    <Paper sx={{ lineHeight: 1.1, backgroundColor: theme.palette.background.paper }}>
+    <Paper
+      sx={{
+        lineHeight: 1.1,
+        backgroundColor: theme.palette.background.paper,
+        '& .MuiAccordionDetails-root': { px: 2, pt: 0, pb: 1 },
+      }}
+    >
       {selectedRsu && (
         <div>
           <IconButton
@@ -112,6 +121,8 @@ const ConfigureRSU = () => {
             height: 'fit-content',
             scrollbarColor: `${theme.palette.text.primary} ${theme.palette.background.paper}`,
             color: theme.palette.text.secondary,
+            // Explicit dividers keep section boundaries consistent.
+            '& > .MuiAccordion-root::before': { display: 'none' },
           }}
         >
           <Accordion
@@ -122,7 +133,7 @@ const ConfigureRSU = () => {
             <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1bh-content" id="panel1bh-header">
               <Typography>Message Counts</Typography>
             </AccordionSummary>
-            <AccordionDetails sx={{ px: 2, pt: 0.5, pb: 2 }}>
+            <AccordionDetails>
               {queryDurationExceeded ? (
                 <Typography role="alert">
                   Query duration exceeds the maximum of {EnvironmentVars.MAX_QUERY_DURATION_DAYS} days. Please select a
@@ -139,13 +150,14 @@ const ConfigureRSU = () => {
               )}
             </AccordionDetails>
           </Accordion>
+          <Divider />
           <Accordion
             expanded={expanded === 'selected-rsu-current-config'}
             onChange={handleChange('selected-rsu-current-config')}
             elevation={0}
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel1bh-content" id="panel1bh-header">
-              <Typography>Current Configuration</Typography>
+              <Typography>View Forwarding</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <ConfigMenu>
@@ -153,21 +165,23 @@ const ConfigureRSU = () => {
               </ConfigMenu>
             </AccordionDetails>
           </Accordion>
-          <Divider />
-          <Accordion
-            elevation={0}
-            expanded={expanded === 'selected-rsu-add-msg-forwarding'}
-            onChange={handleChange('selected-rsu-add-msg-forwarding')}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
-              <Typography>Message Forwarding</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <ConfigMenu>
-                <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
-              </ConfigMenu>
-            </AccordionDetails>
-          </Accordion>
+          {!forwardingReason && <Divider sx={{ borderColor: 'divider' }} />}
+          {!forwardingReason && (
+            <Accordion
+              elevation={0}
+              expanded={expanded === 'selected-rsu-add-msg-forwarding'}
+              onChange={handleChange('selected-rsu-add-msg-forwarding')}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
+                <Typography>Configure Forwarding</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <ConfigMenu>
+                  <SnmpsetMenu type="single_rsu" rsuIpList={[selectedRsu.properties.ipv4_address]} />
+                </ConfigMenu>
+              </AccordionDetails>
+            </Accordion>
+          )}
           <Divider />
           <Accordion
             elevation={0}
@@ -209,22 +223,27 @@ const ConfigureRSU = () => {
               overflowY: 'auto',
               height: 'fit-content',
               color: theme.palette.text.secondary,
+              '& > .MuiAccordion-root::before': { display: 'none' },
             }}
           >
-            <Accordion
-              elevation={0}
-              expanded={expanded === 'multiple-rsu-add-msg-forwarding'}
-              onChange={handleChange('multiple-rsu-add-msg-forwarding')}
-            >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
-                <Typography>Message Forwarding</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ConfigMenu>
-                  <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList} />
-                </ConfigMenu>
-              </AccordionDetails>
-            </Accordion>
+            {forwardingReason ? (
+              <Typography sx={{ p: 2 }}>{forwardingReason}</Typography>
+            ) : (
+              <Accordion
+                elevation={0}
+                expanded={expanded === 'multiple-rsu-add-msg-forwarding'}
+                onChange={handleChange('multiple-rsu-add-msg-forwarding')}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
+                  <Typography>Configure Forwarding</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <ConfigMenu>
+                    <SnmpsetMenu type="multi_rsu" rsuIpList={selectedConfigList} />
+                  </ConfigMenu>
+                </AccordionDetails>
+              </Accordion>
+            )}
             <Divider />
             <Accordion
               elevation={0}
@@ -236,10 +255,7 @@ const ConfigureRSU = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <ConfigMenu>
-                  <RsuFirmwareMenu
-                    type="multi_rsu"
-                    rsuIpList={selectedConfigList}
-                  />
+                  <RsuFirmwareMenu type="multi_rsu" rsuIpList={selectedConfigList} />
                 </ConfigMenu>
               </AccordionDetails>
             </Accordion>

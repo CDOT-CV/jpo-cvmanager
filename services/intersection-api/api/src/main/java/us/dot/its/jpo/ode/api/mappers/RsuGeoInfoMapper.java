@@ -31,6 +31,8 @@ public interface RsuGeoInfoMapper {
     @Mapping(source = "id", target = "rsuId")
     @Mapping(source = "rsuOption.timDeposit", target = "timDeposit", defaultValue = "false")
     @Mapping(source = "rsuOption.snmpMonitoring", target = "snmpMonitoring", defaultValue = "false")
+    @Mapping(source = "snmpProtocol.protocolCode", target = "snmpProtocolCode")
+    @Mapping(source = "credential.ownerOrganization.id", target = "ownerOrganizationId")
     @Mapping(source = "model.name", target = "modelName")
     @Mapping(source = "model.manufacturer.name", target = "manufacturerName")
     RsuGeoInfoPropertiesDto toPropertiesDto(Rsu rsu);

@@ -136,7 +136,7 @@ def get(rsu_ip, snmp_creds):
 
         # Example console output of a single configuration for rsuReceivedMsgTable
         # NTCIP1218-v01::rsuReceivedMsgPsid.1 = STRING: 20000000    # BSM
-        # NTCIP1218-v01::rsuReceivedMsgDestIpAddr.1 = STRING: 10.235.1.135
+        # NTCIP1218-v01::rsuReceivedMsgDestIpAddr.1 = STRING: 198.51.100.135
         # NTCIP1218-v01::rsuReceivedMsgDestPort.1 = INTEGER: 46800
         # NTCIP1218-v01::rsuReceivedMsgProtocol.1 = INTEGER: udp(2)
         # NTCIP1218-v01::rsuReceivedMsgRssi.1 = INTEGER: -100 dBm
@@ -191,7 +191,7 @@ def get(rsu_ip, snmp_creds):
 
         # Example console output of a single configuration for rsuXmitMsgFwdingTable
         # NTCIP1218-v01::rsuXmitMsgFwdingPsid.1 = STRING: e0000017    #MAP
-        # NTCIP1218-v01::rsuXmitMsgFwdingDestIpAddr.1 = STRING: 10.235.1.135
+        # NTCIP1218-v01::rsuXmitMsgFwdingDestIpAddr.1 = STRING: 198.51.100.135
         # NTCIP1218-v01::rsuXmitMsgFwdingDestPort.1 = INTEGER: 44920
         # NTCIP1218-v01::rsuXmitMsgFwdingProtocol.1 = INTEGER: udp(2)
         # NTCIP1218-v01::rsuXmitMsgFwdingDeliveryStart.1 = STRING: 2024-2-1,3:36:0.0

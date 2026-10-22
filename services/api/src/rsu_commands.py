@@ -13,17 +13,10 @@ from common.auth_tools import (
     require_permission,
 )
 import ssh_commands
-import rsu_snmpset
 import api_environment
 
 # Dict of functions
 command_data = {
-    "rsufwdsnmpset": {
-        "roles": ["operator", "admin"],
-    },
-    "rsufwdsnmpset-del": {
-        "roles": ["operator", "admin"],
-    },
     "reboot": {
         "function": ssh_commands.reboot,
         "roles": ["operator", "admin"],
@@ -177,13 +170,6 @@ def perform_command(command, organization, role, rsu_list, args, super_user: boo
                 + ", ".join(unauthorized),
                 403,
             )
-
-    # Handle functions supporting multiple RSUs
-    if command == "rsufwdsnmpset" or command == "rsufwdsnmpset-del":
-        return (
-            rsu_snmpset.execute_rsufwdsnmpset(command, organization, rsu_list, args),
-            200,
-        )
 
     if command == "upgrade-rsu":
         return execute_upgrade_rsu(organization, rsu_list), 200

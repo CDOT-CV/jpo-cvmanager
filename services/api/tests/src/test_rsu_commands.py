@@ -349,3 +349,16 @@ def test_perform_command_upgrade_rsu_requires_owner_org(mock_execute_upgrade_rsu
 
 
 # TODO: test RsuCommandRequest class
+
+
+@pytest.mark.parametrize("command", ["rsufwdsnmpset", "rsufwdsnmpset-del"])
+@patch("api.src.rsu_commands.get_rsu_owner_orgs")
+@patch("api.src.rsu_commands.execute_command")
+def test_migrated_forwarding_commands_are_rejected(
+    mock_execute_command, mock_get_rsu_owner_orgs, command
+):
+    result = rsu_commands.perform_command(command, organization, "admin", rsu_ip, {})
+
+    assert result == (f"Command unknown: {command}", 400)
+    mock_get_rsu_owner_orgs.assert_not_called()
+    mock_execute_command.assert_not_called()
