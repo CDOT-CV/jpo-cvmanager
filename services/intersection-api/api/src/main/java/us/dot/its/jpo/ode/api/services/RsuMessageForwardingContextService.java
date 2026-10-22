@@ -1,7 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +31,7 @@ public class RsuMessageForwardingContextService {
     public List<DeviceContext> load(List<String> ips) {
         return ips.stream().map(ip -> {
             try {
-                var rsu = rsuRepository.findByIpv4Address(InetAddress.getByName(ip));
+                var rsu = rsuRepository.findByIpv4Address(RsuManagementService.toIpv4Address(ip));
                 if (rsu == null)
                     throw new ResponseStatusException(HttpStatus.NOT_FOUND, "RSU not found: " + ip);
                 if (rsu.getSnmpProtocol() == null || !"1218".equals(rsu.getSnmpProtocol().getProtocolCode())) {
@@ -46,7 +44,7 @@ public class RsuMessageForwardingContextService {
                 var device = new Ntcip1218Device(ip, new SnmpCredentials(credential.getUsername(),
                         credential.getPassword(), credential.getEncryptPassword()));
                 return new DeviceContext(rsu.getId(), device);
-            } catch (UnknownHostException | IllegalArgumentException | NullPointerException e) {
+            } catch (IllegalArgumentException | NullPointerException e) {
                 // Never attach credential validation exceptions to an HTTP response.
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Invalid SNMP configuration for RSU " + ip + ". No forwarding commands sent.");

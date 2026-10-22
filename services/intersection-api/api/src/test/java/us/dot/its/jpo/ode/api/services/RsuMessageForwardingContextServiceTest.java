@@ -3,6 +3,8 @@ package us.dot.its.jpo.ode.api.services;
 import java.net.InetAddress;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
@@ -38,6 +40,14 @@ class RsuMessageForwardingContextServiceTest {
         var failure = assertThrows(ResponseStatusException.class,
                 () -> service.load(List.of("192.0.2.10", "192.0.2.11")));
         assertEquals(400, failure.getStatusCode().value());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"localhost", "2001:db8::1", "192.0.2", "192.000.2.10", "192.0.2.10 ", "999.0.2.10"})
+    void invalidAddressesFailBeforeInventoryLookup(String address) {
+        var failure = assertThrows(ResponseStatusException.class, () -> service.load(List.of(address)));
+        assertEquals(400, failure.getStatusCode().value());
+        verifyNoInteractions(repository);
     }
 
     @Test void missingDeviceAndInvalidCredentialsFailBeforeDispatch() throws Exception {
