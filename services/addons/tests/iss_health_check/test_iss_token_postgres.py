@@ -40,7 +40,7 @@ def database(monkeypatch):
             )
             migration = (
                 Path(__file__).resolve().parents[4]
-                / "resources/db/migration/V6__iss_keys_encrypted_token.sql"
+                / "resources/db/migration/V10__iss_keys_encrypted_token.sql"
             )
             for statement in migration.read_text().split(";"):
                 if statement.strip():
