@@ -1,40 +1,36 @@
 import { configureStore } from '@reduxjs/toolkit'
-import rsuReducer from './generalSlices/rsuSlice'
-import userReducer from './generalSlices/userSlice'
-import wzdxReducer from './generalSlices/wzdxSlice'
-import configReducer from './generalSlices/configSlice'
-import intersectionReducer from './generalSlices/intersectionSlice'
-import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminAddIntersectionReducer from './features/adminAddIntersection/adminAddIntersectionSlice'
-import adminEditOrganizationReducer from './features/adminEditOrganization/adminEditOrganizationSlice'
+import adminAddOrganizationReducer from './features/adminAddOrganization/adminAddOrganizationSlice'
 import adminEditIntersectionReducer from './features/adminEditIntersection/adminEditIntersectionSlice'
-import adminOrganizationTabReducer from './features/adminOrganizationTab/adminOrganizationTabSlice'
-import adminOrganizationTabUserReducer from './features/adminOrganizationTabUser/adminOrganizationTabUserSlice'
-import adminOrganizationTabRsuReducer from './features/adminOrganizationTabRsu/adminOrganizationTabRsuSlice'
 import adminIntersectionTabReducer from './features/adminIntersectionTab/adminIntersectionTabSlice'
-import menuReducer from './features/menu/menuSlice'
-import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
-import intersectionMapReducer from './features/intersections/map/map-slice'
-import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
-import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import { ADMIN_INTERSECTION_AVAILABLE_LIST_ID, ADMIN_INTERSECTION_LIST_ID, ADMIN_INTERSECTION_TAG, adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { emailApiSlice } from './features/api/emailApiSlice'
+import { firmwareApiSlice } from './features/api/firmwareApiSlice'
+import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
+import { intersectionMapApiMiddleware } from './features/api/intersection-map-api-middleware'
 import { intersectionConfigSlice } from './features/api/intersectionConfigSlice'
 import { intersectionMapApiSlice } from './features/api/intersectionMapApiSlice'
-import { intersectionMapApiMiddleware } from './features/api/intersection-map-api-middleware'
-import { emailApiSlice } from './features/api/emailApiSlice'
 import { organizationApiSlice } from './features/api/organizationApiSlice'
+import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from './features/api/rsuApiSlice'
 import { rsuCountsApiSlice } from './features/api/rsuCountsApiSlice'
-import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
-import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
-import { rsuApiSlice } from './features/api/rsuApiSlice'
 import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
-import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
-import { userApiSlice } from './features/api/userApiSlice'
-import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
-import { firmwareApiSlice } from './features/api/firmwareApiSlice'
-import mapSliceReducer from './pages/mapSlice'
-import timeSyncReducer from './generalSlices/timeSyncSlice'
+import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
+import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
+import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from './features/api/userApiSlice'
+import dataSelectorReducer from './features/intersections/data-selector/dataSelectorSlice'
+import asn1DecoderSlice from './features/intersections/decoder/asn1-decoder-slice'
+import intersectionMapLayerStyleReducer from './features/intersections/map/map-layer-style-slice'
+import intersectionMapReducer from './features/intersections/map/map-slice'
+import menuReducer from './features/menu/menuSlice'
+import configReducer from './generalSlices/configSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
+import intersectionReducer from './generalSlices/intersectionSlice'
+import rsuReducer from './generalSlices/rsuSlice'
+import timeSyncReducer from './generalSlices/timeSyncSlice'
+import userReducer from './generalSlices/userSlice'
+import wzdxReducer from './generalSlices/wzdxSlice'
+import mapSliceReducer from './pages/mapSlice'
 
 export const setupStore = (preloadedState?: Partial<any>) => {
   return configureStore({
@@ -46,11 +42,7 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       intersection: intersectionReducer,
       adminAddOrganization: adminAddOrganizationReducer,
       adminAddIntersection: adminAddIntersectionReducer,
-      adminEditOrganization: adminEditOrganizationReducer,
       adminEditIntersection: adminEditIntersectionReducer,
-      adminOrganizationTab: adminOrganizationTabReducer,
-      adminOrganizationTabUser: adminOrganizationTabUserReducer,
-      adminOrganizationTabRsu: adminOrganizationTabRsuReducer,
       adminIntersectionTab: adminIntersectionTabReducer,
       menu: menuReducer,
       intersectionMap: intersectionMapReducer,
@@ -96,7 +88,91 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
         .concat(adminIntersectionApiSlice.middleware)
-        .concat(firmwareApiSlice.middleware),
+        .concat(firmwareApiSlice.middleware)
+        .concat((api) => (next) => (action) => {
+          const result = next(action)
+          // After any patchOrganization succeeds, invalidate adminIntersectionApiSlice
+          // caches so the available-intersections dropdown and org intersection lists refresh.
+          if (organizationApiSlice.endpoints.patchOrganization.matchFulfilled(action)) {
+            if (
+              ((action.meta.arg.originalArgs.intersections_to_add?.length ?? 0 > 0) ||
+                action.meta.arg.originalArgs.intersections_to_remove?.length) ??
+              0 > 0
+            ) {
+              console.log(
+                'Invalidating Intersection Tag',
+                ...(action.meta.arg.originalArgs.intersections_to_add?.map((i) => ({
+                  type: ADMIN_INTERSECTION_TAG,
+                  id: i,
+                })) ?? [])
+              )
+              api.dispatch(
+                adminIntersectionApiSlice.util.invalidateTags([
+                  // List of intersections not in org
+                  { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID },
+                  { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID },
+                  // Intersection info (includes organizations list)
+                  ...(action.meta.arg.originalArgs.intersections_to_add?.map((i) => ({
+                    type: ADMIN_INTERSECTION_TAG,
+                    id: i,
+                  })) ?? []),
+                  // Intersection info (includes organizations list)
+                  ...(action.meta.arg.originalArgs.intersections_to_remove?.map((i) => ({
+                    type: ADMIN_INTERSECTION_TAG,
+                    id: i,
+                  })) ?? []),
+                ])
+              )
+            }
+            if (
+              ((((action.meta.arg.originalArgs.users_to_add?.length ?? 0 > 0) ||
+                action.meta.arg.originalArgs.users_to_modify?.length) ??
+                0 > 0) ||
+                action.meta.arg.originalArgs.users_to_remove?.length) ??
+              0 > 0
+            ) {
+              api.dispatch(
+                userApiSlice.util.invalidateTags([
+                  { type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID },
+                  // User info (includes organizations and roles list)
+                  ...(action.meta.arg.originalArgs.users_to_add?.map((u) => ({
+                    type: USER_API_USER_TAG,
+                    id: u.email,
+                  })) ?? []),
+                  // User info (includes organizations and roles list)
+                  ...(action.meta.arg.originalArgs.users_to_modify?.map((u) => ({
+                    type: USER_API_USER_TAG,
+                    id: u.email,
+                  })) ?? []),
+                  // User info (includes organizations and roles list)
+                  ...(action.meta.arg.originalArgs.users_to_remove?.map((u) => ({
+                    type: USER_API_USER_TAG,
+                    id: u,
+                  })) ?? []),
+                ])
+              )
+            }
+            if (
+              ((action.meta.arg.originalArgs.rsus_to_add?.length ?? 0 > 0) ||
+                action.meta.arg.originalArgs.rsus_to_remove?.length) ??
+              0 > 0
+            ) {
+              api.dispatch(
+                rsuApiSlice.util.invalidateTags([
+                  { type: RSU_API_RSU_TAG, id: RSU_API_RSU_LIST_ID },
+                  // Rsu info (includes organizations list)
+                  ...(action.meta.arg.originalArgs.rsus_to_add?.map((r) => ({ type: RSU_API_RSU_TAG, id: r })) ?? []),
+                  // Rsu info (includes organizations list)
+                  ...(action.meta.arg.originalArgs.rsus_to_remove?.map((r) => ({
+                    type: RSU_API_RSU_TAG,
+                    id: r,
+                  })) ?? []),
+                ])
+              )
+            }
+          }
+          return result
+        }),
     devTools: true,
   })
 }

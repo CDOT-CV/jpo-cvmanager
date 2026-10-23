@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -196,11 +196,11 @@ class OrganizationControllerTest {
         }
 
         @Test
-        @WithMockUser
         @DisplayName("returns 400 when id is absent from request body")
         void missingId_returns400() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(true);
-            String bodyMissingOrigName = """
+            when(permissionService.isSuperUser()).thenReturn(false);
+            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
+            String bodyMissingId = """
                     {
                       "name": "TestOrg",
                       "users_to_add": [],
@@ -215,7 +215,7 @@ class OrganizationControllerTest {
 
             mockMvc.perform(patch("/organizations")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(bodyMissingOrigName))
+                    .content(bodyMissingId))
                     .andExpect(status().isBadRequest());
         }
 

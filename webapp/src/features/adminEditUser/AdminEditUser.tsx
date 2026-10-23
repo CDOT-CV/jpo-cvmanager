@@ -19,8 +19,10 @@ import {
   Typography,
   IconButton,
   Box,
+  Card,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import AddIcon from '@mui/icons-material/Add'
 import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
 import { ErrorMessageText } from '../../styles/components/Messages'
@@ -128,29 +130,38 @@ const AdminEditUser = () => {
     }
   }
 
-  const handleAddOrganization = (organizationName: string) => {
-    // Check if organization already exists
-    const existingIndex = fields.findIndex((field) => field.organization === organizationName)
-
-    if (existingIndex === -1) {
-      // Add new organization with default role
-      const defaultRole: UserRole = userAllowedSelections?.roles?.[0] || 'USER'
-      append({ organization: organizationName, role: defaultRole })
-    }
+  const handleAddOrganization = () => {
+    append({ organization: '', role: 'USER' })
   }
 
   const handleRemoveOrganization = (index: number) => {
+    if (fields.length === 1) {
+      toast.error('At least one organization is required')
+      return
+    }
     remove(index)
   }
 
-  const handleRoleChange = (index: number, newRole: UserRole) => {
-    const organization = fields[index]
-    update(index, { ...organization, role: newRole })
+  const handleOrganizationChange = (index: number, fieldKey: keyof UserOrganization, value: string) => {
+    const current = fields[index]
+    if (fieldKey === 'organization') {
+      const isDuplicate = fields.some((f, i) => i !== index && f.organization === value)
+      if (isDuplicate) {
+        toast.error('This organization has already been added')
+        return
+      }
+      update(index, { ...current, organization: value })
+    } else {
+      update(index, { ...current, role: value as UserRole })
+    }
   }
 
-  // Get available organizations that aren't already selected
-  const availableOrganizations =
-    userAllowedSelections?.organizations?.filter((org) => !fields.some((field) => field.organization === org)) || []
+  const getAvailableOrganizations = (currentIndex: number) => {
+    const selectedOrgNames = fields
+      .map((field, index) => (index !== currentIndex ? field.organization : null))
+      .filter((org) => org !== null && org !== '')
+    return userAllowedSelections?.organizations?.filter((org) => !selectedOrgNames.includes(org)) || []
+  }
 
   const isLoading = isLoadingUser || isLoadingAllowedSelections
   const hasOrganizations = fields.length > 0
@@ -240,79 +251,93 @@ const AdminEditUser = () => {
                 </Form.Group>
               )}
 
-              <Form.Group controlId="add_organization">
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Add Organization</InputLabel>
-                  <Select
-                    id="add_organization"
-                    label="Add Organization"
-                    value=""
-                    onChange={(event) => {
-                      handleAddOrganization(event.target.value as string)
-                    }}
-                    disabled={availableOrganizations.length === 0}
+              <Box sx={{ mt: 3, mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Organizations & Roles
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddOrganization}
+                    className="museo-slab capital-case"
+                    disabled={
+                      !!userAllowedSelections?.organizations &&
+                      fields.length >= userAllowedSelections.organizations.length
+                    }
                   >
-                    {availableOrganizations.map((org) => (
-                      <MenuItem key={org} value={org}>
-                        {org}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Form.Group>
+                    Add Organization
+                  </Button>
+                </Box>
 
-              {hasOrganizations && (
-                <Form.Group controlId="organizations_roles">
-                  <Form.Label className="trebuchet">Organizations & Roles</Form.Label>
-                  <Box sx={{ mt: 2 }}>
-                    {fields.map((field, index) => (
-                      <Box
-                        key={field.id}
+                {fields.map((field, index) => (
+                  <Card key={field.id} sx={{ mb: 2, p: 2, position: 'relative' }}>
+                    <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }} sx={{ pr: 5 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Organization</InputLabel>
+                        <Select
+                          value={field.organization}
+                          label="Organization"
+                          onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}
+                          required
+                        >
+                          {getAvailableOrganizations(index).map((org) => (
+                            <MenuItem key={org} value={org}>
+                              {org}
+                            </MenuItem>
+                          ))}
+                          {field.organization && !getAvailableOrganizations(index).includes(field.organization) && (
+                            <MenuItem key={field.organization} value={field.organization}>
+                              {field.organization}
+                            </MenuItem>
+                          )}
+                        </Select>
+                      </FormControl>
+
+                      <FormControl fullWidth>
+                        <InputLabel>Role</InputLabel>
+                        <Select
+                          value={field.role}
+                          label="Role"
+                          onChange={(e) => handleOrganizationChange(index, 'role', e.target.value)}
+                          required
+                          disabled={!field.organization}
+                        >
+                          {userAllowedSelections.roles?.map((role) => (
+                            <MenuItem key={role} value={role}>
+                              {role}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+
+                    {fields.length > 1 && (
+                      <IconButton
+                        aria-label="delete"
+                        size="small"
+                        onClick={() => handleRemoveOrganization(index)}
                         sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          mb: 2,
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: 'error.lighter',
+                          },
                         }}
                       >
-                        <TextField
-                          label="Organization"
-                          value={field.organization}
-                          disabled
-                          fullWidth
-                          variant="outlined"
-                          size="small"
-                        />
-                        <FormControl fullWidth size="small">
-                          <InputLabel>Role</InputLabel>
-                          <Select<UserRole>
-                            value={field.role}
-                            label="Role"
-                            onChange={(event) => handleRoleChange(index, event.target.value as UserRole)}
-                          >
-                            {userAllowedSelections.roles?.map((role) => (
-                              <MenuItem key={role} value={role}>
-                                {role}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <IconButton
-                          color="error"
-                          onClick={() => handleRemoveOrganization(index)}
-                          aria-label="Remove organization"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    ))}
-                  </Box>
-                </Form.Group>
-              )}
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Card>
+                ))}
 
-              {!hasOrganizations && (
-                <ErrorMessageText role="alert">Must select at least one organization</ErrorMessageText>
-              )}
+                {!hasOrganizations && (
+                  <ErrorMessageText role="alert">Must select at least one organization</ErrorMessageText>
+                )}
+              </Box>
             </Form>
           </DialogContent>
           <DialogActions sx={{ padding: '20px' }}>

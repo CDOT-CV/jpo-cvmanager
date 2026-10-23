@@ -3,7 +3,6 @@ import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
 import { RootState } from '../../store'
-import { getOrgData } from '../adminOrganizationTab/adminOrganizationTabSlice'
 import { AdminAddOrgForm } from './AdminAddOrganization'
 
 export const addOrg = createAsyncThunk(
@@ -25,7 +24,7 @@ export const addOrg = createAsyncThunk(
     })
     switch (data.status) {
       case 200:
-        dispatch(getOrgData({ orgName: 'all', all: true, specifiedOrg: json.name }))
+        // TODO: Refresh org data
         return { success: true, message: 'Organization Creation is successful.' }
       default:
         return { success: false, message: data.message }

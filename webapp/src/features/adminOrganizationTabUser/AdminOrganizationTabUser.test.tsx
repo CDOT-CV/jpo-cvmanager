@@ -10,12 +10,7 @@ it('should take a snapshot', () => {
   const { container } = render(
     <ThemeProvider theme={testTheme}>
       <Provider store={setupStore({})}>
-        <AdminOrganizationTabUser
-          selectedOrg={''}
-          selectedOrgEmail={''}
-          tableData={[]}
-          updateTableData={(_: string) => {}}
-        />
+        <AdminOrganizationTabUser selectedOrgId={1} selectedOrgName={''} />
       </Provider>
     </ThemeProvider>
   )

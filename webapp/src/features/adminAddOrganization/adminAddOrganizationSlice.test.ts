@@ -52,7 +52,7 @@ describe('async thunks', () => {
         token: 'token',
         body: JSON.stringify(json),
       })
-      expect(dispatch).toHaveBeenCalledTimes(1 + 2)
+      expect(dispatch).toHaveBeenCalledTimes(0 + 2)
 
       // Error Code Other
       dispatch = jest.fn()
