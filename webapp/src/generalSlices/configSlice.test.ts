@@ -444,6 +444,34 @@ describe('async thunks', () => {
         expect((await run(operation, [])).payload).toEqual({ changeSuccess: false, errorState: 'No RSUs selected' })
         expect(api).not.toHaveBeenCalled()
       })
+
+      it('waits for each batch to finish and continues without replaying a failed batch', async () => {
+        let finishFirst: (value: Awaited<ReturnType<typeof RsuMessageForwardingApi.create>>) => void
+        const api = jest.spyOn(RsuMessageForwardingApi, operation)
+          .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve }))
+          .mockImplementation(async (_token, _org, body) => ({
+            status: 200,
+            message: '',
+            body: Object.fromEntries(body.rsu_ips.map((ip) => [ip, result()])),
+          }))
+        const selected = Array.from({ length: 101 }, (_, index) => `192.0.2.${index + 1}`)
+        const pending = run(operation, selected)
+        expect(api).toHaveBeenCalledTimes(1)
+        expect(api.mock.calls[0][2].rsu_ips).toEqual(selected.slice(0, 100))
+
+        // Even while the first response is pending, no later batch may be dispatched.
+        await Promise.resolve()
+        expect(api).toHaveBeenCalledTimes(1)
+        finishFirst(null)
+        const outcome = await pending
+        expect(api).toHaveBeenCalledTimes(2)
+        expect(api.mock.calls[1][2].rsu_ips).toEqual(selected.slice(100))
+        expect(outcome.payload).toEqual({
+          changeSuccess: false,
+          errorState: expect.stringContaining('1 of 101 RSUs completed successfully'),
+        })
+        expect(api.mock.calls.flatMap((call) => call[2].rsu_ips)).toEqual(selected)
+      })
     })
 
     it('treats a confirmed delete no-op as success', async () => {

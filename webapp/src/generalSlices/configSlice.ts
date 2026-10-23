@@ -49,7 +49,7 @@ export const getCachedSnmpFwdConfigsFromDatabase = createAsyncThunk<
 
   try {
     const response = await RsuMessageForwardingApi.cached(token, organization, rsu_ip)
-    if (!response || response.status !== 200) {
+    if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to retrieve cached RSU message forwarding configuration')
     }
     return { msgFwdConfig: response.body.RsuFwdSnmpwalk, errorState: '' }
@@ -71,7 +71,7 @@ export const getRsuMsgConfigsFromRsu = createAsyncThunk<
 
   try {
     const response = await RsuMessageForwardingApi.live(token, organization, rsu_ip)
-    if (!response || response.status !== 200) {
+    if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to fetch RSU message forwarding configuration')
     }
     return {
@@ -103,12 +103,13 @@ async function executeForwardingRequests(
     const batch = selected.slice(offset, offset + 100)
     let response: ApiMsgRespWithCodes<MessageForwardingResponse> | null
     try {
+      // Keep one batch in flight so large selections do not flood the API's bounded SNMP queue.
       response = await send(batch)
     } catch {
       response = null
     }
     for (const ip of batch) {
-      if (!response || response.status !== 200) {
+      if (response?.status !== 200) {
         failures.push(`${ip}: ${response?.message || 'Request did not complete; check RSU state before retrying.'}`)
         continue
       }
