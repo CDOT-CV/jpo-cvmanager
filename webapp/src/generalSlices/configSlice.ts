@@ -301,7 +301,7 @@ export const geoRsuQuery = createAsyncThunk(
       geometry: configCoordinates,
       vendor,
     })
-    if (!response || response.status !== 200) {
+    if (response?.status !== 200) {
       return rejectWithValue(response?.message || 'Failed to query RSUs by geometry')
     }
     return response

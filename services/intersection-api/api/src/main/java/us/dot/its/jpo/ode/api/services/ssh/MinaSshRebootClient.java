@@ -49,13 +49,7 @@ public final class MinaSshRebootClient implements SshRebootClient {
         boolean dispatched = false;
 
         try {
-            var connection = client.connect(username, address.getHostAddress(), properties.getPort());
-            try {
-                session = connection.verify(remaining(deadline)).getSession();
-            } catch (IOException e) {
-                connection.cancel();
-                throw e;
-            }
+            session = connect(address, username, deadline);
 
             // Wait for key exchange before authenticating with the database password.
             if (!session.waitFor(EnumSet.of(ClientSessionEvent.WAIT_AUTH), remaining(deadline))
@@ -99,6 +93,16 @@ public final class MinaSshRebootClient implements SshRebootClient {
         } finally {
             if (channel != null) channel.close(true);
             if (session != null) session.close(true);
+        }
+    }
+
+    private ClientSession connect(InetAddress address, String username, long deadline) throws IOException {
+        var connection = client.connect(username, address.getHostAddress(), properties.getPort());
+        try {
+            return connection.verify(remaining(deadline)).getSession();
+        } catch (IOException e) {
+            connection.cancel();
+            throw e;
         }
     }
 

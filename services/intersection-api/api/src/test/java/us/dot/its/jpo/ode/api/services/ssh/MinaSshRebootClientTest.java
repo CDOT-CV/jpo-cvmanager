@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.apache.sshd.core.CoreModuleProperties;
@@ -165,8 +166,12 @@ class MinaSshRebootClientTest {
         private Thread worker;
 
         @Override public void setInputStream(InputStream stream) { input = stream; }
-        @Override public void setOutputStream(OutputStream stream) { }
-        @Override public void setErrorStream(OutputStream stream) { }
+        @Override public void setOutputStream(OutputStream stream) {
+            // This test command emits no standard output.
+        }
+        @Override public void setErrorStream(OutputStream stream) {
+            // Failures are represented by the exit callback, not stderr.
+        }
         @Override public void setExitCallback(ExitCallback callback) { exit = callback; }
 
         @Override
@@ -175,7 +180,8 @@ class MinaSshRebootClientTest {
                 try {
                     receivedPassword = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8)).readLine();
                     if (hang) {
-                        Thread.sleep(10_000);
+                        // Remain unresponsive until channel destruction interrupts the worker.
+                        new CountDownLatch(1).await();
                     } else if (disconnect) {
                         channel.getSession().close(true);
                     } else {
