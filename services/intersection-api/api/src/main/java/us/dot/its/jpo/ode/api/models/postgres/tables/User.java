@@ -51,7 +51,7 @@ public class User {
     @ColumnTransformer(read = "super_user::integer::boolean", write = "(?::integer)::bit(1)")
     private Boolean superUser;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
     private List<UserOrganization> userOrganizations;
 
 }

@@ -62,7 +62,7 @@ public class RsuInfoDto implements Serializable {
     @NotNull
     @Size(min = 1)
     @JsonProperty("organizations")
-    List<String> organizations;
+    List<Integer> organizations;
 
     @NotNull
     @JsonProperty("tim_deposit")
