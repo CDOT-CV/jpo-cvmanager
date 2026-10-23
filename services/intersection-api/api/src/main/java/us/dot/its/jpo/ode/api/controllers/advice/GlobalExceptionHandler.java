@@ -25,6 +25,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -332,6 +333,19 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleServletRequestBinding(ServletRequestBindingException ex) {
         log.warn("Request binding error: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        return ErrorResponse.builder(ex, problemDetail).build();
+    }
+
+    /**
+     * Handles request parameters and path variables that cannot be converted to
+     * their declared type, such as a malformed timestamp or number.
+     */
+    @ExceptionHandler()
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.warn("Invalid value for parameter '{}': {}", ex.getName(), ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Invalid value for parameter '" + ex.getName() + "'");
         return ErrorResponse.builder(ex, problemDetail).build();
     }
 
