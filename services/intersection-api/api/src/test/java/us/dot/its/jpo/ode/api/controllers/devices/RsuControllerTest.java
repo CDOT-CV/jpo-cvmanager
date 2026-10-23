@@ -1,5 +1,24 @@
 package us.dot.its.jpo.ode.api.controllers.devices;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,25 +38,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.server.ResponseStatusException;
 
+import us.dot.its.jpo.ode.api.models.SimplePosition;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
-import us.dot.its.jpo.ode.api.models.SimplePosition;
-import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
-
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RsuControllerTest {
@@ -616,7 +627,7 @@ class RsuControllerTest {
                 Rsu mockRsu = new Rsu();
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-                when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
                 when(rsuManagementService.createRsu(rsuInfoDto, List.of(sampleOrganization))).thenReturn(mockRsu);
 
                 ResponseEntity<Void> result = rsuController.createRsu(rsuInfoDto);
@@ -648,7 +659,7 @@ class RsuControllerTest {
                         true);
 
                 when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-                when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
+                when(authToken.getQualifiedOrgList(UserRole.ADMIN)).thenReturn(List.of(sampleOrganization));
 
                 when(rsuManagementService.createRsu(rsuInfoDto, List.of(sampleOrganization)))
                         .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT,
