@@ -932,7 +932,7 @@ class AdminIntersectionControllerTest {
             when(permissionService.isSuperUser()).thenReturn(false);
             when(permissionService.hasRole(UserRole.OPERATOR)).thenReturn(true);
             when(permissionService.getCvManagerAuthToken()).thenReturn(authToken);
-            when(permissionService.hasRoleInOrgIds(UserRole.ADMIN, List.of(sampleOrganization.getId())))
+            when(permissionService.hasRoleInOrgIds("ADMIN", List.of(sampleOrganization.getId())))
                     .thenReturn(true);
             when(permissionService.hasRsus(anyList(), eq("OPERATOR"))).thenReturn(true);
             when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(sampleOrganization));
