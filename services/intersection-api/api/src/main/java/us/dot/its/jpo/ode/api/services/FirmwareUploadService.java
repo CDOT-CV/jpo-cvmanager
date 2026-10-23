@@ -1,9 +1,8 @@
 package us.dot.its.jpo.ode.api.services;
 
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.isConstraintViolation;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesChecksum;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesSize;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.normalizeCreatedBy;
+import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.readMatchingObject;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validatePathSegment;
 import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validateSignedLocation;
 
@@ -33,6 +32,7 @@ import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageProperties;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageService;
 import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
+import us.dot.its.jpo.ode.api.storage.ObuFirmwareStorageLayout;
 
 /**
  * Coordinates the firmware upload lifecycle across PostgreSQL and the selected
@@ -41,8 +41,6 @@ import us.dot.its.jpo.ode.api.storage.ObjectStorageServiceRegistry;
 @Service
 @RequiredArgsConstructor
 public class FirmwareUploadService {
-    // Object names beneath this root are reserved for OBU firmware
-    static final String RESERVED_OBU_ROOT = "ota";
     private static final String[] ACTIVE_DESTINATION_CONSTRAINTS = {
             "uq_firmware_uploads_active_destination",
             "uq_firmware_uploads_active_model_version",
@@ -127,33 +125,9 @@ public class FirmwareUploadService {
             return toVerification(register(uploadId, null));
         }
 
-        // Route completion through the cloud provider recorded when the URL was
-        // issued. This remains valid even if the application's active provider later
-        // changes
-        ObjectStorageService objectStorageService = objectStorageServices.getService(upload.getStorageProvider());
-        ObjectStorageLocation location = new ObjectStorageLocation(
-                upload.getStorageProvider(), upload.getStorageContainer(), upload.getObjectName());
-        StoredObjectMetadata metadata = objectStorageService
-                .getObjectMetadata(location, upload.getChecksumAlgorithm())
-                .orElseThrow(() -> new FirmwareUploadVerificationException(
-                        "Cannot verify this upload because the expected firmware file was not found in storage. "
-                                + "Ensure the file upload using the signed URL completed successfully before "
-                                + "requesting verification."));
-
         // Verification requires both the expected byte size and the exact checksum
-        if (!matchesSize(upload, metadata)) {
-            markFailed(upload, "SIZE_MISMATCH");
-            throw new FirmwareUploadVerificationException(
-                    "Uploaded object size does not match content_length");
-        }
-        if (!matchesChecksum(upload, metadata)) {
-            markFailed(upload, "CHECKSUM_MISMATCH");
-            throw new FirmwareUploadVerificationException(
-                    "Uploaded object checksum does not match the expected checksum");
-        }
-
-        // Retain the provider's observed values so the verified record identifies the
-        // exact stored object version that was checked
+        StoredObjectMetadata metadata = readMatchingObject(objectStorageServices, upload,
+                reason -> registration.markFailed(uploadId, reason));
         return toVerification(register(uploadId, metadata));
     }
 
@@ -172,10 +146,6 @@ public class FirmwareUploadService {
         return new FirmwareUploadVerification(upload.getId(), upload.getStatus(), upload.getObjectName(),
                 upload.getExpectedSize(), upload.getChecksumAlgorithm(), upload.getObservedChecksum(),
                 upload.getProviderObjectVersion(), upload.getVerifiedAt());
-    }
-
-    private void markFailed(FirmwareUpload upload, String reason) {
-        registration.markFailed(upload.getId(), reason);
     }
 
     private boolean isActiveDestinationConflict(Throwable exception) {
@@ -207,7 +177,7 @@ public class FirmwareUploadService {
 
     private String buildObjectName(FirmwareUploadUrlRequest request, String storedFileName) {
         String vendor = validatePathSegment(request.getVendorName(), "vendor_name");
-        if (RESERVED_OBU_ROOT.equals(vendor.toLowerCase(Locale.ROOT))) {
+        if (ObuFirmwareStorageLayout.isReservedName(vendor)) {
             throw new IllegalArgumentException("vendor_name is reserved for OBU firmware");
         }
         return String.join("/",
