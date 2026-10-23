@@ -2,12 +2,10 @@ package us.dot.its.jpo.ode.api.services;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -36,6 +34,7 @@ import us.dot.its.jpo.ode.api.repositories.MaxRetryLimitReachedInstanceRepositor
 import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.PingRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuCredentialRepository;
+import us.dot.its.jpo.ode.api.repositories.RsuHealthRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuIntersectionRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuModelRepository;
 import us.dot.its.jpo.ode.api.repositories.RsuOptionRepository;
@@ -67,6 +66,7 @@ public class RsuManagementService {
     private final SnmpProtocolRepository snmpProtocolRepository;
     private final RsuInfoMapper rsuMapper;
     private final RsuPatchMapper rsuPatchMapper;
+    private final RsuHealthRepository rsuHealthRepository;
     private static final String IPV4_PATTERN = "^(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}$";
 
     public RsuInfoDto getRsuInfo(String ipv4Address) {
@@ -84,8 +84,7 @@ public class RsuManagementService {
 
         allowed.setPrimaryRoutes(rsuRepository.findAllPrimaryRoutes());
         allowed.setRsuModels(rsuRepository.findAllRsuModels().stream()
-                .map(v -> String.format("%s %s", v.getManufacturer(),
-                        v.getModel()))
+                .map(v -> v.getManufacturer() + " " + v.getModel())
                 .toList());
         allowed.setSshCredentialGroups(rsuCredentialRepository.findAllNicknames());
         allowed.setSnmpCredentialGroups(snmpCredentialRepository.findAllNicknames());
@@ -119,10 +118,9 @@ public class RsuManagementService {
         rsuOption.setSnmpMonitoring(rsuInfoDto.getSnmpMonitoring());
         rsuOptionRepository.save(rsuOption);
 
-        var toCreate = new ArrayList<RsuOrganization>();
-        for (String orgName : orgsToAdd) {
-            toCreate.add(createRsuOrgRelationship(orgName, rsu));
-        }
+        var toCreate = orgsToAdd.stream()
+                .map(orgName -> createRsuOrgRelationship(orgName, rsu))
+                .toList();
         rsuOrganizationRepository.saveAll(toCreate);
 
         return rsu;
@@ -271,7 +269,7 @@ public class RsuManagementService {
         // Add organizations
         if (patch.getOrganizationsToAdd() != null && !patch.getOrganizationsToAdd().isEmpty()) {
             List<String> unqualifiedAdds = patch.getOrganizationsToAdd().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedAdds.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to add RSU to organization(s): "
@@ -295,7 +293,7 @@ public class RsuManagementService {
         // Remove organizations
         if (patch.getOrganizationsToRemove() != null && !patch.getOrganizationsToRemove().isEmpty()) {
             List<String> unqualifiedRemovals = patch.getOrganizationsToRemove().stream()
-                    .filter(org -> !authorizedOrgs.stream().anyMatch(o -> o.getName().equals(org)))
+                    .filter(org -> authorizedOrgs.stream().noneMatch(o -> o.getName().equals(org)))
                     .toList();
             if (!unqualifiedRemovals.isEmpty()) {
                 throw new AccessDeniedException("User does not have permission to remove RSU from organization(s): "
@@ -344,12 +342,7 @@ public class RsuManagementService {
         pingRepository.removePingByIpv4Address(inetAddress);
         rsuOrganizationRepository.removeRsuOrganizationByIpv4Address(inetAddress);
         scmsHealthRepository.removeScmsHealthByIpv4Address(inetAddress);
-        snmpMsgfwdConfigRepository.removeSnmpMsgfwdConfigByIpv4Address(inetAddress);
-        rsuIntersectionRepository.removeRsuIntersectionByIpv4Address(inetAddress);
-        consecutiveFirmwareUpgradeFailureRepository
-                .removeConsecutiveFirmwareUpgradeFailureByIpv4Address(inetAddress);
-        maxRetryLimitReachedInstanceRepository.removeMaxRetryLimitReachedInstanceByIpv4Address(inetAddress);
-        rsuOptionRepository.removeRsuOptionByIpv4Address(inetAddress);
+        rsuHealthRepository.removeRsuHealthByIpv4Address(inetAddress);
 
         // Finally, delete the RSU itself
         rsuRepository.removeRsuByIpv4Address(inetAddress);
