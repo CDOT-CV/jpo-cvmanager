@@ -142,7 +142,6 @@ public class UserController {
     @Operation(summary = "Modify User", description = "Modify User information")
     @PatchMapping(path = "{email}", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasUser(#email, 'ADMIN') and " +
-            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToAdd) and " +
             "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizationsToRemove) and " +
             "@PermissionService.hasRole('ADMIN'))")
     @ApiResponses(value = {
@@ -154,6 +153,11 @@ public class UserController {
             @Validated @RequestBody UserPatch body) {
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
         List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
+
+        if (!permissionService.isSuperUser() && Boolean.TRUE.equals(body.getSuperUser())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Non-super user not qualified to change super user");
+        }
 
         userManagementService.modifyUser(email, body, qualifiedOrgs);
 
