@@ -46,7 +46,7 @@ class RsuMessageForwardingApi {
   ): Promise<ApiMsgRespWithCodes<RsuMsgFwdConfigs> | null> {
     const path = `/devices/rsus/message-forwarding/${encodeURIComponent(rsuIp)}${live ? '/live' : ''}`
     const response = await this.request<MessageForwardingConfiguration[]>(token, organization, 'GET', undefined, path)
-    if (!response || response.status !== 200) return response ? { ...response, body: null } : null
+    if (response?.status !== 200) return response ? { ...response, body: null } : null
     if (!Array.isArray(response.body)) throw new Error('Invalid forwarding configuration response')
     return { ...response, body: { RsuFwdSnmpwalk: formatConfigurations(response.body) } }
   }
