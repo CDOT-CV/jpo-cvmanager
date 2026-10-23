@@ -26,6 +26,8 @@ public class SchedulingConfig {
         scheduler.setPoolSize(1);
         scheduler.setThreadNamePrefix(threadNamePrefix);
         scheduler.setRemoveOnCancelPolicy(true);
+        // Finish running work, but discard future runs so shutdown does not wait for their scheduled time.
+        scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
         scheduler.setWaitForTasksToCompleteOnShutdown(true);
         scheduler.setAwaitTerminationSeconds(30);
         return scheduler;
