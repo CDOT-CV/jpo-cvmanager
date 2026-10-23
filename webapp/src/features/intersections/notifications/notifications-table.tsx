@@ -15,7 +15,7 @@ import { NotificationsTableResults } from './notifications-table-results'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
 import NotificationApi from '../../../apis/intersections/notification-api'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { selectToken } from '../../../generalSlices/userSlice'
 import { selectSelectedIntersectionId } from '../../../generalSlices/intersectionSlice'
 import { useSelector } from 'react-redux'
@@ -90,7 +90,7 @@ export const NotificationsTable = (props: { simple: boolean }) => {
   const dbIntersectionId = useSelector(selectSelectedIntersectionId)
   const theme = useTheme()
 
-  const updateNotifications = () => {
+  const updateNotifications = useCallback(() => {
     if (dbIntersectionId) {
       NotificationApi.getActiveNotifications({
         token: token,
@@ -99,7 +99,7 @@ export const NotificationsTable = (props: { simple: boolean }) => {
     } else {
       console.error('Did not attempt to update notifications. Intersection ID:', dbIntersectionId)
     }
-  }
+  }, [dbIntersectionId, token])
 
   const dismissNotifications = (ids: string[]) => {
     if (dbIntersectionId) {
@@ -116,11 +116,7 @@ export const NotificationsTable = (props: { simple: boolean }) => {
   useEffect(() => {
     updateNotifications()
     setAcceptedNotifications([])
-  }, [dbIntersectionId])
-
-  useEffect(() => {
-    updateDescription()
-  }, [currentTab])
+  }, [dbIntersectionId, updateNotifications])
 
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
@@ -146,13 +142,17 @@ export const NotificationsTable = (props: { simple: boolean }) => {
     setRowsPerPage(parseInt(event.target.value, 10))
   }
 
-  const updateDescription = () => {
+  const updateDescription = useCallback(() => {
     for (let i = 0; i < tabs.length; i++) {
       if (tabs[i].value === currentTab) {
         setCurrentDescription(tabs[i].description)
       }
     }
-  }
+  }, [currentTab])
+
+  useEffect(() => {
+    updateDescription()
+  }, [currentTab, updateDescription])
 
   // Usually query is done on backend with indexing solutions
   const filteredNotifications = applyFilters(notifications, filter)

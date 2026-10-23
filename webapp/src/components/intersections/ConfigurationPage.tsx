@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Box, Button, Card, Container, InputAdornment, Tab, Tabs, TextField, Typography, useTheme } from '@mui/material'
 import { ConfigParamListTable } from '../../features/intersections/configuration/configuration-list-table'
 import RefreshIcon from '@mui/icons-material/Refresh'
@@ -96,10 +96,6 @@ const Page = () => {
 
   const { data: parameters, refetch } = useGetIntersectionParametersQuery(intersectionId)
 
-  useEffect(() => {
-    updateDescription()
-  }, [currentTab])
-
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
     setCurrentTab(value)
@@ -123,13 +119,17 @@ const Page = () => {
     setRowsPerPage(parseInt(event.target.value, 10))
   }
 
-  const updateDescription = () => {
+  const updateDescription = useCallback(() => {
     for (let i = 0; i < tabs.length; i++) {
       if (tabs[i].value === currentTab) {
         setCurrentDescription(tabs[i].description)
       }
     }
-  }
+  }, [currentTab])
+
+  useEffect(() => {
+    updateDescription()
+  }, [currentTab, updateDescription])
 
   // Usually query is done on backend with indexing solutions
   const filteredParameters = applyFilters(parameters ?? [], filter)

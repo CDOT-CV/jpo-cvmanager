@@ -1,8 +1,8 @@
-import { Component } from 'react'
 import PropTypes from 'prop-types'
-import Tab from './Tab'
+import { Component } from 'react'
 import { evaluateFeatureFlags } from '../feature-flags'
 import { TabListContainer } from '../styles/components/HorizontalTabs'
+import Tab from './Tab'
 
 interface TabItemProps {
   label: string
@@ -10,7 +10,7 @@ interface TabItemProps {
   tag?: FEATURE_KEY
 }
 
-export const TabItem = (props: TabItemProps) => {
+export const TabItem = (_: TabItemProps) => {
   return <div></div>
 }
 

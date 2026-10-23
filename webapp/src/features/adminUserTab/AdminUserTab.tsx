@@ -49,48 +49,6 @@ const AdminUserTab = () => {
     subscribedData,
   })
 
-  const handleQueryChange = useCallback(
-    async (query) => {
-      setIsRefreshing(true)
-
-      try {
-        const params = buildAdminTableQueryParams(query, columns, organization, 'first_name', 'asc')
-
-        // Check if organization changed - if so, reset to page 0
-        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
-          params.page = 0
-          query.page = 0
-        }
-
-        // Store current query for comparison
-        currentQueryRef.current = params
-        setCurrentParams(params)
-
-        // Trigger the query and await the result
-        const result = await trigger(params).unwrap()
-
-        markTableRenderedData(params, result)
-
-        return {
-          data: result.content || [],
-          page: params.page,
-          totalCount: result.totalElements || 0,
-        }
-      } catch (error) {
-        console.error('Failed to fetch users:', error)
-        toast.error('Failed to fetch Users')
-        return {
-          data: [],
-          page: query.page,
-          totalCount: 0,
-        }
-      } finally {
-        setIsRefreshing(false)
-      }
-    },
-    [trigger, organization, markTableRenderedData]
-  )
-
   const [deleteUserApi] = useDeleteUserMutation()
   const [deleteMultipleUsersApi] = useDeleteMultipleUsersMutation()
 
@@ -185,6 +143,48 @@ const AdminUserTab = () => {
       },
     },
   ]
+
+  const handleQueryChange = useCallback(
+    async (query) => {
+      setIsRefreshing(true)
+
+      try {
+        const params = buildAdminTableQueryParams(query, columns, organization, 'first_name', 'asc')
+
+        // Check if organization changed - if so, reset to page 0
+        if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
+          params.page = 0
+          query.page = 0
+        }
+
+        // Store current query for comparison
+        currentQueryRef.current = params
+        setCurrentParams(params)
+
+        // Trigger the query and await the result
+        const result = await trigger(params).unwrap()
+
+        markTableRenderedData(params, result)
+
+        return {
+          data: result.content || [],
+          page: params.page,
+          totalCount: result.totalElements || 0,
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+        toast.error('Failed to fetch Users')
+        return {
+          data: [],
+          page: query.page,
+          totalCount: 0,
+        }
+      } finally {
+        setIsRefreshing(false)
+      }
+    },
+    [columns, trigger, organization, currentQueryRef, markTableRenderedData]
+  )
 
   const onDelete = async (row: AdminUserWithId) => {
     const loadingToast = toast.loading(`Deleting User ${row.email}...`)

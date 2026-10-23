@@ -16,7 +16,7 @@ export const EventDataTable = (props: {
 
   useEffect(() => {
     setPage(0)
-  }, events)
+  }, [events, setPage])
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage)

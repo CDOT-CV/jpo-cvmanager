@@ -101,17 +101,19 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
       })
   }
 
-  const temperatureData =
-    historicalData?.map((data) => ({
-      time: data.timestamp,
-      value: parseFloat((data.temperature * (9 / 5) + 32).toFixed(1)),
-    })) || []
+  const temperatureData = useMemo(
+    () =>
+      historicalData?.map((data) => ({
+        time: data.timestamp,
+        value: parseFloat((data.temperature * (9 / 5) + 32).toFixed(1)),
+      })) || [],
+    [historicalData]
+  )
 
-  const uptimeData =
-    historicalData?.map((data) => ({
-      time: data.timestamp,
-      value: data.uptime,
-    })) || []
+  const uptimeData = useMemo(
+    () => historicalData?.map((data) => ({ time: data.timestamp, value: data.uptime })) || [],
+    [historicalData]
+  )
 
   // Ensure data arrays are non-empty before calculating domains and offsets
   const temperatureDomain = useMemo(() => {
@@ -170,31 +172,24 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
   // Offset for yellow uptime gradient stop
   const yellowUptimeOffset = 1 - (yellowUptimeTarget - uptimeDomain[0]) / (uptimeDomain[1] - uptimeDomain[0])
 
-  // Identify reboot points (local minima after a decrease)
-  const rebootPoints = uptimeData.reduce((acc, curr, index, arr) => {
-    if (index > 0 && arr[index - 1].value > curr.value) {
-      acc.push(curr.time) // Identify local minima after a decrease as reboot points
-    }
-    return acc
-  }, [])
+  const { rebootPoints, rebootZones } = useMemo(() => {
+    const points: number[] = []
+    const zones: { start: number; end: number; label: string }[] = []
 
-  // Utility to get days, hours, minutes from a duration in milliseconds
-  function splitDurationIntoParts(durationMs: number) {
-    const durationSec = Math.floor(durationMs / 1000)
-    const days = Math.floor(durationSec / 86400)
-    const hours = Math.floor((durationSec % 86400) / 3600)
-    const minutes = Math.floor((durationSec % 3600) / 60)
-    return { days, hours, minutes }
-  }
+    for (let index = 1; index < uptimeData.length; index++) {
+      const previous = uptimeData[index - 1]
+      const current = uptimeData[index]
+      if (previous.value <= current.value) continue
 
-  // Calculate reboot zones (from local max to subsequent local min)
-  const rebootZones = uptimeData.reduce((zones, curr, index, arr) => {
-    if (index > 0 && arr[index - 1].value > curr.value) {
-      const start = arr[index - 1].time
-      const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
-      const durationMs = end - start
+      points.push(current.time)
 
-      const { days, hours, minutes } = splitDurationIntoParts(durationMs)
+      const start = previous.time
+      const end = current.time - current.value * 1000
+      const durationSec = Math.floor((end - start) / 1000)
+      const days = Math.floor(durationSec / 86400)
+      const hours = Math.floor((durationSec % 86400) / 3600)
+      const minutes = Math.floor((durationSec % 3600) / 60)
+
       let durationLabel = ''
       if (days > 0) {
         durationLabel = `${days} day${days > 1 ? 's' : ''}`
@@ -204,14 +199,11 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
         durationLabel = `${minutes} min`
       }
 
-      zones.push({
-        start,
-        end,
-        label: `Offline ${durationLabel}`,
-      })
+      zones.push({ start, end, label: `Offline ${durationLabel}` })
     }
-    return zones
-  }, [])
+
+    return { rebootPoints: points, rebootZones: zones }
+  }, [uptimeData])
 
   // Formats uptime in days and hours
   const formatUptime = (seconds: number, forTooltip = false) => {
@@ -253,46 +245,6 @@ const RsuStatusDialog: React.FC<RsuStatusDialogProps> = ({ open, onClose, rsuIp,
     }
     return [value, name]
   }
-
-  // Clear and recalculate reboot points and zones whenever the historical data changes
-  useEffect(() => {
-    // Clear reboot points and zones when historical data changes
-    rebootPoints.splice(0, rebootPoints.length)
-    rebootZones.splice(0, rebootZones.length)
-
-    // Recalculate reboot points
-    uptimeData.reduce((acc, curr, index, arr) => {
-      if (index > 0 && arr[index - 1].value > curr.value) {
-        acc.push(curr.time)
-      }
-      return acc
-    }, rebootPoints)
-
-    // Recalculate reboot zones
-    uptimeData.reduce((zones, curr, index, arr) => {
-      if (index > 0 && arr[index - 1].value > curr.value) {
-        const start = arr[index - 1].time
-        const end = curr.time - curr.value * 1000 // Subtract uptime (in milliseconds) from the current timestamp
-        const durationMs = end - start
-        const { days, hours, minutes } = splitDurationIntoParts(durationMs)
-        let durationLabel = ''
-        if (days > 0) {
-          durationLabel = `${days} day${days > 1 ? 's' : ''}`
-        } else if (hours > 0) {
-          durationLabel = `${hours} hr ${minutes} min`
-        } else {
-          durationLabel = `${minutes} min`
-        }
-
-        zones.push({
-          start,
-          end,
-          label: `Offline ${durationLabel}`,
-        })
-      }
-      return zones
-    }, rebootZones)
-  }, [historicalData])
 
   // Calculate whether to position the box in the top right corner
   const isEarlyReboot = rebootPoints.some((time) => time < timeDomain[0] + (timeDomain[1] - timeDomain[0]) * 0.4)
