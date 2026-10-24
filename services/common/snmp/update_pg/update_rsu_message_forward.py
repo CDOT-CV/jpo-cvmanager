@@ -49,8 +49,9 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
             query += (
                 f" ({snmp_config['rsu_id']}, {snmp_config['msgfwd_type']}, {snmp_config['snmp_index']}, "
                 f"'{snmp_config['message_type']}', '{snmp_config['dest_ipv4']}', {snmp_config['dest_port']}, "
-                f"'{snmp_config['start_datetime']}', '{snmp_config['end_datetime']}', '{snmp_config['active']}', "
-                f"'{snmp_config['security']}'),"
+                f"'{snmp_config['start_datetime']}', '{snmp_config['end_datetime']}', "
+                f"{'TRUE' if snmp_config['active'] else 'FALSE'}, "
+                f"{'TRUE' if snmp_config['security'] else 'FALSE'}),"
             )
 
         pgquery.write_db(query[:-1])
@@ -210,8 +211,8 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": "1" if value["Config Active"] == "Enabled" else "0",
-                        "security": "0",  # RSU 4.1 spec does not support security configuration
+                        "active": value["Config Active"] == "Enabled",
+                        "security": False,  # RSU 4.1 spec does not support security configuration
                     }
                     config_list.append(config)
             elif rsu["snmp_version"] == "1218":
@@ -228,8 +229,8 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": "1" if value["Config Active"] == "Enabled" else "0",
-                        "security": "1" if value["Full WSMP"] == "Enabled" else "0",
+                        "active": value["Config Active"] == "Enabled",
+                        "security": value["Full WSMP"] == "Enabled",
                     }
                     config_list.append(config)
 
@@ -246,8 +247,8 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": "1" if value["Config Active"] == "Enabled" else "0",
-                        "security": "1" if value["Full WSMP"] == "Enabled" else "0",
+                        "active": value["Config Active"] == "Enabled",
+                        "security": value["Full WSMP"] == "Enabled",
                     }
                     config_list.append(config)
 

@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -305,13 +306,13 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         try (Connection c = getConnection(this.model)) {
             // insert new user with ID into db
             PreparedStatement st = c.prepareStatement(
-                    "update public.users set email = ?, first_name = ?, last_name = ?, created_timestamp = ?, super_user = ?::bit where keycloak_id = ?::UUID",
+                    "update public.users set email = ?, first_name = ?, last_name = ?, created_timestamp = ?, super_user = ? where keycloak_id = ?::UUID",
                     Statement.RETURN_GENERATED_KEYS);
             st.setString(1, user.getEmail());
             st.setString(2, user.getFirstName());
             st.setString(3, user.getLastName());
             st.setLong(4, user.getCreatedTimestamp());
-            st.setInt(5, user.getSuperUser());
+            st.setObject(5, user.getSuperUser(), Types.BOOLEAN);
             st.setString(6, getUuidFromKeycloakId(user.getId()));
             log.debug("updateUser: st={}", st);
             st.executeUpdate();
