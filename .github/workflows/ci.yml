@@ -209,6 +209,47 @@ jobs:
             services/rsu-info-bridge/target/test-classes
           if-no-files-found: error
 
+  build_snmp:
+    needs: test_change_limit
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "22"
+          cache: maven
+          cache-dependency-path: services/intersection-api/snmp/pom.xml
+
+      - name: Build and Test SNMP Library
+        run: mvn -f services/intersection-api/snmp/pom.xml verify
+
+      - name: Test SNMP4J against disposable Net-SNMP agent
+        run: |
+          docker build -f services/intersection-api/snmp/Dockerfile.integration -t jpo-snmp-integration services
+          docker run --rm jpo-snmp-integration
+
+      - name: Archive Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snmp-test-results
+          path: services/intersection-api/snmp/target/surefire-reports
+
+      - name: Archive Sonar Inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: snmp-sonar-inputs
+          path: |
+            services/intersection-api/snmp/target/classes
+            services/intersection-api/snmp/target/test-classes
+            services/intersection-api/snmp/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
+
   build_intersection_api:
     needs: test_change_limit
     if: ${{ always() && !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
@@ -416,7 +457,7 @@ jobs:
 
   sonar:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    needs: [build_api, webapp, build_keycloak_provider, build_rsu_info_bridge, build_intersection_api, build_rsu_status_monitor]
+    needs: [build_api, webapp, build_keycloak_provider, build_rsu_info_bridge, build_snmp, build_intersection_api, build_rsu_status_monitor]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -448,6 +489,12 @@ jobs:
           name: rsu-info-bridge-sonar-inputs
           path: services/rsu-info-bridge/target
 
+      - name: Download SNMP Sonar Inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: snmp-sonar-inputs
+          path: services/intersection-api/snmp/target
+
       - name: Download Intersection API Sonar Inputs
         uses: actions/download-artifact@v4
         with:
@@ -476,6 +523,7 @@ jobs:
           reports=(
             "services/coverage.xml"
             "webapp/lcov.info"
+            "services/intersection-api/snmp/target/site/jacoco/jacoco.xml"
             "services/intersection-api/api/target/site/jacoco/jacoco.xml"
             "services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml"
           )
@@ -500,18 +548,18 @@ jobs:
           # Match JaCoCo's Java model exclusions and omit Lombok-only configuration holders.
           sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**,services/intersection-api/api/src/main/java/**/models/**,services/intersection-api/api/src/main/java/**/GcpObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/ObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/FirmwareUploadCleanupProperties.java
           sonar.javascript.lcov.reportPaths=webapp/lcov.info
-          sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/obu_ota_server,services/addons/images/rsu_status_check,services/api/src,services/common,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java
-          sonar.tests=services/addons/tests,services/api/tests,services/common/tests,webapp/src,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java
-          sonar.test.inclusions=services/addons/tests/**,services/api/tests/**,services/common/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx,resources/keycloak/custom-user-provider/src/test/java/**,services/rsu-info-bridge/src/test/java/**,services/intersection-api/api/src/test/java/**,services/rsu-status-monitor/rsu-status-monitor/src/test/java/**
+          sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/obu_ota_server,services/addons/images/rsu_status_check,services/api/src,services/common,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java,services/intersection-api/snmp/src/main/java
+          sonar.tests=services/addons/tests,services/api/tests,services/common/tests,webapp/src,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java,services/intersection-api/snmp/src/test/java
+          sonar.test.inclusions=services/addons/tests/**,services/api/tests/**,services/common/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx,resources/keycloak/custom-user-provider/src/test/java/**,services/rsu-info-bridge/src/test/java/**,services/intersection-api/api/src/test/java/**,services/rsu-status-monitor/rsu-status-monitor/src/test/java/**,services/intersection-api/snmp/src/test/java/**
           sonar.organization=${{ vars.SONAR_ORGANIZATION || github.repository_owner }}
           sonar.projectBaseDir=$GITHUB_WORKSPACE
           sonar.projectKey=${{ github.repository_owner }}_jpo-cvmanager
           sonar.projectName=jpo-cvmanager
           sonar.python.coverage.reportPaths=services/coverage.xml
           sonar.python.version=3.12.2
-          sonar.java.binaries=resources/keycloak/custom-user-provider/target/classes,services/rsu-info-bridge/target/classes,services/intersection-api/api/target/classes,services/rsu-status-monitor/rsu-status-monitor/target/classes
-          sonar.java.test.binaries=resources/keycloak/custom-user-provider/target/test-classes,services/rsu-info-bridge/target/test-classes,services/intersection-api/api/target/test-classes,services/rsu-status-monitor/rsu-status-monitor/target/test-classes
-          sonar.coverage.jacoco.xmlReportPaths=services/intersection-api/api/target/site/jacoco/jacoco.xml,services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml
+          sonar.java.binaries=resources/keycloak/custom-user-provider/target/classes,services/rsu-info-bridge/target/classes,services/intersection-api/api/target/classes,services/rsu-status-monitor/rsu-status-monitor/target/classes,services/intersection-api/snmp/target/classes
+          sonar.java.test.binaries=resources/keycloak/custom-user-provider/target/test-classes,services/rsu-info-bridge/target/test-classes,services/intersection-api/api/target/test-classes,services/rsu-status-monitor/rsu-status-monitor/target/test-classes,services/intersection-api/snmp/target/test-classes
+          sonar.coverage.jacoco.xmlReportPaths=services/intersection-api/api/target/site/jacoco/jacoco.xml,services/rsu-status-monitor/rsu-status-monitor/target/site/jacoco/jacoco.xml,services/intersection-api/snmp/target/site/jacoco/jacoco.xml
           EOF
 
       - name: Run SonarScanner
