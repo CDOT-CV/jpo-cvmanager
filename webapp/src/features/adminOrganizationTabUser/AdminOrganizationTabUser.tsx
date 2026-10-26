@@ -21,8 +21,8 @@ import { Action, Column } from '@material-table/core'
 import toast from 'react-hot-toast'
 import '../adminRsuTab/Admin.css'
 
-import { AddCircleOutline, DeleteOutline } from '@mui/icons-material'
-import { useTheme } from '@mui/material'
+import { AddCircleOutline, Close, DeleteOutline } from '@mui/icons-material'
+import { IconButton, useTheme } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
 import { RootState } from '../../store'
 import {
@@ -171,7 +171,9 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           placeholder="Click to add users"
           data={availableUserList}
           value={selectedUserList}
-          onChange={(value) => setSelectedUserList(value as AdminUserForOrg[])}
+          onChange={(value) =>
+            setSelectedUserList((value as AdminUserForOrg[]).map((user) => ({ ...user, role: user.role || 'user' })))
+          }
           style={{
             fontSize: '1rem',
           }}
@@ -350,18 +352,32 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
             <>
               {selectedUserList.length > 0 &&
                 selectedUserList.map((user) => (
-                  <div key={user.email}>
-                    <p>{user.email}</p>
-                    <DropdownList
-                      className="org-form-dropdown"
-                      dataKey="role"
-                      textField="role"
-                      data={allowedSelections?.roles || []}
-                      value={user}
-                      onChange={(value) => {
-                        handleUserRoleChange(user.email, value)
-                      }}
-                    />
+                  <div
+                    key={user.email}
+                    style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '8px 16px' }}
+                  >
+                    <span style={{ whiteSpace: 'nowrap' }}>New User: {user.email}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>Role:</span>
+                    <div style={{ width: '200px', flexShrink: 0 }}>
+                      <DropdownList
+                        className="org-form-dropdown"
+                        aria-label="Role"
+                        dataKey="role"
+                        textField="role"
+                        data={allowedSelections?.roles || []}
+                        value={user.role}
+                        onChange={(value) => {
+                          handleUserRoleChange(user.email, value)
+                        }}
+                      />
+                    </div>
+                    <IconButton
+                      aria-label={`Remove ${user.email}`}
+                      size="small"
+                      onClick={() => setSelectedUserList((prev) => prev.filter((u) => u.email !== user.email))}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
                   </div>
                 ))}
               <AdminTable
