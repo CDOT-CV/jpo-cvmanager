@@ -123,6 +123,17 @@ export const userSlice = createSlice({
         const updatedOrgList = state.value.authLoginData.data.organizations
         updatedOrgList.splice(index, 1)
         state.value.authLoginData.data.organizations = [...updatedOrgList]
+        if (state.value.organization?.organization === action.payload) {
+          state.value.organization = updatedOrgList[0] ?? null
+          if (state.value.organization) {
+            SecureStorageManager.setUserRole({
+              name: state.value.organization.name,
+              role: state.value.organization.role,
+            })
+          } else {
+            SecureStorageManager.removeUserRole()
+          }
+        }
       }
     },
     changeNameOfOrganization: (state, action: PayloadAction<{ id: number; newName: string }>) => {

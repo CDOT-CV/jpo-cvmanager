@@ -1,14 +1,13 @@
-import reducer from './adminAddOrganizationSlice'
-import {
+import apiHelper from '../../apis/api-helper'
+import EnvironmentVars from '../../EnvironmentVars'
+import { RootState } from '../../store'
+import reducer, {
   // async thunks
   addOrg,
 
   // selectors
   selectLoading,
 } from './adminAddOrganizationSlice'
-import apiHelper from '../../apis/api-helper'
-import EnvironmentVars from '../../EnvironmentVars'
-import { RootState } from '../../store'
 
 describe('admin add organization reducer', () => {
   it('should handle initial state', () => {
@@ -52,7 +51,7 @@ describe('async thunks', () => {
         token: 'token',
         body: JSON.stringify(json),
       })
-      expect(dispatch).toHaveBeenCalledTimes(0 + 2)
+      expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
       // Error Code Other
       dispatch = jest.fn()

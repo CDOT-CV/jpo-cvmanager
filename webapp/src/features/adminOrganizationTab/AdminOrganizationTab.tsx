@@ -65,7 +65,7 @@ const AdminOrganizationTab = () => {
   useEffect(() => {
     if (orgList.length > 0 && !orgList.find((o) => o.id === selectedOrg?.id)) {
       // If selected org no longer exists, select the first org in the list
-      setSelectedOrg(orgList[0])
+      setSelectedOrg(orgList.find((o) => o.id === globalSelectedOrgId) ?? orgList[0])
     } else {
       // Else, refresh org reference
       setSelectedOrg(orgList.find((o) => o.id === selectedOrg?.id) ?? orgList[0])

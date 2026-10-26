@@ -300,7 +300,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
     try {
       await patchOrganization({
         id: selectedOrgId,
-        users_to_add: userList.map((u) => ({ email: u.email, role: u.role })),
+        users_to_add: userList.map((u) => ({ email: u.email, role: u.role.toLowerCase() })),
       }).unwrap()
       setSelectedUserList([])
       for (const user of userList) {
