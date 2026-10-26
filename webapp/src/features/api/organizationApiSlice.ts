@@ -118,8 +118,11 @@ export const organizationApiSlice = createApi({
         body: patch,
       }),
       invalidatesTags: (result, error, vars) => [
+        // Generate list of internal tags to invalidate on organization patch, including RSUs and users if they are added, removed, or modified.
         { type: ORGANIZATION_API_ORG_TAG, id: vars.id },
         { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
+
+        // If RSUs list it changed, change org rsu list and available RSU list accordingly.
         ...((((vars.rsus_to_add?.length ?? 0 > 0) || vars.rsus_to_remove?.length) ?? 0 > 0)
           ? [
               ORGANIZATION_API_RSU_LIST_TAG,
@@ -128,6 +131,8 @@ export const organizationApiSlice = createApi({
               ...(vars.rsus_to_remove?.map((ip) => ({ type: ORGANIZATION_API_RSU_TAG, id: ip })) ?? []),
             ]
           : []),
+
+        // If users list it changed, change org user list and available user list accordingly.
         ...((((((vars.users_to_add?.length ?? 0 > 0) || vars.users_to_remove?.length) ?? 0 > 0) ||
           vars.users_to_modify?.length) ??
         0 > 0)
@@ -139,6 +144,9 @@ export const organizationApiSlice = createApi({
               ...(vars.users_to_modify?.map(({ email }) => ({ type: ORGANIZATION_API_USER_TAG, id: email })) ?? []),
             ]
           : []),
+
+        // Intersection changes are handled in a different slice so cannot be directly invalidated here,
+        // those are invalidated in src/features/api/organizationPatchInvalidation.ts via getIntersectionInvalidationTags
       ],
     }),
     deleteOrganization: builder.mutation<void, number>({

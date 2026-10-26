@@ -1,8 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { selectToken } from '../../generalSlices/userSlice'
 import EnvironmentVars from '../../EnvironmentVars'
 import apiHelper from '../../apis/api-helper'
+import { selectToken } from '../../generalSlices/userSlice'
 import { RootState } from '../../store'
+import {
+  ORGANIZATION_API_ORG_LIST_ID,
+  ORGANIZATION_API_ORG_TAG,
+  organizationApiSlice,
+} from '../api/organizationApiSlice'
 import { AdminAddOrgForm } from './AdminAddOrganization'
 
 export const addOrg = createAsyncThunk(
@@ -22,12 +27,17 @@ export const addOrg = createAsyncThunk(
       token,
       body: JSON.stringify(json),
     })
-    switch (data.status) {
+    switch (data?.status) {
       case 200:
         // TODO: Refresh org data
+        dispatch(
+          organizationApiSlice.util.invalidateTags([
+            { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
+          ])
+        )
         return { success: true, message: 'Organization Creation is successful.' }
       default:
-        return { success: false, message: data.message }
+        return { success: false, message: data?.message }
     }
   },
   { condition: (_, { getState }) => selectToken(getState() as RootState) != undefined }

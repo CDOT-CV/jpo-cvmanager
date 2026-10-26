@@ -1,32 +1,32 @@
 import { useEffect, useState } from 'react'
 import { Form } from 'react-bootstrap'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 import { selectSuperUser } from '../../generalSlices/userSlice'
 
-import '../adminRsuTab/Admin.css'
-import 'react-widgets/styles.css'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 import {
+  Box,
   Button,
+  Card,
   DialogActions,
   DialogContent,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   TextField,
   Typography,
-  IconButton,
-  Box,
-  Card,
 } from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddIcon from '@mui/icons-material/Add'
 import Dialog from '@mui/material/Dialog'
 import toast from 'react-hot-toast'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import 'react-widgets/styles.css'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import '../adminRsuTab/Admin.css'
 import { useGetUserAllowedSelectionsQuery, useGetUserQuery, usePatchUserMutation } from '../api/userApiSlice'
 
 interface UserFormData {
@@ -275,8 +275,9 @@ const AdminEditUser = () => {
                   <Card key={field.id} sx={{ mb: 2, p: 2, position: 'relative' }}>
                     <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }} sx={{ pr: 5 }}>
                       <FormControl fullWidth>
-                        <InputLabel>Organization</InputLabel>
+                        <InputLabel id={`organization-label-${field.id}`}>Organization</InputLabel>
                         <Select
+                          labelId={`organization-label-${field.id}`}
                           value={field.organization}
                           label="Organization"
                           onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}

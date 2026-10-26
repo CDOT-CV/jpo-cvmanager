@@ -125,6 +125,17 @@ export const userSlice = createSlice({
         state.value.authLoginData.data.organizations = [...updatedOrgList]
       }
     },
+    changeNameOfOrganization: (state, action: PayloadAction<{ id: number; newName: string }>) => {
+      if (!state.value.authLoginData) {
+        return
+      }
+      const index = state.value.authLoginData.data.organizations.findIndex(
+        (org) => org.organization === action.payload.id
+      )
+      if (index > -1) {
+        state.value.authLoginData.data.organizations[index].name = action.payload.newName
+      }
+    },
     setLoading: (state, action) => {
       state.loading = action.payload
     },
@@ -183,6 +194,7 @@ export const {
   logout,
   changeOrganization,
   changeOrganizationName,
+  changeNameOfOrganization,
   deleteOrgAssociationByOrgName,
   deleteOrgAssociationByOrgId,
   setLoading,

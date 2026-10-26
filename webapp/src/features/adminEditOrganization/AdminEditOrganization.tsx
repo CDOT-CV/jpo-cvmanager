@@ -3,13 +3,17 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 
-import '../adminRsuTab/Admin.css'
-import 'react-widgets/styles.css'
-import '../../styles/fonts/museo-slab.css'
-import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Button, DialogActions, DialogContent, FormControl, TextField, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
+import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { useDispatch } from 'react-redux'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import 'react-widgets/styles.css'
+import { changeNameOfOrganization } from '../../generalSlices/userSlice'
+import { RootState } from '../../store'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
+import '../../styles/fonts/museo-slab.css'
+import '../adminRsuTab/Admin.css'
 import { useGetOrganizationsQuery, usePatchOrganizationMutation } from '../api/organizationApiSlice'
 
 interface OrganizationFormData {
@@ -19,6 +23,7 @@ interface OrganizationFormData {
 }
 
 const AdminEditOrganization = () => {
+  const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
   const { orgName } = useParams<{ orgName: string }>()
   const navigate = useNavigate()
 
@@ -65,6 +70,7 @@ const AdminEditOrganization = () => {
         email: data.email,
       }).unwrap()
       toast.success('Organization updated successfully')
+      dispatch(changeNameOfOrganization({ id: data.id, newName: data.name }))
       setOpen(false)
       navigate('/dashboard/admin/organizations')
     } catch (error: any) {

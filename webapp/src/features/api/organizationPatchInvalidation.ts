@@ -9,8 +9,15 @@ import { organizationApiSlice } from './organizationApiSlice'
 import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from './rsuApiSlice'
 import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from './userApiSlice'
 
+/** True when the optional list exists and has at least one entry. */
 const hasItems = (items?: readonly unknown[]): boolean => (items?.length ?? 0) > 0
 
+/**
+ * Builds the adminIntersectionApi cache tags to invalidate for a patch.
+ * Returns an empty array when no intersections were added or removed.
+ *
+ * This handles the case where intersections are added to or removed from an organization.
+ */
 export const getIntersectionInvalidationTags = (patch: OrganizationPatch) => {
   if (!hasItems(patch.intersections_to_add) && !hasItems(patch.intersections_to_remove)) {
     return []
@@ -25,6 +32,12 @@ export const getIntersectionInvalidationTags = (patch: OrganizationPatch) => {
   ]
 }
 
+/**
+ * Builds the userApi cache tags to invalidate for a patch (the user list plus each added,
+ * modified, or removed user's email). Returns an empty array when no users changed.
+ *
+ * This handles the case where users are added to, modified in, or removed from an organization.
+ */
 export const getUserInvalidationTags = (patch: OrganizationPatch) => {
   if (!hasItems(patch.users_to_add) && !hasItems(patch.users_to_modify) && !hasItems(patch.users_to_remove)) {
     return []
@@ -38,6 +51,12 @@ export const getUserInvalidationTags = (patch: OrganizationPatch) => {
   ]
 }
 
+/**
+ * Builds the rsuApi cache tags to invalidate for a patch (the RSU list plus each added or
+ * Returns an empty array when no RSUs changed.
+ *
+ * This handles the case where RSUs are added to or removed from an organization.
+ */
 export const getRsuInvalidationTags = (patch: OrganizationPatch) => {
   if (!hasItems(patch.rsus_to_add) && !hasItems(patch.rsus_to_remove)) {
     return []
@@ -71,6 +90,10 @@ export const invalidateCachesForOrganizationPatch = (dispatch: Dispatch<AnyActio
   }
 }
 
+/**
+ * Redux middleware that, after a fulfilled patchOrganization mutation, invalidates the related
+ * API caches. Always forwards the action and returns the downstream result.
+ */
 export const organizationPatchInvalidationMiddleware: Middleware = (api) => (next) => (action) => {
   const result = next(action)
   if (organizationApiSlice.endpoints.patchOrganization.matchFulfilled(action as AnyAction)) {

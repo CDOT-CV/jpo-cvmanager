@@ -3,32 +3,32 @@ import { Form } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import { useSelector } from 'react-redux'
 
-import '../adminRsuTab/Admin.css'
-import 'react-widgets/styles.css'
-import '../../styles/fonts/museo-slab.css'
-import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
-import Dialog from '@mui/material/Dialog'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 import {
+  Box,
   Button,
+  Card,
+  CircularProgress,
   DialogActions,
   DialogContent,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
-  TextField,
   Select,
+  TextField,
   Typography,
-  Box,
-  IconButton,
-  Card,
-  CircularProgress,
 } from '@mui/material'
+import Dialog from '@mui/material/Dialog'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
+import 'react-widgets/styles.css'
+import { selectSuperUser } from '../../generalSlices/userSlice'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { selectSuperUser } from '../../generalSlices/userSlice'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddIcon from '@mui/icons-material/Add'
+import '../../styles/fonts/museo-slab.css'
+import '../adminRsuTab/Admin.css'
 import { useCreateUserMutation, useGetUserAllowedSelectionsQuery } from '../api/userApiSlice'
 
 const AdminAddUser = () => {
@@ -290,8 +290,9 @@ const AdminAddUser = () => {
               <Card key={index} sx={{ mb: 2, p: 2, position: 'relative' }}>
                 <Box display="flex" gap={2} flexDirection={{ xs: 'column', sm: 'row' }} sx={{ pr: 5 }}>
                   <FormControl fullWidth>
-                    <InputLabel>Organization</InputLabel>
+                    <InputLabel id={`organization-label-${index}`}>Organization</InputLabel>
                     <Select
+                      labelId={`organization-label-${index}`}
                       value={orgRole.organization}
                       label="Organization"
                       onChange={(e) => handleOrganizationChange(index, 'organization', e.target.value)}

@@ -11,19 +11,21 @@ import AdminOrganizationTabUser from '../adminOrganizationTabUser/AdminOrganizat
 import { AddCircleOutline, EditOutlined, Refresh } from '@mui/icons-material'
 import { alpha, Button, useTheme } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
-import {
-  deleteOrgAssociationByOrgId,
-  selectOrganizationId,
-  selectOrganizationName,
-} from '../../generalSlices/userSlice'
+import { deleteOrgAssociationByOrgId, selectOrganizationId } from '../../generalSlices/userSlice'
 import { NotFound } from '../../pages/404'
 import { RootState } from '../../store'
 import { ContainedIconButton } from '../../styles/components/ContainedIconButton'
 import '../adminRsuTab/Admin.css'
+import {
+  ADMIN_INTERSECTION_AVAILABLE_LIST_ID,
+  ADMIN_INTERSECTION_LIST_ID,
+  ADMIN_INTERSECTION_TAG,
+  adminIntersectionApiSlice,
+} from '../api/adminIntersectionApiSlice'
 import {
   ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
   ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,
@@ -36,6 +38,8 @@ import {
   useDeleteOrganizationMutation,
   useGetOrganizationsQuery,
 } from '../api/organizationApiSlice'
+import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from '../api/rsuApiSlice'
+import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from '../api/userApiSlice'
 
 const AdminOrganizationTab = () => {
   const dispatch: ThunkDispatch<RootState, void, AnyAction> = useDispatch()
@@ -47,19 +51,31 @@ const AdminOrganizationTab = () => {
 
   const { data: orgList = [] } = useGetOrganizationsQuery()
   const [deleteOrganization] = useDeleteOrganizationMutation()
+  const globalSelectedOrgId = useSelector(selectOrganizationId)
 
-  const [selectedOrgId, setSelectedOrgId] = useState(useSelector(selectOrganizationId))
-  const [selectedOrgName, setSelectedOrgName] = useState(useSelector(selectOrganizationName))
+  const [selectedOrg, setSelectedOrg] = useState(orgList.find((o) => o.id === globalSelectedOrgId) ?? orgList[0])
 
-  const updateSelectedOrgByName = (orgName: string) => {
-    const org = orgList.find((o) => o.name === orgName)
+  const updateSelectedOrgById = (orgId: number) => {
+    const org = orgList.find((o) => o.id === orgId)
     if (org) {
-      setSelectedOrgId(org.id)
-      setSelectedOrgName(orgName)
+      setSelectedOrg(org)
     }
   }
 
+  useEffect(() => {
+    if (orgList.length > 0 && !orgList.find((o) => o.id === selectedOrg?.id)) {
+      // If selected org no longer exists, select the first org in the list
+      setSelectedOrg(orgList[0])
+    } else {
+      // Else, refresh org reference
+      setSelectedOrg(orgList.find((o) => o.id === selectedOrg?.id) ?? orgList[0])
+    }
+    // Ignore dependency warning for selectedOrg
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgList])
+
   const refresh = () => {
+    // Invalidate tags to automatically refresh all organization page data
     dispatch(
       organizationApiSlice.util.invalidateTags([
         ORGANIZATION_API_ORG_TAG,
@@ -71,6 +87,14 @@ const AdminOrganizationTab = () => {
         ORGANIZATION_API_USER_TAG,
       ])
     )
+    dispatch(
+      adminIntersectionApiSlice.util.invalidateTags([
+        { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_LIST_ID },
+        { type: ADMIN_INTERSECTION_TAG, id: ADMIN_INTERSECTION_AVAILABLE_LIST_ID },
+      ])
+    )
+    dispatch(userApiSlice.util.invalidateTags([{ type: USER_API_USER_TAG, id: USER_API_USER_LIST_ID }]))
+    dispatch(rsuApiSlice.util.invalidateTags([{ type: RSU_API_RSU_TAG, id: RSU_API_RSU_LIST_ID }]))
   }
 
   const handleOrgDelete = async (orgId: number, orgName: string) => {
@@ -80,7 +104,7 @@ const AdminOrganizationTab = () => {
       dispatch(deleteOrgAssociationByOrgId(orgId))
       const next = orgList.find((o) => o.id !== orgId) ?? orgList[0]
       if (next) {
-        updateSelectedOrgByName(next.name)
+        updateSelectedOrgById(next.id)
       }
       toast.success(`Successfully deleted organization ${orgName}`, { id: loadingToast })
     } catch (error) {
@@ -110,11 +134,11 @@ const AdminOrganizationTab = () => {
                     dataKey="name"
                     textField="name"
                     data={orgList}
-                    value={selectedOrgName}
-                    onChange={(value) => updateSelectedOrgByName(value?.name)}
+                    value={selectedOrg?.name}
+                    onChange={(value) => setSelectedOrg(value)}
                   />
                 </Grid2>
-                {selectedOrgName === undefined || selectedOrgId === undefined ? (
+                {selectedOrg === undefined ? (
                   <></>
                 ) : (
                   <>
@@ -122,7 +146,7 @@ const AdminOrganizationTab = () => {
                       <ContainedIconButton
                         key="delete_button"
                         title="Edit Organization"
-                        onClick={() => navigate('editOrganization/' + selectedOrgName)}
+                        onClick={() => navigate('editOrganization/' + selectedOrg?.name)}
                         sx={{
                           backgroundColor: 'transparent',
                           borderRadius: '2px',
@@ -136,8 +160,8 @@ const AdminOrganizationTab = () => {
                     </Grid2>
                     <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
                       <AdminOrganizationDeleteMenu
-                        deleteOrganization={() => handleOrgDelete(selectedOrgId, selectedOrgName)}
-                        selectedOrganization={selectedOrgName}
+                        deleteOrganization={() => handleOrgDelete(selectedOrg.id, selectedOrg.name)}
+                        selectedOrganization={selectedOrg?.name ?? ''}
                       />
                     </Grid2>
                   </>
@@ -185,7 +209,7 @@ const AdminOrganizationTab = () => {
             </div>
 
             <div className="scroll-div-org-tab">
-              {selectedOrgName === undefined || selectedOrgId === undefined ? (
+              {selectedOrg === undefined ? (
                 <div
                   style={{
                     display: 'flex',
@@ -202,21 +226,21 @@ const AdminOrganizationTab = () => {
                 <>
                   <ConditionalRenderRsu>
                     <AdminOrganizationTabRsu
-                      selectedOrgId={selectedOrgId}
-                      selectedOrgName={selectedOrgName}
+                      selectedOrgId={selectedOrg.id}
+                      selectedOrgName={selectedOrg.name}
                       key="rsu"
                     />
                   </ConditionalRenderRsu>
                   <ConditionalRenderIntersection>
                     <AdminOrganizationTabIntersection
-                      selectedOrgId={selectedOrgId}
-                      selectedOrgName={selectedOrgName}
+                      selectedOrgId={selectedOrg.id}
+                      selectedOrgName={selectedOrg.name}
                       key="intersection"
                     />
                   </ConditionalRenderIntersection>
                   <AdminOrganizationTabUser
-                    selectedOrgId={selectedOrgId}
-                    selectedOrgName={selectedOrgName}
+                    selectedOrgId={selectedOrg.id}
+                    selectedOrgName={selectedOrg.name}
                     key="user"
                   />
                 </>

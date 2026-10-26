@@ -173,7 +173,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           data={availableUserList}
           value={selectedUserList}
           onChange={(value) =>
-            setSelectedUserList(value.map((user) => ({ ...user, role: (user as any).role || 'user' })))
+            setSelectedUserList(value.map((user) => ({ ...user, role: (user as any).role || 'USER' })))
           }
           style={{
             fontSize: '1rem',
@@ -366,7 +366,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
                         dataKey="role"
                         textField="role"
                         data={allowedSelections?.roles || []}
-                        value={user.role}
+                        value={user.role?.toLowerCase()}
                         onChange={(value) => {
                           handleUserRoleChange(user.email, value)
                         }}
