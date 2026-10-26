@@ -1,10 +1,11 @@
+import { vi } from 'vitest'
 import { THEMES, getCurrentTheme } from './index'
 
 describe('getCurrentTheme', () => {
-  const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should return the dark theme when isDarkTheme is true and darkThemeName is valid', () => {

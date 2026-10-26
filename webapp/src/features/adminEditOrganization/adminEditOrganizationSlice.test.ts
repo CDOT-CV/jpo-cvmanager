@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../../apis/api-helper')
 import reducer from './adminEditOrganizationSlice'
 import {
   // async thunks
@@ -34,13 +37,6 @@ describe('async thunks', () => {
     },
   }
 
-  beforeAll(() => {
-    jest.mock('../../apis/api-helper')
-  })
-
-  afterAll(() => {
-    jest.unmock('../../apis/api-helper')
-  })
 
   describe('editOrganization', () => {
     it('returns and calls the api correctly', async () => {
@@ -51,7 +47,7 @@ describe('async thunks', () => {
             resolve({ payload: { success: true, message: 'Changes were successfully applied!' } })
           )
         )
-      const getState = jest.fn().mockReturnValue({
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -67,10 +63,10 @@ describe('async thunks', () => {
       })
       const json = { name: 'orgName', email: 'name@email.com' }
       const selectedOrg = 'selectedOrg'
-      let setValue = jest.fn()
+      let setValue = vi.fn()
       const action = editOrganization({ json, selectedOrg, setValue })
 
-      global.setTimeout = jest.fn((cb) => cb()) as any
+      global.setTimeout = vi.fn((cb) => cb()) as any
       try {
         const resp = await action(dispatch, getState, undefined)
         console.error(JSON.stringify(resp))
@@ -88,8 +84,8 @@ describe('async thunks', () => {
       dispatch = jest
         .fn()
         .mockReturnValue(new Promise((resolve) => resolve({ payload: { success: false, message: 'message' } })))
-      setValue = jest.fn()
-      global.setTimeout = jest.fn((cb) => cb()) as any
+      setValue = vi.fn()
+      global.setTimeout = vi.fn((cb) => cb()) as any
       try {
         const resp = await action(dispatch, getState, undefined)
         expect(resp.payload).toEqual({ success: false, message: 'message' })
@@ -156,7 +152,7 @@ describe('async thunks', () => {
 
 describe('functions', () => {
   it('updateStates', async () => {
-    const setValue = jest.fn()
+    const setValue = vi.fn()
     const selectedOrgName = 'selectedOrgName'
     const selectedOrgEmail = 'name@email.com'
 

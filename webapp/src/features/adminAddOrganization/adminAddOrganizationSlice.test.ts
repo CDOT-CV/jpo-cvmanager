@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../../apis/api-helper')
 import reducer from './adminAddOrganizationSlice'
 import {
   // async thunks
@@ -23,18 +26,11 @@ describe('async thunks', () => {
     loading: null,
   }
 
-  beforeAll(() => {
-    jest.mock('../../apis/api-helper')
-  })
-
-  afterAll(() => {
-    jest.unmock('../../apis/api-helper')
-  })
 
   describe('addOrg', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      let dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -44,7 +40,7 @@ describe('async thunks', () => {
       const json = { data: 'data' } as any
       let action = addOrg({ json })
 
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper._postData = vi.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: 'Organization Creation is successful.' })
       expect(apiHelper._postData).toHaveBeenCalledWith({
@@ -55,9 +51,9 @@ describe('async thunks', () => {
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
       // Error Code Other
-      dispatch = jest.fn()
+      dispatch = vi.fn()
       action = addOrg({ json })
-      apiHelper._postData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper._postData = vi.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper._postData).toHaveBeenCalledWith({

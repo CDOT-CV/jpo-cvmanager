@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../../apis/api-helper')
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import reducer from './adminOrganizationTabSlice'
 import {
@@ -57,18 +60,11 @@ describe('async thunks', () => {
     },
   }
 
-  beforeAll(() => {
-    jest.mock('../../apis/api-helper')
-  })
-
-  afterAll(() => {
-    jest.unmock('../../apis/api-helper')
-  })
 
   describe('getOrgData', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -80,7 +76,7 @@ describe('async thunks', () => {
       const all = false
       const action = getOrgData({ orgName, all, specifiedOrg })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper._getDataWithCodes = vi.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '', all, specifiedOrg })
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
@@ -89,7 +85,7 @@ describe('async thunks', () => {
         query_params: { org_name: orgName },
       })
 
-      apiHelper._getDataWithCodes = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper._getDataWithCodes = vi.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper._getDataWithCodes).toHaveBeenCalledWith({
@@ -207,8 +203,8 @@ describe('async thunks', () => {
 
   describe('deleteOrg', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      let dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -218,7 +214,7 @@ describe('async thunks', () => {
       const org_name = 'orgName'
       const action = deleteOrg(org_name)
 
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper._deleteData = vi.fn().mockReturnValue({ status: 200, message: 'message' })
       await action(dispatch, getState, undefined)
       expect(apiHelper._deleteData).toHaveBeenCalledWith({
         url: EnvironmentVars.adminOrg,
@@ -227,8 +223,8 @@ describe('async thunks', () => {
       })
       expect(dispatch).toHaveBeenCalledTimes(1 + 2)
 
-      dispatch = jest.fn()
-      apiHelper._deleteData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      dispatch = vi.fn()
+      apiHelper._deleteData = vi.fn().mockReturnValue({ status: 500, message: 'message' })
       await action(dispatch, getState, undefined)
       expect(apiHelper._deleteData).toHaveBeenCalledWith({
         url: EnvironmentVars.adminOrg,
@@ -241,8 +237,8 @@ describe('async thunks', () => {
 
   describe('editOrg', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -252,7 +248,7 @@ describe('async thunks', () => {
       const json = { data: 'data', orig_name: 'orig_name' } as any
       const action = editOrg(json)
 
-      apiHelper._patchData = jest.fn().mockReturnValue({ status: 200, message: 'message' })
+      apiHelper._patchData = vi.fn().mockReturnValue({ status: 200, message: 'message' })
       let resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: true, message: '' })
       expect(apiHelper._patchData).toHaveBeenCalledWith({
@@ -271,7 +267,7 @@ describe('async thunks', () => {
         }),
       })
 
-      apiHelper._patchData = jest.fn().mockReturnValue({ status: 500, message: 'message' })
+      apiHelper._patchData = vi.fn().mockReturnValue({ status: 500, message: 'message' })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ success: false, message: 'message' })
       expect(apiHelper._patchData).toHaveBeenCalledWith({

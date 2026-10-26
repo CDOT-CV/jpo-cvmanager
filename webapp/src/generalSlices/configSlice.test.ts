@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../apis/rsu-api')
 import reducer, {
   getCachedSnmpFwdConfigsFromDatabase,
   getRsuMsgConfigsFromRsu,
@@ -62,18 +65,11 @@ describe('async thunks', () => {
     },
   } as RootState['config']
 
-  beforeAll(() => {
-    jest.mock('../apis/rsu-api')
-  })
-
-  afterAll(() => {
-    jest.unmock('../apis/rsu-api')
-  })
 
   describe('refreshSnmpFwdConfig', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -81,7 +77,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getCachedRsuMsgFwdConfigsFromDatabase = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
+      RsuApi.getCachedRsuMsgFwdConfigsFromDatabase = vi.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
 
       const rsu_ip = '1.2.3.4'
 
@@ -142,8 +138,8 @@ describe('async thunks', () => {
 
   describe('getRsuMsgFwdFetch', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -151,7 +147,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
+      RsuApi.getRsuMsgConfigsFromRsu = vi.fn().mockReturnValue({ RsuFwdSnmpwalk: 'test' })
 
       const rsu_ip = '1.2.3.4'
 
@@ -163,8 +159,8 @@ describe('async thunks', () => {
     })
 
     it('returns error when API fails', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -172,7 +168,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockReturnValue(null)
+      RsuApi.getRsuMsgConfigsFromRsu = vi.fn().mockReturnValue(null)
 
       const rsu_ip = '1.2.3.4'
 
@@ -183,8 +179,8 @@ describe('async thunks', () => {
     })
 
     it('returns error when API throws exception', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -192,7 +188,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockImplementation(() => {
+      RsuApi.getRsuMsgConfigsFromRsu = vi.fn().mockImplementation(() => {
         throw new Error('Test Exception')
       })
 
@@ -205,8 +201,8 @@ describe('async thunks', () => {
     })
 
     it('returns error when API throws a string', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -214,7 +210,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockImplementation(() => {
+      RsuApi.getRsuMsgConfigsFromRsu = vi.fn().mockImplementation(() => {
         throw 'String Exception'
       })
 
@@ -227,8 +223,8 @@ describe('async thunks', () => {
     })
 
     it('returns error when API throws an unknown error', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -236,7 +232,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.getRsuMsgConfigsFromRsu = jest.fn().mockImplementation(() => {
+      RsuApi.getRsuMsgConfigsFromRsu = vi.fn().mockImplementation(() => {
         throw 123
       })
 
@@ -302,8 +298,8 @@ describe('async thunks', () => {
 
   describe('submitSnmpSet', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -318,7 +314,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.postRsuData = jest.fn().mockReturnValue({ status: 200, body: { RsuFwdSnmpset: 'test' } })
+      RsuApi.postRsuData = vi.fn().mockReturnValue({ status: 200, body: { RsuFwdSnmpset: 'test' } })
 
       const arg = ['1.2.3.4', '2.3.4.5']
 
@@ -341,7 +337,7 @@ describe('async thunks', () => {
       )
       expect(resp.payload).toEqual({ changeSuccess: true, errorState: '' })
 
-      RsuApi.postRsuData = jest.fn().mockReturnValue({ status: 400, body: { RsuFwdSnmpset: 'error' } })
+      RsuApi.postRsuData = vi.fn().mockReturnValue({ status: 400, body: { RsuFwdSnmpset: 'error' } })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ changeSuccess: false, errorState: 'error' })
     })
@@ -377,8 +373,8 @@ describe('async thunks', () => {
 
   describe('deleteSnmpSet', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -386,7 +382,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.postRsuData = jest.fn().mockReturnValue({ status: 200, body: { RsuFwdSnmpset: 'test' } })
+      RsuApi.postRsuData = vi.fn().mockReturnValue({ status: 200, body: { RsuFwdSnmpset: 'test' } })
       const arg = {
         ipList: ['1.2.3.4', '2.3.4.5'],
         destIp: '1.1.1.1',
@@ -411,7 +407,7 @@ describe('async thunks', () => {
       )
       expect(resp.payload).toEqual({ changeSuccess: true, errorState: '' })
 
-      RsuApi.postRsuData = jest.fn().mockReturnValue({ status: 400, body: { RsuFwdSnmpset: 'error' } })
+      RsuApi.postRsuData = vi.fn().mockReturnValue({ status: 400, body: { RsuFwdSnmpset: 'error' } })
       resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual({ changeSuccess: false, errorState: 'error' })
     })
@@ -447,8 +443,8 @@ describe('async thunks', () => {
 
   describe('rebootRsu', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -456,7 +452,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuApi.postRsuData = jest.fn().mockReturnValue({ status: 200 })
+      RsuApi.postRsuData = vi.fn().mockReturnValue({ status: 200 })
 
       const arg = ['1.2.3.4', '2.3.4.5']
 
@@ -506,8 +502,8 @@ describe('async thunks', () => {
 
   describe('checkFirmwareUpgrade', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -515,7 +511,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           upgrade_available: true,
@@ -542,8 +538,8 @@ describe('async thunks', () => {
     })
 
     it('rejects when multiple RSUs are provided', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -551,7 +547,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn()
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn()
 
       const action = checkFirmwareUpgrade(['1.2.3.4', '5.6.7.8'])
       const resp = await action(dispatch, getState, undefined)
@@ -612,8 +608,8 @@ describe('async thunks', () => {
     })
 
     it('handles 404 EntityNotFoundException from backend (RSU not found)', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -621,7 +617,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         __isErrorResponse: true,
         status: 404,
         body: {
@@ -639,8 +635,8 @@ describe('async thunks', () => {
     })
 
     it('handles 409 FirmwareUpgradeUnavailableException from backend (already up to date)', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -648,7 +644,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         __isErrorResponse: true,
         status: 409,
         body: {
@@ -668,8 +664,8 @@ describe('async thunks', () => {
 
   describe('startFirmwareUpgrade', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -677,7 +673,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {
@@ -706,8 +702,8 @@ describe('async thunks', () => {
     })
 
     it('returns a concise single-rsu failure message', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -715,7 +711,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {
@@ -733,8 +729,8 @@ describe('async thunks', () => {
     })
 
     it('returns an informational message when a single RSU is already up to date', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -742,7 +738,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {
@@ -760,8 +756,8 @@ describe('async thunks', () => {
     })
 
     it('excludes up-to-date RSUs from multi-rsu failed list', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -771,7 +767,7 @@ describe('async thunks', () => {
       })
 
       const arg = ['10.0.0.78', '10.0.0.79', '10.0.0.80']
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '10.0.0.78': {
@@ -855,8 +851,8 @@ describe('async thunks', () => {
     })
 
     it('handles 404 per-RSU result from backend (RSU not found)', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -864,7 +860,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {
@@ -883,8 +879,8 @@ describe('async thunks', () => {
     })
 
     it('handles 501 per-RSU result when firmware manager is not supported', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -892,7 +888,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {
@@ -911,8 +907,8 @@ describe('async thunks', () => {
     })
 
     it('handles multi-rsu response with mixed success and error codes', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -920,7 +916,7 @@ describe('async thunks', () => {
           },
         },
       })
-      RsuFirmwareApi.postRsuUpgradeData = jest.fn().mockReturnValue({
+      RsuFirmwareApi.postRsuUpgradeData = vi.fn().mockReturnValue({
         status: 200,
         body: {
           '1.2.3.4': {

@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import {
@@ -15,7 +16,7 @@ import {
 import '@testing-library/jest-dom'
 
 // Mock the EnvironmentVars module
-jest.mock('./EnvironmentVars', () => ({
+vi.mock('./EnvironmentVars', () => ({
   __esModule: true,
   default: {
     ENABLE_RSU_FEATURES: true,
@@ -28,7 +29,7 @@ import EnvironmentVars from './EnvironmentVars'
 
 describe('Feature Flags', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('RsuRouteGuard allows access when feature is enabled', () => {

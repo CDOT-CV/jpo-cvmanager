@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../apis/rsu-api')
 import reducer from './rsuSlice'
 import {
   // async thunks
@@ -43,8 +46,8 @@ import RsuApi from '../apis/rsu-api'
 import { RootState } from '../store'
 
 // Mock luxon to return a fixed date time to make the tests deterministic
-jest.mock('luxon', () => {
-  const actualLuxon = jest.requireActual('luxon')
+vi.mock('luxon', async (importOriginal) => {
+  const actualLuxon = await importOriginal<typeof import('luxon')>()
   return {
     ...actualLuxon,
     DateTime: {
@@ -108,18 +111,11 @@ describe('async thunks', () => {
     },
   }
 
-  beforeAll(() => {
-    jest.mock('../apis/rsu-api')
-  })
-
-  afterAll(() => {
-    jest.unmock('../apis/rsu-api')
-  })
 
   describe('getRsuData', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -131,7 +127,7 @@ describe('async thunks', () => {
       })
       const action = getRsuData()
       const rsuData = ['1.1.1.1'] as any
-      RsuApi.getRsuInfo = jest.fn().mockResolvedValue({ rsuList: rsuData })
+      RsuApi.getRsuInfo = vi.fn().mockResolvedValue({ rsuList: rsuData })
 
       const response = await action(dispatch, getState, undefined)
       expect(response.payload).toEqual(rsuData)
@@ -212,8 +208,8 @@ describe('async thunks', () => {
 
   describe('_getRsuInfo', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -224,7 +220,7 @@ describe('async thunks', () => {
       const action = _getRsuInfo()
 
       const rsuList = ['1.1.1.1']
-      RsuApi.getRsuInfo = jest.fn().mockReturnValue({ rsuList })
+      RsuApi.getRsuInfo = vi.fn().mockReturnValue({ rsuList })
       const resp = await action(dispatch, getState, undefined)
       expect(resp.payload).toEqual(rsuList)
       expect(RsuApi.getRsuInfo).toHaveBeenCalledWith('token', 'Org 1')

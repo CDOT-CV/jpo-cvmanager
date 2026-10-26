@@ -1,3 +1,6 @@
+import { vi } from 'vitest'
+
+vi.mock('../../apis/api-helper')
 import reducer from './adminOrganizationTabUserSlice'
 import {
   // async thunks
@@ -18,10 +21,9 @@ import {
 import { RootState } from '../../store'
 
 // Mock the organizationApiSlice
-const mockInitiate = jest.fn()
-const mockInvalidateTags = jest.fn()
+const { mockInitiate, mockInvalidateTags } = vi.hoisted(() => ({ mockInitiate: vi.fn(), mockInvalidateTags: vi.fn() }))
 
-jest.mock('../api/organizationApiSlice', () => ({
+vi.mock('../api/organizationApiSlice', () => ({
   organizationApiSlice: {
     endpoints: {
       getUserOrganizations: {
@@ -46,18 +48,11 @@ describe('admin organization tab User reducer', () => {
 })
 
 describe('async thunks', () => {
-  beforeAll(() => {
-    jest.mock('../../apis/api-helper')
-  })
-
-  afterAll(() => {
-    jest.unmock('../../apis/api-helper')
-  })
 
   describe('userDeleteSingle', () => {
     it('returns and calls the api correctly', async () => {
-      let dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      let dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -68,7 +63,7 @@ describe('async thunks', () => {
       const user = { email: 'test@gmail.com', role: 'role1' }
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       dispatch.mockResolvedValue({
         data: ['org1', 'org2'],
@@ -79,13 +74,13 @@ describe('async thunks', () => {
 
       const jsdomAlert = window.alert
       try {
-        window.alert = jest.fn()
+        window.alert = vi.fn()
         await action(dispatch, getState, undefined)
         expect(dispatch).toHaveBeenCalledTimes(2 + 4)
         expect(window.alert).not.toHaveBeenCalled()
 
         // Only 1 organization
-        dispatch = jest.fn()
+        dispatch = vi.fn()
 
         action = userDeleteSingle({ user, selectedOrg, selectedOrgEmail, updateTableData })
 
@@ -93,7 +88,7 @@ describe('async thunks', () => {
           data: ['org1'],
           payload: { success: true },
         })
-        window.alert = jest.fn()
+        window.alert = vi.fn()
         await action(dispatch, getState, undefined)
         expect(dispatch).toHaveBeenCalledTimes(2 + 3)
         expect(window.alert).toHaveBeenCalledWith(
@@ -107,8 +102,8 @@ describe('async thunks', () => {
   })
   describe('userDeleteMultiple', () => {
     it('returns and calls the api correctly when all users have multiple organizations', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -123,19 +118,19 @@ describe('async thunks', () => {
       ]
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       dispatch.mockResolvedValueOnce(undefined) // First call
-      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2', 'org3'], unsubscribe: jest.fn() })
-      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: jest.fn() })
-      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: jest.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2', 'org3'], unsubscribe: vi.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ payload: { success: true } })
 
       const action = userDeleteMultiple({ users, selectedOrg, selectedOrgEmail, updateTableData })
 
       const jsdomAlert = window.alert
       try {
-        window.alert = jest.fn()
+        window.alert = vi.fn()
         const result = await action(dispatch, getState, undefined)
 
         expect(dispatch).toHaveBeenCalledTimes(2 + 6)
@@ -147,8 +142,8 @@ describe('async thunks', () => {
     })
 
     it('shows alert when some users have only one organization', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -162,18 +157,18 @@ describe('async thunks', () => {
       ]
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       dispatch.mockResolvedValueOnce(undefined) // First call
-      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: jest.fn() })
-      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: jest.fn() })
-      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: jest.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: vi.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: vi.fn() })
 
       const action = userDeleteMultiple({ users, selectedOrg, selectedOrgEmail, updateTableData })
 
       const jsdomAlert = window.alert
       try {
-        window.alert = jest.fn()
+        window.alert = vi.fn()
         await action(dispatch, getState, undefined)
 
         expect(window.alert).toHaveBeenCalledWith(
@@ -185,8 +180,8 @@ describe('async thunks', () => {
     })
 
     it('handles mixed valid and invalid users', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -199,17 +194,17 @@ describe('async thunks', () => {
       ]
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       dispatch.mockResolvedValueOnce(undefined) // First call
-      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: jest.fn() })
-      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: jest.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
+      dispatch.mockResolvedValueOnce({ data: ['org1'], unsubscribe: vi.fn() })
 
       const action = userDeleteMultiple({ users, selectedOrg, selectedOrgEmail, updateTableData })
 
       const jsdomAlert = window.alert
       try {
-        window.alert = jest.fn()
+        window.alert = vi.fn()
         await action(dispatch, getState, undefined)
 
         expect(window.alert).toHaveBeenCalledWith(
@@ -223,8 +218,8 @@ describe('async thunks', () => {
 
   describe('userAddMultiple', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -238,7 +233,7 @@ describe('async thunks', () => {
       ]
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       dispatch.mockImplementation((action: any) => {
         if (typeof action === 'function') {
@@ -258,8 +253,8 @@ describe('async thunks', () => {
 
   describe('userBulkEdit', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -273,7 +268,7 @@ describe('async thunks', () => {
       const selectedOrg = 'selectedOrg'
       const selectedUser = 'selectedUser'
       const selectedOrgEmail = 'name@email.com'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       const action = userBulkEdit({ json, selectedOrg, selectedUser, selectedOrgEmail, updateTableData })
 
@@ -284,8 +279,8 @@ describe('async thunks', () => {
 
   describe('refresh', () => {
     it('returns and calls the api correctly', async () => {
-      const dispatch = jest.fn()
-      const getState = jest.fn().mockReturnValue({
+      const dispatch = vi.fn()
+      const getState = vi.fn().mockReturnValue({
         user: {
           value: {
             authLoginData: { token: 'token' },
@@ -293,7 +288,7 @@ describe('async thunks', () => {
         },
       })
       const selectedOrg = 'selectedOrg'
-      const updateTableData = jest.fn()
+      const updateTableData = vi.fn()
 
       const action = refresh({ selectedOrg, updateTableData })
 
