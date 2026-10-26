@@ -1,7 +1,7 @@
-import { useEffect, type MutableRefObject } from 'react'
 import { act, render } from '@testing-library/react'
-import { useAdminTableQuerySync } from './useAdminTableQuerySync'
+import { useEffect, type MutableRefObject } from 'react'
 import { vi } from 'vitest'
+import { useAdminTableQuerySync } from './useAdminTableQuerySync'
 
 type SubscribedData = {
   content?: any[]
@@ -9,7 +9,7 @@ type SubscribedData = {
 }
 
 type HarnessProps = {
-  organization?: string
+  organization?: number
   isRefreshing: boolean
   currentPage: number
   subscribedData?: SubscribedData
@@ -57,7 +57,7 @@ describe('useAdminTableQuerySync', () => {
 
     const { rerender } = render(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={true}
         currentPage={0}
         subscribedData={subscribedData}
@@ -69,7 +69,7 @@ describe('useAdminTableQuerySync', () => {
 
     rerender(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={false}
         currentPage={0}
         subscribedData={subscribedData}
@@ -86,20 +86,14 @@ describe('useAdminTableQuerySync', () => {
     const baseData = { content: [{ id: 1 }], totalElements: 1 }
 
     const { rerender } = render(
-      <Harness
-        organization="org-a"
-        isRefreshing={false}
-        currentPage={0}
-        subscribedData={baseData}
-        tableRef={tableRef}
-      />
+      <Harness organization={1} isRefreshing={false} currentPage={0} subscribedData={baseData} tableRef={tableRef} />
     )
 
     expect(onQueryChange).toHaveBeenCalledTimes(1)
 
     rerender(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={false}
         currentPage={0}
         subscribedData={{ content: [{ id: 1 }], totalElements: 1 }}
@@ -111,7 +105,7 @@ describe('useAdminTableQuerySync', () => {
 
     rerender(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={false}
         currentPage={0}
         subscribedData={{ content: [{ id: 1 }, { id: 2 }], totalElements: 2 }}
@@ -130,7 +124,7 @@ describe('useAdminTableQuerySync', () => {
 
     const { rerender } = render(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={false}
         currentPage={0}
         tableRef={tableRef}
@@ -145,7 +139,7 @@ describe('useAdminTableQuerySync', () => {
           size: 20,
           sort: 'first_name,asc',
           search: '',
-          organization: 'org-a',
+          organization: 1,
         },
         subscribedData
       )
@@ -153,7 +147,7 @@ describe('useAdminTableQuerySync', () => {
 
     rerender(
       <Harness
-        organization="org-a"
+        organization={1}
         isRefreshing={false}
         currentPage={0}
         subscribedData={subscribedData}

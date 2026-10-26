@@ -5,7 +5,7 @@ type QueryParams = {
   size: number
   sort: string
   search: string
-  organization: string
+  organization: number
 }
 
 type PaginatedResult = {
@@ -16,14 +16,14 @@ type PaginatedResult = {
 type TableRef = MutableRefObject<any>
 
 type UseAdminTableQuerySyncArgs = {
-  organization: string | undefined
+  organization: number | undefined
   tableRef: TableRef
   isRefreshing: boolean
   currentPage: number
   subscribedData?: PaginatedResult
 }
 
-const buildSignature = (params: { page: number; organization: string | undefined }, result: PaginatedResult) => {
+const buildSignature = (params: { page: number; organization: number | undefined }, result: PaginatedResult) => {
   return JSON.stringify({
     page: params.page,
     organization: params.organization,

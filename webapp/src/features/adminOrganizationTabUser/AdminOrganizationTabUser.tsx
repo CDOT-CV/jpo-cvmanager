@@ -78,6 +78,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
 
   const userData = useMemo(() => {
     return userTableData?.content.map((user) => {
+      // TODO: After UserOrganization gets updated to use org id number, change this comparison to use selectedOrgId instead of selectedOrgName
       const orgInfo = user.organizations.find((org) => org.organization === selectedOrgName)
       return {
         ...user,
@@ -172,7 +173,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
           data={availableUserList}
           value={selectedUserList}
           onChange={(value) =>
-            setSelectedUserList((value as AdminUserForOrg[]).map((user) => ({ ...user, role: user.role || 'user' })))
+            setSelectedUserList(value.map((user) => ({ ...user, role: (user as any).role || 'user' })))
           }
           style={{
             fontSize: '1rem',

@@ -1,30 +1,30 @@
 import { useCallback, useRef, useState } from 'react'
-import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
-import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
-import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
 import { confirmAlert } from 'react-confirm-alert'
 import { Options } from '../../components/AdminDeletionOptions'
+import AdminTable, { buildAdminTableQueryParams } from '../../components/AdminTable'
+import { selectOrganizationId, selectToken } from '../../generalSlices/userSlice'
+import AdminAddRsu from '../adminAddRsu/AdminAddRsu'
+import AdminEditRsu, { AdminEditRsuFormType } from '../adminEditRsu/AdminEditRsu'
 import RsuStatusDialog from './RsuStatusDialog'
-import { selectToken } from '../../generalSlices/userSlice'
 
-import { selectOrganizationName } from '../../generalSlices/userSlice'
-import { useSelector } from 'react-redux'
-import './Admin.css'
 import { Action } from '@material-table/core'
-import { Route, Routes, useNavigate } from 'react-router-dom'
-import { NotFound } from '../../pages/404'
-import toast from 'react-hot-toast'
-import { useTheme, Typography } from '@mui/material'
 import { DeleteOutline, ModeEditOutline } from '@mui/icons-material'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import {
-  useLazyGetAllRsusQuery,
-  useDeleteRsuMutation,
-  useDeleteMultipleRsusMutation,
-  useGetAllRsusQuery,
-} from '../api/rsuApiSlice'
-import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
+import { Typography, useTheme } from '@mui/material'
+import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import { applyFlagsToList } from '../../feature-flags'
+import { selectOrganizationName } from '../../generalSlices/userSlice'
+import { useAdminTableQuerySync } from '../../hooks/useAdminTableQuerySync'
+import { NotFound } from '../../pages/404'
+import {
+  useDeleteMultipleRsusMutation,
+  useDeleteRsuMutation,
+  useGetAllRsusQuery,
+  useLazyGetAllRsusQuery,
+} from '../api/rsuApiSlice'
+import './Admin.css'
 
 const AdminRsuTab = () => {
   const navigate = useNavigate()
@@ -32,6 +32,7 @@ const AdminRsuTab = () => {
 
   const token = useSelector(selectToken)
   const organization = useSelector(selectOrganizationName)
+  const organizationId = useSelector(selectOrganizationId)
 
   const tableRef = useRef<any>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -40,15 +41,15 @@ const AdminRsuTab = () => {
     size: 20,
     sort: 'ip,asc',
     search: '',
-    organization: organization || '',
+    organization: organizationId || -1,
   })
 
   const [trigger] = useLazyGetAllRsusQuery()
   const { data: subscribedData } = useGetAllRsusQuery(currentParams, {
-    skip: !organization,
+    skip: !organizationId,
   })
   const { currentQueryRef, markTableRenderedData, handleRefresh } = useAdminTableQuerySync({
-    organization,
+    organization: organizationId,
     tableRef,
     isRefreshing,
     currentPage: currentParams.page,
@@ -203,7 +204,7 @@ const AdminRsuTab = () => {
       setIsRefreshing(true)
 
       try {
-        const params = buildAdminTableQueryParams(query, columns, organization, 'ip', 'asc')
+        const params = buildAdminTableQueryParams(query, columns, organizationId, 'ip', 'asc')
 
         // Check if organization changed - if so, reset to page 0
         if (currentQueryRef.current && currentQueryRef.current.organization !== params.organization) {
