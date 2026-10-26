@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@mui/material'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import RsuApi, { type RsuState } from '../../apis/intersections/rsu-api'
 import { Provider } from 'react-redux'
 import { setupStore } from '../../store'
@@ -15,13 +16,14 @@ beforeAll(() => {
     disconnect() {}
   } as any
   // Mock the Date object to always return a fixed date
-  jest.useFakeTimers()
-  jest.setSystemTime(new Date('2025-12-05T00:00:00Z'))
+  // Only fake Date so testing-library's async polling keeps working
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2025-12-05T00:00:00Z'))
 })
 
 afterAll(() => {
   // Restore the Date object to its original behavior
-  jest.useRealTimers()
+  vi.useRealTimers()
 })
 
 it('should take a snapshot', () => {
@@ -50,8 +52,8 @@ it('should take a snapshot with historical data', async () => {
     uptime: 3600 * (i + 1),
     mode: 1,
   }))
-  jest.spyOn(RsuApi, 'getLatestRsuStatus').mockResolvedValue(historicalData[historicalData.length - 1])
-  jest.spyOn(RsuApi, 'getAggregatedRsuStatus').mockResolvedValue(historicalData)
+  vi.spyOn(RsuApi, 'getLatestRsuStatus').mockResolvedValue(historicalData[historicalData.length - 1])
+  vi.spyOn(RsuApi, 'getAggregatedRsuStatus').mockResolvedValue(historicalData)
 
   render(
     <ThemeProvider theme={testTheme}>
