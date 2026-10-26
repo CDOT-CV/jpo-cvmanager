@@ -315,3 +315,8 @@ vulnerabilities:
     purls: ["pkg:pypi/certifi"]
     statement: "Published 2026-10-20, after the rollout baseline. certifi 2022.12.7 ships in the confluentinc/cp-kafka-connect:6.1.9 base image's Python 3.9 site-packages, not in our requirements. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
     expired_at: 2026-11-12
+  # CRITICAL; fixed in 2026.2.92_v9.0.319-81.3.el8_10; kafka-connect
+  - id: CVE-2026-114406
+    purls: ["pkg:rpm/redhat/ca-certificates"]
+    statement: "Fix published after the rollout baseline. ca-certificates 2022.2.54-80.2.el8_6 ships in the confluentinc/cp-kafka-connect:6.1.9 base image (RHEL 8.7), not in our code. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-12
