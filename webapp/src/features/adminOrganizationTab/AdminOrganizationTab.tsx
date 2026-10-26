@@ -11,11 +11,11 @@ import AdminOrganizationTabUser from '../adminOrganizationTabUser/AdminOrganizat
 import { AddCircleOutline, EditOutlined, Refresh } from '@mui/icons-material'
 import { alpha, Button, useTheme } from '@mui/material'
 import { AnyAction, ThunkDispatch } from '@reduxjs/toolkit'
+import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import {
-  changeOrganizationName,
   deleteOrgAssociationByOrgId,
   selectOrganizationId,
   selectOrganizationName,
@@ -48,8 +48,16 @@ const AdminOrganizationTab = () => {
   const { data: orgList = [] } = useGetOrganizationsQuery()
   const [deleteOrganization] = useDeleteOrganizationMutation()
 
-  const selectedOrgId = useSelector(selectOrganizationId)
-  const selectedOrgName = useSelector(selectOrganizationName)
+  const [selectedOrgId, setSelectedOrgId] = useState(useSelector(selectOrganizationId))
+  const [selectedOrgName, setSelectedOrgName] = useState(useSelector(selectOrganizationName))
+
+  const updateSelectedOrgByName = (orgName: string) => {
+    const org = orgList.find((o) => o.name === orgName)
+    if (org) {
+      setSelectedOrgId(org.id)
+      setSelectedOrgName(orgName)
+    }
+  }
 
   const refresh = () => {
     dispatch(
@@ -72,7 +80,7 @@ const AdminOrganizationTab = () => {
       dispatch(deleteOrgAssociationByOrgId(orgId))
       const next = orgList.find((o) => o.id !== orgId) ?? orgList[0]
       if (next) {
-        dispatch(changeOrganizationName(next.name))
+        updateSelectedOrgByName(next.name)
       }
       toast.success(`Successfully deleted organization ${orgName}`, { id: loadingToast })
     } catch (error) {
@@ -103,7 +111,7 @@ const AdminOrganizationTab = () => {
                     textField="name"
                     data={orgList}
                     value={selectedOrgName}
-                    onChange={(value) => dispatch(changeOrganizationName(value.name))}
+                    onChange={(value) => updateSelectedOrgByName(value?.name)}
                   />
                 </Grid2>
                 {selectedOrgName === undefined || selectedOrgId === undefined ? (
