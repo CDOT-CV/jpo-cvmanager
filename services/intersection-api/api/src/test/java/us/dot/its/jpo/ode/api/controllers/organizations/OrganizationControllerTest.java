@@ -196,11 +196,11 @@ class OrganizationControllerTest {
         }
 
         @Test
+        @WithMockUser
         @DisplayName("returns 400 when id is absent from request body")
         void missingId_returns400() throws Exception {
-            when(permissionService.isSuperUser()).thenReturn(false);
-            when(permissionService.hasRoleInOrgById(eq(1), eq("ADMIN"))).thenReturn(true);
-            String bodyMissingId = """
+            when(permissionService.isSuperUser()).thenReturn(true);
+            String bodyMissingOrigName = """
                     {
                       "name": "TestOrg",
                       "users_to_add": [],
@@ -215,7 +215,7 @@ class OrganizationControllerTest {
 
             mockMvc.perform(patch("/organizations")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(bodyMissingId))
+                    .content(bodyMissingOrigName))
                     .andExpect(status().isBadRequest());
         }
 
