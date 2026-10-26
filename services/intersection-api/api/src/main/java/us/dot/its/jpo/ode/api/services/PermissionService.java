@@ -1,6 +1,5 @@
 package us.dot.its.jpo.ode.api.services;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -8,7 +7,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ import us.dot.its.jpo.ode.api.repositories.SnmpCredentialRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -221,13 +218,7 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsu(String rsuIP, String role) {
-        InetAddress ipv4Address;
-        try {
-            ipv4Address = InetAddress.getByName(rsuIP);
-        } catch (UnknownHostException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + rsuIP, e);
-        }
-
+        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
         return checkQualifiedOrgs(role,
                 qualifiedOrgs -> rsuRepository
                         .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
@@ -239,15 +230,67 @@ public class PermissionService {
     public boolean hasRsus(List<String> rsuIP, String role) {
         List<InetAddress> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIP) {
-            try {
-                ipv4Addresses.add(InetAddress.getByName(ip));
-            } catch (UnknownHostException e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid RSU IP address: " + ip, e);
-            }
+            ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
         }
 
         return checkQualifiedOrgs(role, qualifiedOrgs -> rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs)
                 .containsAll(ipv4Addresses));
+    }
+
+    // Allow Connection if the user's organization owns the specified RSU unit
+    public boolean isRsuOwner(String rsuIP, String role) {
+        InetAddress ipv4Address = RsuManagementService.toIpv4Address(rsuIP);
+
+        return checkQualifiedOrgs(role,
+                qualifiedOrgs -> rsuRepository
+                        .existsByIpv4AddressAndCredentialOwnerOrganizationIn(ipv4Address, qualifiedOrgs));
+    }
+
+    /**
+     * Computes which of the given RSU IPs the current user's organization does
+     * NOT own. Used by multi-RSU operations that need to report every
+     * inaccessible RSU (not just a blanket 403) and stop the whole request if any
+     * RSU is not owned.
+     *
+     * @param rsuIPs the RSU IP addresses to check
+     * @param role   required minimum role
+     * @return the subset of rsuIPs not owned by the caller's organization; empty
+     *         if the user is a super user or owns all of them
+     */
+    public List<String> findUnauthorizedRsus(List<String> rsuIPs, String role) {
+        List<InetAddress> ipv4Addresses = new ArrayList<>();
+        for (String ip : rsuIPs) {
+            ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
+        }
+
+        CvManagerAuthToken authToken = getCvManagerAuthToken();
+        if (authToken.isSuperUser()) {
+            return List.of();
+        }
+
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.fromString(role));
+        if (qualifiedOrgs == null || qualifiedOrgs.isEmpty()) {
+            return rsuIPs;
+        }
+
+        String organization = getOrganizationFromHeader();
+        List<Organization> orgsToCheck = qualifiedOrgs;
+        if (organization != null) {
+            Organization matchingOrg = qualifiedOrgs.stream()
+                    .filter(org -> org.getName().equals(organization))
+                    .findFirst()
+                    .orElse(null);
+            if (matchingOrg == null) {
+                return rsuIPs;
+            }
+            orgsToCheck = List.of(matchingOrg);
+        }
+
+        List<InetAddress> ownedAddresses = rsuRepository.findOwnedRsuIpsInOrganizations(orgsToCheck, ipv4Addresses);
+        return ipv4Addresses.stream()
+                .filter(ip -> !ownedAddresses.contains(ip))
+                .map(InetAddress::getHostAddress)
+                .toList();
     }
 
     // Allow Connection if the users organization(s) control the specified User

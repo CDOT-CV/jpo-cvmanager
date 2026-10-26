@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.InetAddress;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -30,6 +29,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.RsuCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpCredential;
 import us.dot.its.jpo.ode.api.models.postgres.tables.SnmpProtocol;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @SpringBootTest
 @ActiveProfiles("integration-test")
@@ -146,10 +146,10 @@ class RsuRepositoryTest {
         savePing(rsu, newestFailure, false);
 
         assertEquals(Optional.of(newestSuccess), rsuRepository.findLatestSuccessfulPingTimestamp(
-                InetAddress.getByName("10.0.0.1")));
+                RsuManagementService.toIpv4Address("10.0.0.1")));
 
         assertTrue(rsuRepository.findLatestSuccessfulPingTimestamp(
-                InetAddress.getByName("10.0.0.2")).isEmpty());
+                RsuManagementService.toIpv4Address("10.0.0.2")).isEmpty());
     }
 
     private RsuGraph saveSharedGraph(Organization owner) {

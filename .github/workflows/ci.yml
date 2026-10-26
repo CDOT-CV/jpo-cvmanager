@@ -46,6 +46,18 @@ jobs:
     container:
       image: python:3.12.2
       options: --user root
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ISS_TEST_DATABASE_URL: postgresql+pg8000://postgres:postgres@postgres:5432/postgres
     steps:
       - name: Checkout ${{ github.event.repository.name }}
         uses: actions/checkout@v4
@@ -61,13 +73,13 @@ jobs:
       - name: Run Tests and Generate Coverage
         continue-on-error: false
         run: |
-          # Set PYTHONPATH and navigate to the tests directory
+          # Generate coverage paths relative to Sonar's repository-root projectBaseDir
           export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/dist-packages
-          cd $GITHUB_WORKSPACE/services
+          cd "$GITHUB_WORKSPACE"
 
           # Run tests and generate coverage report
-          python3 -m coverage run -m pytest
-          python3 -m coverage xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
+          python3 -m coverage run --rcfile=services/.coveragerc -m pytest -c services/pytest.ini services
+          python3 -m coverage xml --rcfile=services/.coveragerc -o services/coverage.xml --omit="/opt/*,/root/*,/tmp/*,/usr/*,/var/*,**/__init__.py"
 
       - name: Archive Code Coverage Results
         uses: actions/upload-artifact@v4
@@ -485,7 +497,8 @@ jobs:
           sonar.host.url=https://sonarcloud.io
           sonar.exclusions=**/__init__.py,**/*test*.py,**/test/**,**/tests/**,webapp/src/**/*.test.ts,webapp/src/**/*.test.tsx,webapp/src/setupTests.ts,webapp/src/**/test-utils.tsx
           sonar.cpd.exclusions=services/intersection-api/api/src/test/resources/snapshots/**,services/intersection-api/api/src/main/resources/templates/**,services/intersection-api/docs/**,resources/deprecated/**
-          sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**
+          # Match JaCoCo's Java model exclusions and omit Lombok-only configuration holders.
+          sonar.coverage.exclusions=**/__init__.py,**/*test*.py,**/test/**,services/intersection-api/api/src/main/java/**/models/**,services/intersection-api/api/src/main/java/**/GcpObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/ObjectStorageProperties.java,services/intersection-api/api/src/main/java/**/FirmwareUploadCleanupProperties.java
           sonar.javascript.lcov.reportPaths=webapp/lcov.info
           sonar.sources=services/addons/images/count_metric,services/addons/images/firmware_manager,services/addons/images/iss_health_check,services/addons/images/obu_ota_server,services/addons/images/rsu_status_check,services/api/src,services/common,webapp/src,resources/keycloak/custom-user-provider/src/main/java,services/rsu-info-bridge/src/main/java,services/intersection-api/api/src/main/java,services/rsu-status-monitor/rsu-status-monitor/src/main/java
           sonar.tests=services/addons/tests,services/api/tests,services/common/tests,webapp/src,resources/keycloak/custom-user-provider/src/test/java,services/rsu-info-bridge/src/test/java,services/intersection-api/api/src/test/java,services/rsu-status-monitor/rsu-status-monitor/src/test/java

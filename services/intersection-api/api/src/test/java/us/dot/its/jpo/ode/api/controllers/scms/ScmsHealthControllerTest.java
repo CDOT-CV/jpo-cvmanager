@@ -21,13 +21,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import java.net.InetAddress;
 import java.time.Instant;
 import java.util.List;
 
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjection;
 import us.dot.its.jpo.ode.api.models.postgres.projections.ScmsHealthRsuProjectionImpl;
 import us.dot.its.jpo.ode.api.services.PermissionService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.ScmsHealthService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -50,7 +50,7 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_SUCCESS() throws Exception {
         // Arrange
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(
-                InetAddress.getByName("10.0.0.1"), true, Instant.now());
+                RsuManagementService.toIpv4Address("10.0.0.1"), true, Instant.now());
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(false);
@@ -111,7 +111,7 @@ class ScmsHealthControllerTest {
     void testGetScmsStatus_SUCCESS_AsSuperUser() throws Exception {
         // Arrange - super user can access any organization
         ScmsHealthRsuProjection projection = new ScmsHealthRsuProjectionImpl(
-                InetAddress.getByName("10.0.0.1"), true, Instant.now());
+                RsuManagementService.toIpv4Address("10.0.0.1"), true, Instant.now());
         List<ScmsHealthRsuProjection> queryResults = List.of(projection);
 
         when(permissionService.isSuperUser()).thenReturn(true);

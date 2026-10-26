@@ -27,9 +27,11 @@ import { unsubscribeApiSlice } from './features/api/unsubscribeApiSlice'
 import { subscriptionManagementApiSlice } from './features/api/subscriptionManagementApiSlice'
 import { rsuApiSlice } from './features/api/rsuApiSlice'
 import { rsuOnlineStatusApiSlice } from './features/api/rsuOnlineStatusApiSlice'
+import { geoMsgApiSlice } from './features/api/geoMsgApiSlice'
 import { scmsApiSlice } from './features/api/scmsApiSlice'
 import { userApiSlice } from './features/api/userApiSlice'
 import { adminIntersectionApiSlice } from './features/api/adminIntersectionApiSlice'
+import { firmwareApiSlice } from './features/api/firmwareApiSlice'
 import mapSliceReducer from './pages/mapSlice'
 import timeSyncReducer from './generalSlices/timeSyncSlice'
 import haasSliceReducer from './generalSlices/haasAlertSlice'
@@ -67,9 +69,11 @@ export const setupStore = (preloadedState?: Partial<any>) => {
       [subscriptionManagementApiSlice.reducerPath]: subscriptionManagementApiSlice.reducer,
       [rsuApiSlice.reducerPath]: rsuApiSlice.reducer,
       [rsuOnlineStatusApiSlice.reducerPath]: rsuOnlineStatusApiSlice.reducer,
+      [geoMsgApiSlice.reducerPath]: geoMsgApiSlice.reducer,
       [scmsApiSlice.reducerPath]: scmsApiSlice.reducer,
       [userApiSlice.reducerPath]: userApiSlice.reducer,
       [adminIntersectionApiSlice.reducerPath]: adminIntersectionApiSlice.reducer,
+      [firmwareApiSlice.reducerPath]: firmwareApiSlice.reducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) =>
@@ -88,9 +92,11 @@ export const setupStore = (preloadedState?: Partial<any>) => {
         .concat(organizationApiSlice.middleware)
         .concat(rsuApiSlice.middleware)
         .concat(rsuOnlineStatusApiSlice.middleware)
+        .concat(geoMsgApiSlice.middleware)
         .concat(scmsApiSlice.middleware)
         .concat(userApiSlice.middleware)
-        .concat(adminIntersectionApiSlice.middleware),
+        .concat(adminIntersectionApiSlice.middleware)
+        .concat(firmwareApiSlice.middleware),
     devTools: true,
   })
 }

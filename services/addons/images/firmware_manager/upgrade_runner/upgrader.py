@@ -10,6 +10,7 @@ from common.email_api import EmailApi
 from common.keycloak_api import KeycloakServiceAccountApi
 import download_blob
 import upgrade_runner_environment
+from google.api_core.exceptions import NotFound
 
 
 class UpgraderAbstractClass(abc.ABC):
@@ -57,10 +58,27 @@ class UpgraderAbstractClass(abc.ABC):
                 )
             )
         elif bspCaseInsensitive == "docker":
-            return download_blob.download_docker_blob(blob_name, local_file_name)
+            return download_blob.download_docker_blob(
+                blob_name,
+                local_file_name,
+                self.firmware_extension if firmware_extension is None else firmware_extension,
+            )
         else:
             logging.error("Unsupported blob storage provider")
             raise StorageProviderNotSupportedException
+
+    def download_optional_blob(self, blob_name, local_file_name, firmware_extension):
+        # A helper can disappear between the existence check and download. It is
+        # optional; never run a leftover local script when this download failed.
+        try:
+            downloaded = self.download_blob(blob_name, local_file_name, firmware_extension)
+        except (NotFound, FileNotFoundError):
+            downloaded = False
+        if not downloaded:
+            logging.info(
+                f"Optional upgrade file {blob_name} is absent; continuing without it."
+            )
+        return downloaded
 
     # Notifies the firmware manager of the completion status for the upgrade
     # success is a boolean

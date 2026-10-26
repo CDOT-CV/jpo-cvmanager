@@ -328,7 +328,7 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "USER"));
@@ -345,14 +345,14 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.USER)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(false);
 
         assertFalse(permissionService.hasRsu("192.168.1.1", "USER"));
         verify(rsuRepository)
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"),
-                        List.of(testOrg));
+                        RsuManagementService.toIpv4Address("192.168.1.1"),
+                                List.of(testOrg));
     }
 
     @Test
@@ -363,10 +363,162 @@ class PermissionServiceTest {
         when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
         when(rsuRepository
                 .existsByIpv4AddressAndRsuOrganizationsOrganizationIn(
-                        InetAddress.getByName("192.168.1.1"), List.of(testOrg)))
+                        RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
                 .thenReturn(true);
 
         assertTrue(permissionService.hasRsu("192.168.1.1", "OPERATOR"));
+    }
+
+    // ==================== isRsuOwner Tests ====================
+
+    @Test
+    void testIsRsuOwner_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
+        verify(rsuRepository, never()).existsByIpv4AddressAndCredentialOwnerOrganizationIn(any(), anyList());
+    }
+
+    @Test
+    void testIsRsuOwner_WithOrganizationHeader_HasAccess() throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        setupRequestWithHeaders(tokenString, "TestOrg");
+
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
+                .thenReturn(true);
+
+        assertTrue(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
+    }
+
+    @Test
+    void testIsRsuOwner_WithOrganizationHeader_NoAccess() throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        setupRequestWithHeaders(tokenString, "TestOrg");
+
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
+                .thenReturn(false);
+
+        assertFalse(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
+        verify(rsuRepository).existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                        RsuManagementService.toIpv4Address("192.168.1.1"),
+                List.of(testOrg));
+    }
+
+    @Test
+    void testIsRsuOwner_WithoutOrganizationHeader_HasAccessInQualifiedOrg() throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.existsByIpv4AddressAndCredentialOwnerOrganizationIn(
+                RsuManagementService.toIpv4Address("192.168.1.1"), List.of(testOrg)))
+                .thenReturn(true);
+
+        assertTrue(permissionService.isRsuOwner("192.168.1.1", "OPERATOR"));
+    }
+
+    // ==================== findUnauthorizedRsus Tests ====================
+
+    @Test
+    void testFindUnauthorizedRsus_SuperUser() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(true);
+
+        assertTrue(permissionService.findUnauthorizedRsus(List.of("192.168.1.1", "192.168.1.2"), "OPERATOR")
+                .isEmpty());
+        verify(rsuRepository, never()).findOwnedRsuIpsInOrganizations(anyList(), anyList());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_WithOrganizationHeader_AllOwned() throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        setupRequestWithHeaders(tokenString, "TestOrg");
+
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+                RsuManagementService.toIpv4Address("192.168.1.2"));
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
+
+        assertTrue(permissionService.findUnauthorizedRsus(List.of("192.168.1.1", "192.168.1.2"), "OPERATOR")
+                .isEmpty());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_WithOrganizationHeader_PartialOwnership_ReturnsUnownedSubset()
+            throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        setupRequestWithHeaders(tokenString, "TestOrg");
+
+        List<InetAddress> requestedIps = List.of(RsuManagementService.toIpv4Address("192.168.1.1"),
+                RsuManagementService.toIpv4Address("192.168.1.2"));
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), requestedIps))
+                .thenReturn(List.of(RsuManagementService.toIpv4Address("192.168.1.1")));
+
+        List<String> unauthorized = permissionService.findUnauthorizedRsus(
+                List.of("192.168.1.1", "192.168.1.2"), "OPERATOR");
+
+        assertEquals(List.of("192.168.1.2"), unauthorized);
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_WithoutOrganizationHeader_AllOwned() throws UnknownHostException {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        List<InetAddress> ips = List.of(RsuManagementService.toIpv4Address("192.168.1.1"));
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+        when(rsuRepository.findOwnedRsuIpsInOrganizations(List.of(testOrg), ips)).thenReturn(ips);
+
+        assertTrue(permissionService.findUnauthorizedRsus(List.of("192.168.1.1"), "OPERATOR").isEmpty());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_NoQualifiedOrgs_ReturnsAllRequestedAsUnauthorized() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of());
+
+        List<String> unauthorized = permissionService.findUnauthorizedRsus(
+                List.of("192.168.1.1", "192.168.1.2"), "OPERATOR");
+
+        assertEquals(List.of("192.168.1.1", "192.168.1.2"), unauthorized);
+        verify(rsuRepository, never()).findOwnedRsuIpsInOrganizations(anyList(), anyList());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_OrganizationHeaderNotQualified_ReturnsAllRequestedAsUnauthorized() {
+        doReturn(authToken).when(permissionService).getCvManagerAuthToken();
+        when(authToken.isSuperUser()).thenReturn(false);
+
+        setupRequestWithHeaders(tokenString, "OtherOrg");
+
+        when(authToken.getQualifiedOrgList(UserRole.OPERATOR)).thenReturn(List.of(testOrg));
+
+        List<String> unauthorized = permissionService.findUnauthorizedRsus(
+                List.of("192.168.1.1", "192.168.1.2"), "OPERATOR");
+
+        assertEquals(List.of("192.168.1.1", "192.168.1.2"), unauthorized);
+        verify(rsuRepository, never()).findOwnedRsuIpsInOrganizations(anyList(), anyList());
+    }
+
+    @Test
+    void testFindUnauthorizedRsus_InvalidIp_ThrowsBadRequest() {
+        assertThrows(IllegalArgumentException.class,
+                () -> permissionService.findUnauthorizedRsus(List.of("not-a-valid-ip"), "OPERATOR"));
     }
 
     // ==================== isAuthValid Tests ====================
