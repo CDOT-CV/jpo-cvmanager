@@ -29,7 +29,7 @@ export const addOrg = createAsyncThunk(
     })
     switch (data?.status) {
       case 200:
-        // TODO: Refresh org data
+        // Refresh organization data in admin org page
         dispatch(
           organizationApiSlice.util.invalidateTags([
             { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },

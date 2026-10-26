@@ -61,11 +61,11 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                intersectionMultiDelete(rowData)
+                await intersectionMultiDelete(rowData)
               } else {
-                intersectionOnDelete(rowData)
+                await intersectionOnDelete(rowData)
               }
             },
           },
@@ -94,11 +94,11 @@ const AdminOrganizationTabIntersection = (props: AdminOrganizationTabIntersectio
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                intersectionMultiDelete(rowData)
+                await intersectionMultiDelete(rowData)
               } else {
-                intersectionOnDelete(rowData)
+                await intersectionOnDelete(rowData)
               }
             },
           },

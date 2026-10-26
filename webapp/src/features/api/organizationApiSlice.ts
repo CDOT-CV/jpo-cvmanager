@@ -3,6 +3,7 @@ import EnvironmentVars from '../../EnvironmentVars'
 import { selectToken } from '../../generalSlices/userSlice'
 import { AdminRsu } from '../../models/Rsu'
 import { RootState } from '../../store'
+import { hasItems } from './organizationPatchInvalidation'
 
 // Tag type constants
 export const ORGANIZATION_API_RSU_LIST_TAG = 'RsuList' as const
@@ -123,7 +124,7 @@ export const organizationApiSlice = createApi({
         { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
 
         // If RSUs list it changed, change org rsu list and available RSU list accordingly.
-        ...((((vars.rsus_to_add?.length ?? 0 > 0) || vars.rsus_to_remove?.length) ?? 0 > 0)
+        ...(hasItems(vars.rsus_to_add) || hasItems(vars.rsus_to_remove)
           ? [
               ORGANIZATION_API_RSU_LIST_TAG,
               ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG,
@@ -133,9 +134,7 @@ export const organizationApiSlice = createApi({
           : []),
 
         // If users list it changed, change org user list and available user list accordingly.
-        ...((((((vars.users_to_add?.length ?? 0 > 0) || vars.users_to_remove?.length) ?? 0 > 0) ||
-          vars.users_to_modify?.length) ??
-        0 > 0)
+        ...(hasItems(vars.users_to_add) || hasItems(vars.users_to_remove) || hasItems(vars.users_to_modify)
           ? [
               ORGANIZATION_API_USER_LIST_TAG,
               ORGANIZATION_API_AVAILABLE_USER_LIST_TAG,

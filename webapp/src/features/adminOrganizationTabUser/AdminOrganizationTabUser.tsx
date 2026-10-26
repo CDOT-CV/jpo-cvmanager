@@ -98,11 +98,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                userMultiDelete(rowData)
+                await userMultiDelete(rowData)
               } else {
-                userOnDelete(rowData)
+                await userOnDelete(rowData)
               }
             },
           },
@@ -134,11 +134,11 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                userMultiDelete(rowData)
+                await userMultiDelete(rowData)
               } else {
-                userOnDelete(rowData)
+                await userOnDelete(rowData)
               }
             },
           },
@@ -250,16 +250,16 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
   const userMultiDelete = async (rows: AdminUserForOrg[]) => {
     const loadingToast = toast.loading(`Deleting ${rows.length} User(s)...`)
     try {
+      const orgCounts = await Promise.all(rows.map((user) => getUserOrganizations(user.email).unwrap()))
       const invalidUsers: string[] = []
       const validEmails: string[] = []
-      for (const user of rows) {
-        const userOrgs = await getUserOrganizations(user.email).unwrap()
-        if (userOrgs.length > 1) {
+      rows.forEach((user, i) => {
+        if (orgCounts[i].length > 1) {
           validEmails.push(user.email)
         } else {
           invalidUsers.push(user.email)
         }
-      }
+      })
       if (invalidUsers.length > 0) {
         toast.dismiss(loadingToast)
         alert(
@@ -292,8 +292,7 @@ const AdminOrganizationTabUser = (props: AdminOrganizationTabUserProps) => {
       toast.error('Please select users to add')
       return
     }
-    const missingRole = userList.find((u) => !u.role)
-    if (missingRole) {
+    if (userList.some((u) => !u.role)) {
       toast.error('Please select a role for all users to add')
       return
     }

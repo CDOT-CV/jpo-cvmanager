@@ -10,7 +10,7 @@ import { RSU_API_RSU_LIST_ID, RSU_API_RSU_TAG, rsuApiSlice } from './rsuApiSlice
 import { USER_API_USER_LIST_ID, USER_API_USER_TAG, userApiSlice } from './userApiSlice'
 
 /** True when the optional list exists and has at least one entry. */
-const hasItems = (items?: readonly unknown[]): boolean => (items?.length ?? 0) > 0
+export const hasItems = (items?: readonly unknown[]): boolean => (items?.length ?? 0) > 0
 
 /**
  * Builds the adminIntersectionApi cache tags to invalidate for a patch.

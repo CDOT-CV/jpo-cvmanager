@@ -157,10 +157,12 @@ const AdminEditUser = () => {
   }
 
   const getAvailableOrganizations = (currentIndex: number) => {
-    const selectedOrgNames = fields
-      .map((field, index) => (index !== currentIndex ? field.organization : null))
-      .filter((org) => org !== null && org !== '')
-    return userAllowedSelections?.organizations?.filter((org) => !selectedOrgNames.includes(org)) || []
+    const selectedOrgNames = new Set(
+      fields
+        .map((field, index) => (index !== currentIndex ? field.organization : null))
+        .filter((org) => org !== null && org !== '')
+    )
+    return userAllowedSelections?.organizations?.filter((org) => !selectedOrgNames.has(org)) || []
   }
 
   const isLoading = isLoadingUser || isLoadingAllowedSelections

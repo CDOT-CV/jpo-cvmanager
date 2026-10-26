@@ -122,11 +122,11 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                rsuMultiDelete(rowData)
+                await rsuMultiDelete(rowData)
               } else {
-                rsuOnDelete(rowData)
+                await rsuOnDelete(rowData)
               }
             },
           },
@@ -155,11 +155,11 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
         const buttons = [
           {
             label: 'Yes',
-            onClick: () => {
+            onClick: async () => {
               if (Array.isArray(rowData)) {
-                rsuMultiDelete(rowData)
+                await rsuMultiDelete(rowData)
               } else {
-                rsuOnDelete(rowData)
+                await rsuOnDelete(rowData)
               }
             },
           },
@@ -243,16 +243,16 @@ const AdminOrganizationTabRsu = (props: AdminOrganizationTabRsuProps) => {
   const rsuMultiDelete = async (rows: AdminRsu[]) => {
     const loadingToast = toast.loading(`Deleting ${rows.length} RSU(s)...`)
     try {
+      const orgCounts = await Promise.all(rows.map((row) => getRsuOrganizations(row.ip).unwrap()))
       const invalidRsus: string[] = []
       const validRsuIps: string[] = []
-      for (const row of rows) {
-        const rsuData = await getRsuOrganizations(row.ip).unwrap()
-        if (rsuData.length > 1) {
+      rows.forEach((row, i) => {
+        if (orgCounts[i].length > 1) {
           validRsuIps.push(row.ip)
         } else {
           invalidRsus.push(row.ip)
         }
-      }
+      })
       if (invalidRsus.length > 0) {
         toast.dismiss(loadingToast)
         alert(
