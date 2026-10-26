@@ -113,14 +113,16 @@ public class RsuController {
 
     @Operation(summary = "Create RSU", description = "Create a new RSU")
     @PostMapping(produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRoleInOrgIds('OPERATOR', #body.organizations))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #body.organizations))")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
     public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
-        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.OPERATOR);
+        List<Organization> qualifiedOrgs = authToken.getQualifiedOrgList(UserRole.ADMIN);
+
         rsuManagementService.createRsu(body, qualifiedOrgs);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();

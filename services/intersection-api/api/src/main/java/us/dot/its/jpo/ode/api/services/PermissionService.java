@@ -189,6 +189,10 @@ public class PermissionService {
     }
 
     public boolean hasRoleInOrgIds(UserRole role, List<Integer> orgIds) {
+        if (orgIds == null || orgIds.isEmpty()) {
+            return true;
+        }
+
         CvManagerAuthToken authToken = getCvManagerAuthToken();
         if (authToken.isSuperUser()) {
             return true;
@@ -297,6 +301,10 @@ public class PermissionService {
 
     // Allow Connection if the users organization controls the specified RSU unit
     public boolean hasRsus(List<String> rsuIP, String role) {
+        if (rsuIP == null || rsuIP.isEmpty()) {
+            return true;
+        }
+
         List<InetAddress> ipv4Addresses = new ArrayList<>();
         for (String ip : rsuIP) {
             ipv4Addresses.add(RsuManagementService.toIpv4Address(ip));
@@ -305,6 +313,7 @@ public class PermissionService {
         return checkQualifiedOrgs(role, qualifiedOrgs -> rsuRepository.findAllowedRsuIpsInOrganizations(qualifiedOrgs)
                 .containsAll(ipv4Addresses));
     }
+
 
     // Allow Connection if the user's organization owns the specified RSU unit
     public boolean isRsuOwner(String rsuIP, String role) {

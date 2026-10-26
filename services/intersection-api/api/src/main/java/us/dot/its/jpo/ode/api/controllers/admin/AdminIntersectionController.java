@@ -1,12 +1,7 @@
 package us.dot.its.jpo.ode.api.controllers.admin;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -19,20 +14,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.admin.intersection.AllowedSelections;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionCreate;
-
-import us.dot.its.jpo.ode.api.models.UserRole;
+import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionDto;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionListResponse;
 import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionPatch;
-import us.dot.its.jpo.ode.api.models.admin.intersection.IntersectionSingleResponse;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.services.AdminIntersectionService;
 import us.dot.its.jpo.ode.api.services.PermissionService;
-
-import java.util.Collections;
-import java.util.List;
 
 /**
  * REST controller for admin intersection management.
@@ -84,8 +83,6 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public IntersectionListResponse getAllIntersections(
             @Parameter(description = "Organization to scope results to", required = true) @RequestHeader(name = "Organization") Integer orgId) {
-
-        log.info("GET /admin/intersections. organization={}", orgId);
         Organization organization = permissionService.getOrganizationById(orgId);
         return adminIntersectionService.getAllIntersections(organization);
     }
@@ -109,8 +106,9 @@ public class AdminIntersectionController {
     @GetMapping(value = "/allowed-selections", produces = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('USER')")
     public AllowedSelections getAllowedSelections() {
-        log.info("GET /admin/intersections/allowed-selections");
-        return adminIntersectionService.getAllowedSelections();
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
+        return adminIntersectionService.getAllowedSelections(qualifiedOrgs);
     }
 
     /**
@@ -132,8 +130,6 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
     public IntersectionListResponse getIntersectionsNotInOrganization(
             @Parameter(description = "Organization to exclude intersections from", required = true) @RequestHeader(name = "Organization") Integer orgId) {
-
-        log.info("GET /admin/intersections/available. organization={}", orgId);
         Organization organization = permissionService.getOrganizationById(orgId);
         return adminIntersectionService.getIntersectionsNotInOrganization(organization);
     }
@@ -160,7 +156,9 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "404", description = "Referenced organization or RSU not found"),
     })
     @PostMapping(produces = "application/json", consumes = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasRsus(#create.getRsus(), 'OPERATOR'))")
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #create.getOrganizations()) && " +
+            "@PermissionService.hasRsus(#create.getRsus(), 'OPERATOR'))")
     public void createIntersection(@RequestBody @Validated IntersectionCreate create) {
         CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
         List<Organization> qualifiedOrgs = token.getQualifiedOrgList(UserRole.OPERATOR);
@@ -187,10 +185,10 @@ public class AdminIntersectionController {
             @ApiResponse(responseCode = "404", description = "Intersection not found"),
     })
     @GetMapping(value = "/{intersectionId}", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('USER') && @PermissionService.hasIntersection(#intersectionId, 'USER'))")
-    public IntersectionSingleResponse getIntersection(
+    @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('USER') && " +
+            "@PermissionService.hasIntersection(#intersectionId, 'USER'))")
+    public IntersectionDto getIntersection(
             @Parameter(description = "Intersection number to retrieve", example = "12109") @PathVariable Integer intersectionId) {
-
         return adminIntersectionService.getIntersection(intersectionId);
     }
 
@@ -219,16 +217,13 @@ public class AdminIntersectionController {
     @PatchMapping(produces = "application/json", consumes = "application/json")
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && " +
             "@PermissionService.hasIntersection(#patch.origIntersectionId, 'OPERATOR') && " +
-            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToAdd) && " +
-            "@PermissionService.hasRoleInOrgIds('OPERATOR', #patch.organizationsToRemove) && " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToAdd) && " +
+            "@PermissionService.hasRoleInOrgIds('ADMIN', #patch.organizationsToRemove) && " +
             "@PermissionService.hasRsus(#patch.rsusToAdd, 'OPERATOR') && " +
             "@PermissionService.hasRsus(#patch.rsusToRemove, 'OPERATOR'))")
     public void patchIntersection(@RequestBody @Validated IntersectionPatch patch) {
-        CvManagerAuthToken token = permissionService.getCvManagerAuthToken();
-        List<Organization> qualifiedOrgs = token != null
-                ? token.getQualifiedOrgList(UserRole.OPERATOR)
-                : Collections.emptyList();
-
+        List<Organization> qualifiedOrgs = permissionService.getCvManagerAuthToken()
+                .getQualifiedOrgList(UserRole.ADMIN);
         adminIntersectionService.patchIntersection(patch, qualifiedOrgs);
     }
 
@@ -255,8 +250,6 @@ public class AdminIntersectionController {
     @PreAuthorize("@PermissionService.isSuperUser() || (@PermissionService.hasRole('OPERATOR') && @PermissionService.hasIntersection(#intersectionId, 'OPERATOR'))")
     public void deleteIntersection(
             @Parameter(description = "Intersection number to delete", example = "12109") @PathVariable String intersectionId) {
-
-        log.info("DELETE /admin/intersections/{}. intersectionId={}", intersectionId, intersectionId);
         adminIntersectionService.deleteIntersection(intersectionId);
     }
 }
