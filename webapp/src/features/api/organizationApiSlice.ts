@@ -141,13 +141,13 @@ export const organizationApiSlice = createApi({
           : []),
       ],
     }),
-    deleteOrganization: builder.mutation<void, string>({
-      query: (orgName) => ({
-        url: `/${orgName}`,
+    deleteOrganization: builder.mutation<void, number>({
+      query: (orgId) => ({
+        url: `/${orgId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_, __, orgName) => [
-        { type: ORGANIZATION_API_ORG_TAG, id: orgName },
+      invalidatesTags: (_, __, orgId) => [
+        { type: ORGANIZATION_API_ORG_TAG, id: orgId },
         { type: ORGANIZATION_API_ORG_TAG, id: ORGANIZATION_API_ORG_LIST_ID },
       ],
     }),

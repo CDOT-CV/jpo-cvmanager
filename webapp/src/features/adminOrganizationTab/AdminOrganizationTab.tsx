@@ -15,10 +15,10 @@ import toast from 'react-hot-toast'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ConditionalRenderIntersection, ConditionalRenderRsu } from '../../feature-flags'
 import {
-    changeOrganizationName,
-    deleteOrgAssociationByOrgName,
-    selectOrganizationId,
-    selectOrganizationName,
+  changeOrganizationName,
+  deleteOrgAssociationByOrgId,
+  selectOrganizationId,
+  selectOrganizationName,
 } from '../../generalSlices/userSlice'
 import { NotFound } from '../../pages/404'
 import { RootState } from '../../store'
@@ -65,16 +65,16 @@ const AdminOrganizationTab = () => {
     )
   }
 
-  const handleOrgDelete = async (orgName: string) => {
+  const handleOrgDelete = async (orgId: number, orgName: string) => {
     const loadingToast = toast.loading(`Deleting organization ${orgName}...`)
     try {
-      await deleteOrganization(orgName).unwrap()
-      dispatch(deleteOrgAssociationByOrgName(orgName))
-      const next = orgList.find((o) => o.name !== orgName) ?? orgList[0]
+      await deleteOrganization(orgId).unwrap()
+      dispatch(deleteOrgAssociationByOrgId(orgId))
+      const next = orgList.find((o) => o.id !== orgId) ?? orgList[0]
       if (next) {
         dispatch(changeOrganizationName(next.name))
       }
-      toast.success(`Successfully deleted organization: ${orgName}`, { id: loadingToast })
+      toast.success(`Successfully deleted organization ${orgName}`, { id: loadingToast })
     } catch (error) {
       toast.error('Failed to delete organization due to error: ' + error, { id: loadingToast })
     }
@@ -128,7 +128,7 @@ const AdminOrganizationTab = () => {
                     </Grid2>
                     <Grid2 size={{ xs: 0 }} sx={{ marginLeft: '10px' }}>
                       <AdminOrganizationDeleteMenu
-                        deleteOrganization={() => handleOrgDelete(selectedOrgName)}
+                        deleteOrganization={() => handleOrgDelete(selectedOrgId, selectedOrgName)}
                         selectedOrganization={selectedOrgName}
                       />
                     </Grid2>
