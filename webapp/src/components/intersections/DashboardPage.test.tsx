@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { ThemeProvider } from '@mui/material'
 import { act, render } from '@testing-library/react'
 import { Provider } from 'react-redux'
@@ -10,12 +11,12 @@ import NotificationApi from '../../apis/intersections/notification-api'
 import DashboardPage from './DashboardPage'
 
 beforeEach(() => {
-  jest.spyOn(AssessmentsApi, 'getLatestAssessment').mockResolvedValue(undefined as any)
-  jest.spyOn(NotificationApi, 'getActiveNotifications').mockResolvedValue([])
+  vi.spyOn(AssessmentsApi, 'getLatestAssessment').mockResolvedValue(undefined as any)
+  vi.spyOn(NotificationApi, 'getActiveNotifications').mockResolvedValue([])
 })
 
 afterEach(() => {
-  jest.restoreAllMocks()
+  vi.restoreAllMocks()
 })
 
 it('should take a snapshot', async () => {

@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { ThemeProvider } from '@mui/material'
 import { act, render } from '@testing-library/react'
 import { Provider } from 'react-redux'
@@ -28,9 +29,9 @@ const parameters = [
   },
 ]
 
-jest.mock('../../features/api/intersectionConfigSlice', () => ({
-  ...jest.requireActual('../../features/api/intersectionConfigSlice'),
-  useGetIntersectionParametersQuery: () => ({ data: parameters, refetch: jest.fn() }),
+vi.mock('../../features/api/intersectionConfigSlice', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../features/api/intersectionConfigSlice')>()),
+  useGetIntersectionParametersQuery: () => ({ data: parameters, refetch: vi.fn() }),
 }))
 
 it('should take a snapshot', async () => {

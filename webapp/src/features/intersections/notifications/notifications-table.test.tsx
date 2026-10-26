@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import { ThemeProvider } from '@mui/material'
 import { act, render } from '@testing-library/react'
 import { Provider } from 'react-redux'
@@ -28,11 +29,11 @@ const notifications = [
 ] as any
 
 beforeEach(() => {
-  jest.spyOn(NotificationApi, 'getActiveNotifications').mockResolvedValue(notifications)
+  vi.spyOn(NotificationApi, 'getActiveNotifications').mockResolvedValue(notifications)
 })
 
 afterEach(() => {
-  jest.restoreAllMocks()
+  vi.restoreAllMocks()
 })
 
 const renderTable = async (simple: boolean) => {
