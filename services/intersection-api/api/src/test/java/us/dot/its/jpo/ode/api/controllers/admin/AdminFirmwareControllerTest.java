@@ -47,6 +47,10 @@ import us.dot.its.jpo.ode.api.models.storage.FirmwareRuleModels.*;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService;
 import us.dot.its.jpo.ode.api.services.FirmwareDeletionService.FirmwareDeletionConflictException;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadOptionsService;
+import us.dot.its.jpo.ode.api.services.FirmwareUpgradeStatusService;
+import us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 import us.dot.its.jpo.ode.api.services.FirmwareUploadService.FirmwareUploadConfigurationException;
 import us.dot.its.jpo.ode.api.services.PermissionService;
@@ -79,6 +83,25 @@ class AdminFirmwareControllerTest {
 
     @MockitoBean(name = "PermissionService")
     private PermissionService permissionService;
+
+    @MockitoBean
+    private FirmwareUpgradeStatusService firmwareUpgradeStatusService;
+
+    @Test
+    @WithMockUser
+    void onlyAdminsCanReadSchedulerStatusAndErrorsAreNotEmptySuccesses() throws Exception {
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isForbidden());
+        org.mockito.Mockito.verifyNoInteractions(firmwareUpgradeStatusService);
+        when(permissionService.hasRole(UserRole.ADMIN)).thenReturn(true);
+        when(firmwareUpgradeStatusService.getStatus()).thenReturn(
+                new FirmwareUpgradeStatus(Map.of(), List.of("192.0.2.1")));
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.active_upgrades").isMap())
+                .andExpect(jsonPath("$.upgrade_queue[0]").value("192.0.2.1"));
+        when(firmwareUpgradeStatusService.getStatus()).thenThrow(new ResponseStatusException(
+                HttpStatus.BAD_GATEWAY, "Unable to retrieve firmware upgrade status"));
+        mockMvc.perform(get("/admin/firmware/upgrade-status")).andExpect(status().isBadGateway());
+    }
 
     @MockitoBean
     private FirmwareUploadService firmwareUploadService;

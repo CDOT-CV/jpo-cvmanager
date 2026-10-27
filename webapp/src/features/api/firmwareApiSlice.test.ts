@@ -28,6 +28,17 @@ const requestBody: FirmwareUploadUrlRequest = {
 describe('firmwareApiSlice', () => {
   beforeEach(() => fetchMock.resetMocks())
 
+  it('requests scheduler status through the authenticated Intersection API', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ active_upgrades: {}, upgrade_queue: [] }))
+    const store = setupStore(mockUserState)
+    const result = await store.dispatch(firmwareApiSlice.endpoints.getFirmwareUpgradeStatus.initiate())
+    expect('error' in result).toBe(false)
+    const request = fetchMock.mock.calls[0][0] as Request
+    expect(request.url).toBe(`${BASE_URL}/upgrade-status`)
+    expect(request.method).toBe('GET')
+    expect(request.headers.get('Authorization')).toBe('Bearer test-token')
+  })
+
   it('sends bulk rule assignments with the destinations the administrator saw', async () => {
     fetchMock.mockResponseOnce('', { status: 204 })
     const store = setupStore(mockUserState)

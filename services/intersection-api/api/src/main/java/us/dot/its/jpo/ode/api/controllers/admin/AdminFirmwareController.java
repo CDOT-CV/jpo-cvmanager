@@ -1,6 +1,8 @@
 package us.dot.its.jpo.ode.api.controllers.admin;
 
 import java.util.UUID;
+import us.dot.its.jpo.ode.api.models.devices.management.FirmwareUpgradeStatus;
+import us.dot.its.jpo.ode.api.services.FirmwareUpgradeStatusService;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -42,10 +44,24 @@ import us.dot.its.jpo.ode.api.services.FirmwareUploadService;
 @Validated
 @Tag(name = "Admin Firmware", description = "Manage firmware uploads")
 public class AdminFirmwareController {
+    private final FirmwareUpgradeStatusService firmwareUpgradeStatusService;
     private final FirmwareUploadService firmwareUploadService;
     private final FirmwareObjectService firmwareObjectService;
     private final FirmwareUploadOptionsService firmwareUploadOptionsService;
     private final FirmwareDeletionService firmwareDeletionService;
+
+    @GetMapping(value = "/upgrade-status", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('ADMIN')")
+    @Operation(summary = "Get the firmware scheduler's active upgrades and queue in scheduling order")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Scheduler snapshot returned"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+            @ApiResponse(responseCode = "502", description = "Scheduler is unavailable or returned an invalid response"),
+            @ApiResponse(responseCode = "503", description = "Firmware manager is not configured")
+    })
+    public FirmwareUpgradeStatus getUpgradeStatus() {
+        return firmwareUpgradeStatusService.getStatus();
+    }
 
     @Operation(summary = "Clean up records for a firmware file missing from storage")
     @DeleteMapping("/objects/{objectId}/records")
