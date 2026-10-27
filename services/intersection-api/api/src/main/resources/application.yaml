@@ -200,4 +200,5 @@ bucket4j:
 
 # Preserve the forwarding display timezone used by the Python API.
 snmp:
+  request-timeout: ${SNMP_REQUEST_TIMEOUT:5s}
   display-time-zone: ${TIMEZONE:America/Denver}

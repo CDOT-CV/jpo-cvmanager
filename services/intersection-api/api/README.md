@@ -253,7 +253,6 @@ The API Docker build installs this library automatically. SNMP4J is the library'
 production backend; Net-SNMP executables and runtime MIB files are not required.
 The message-forwarding create/delete endpoints use this library.
 
-
 ## RSU message forwarding
 
 **RSU 4.1 support retirement**
@@ -277,13 +276,13 @@ must be refreshed rather than blindly retried. RSU 4.1 remains cached-view only.
 
 All forwarding operations live in one controller:
 
-| Method | Path | Purpose | Minimum role |
-| --- | --- | --- | --- |
-| GET | `/devices/rsus/message-forwarding/{rsuIp}` | Cached PostgreSQL view | USER |
-| GET | `/devices/rsus/message-forwarding/{rsuIp}/live` | Complete direct RSU read | USER |
-| POST | `/devices/rsus/message-forwarding` | Create forwarding rows | OPERATOR |
-| DELETE | `/devices/rsus/message-forwarding` | Delete forwarding rows using message presets | OPERATOR |
-| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR |
+| Method | Path                                                            | Purpose                                           | Minimum role |
+| ------ | --------------------------------------------------------------- | ------------------------------------------------- | ------------ |
+| GET    | `/devices/rsus/message-forwarding/{rsuIp}`                      | Cached PostgreSQL view                            | USER         |
+| GET    | `/devices/rsus/message-forwarding/{rsuIp}/live`                 | Complete direct RSU read                          | USER         |
+| POST   | `/devices/rsus/message-forwarding`                              | Create forwarding rows                            | OPERATOR     |
+| DELETE | `/devices/rsus/message-forwarding`                              | Delete forwarding rows using message presets      | OPERATOR     |
+| DELETE | `/devices/rsus/message-forwarding/{rsuIp}/rows/{table}/{index}` | Delete one existing row by its actual table/index | OPERATOR     |
 
 Every route enforces RSU ownership using the existing selected-organization rules;
 super users retain their existing access. Cached reads require no SNMP credentials
@@ -296,17 +295,19 @@ snapshot returns `[]`.
 Both read routes return the same row list:
 
 ```json
-[{
-  "table": "TRANSMIT",
-  "index": 1,
-  "messageType": "MAP",
-  "destinationIp": "198.51.100.3",
-  "destinationPort": 44920,
-  "startDatetime": "2026-10-15T10:00:00-06:00",
-  "endDatetime": "2036-10-15T10:00:00-06:00",
-  "active": true,
-  "includeSecurity": true
-}]
+[
+  {
+    "table": "TRANSMIT",
+    "index": 1,
+    "messageType": "MAP",
+    "destinationIp": "198.51.100.3",
+    "destinationPort": 44920,
+    "startDatetime": "2026-10-15T10:00:00-06:00",
+    "endDatetime": "2036-10-15T10:00:00-06:00",
+    "active": true,
+    "includeSecurity": true
+  }
+]
 ```
 
 `table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates use
@@ -357,9 +358,9 @@ success:
       "step": null,
       "elapsedMs": 250,
       "steps": [
-        {"name": "configure-forwarding", "status": "SUCCEEDED"},
-        {"name": "read-current-forwarding", "status": "SUCCEEDED"},
-        {"name": "sync-database", "status": "SUCCEEDED"}
+        { "name": "configure-forwarding", "status": "SUCCEEDED" },
+        { "name": "read-current-forwarding", "status": "SUCCEEDED" },
+        { "name": "sync-database", "status": "SUCCEEDED" }
       ]
     },
     "writeState": "VERIFIED",
@@ -393,6 +394,12 @@ snapshot persistence. Multiple API replicas and external writers require separat
 coordination. Responses are synchronous and task histories are not durable jobs;
 configure upstream HTTP timeouts to cover queue plus execution budgets. Webapp
 migration and removal of the Python forwarding routes belong to the next stacked PR.
+
+Set `SNMP_REQUEST_TIMEOUT` in the deployment environment (or `.env` for Docker Compose)
+to adjust the timeout per SNMP attempt; the default is `5s`. For example, use
+`SNMP_REQUEST_TIMEOUT=10s` for a slower network. Recreate the API container after
+changing it; no image rebuild is needed. The 60-second execution limit still
+applies, including retries and all task steps.
 
 Optional Spring configuration (defaults shown):
 
