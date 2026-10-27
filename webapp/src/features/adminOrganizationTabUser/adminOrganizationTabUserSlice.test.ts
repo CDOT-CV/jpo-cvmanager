@@ -1,24 +1,21 @@
 import { vi } from 'vitest'
-
-vi.mock('../../apis/api-helper')
-import reducer from './adminOrganizationTabUserSlice'
-import {
-  // async thunks
-  userDeleteSingle,
-  userDeleteMultiple,
-  userAddMultiple,
-  userBulkEdit,
+import { RootState } from '../../store'
+import reducer, {
   refresh,
-
-  // reducers
-  setSelectedUserList,
-  setSelectedUserRole,
-
   // selectors
   selectLoading,
   selectSelectedUserList,
+  // reducers
+  setSelectedUserList,
+  setSelectedUserRole,
+  userAddMultiple,
+  userBulkEdit,
+  userDeleteMultiple,
+  // async thunks
+  userDeleteSingle,
 } from './adminOrganizationTabUserSlice'
-import { RootState } from '../../store'
+
+vi.mock('../../apis/api-helper')
 
 // Mock the organizationApiSlice
 const { mockInitiate, mockInvalidateTags } = vi.hoisted(() => ({ mockInitiate: vi.fn(), mockInvalidateTags: vi.fn() }))
@@ -48,7 +45,6 @@ describe('admin organization tab User reducer', () => {
 })
 
 describe('async thunks', () => {
-
   describe('userDeleteSingle', () => {
     it('returns and calls the api correctly', async () => {
       let dispatch = vi.fn()
@@ -76,7 +72,7 @@ describe('async thunks', () => {
       try {
         window.alert = vi.fn()
         await action(dispatch, getState, undefined)
-        expect(dispatch).toHaveBeenCalledTimes(2 + 4)
+        expect(dispatch).toHaveBeenCalledTimes(2 + 2)
         expect(window.alert).not.toHaveBeenCalled()
 
         // Only 1 organization
@@ -90,7 +86,7 @@ describe('async thunks', () => {
         })
         window.alert = vi.fn()
         await action(dispatch, getState, undefined)
-        expect(dispatch).toHaveBeenCalledTimes(2 + 3)
+        expect(dispatch).toHaveBeenCalledTimes(2 + 1)
         expect(window.alert).toHaveBeenCalledWith(
           'Cannot remove User test@gmail.com from selectedOrg because they must belong to at least one organization.'
         )
@@ -120,11 +116,12 @@ describe('async thunks', () => {
       const selectedOrgEmail = 'name@email.com'
       const updateTableData = vi.fn()
 
-      dispatch.mockResolvedValueOnce(undefined) // First call
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2', 'org3'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ payload: { success: true } })
+      dispatch.mockResolvedValueOnce(undefined) // refresh call
+      dispatch.mockResolvedValueOnce(undefined) // invalidate tags call
 
       const action = userDeleteMultiple({ users, selectedOrg, selectedOrgEmail, updateTableData })
 

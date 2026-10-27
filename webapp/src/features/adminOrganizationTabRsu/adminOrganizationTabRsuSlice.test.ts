@@ -1,26 +1,26 @@
 import { vi } from 'vitest'
-import reducer from './adminOrganizationTabRsuSlice'
-import {
+import { RootState } from '../../store'
+import reducer, {
+  refresh,
+  rsuAddMultiple,
+  rsuDeleteMultiple,
   // async thunks
   rsuDeleteSingle,
-  rsuDeleteMultiple,
-  rsuAddMultiple,
-  refresh,
-
-  // reducers
-  setSelectedRsuList,
-
   // selectors
   selectLoading,
   selectSelectedRsuList,
+  // reducers
+  setSelectedRsuList,
 } from './adminOrganizationTabRsuSlice'
-import { RootState } from '../../store'
 import { AdminOrgRsuWithId } from './AdminOrganizationTabRsuTypes'
 
 // Mock the organizationApiSlice
 const { mockInitiate, mockInvalidateTags } = vi.hoisted(() => ({ mockInitiate: vi.fn(), mockInvalidateTags: vi.fn() }))
 
 vi.mock('../api/organizationApiSlice', () => ({
+  ORGANIZATION_API_AVAILABLE_RSU_LIST_TAG: 'AvailableRsuList',
+  ORGANIZATION_API_RSU_LIST_TAG: 'RsuList',
+  ORGANIZATION_API_RSU_TAG: 'Rsu',
   organizationApiSlice: {
     endpoints: {
       getRsuOrganizations: {
@@ -60,15 +60,17 @@ describe('async thunks', () => {
         },
         organizationApi: {},
       })
-      const rsu = { ip: '1.1.1.1' } as any
+      const rsu = { ip: '1.1.1.1 returns and calls the api correctly when RSU has multiple organizations' } as any
       const selectedOrg = 'selectedOrg'
       const selectedOrgEmail = 'name@email.com'
       const updateTableData = vi.fn()
 
-      dispatch.mockResolvedValue({
+      dispatch.mockResolvedValueOnce(undefined) // first call
+      dispatch.mockResolvedValueOnce({ data: [1, 2] }) // getRsuOrganizations
+      dispatch.mockResolvedValueOnce({
         data: ['org1', 'org2'],
         payload: { success: true },
-      })
+      }) // editOrg
 
       const action = rsuDeleteSingle({ rsu, selectedOrg, selectedOrgEmail, updateTableData })
 
@@ -303,7 +305,7 @@ describe('async thunks', () => {
       const selectedOrgEmail = 'name@email.com'
       const updateTableData = vi.fn()
 
-      dispatch.mockResolvedValueOnce(undefined) // First call
+      dispatch.mockResolvedValueOnce(undefined) // first call
       dispatch.mockResolvedValueOnce({ payload: { success: true } })
 
       const action = rsuAddMultiple({ rsuList, selectedOrg, selectedOrgEmail, updateTableData })
