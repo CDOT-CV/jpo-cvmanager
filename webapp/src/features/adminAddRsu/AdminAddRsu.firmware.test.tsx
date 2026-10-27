@@ -52,7 +52,7 @@ it('explains an empty firmware catalog without offering an unknown option', () =
   vi.mocked(useGetRsuFirmwareOptionsQuery).mockReturnValue({ currentData: [], refetch } as any)
   renderForm()
   choose('model', model)
-  expect(screen.getByText(/No eligible firmware exists/)).toBeVisible()
+  expect(screen.getByText('Register eligible firmware for this model before adding the RSU')).toBeVisible()
   expect(screen.getByRole('combobox', { name: /Installed Firmware/ })).toBeRequired()
   expect(create).not.toHaveBeenCalled()
 })
