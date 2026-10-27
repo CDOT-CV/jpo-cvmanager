@@ -127,11 +127,8 @@ def insert_scms_data(data):
         if validate_scms_data(value) is False:
             continue
 
-        # If deviceHealth isn't included in the device's SCMS profile, assume unhealthy
-        if "deviceHealth" in value:
-            health = "TRUE" if value["deviceHealth"] == "Healthy" else "FALSE"
-        else:
-            health = "FALSE"
+        # validate_scms_data guarantees deviceHealth is present
+        health = "TRUE" if value["deviceHealth"] == "Healthy" else "FALSE"
 
         # If expiration isn't included in the device's SCMS profile, assume None
         if "expiration" in value:

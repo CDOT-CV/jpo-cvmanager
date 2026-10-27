@@ -2,6 +2,7 @@ package com.cvmanager.auth.provider.user;
 
 import org.junit.jupiter.api.Test;
 import org.keycloak.component.ComponentModel;
+import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -570,6 +571,36 @@ class CustomUserStorageProviderTest {
 
             assertThat(users.isEmpty(), is(true));
             verify(connection, never()).prepareStatement(anyString());
+        }
+    }
+
+    @Test
+    void getGroupMembersStream_bindsPagingAsParameters() throws SQLException {
+        KeycloakSession keycloakSession = mock(KeycloakSession.class);
+        RealmModel realmModel = mock(RealmModel.class);
+        ComponentModel model = mock(ComponentModel.class);
+
+        try (MockedStatic<CustomUserStorageProvider> mockedStatic = Mockito
+                .mockStatic(CustomUserStorageProvider.class)) {
+            Connection connection = mock(Connection.class);
+            mockedStatic.when(() -> CustomUserStorageProvider.getConnection(any())).thenReturn(connection);
+
+            PreparedStatement preparedStatement = mock(PreparedStatement.class);
+            when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
+            ResultSet resultSet = createResultSet();
+            when(resultSet.next()).thenReturn(true, false);
+            when(preparedStatement.getResultSet()).thenReturn(resultSet);
+
+            CustomUserStorageProvider provider = new CustomUserStorageProvider(keycloakSession, model);
+            List<UserModel> users = provider
+                    .getGroupMembersStream(realmModel, mock(GroupModel.class), 5, 25)
+                    .collect(Collectors.toList());
+
+            verify(connection).prepareStatement(Mockito.argThat(
+                    (String q) -> !q.contains("WHERE") && q.endsWith("ORDER BY email LIMIT ? OFFSET ?;")));
+            verify(preparedStatement).setObject(1, 25);
+            verify(preparedStatement).setObject(2, 5);
+            assertThat(users.size(), is(1));
         }
     }
 

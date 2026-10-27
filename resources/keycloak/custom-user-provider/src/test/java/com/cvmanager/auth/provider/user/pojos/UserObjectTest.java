@@ -108,4 +108,16 @@ class UserObjectTest {
         assertThat((((List<Map<String, String>>) tokenMap.get(Constants.ORGANIZATIONS_KEY)).get(1)).get("role"),
                 is("test role 2"));
     }
+
+    @Test
+    void fromResultSet_nullSuperUserStaysNull() throws SQLException {
+        ResultSet resultSet = mock(ResultSet.class);
+        when(resultSet.getString(Constants.KEYCLOAK_ID_KEY)).thenReturn("keycloak_id");
+        when(resultSet.getBoolean(Constants.SUPER_USER_KEY)).thenReturn(false);
+        when(resultSet.wasNull()).thenReturn(true);
+
+        UserObject userObject = UserObject.fromResultSet(resultSet);
+
+        assertThat(userObject.getSuperUser(), is(nullValue()));
+    }
 }
