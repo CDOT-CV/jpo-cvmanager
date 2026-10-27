@@ -1,3 +1,8 @@
+export type FirmwareUpgradeStatus = {
+  active_upgrades: Record<string, { manufacturer: string; model: string; target_firmware_version: string }>
+  upgrade_queue: string[]
+}
+
 export type FirmwareObject = {
   object_id: string
   object_name: string
