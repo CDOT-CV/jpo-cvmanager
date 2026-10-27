@@ -3,7 +3,7 @@ import tempfile
 import os
 from httpx import ASGITransport, AsyncClient, BasicAuth
 from fastapi import HTTPException, Request
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime
 
 from addons.images.obu_ota_server.obu_ota_server import (
@@ -254,6 +254,57 @@ async def test_get_fw(mock_read_file, mock_parse_range_header, mock_get_firmware
     assert response.headers["Content-Length"] == "100"
 
 
+@patch(
+    "obu_ota_server_environment.OTA_USERNAME",
+    "username",
+)
+@patch(
+    "obu_ota_server_environment.OTA_PASSWORD",
+    "password",
+)
+@patch(
+    "addons.images.obu_ota_server.obu_ota_server.log_request", new_callable=AsyncMock
+)
+@patch("addons.images.obu_ota_server.obu_ota_server.get_firmware")
+@pytest.mark.anyio
+async def test_get_fw_not_found_logs_error(mock_get_firmware, mock_log_request):
+    mock_get_firmware.return_value = False
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.get(
+            "/firmwares/commsignia/missing_firmware_id",
+            auth=BasicAuth("username", "password"),
+        )
+    assert response.status_code == 404
+    mock_log_request.assert_called_once()
+    args = mock_log_request.call_args.args
+    assert args[0] == 1
+    assert args[2] == "missing_firmware_id"
+    assert args[3] is True
+
+
+@patch("addons.images.obu_ota_server.obu_ota_server.pgquery")
+@patch("addons.images.obu_ota_server.obu_ota_server.datetime")
+@patch("addons.images.obu_ota_server.obu_ota_server.removed_old_logs")
+@pytest.mark.asyncio
+async def test_log_request_error_status_true(
+    mock_removed_old_logs, mock_datetime, mock_pgquery
+):
+    mock_datetime.now.return_value = datetime(2024, 7, 30, 0, 0, 0)
+    mock_request = MagicMock(spec=Request)
+    mock_request.query_params = {
+        "serialnum": "111111111111",
+        "version": "y11.11.1-b11111",
+    }
+    mock_request.client.host = "127.0.0.1"
+
+    await log_request(1, mock_request, "test_firmware", True, "boom")
+
+    actual_query = mock_pgquery.write_db.call_args[0][0]
+    assert "'test_firmware', TRUE, 'boom')" in actual_query
+
+
 @patch("addons.images.obu_ota_server.obu_ota_server.pgquery")
 @patch("addons.images.obu_ota_server.obu_ota_server.datetime")
 @patch("addons.images.obu_ota_server.obu_ota_server.removed_old_logs")
@@ -273,7 +324,7 @@ async def test_log_request(mock_removed_old_logs, mock_datetime, mock_pgquery):
     # Call the log_request function
     manufacturer = 1
     firmware_id = "test_firmware"
-    error_status = 0
+    error_status = False
     error_message = ""
 
     await log_request(
@@ -283,7 +334,7 @@ async def test_log_request(mock_removed_old_logs, mock_datetime, mock_pgquery):
     # Verify the query passed to write_db
     expected_query = (
         f"INSERT INTO public.obu_ota_requests (obu_sn, manufacturer, request_datetime, origin_ip, obu_firmware_version, requested_firmware_version, error_status, error_message) VALUES"
-        f"('{mock_request.query_params['serialnum']}', {manufacturer}, '{fixed_datetime.strftime('%Y-%m-%d %H:%M:%S')}', '{mock_request.client.host}', '{mock_request.query_params['version']}', '{firmware_id}', B'{error_status}', '{error_message}')"
+        f"('{mock_request.query_params['serialnum']}', {manufacturer}, '{fixed_datetime.strftime('%Y-%m-%d %H:%M:%S')}', '{mock_request.client.host}', '{mock_request.query_params['version']}', '{firmware_id}', FALSE, '{error_message}')"
     ).replace(" ", "")
 
     actual_query = mock_pgquery.write_db.call_args[0][0].replace(" ", "")
@@ -306,7 +357,7 @@ def test_removed_old_logs_no_removal(mock_pgquery):
     removed_old_logs(serialnum)
 
     mock_pgquery.query_db.assert_called_once_with(
-        f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0'"
+        f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = FALSE"
     )
     mock_pgquery.write_db.assert_not_called()
 
@@ -324,10 +375,10 @@ def test_removed_old_logs_with_removal(mock_pgquery):
 
     assert mock_pgquery.query_db.call_count == 2
     mock_pgquery.query_db.assert_any_call(
-        f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0'"
+        f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = FALSE"
     )
     mock_pgquery.query_db.assert_any_call(
-        f"SELECT request_id FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0' ORDER BY request_datetime ASC LIMIT 5"
+        f"SELECT request_id FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = FALSE ORDER BY request_datetime ASC LIMIT 5"
     )
     mock_pgquery.write_db.assert_called_once_with(
         "DELETE FROM public.obu_ota_requests WHERE request_id IN (1,2,3,4,5)"

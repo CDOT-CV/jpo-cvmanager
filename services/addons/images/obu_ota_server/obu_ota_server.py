@@ -130,12 +130,12 @@ async def read_file(
 def removed_old_logs(serialnum: str):
     try:
         success_count = pgquery.query_db(
-            f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0'"
+            f"SELECT COUNT(*) FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = FALSE"
         )
         if success_count[0][0] > obu_ota_server_environment.MAX_COUNT:
             excess_count = success_count[0][0] - obu_ota_server_environment.MAX_COUNT
             oldest_entries = pgquery.query_db(
-                f"SELECT request_id FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = B'0' ORDER BY request_datetime ASC LIMIT {excess_count}"
+                f"SELECT request_id FROM public.obu_ota_requests WHERE obu_sn = '{serialnum}' AND error_status = FALSE ORDER BY request_datetime ASC LIMIT {excess_count}"
             )
             oldest_ids = [entry[0] for entry in oldest_entries]
             pgquery.write_db(
@@ -152,7 +152,7 @@ async def log_request(
     manufacturer: int,
     request: Request,
     firmware_id: str,
-    error_status: int,
+    error_status: bool,
     error_message: str,
 ):
     try:
@@ -164,7 +164,7 @@ async def log_request(
 
         current_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         query = f"INSERT INTO public.obu_ota_requests (obu_sn, manufacturer, request_datetime, origin_ip, obu_firmware_version, requested_firmware_version, error_status, error_message) VALUES\
-                ('{serialnum}', {manufacturer}, '{current_dt}', '{origin_ip}', '{version}', '{firmware_id}', B'{error_status}', '{error_message}')"
+                ('{serialnum}', {manufacturer}, '{current_dt}', '{origin_ip}', '{version}', '{firmware_id}', {'TRUE' if error_status else 'FALSE'}, '{error_message}')"
         logging.debug(f"Logging request to postgres with insert query: \n{query}")
         pgquery.write_db(query)
         removed_old_logs(serialnum)
@@ -192,12 +192,12 @@ async def get_fw(request: Request, firmware_id: str):
             "Accept-Ranges": "bytes",
         }
 
-        asyncio.create_task(log_request(1, request, firmware_id, 0, ""))
+        asyncio.create_task(log_request(1, request, firmware_id, False, ""))
         return Response(
             content=data, media_type="application/octet-stream", headers=headers
         )
     except Exception as e:
-        asyncio.create_task(log_request(1, request, firmware_id, 1, str(e)))
+        asyncio.create_task(log_request(1, request, firmware_id, True, str(e)))
         logging.error(
             f"get_fw: Error responding with firmware with error: {e} for firmware_id: {firmware_id}"
         )
