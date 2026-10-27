@@ -218,6 +218,10 @@ also available through this API and the Firmware tab.
 
 ### Operational rules
 
+- New RSUs require an installed `firmware_id` belonging to their selected model.
+  `GET /devices/rsus/firmware-options?model=Manufacturer%20Model` lists legacy and
+  originally verified versions. Selecting installed firmware does not trigger an upgrade.
+
 - Files are stored as `manufacturer/model/version/version.extension`. Configure
   the required suffix in `manufacturers.firmware_file_extension`; the selected
   file must match it. Only one active/verified upload is allowed per model/version,
