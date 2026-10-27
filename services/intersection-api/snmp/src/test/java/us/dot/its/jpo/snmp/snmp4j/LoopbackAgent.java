@@ -32,6 +32,7 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
     final SnmpCredentials credentials;
     volatile boolean dropReads, dropWrites, hold, rejectWrites;
     volatile long delayMillis;
+    volatile int lastRequestPort;
     volatile int maximumBulkRepetitions = 64;
     volatile int bulkResponseLimit = 64;
     volatile Consumer<PDU> alterResponse = ignored -> {};
@@ -75,6 +76,7 @@ final class LoopbackAgent implements AutoCloseable, CommandResponder {
     @Override public <A extends Address> void processPdu(CommandResponderEvent<A> event) {
         PDU request = event.getPDU();
         if (!(request instanceof ScopedPDU)) return;
+        lastRequestPort = ((UdpAddress) event.getPeerAddress()).getPort();
         event.setProcessed(true);
         PDU response = (PDU) request.clone();
         response.setType(PDU.RESPONSE);

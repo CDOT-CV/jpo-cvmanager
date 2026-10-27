@@ -14,7 +14,7 @@ import java.time.Duration;
  * @param admissionTimeout maximum wait for a concurrent-operation permit
  * @param maxConcurrentOperations number of active logical operations
  * @param maxSessions cached full credential profiles; only idle sessions can be evicted
- * @param maxTargetsPerSession peers cached in one credential profile
+ * @param maxTargetsPerSession peers cached in one credential profile; idle peers can be evicted
  * @param maxWalkBindings maximum bindings returned by a walk
  * @param maxWalkBytes OID/value accounting budget, at least 1024 bytes; not a total heap limit
  * @param maxBulkRepetitions zero for GETNEXT, or 1-64 for GETBULK page size

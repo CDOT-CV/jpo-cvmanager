@@ -33,7 +33,7 @@ Sessions are cached by the full credential profile, including both passwords and
 algorithms. Identical profiles share a transport; different profiles have separate
 security state. Each peer keeps its own engine state. No global USM is replaced.
 
-- Only idle sessions can be evicted or rotated. Full caches return `BUSY` when no idle session is available.
+- Idle profiles and peers can be evicted; active requests keep their state. Full caches return `BUSY` only when no idle entry can make room.
 - `close()` releases sockets, pending requests and timers.
 - Public types do not expose SNMP4J types or credentials in their string representations.
 
@@ -111,13 +111,16 @@ var values = result.value(measurements);
 | Concurrent operations          | 24                                        | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
 | Cached credential profiles     | 32                                        | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
 | Peers per session              | 1,024                                     | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
-| Request timeout / read retries | 5 seconds / 1                             | [`SnmpRequestPolicy`](src/main/java/us/dot/its/jpo/snmp/client/SnmpRequestPolicy.java) or adapter defaults     |
+| Request timeout per attempt / read retries | 5 seconds / 1                             | [`SnmpRequestPolicy`](src/main/java/us/dot/its/jpo/snmp/client/SnmpRequestPolicy.java) or adapter defaults     |
 | Whole-operation deadline       | 60 seconds                                | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
 | Adapter admission wait         | 5 seconds                                 | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
 | Walk limits                    | 16,384 bindings / 4 MiB OID/value payload | [`Snmp4jOptions`](src/main/java/us/dot/its/jpo/snmp/snmp4j/Snmp4jOptions.java)                             |
 | Running / queued tasks         | 24 / 1,024                                | [`SnmpExecutorOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpExecutorOptions.java)                       |
 | Queue / execution timeout      | 5 minutes / 60 seconds                    | [`SnmpTaskOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTaskOptions.java)                           |
 | Recorded calls per task        | 1,024                                     | Five-argument [`SnmpTaskOptions`](src/main/java/us/dot/its/jpo/snmp/execution/SnmpTaskOptions.java) constructor |
+
+- Request timeouts apply to each attempt, not the whole task. Reads allow one retry by default; SET has none.
+- Five seconds is a starting point. Tune `SnmpRequestPolicy` (or `Snmp4jOptions` for direct calls) for your network, along with task/operation deadlines. Longer timeouts also hold capacity longer for offline devices.
 
 Applications can override these defaults. Executor concurrency must fit
 `client.concurrencyLimit()`, the smaller of the adapter's operation and session
