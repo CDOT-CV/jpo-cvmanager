@@ -5,6 +5,10 @@ import common.snmp.rsu41.rsu_message_forward as rsu41_rsumf
 from common.snmp.update_pg.update_pg_snmp import UpdatePostgresSnmpAbstractClass
 from datetime import datetime
 
+CONFIG_ACTIVE_KEY = "Config Active"
+FULL_WSMP_KEY = "Full WSMP"
+ENABLED_VALUE = "Enabled"
+
 
 class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
     """
@@ -211,7 +215,7 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": value["Config Active"] == "Enabled",
+                        "active": value[CONFIG_ACTIVE_KEY] == ENABLED_VALUE,
                         "security": False,  # RSU 4.1 spec does not support security configuration
                     }
                     config_list.append(config)
@@ -229,8 +233,8 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": value["Config Active"] == "Enabled",
-                        "security": value["Full WSMP"] == "Enabled",
+                        "active": value[CONFIG_ACTIVE_KEY] == ENABLED_VALUE,
+                        "security": value[FULL_WSMP_KEY] == ENABLED_VALUE,
                     }
                     config_list.append(config)
 
@@ -247,8 +251,8 @@ class UpdatePostgresRsuMessageForward(UpdatePostgresSnmpAbstractClass):
                         "dest_port": value["Port"],
                         "start_datetime": value["Start DateTime"],
                         "end_datetime": value["End DateTime"],
-                        "active": value["Config Active"] == "Enabled",
-                        "security": value["Full WSMP"] == "Enabled",
+                        "active": value[CONFIG_ACTIVE_KEY] == ENABLED_VALUE,
+                        "security": value[FULL_WSMP_KEY] == ENABLED_VALUE,
                     }
                     config_list.append(config)
 

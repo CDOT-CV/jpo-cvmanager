@@ -79,6 +79,24 @@ class CvManagerAuthTokenTest {
         return org;
     }
 
+    @Test
+    @DisplayName("Should default to no orgs and non-super-user when cvmanager_data claim is missing")
+    void shouldHandleMissingCvManagerDataClaim() {
+        Jwt jwt = Jwt.withTokenValue("mock-token")
+                .header("alg", "RS256")
+                .claim("sub", "test-user-id")
+                .claim("email", "user@example.com")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+
+        CvManagerAuthToken token = new CvManagerAuthToken(jwt, Collections.emptyList(), "testuser");
+
+        assertFalse(token.isSuperUser());
+        assertTrue(token.getAllOrgs().isEmpty());
+        assertEquals("user@example.com", token.getEmail());
+    }
+
     @Nested
     @DisplayName("Constructor Tests")
     class ConstructorTests {

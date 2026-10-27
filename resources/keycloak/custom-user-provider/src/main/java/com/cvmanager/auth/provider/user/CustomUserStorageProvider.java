@@ -42,7 +42,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
     private final KeycloakSession ksession;
     private final ComponentModel model;
 
-    private static final String baseUserQuery = """
+    private static final String USER_QUERY_SELECT = """
             SELECT
                 keycloak_id,
                 user_id,
@@ -79,7 +79,9 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                 LEFT JOIN
                     public.roles ON roles.role_id = uo.role_id
             ) AS subquery
-             %s
+            """;
+
+    private static final String USER_QUERY_GROUP_BY = """
             GROUP BY
                 user_id,
                 keycloak_id,
@@ -88,8 +90,39 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                 last_name,
                 created_timestamp,
                 super_user
-            %s
-            ;""";
+            """;
+
+    private static final String ORDER_BY_EMAIL = "ORDER BY email";
+    private static final String PAGINATION = " LIMIT ? OFFSET ?";
+
+    private static final String USER_QUERY_BY_KEYCLOAK_ID = USER_QUERY_SELECT
+            + "WHERE keycloak_id = ?::UUID\n" + USER_QUERY_GROUP_BY + ";";
+
+    private static final String USER_QUERY_BY_EMAIL = USER_QUERY_SELECT
+            + "WHERE email = ?\n" + USER_QUERY_GROUP_BY + ";";
+
+    private static final String USER_QUERY_BY_FIRST_NAME = USER_QUERY_SELECT
+            + "WHERE first_name = ?\n" + USER_QUERY_GROUP_BY + ORDER_BY_EMAIL + ";";
+
+    private static final String USER_QUERY_BY_LAST_NAME = USER_QUERY_SELECT
+            + "WHERE last_name = ?\n" + USER_QUERY_GROUP_BY + ORDER_BY_EMAIL + ";";
+
+    private static final String USER_QUERY_BY_EMAIL_ORDERED = USER_QUERY_SELECT
+            + "WHERE email = ?\n" + USER_QUERY_GROUP_BY + ORDER_BY_EMAIL + ";";
+
+    private static final String USER_QUERY_PAGED = USER_QUERY_SELECT
+            + USER_QUERY_GROUP_BY + ORDER_BY_EMAIL + PAGINATION + ";";
+
+    private static final String USER_QUERY_SEARCH_PAGED = USER_QUERY_SELECT
+            + "WHERE email LIKE ?\n" + USER_QUERY_GROUP_BY + ORDER_BY_EMAIL + PAGINATION + ";";
+
+    private static final Map<String, String> USER_QUERY_BY_ATTRIBUTE = Map.of(
+            "email", USER_QUERY_BY_EMAIL_ORDERED,
+            "username", USER_QUERY_BY_EMAIL_ORDERED,
+            "firstName", USER_QUERY_BY_FIRST_NAME,
+            "first_name", USER_QUERY_BY_FIRST_NAME,
+            "lastName", USER_QUERY_BY_LAST_NAME,
+            "last_name", USER_QUERY_BY_LAST_NAME);
 
     public CustomUserStorageProvider(KeycloakSession ksession, ComponentModel model) {
         this.ksession = ksession;
@@ -110,9 +143,15 @@ public class CustomUserStorageProvider implements UserStorageProvider,
                 config.get(CONFIG_KEY_DB_PASSWORD));
     }
 
-    private PreparedStatement prepareUserQuery(Connection c, String where, String end) {
+    private PreparedStatement prepareUserQuery(Connection c, String query, Object... params) {
         try {
-            return c.prepareStatement(String.format(baseUserQuery, where, end));
+            PreparedStatement st = c.prepareStatement(query);
+            for (int i = 0; i < params.length; i++) {
+                // A null page size/offset binds as SQL NULL, which Postgres treats as "no
+                // limit"/"0"
+                st.setObject(i + 1, params[i]);
+            }
+            return st;
         } catch (SQLException ex) {
             throw new RuntimeStorageException(ex);
         }
@@ -130,8 +169,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         String userId = sid.getExternalId();
         log.debug("getUserById({})", userId);
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c, String.format("WHERE keycloak_id = '%s'::UUID", userId),
-                    "");
+            PreparedStatement st = this.prepareUserQuery(c, USER_QUERY_BY_KEYCLOAK_ID, userId);
             log.debug("getUserById: st={}", st);
             st.execute();
             ResultSet rs = st.getResultSet();
@@ -149,7 +187,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
     public UserAdapter getUserByUsername(RealmModel realm, String username) {
         log.debug("getUserByUsername({})", username);
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c, String.format("WHERE email = '%s'", username), "");
+            PreparedStatement st = this.prepareUserQuery(c, USER_QUERY_BY_EMAIL, username);
             log.debug("getUserByUsername: st={}", st);
             st.execute();
             ResultSet rs = st.getResultSet();
@@ -167,7 +205,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
     public UserAdapter getUserByEmail(RealmModel realm, String email) {
         log.debug("getUserByEmail({})", email);
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c, String.format("WHERE email = '%s'", email), "");
+            PreparedStatement st = this.prepareUserQuery(c, USER_QUERY_BY_EMAIL, email);
             log.debug("getUserByEmail: st={}", st);
             st.execute();
             ResultSet rs = st.getResultSet();
@@ -203,8 +241,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         log.debug("getGroupMembersStream: realm={}", realm.getName());
 
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c, "",
-                    String.format("order by email limit %o offset %o", maxResults, firstResult));
+            PreparedStatement st = this.prepareUserQuery(c, USER_QUERY_PAGED, maxResults, firstResult);
             log.debug("getGroupMembersStream: st={}", st);
             st.execute();
             ResultSet rs = st.getResultSet();
@@ -224,9 +261,10 @@ public class CustomUserStorageProvider implements UserStorageProvider,
         log.debug("searchForUserStream: realm={}", realm.getName());
 
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c,
-                    search.equals("*") ? "" : String.format("WHERE email like %s", "%" + search + "%"),
-                    String.format("order by email limit %s offset %s", maxResults, firstResult));
+            PreparedStatement st = (search == null || "*".equals(search))
+                    ? this.prepareUserQuery(c, USER_QUERY_PAGED, maxResults, firstResult)
+                    : this.prepareUserQuery(c, USER_QUERY_SEARCH_PAGED, "%" + search + "%", maxResults,
+                            firstResult);
             log.debug("searchForUserStream: st={}", st);
             st.execute();
             ResultSet rs = st.getResultSet();
@@ -250,10 +288,13 @@ public class CustomUserStorageProvider implements UserStorageProvider,
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
         log.debug("searchForUserByUserAttributeStream: realm={}, attrName={}, attrValue={}", realm.getName(),
                 attrName, attrValue);
+        String query = USER_QUERY_BY_ATTRIBUTE.get(attrName);
+        if (query == null) {
+            log.warn("searchForUserByUserAttributeStream: unsupported attribute {}", attrName);
+            return Stream.empty();
+        }
         try (Connection c = getConnection(this.model)) {
-            PreparedStatement st = this.prepareUserQuery(c,
-                    String.format("WHERE %s = %s", attrName, attrValue),
-                    "order by email");
+            PreparedStatement st = this.prepareUserQuery(c, query, attrValue);
             log.debug("searchForUserByUserAttributeStream: st={}", st);
             ResultSet rs = st.executeQuery();
             List<UserModel> users = new ArrayList<>();
@@ -291,8 +332,7 @@ public class CustomUserStorageProvider implements UserStorageProvider,
             UserAdapter user = null;
             if (rs.next()) {
                 user = new UserAdapter(ksession, realm, model, UserObject.fromResultSet(rs));
-            }
-            else {
+            } else {
                 throw new RuntimeStorageException("Failed to insert user " + username + " into database");
             }
             return user;
