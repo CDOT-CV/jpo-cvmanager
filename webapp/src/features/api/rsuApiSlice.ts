@@ -35,6 +35,9 @@ export const rsuApiSlice = createApi({
   }),
   tagTypes: [RSU_API_RSU_TAG, RSU_API_RSU_ALLOWED_SELECTIONS_TAG],
   endpoints: (builder) => ({
+    getRsuFirmwareOptions: builder.query<{ firmware_id: number; version: string; legacy: boolean }[], string>({
+      query: (model) => ({ url: 'firmware-options', params: { model } }),
+    }),
     getAllRsus: builder.query<PaginatedResponse<AdminRsu>, GetAllRsusParams>({
       query: ({ organization, page = 0, size = 100, sort = 'ip,asc', search = '' }) => {
         return {
@@ -130,6 +133,7 @@ export const {
   useGetRsuAllowedSelectionsQuery,
   useLazyGetRsuAllowedSelectionsQuery,
   useCreateRsuMutation,
+  useGetRsuFirmwareOptionsQuery,
   usePatchRsuMutation,
   useDeleteRsuMutation,
   useDeleteMultipleRsusMutation,
