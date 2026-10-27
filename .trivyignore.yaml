@@ -7,14 +7,9 @@
 #
 # The gate currently blocks on CRITICAL only; HIGH will be added later (see
 # docs/cve-scanning.md). Rollout baseline: pre-existing fixable CRITICAL findings
-# (58 entries), expiring 2026-11-30.
+# (61 entries), expiring 2026-11-30.
 # Comments list severity, fixed version(s) and affected scan targets.
 vulnerabilities:
-  # CRITICAL; fixed in 3.7.2, 3.8.3, 3.9.1; kafka-connect
-  - id: CVE-2023-44981
-    purls: ["pkg:maven/org.apache.zookeeper/zookeeper"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
   # CRITICAL; fixed in 1.20.2-r1; count-metric, iss-health-check, rsu-status-check
   - id: CVE-2024-37371
     purls: ["pkg:apk/alpine/krb5-libs"]
@@ -260,16 +255,6 @@ vulnerabilities:
     purls: ["pkg:maven/io.netty/netty-handler"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
-  # CRITICAL; fixed in 1.16.2-5.14.el8_10.4; kafka-connect
-  - id: CVE-2026-81642
-    purls: ["pkg:rpm/redhat/python3-unbound"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
-  # CRITICAL; fixed in 1.16.2-5.14.el8_10.4; kafka-connect
-  - id: CVE-2026-81642
-    purls: ["pkg:rpm/redhat/unbound-libs"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
   # CRITICAL; fixed in 5.36.0-7+deb12u4; firmware-upgrade-runner, firmware-upgrade-scheduler
   - id: CVE-2026-8376
     purls: ["pkg:deb/debian/perl-base"]
@@ -280,11 +265,6 @@ vulnerabilities:
     purls: ["pkg:maven/org.freemarker/freemarker"]
     statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
     expired_at: 2026-11-30
-  # CRITICAL; fixed in 1.0.2.7, 2.0.2, 2.1.3; kafka-connect
-  - id: CVE-2026-8763
-    purls: ["pkg:maven/org.bouncycastle/bc-fips"]
-    statement: "Pre-existing at CVE gate rollout on 2026-10-13. Remediate (update the dependency or base image) or re-review with a new justification before expiry."
-    expired_at: 2026-11-30
   # CRITICAL; fixed in 1.85; keycloak
   - id: CVE-2026-8763
     purls: ["pkg:maven/org.bouncycastle/bcprov-jdk18on"]
@@ -293,10 +273,45 @@ vulnerabilities:
   # CRITICAL; fixed in 2026.10.19; kafka-connect
   - id: GHSA-6q48-6c7w-9gw2
     purls: ["pkg:pypi/certifi"]
-    statement: "Published 2026-10-20, after the rollout baseline. certifi 2022.12.7 ships in the confluentinc/cp-kafka-connect:6.1.9 base image's Python 3.9 site-packages, not in our requirements. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
+    statement: "Published 2026-10-20, after the rollout baseline. certifi ships in the confluentinc/cp-kafka-connect:7.7.0 base image (jpo-utils/kafka-connect), not in our requirements. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
     expired_at: 2026-11-30
   # CRITICAL; fixed in 2026.2.92_v9.0.319-81.3.el8_10; kafka-connect
   - id: CVE-2026-114406
     purls: ["pkg:rpm/redhat/ca-certificates"]
-    statement: "Fix published after the rollout baseline. ca-certificates 2022.2.54-80.2.el8_6 ships in the confluentinc/cp-kafka-connect:6.1.9 base image (RHEL 8.7), not in our code. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
+    statement: "Fix published after the rollout baseline. ca-certificates ships in the confluentinc/cp-kafka-connect:7.7.0 base image (jpo-utils/kafka-connect, RHEL 8.10), not in our code. Remediate with the kafka-connect base image upgrade or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.2.4, 2.1.10, 2.0.27; kafka-connect
+  - id: CVE-2024-52046
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 4.10.6; kafka-connect
+  - id: CVE-2026-33117
+    purls: ["pkg:maven/com.azure/azure-security-keyvault-keys"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.0.28, 2.1.11, 2.2.6; kafka-connect
+  - id: CVE-2026-41409
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.0.28, 2.1.11, 2.2.6; kafka-connect
+  - id: CVE-2026-41635
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.1.12, 2.2.7; kafka-connect
+  - id: CVE-2026-42778
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.1.12, 2.2.7; kafka-connect
+  - id: CVE-2026-42779
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
+    expired_at: 2026-11-30
+  # CRITICAL; fixed in 2.2.8, 2.1.13, 2.0.29; kafka-connect
+  - id: CVE-2026-47065
+    purls: ["pkg:maven/org.apache.mina/mina-core"]
+    statement: "Found when the kafka-connect scan target moved to jpo-utils/kafka-connect (confluentinc/cp-kafka-connect:7.7.0) on 2026-10-27. Remediate with the kafka-connect image upgrade in jpo-utils or re-review before expiry. Owner: @Michael7371."
     expired_at: 2026-11-30
