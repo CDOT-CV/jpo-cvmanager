@@ -114,6 +114,10 @@ services:
       dockerfile: Dockerfile.fmus
     image: jpo_firmware_manager_upgrade_scheduler:latest
     restart: on-failure:3
+    networks:
+      default:
+        aliases:
+          - firmware-manager-upgrade-scheduler
 
     ports:
       - '8091:8080'
