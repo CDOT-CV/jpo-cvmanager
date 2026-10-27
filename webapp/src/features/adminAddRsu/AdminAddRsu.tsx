@@ -22,7 +22,11 @@ import {
 } from '@mui/material'
 import { ErrorMessageText } from '../../styles/components/Messages'
 import { SideBarHeader } from '../../styles/components/SideBarHeader'
-import { useGetRsuAllowedSelectionsQuery, useCreateRsuMutation, useGetRsuFirmwareOptionsQuery } from '../api/rsuApiSlice'
+import {
+  useGetRsuAllowedSelectionsQuery,
+  useCreateRsuMutation,
+  useGetRsuFirmwareOptionsQuery,
+} from '../api/rsuApiSlice'
 
 import '../adminRsuTab/Admin.css'
 import '../../styles/fonts/museo-slab.css'
@@ -82,11 +86,15 @@ const AdminAddRsu = () => {
   // RTK Query hooks
   const { data: allowedSelections, isLoading: isLoadingData } = useGetRsuAllowedSelectionsQuery()
   const [createRsu, { isLoading: isCreating }] = useCreateRsuMutation()
-  const { currentData: firmwareOptions, isFetching: isFetchingFirmware, isError: firmwareError,
-    refetch: refetchFirmware } = useGetRsuFirmwareOptionsQuery(selectedModel, {
-      skip: selectedModel === 'Select RSU Model (Required)',
-      refetchOnMountOrArgChange: true,
-    })
+  const {
+    currentData: firmwareOptions,
+    isFetching: isFetchingFirmware,
+    isError: firmwareError,
+    refetch: refetchFirmware,
+  } = useGetRsuFirmwareOptionsQuery(selectedModel, {
+    skip: selectedModel === 'Select RSU Model (Required)',
+    refetchOnMountOrArgChange: true,
+  })
 
   const {
     register,
@@ -104,7 +112,12 @@ const AdminAddRsu = () => {
   const checkForm = (): boolean => {
     if (selectedRoute === 'Select Route (Required)') return false
     if (selectedModel === 'Select RSU Model (Required)') return false
-    if (isFetchingFirmware || firmwareError || !firmwareOptions?.some(option => option.firmware_id === selectedFirmware)) return false
+    if (
+      isFetchingFirmware ||
+      firmwareError ||
+      !firmwareOptions?.some((option) => option.firmware_id === selectedFirmware)
+    )
+      return false
     if (selectedSshGroup === 'Select SSH Group (Required)') return false
     if (selectedSnmpGroup === 'Select SNMP Group (Required)') return false
     if (selectedSnmpVersion === 'Select SNMP Protocol (Required)') return false
@@ -406,15 +419,26 @@ const AdminAddRsu = () => {
           </Grid2>
 
           <Form.Group controlId="firmware_id">
-            <FormControl fullWidth margin="normal"
-              disabled={selectedModel === 'Select RSU Model (Required)' || isFetchingFirmware || firmwareError}>
-              <InputLabel id="installed-firmware-label" required>Installed Firmware</InputLabel>
-              <Select id="firmware_id" labelId="installed-firmware-label" label="Installed Firmware"
-                value={selectedFirmware} required
-                onChange={(event) => setSelectedFirmware(Number(event.target.value))}>
-                {firmwareOptions?.map(option => (
+            <FormControl
+              fullWidth
+              margin="normal"
+              disabled={selectedModel === 'Select RSU Model (Required)' || isFetchingFirmware || firmwareError}
+            >
+              <InputLabel id="installed-firmware-label" required>
+                Installed Firmware
+              </InputLabel>
+              <Select
+                id="firmware_id"
+                labelId="installed-firmware-label"
+                label="Installed Firmware"
+                value={selectedFirmware}
+                required
+                onChange={(event) => setSelectedFirmware(Number(event.target.value))}
+              >
+                {firmwareOptions?.map((option) => (
                   <MenuItem key={option.firmware_id} value={option.firmware_id}>
-                    {option.version}{option.legacy ? ' (Legacy)' : ''}
+                    {option.version}
+                    {option.legacy ? ' (Legacy)' : ''}
                   </MenuItem>
                 ))}
               </Select>
@@ -425,11 +449,13 @@ const AdminAddRsu = () => {
             {isFetchingFirmware && <Typography variant="body2">Loading firmware versions...</Typography>}
             {firmwareError && (
               <ErrorMessageText role="alert">
-                Unable to load firmware versions. <Button onClick={() => void refetchFirmware()}>Retry</Button>
+                Unable to load firmware versions <Button onClick={() => void refetchFirmware()}>Retry</Button>
               </ErrorMessageText>
             )}
             {!isFetchingFirmware && !firmwareError && firmwareOptions?.length === 0 && (
-              <ErrorMessageText role="alert">No eligible firmware exists for this model. Register firmware before adding the RSU.</ErrorMessageText>
+              <ErrorMessageText role="alert">
+                Register eligible firmware for this model before adding the RSU
+              </ErrorMessageText>
             )}
           </Form.Group>
 
