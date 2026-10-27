@@ -1628,6 +1628,9 @@ function MapPage() {
                     {selectedRsu.properties.manufacturer_name} #
                     {selectedRsu.properties.serial_number ? selectedRsu.properties.serial_number : 'Unknown'}
                   </Typography>
+                  <Typography fontSize="small" sx={{ margin: '4px 16px 0px', overflowWrap: 'anywhere' }}>
+                    Firmware: {selectedRsu.properties.firmware_version || 'Unknown'}
+                  </Typography>
                 </Box>
                 <ConditionalRenderRsuStatusMonitor>
                   <Button onClick={() => handlePopupClick(selectedRsu.properties.ipv4_address)}>
