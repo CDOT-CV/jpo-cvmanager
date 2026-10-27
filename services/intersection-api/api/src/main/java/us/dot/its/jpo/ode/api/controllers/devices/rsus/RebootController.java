@@ -4,15 +4,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuRebootService;
 
@@ -23,18 +20,13 @@ import us.dot.its.jpo.ode.api.services.RsuRebootService;
 @RequestMapping("/devices/rsus/reboot")
 public class RebootController {
     private final RsuRebootService service;
-    private final PermissionService permissions;
 
     @PostMapping(path = "/{rsuIp}", produces = "application/json")
-    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @PreAuthorize("(@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR'))"
+            + " && @PermissionService.isRsuOwner(#rsuIp, 'OPERATOR')")
     @Operation(summary = "Request a Commsignia RSU reboot", description = "Supports Commsignia devices only; other manufacturers are rejected before admission. Requires OPERATOR access and ownership. Returns 202 after admission, without waiting for SSH or device restart. Final command outcomes are logged using requestId; requests are not retried or persisted across API restarts.")
     public ResponseEntity<RebootAccepted> reboot(@PathVariable String rsuIp) {
         var address = RsuManagementService.toIpv4Address(rsuIp);
-
-        // Keep ownership in PermissionService so a future RSU ownership model needs no change here.
-        if (!permissions.isRsuOwner(rsuIp, "OPERATOR")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Organization does not own the requested RSU");
-        }
 
         return ResponseEntity.accepted().body(new RebootAccepted(service.requestReboot(address), "ACCEPTED"));
     }

@@ -24,6 +24,7 @@ import us.dot.its.jpo.ode.api.TestcontainersConfiguration;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuRebootService;
+import us.dot.its.jpo.ode.api.services.RsuManagementService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,7 +38,11 @@ class RebootControllerTest {
     @BeforeEach
     void ownerOperator() {
         when(permissions.hasRole(UserRole.OPERATOR)).thenReturn(true);
-        when(permissions.isRsuOwner("192.0.2.10", "OPERATOR")).thenReturn(true);
+        // Match the real helper: validate the address before checking ownership.
+        when(permissions.isRsuOwner(anyString(), eq("OPERATOR"))).thenAnswer(invocation -> {
+            RsuManagementService.toIpv4Address(invocation.getArgument(0));
+            return true;
+        });
     }
 
     @Test
@@ -66,10 +71,21 @@ class RebootControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"localhost", "192.0.2.999", "127.1", "192.000.2.10", "192.0.2.10 "})
-    void invalidAddressRejectedBeforeOwnershipCheck(String address) throws Exception {
+    void invalidAddressRejectedDuringOwnershipCheck(String address) throws Exception {
         mvc.perform(post("/devices/rsus/reboot/{ip}", address).with(jwt())).andExpect(status().isBadRequest());
-        verify(permissions, never()).isRsuOwner(anyString(), anyString());
+        verify(permissions).isRsuOwner(address, "OPERATOR");
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void superUserCanRebootWithoutOperatorRole() throws Exception {
+        when(permissions.isSuperUser()).thenReturn(true);
+        when(permissions.hasRole(UserRole.OPERATOR)).thenReturn(false);
+        when(service.requestReboot(any())).thenReturn(UUID.randomUUID());
+
+        mvc.perform(post("/devices/rsus/reboot/192.0.2.10").with(jwt()))
+                .andExpect(status().isAccepted());
+        verify(permissions).isRsuOwner("192.0.2.10", "OPERATOR");
     }
 
     @Test
