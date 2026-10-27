@@ -461,7 +461,7 @@ describe('async thunks', () => {
         })
       )
       try {
-        const promise = rebootRsu(['192.0.2.10'])(dispatch, getState, undefined)
+        const promise = rebootRsu('192.0.2.10')(dispatch, getState, undefined)
         expect(dispatch).toHaveBeenCalledTimes(1)
         expect(api).toHaveBeenCalledWith('token', 'Org 1', '192.0.2.10')
         finish({ requestId: 'test-request', status: 'ACCEPTED' })
@@ -476,7 +476,7 @@ describe('async thunks', () => {
     it('rejects failed admission rather than showing success', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot').mockRejectedValue(new Error('Reboot capacity is busy'))
       try {
-        const result = await rebootRsu(['192.0.2.10'])(jest.fn(), () => ({
+        const result = await rebootRsu('192.0.2.10')(jest.fn(), () => ({
           user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
         }) as RootState, undefined)
         expect(result.type).toBe('config/rebootRsu/rejected')
@@ -485,10 +485,10 @@ describe('async thunks', () => {
       }
     })
 
-    it('rejects multiple targets without sending an SSH request', async () => {
+    it('rejects a missing target without sending a reboot request', async () => {
       const api = jest.spyOn(RsuRebootApi, 'reboot')
       try {
-        const result = await rebootRsu(['192.0.2.10', '192.0.2.11'])(jest.fn(), () => ({
+        const result = await rebootRsu('')(jest.fn(), () => ({
           user: { value: { authLoginData: { token: 'token' }, organization: { name: 'Org 1' } } },
         }) as RootState, undefined)
         expect(result.type).toBe('config/rebootRsu/rejected')

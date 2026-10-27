@@ -146,16 +146,16 @@ export const deleteSnmpSet = createAsyncThunk(
   }
 )
 
-export const rebootRsu = createAsyncThunk('config/rebootRsu', async (ipList: string[], { getState }) => {
+export const rebootRsu = createAsyncThunk('config/rebootRsu', async (rsuIp: string, { getState }) => {
   const currentState = getState() as RootState
   const token = selectToken(currentState)
   const organization = selectOrganizationName(currentState)
 
-  if (ipList.length !== 1) throw new Error('Reboot requires exactly one RSU')
+  if (!rsuIp) throw new Error('An RSU IPv4 address is required')
 
   // Await admission only; SSH execution continues in the API after this request completes.
-  const response = await RsuRebootApi.reboot(token, organization, ipList[0])
-  return { ...response, rsuIp: ipList[0] }
+  const response = await RsuRebootApi.reboot(token, organization, rsuIp)
+  return { ...response, rsuIp }
 })
 
 export const checkFirmwareUpgrade = createAsyncThunk(

@@ -27,8 +27,13 @@ public final class MinaSshRebootClient implements SshRebootClient {
     private final RsuRebootProperties properties;
 
     public MinaSshRebootClient(RsuRebootProperties properties) {
+        this(properties, SshClient.setUpDefaultClient());
+    }
+
+    // Package-local injection allows deterministic transport-failure tests.
+    MinaSshRebootClient(RsuRebootProperties properties, SshClient client) {
         this.properties = properties;
-        client = SshClient.setUpDefaultClient();
+        this.client = client;
         CoreModuleProperties.NIO_WORKERS.set(client, Math.min(4, properties.getConcurrency()));
         client.setKeyIdentityProvider(KeyIdentityProvider.EMPTY_KEYS_PROVIDER);
 
@@ -84,6 +89,8 @@ public final class MinaSshRebootClient implements SshRebootClient {
             channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), remaining(deadline));
             return commandOutcome(channel);
         } catch (IOException e) {
+            // The command may exit before a later stdin write or channel wait fails.
+            // Prefer this command's received exit status; an I/O error does not undo it.
             if (channel != null && channel.getExitStatus() != null) return commandOutcome(channel);
 
             // A reboot may close the socket before an exit status arrives. This is

@@ -34,7 +34,7 @@ const RsuRebootMenu = () => {
       {
         label: 'Yes',
         onClick: () => {
-          dispatch(rebootRsu([rsuIp])).then((result) => {
+          dispatch(rebootRsu(rsuIp)).then((result) => {
             if (rebootRsu.rejected.match(result)) {
               toast.error(result.error.message || 'Reboot request was not accepted')
             }

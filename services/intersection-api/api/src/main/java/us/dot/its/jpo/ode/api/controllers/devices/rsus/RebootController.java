@@ -1,7 +1,6 @@
 package us.dot.its.jpo.ode.api.controllers.devices.rsus;
 
 import io.swagger.v3.oas.annotations.Operation;
-import java.net.InetAddress;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,12 +29,7 @@ public class RebootController {
     @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
     @Operation(summary = "Request a Commsignia RSU reboot", description = "Supports Commsignia devices only; other manufacturers are rejected before admission. Requires OPERATOR access and ownership. Returns 202 after admission, without waiting for SSH or device restart. Final command outcomes are logged using requestId; requests are not retried or persisted across API restarts.")
     public ResponseEntity<RebootAccepted> reboot(@PathVariable String rsuIp) {
-        InetAddress address;
-        try {
-            address = RsuManagementService.toIpv4Address(rsuIp);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A valid RSU IPv4 address is required");
-        }
+        var address = RsuManagementService.toIpv4Address(rsuIp);
 
         // Keep ownership in PermissionService so a future RSU ownership model needs no change here.
         if (!permissions.isRsuOwner(rsuIp, "OPERATOR")) {
