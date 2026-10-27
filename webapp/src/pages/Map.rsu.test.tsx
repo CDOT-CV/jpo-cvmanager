@@ -42,5 +42,5 @@ it.each(['y20.48.2', null, undefined])('shows installed firmware %s in the RSU p
     },
   } as any)) })
 
-  expect(screen.getByText(`Firmware Version: ${version || 'Unknown'}`)).toBeVisible()
+  expect(screen.getByText(`Firmware: ${version || 'Unknown'}`)).toBeVisible()
 })

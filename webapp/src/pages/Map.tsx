@@ -1629,7 +1629,7 @@ function MapPage() {
                     {selectedRsu.properties.serial_number ? selectedRsu.properties.serial_number : 'Unknown'}
                   </Typography>
                   <Typography fontSize="small" sx={{ margin: '4px 16px 0px', overflowWrap: 'anywhere' }}>
-                    Firmware Version: {selectedRsu.properties.firmware_version || 'Unknown'}
+                    Firmware: {selectedRsu.properties.firmware_version || 'Unknown'}
                   </Typography>
                 </Box>
                 <ConditionalRenderRsuStatusMonitor>
