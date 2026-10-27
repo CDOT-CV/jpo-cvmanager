@@ -597,7 +597,7 @@ class CustomUserStorageProviderTest {
                     .collect(Collectors.toList());
 
             verify(connection).prepareStatement(Mockito.argThat(
-                    (String q) -> !q.contains("WHERE") && q.endsWith("ORDER BY email LIMIT ? OFFSET ?;")));
+                    (String q) -> !q.contains("\nWHERE ") && q.endsWith("ORDER BY email LIMIT ? OFFSET ?;")));
             verify(preparedStatement).setObject(1, 25);
             verify(preparedStatement).setObject(2, 5);
             assertThat(users.size(), is(1));
