@@ -51,7 +51,7 @@ try (var client = new Snmp4jClient();
 | Concurrent operations | 24 | `Snmp4jOptions` |
 | Cached credential profiles | 32 | `Snmp4jOptions` |
 | Peers per session | 1,024 | `Snmp4jOptions` |
-| Request timeout / read retries | 5 seconds / 1 | `SnmpRequestPolicy` or adapter defaults |
+| Request timeout per attempt / read retries | 5 seconds / 1 | `SnmpRequestPolicy` or adapter defaults |
 | Whole-operation deadline | 60 seconds | `Snmp4jOptions` |
 | Adapter admission wait | 5 seconds | `Snmp4jOptions` |
 | Walk limits | 16,384 bindings / 4 MiB OID/value payload | `Snmp4jOptions` |
@@ -59,6 +59,8 @@ try (var client = new Snmp4jClient();
 | Queue / execution timeout | 5 minutes / 60 seconds | `SnmpTaskOptions` |
 | Recorded calls per task | 1,024 | Five-argument `SnmpTaskOptions` constructor |
 
+- Request timeouts apply to each attempt, not the whole task. Reads allow one retry by default; SET has none.
+- Five seconds is a starting point. Tune `SnmpRequestPolicy` (or `Snmp4jOptions` for direct calls) for your network, along with task/operation deadlines. Longer timeouts also hold capacity longer for offline devices.
 - Executor concurrency must fit `client.concurrencyLimit()`.
 - Tasks for one IP/port run one at a time within an executor. Separate executors need their own write coordination.
 - Walks use GETNEXT by default. Set `maxBulkRepetitions` to 1-64 for GETBULK; benchmark it on your devices.
