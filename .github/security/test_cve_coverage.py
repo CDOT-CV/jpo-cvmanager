@@ -34,6 +34,13 @@ class CoverageTests(unittest.TestCase):
             with self.subTest(tracked=tracked), self.assertRaisesRegex(ValueError, "coverage mismatch"):
                 coverage.matrix(items, tracked, False)
 
+    def test_submodule_dockerfiles_require_the_tracked_submodule(self):
+        items = [{"id": "image", "dockerfile": "utils/image/Dockerfile", "submodule": "utils"}]
+        self.assertEqual(coverage.matrix(items, ["utils"], False)["include"][0]["submodule"], "utils")
+        for tracked, dockerfile in (([], "utils/image/Dockerfile"), (["utils"], "other/Dockerfile")):
+            with self.subTest(tracked=tracked, dockerfile=dockerfile), self.assertRaisesRegex(ValueError, "Submodule"):
+                coverage.matrix([{**items[0], "dockerfile": dockerfile}], tracked, False)
+
     def test_suppressions_match_every_version_of_a_package(self):
         # A version or qualifier (e.g. distro=debian-12.5) would stop matching after a base image refresh.
         ignore = Path(__file__).resolve().parents[2] / ".trivyignore.yaml"

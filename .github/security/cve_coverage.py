@@ -17,7 +17,12 @@ GATED_LABEL = "/".join(GATED)
 
 
 def matrix(items, tracked, trusted):
-    declared = {t["dockerfile"] for t in items if "dockerfile" in t}
+    # Submodule files are not listed by this repository's git ls-files; only the submodule path is.
+    for t in items:
+        if t.get("submodule") and (t["submodule"] not in tracked or
+                                   not t.get("dockerfile", "").startswith(t["submodule"] + "/")):
+            raise ValueError(f"Submodule target {t['id']} must use a Dockerfile inside tracked submodule {t['submodule']}")
+    declared = {t["dockerfile"] for t in items if "dockerfile" in t and not t.get("submodule")}
     dockerfiles = {p for p in tracked if Path(p).name.startswith("Dockerfile")}
     if declared != dockerfiles:
         raise ValueError(f"Dockerfile coverage mismatch: missing={sorted(dockerfiles - declared)}, "
@@ -25,7 +30,7 @@ def matrix(items, tracked, trusted):
     if len({t["id"] for t in items}) != len(items):
         raise ValueError("Duplicate scan target IDs")
     return {"include": [{**t, "build": t.get("build", "docker"), "stage": t.get("stage", ""),
-                         "requires_auth": t.get("requires_auth", False),
+                         "requires_auth": t.get("requires_auth", False), "submodule": t.get("submodule", ""),
                          "enabled": trusted or not t.get("requires_auth"),
                          "build_args": "\n".join(t.get("args", []))} for t in items]}
 
