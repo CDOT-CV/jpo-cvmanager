@@ -116,6 +116,7 @@
     "SNMP",
     "snmpcredential",
     "snmperrorcheck",
+    "snmpfilter",
     "Snmpset",
     "Snmpwalk",
     "sqlalchemy",

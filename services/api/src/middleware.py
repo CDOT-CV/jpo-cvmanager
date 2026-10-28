@@ -53,6 +53,8 @@ def get_user_role(token) -> UserInfo | None:
 
 organization_required = {
     "/rsucounts": True,
+    "/rsu-msgfwd-query": True,
+    "/rsu-command": True,
     "/wzdx-feed": False,
     "/admin-new-rsu": False,
     "/admin-new-org": False,
@@ -68,6 +70,8 @@ organization_required = {
 feature_tags: dict[str, FEATURE_KEYS_LITERAL | None] = {
     "/": None,
     "/rsucounts": FEATURE_KEYS_LITERAL.RSU,
+    "/rsu-msgfwd-query": FEATURE_KEYS_LITERAL.RSU,
+    "/rsu-command": FEATURE_KEYS_LITERAL.RSU,
     "/rsu-map-info": FEATURE_KEYS_LITERAL.RSU,
     "/wzdx-feed": FEATURE_KEYS_LITERAL.WZDX,
     "/admin-new-rsu": FEATURE_KEYS_LITERAL.RSU,

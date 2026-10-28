@@ -1,0 +1,213 @@
+from typing import Any
+from flask import request, abort
+from flask_restful import Resource
+from marshmallow import Schema, fields
+import common.pgquery as pgquery
+import logging
+import rsu_upgrade
+from werkzeug.exceptions import BadRequest
+from common.auth_tools import (
+    ORG_ROLE_LITERAL,
+    EnvironWithOrg,
+    PermissionResult,
+    require_permission,
+)
+import rsu_snmpset
+import api_environment
+
+# Dict of functions
+command_data = {
+    "rsufwdsnmpset": {
+        "roles": ["operator", "admin"],
+    },
+    "rsufwdsnmpset-del": {
+        "roles": ["operator", "admin"],
+    },
+    "upgrade-check": {
+        "function": rsu_upgrade.check_for_upgrade,
+        "roles": ["operator", "admin"],
+    },
+    "upgrade-rsu": {
+        "function": rsu_upgrade.mark_rsu_for_upgrade,
+        "roles": ["operator", "admin"],
+    },
+}
+
+
+# Queries for RSU manufacturer, SSH credentials, and SNMP credentials using a provided RSU IP address
+def fetch_rsu_info(rsu_ip, organization):
+    logging.info(f"Fetching RSU info for RSU {rsu_ip}")
+    query = (
+        "SELECT to_jsonb(row) "
+        "FROM ("
+        "SELECT rd.rsu_id AS rsu_id, man.name AS manufacturer_name, rsu_creds.username AS ssh_username, rsu_creds.password AS ssh_password, snmp.username AS snmp_username, snmp.password AS snmp_password, snmp.encrypt_password as snmp_encrypt_pw, snmp_ver.protocol_code AS snmp_version "
+        "FROM public.rsus AS rd "
+        "JOIN public.rsu_organization_name AS ron_v ON ron_v.rsu_id = rd.rsu_id "
+        "JOIN public.rsu_models AS rm ON rm.rsu_model_id = rd.model "
+        "JOIN public.manufacturers AS man ON man.manufacturer_id = rm.manufacturer "
+        "LEFT JOIN public.rsu_credentials AS rsu_creds ON rsu_creds.credential_id = rd.credential_id "
+        "LEFT JOIN public.snmp_credentials AS snmp ON snmp.snmp_credential_id = rd.snmp_credential_id "
+        "LEFT JOIN public.snmp_protocols AS snmp_ver ON snmp_ver.snmp_protocol_id = rd.snmp_protocol_id "
+        "WHERE ron_v.name = :org_name AND rd.ipv4_address = :rsu_ip"
+        ") as row"
+    )
+    params = {"org_name": organization, "rsu_ip": rsu_ip}
+    data = pgquery.query_db(query, params=params)
+    logging.info("Parsing results...")
+    if len(data) > 0:
+        # Grab the first result, it should be the only result
+        row = dict(data[0][0])
+        rsu_info = {
+            "rsu_id": row["rsu_id"],
+            "manufacturer": row["manufacturer_name"],
+            "ssh_username": row["ssh_username"],
+            "ssh_password": row["ssh_password"],
+            "snmp_username": row["snmp_username"],
+            "snmp_password": row["snmp_password"],
+            "snmp_encrypt_pw": row["snmp_encrypt_pw"],
+            "snmp_version": row["snmp_version"],
+        }
+        return rsu_info
+
+    logging.warning(f"RSU info cannot be found for {rsu_ip}")
+    return None
+
+
+def get_rsu_owner_orgs(rsu_ips: list[str]) -> dict[str, str | None]:
+    query = (
+        "SELECT r.ipv4_address::text, org.name "
+        "FROM public.rsus r "
+        "JOIN public.rsu_credentials rc ON r.credential_id = rc.credential_id "
+        "JOIN public.organizations org ON rc.owner_organization_id = org.organization_id "
+        "WHERE r.ipv4_address = ANY(:rsu_ips)"
+    )
+    data = pgquery.query_db(query, params={"rsu_ips": rsu_ips})
+
+    owners = {ip: None for ip in rsu_ips}
+    for ip, org in data:
+        owners[str(ip).removesuffix("/32")] = org
+
+    return owners
+
+def execute_upgrade_rsu(organization, rsu_list):
+    return_dict = {}
+    for rsu in rsu_list:
+        if fetch_rsu_info(rsu, organization) is None:
+            return_dict[rsu] = {
+                "code": 400,
+                "data": f"Provided RSU IP does not have complete RSU data for organization: {organization}::{rsu}",
+            }
+        else:
+            json_msg, status_code = command_data["upgrade-rsu"]["function"](rsu)
+            return_dict[rsu] = {"code": status_code, "data": json_msg}
+    return return_dict
+
+def get_rsus_not_owned_by_organization(rsu_list, organization):
+    owners = get_rsu_owner_orgs(rsu_list)
+    unauthorized = []
+    for rsu_ip in rsu_list:
+        owner_org = owners.get(rsu_ip)
+        if owner_org is None:
+            unauthorized.append(f"{rsu_ip} (not found or has no owner organization)")
+        elif owner_org != organization:
+            unauthorized.append(f"{rsu_ip} (owner: '{owner_org}')")
+    return unauthorized
+
+# Main driver function
+def perform_command(command, organization, role, rsu_list, args, super_user: bool = False):
+    # Check if command is a known command
+    if command not in command_data:
+        return f"Command unknown: {command}", 400
+
+    # Check if the user is authorized to run the command
+    if role not in command_data[command]["roles"]:
+        return f"Unauthorized role to run {command}", 401
+
+    # Restrict all RSU operations to the RSU's owner organization
+    if not super_user:
+        unauthorized = get_rsus_not_owned_by_organization(rsu_list, organization)
+        if unauthorized:
+            return (
+                f"Organization '{organization}' does not have access to and/or does not own the following RSUs: "
+                + ", ".join(unauthorized),
+                403,
+            )
+
+    # Handle functions supporting multiple RSUs
+    if command == "rsufwdsnmpset" or command == "rsufwdsnmpset-del":
+        return (
+            rsu_snmpset.execute_rsufwdsnmpset(command, organization, rsu_list, args),
+            200,
+        )
+
+    if command == "upgrade-rsu":
+        return execute_upgrade_rsu(organization, rsu_list), 200
+
+    # Handle remaining functions with only one RSU
+    rsu_ip = rsu_list[0]
+    rsu_info = fetch_rsu_info(rsu_ip, organization)
+    if rsu_info is None:
+        return (
+            f"Provided RSU IP does not have complete RSU data for organization: {organization}::{rsu_ip}",
+            500,
+        )
+
+    if command == "upgrade-check":
+        return command_data[command]["function"](rsu_ip), 200
+
+    raise BadRequest("Unsupported RSU command")
+
+
+# REST endpoint resource class and schema
+class RsuCommandRequestSchema(Schema):
+    command = fields.Str(required=True)
+    rsu_ip = fields.List(fields.IPv4(required=True))
+    args = fields.Dict(required=True)
+
+
+class RsuCommandRequest(Resource):
+    options_headers = {
+        "Access-Control-Allow-Origin": api_environment.CORS_DOMAIN,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,Organization",
+        "Access-Control-Allow-Methods": "GET,POST",
+        "Access-Control-Max-Age": "3600",
+    }
+
+    headers = {"Access-Control-Allow-Origin": api_environment.CORS_DOMAIN}
+
+    def options(self):
+        # CORS support
+        return ("", 204, self.options_headers)
+
+    @require_permission(
+        required_role=ORG_ROLE_LITERAL.OPERATOR,
+    )
+    def get(self, permission_result: PermissionResult):
+        logging.debug("RsuCommandRequest GET requested")
+        return self.universal(permission_result.user)
+
+    @require_permission(
+        required_role=ORG_ROLE_LITERAL.OPERATOR,
+    )
+    def post(self, permission_result: PermissionResult):
+        logging.debug("RsuCommandRequest POST requested")
+        return self.universal(permission_result.user)
+
+    def universal(self, user: EnvironWithOrg):
+        schema = RsuCommandRequestSchema()
+        if request.json is None:
+            raise BadRequest("No JSON body found")
+        body: dict[str, Any] = request.json
+        errors = schema.validate(body)
+        if errors:
+            logging.error(str(errors))
+            abort(400, str(errors))
+        data, code = perform_command(
+            body["command"],
+            user.organization,
+            user.role,
+            body["rsu_ip"],
+            body["args"],
+            super_user=user.user_info.super_user,
+        )
+        return (data, code, self.headers)

@@ -6,6 +6,7 @@ beforeEach(() => {
   fetchMock.mockClear()
   fetchMock.doMock()
   EnvironmentVars.rsuCountsEndpoint = 'VITE_ENV/rsucounts'
+  EnvironmentVars.rsuCommandEndpoint = 'VITE_ENV/rsu-command'
   EnvironmentVars.wzdxEndpoint = 'VITE_ENV/wzdx-feed'
   EnvironmentVars.adminAddOrg = 'VITE_ENV/admin-new-org'
   EnvironmentVars.adminOrg = 'VITE_ENV/admin-org'
@@ -89,6 +90,32 @@ it('Test getRsuCounts With Params', async () => {
   expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
 })
 
+it('Test getRsuCommand', async () => {
+  const expectedResponse = { data: 'Test JSON' }
+  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
+  const actualResponse = await RsuApi.getRsuCommand('testToken', 'testOrg')
+  expect(actualResponse).toEqual(expectedResponse)
+
+  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.rsuCommandEndpoint)
+  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
+})
+
+it('Test getRsuCommand With Params', async () => {
+  // Set url_ext and query_params
+  const url_ext = 'url_ext'
+  const query_params = { query_param: 'test' }
+
+  const expectedResponse = { data: 'Test JSON' }
+  fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
+  const actualResponse = await RsuApi.getRsuCommand('testToken', 'testOrg', url_ext, query_params)
+  expect(actualResponse).toEqual(expectedResponse)
+
+  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.rsuCommandEndpoint + url_ext + '?query_param=test')
+  expect(fetchMock.mock.calls[0][1].method).toBe('GET')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({ Authorization: 'testToken', Organization: 'testOrg' })
+})
+
 it('Test getWzdxData', async () => {
   const expectedResponse = { data: 'Test JSON' }
   fetchMock.mockResponseOnce(JSON.stringify(expectedResponse))
@@ -145,4 +172,49 @@ it('Test postRsuGeo', async () => {
     Organization: 'testOrg',
   })
   expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual(body)
+})
+it('Test postRsuData', async () => {
+  const body = {
+    data: 'Test JSON',
+  } as any
+
+  fetchMock.mockResponseOnce(JSON.stringify(body))
+  const actualResponse = await RsuApi.postRsuData('testToken', 'testOrg', body)
+  expect(actualResponse).toEqual({
+    body: body,
+    message: undefined,
+    status: 200,
+  })
+
+  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.rsuCommandEndpoint)
+  expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
+    Authorization: 'testToken',
+    'Content-Type': 'application/json',
+    Organization: 'testOrg',
+  })
+})
+
+it('Test postRsuData With Params', async () => {
+  // Set url_ext
+  const url_ext = 'url_ext'
+  const body = {
+    data: 'Test JSON',
+  } as any
+
+  fetchMock.mockResponseOnce(JSON.stringify(body))
+  const actualResponse = await RsuApi.postRsuData('testToken', 'testOrg', body, url_ext)
+  expect(actualResponse).toEqual({
+    body: body,
+    message: undefined,
+    status: 200,
+  })
+
+  expect(fetchMock.mock.calls[0][0]).toBe(EnvironmentVars.rsuCommandEndpoint + url_ext)
+  expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+  expect(fetchMock.mock.calls[0][1].headers).toStrictEqual({
+    Authorization: 'testToken',
+    'Content-Type': 'application/json',
+    Organization: 'testOrg',
+  })
 })
