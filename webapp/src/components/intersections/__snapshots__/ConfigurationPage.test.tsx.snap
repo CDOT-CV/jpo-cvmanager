@@ -213,7 +213,129 @@ exports[`should take a snapshot 1`] = `
               </thead>
               <tbody
                 class="MuiTableBody-root css-mocked-MuiTableBody-root"
-              />
+              >
+                <tr
+                  class="MuiTableRow-root MuiTableRow-hover css-mocked-MuiTableRow-root"
+                >
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    spat.minimumDataAggregation
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    10
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    messages
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    Minimum number of SPaT messages required
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-alignRight MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    <a
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                      role="button"
+                      tabindex="0"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                        data-testid="AddIcon"
+                        focusable="false"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"
+                        />
+                      </svg>
+                    </a>
+                    <a
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                      role="button"
+                      tabindex="0"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                        data-testid="PencilAltIcon"
+                        fill="currentColor"
+                        focusable="false"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
+                        />
+                        <path
+                          clip-rule="evenodd"
+                          d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                          fill-rule="evenodd"
+                        />
+                      </svg>
+                    </a>
+                  </td>
+                </tr>
+                <tr
+                  class="MuiTableRow-root MuiTableRow-hover css-mocked-MuiTableRow-root"
+                >
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    map.broadcastRate
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    1
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    Hz
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    Expected MAP broadcast rate
+                  </td>
+                  <td
+                    class="MuiTableCell-root MuiTableCell-body MuiTableCell-alignRight MuiTableCell-sizeMedium css-mocked-MuiTableCell-root"
+                  >
+                    <a
+                      class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-mocked-MuiButtonBase-root-MuiIconButton-root"
+                      role="button"
+                      tabindex="0"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                        data-testid="PencilAltIcon"
+                        fill="currentColor"
+                        focusable="false"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
+                        />
+                        <path
+                          clip-rule="evenodd"
+                          d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                          fill-rule="evenodd"
+                        />
+                      </svg>
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
           <div
@@ -227,7 +349,7 @@ exports[`should take a snapshot 1`] = `
               />
               <p
                 class="MuiTablePagination-selectLabel css-mocked-MuiTablePagination-selectLabel"
-                id="mui-7"
+                id="mui-10"
               >
                 Rows per page:
               </p>
@@ -237,9 +359,9 @@ exports[`should take a snapshot 1`] = `
                 <div
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby="mui-7 mui-6"
+                  aria-labelledby="mui-10 mui-9"
                   class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-mocked-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
-                  id="mui-6"
+                  id="mui-9"
                   role="combobox"
                   tabindex="0"
                 >
@@ -266,7 +388,7 @@ exports[`should take a snapshot 1`] = `
               <p
                 class="MuiTablePagination-displayedRows css-mocked-MuiTablePagination-displayedRows"
               >
-                0–0 of 0
+                1–2 of 2
               </p>
               <div
                 class="MuiTablePagination-actions"
