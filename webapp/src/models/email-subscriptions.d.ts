@@ -10,6 +10,8 @@ export type EmailUnsubscribeGetResponse = {
 
 export type EmailSubscription = {
   category: string
+  // null for system-wide email types, which are not set per organization
+  organization: string | null
   description: string
   required_role: string
   immediate: boolean

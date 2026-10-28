@@ -15,9 +15,6 @@ exports[`should take a snapshot 1`] = `
       class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
     />
     <div
-      class="MuiFormGroup-root css-mocked-MuiFormGroup-root"
-    />
-    <div
       class="MuiPaper-root MuiPaper-elevation MuiPaper-rounded MuiPaper-elevation0 MuiAlert-root MuiAlert-colorWarning MuiAlert-standardWarning MuiAlert-standard css-mocked-MuiPaper-root-MuiAlert-root"
       role="alert"
       style="--Paper-shadow: none;"
@@ -98,7 +95,7 @@ exports[`should take a snapshot 1`] = `
       <span
         class="MuiTypography-root MuiTypography-caption css-mocked-MuiTypography-root"
       >
-        Your subscription preferences will be applied immediately. You can update these settings at any time.
+        Organization emails are set separately for each organization, and system-wide emails apply across all of them. Your preferences will be applied immediately, and you can update these settings at any time.
       </span>
     </div>
   </div>
