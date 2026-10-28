@@ -11,7 +11,7 @@ google-auth==2.37.0
 cryptography==50.0.2
 DateTime==5.2
 requests==2.31.0
-pymongo==4.5.0
+pymongo==4.18.3
 sqlalchemy==2.0.21
 pg8000==1.30.2
 python-dateutil==2.9.0
