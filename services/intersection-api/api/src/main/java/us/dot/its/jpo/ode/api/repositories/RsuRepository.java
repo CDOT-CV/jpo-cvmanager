@@ -118,13 +118,14 @@ public interface RsuRepository extends JpaRepository<Rsu, Integer> {
 
     /**
      * Returns all RSUs belonging to the given organisation, fetching
-     * model, manufacturer, and rsuOption.
+     * model, manufacturer, rsuOption, and installed firmware.
      */
     @Query("SELECT DISTINCT rsu " +
             "FROM Rsu rsu " +
             "JOIN FETCH rsu.model m " +
             "JOIN FETCH m.manufacturer " +
             "LEFT JOIN FETCH rsu.rsuOption " +
+            "LEFT JOIN FETCH rsu.firmwareVersion " +
             "JOIN rsu.rsuOrganizations ro " +
             "JOIN ro.organization o " +
             "WHERE o.name = :orgName")

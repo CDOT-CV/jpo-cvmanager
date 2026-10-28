@@ -23,6 +23,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoDto;
 import us.dot.its.jpo.ode.api.models.postgres.dtos.RsuGeoInfoPropertiesDto;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Manufacturer;
+import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareImage;
 import us.dot.its.jpo.ode.api.models.postgres.tables.Rsu;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuModel;
 import us.dot.its.jpo.ode.api.models.postgres.tables.RsuOption;
@@ -123,6 +124,25 @@ public class RsuGeoInfoMapperTest {
     @Nested
     @DisplayName("toPropertiesDto(Rsu) - properties block mapping")
     class ToPropertiesDtoTests {
+
+        @Test
+        void mapsInstalledFirmwareVersionRatherThanTargetOrDisplayName() throws UnknownHostException {
+            Rsu rsu = buildRsu(true);
+            var installed = new FirmwareImage();
+            installed.setName("Display name");
+            installed.setVersion("y20.48.2");
+            rsu.setFirmwareVersion(installed);
+            var target = new FirmwareImage();
+            target.setVersion("y20.49.0");
+            rsu.setTargetFirmwareVersion(target);
+
+            assertEquals("y20.48.2", mapper.toPropertiesDto(rsu).getFirmwareVersion());
+        }
+
+        @Test
+        void missingInstalledFirmwareMapsToNull() throws UnknownHostException {
+            assertNull(mapper.toPropertiesDto(buildRsu(true)).getFirmwareVersion());
+        }
 
         @Test
         @DisplayName("null input returns null")

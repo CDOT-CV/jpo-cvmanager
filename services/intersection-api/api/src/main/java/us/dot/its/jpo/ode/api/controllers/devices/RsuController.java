@@ -34,6 +34,7 @@ import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.devices.RsuInfoDto;
 import us.dot.its.jpo.ode.api.models.devices.management.ModifyRsuAllowedSelections;
 import us.dot.its.jpo.ode.api.models.devices.management.RsuPatch;
+import us.dot.its.jpo.ode.api.models.devices.management.RsuFirmwareOption;
 import us.dot.its.jpo.ode.api.services.PermissionService;
 import us.dot.its.jpo.ode.api.services.RsuManagementService;
 import us.dot.its.jpo.ode.api.services.RsuOptionManagementService;
@@ -117,7 +118,7 @@ public class RsuController {
             @ApiResponse(responseCode = "201", description = "Created"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Requires SUPER_USER or OPERATOR role"),
     })
-    public ResponseEntity<Void> createRsu(@Validated @RequestBody RsuInfoDto body) {
+    public ResponseEntity<Void> createRsu(@Validated(RsuInfoDto.Creation.class) @RequestBody RsuInfoDto body) {
         if (!permissionService.hasRoleInOrgNames(UserRole.OPERATOR, body.getOrganizations())) {
             // This catches unqualified orgs or nonexistent orgs
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -127,6 +128,14 @@ public class RsuController {
         rsuManagementService.createRsu(body, body.getOrganizations());
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping(path = "/firmware-options", produces = "application/json")
+    @PreAuthorize("@PermissionService.isSuperUser() || @PermissionService.hasRole('OPERATOR')")
+    @Operation(summary = "List legacy and originally verified installed firmware options for an RSU model")
+    public List<RsuFirmwareOption> getFirmwareOptions(
+            @RequestParam(name = "model") String model) {
+        return rsuManagementService.getFirmwareOptions(model);
     }
 
     @Operation(summary = "Modify RSU", description = "Modify RSU information")
