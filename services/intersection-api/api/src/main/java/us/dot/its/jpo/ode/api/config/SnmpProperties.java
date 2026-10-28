@@ -32,7 +32,6 @@ public class SnmpProperties {
     @Max(64)
     private int maxBulkRepetitions = 0;
     private boolean rediscoverOnTimeout = true;
-    private String displayTimeZone = "America/Denver";
 
     /**
      * Builds and validates a per-task policy without changing the shared

@@ -345,17 +345,16 @@ Both read routes return the same row list:
     "messageType": "MAP",
     "destinationIp": "198.51.100.3",
     "destinationPort": 44920,
-    "startDatetime": "2026-10-15T10:00:00-06:00",
-    "endDatetime": "2036-10-15T10:00:00-06:00",
+    "startDatetime": "2026-10-15T16:00:00Z",
+    "endDatetime": "2036-10-15T16:00:00Z",
     "active": true,
     "includeSecurity": true
   }
 ]
 ```
 
-`table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates use
-`snmp.display-time-zone`, which defaults to the existing `TIMEZONE` environment
-setting or `America/Denver`. The response includes security/active flags and
+`table` is `RECEIVE`, `TRANSMIT`, or cached `DSRC`. Dates are returned in UTC;
+clients handle local-time display. The response includes security/active flags and
 RECEIVE/TRANSMIT table names for clients to display.
 
 `POST /devices/rsus/message-forwarding` creates an NTCIP 1218 UDP forwarding row
@@ -456,11 +455,10 @@ snmp:
   read-retries: 1
   max-bulk-repetitions: 0 # GETNEXT default; opt into 1–64 values per bulk response after device benchmarking
   rediscover-on-timeout: true
-  display-time-zone: America/Denver
 ```
 
 Forwarding schedules are always encoded and interpreted in UTC, as required by
-NTCIP 1218. `display-time-zone` controls their presentation only.
+NTCIP 1218.
 Request retries and rediscovery are bounded by the shared execution
 budget; SET retries remain disabled. The API closes its shared executor and
 transport on shutdown. Scheduled fleet monitoring is not started by these beans.
