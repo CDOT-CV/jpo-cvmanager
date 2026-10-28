@@ -5,8 +5,6 @@ import apiHelper from './api-helper'
 import { authApiHelper } from './intersections/api-helper-cviz'
 import {
   ApiMsgRespWithCodes,
-  GetRsuCommandResp,
-  RsuCommandPostBody,
   RsuCounts,
   RsuInfo,
   RsuInfoList,
@@ -45,19 +43,6 @@ class RsuApi {
       additional_headers: { Organization: org },
       tag: 'rsu',
     })
-  getRsuCommand = async (
-    token: string,
-    org: string,
-    url_ext = '',
-    query_params: Record<string, string> = {}
-  ): Promise<GetRsuCommandResp> =>
-    apiHelper._getData({
-      url: EnvironmentVars.rsuCommandEndpoint + url_ext,
-      token,
-      query_params,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
 
   // WZDx
   getWzdxData = async (token: string, url_ext = '', query_params = {}): Promise<WZDxWorkZoneFeed> =>
@@ -67,22 +52,6 @@ class RsuApi {
       query_params,
       tag: 'wzdx',
     })
-
-  // POST
-  postRsuData = async (
-    token: string,
-    org: string,
-    body: RsuCommandPostBody,
-    url_ext = ''
-  ): Promise<ApiMsgRespWithCodes<any>> => {
-    return await apiHelper._postData({
-      url: EnvironmentVars.rsuCommandEndpoint + url_ext,
-      body: JSON.stringify(body),
-      token,
-      additional_headers: { Organization: org },
-      tag: 'rsu',
-    })
-  }
 
   // POST
   postRsuGeo = async (

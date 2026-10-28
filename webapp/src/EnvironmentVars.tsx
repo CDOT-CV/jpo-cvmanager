@@ -61,7 +61,6 @@ class EnvironmentVars {
   static rsuInfoPath = '/devices/rsus/info'
   static readonly rsuGeoQueryPath = '/devices/rsus/geo-query'
   static rsuCountsEndpoint = `${this.getBaseApiUrl()}/rsucounts`
-  static rsuCommandEndpoint = `${this.getBaseApiUrl()}/rsu-command`
   static rsuUpgradeEndpoint = `${this.CVIZ_API_SERVER_URL}/devices/rsus/upgrade`
   static wzdxEndpoint = `${this.getBaseApiUrl()}/wzdx-feed`
   static adminAddOrg = `${this.getBaseApiUrl()}/admin-new-org`

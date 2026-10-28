@@ -16,5 +16,4 @@ def test_forwarding_routes_removed_with_rsu_features_enabled(monkeypatch):
         with pytest.raises(NotFound):
             routes.match(path, method="GET")
 
-    assert routes.match("/rsu-command", method="POST")[0] == "rsucommandrequest"
     assert routes.match("/rsucounts", method="GET")[0] == "rsuquerycounts"
