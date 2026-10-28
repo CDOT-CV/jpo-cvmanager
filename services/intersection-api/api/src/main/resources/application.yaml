@@ -166,6 +166,10 @@ j2735.api:
 
 firmwareManagerEndpoint: ${FIRMWARE_MANAGER_ENDPOINT:}
 
+rsu-reboot:
+  concurrency: ${RSU_REBOOT_CONCURRENCY:4}
+  timeout: ${RSU_REBOOT_TIMEOUT:60s}
+
 bucket4j:
   enabled: true
   filters:

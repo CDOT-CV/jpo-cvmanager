@@ -61,11 +61,13 @@ def get_rsu_data() -> RsuDataWrapper:
 def get_scms_status_data():
     """Get SCMS status data from ISS and return it as a dictionary"""
 
-    rsu_data = get_rsu_data()
+    with iss_token.token_for_check() as token:
+        return fetch_scms_status_data(token)
 
-    # Create GET request headers
-    iss_headers = {}
-    iss_headers["x-api-key"] = iss_token.get_token()
+
+def fetch_scms_status_data(token):
+    rsu_data = get_rsu_data()
+    iss_headers = {"x-api-key": token}
 
     # Create the GET request string
     iss_base = iss_health_check_environment.ISS_SCMS_VEHICLE_REST_ENDPOINT
@@ -80,7 +82,9 @@ def get_scms_status_data():
             page_size, page, project_id
         )
         logger.debug("GET: " + iss_request)
-        response = requests.get(iss_request, headers=iss_headers)
+        response = requests.get(
+            iss_request, headers=iss_headers, timeout=iss_token.REQUEST_TIMEOUT_SECONDS
+        )
         enrollment_list = response.json()["data"]
 
         if len(enrollment_list) == 0:

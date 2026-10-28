@@ -41,6 +41,8 @@ public final class SnmpTaskExecutor implements AutoCloseable {
     private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
     private final ScheduledThreadPoolExecutor timers = new ScheduledThreadPoolExecutor(1,
             Thread.ofPlatform().daemon().name("snmp-execution-timer-", 0).factory());
+    // Scheduling collections and counters are guarded by this executor's monitor.
+    // One lock keeps admission checks and updates across all three collections atomic.
     private final List<Control> queue = new ArrayList<>();
     private final Map<String, Control> running = new HashMap<>();
     private final Set<String> activeTargets = new HashSet<>();
@@ -79,6 +81,8 @@ public final class SnmpTaskExecutor implements AutoCloseable {
     /**
      * Returns a handle for accepted or rejected work. Capacity rejection is a task result,
      * so a batch can account for every device without losing rejected submissions.
+     * Admission and scheduling are synchronous; task steps run on workers.
+     * Use the returned handle to await completion separately.
      * @param task reusable definition; each submission has independent execution state
      * @param taskOptions policies for this execution
      * @return handle containing accepted, queued or rejected progress
@@ -116,6 +120,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
     }
 
+    /** Called with the executor monitor held; schedules workers without waiting for their results. */
     private void pump() {
         if (closed) return;
         // Skip a busy endpoint instead of occupying a worker while waiting for its lock.
@@ -154,7 +159,6 @@ public final class SnmpTaskExecutor implements AutoCloseable {
                 control.startStep(step);
                 executeStep(control, step, context, trace);
             }
-            control.remainingNanos();
             control.finish(SUCCEEDED, null);
         } catch (Exception failure) {
             var safe = safeFailure(failure, control);
@@ -326,6 +330,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         final List<MutableStep<?>> steps;
         SnmpTaskResult.Status status = QUEUED;
         SnmpException.Kind stop;
+        boolean stepsComplete;
         Instant startedAt;
         Instant finishedAt;
         long startedNanos;
@@ -372,7 +377,7 @@ public final class SnmpTaskExecutor implements AutoCloseable {
         }
 
         synchronized boolean requestStop(SnmpException.Kind reason) {
-            if (status != QUEUED && status != RUNNING || stop != null) return false;
+            if (status != QUEUED && status != RUNNING || stop != null || stepsComplete) return false;
             stop = reason;
             if (worker != null) worker.interrupt();
             return true;
@@ -394,6 +399,9 @@ public final class SnmpTaskExecutor implements AutoCloseable {
             step.value = value;
             step.status = SnmpStepResult.Status.SUCCEEDED;
             step.finishedAt = Instant.now();
+            // Seal successful completion under the same monitor used by stop requests.
+            // A stop already accepted while the callback ran still applies to that execution.
+            if (step == steps.getLast() && stop == null) stepsComplete = true;
         }
 
         synchronized void stepFailed(MutableStep<?> step, SnmpException exception) {

@@ -22,6 +22,7 @@ import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.smi.VariableBinding;
+import org.snmp4j.transport.DefaultUdpTransportMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import us.dot.its.jpo.snmp.client.*;
@@ -38,6 +39,7 @@ import static us.dot.its.jpo.snmp.client.SnmpException.Kind.*;
 public final class Snmp4jClient implements SnmpClient {
     private static final Logger log = LoggerFactory.getLogger(Snmp4jClient.class);
     private final Snmp4jOptions options;
+    private final ManagedSession.TransportFactory transportFactory;
     private final Semaphore permits;
     private final LinkedHashMap<String, ManagedSession> sessions = new LinkedHashMap<>(16, 0.75f, true);
     private boolean closed;
@@ -52,7 +54,13 @@ public final class Snmp4jClient implements SnmpClient {
      * @param options request and resource limits
      */
     public Snmp4jClient(Snmp4jOptions options) {
+        this(options, DefaultUdpTransportMapping::new);
+    }
+
+    // Package-local transport injection keeps deterministic network-failure tests off the public API.
+    Snmp4jClient(Snmp4jOptions options, ManagedSession.TransportFactory transportFactory) {
         this.options = Objects.requireNonNull(options);
+        this.transportFactory = Objects.requireNonNull(transportFactory);
         permits = new Semaphore(options.maxConcurrentOperations(), true);
     }
 
@@ -310,7 +318,7 @@ public final class Snmp4jClient implements SnmpClient {
                 trace.failedLocally();
                 throw failure;
             } finally {
-                if (session != null) release(session);
+                if (session != null) release(session, target);
                 if (admitted) permits.release();
             }
         }
@@ -322,8 +330,8 @@ public final class Snmp4jClient implements SnmpClient {
         String key = credentialKey(target.credentials());
         ManagedSession session = sessions.get(key);
 
-        if (session != null && !session.targets.contains(target.agent()) && session.targets.size() >= options.maxTargetsPerSession()) {
-            // Rotate only an idle profile. No in-flight request may lose its security state.
+        if (session != null && session.broken()) {
+            // Do not hand a failed shared transport to another caller while existing calls unwind.
             if (session.leases != 0) throw new SnmpException(BUSY, false);
             sessions.remove(key);
             closeSession(session);
@@ -337,19 +345,22 @@ public final class Snmp4jClient implements SnmpClient {
                 closeSession(idle.get().getValue());
             }
             try {
-                session = new ManagedSession(target.credentials(), options.maxTargetsPerSession());
+                session = new ManagedSession(target.credentials(), options.maxTargetsPerSession(), transportFactory);
             } catch (IOException failure) {
                 throw new SnmpException(EXECUTION, false);
             }
             sessions.put(key, session);
         }
 
-        session.targets.add(target.agent());
+        session.retainPeer(new UdpAddress(target.address() + "/" + target.port()));
         session.leases++;
         return session;
     }
 
-    private synchronized void release(ManagedSession session) { session.leases--; }
+    private synchronized void release(ManagedSession session, SnmpTarget target) {
+        session.releasePeer(new UdpAddress(target.address() + "/" + target.port()));
+        session.leases--;
+    }
 
     /** Identical full profiles may share a session; matching usernames alone are insufficient. */
     private static String credentialKey(SnmpCredentials credentials) {

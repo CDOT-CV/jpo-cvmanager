@@ -76,5 +76,18 @@ public final class SnmpCredentials {
     public String privacyPassword() { return privacyPassword; }
     public Authentication authentication() { return authentication; }
     public Privacy privacy() { return privacy; }
+
+    /** Compares the full effective profile, including secrets and algorithms. */
+    @Override public boolean equals(Object other) {
+        return other instanceof SnmpCredentials that && username.equals(that.username)
+                && authenticationPassword.equals(that.authenticationPassword)
+                && privacyPassword.equals(that.privacyPassword)
+                && authentication == that.authentication && privacy == that.privacy;
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(username, authenticationPassword, privacyPassword, authentication, privacy);
+    }
+
     @Override public String toString() { return "SnmpCredentials[REDACTED]"; }
 }
