@@ -21,6 +21,9 @@ vi.mock('../../apis/api-helper')
 const { mockInitiate, mockInvalidateTags } = vi.hoisted(() => ({ mockInitiate: vi.fn(), mockInvalidateTags: vi.fn() }))
 
 vi.mock('../api/organizationApiSlice', () => ({
+  ORGANIZATION_API_USER_TAG: 'User',
+  ORGANIZATION_API_USER_LIST_TAG: 'UserList',
+  ORGANIZATION_API_AVAILABLE_USER_LIST_TAG: 'AvailableUserList',
   organizationApiSlice: {
     endpoints: {
       getUserOrganizations: {
@@ -46,7 +49,7 @@ describe('admin organization tab User reducer', () => {
 
 describe('async thunks', () => {
   describe('userDeleteSingle', () => {
-    it('returns and calls the api correctly', async () => {
+    it('returns and calls the api correctly', ;async () => {
       let dispatch = vi.fn()
       const getState = vi.fn().mockReturnValue({
         user: {
@@ -68,34 +71,29 @@ describe('async thunks', () => {
 
       let action = userDeleteSingle({ user, selectedOrg, selectedOrgEmail, updateTableData })
 
-      const jsdomAlert = window.alert
-      try {
-        window.alert = vi.fn()
-        await action(dispatch, getState, undefined)
-        expect(dispatch).toHaveBeenCalledTimes(2 + 2)
-        expect(window.alert).not.toHaveBeenCalled()
+      window.alert = vi.fn()
+      await action(dispatch, getState, undefined)
+      expect(dispatch).toHaveBeenCalledTimes(2 + 4)
+      expect(window.alert).not.toHaveBeenCalled()
 
-        // Only 1 organization
-        dispatch = vi.fn()
+      // Only 1 organization
+      dispatch = vi.fn()
 
-        action = userDeleteSingle({ user, selectedOrg, selectedOrgEmail, updateTableData })
+      action = userDeleteSingle({ user, selectedOrg, selectedOrgEmail, updateTableData })
 
-        dispatch.mockResolvedValue({
-          data: ['org1'],
-          payload: { success: true },
-        })
-        window.alert = vi.fn()
-        await action(dispatch, getState, undefined)
-        expect(dispatch).toHaveBeenCalledTimes(2 + 1)
-        expect(window.alert).toHaveBeenCalledWith(
-          'Cannot remove User test@gmail.com from selectedOrg because they must belong to at least one organization.'
-        )
-      } catch (e) {
-        window.alert = jsdomAlert
-        throw e
-      }
+      dispatch.mockResolvedValue({
+        data: ['org1'],
+        payload: { success: true },
+      })
+      window.alert = vi.fn()
+      await action(dispatch, getState, undefined)
+      expect(dispatch).toHaveBeenCalledTimes(2 + 3)
+      expect(window.alert).toHaveBeenCalledWith(
+        'Cannot remove User test@gmail.com from selectedOrg because they must belong to at least one organization.'
+      )
     })
   })
+
   describe('userDeleteMultiple', () => {
     it('returns and calls the api correctly when all users have multiple organizations', async () => {
       const dispatch = vi.fn()
@@ -116,6 +114,7 @@ describe('async thunks', () => {
       const selectedOrgEmail = 'name@email.com'
       const updateTableData = vi.fn()
 
+      dispatch.mockResolvedValueOnce(undefined) // refresh call
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2', 'org3'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
       dispatch.mockResolvedValueOnce({ data: ['org1', 'org2'], unsubscribe: vi.fn() })
