@@ -1,11 +1,11 @@
-package us.dot.its.jpo.ode.api.services;
+package us.dot.its.jpo.ode.api.services.firmware;
 
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.isConstraintViolation;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesChecksum;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.matchesSize;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.normalizeCreatedBy;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validatePathSegment;
-import static us.dot.its.jpo.ode.api.services.FirmwareUploadSupport.validateSignedLocation;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.isConstraintViolation;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.matchesChecksum;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.matchesSize;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.normalizeCreatedBy;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.validatePathSegment;
+import static us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadSupport.validateSignedLocation;
 
 import java.time.Instant;
 import java.util.Locale;

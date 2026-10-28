@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.repositories.UploadLifecycleRepository;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadCleanupProperties;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadCleanupProperties;
 
 /**
  * Expires abandoned upload intents and removes old unsuccessful upload history

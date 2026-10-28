@@ -20,7 +20,7 @@ import us.dot.its.jpo.ode.api.models.postgres.tables.FirmwareUploadStatus;
 import us.dot.its.jpo.ode.api.repositories.FirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.ObuFirmwareUploadRepository;
 import us.dot.its.jpo.ode.api.repositories.UploadLifecycleRepository;
-import us.dot.its.jpo.ode.api.services.FirmwareUploadCleanupProperties;
+import us.dot.its.jpo.ode.api.services.firmware.FirmwareUploadCleanupProperties;
 
 class FirmwareUploadCleanupTaskTest {
     private final FirmwareUploadRepository repository = mock(FirmwareUploadRepository.class);
