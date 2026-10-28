@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import PropTypes from 'prop-types'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import dayjs from 'dayjs'
+import PropTypes from 'prop-types'
+import React, { useEffect, useState } from 'react'
 
 export type ReportListFilter = {
   startDate: Date | null
@@ -26,17 +26,20 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
 
   useEffect(() => {
     setCurrentFilters(filters)
+    updateFiltersValid()
   }, [filters])
 
   const startDateChange = (date: Date | null) => {
     setCurrentFilters({ ...currentFilters, startDate: date })
+    updateFiltersValid()
   }
 
   const endDateChange = (date: Date | null) => {
     setCurrentFilters({ ...currentFilters, endDate: date })
+    updateFiltersValid()
   }
 
-  const updateFiltersValid = useCallback(() => {
+  const updateFiltersValid = () => {
     let filtersValidLocal = true
     const reasons: string[] = []
     if (currentFilters.startDate === null || currentFilters.endDate === null) {
@@ -51,11 +54,7 @@ export const ReportListFilters = (props: ReportListFiltersProps) => {
     if (filtersValidLocal) {
       onChange?.(currentFilters)
     }
-  }, [currentFilters, onChange])
-
-  useEffect(() => {
-    updateFiltersValid()
-  }, [currentFilters, updateFiltersValid])
+  }
 
   return (
     <Box

@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Box, Button, Card, Container, InputAdornment, Tab, Tabs, TextField, Typography, useTheme } from '@mui/material'
-import { ConfigParamListTable } from '../../features/intersections/configuration/configuration-list-table'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
+import { Box, Button, Card, Container, InputAdornment, Tab, Tabs, TextField, Typography, useTheme } from '@mui/material'
+import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
-import { useGetIntersectionParametersQuery } from '../../features/api/intersectionConfigSlice'
 import { Route, Routes } from 'react-router-dom'
-import ConfigParamEdit from './configuration/edit'
-import ConfigParamCreate from './configuration/create'
-import ConfigParamRemove from './configuration/remove'
+import { useGetIntersectionParametersQuery } from '../../features/api/intersectionConfigSlice'
+import { ConfigParamListTable } from '../../features/intersections/configuration/configuration-list-table'
+import { selectSelectedIntersectionId } from '../../generalSlices/intersectionSlice'
 import { NotFound } from '../../pages/404'
+import ConfigParamCreate from './configuration/create'
+import ConfigParamEdit from './configuration/edit'
+import ConfigParamRemove from './configuration/remove'
 
 const tabs = [
   {
@@ -99,9 +99,9 @@ const Page = () => {
   const handleTabsChange = (event, value) => {
     const updatedFilter = { ...filter, tab: value }
     setCurrentTab(value)
+    updateDescription()
     setFilter(updatedFilter)
     setPage(0)
-    setCurrentTab(value)
   }
 
   const handleQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,17 +119,13 @@ const Page = () => {
     setRowsPerPage(parseInt(event.target.value, 10))
   }
 
-  const updateDescription = useCallback(() => {
+  const updateDescription = () => {
     for (let i = 0; i < tabs.length; i++) {
       if (tabs[i].value === currentTab) {
         setCurrentDescription(tabs[i].description)
       }
     }
-  }, [currentTab])
-
-  useEffect(() => {
-    updateDescription()
-  }, [currentTab, updateDescription])
+  }
 
   // Usually query is done on backend with indexing solutions
   const filteredParameters = applyFilters(parameters ?? [], filter)
