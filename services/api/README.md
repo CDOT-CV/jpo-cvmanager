@@ -32,22 +32,6 @@ Returns all basic data for RSUs in the GCP Cloud SQL database. It performs a bas
 
 Returns the message counts for a single, selected RSU from a BigQuery table. It performs a basic select query on a table specified by the environments variable. Returns single JSON object.
 
-### <b>/rsu-command</b> <b>(GET, POST)</b>
-
-1. Verifies the command and calls the corresponding function.
-2. Provided RSU data is plugged into the appropriate data structure depending upon the RSU REST endpoint.
-   - HTTP GET URL arguments
-   - HTTP POST body data
-3. Dispatch the selected SSH or firmware command.
-4. Return response, varies depending upon request.
-
-Message forwarding is served by the [Intersection API](../intersection-api/api/README.md).
-Use `POST` and `DELETE /devices/rsus/message-forwarding` to configure forwarding,
-`GET /devices/rsus/message-forwarding/{rsuIp}` for cached PostgreSQL configurations,
-and `GET /devices/rsus/message-forwarding/{rsuIp}/live` to read the RSU.
-The Python `/rsu-msgfwd-query` and `/rsu-msgfwd-fetch` routes and the
-`rsufwdsnmpset` / `rsufwdsnmpset-del` commands have been removed.
-
 ### <b>/rsu-map-info</b> <b>(GET)</b>
 
 Returns the list of all ipv4 addresses with MAP message data in the PostgreSQL database when argument ip_list is true. Returns the MAP message geoJSON data for the RSU specified in the ip_address argument as a single JSON object when ip_list is false.
