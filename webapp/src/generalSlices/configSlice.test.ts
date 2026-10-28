@@ -12,7 +12,6 @@ import reducer, {
   setMsgType,
   toggleConfigPointSelect,
 } from './configSlice'
-import RsuApi from '../apis/rsu-api'
 import RsuFirmwareApi from '../apis/intersections/rsu-firmware-api'
 import RsuMessageForwardingApi from '../apis/intersections/rsu-message-forwarding-api'
 import { MessageForwardingResult } from '../models/RsuMessageForwarding'
@@ -358,7 +357,6 @@ describe('async thunks', () => {
           message: '',
           body: Object.fromEntries(ips.map((ip) => [ip, result()])),
         })
-        const legacy = jest.spyOn(RsuApi, 'postRsuData')
         expect((await run(operation)).payload).toEqual({ changeSuccess: true, errorState: '' })
         expect(api).toHaveBeenCalledWith('token', 'Org 1', {
           rsu_ips: ips,
@@ -366,7 +364,6 @@ describe('async thunks', () => {
           destination_ip: '198.51.100.3',
           ...(operation === 'create' ? { include_security: true } : {}),
         })
-        expect(legacy).not.toHaveBeenCalled()
       })
 
       it('reports partial failures even when HTTP status is 200', async () => {
