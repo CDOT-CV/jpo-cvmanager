@@ -6,6 +6,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,
+  { ignores: ['build/**'] },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
