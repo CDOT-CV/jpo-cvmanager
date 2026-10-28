@@ -240,3 +240,17 @@ INSERT INTO public.scms_health(timestamp, health, expiration, rsu_id)
     ('2026/06/01T00:10:00'::timestamp, B'0', '2027/06/01T00:00:00'::timestamp, 2)
   ) AS seed(ts, hlth, exp, rid)
   WHERE NOT EXISTS (SELECT 1 FROM public.scms_health);
+
+INSERT INTO public.obu_ota_requests(obu_sn, manufacturer, request_datetime, origin_ip,
+    obu_firmware_version, requested_firmware_version, error_status, error_message)
+  SELECT sn, m.manufacturer_id, ts, ip::inet, cur, req, err, msg
+  FROM (VALUES
+    ('OBU-SAMPLE-0001', '2026/06/01T00:00:00'::timestamp, '10.0.0.21', 'y20.47.0-b220001',
+      'ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig', B'0', ''),
+    ('OBU-SAMPLE-0002', '2026/06/01T00:05:00'::timestamp, '10.0.0.22', 'y20.47.0-b220001',
+      'ob4-generic-ro-secureboot-y20.48.2-b228647.tar.sig', B'0', ''),
+    ('OBU-SAMPLE-0002', '2026/06/01T00:10:00'::timestamp, '10.0.0.22', 'y20.48.2-b228647',
+      'ob4-generic-ro-secureboot-y20.49.0-b230000.tar.sig', B'1', '404: Firmware not found')
+  ) AS seed(sn, ts, ip, cur, req, err, msg)
+  JOIN public.manufacturers m ON m.name = 'Commsignia'
+  WHERE NOT EXISTS (SELECT 1 FROM public.obu_ota_requests);
