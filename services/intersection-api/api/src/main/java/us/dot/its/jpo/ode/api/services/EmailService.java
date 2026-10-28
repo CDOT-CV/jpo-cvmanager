@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.emails.contents.ApiErrorEmailContents;
 import us.dot.its.jpo.ode.api.models.emails.contents.FirmwareUpgradeFailureEmailContents;
 import us.dot.its.jpo.ode.api.models.postgres.tables.EmailType;
+import us.dot.its.jpo.ode.api.models.postgres.tables.Organization;
 import us.dot.its.jpo.ode.api.models.postgres.tables.User;
 import us.dot.its.jpo.ode.api.models.postgres.tables.UserEmailNotification;
 import us.dot.its.jpo.ode.api.repositories.EmailTypeRepository;
@@ -26,6 +28,7 @@ import us.dot.its.jpo.ode.api.models.emails.contents.SupportRequestEmailContents
 import us.dot.its.jpo.ode.api.models.emails.contents.message_counts.MessageCountEmailContents;
 import us.dot.its.jpo.ode.api.emails.generators.ApiErrorEmailGenerator;
 import us.dot.its.jpo.ode.api.emails.generators.FirmwareUpgradeFailureEmailGenerator;
+import us.dot.its.jpo.ode.api.repositories.OrganizationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserEmailNotificationRepository;
 import us.dot.its.jpo.ode.api.repositories.UserRepository;
 import us.dot.its.jpo.ode.api.emails.generators.MessageCountEmailGenerator;
@@ -43,6 +46,7 @@ public class EmailService {
     private final UserEmailNotificationMapper userEmailNotificationMapper;
     private final UserEmailNotificationRepository userEmailNotificationRepository;
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
     private final PermissionService permissionService;
     private final SupportRequestEmailGenerator supportRequestEmailGenerator;
     private final MessageCountEmailGenerator messageCountEmailGenerator;
@@ -136,38 +140,89 @@ public class EmailService {
         return emailProvider.sendBatchedEmails(recipients, content);
     }
 
-    public List<UserEmailNotificationDto> getAllEmailSubscriptionOptionsForUser(String userEmail, Boolean isOperator,
-            Boolean isAdmin) {
+    /**
+     * Lists every subscription option available to a user, populated from the
+     * user's saved subscription when one exists:
+     * <ul>
+     * <li>one entry, with no organization, per system-wide email type the user's
+     * highest role qualifies for</li>
+     * <li>one entry per organization the user belongs to and organization-scoped
+     * email type the user's role in that organization qualifies for</li>
+     * </ul>
+     *
+     * @param userEmail   email of the user
+     * @param orgRoles    the user's role in each of their organizations, keyed by
+     *                    organization name
+     * @param isSuperUser whether the user is a super user, who qualifies for every
+     *                    system-wide email type
+     */
+    public List<UserEmailNotificationDto> getAllEmailSubscriptionOptionsForUser(String userEmail,
+            Map<String, UserRole> orgRoles, boolean isSuperUser) {
         List<UserEmailNotification> userSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
-        List<EmailType> allSubscriptionTypes = filterNotificationTypesByRole(isOperator, isAdmin,
-                emailTypeRepository.findAll());
-        return allSubscriptionTypes.stream().map(subType -> {
-            for (UserEmailNotification subscribedType : userSubscriptions) {
-                if (subscribedType.getEmailType().getEmailType().equals(subType.getEmailType())) {
-                    return userEmailNotificationMapper.toDto(subscribedType);
+        List<EmailType> allSubscriptionTypes = emailTypeRepository.findAll();
+        List<UserEmailNotificationDto> options = new ArrayList<>();
+
+        UserRole systemRole = getSystemRole(orgRoles, isSuperUser);
+        for (EmailType subType : allSubscriptionTypes) {
+            if (!subType.getOrganizationScoped() && isAuthorized(systemRole, subType)) {
+                options.add(toSubscriptionOption(subType, null, userSubscriptions));
+            }
+        }
+
+        for (Map.Entry<String, UserRole> orgRole : new TreeMap<>(orgRoles).entrySet()) {
+            for (EmailType subType : allSubscriptionTypes) {
+                if (subType.getOrganizationScoped() && isAuthorized(orgRole.getValue(), subType)) {
+                    options.add(toSubscriptionOption(subType, orgRole.getKey(), userSubscriptions));
                 }
             }
-            return userEmailNotificationMapper.fromEmailType(subType);
-        }).toList();
+        }
+        return options;
     }
 
-    private List<EmailType> filterNotificationTypesByRole(Boolean isOperator,
-            Boolean isAdmin, List<EmailType> notifications) {
-        return notifications.stream()
-                .filter(notification -> {
-                    UserRole requiredRole = UserRole.fromString(notification.getRequiredRole().getName());
-                    return UserRole.USER.equals(requiredRole) ||
-                            isOperator && UserRole.OPERATOR.equals(requiredRole) ||
-                            isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
-                            isAdmin && UserRole.ADMIN.equals(requiredRole);
-                })
-                .toList();
+    private UserEmailNotificationDto toSubscriptionOption(EmailType subType, String orgName,
+            List<UserEmailNotification> userSubscriptions) {
+        return userSubscriptions.stream()
+                .filter(sub -> sub.getEmailType().getEmailType().equals(subType.getEmailType())
+                        && Objects.equals(getOrganizationName(sub), orgName))
+                .findFirst()
+                .map(userEmailNotificationMapper::toDto)
+                .orElseGet(() -> userEmailNotificationMapper.fromEmailType(subType, orgName));
+    }
+
+    /**
+     * The role a user holds for system-wide email types: ADMIN for super users,
+     * otherwise their highest role in any organization, or null when they belong
+     * to none.
+     */
+    private static UserRole getSystemRole(Map<String, UserRole> orgRoles, boolean isSuperUser) {
+        if (isSuperUser) {
+            return UserRole.ADMIN;
+        }
+        return orgRoles.values().stream()
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    private static boolean isAuthorized(UserRole memberRole, EmailType emailType) {
+        UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
+        return memberRole != null && memberRole.hasMinimumRole(requiredRole);
+    }
+
+    private static String getOrganizationName(UserEmailNotification subscription) {
+        return subscription.getOrganization() == null ? null : subscription.getOrganization().getName();
+    }
+
+    private static boolean isSameSubscription(UserEmailNotificationDto dto, UserEmailNotification entity) {
+        return dto.getCategory().equals(entity.getEmailType().getEmailType())
+                && Objects.equals(dto.getOrganization(), getOrganizationName(entity));
     }
 
     private static List<UserEmailNotificationDto> filterValidSubscriptionsForUser(
-            List<UserEmailNotificationDto> requestedSubscriptions, Boolean isOperator,
-            Boolean isAdmin, List<EmailType> validEmailTypes) {
+            List<UserEmailNotificationDto> requestedSubscriptions, Map<String, UserRole> orgRoles,
+            boolean isSuperUser, List<EmailType> validEmailTypes) {
+        UserRole systemRole = getSystemRole(orgRoles, isSuperUser);
         List<UserEmailNotificationDto> list = new ArrayList<>();
         for (UserEmailNotificationDto requestedSubscription : requestedSubscriptions) {
             EmailType emailType = validEmailTypes.stream()
@@ -176,14 +231,29 @@ public class EmailService {
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Invalid email category: " + requestedSubscription.getCategory()));
 
-            UserRole requiredRole = UserRole.fromString(emailType.getRequiredRole().getName());
-            boolean authorized = UserRole.USER.equals(requiredRole) ||
-                    isOperator && UserRole.OPERATOR.equals(requiredRole) ||
-                    isAdmin && UserRole.OPERATOR.equals(requiredRole) ||
-                    isAdmin && UserRole.ADMIN.equals(requiredRole);
-            if (!authorized) {
-                throw new AccessDeniedException("User does not have required role " + requiredRole
+            String orgName = requestedSubscription.getOrganization();
+            if (!emailType.getOrganizationScoped()) {
+                if (orgName != null) {
+                    throw new IllegalArgumentException("Email type " + emailType.getEmailType()
+                            + " is system-wide and cannot be set for organization " + orgName);
+                }
+                if (!isAuthorized(systemRole, emailType)) {
+                    throw new AccessDeniedException("User does not have required role "
+                            + emailType.getRequiredRole().getName() + " for email type " + emailType.getEmailType());
+                }
+            } else {
+                if (orgName == null) {
+                    throw new IllegalArgumentException(
+                            "Email type " + emailType.getEmailType() + " requires an organization");
+                }
+                if (!orgRoles.containsKey(orgName)) {
+                    throw new AccessDeniedException("User is not a member of organization " + orgName);
+                }
+                if (!isAuthorized(orgRoles.get(orgName), emailType)) {
+                    throw new AccessDeniedException("User does not have required role "
+                            + emailType.getRequiredRole().getName() + " in organization " + orgName
                         + " for email type " + emailType.getEmailType());
+                }
             }
 
             if ((requestedSubscription.getImmediate() && !emailType.getSupportsImmediate()) ||
@@ -199,36 +269,62 @@ public class EmailService {
         return list;
     }
 
-    public void updateEmailSubscriptions(String userEmail, Boolean isOperator,
-            Boolean isAdmin, List<UserEmailNotificationDto> requestedSubscriptions) {
+    /**
+     * Applies the requested subscriptions for a user. Each requested entry is
+     * identified by (category, organization), with no organization for
+     * system-wide email types: subscribed entries are created or have their
+     * frequencies updated, unsubscribed entries are removed, and subscriptions
+     * not mentioned in the request are left unchanged.
+     *
+     * @param userEmail              email of the user
+     * @param orgRoles               the user's role in each of their
+     *                               organizations, keyed by organization name
+     * @param isSuperUser            whether the user is a super user
+     * @param requestedSubscriptions requested subscription states
+     */
+    public void updateEmailSubscriptions(String userEmail, Map<String, UserRole> orgRoles, boolean isSuperUser,
+            List<UserEmailNotificationDto> requestedSubscriptions) {
         List<UserEmailNotification> currentSubscriptions = userEmailNotificationRepository
                 .findNotificationsByUser(userEmail);
         List<EmailType> allEmailTypes = emailTypeRepository.findAll();
         User user = userRepository.findByEmail(userEmail);
         List<UserEmailNotificationDto> validRequestedSubscriptions = filterValidSubscriptionsForUser(
-                requestedSubscriptions,
-                isOperator, isAdmin, allEmailTypes);
+                requestedSubscriptions, orgRoles, isSuperUser, allEmailTypes);
 
-        List<UserEmailNotification> addedSubscriptions = validRequestedSubscriptions.stream()
+        List<UserEmailNotificationDto> subscriptionsToAdd = validRequestedSubscriptions.stream()
                 .filter(sub -> sub.getSubscribed())
                 .filter(sub -> currentSubscriptions.stream()
-                        .noneMatch(currentSub -> currentSub.getEmailType().getEmailType().equals(sub.getCategory())))
+                        .noneMatch(currentSub -> isSameSubscription(sub, currentSub)))
+                .toList();
+        List<String> organizationNamesToAdd = subscriptionsToAdd.stream()
+                .map(UserEmailNotificationDto::getOrganization)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<String, Organization> organizationsByName = organizationNamesToAdd.isEmpty() ? Map.of()
+                : organizationRepository.findByNameIn(organizationNamesToAdd)
+                .stream()
+                .collect(Collectors.toMap(Organization::getName, org -> org));
+
+        List<UserEmailNotification> addedSubscriptions = subscriptionsToAdd.stream()
                 .map(subDto -> {
                     EmailType emailType = allEmailTypes.stream()
                             .filter(type -> type.getEmailType().equals(subDto.getCategory()))
                             .findFirst()
                             .orElseThrow(() -> new IllegalArgumentException(
                                     "Invalid email category: " + subDto.getCategory()));
-                    UserEmailNotification sub = userEmailNotificationMapper.toEntity(subDto, user, emailType);
-                    return sub;
+                    Organization organization = subDto.getOrganization() == null ? null
+                            : Optional.ofNullable(organizationsByName.get(subDto.getOrganization()))
+                                    .orElseThrow(() -> new IllegalArgumentException(
+                                            "Invalid organization: " + subDto.getOrganization()));
+                    return userEmailNotificationMapper.toEntity(subDto, user, emailType, organization);
                 })
                 .toList();
 
         List<UserEmailNotification> modifiedSubscriptions = currentSubscriptions.stream()
                 .map(sub -> {
                     UserEmailNotificationDto requestedSub = validRequestedSubscriptions.stream()
-                            .filter(reqSub -> reqSub.getSubscribed()
-                                    && reqSub.getCategory().equals(sub.getEmailType().getEmailType()))
+                            .filter(reqSub -> reqSub.getSubscribed() && isSameSubscription(reqSub, sub))
                             .findFirst()
                             .orElse(null);
                     if (requestedSub != null && !requestedSub.isFrequencyEqual(sub)) {
@@ -242,8 +338,7 @@ public class EmailService {
 
         List<UserEmailNotification> removedSubscriptions = currentSubscriptions.stream()
                 .filter(sub -> validRequestedSubscriptions.stream()
-                        .anyMatch(reqSub -> reqSub.getCategory().equals(sub.getEmailType().getEmailType())
-                                && !reqSub.getSubscribed()))
+                        .anyMatch(reqSub -> isSameSubscription(reqSub, sub) && !reqSub.getSubscribed()))
                 .toList();
 
         // Remove subscriptions that are no longer subscribed
