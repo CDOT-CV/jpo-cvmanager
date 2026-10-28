@@ -5,19 +5,26 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.Immutable;
 
 import java.net.InetAddress;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
+/**
+ * An OBU firmware download attempt recorded by the OBU OTA server. Rows are
+ * written by the OTA server and are read-only to the API.
+ */
 @Getter
 @Setter
 @Entity
+@Immutable
 @Table(name = "obu_ota_requests")
 public class ObuOtaRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "obu_ota_requests_id_gen")
-    @SequenceGenerator(name = "obu_ota_requests_id_gen", sequenceName = "obu_ota_requests_obu_ota_request_id_seq", allocationSize = 1)
-    @Column(name = "obu_ota_request_id", nullable = false)
+    @SequenceGenerator(name = "obu_ota_requests_id_gen", sequenceName = "obu_ota_request_id_seq", allocationSize = 1)
+    @Column(name = "request_id", nullable = false)
     private Integer requestId;
 
     @Size(max = 128)
@@ -25,9 +32,10 @@ public class ObuOtaRequest {
     @Column(name = "obu_sn", nullable = false, length = 128)
     private String obuSn;
 
+    /** Stored without a time zone; the OTA server writes UTC. */
     @NotNull
     @Column(name = "request_datetime", nullable = false)
-    private Instant requestDatetime;
+    private LocalDateTime requestDatetime;
 
     @NotNull
     @Column(name = "origin_ip", nullable = false)
@@ -45,6 +53,7 @@ public class ObuOtaRequest {
 
     @NotNull
     @Column(name = "error_status", nullable = false, columnDefinition = "bit(1)")
+    @ColumnTransformer(read = "error_status::integer::boolean", write = "(?::integer)::bit(1)")
     private Boolean errorStatus;
 
     @Size(max = 128)
