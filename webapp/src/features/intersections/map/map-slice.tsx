@@ -695,7 +695,6 @@ export const renderIterative_Map = createAsyncThunk(
     const currentState = getState() as RootState
     const queryParams = selectQueryParams(currentState)
     const currentMapData: ProcessedMap[] = selectCurrentMapData(currentState)
-    const mapRef = selectMapRef(currentState)
 
     newMapData = newMapData.map((map) => ({
       ...map,
@@ -731,29 +730,9 @@ export const renderIterative_Map = createAsyncThunk(
 
     // ######################### MAP Data #########################
     const latestMapMessage: ProcessedMap = currentMapDataLocal.at(-1)!
-    if (latestMapMessage != null) {
-      mapRef.current.flyTo({
-        center: [latestMapMessage?.properties.refPoint.longitude, latestMapMessage?.properties.refPoint.latitude],
-        zoom: 19,
-        duration: 100, //ms
-      })
-    }
-
     // ######################### SPAT Signal Groups #########################
     const mapSignalGroupsLocal = parseMapSignalGroups(latestMapMessage)
 
-    const previousMapMessage: ProcessedMap | undefined = currentMapData.at(-1)
-    if (
-      latestMapMessage != null &&
-      (latestMapMessage.properties.refPoint.latitude != previousMapMessage?.properties.refPoint.latitude ||
-        latestMapMessage.properties.refPoint.longitude != previousMapMessage?.properties.refPoint.longitude)
-    ) {
-      mapRef.current.flyTo({
-        center: [latestMapMessage?.properties.refPoint.longitude, latestMapMessage?.properties.refPoint.latitude],
-        zoom: 19,
-        duration: 100, //ms
-      })
-    }
     return {
       currentMapData: currentMapDataLocal,
       connectingLanes: latestMapMessage.connectingLanesFeatureCollection,
@@ -1615,15 +1594,6 @@ export const intersectionMapSlice = createSlice({
       if (!action.payload) return
       state.value.mapData = action.payload.mapData
       state.value.currentMapData = action.payload.allMapData
-      if (action.payload.mapData != null)
-        state.value.mapRef.current.flyTo({
-          center: [
-            action.payload.mapData.properties.refPoint.longitude,
-            action.payload.mapData.properties.refPoint.latitude,
-          ],
-          zoom: 19,
-          duration: 100, //ms
-        })
       state.value.connectingLanes = action.payload.connectingLanes
       state.value.mapSignalGroups = action.payload.mapSignalGroups
       state.value.mapSpatTimes = { ...state.value.mapSpatTimes, mapTime: action.payload.mapTime }
@@ -1717,20 +1687,6 @@ export const intersectionMapSlice = createSlice({
           }>
         ) => {
           state.value.currentMapData = action.payload.currentMapData
-          const previousMapMessage: ProcessedMap | undefined = action.payload.currentMapData.at(-1)
-          if (
-            state.value.mapData != null &&
-            (state.value.mapData.properties.refPoint.latitude != previousMapMessage?.properties.refPoint.latitude ||
-              state.value.mapData.properties.refPoint.longitude != previousMapMessage?.properties.refPoint.longitude)
-          )
-            state.value.mapRef.current.flyTo({
-              center: [
-                action.payload.mapData.properties.refPoint.longitude,
-                action.payload.mapData.properties.refPoint.latitude,
-              ],
-              zoom: 19,
-              duration: 100, //ms
-            })
           state.value.connectingLanes = action.payload.connectingLanes
           state.value.mapData = action.payload.mapData
           state.value.mapSignalGroups = action.payload.mapSignalGroups

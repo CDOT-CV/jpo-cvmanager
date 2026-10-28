@@ -161,6 +161,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
     longitude: -105.0907089,
     zoom: 11,
   })
+  const [mapLoaded, setMapLoaded] = useState(false)
   const [bsmTrailLength, setBsmTrailLength] = useState<number>(5)
   const [openPanel, setOpenPanel] = useState<string>('')
   const [cursor, setCursor] = useState<string>('default')
@@ -298,20 +299,18 @@ const IntersectionMap = (props: MAP_PROPS) => {
   }, [mapRef, dispatch])
 
   useEffect(() => {
-    if (props.sourceDataType === 'timestamp') {
-      const refPoint = mapData?.properties.refPoint
-      if (!refPoint || !mapRef.current) return
+    const refPoint = mapData?.properties.refPoint
+    if (!mapLoaded || !mapRef.current || !refPoint) return
 
-      mapRef.current.flyTo({
-        center: [refPoint.longitude, refPoint.latitude],
-        zoom: 19,
-        bearing: 0,
-        duration: 1000,
-      })
-    }
-    // Only trigger on mapData change when sourceDataType is 'timestamp'
+    mapRef.current.flyTo({
+      center: [refPoint.longitude, refPoint.latitude],
+      zoom: 19,
+      duration: 100,
+    })
+    // Fly to the reference point when the map is loaded and the reference point is available
+    // Do not trigger on other prop changes, only on mapLoaded and reference point changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapData])
+  }, [mapLoaded, mapData?.properties.refPoint.longitude, mapData?.properties.refPoint.latitude])
 
   const activeSrmFeatureCollection = useMemo(() => {
     const srmFeatures = addSsmStatus(activeSrmData, activeSsmData)
@@ -551,6 +550,7 @@ const IntersectionMap = (props: MAP_PROPS) => {
             })
 
             if (mapRef.current) dispatch(setMapRef(mapRef))
+            setMapLoaded(true)
           }}
         >
           {/* 

@@ -27,6 +27,8 @@ export const DecoderEntry = (props: DecoderDataEntry & DecoderEntryProps) => {
   useEffect(() => {
     setLocalText(text)
     setPreviouslySubmittedText('')
+    // Only trigger on ID change, not rest update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const getIntersectionId = (decodedResponse: DecoderApiResponseGeneric | undefined) => {
