@@ -20,91 +20,171 @@ exports[`should take a snapshot 1`] = `
         <hr
           class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
         />
-        <div
-          class="MuiFormGroup-root css-mocked-MuiFormGroup-root"
+        <section
+          aria-label="Test Org email subscriptions"
+          class="MuiBox-root css-dgkvgz"
         >
           <div
-            class="MuiBox-root css-1ve1w0b"
+            class="MuiBox-root css-1cj0r52"
           >
             <div
-              class="MuiBox-root css-0"
+              class="MuiBox-root css-axw7ok"
             >
-              <p
-                class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
+              <h4
+                class="MuiTypography-root MuiTypography-h6 css-mocked-MuiTypography-root"
               >
-                Incident Alerts
-              </p>
+                Test Org
+              </h4>
+              <div
+                class="MuiChip-root MuiChip-filled MuiChip-sizeSmall MuiChip-colorSecondary MuiChip-filledSecondary css-mocked-MuiChip-root"
+              >
+                <span
+                  class="MuiChip-label MuiChip-labelSmall css-mocked-MuiChip-label"
+                >
+                  Subscribed to 1 of 1
+                </span>
+              </div>
+            </div>
+            <label
+              class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementStart css-mocked-MuiFormControlLabel-root"
+            >
+              <span
+                class="MuiSwitch-root MuiSwitch-sizeMedium css-mocked-MuiSwitch-root"
+              >
+                <span
+                  class="MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorSecondary Mui-checked PrivateSwitchBase-root MuiSwitch-switchBase MuiSwitch-colorSecondary Mui-checked Mui-checked css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiSwitch-switchBase"
+                >
+                  <input
+                    aria-label="Subscribe to all Test Org emails"
+                    checked=""
+                    class="PrivateSwitchBase-input MuiSwitch-input css-mocked-MuiSwitchBase-root"
+                    type="checkbox"
+                  />
+                  <span
+                    class="MuiSwitch-thumb css-mocked-MuiSwitch-thumb"
+                  />
+                </span>
+                <span
+                  class="MuiSwitch-track css-mocked-MuiSwitch-track"
+                />
+              </span>
               <p
                 class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
               >
-                Notifications for incident activity
+                Subscribed
               </p>
-            </div>
+            </label>
+          </div>
+          <div
+            class="MuiFormGroup-root css-mocked-MuiFormGroup-root"
+          >
             <div
-              class="MuiBox-root css-f4fskt"
+              class="MuiBox-root css-1ve1w0b"
             >
-              <label
-                class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
+              <div
+                class="MuiBox-root css-2djo2m"
               >
-                <span
-                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall Mui-checked MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                <div
+                  class="MuiBox-root css-0"
                 >
-                  <input
-                    checked=""
-                    class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                    data-indeterminate="false"
-                    type="checkbox"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
-                    data-testid="CheckBoxIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
+                  <p
+                    class="MuiTypography-root MuiTypography-body1 css-mocked-MuiTypography-root"
                   >
-                    <path
-                      d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-                    />
-                  </svg>
-                </span>
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+                    Incident Alerts
+                  </p>
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+                  >
+                    Notifications for incident activity
+                  </p>
+                </div>
+                <span
+                  class="MuiSwitch-root MuiSwitch-sizeSmall css-mocked-MuiSwitch-root"
                 >
-                  Immediate
-                </p>
-              </label>
-              <label
-                class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
+                  <span
+                    class="MuiButtonBase-root MuiSwitch-switchBase MuiSwitch-colorSecondary Mui-checked PrivateSwitchBase-root MuiSwitch-switchBase MuiSwitch-colorSecondary Mui-checked Mui-checked css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiSwitch-switchBase"
+                  >
+                    <input
+                      aria-label="Subscribe to Incident Alerts for Test Org"
+                      checked=""
+                      class="PrivateSwitchBase-input MuiSwitch-input css-mocked-MuiSwitchBase-root"
+                      type="checkbox"
+                    />
+                    <span
+                      class="MuiSwitch-thumb css-mocked-MuiSwitch-thumb"
+                    />
+                  </span>
+                  <span
+                    class="MuiSwitch-track css-mocked-MuiSwitch-track"
+                  />
+                </span>
+              </div>
+              <div
+                class="MuiBox-root css-f4fskt"
               >
-                <span
-                  class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                <label
+                  class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
                 >
-                  <input
-                    class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
-                    data-indeterminate="false"
-                    type="checkbox"
-                  />
-                  <svg
-                    aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
-                    data-testid="CheckBoxOutlineBlankIcon"
-                    focusable="false"
-                    viewBox="0 0 24 24"
+                  <span
+                    class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall Mui-checked MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                   >
-                    <path
-                      d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                    <input
+                      checked=""
+                      class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
+                      data-indeterminate="false"
+                      type="checkbox"
                     />
-                  </svg>
-                </span>
-                <p
-                  class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                      data-testid="CheckBoxIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                      />
+                    </svg>
+                  </span>
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+                  >
+                    Immediate
+                  </p>
+                </label>
+                <label
+                  class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-mocked-MuiFormControlLabel-root"
                 >
-                  Daily
-                </p>
-              </label>
+                  <span
+                    class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall MuiCheckbox-root MuiCheckbox-colorSecondary MuiCheckbox-sizeSmall css-mocked-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                  >
+                    <input
+                      class="PrivateSwitchBase-input css-mocked-MuiSwitchBase-root"
+                      data-indeterminate="false"
+                      type="checkbox"
+                    />
+                    <svg
+                      aria-hidden="true"
+                      class="MuiSvgIcon-root MuiSvgIcon-fontSizeSmall css-mocked-MuiSvgIcon-root"
+                      data-testid="CheckBoxOutlineBlankIcon"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  </span>
+                  <p
+                    class="MuiTypography-root MuiTypography-body2 css-mocked-MuiTypography-root"
+                  >
+                    Daily
+                  </p>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
         <hr
           class="MuiDivider-root MuiDivider-fullWidth css-mocked-MuiDivider-root"
         />
@@ -159,7 +239,7 @@ exports[`should take a snapshot 1`] = `
           <span
             class="MuiTypography-root MuiTypography-caption css-mocked-MuiTypography-root"
           >
-            Your subscription preferences will be applied immediately. You can update these settings at any time.
+            Organization emails are set separately for each organization, and system-wide emails apply across all of them. Your preferences will be applied immediately, and you can update these settings at any time.
           </span>
         </div>
       </div>
