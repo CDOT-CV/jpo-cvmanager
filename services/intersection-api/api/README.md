@@ -239,6 +239,32 @@ also available through this API and the Firmware tab.
   Automatic cleanup expires stale uploads and removes old failed/expired records;
   it does not delete cloud files or verified firmware.
 
+## OBU OTA Request History
+
+The OBU OTA server (`services/addons/images/obu_ota_server`) records every OBU
+firmware download attempt in the PostgreSQL `obu_ota_requests` table. The API
+exposes that history read-only at `GET /admin/obu-ota-requests` for admins and
+superusers. Requests are not tied to an organization, so admins of any
+organization can view the full history.
+
+Query parameters (all optional):
+
+<!-- prettier-ignore -->
+| Parameter | Description |
+| --- | --- |
+| `page`, `size` | Zero-based page number and page size (1-200, default 100) |
+| `serial` | Case-insensitive substring of the OBU serial number |
+| `manufacturer` | Manufacturer name (case-insensitive exact match) |
+| `status` | `success` or `error` |
+| `start`, `end` | Inclusive ISO-8601 instants, for example `2026-06-01T00:00:00Z` |
+| `sort` | `request_datetime`, `obu_sn`, `obu_firmware_version`, or `requested_firmware_version`, followed by `,asc` or `,desc` (default `request_datetime,desc`) |
+
+The response contains `items` and `total_elements`. Each item includes the
+request ID, OBU serial number, UTC request time, origin IP, the OBU's current
+firmware version, the requested firmware file, `status`, error message, and
+manufacturer name. The OTA server keeps only the newest `MAX_COUNT` successful
+requests per serial number.
+
 ## RSU reboot
 
 - Supports Commsignia RSUs only.
