@@ -26,7 +26,8 @@ const ContactSupportMenu = () => {
   const onSubmit = async (data: SupportRequestEmailContents) => {
     try {
       const response = await submitSupportRequest(data).unwrap()
-      if (response.failureCount === 0) {
+      // Nothing sent and nothing failed means no one received the request
+      if (response.failureCount === 0 && response.successCount > 0) {
         toast.success(`Successfully sent support request`)
         reset()
       } else {
