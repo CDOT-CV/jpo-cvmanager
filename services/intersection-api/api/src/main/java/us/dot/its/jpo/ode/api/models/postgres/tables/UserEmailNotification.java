@@ -32,6 +32,15 @@ public class UserEmailNotification {
     @JoinColumn(name = "email_type_id", nullable = false)
     private EmailType emailType;
 
+    /**
+     * Organization this subscription applies to; null for system-wide email
+     * types (see {@link EmailType#getOrganizationScoped()}).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     @NotNull
     @ColumnDefault("true")
     @Column(name = "immediate", nullable = false)
