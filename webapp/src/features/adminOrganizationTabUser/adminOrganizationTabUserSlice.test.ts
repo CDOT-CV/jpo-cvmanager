@@ -49,7 +49,7 @@ describe('admin organization tab User reducer', () => {
 
 describe('async thunks', () => {
   describe('userDeleteSingle', () => {
-    it('returns and calls the api correctly', ;async () => {
+    it('returns and calls the api correctly', async () => {
       let dispatch = vi.fn()
       const getState = vi.fn().mockReturnValue({
         user: {
