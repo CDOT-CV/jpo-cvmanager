@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -17,7 +19,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import us.dot.its.jpo.ode.api.models.emails.UserEmailNotificationDto;
 import us.dot.its.jpo.ode.api.models.keycloak.CvManagerAuthToken;
-import us.dot.its.jpo.ode.api.models.postgres.tables.UserOrganization;
 import us.dot.its.jpo.ode.api.models.UserRole;
 import us.dot.its.jpo.ode.api.models.emails.EmailSubscriptionGetResponse;
 import us.dot.its.jpo.ode.api.services.EmailService;
@@ -50,12 +51,8 @@ public class SubscriptionController {
     public EmailSubscriptionGetResponse getEmailSubscriptions() {
 
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
-        boolean isSuperUser = permissionService.isSuperUser();
-        boolean isOperator = isSuperUser || !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
-        boolean isAdmin = isSuperUser || !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
         List<UserEmailNotificationDto> subscriptions = emailService.getAllEmailSubscriptionOptionsForUser(
-                authToken.getEmail(),
-                isOperator, isAdmin);
+                authToken.getEmail(), getOrgRoles(authToken), permissionService.isSuperUser());
         return new EmailSubscriptionGetResponse(subscriptions, authToken.getEmail());
     }
 
@@ -71,11 +68,22 @@ public class SubscriptionController {
             @Valid @RequestBody List<UserEmailNotificationDto> requestedSubscriptions) {
 
         CvManagerAuthToken authToken = permissionService.getCvManagerAuthToken();
-        boolean isSuperUser = permissionService.isSuperUser();
-        boolean isOperator = isSuperUser || !authToken.getQualifiedOrgList(UserRole.OPERATOR).isEmpty();
-        boolean isAdmin = isSuperUser || !authToken.getQualifiedOrgList(UserRole.ADMIN).isEmpty();
-        emailService.updateEmailSubscriptions(authToken.getEmail(), isOperator, isAdmin, requestedSubscriptions);
+        emailService.updateEmailSubscriptions(authToken.getEmail(), getOrgRoles(authToken),
+                permissionService.isSuperUser(), requestedSubscriptions);
 
         return;
+    }
+
+    /**
+     * The user's role in each of their organizations, keyed by organization name.
+     * Super users are treated as ADMIN in every organization they belong to.
+     */
+    private Map<String, UserRole> getOrgRoles(CvManagerAuthToken authToken) {
+        boolean isSuperUser = permissionService.isSuperUser();
+        return authToken.getOrgRoles().values().stream()
+                .collect(Collectors.toMap(
+                        orgRole -> orgRole.getLeft().getName(),
+                        orgRole -> isSuperUser ? UserRole.ADMIN : orgRole.getRight(),
+                        (first, second) -> first));
     }
 }

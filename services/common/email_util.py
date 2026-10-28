@@ -2,27 +2,27 @@ from common.pgquery import query_db
 
 
 def build_user_email_list(msg_type, org_name):
-    # Build the user email query based on the availability of an organization name
+    # With an organization name, only users subscribed for that organization are
+    # returned. That filter only applies to organization-scoped email types;
+    # system-wide types have no organization, so pass no org_name for them
     email_query = (
         "SELECT to_jsonb(row) FROM ("
-        "SELECT email FROM public.users "
-        "WHERE user_id IN ("
-        "SELECT user_id FROM public.user_email_notification "
-        "WHERE email_type_id = ("
-        f"SELECT email_type_id FROM public.email_type WHERE email_type = '{msg_type}'"
-        "))"
+        "SELECT DISTINCT u.email FROM public.users u "
+        "JOIN public.user_email_notification uen ON uen.user_id = u.user_id "
+        "JOIN public.email_type et ON et.email_type_id = uen.email_type_id "
+        "WHERE et.email_type = :msg_type"
     )
+    params = {"msg_type": msg_type}
     if org_name:
         email_query += (
-            " AND user_id IN ("
-            "SELECT user_id FROM public.user_organization "
-            "WHERE organization_id = ("
-            f"SELECT organization_id FROM public.organizations WHERE name = '{org_name}'"
-            "))"
+            " AND uen.organization_id = ("
+            "SELECT organization_id FROM public.organizations WHERE name = :org_name"
+            ")"
         )
+        params["org_name"] = org_name
     email_query += ") as row"
 
-    data = query_db(email_query)
+    data = query_db(email_query, params)
 
     email_list = []
     for row in data:
