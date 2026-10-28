@@ -2,7 +2,7 @@ package us.dot.its.jpo.ode.api.models.devices.management;
 
 import java.time.OffsetDateTime;
 
-/** One displayable forwarding row, independent of its database or live SNMP source. */
+/** One forwarding row with UTC timestamps, independent of its database or live SNMP source. */
 public record MessageForwardingConfiguration(Table table, int index, String messageType,
         String destinationIp, int destinationPort, OffsetDateTime startDatetime, OffsetDateTime endDatetime,
         boolean active, boolean includeSecurity) {
